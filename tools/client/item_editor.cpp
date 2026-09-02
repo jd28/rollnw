@@ -399,16 +399,13 @@ bool ItemEditor::refresh_model_options(
     int selected = -1;
     for (size_t index = 0; index < model_options_.size(); ++index) {
         const auto& row = model_options_[index];
-        std::string label = row.label;
-        if (!row.detail.empty()) {
-            label += "  ";
-            label += row.detail;
-        }
         items.push_back(UiListItem{
             .key = std::to_string(row.value),
-            .cells = {std::move(label), {}, {}, {}},
-            .cell_count = 1,
-            .enabled_mask = 1,
+            .cells = {row.label, row.detail, {}, {}},
+            .cell_count = static_cast<uint8_t>(
+                row.detail.empty() ? 1 : 2),
+            .enabled_mask = static_cast<uint8_t>(
+                row.detail.empty() ? 1 : 3),
         });
         if (row.packed_value == part->value) {
             selected = static_cast<int>(index);
@@ -438,6 +435,10 @@ bool ItemEditor::refresh_model_options(
 bool ItemEditor::open_model(smalls::Runtime& runtime,
     int32_t part, int32_t axis, VirtualListHost& host)
 {
+    if (appearance_mode_ == ItemEditorAppearanceMode::model
+        && model_part_ == part && model_axis_ == axis) {
+        return close_appearance(host);
+    }
     model_part_ = part;
     model_axis_ = axis;
     if (!refresh_model_options(runtime, host)) {
@@ -647,6 +648,8 @@ ItemEditorAppearanceInput ItemEditor::appearance_input() const noexcept
         .parts = snapshot_.parts,
         .colors = snapshot_.colors,
         .mode = appearance_mode_,
+        .model_part = model_part_,
+        .model_axis = model_axis_,
         .color_part = color_part_,
         .color_channel = color_channel_,
     };

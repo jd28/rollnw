@@ -440,10 +440,11 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
 [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
     PreviewScene& scene,
     std::span<const nw::ObjectHandle> objects);
-// Batch replacement of live creature visual rows. Input handles are borrowed
-// and must be unique live creatures represented by this scene. Replacement
-// assets are built before scene mutation; invalid or failed batches leave the
-// scene unchanged. The scene retains ownership of appended rows.
+// Batch replacement of live Creature or Item visual rows. The input is a
+// borrowed flat span of unique live handles already represented by the scene;
+// unsupported, duplicate, missing, or unrepresented rows reject the complete
+// batch. All replacement assets are built before scene mutation, and the scene
+// retains the appended render rows for its lifetime.
 [[nodiscard]] ObjectVisualRefreshResult refresh_object_visuals(
     PreviewScene& scene,
     PreviewRenderResources& resources,

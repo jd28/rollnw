@@ -520,6 +520,113 @@ TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
     EXPECT_TRUE(report_has_resource(report, {"wswsc_t_044"sv, nw::ResourceType::mdl}));
 }
 
+TEST(RenderViewerPreparedDraws, StandaloneItemVisualEditRefreshesInPlace)
+{
+    namespace viewer = nw::render::viewer;
+
+    const std::filesystem::path item_path{
+        "test_data/user/development/wduersc004.uti"};
+    if (!std::filesystem::exists(item_path)) {
+        GTEST_SKIP() << "development fixture unavailable: "
+                     << item_path.string();
+    }
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    if (!device.initialize(
+            viewer::ViewerDeviceOptions{.shader_roots = shader_roots})) {
+        GTEST_SKIP() << "viewer device unavailable";
+    }
+
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_object_file(item_path));
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    const nw::ObjectHandle item = session->active_object();
+    ASSERT_EQ(item.type, nw::ObjectType::item);
+    ASSERT_EQ(scene->root_object, item);
+
+    const auto* visuals
+        = nw::kernel::objects().components().find_item_visuals(item);
+    ASSERT_NE(visuals, nullptr);
+    std::optional<nw::toolset::ObjectEditBatch> edit;
+    int32_t edited_part = -1;
+    int32_t edited_value = -1;
+    for (size_t part = 0;
+        part < nw::ObjectItemVisualState::model_part_count && !edit;
+        ++part) {
+        const int32_t current = visuals->model_parts[part];
+        for (int32_t value = 0; value < 256; ++value) {
+            if (value == current) {
+                continue;
+            }
+            const std::array parts{static_cast<int32_t>(part)};
+            const std::array values{value};
+            auto candidate = nw::toolset::make_item_model_part_edits(
+                nw::kernel::runtime(), item, parts, values);
+            if (candidate) {
+                edited_part = parts.front();
+                edited_value = value;
+                edit = std::move(candidate);
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(edit) << "fixture exposes no alternate Item model";
+
+    ASSERT_FALSE(scene->static_models.empty());
+    const std::vector<std::string> model_names_before
+        = scene->load_report.model_names;
+    const auto* root_before = scene->static_model_instance(0);
+    ASSERT_NE(root_before, nullptr);
+    const glm::mat4 root_transform_before = root_before->root_transform;
+    constexpr viewer::ViewerViewport viewport{
+        .x = 0,
+        .y = 0,
+        .width = 256,
+        .height = 256,
+    };
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    session->camera().pan(24.0f, 12.0f);
+    const glm::mat4 camera_before
+        = session->camera().get_view_matrix();
+
+    const auto applied = nw::toolset::apply_object_edits(
+        nw::kernel::runtime(), *edit,
+        nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+    ASSERT_EQ(nw::kernel::objects().components().find_item_visuals(item)->model_parts[static_cast<size_t>(edited_part)],
+        edited_value);
+
+    ASSERT_TRUE(session->refresh_live_object_visual(item));
+    EXPECT_EQ(session->scene(), scene);
+    EXPECT_EQ(session->active_object(), item);
+    EXPECT_LT(max_abs_matrix_delta(
+                  session->camera().get_view_matrix(), camera_before),
+        1.0e-5f);
+    ASSERT_FALSE(scene->static_models.empty());
+    EXPECT_NE(scene->load_report.model_names, model_names_before);
+    const auto* root_after = scene->static_model_instance(0);
+    ASSERT_NE(root_after, nullptr);
+    EXPECT_LT(max_abs_matrix_delta(
+                  root_after->root_transform, root_transform_before),
+        1.0e-5f);
+
+    std::string failure;
+    ASSERT_TRUE(render_viewer_frame(
+        gfx.context, *session, viewport, failure))
+        << failure;
+}
+
 TEST(RenderViewerPreparedDraws, PlaceableLoadReportUsesVisualComponentRows)
 {
     namespace viewer = nw::render::viewer;

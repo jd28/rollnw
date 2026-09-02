@@ -800,7 +800,7 @@ fn _append_item_editor_part(
     if (model_type == Rules.item_model_type_composite) {
         detail = f"Model {value / 10}, variation {value % 10}";
     } else {
-        if (value == 0) { detail = "None"; }
+        detail = value == 0 ? "None" : f"Variation {value}";
     }
     var row: ItemEditorPartRow = {
         part = part,
@@ -900,12 +900,32 @@ fn _item_editor_model_option_available(
     return T.resource_exists(icon.resref, T.resource_type_tga);
 }
 
+fn _item_editor_model_option_detail(
+    base_item: int, entry: base.BaseItemInfo, part: int, packed_value: int): string {
+    if (packed_value <= 0) { return ""; }
+    if (entry.model_type == Rules.item_model_type_armor) {
+        var token = _item_editor_part_token(part);
+        if (token == "") { return ""; }
+        return T.resref_to_string(
+            _creature_part_model("m", T.resref("h"), 0, token, packed_value));
+    }
+
+    var model = Rules.item_model_resref(
+        entry.model_type, entry.item_class, part, packed_value);
+    if (T.resource_exists(model, T.resource_type_mdl)) {
+        return T.resref_to_string(model);
+    }
+    return T.resref_to_string(
+        resolve_icon_by_state(base_item, part, packed_value, false).resref);
+}
+
 fn _item_editor_model_option(
-    value: int, packed_value: int, detail: string): ItemEditorModelOptionRow {
+    value: int, packed_value: int, label: string,
+    detail: string): ItemEditorModelOptionRow {
     return ItemEditorModelOptionRow {
         value = value,
         packed_value = packed_value,
-        label = f"{value}",
+        label = label,
         detail = detail,
     };
 }
@@ -919,7 +939,7 @@ fn _get_composite_model_options(
     var current_model = current / item_editor_composite_color_count;
     var current_color = current % item_editor_composite_color_count;
     if (current_model == 0) {
-        Array.push(rows, _item_editor_model_option(0, current, ""));
+        Array.push(rows, _item_editor_model_option(0, current, "None", ""));
     }
     for (var model = 1; model < item_editor_composite_model_count; model += 1) {
         var target = -1;
@@ -941,7 +961,9 @@ fn _get_composite_model_options(
         if (target < 0) {
             continue;
         }
-        Array.push(rows, _item_editor_model_option(model, target, ""));
+        Array.push(rows, _item_editor_model_option(model, target,
+            f"Model {model}", _item_editor_model_option_detail(
+                base_item, entry, part, target)));
     }
     return rows;
 }
@@ -955,7 +977,7 @@ fn _get_composite_color_options(
     var current_model = current / item_editor_composite_color_count;
     var current_color = current % item_editor_composite_color_count;
     if (current_color == 0) {
-        Array.push(rows, _item_editor_model_option(0, current, ""));
+        Array.push(rows, _item_editor_model_option(0, current, "None", ""));
     }
     for (var color = 1; color < item_editor_composite_color_count; color += 1) {
         var packed = current_model * item_editor_composite_color_count + color;
@@ -968,7 +990,9 @@ fn _get_composite_color_options(
                     base_item, entry, part, packed))) {
             continue;
         }
-        Array.push(rows, _item_editor_model_option(color, packed, ""));
+        Array.push(rows, _item_editor_model_option(color, packed,
+            f"Variation {color}", _item_editor_model_option_detail(
+                base_item, entry, part, packed)));
     }
     return rows;
 }
@@ -1007,8 +1031,10 @@ fn get_item_model_editor_options(
         if (value == current
             || _item_editor_model_option_available(
                 stats.base_item, info, part, value)) {
-            var detail = value == 0 ? "None" : "";
-            Array.push(rows, _item_editor_model_option(value, value, detail));
+            var label = value == 0 ? "None" : f"Variation {value}";
+            Array.push(rows, _item_editor_model_option(value, value, label,
+                _item_editor_model_option_detail(
+                    stats.base_item, info, part, value)));
         }
     }
     return rows;

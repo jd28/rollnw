@@ -416,11 +416,21 @@ TEST(ClientSmallsItemEditor, CompositeModelAndColorAxesUsePackedTargets)
         ASSERT_TRUE(model_rows->get_value(index, row, runtime));
         const auto value = read_int_field(runtime, row, "value");
         const auto packed_value = read_int_field(runtime, row, "packed_value");
+        const auto label = read_string_field(runtime, row, "label");
+        const auto detail = read_string_field(runtime, row, "detail");
         const auto icon = read_string_field(runtime, row, "icon");
         ASSERT_TRUE(value);
         ASSERT_TRUE(packed_value);
+        ASSERT_TRUE(label);
+        ASSERT_TRUE(detail);
         EXPECT_FALSE(icon);
         EXPECT_EQ(*packed_value / 10, *value);
+        if (*value == 0) {
+            EXPECT_EQ(*label, "None");
+        } else {
+            EXPECT_EQ(*label, "Model " + std::to_string(*value));
+            EXPECT_FALSE(detail->empty());
+        }
         found_current |= *packed_value == current->value;
         if (*packed_value != current->value && !replacement) {
             EXPECT_GT(*value, 0);
@@ -450,11 +460,17 @@ TEST(ClientSmallsItemEditor, CompositeModelAndColorAxesUsePackedTargets)
         ASSERT_TRUE(color_rows->get_value(index, row, runtime));
         const auto value = read_int_field(runtime, row, "value");
         const auto packed_value = read_int_field(runtime, row, "packed_value");
+        const auto label = read_string_field(runtime, row, "label");
+        const auto detail = read_string_field(runtime, row, "detail");
         ASSERT_TRUE(value);
         ASSERT_TRUE(packed_value);
+        ASSERT_TRUE(label);
+        ASSERT_TRUE(detail);
         EXPECT_EQ(*packed_value / 10, *replacement / 10);
         EXPECT_EQ(*packed_value % 10, *value);
         EXPECT_GT(*value, 0);
+        EXPECT_EQ(*label, "Variation " + std::to_string(*value));
+        EXPECT_FALSE(detail->empty());
         found_current |= *packed_value == *replacement;
     }
     EXPECT_TRUE(found_current);
@@ -494,13 +510,16 @@ TEST(ClientSmallsItemEditor, CompositeWaraxeOptionsKeepCurrentPackedModelVisible
         const auto value = read_int_field(runtime, row, "value");
         const auto packed_value = read_int_field(runtime, row, "packed_value");
         const auto label = read_string_field(runtime, row, "label");
+        const auto detail = read_string_field(runtime, row, "detail");
         ASSERT_TRUE(value);
         ASSERT_TRUE(packed_value);
         ASSERT_TRUE(label);
+        ASSERT_TRUE(detail);
         EXPECT_FALSE(label->empty());
         if (*packed_value == 83) {
             EXPECT_EQ(*value, 8);
-            EXPECT_EQ(*label, "8");
+            EXPECT_EQ(*label, "Model 8");
+            EXPECT_FALSE(detail->empty());
             found_current = true;
         }
     }

@@ -59,6 +59,8 @@ struct ItemEditorDataModel::Impl {
         std::string display;
         std::vector<ColorRow> colors;
         bool split = false;
+        bool model_open = false;
+        bool variation_open = false;
     };
 
     void clear_view()
@@ -111,6 +113,12 @@ struct ItemEditorDataModel::Impl {
                     ? std::to_string(source.value)
                     : source.detail,
                 .split = source.split_model_color,
+                .model_open = input.mode == ItemEditorAppearanceMode::model
+                    && input.model_part == source.part
+                    && input.model_axis == 0,
+                .variation_open = input.mode == ItemEditorAppearanceMode::model
+                    && input.model_part == source.part
+                    && input.model_axis == 1,
             };
             if (source.per_part_colors) {
                 for (const auto& color : input.colors) {
@@ -179,10 +187,9 @@ struct ItemEditorDataModel::Impl {
         }
 
         switch (input.mode) {
+        case ItemEditorAppearanceMode::model:
         case ItemEditorAppearanceMode::main:
             build_main(input);
-            break;
-        case ItemEditorAppearanceMode::model:
             break;
         case ItemEditorAppearanceMode::color:
             build_color(input);
@@ -326,6 +333,9 @@ struct ItemEditorDataModel::Impl {
             && part.RegisterMember("display", &PartRow::display)
             && part.RegisterMember("colors", &PartRow::colors)
             && part.RegisterMember("split", &PartRow::split)
+            && part.RegisterMember("model_open", &PartRow::model_open)
+            && part.RegisterMember(
+                "variation_open", &PartRow::variation_open)
             && constructor.RegisterArray<std::vector<PartRow>>()
             && constructor.RegisterArray<std::vector<int32_t>>();
     }

@@ -31,6 +31,7 @@
 
 #item_appearance_dynamic {
   display: flex;
+  position: relative;
   flex: 1;
   flex-direction: column;
   min-width: 0px;
@@ -226,6 +227,17 @@
   min-height: 0px;
   overflow-y: auto;
 }
+.item_model_dropdown {
+  display: none;
+  z-index: 32;
+}
+.item_model_dropdown.active {
+  display: block;
+}
+.item_model_dropdown .item_option_rows {
+  width: 100%;
+  height: 100%;
+}
 .item_option_rows .virtual_combobox_option,
 .item_option_rows .managed_list_row {
   display: flex;
@@ -271,11 +283,26 @@
 }
 #item_option_rows .managed_list_cell {
   display: block;
-  width: 100%;
   height: 34px;
-  padding: 0 10px;
-  color: #e3e8ed;
   line-height: 33px;
+}
+#item_option_rows .managed_list_cell.cell_0 {
+  flex: 0 0 auto;
+  max-width: 48%;
+  padding: 0 8px;
+  color: #e3e8ed;
+  font-weight: 700;
+}
+#item_option_rows .managed_list_cell.cell_1 {
+  flex: 1 1 auto;
+  padding: 0 8px 0 0;
+  overflow: hidden;
+  color: #8996a2;
+  font-family: RollnwMono;
+  font-size: 10px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item_color_inherit {

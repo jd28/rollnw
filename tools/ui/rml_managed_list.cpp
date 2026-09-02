@@ -262,24 +262,42 @@ bool position_managed_list_popups(Rml::ElementDocument* document)
 
         const std::string anchor_list_id = popup->GetAttribute<Rml::String>(
             "data-anchor-list-id", "");
+        const std::string anchor_element_class
+            = popup->GetAttribute<Rml::String>(
+                "data-anchor-element-class", "");
         const std::string bounds_id = popup->GetAttribute<Rml::String>(
             "data-popup-bounds-id", "");
         const auto popup_height = parse_int(popup->GetAttribute<Rml::String>(
             "data-popup-height", ""));
         const auto anchor_cell = parse_int(popup->GetAttribute<Rml::String>(
             "data-anchor-cell", "-1"));
-        if (anchor_list_id.empty() || bounds_id.empty() || !popup_height
+        if ((anchor_list_id.empty() && anchor_element_class.empty())
+            || bounds_id.empty() || !popup_height
             || *popup_height <= 0 || !anchor_cell || *anchor_cell < -1) {
             continue;
         }
 
         Rml::Element* anchor = nullptr;
-        for (auto* row : rows) {
-            if (row->IsClassSet("selected")
-                && row->GetAttribute<Rml::String>("data-list-id", "")
-                    == anchor_list_id) {
-                anchor = row;
-                break;
+        if (!anchor_element_class.empty()) {
+            Rml::ElementList anchors;
+            document->GetElementsByClassName(
+                anchors, anchor_element_class);
+            const auto visible = std::ranges::find_if(
+                anchors, [](const Rml::Element* element) {
+                    return element->IsVisible(true);
+                });
+            if (visible != anchors.end()) {
+                anchor = *visible;
+            }
+        } else {
+            for (auto* row : rows) {
+                if (row->IsClassSet("selected")
+                    && row->GetAttribute<Rml::String>(
+                           "data-list-id", "")
+                        == anchor_list_id) {
+                    anchor = row;
+                    break;
+                }
             }
         }
         if (!anchor) {

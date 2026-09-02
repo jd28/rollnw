@@ -439,7 +439,18 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
             invocations.push_back({std::string{command},
                 std::vector<int32_t>{arguments.begin(), arguments.end()}});
             if (command == "toolset.item.appearance.open_model") {
-                input.mode = nw::toolset::ItemEditorAppearanceMode::model;
+                if (input.mode
+                        == nw::toolset::ItemEditorAppearanceMode::model
+                    && input.model_part == arguments[0]
+                    && input.model_axis == arguments[1]) {
+                    input.mode
+                        = nw::toolset::ItemEditorAppearanceMode::main;
+                } else {
+                    input.mode
+                        = nw::toolset::ItemEditorAppearanceMode::model;
+                    input.model_part = arguments[0];
+                    input.model_axis = arguments[1];
+                }
             } else if (command == "toolset.item.appearance.close") {
                 input.mode = nw::toolset::ItemEditorAppearanceMode::main;
             } else if (command == "toolset.item.appearance.open_color") {
@@ -511,11 +522,34 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     ASSERT_NE(option_rows, nullptr);
     EXPECT_TRUE(item_model.apply_pending_focus(document));
     EXPECT_EQ(context->GetFocusElement(), option_rows);
+    EXPECT_NE(document->GetElementById("item_appearance_main"), nullptr);
+    auto* model_dropdown = document->GetElementById(
+        "item_model_dropdown");
+    ASSERT_NE(model_dropdown, nullptr);
+    EXPECT_TRUE(model_dropdown->IsVisible(true));
+    EXPECT_EQ(model_dropdown->GetAttribute<Rml::String>(
+                  "data-anchor-element-class", ""),
+        "item_model_dropdown_anchor");
+    auto model_anchors = bound_elements_by_class(
+        *document, "item_model_dropdown_anchor");
+    ASSERT_EQ(model_anchors.size(), 1);
+    EXPECT_TRUE(model_anchors.front()->IsVisible(true));
 
-    auto* model_close = document->GetElementById("item_selector_close");
-    ASSERT_NE(model_close, nullptr);
-    ASSERT_TRUE(model_close->DispatchEvent("click", {}));
+    model_fields = bound_elements_by_class(*document, "item_model_field");
+    const auto open_layer_model = std::ranges::find_if(model_fields,
+        [](const Rml::Element* element) {
+            return element->GetInnerRML().find("Layer Nine")
+                != Rml::String::npos;
+        });
+    ASSERT_NE(open_layer_model, model_fields.end());
+    ASSERT_TRUE((*open_layer_model)->DispatchEvent("click", {}));
     context->Update();
+    EXPECT_EQ(invocations.back().command,
+        "toolset.item.appearance.open_model");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{4, 0}));
+    model_dropdown = document->GetElementById("item_model_dropdown");
+    ASSERT_NE(model_dropdown, nullptr);
+    EXPECT_FALSE(model_dropdown->IsVisible(true));
     color_fields = bound_elements_by_class(*document, "item_color_field");
     ASSERT_EQ(color_fields.size(), 2);
     ASSERT_TRUE(color_fields.front()->DispatchEvent("click", {}));
@@ -1437,6 +1471,7 @@ body { display: block; width: 440px; height: 500px; font-family: Inter; }
 .cell_0 { position: absolute; left: 0px; top: 0px; width: 188px; height: 30px; }
 .cell_1 { position: absolute; left: 188px; top: 0px; width: 112px; height: 30px; }
 .managed_list_popup { position: absolute; display: block; }
+.field_anchor { position: absolute; left: 40px; top: 420px; width: 160px; height: 30px; }
 </style></head>
 <body>
   <div id="bounds">
@@ -1448,6 +1483,10 @@ body { display: block; width: 440px; height: 500px; font-family: Inter; }
     <div id="popup" class="managed_list_popup active"
          data-anchor-list-id="parts" data-anchor-cell="1"
          data-popup-bounds-id="bounds" data-popup-height="300"></div>
+    <button id="field_anchor" class="field_anchor" type="button">Variation 44</button>
+    <div id="field_popup" class="managed_list_popup active"
+         data-anchor-element-class="field_anchor"
+         data-popup-bounds-id="bounds" data-popup-height="300"></div>
   </div>
 </body>
 </rml>
@@ -1457,8 +1496,10 @@ body { display: block; width: 440px; height: 500px; font-family: Inter; }
     context->Update();
 
     auto* popup = document->GetElementById("popup");
+    auto* field_popup = document->GetElementById("field_popup");
     auto* bounds = document->GetElementById("bounds");
     ASSERT_NE(popup, nullptr);
+    ASSERT_NE(field_popup, nullptr);
     ASSERT_NE(bounds, nullptr);
     EXPECT_TRUE(popup->IsClassSet("active"));
     EXPECT_GT(bounds->GetOffsetWidth(), 0.0f);
@@ -1473,6 +1514,11 @@ body { display: block; width: 440px; height: 500px; font-family: Inter; }
         "data-popup-placement", "");
     EXPECT_FALSE(placement.empty());
     EXPECT_NE(placement.rfind(":112:300"), std::string::npos);
+    const std::string field_placement
+        = field_popup->GetAttribute<Rml::String>(
+            "data-popup-placement", "");
+    EXPECT_FALSE(field_placement.empty());
+    EXPECT_NE(field_placement.rfind(":160:300"), std::string::npos);
     EXPECT_FALSE(nw::toolset::position_managed_list_popups(document));
 
     document->Close();
@@ -2226,6 +2272,7 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
             .ok());
 
     bool model_selector_open = false;
+    int opened_item_part = -1;
     for (size_t part = 0;
         part < nw::ObjectItemVisualState::model_part_count
         && !model_selector_open;
@@ -2236,23 +2283,52 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
         model_selector_open = backend.execute_command(
                                          "toolset.item.appearance.open_model", views, item_context)
                                   .ok();
+        if (model_selector_open) {
+            opened_item_part = static_cast<int>(part);
+        }
     }
     ASSERT_TRUE(model_selector_open);
+    ASSERT_GE(opened_item_part, 0);
     const auto model_options = nw::toolset::ui_v1_host().window(
         "item.appearance.models", 300, 0);
     ASSERT_TRUE(model_options);
     ASSERT_FALSE(model_options->items.empty());
+    ASSERT_GE(model_options->selected_index, 0);
+    const std::string stale_model_key = model_options->items.front().key;
     const auto* first_visuals = nw::kernel::objects().components().find_item_visuals(first_item->handle());
     const auto* second_visuals = nw::kernel::objects().components().find_item_visuals(second_item->handle());
     ASSERT_NE(first_visuals, nullptr);
     ASSERT_NE(second_visuals, nullptr);
-    const auto first_models_before_stale_event = first_visuals->model_parts;
-    const auto second_models_before_stale_event = second_visuals->model_parts;
+
+    int replacement_index = -1;
+    for (size_t index = 0; index < model_options->items.size(); ++index) {
+        if (static_cast<int>(index) != model_options->selected_index) {
+            replacement_index = static_cast<int>(index);
+            break;
+        }
+    }
+    ASSERT_GE(replacement_index, 0);
+    const int32_t first_model_before_edit = first_visuals->model_parts[static_cast<size_t>(opened_item_part)];
+    const uint64_t mutation_epoch_before_edit
+        = nw::toolset::object_mutation_state().epoch;
+    const size_t undo_count_before_edit = workspace.undo_count();
+    ASSERT_TRUE(activate_managed_list(
+        "item.appearance.models", replacement_index));
+    EXPECT_NE(nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts[static_cast<size_t>(opened_item_part)],
+        first_model_before_edit);
+    EXPECT_EQ(nw::toolset::object_mutation_state().epoch,
+        mutation_epoch_before_edit + 1);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_edit + 1);
+
+    const auto first_models_before_stale_event
+        = nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts;
+    const auto second_models_before_stale_event
+        = nw::kernel::objects().components().find_item_visuals(second_item->handle())->model_parts;
     const size_t item_undo_count_before_stale_event = workspace.undo_count();
     nw::toolset::smalls_rmlui_host().publish_active_object(
         second_item->handle());
     const std::array<std::string, 4> stale_model_args{
-        "item.appearance.models", model_options->items.front().key, "0", "-1"};
+        "item.appearance.models", stale_model_key, "0", "-1"};
     const std::vector<std::string_view> stale_model_views{
         stale_model_args.begin(), stale_model_args.end()};
     const auto stale_model_result = backend.execute_command(

@@ -106,6 +106,8 @@ struct ItemEditorAppearanceInput {
     std::span<const ItemEditorPart> parts;
     std::span<const ItemEditorColor> colors;
     ItemEditorAppearanceMode mode = ItemEditorAppearanceMode::main;
+    int32_t model_part = -1;
+    int32_t model_axis = 0;
     int32_t color_part = -1;
     int32_t color_channel = 0;
 };

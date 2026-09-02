@@ -4389,6 +4389,11 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
                 resources, *door, std::filesystem::path{source}, false);
         }
         break;
+    case nw::ObjectType::item:
+        if (auto* item = nw::kernel::objects().get<nw::Item>(object)) {
+            scene = load_area_item_scene(resources, *item, source);
+        }
+        break;
     case nw::ObjectType::encounter:
         if (auto* encounter = nw::kernel::objects().get<nw::Encounter>(object)) {
             scene = build_encounter_spawn_scene(
@@ -4852,20 +4857,46 @@ ObjectVisualRefreshResult refresh_object_visuals(
 
     std::vector<std::unique_ptr<PreviewScene>> replacements;
     replacements.reserve(objects.size());
+    std::vector<AreaRenderRecordKind> replacement_kinds;
+    replacement_kinds.reserve(objects.size());
     for (size_t i = 0; i < objects.size(); ++i) {
         const auto object = objects[i];
-        auto* creature = nw::kernel::objects().get<nw::Creature>(object);
         const bool represented = !scene.is_area
             || std::any_of(scene.static_area_model_info.begin(), scene.static_area_model_info.end(),
                 [object](const auto& info) { return info.object == object; });
-        if (!creature || !represented) {
+        if (!represented) {
             result.status = ObjectVisualRefreshStatus::invalid_input;
-            result.diagnostic = "Object visual refresh contains an invalid or unrepresented creature";
+            result.diagnostic
+                = "Object visual refresh contains an unrepresented object";
             return result;
         }
 
-        auto replacement = load_area_creature_scene(
-            resources, *creature, fmt::format("visual refresh {}", i), options);
+        std::unique_ptr<PreviewScene> replacement;
+        AreaRenderRecordKind kind = AreaRenderRecordKind::unknown;
+        switch (object.type) {
+        case nw::ObjectType::creature: {
+            auto* creature
+                = nw::kernel::objects().get<nw::Creature>(object);
+            if (creature) {
+                replacement = load_area_creature_scene(resources, *creature,
+                    fmt::format("visual refresh {}", i), options);
+            }
+            kind = AreaRenderRecordKind::creature;
+        } break;
+        case nw::ObjectType::item: {
+            auto* item = nw::kernel::objects().get<nw::Item>(object);
+            if (item) {
+                replacement = load_area_item_scene(
+                    resources, *item, fmt::format("visual refresh {}", i));
+            }
+            kind = AreaRenderRecordKind::item;
+        } break;
+        default:
+            result.status = ObjectVisualRefreshStatus::invalid_input;
+            result.diagnostic
+                = "Object visual refresh type is not supported";
+            return result;
+        }
         if (!replacement) {
             result.status = ObjectVisualRefreshStatus::failed;
             result.diagnostic = "Object visual refresh model construction failed";
@@ -4876,6 +4907,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
         }
         prime_scene_hold_animation(*replacement);
         replacements.push_back(std::move(replacement));
+        replacement_kinds.push_back(kind);
     }
 
     auto removal = remove_object_model_rows(scene, objects);
@@ -4890,7 +4922,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
         added_models += append_render_models(scene,
             *replacements[i],
             AreaRenderSourceInfo{
-                .kind = AreaRenderRecordKind::creature,
+                .kind = replacement_kinds[i],
                 .object = objects[i],
             });
     }

@@ -60,10 +60,10 @@
         <div data-if="error != ''" class="property_tree_empty error">{{ error }}</div>
         <div data-if="error == '' &amp;&amp; live == false"
              class="property_tree_empty">Waiting for a live Item.</div>
-        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 0 &amp;&amp; has_parts == false"
+        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode != 2 &amp;&amp; has_parts == false"
              class="property_tree_empty">This item has no editable visual parts.</div>
 
-        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 0 &amp;&amp; has_parts"
+        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode != 2 &amp;&amp; has_parts"
              id="item_appearance_main" class="item_appearance_editor active">
           <div class="item_editor_section_title">Models</div>
           <div id="item_model_rows">
@@ -74,6 +74,7 @@
                 <div class="item_composite_model_field">
                   <span class="item_composite_model_label">Model</span>
                   <button class="item_model_field" type="button"
+                          data-class-item_model_dropdown_anchor="part.model_open"
                           data-event-click="open_model(part.part, 0)">
                     <span class="item_model_value">{{ part.model_value }}</span>
                     <span class="item_field_arrow"></span>
@@ -82,6 +83,7 @@
                 <div class="item_composite_model_field">
                   <span class="item_composite_model_label">Color</span>
                   <button class="item_model_field" type="button"
+                          data-class-item_model_dropdown_anchor="part.variation_open"
                           data-event-click="open_model(part.part, 1)">
                     <span class="item_model_value">{{ part.color_value }}</span>
                     <span class="item_field_arrow"></span>
@@ -89,6 +91,7 @@
                 </div>
               </div>
               <button data-if="part.split == false" class="item_model_field"
+                      data-class-item_model_dropdown_anchor="part.model_open"
                       type="button" data-event-click="open_model(part.part, 0)">
                 <span class="item_model_value">{{ part.display }}</span>
                 <span class="item_field_arrow"></span>
@@ -107,21 +110,17 @@
         </div>
 
         <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 1"
-             id="item_option_selector" class="item_selector active">
-          <div class="item_selector_header">
-            <button id="item_selector_close" class="item_selector_close panel_back_button"
-                    type="button" title="Back" data-event-click="close_appearance()">
-              <span class="panel_back_icon">
-                <span class="panel_back_head"></span>
-                <span class="panel_back_shaft"></span>
-              </span>
-            </button>
-            <div class="item_selector_title managed_list_title"
-                 data-list-id="item.appearance.models"></div>
-          </div>
+             id="item_model_dropdown"
+             class="virtual_combobox_options item_model_dropdown managed_list_panel managed_list_popup active"
+             data-list-id="item.appearance.models"
+             data-anchor-element-class="item_model_dropdown_anchor"
+             data-popup-bounds-id="item_appearance_dynamic"
+             data-popup-height="300">
           <div id="item_option_rows"
                class="item_option_rows item_model_list managed_list_rows managed_list_cycle"
                tabindex="0" data-list-id="item.appearance.models"
+               data-focus-after-activate="item_appearance_main"
+               data-scroll-selected="true"
                data-empty-text="No models are available."></div>
         </div>
 
