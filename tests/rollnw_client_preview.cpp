@@ -224,6 +224,14 @@ TEST(ClientPreview, RunsDetachedActorDeterministicallyAndRestoresLifetimeState)
         if (!started.ok()) return nw::ObjectSpatialState{};
         EXPECT_TRUE(session.active());
         EXPECT_TRUE(nw::kernel::objects().valid(started.actor));
+        const auto* actor_spatial
+            = nw::kernel::objects().components().find_spatial(started.actor);
+        EXPECT_NE(actor_spatial, nullptr);
+        if (!actor_spatial) return nw::ObjectSpatialState{};
+        EXPECT_FLOAT_EQ(actor_spatial->movement_rate, 1.75f);
+        EXPECT_FLOAT_EQ(started.stats.walk_rate, actor_spatial->movement_rate);
+        EXPECT_FALSE(started.stats.walk_rate_fallback);
+        EXPECT_FALSE(started.stats.movement_disabled);
         EXPECT_EQ(area->creatures.size(), authored_creature_count);
         EXPECT_EQ(std::ranges::find_if(area->creatures, [&](const auto* creature) {
             return creature && creature->handle() == started.actor;

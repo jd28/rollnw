@@ -1,12 +1,18 @@
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/profiles/nwn1/Profile.hpp>
+#include <nw/smalls/data_spec.hpp>
+#include <nw/smalls/data_transform.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 #include <nowide/args.hpp>
 
+#include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -24,8 +30,20 @@ constexpr int kInvalidResourceType = 65535;
 constexpr int kMdlResourceType = 2002;
 
 struct DatagenProfile final : nwn1::Profile {
-    void load_custom_services() override { }
+    explicit DatagenProfile(fs::path stdlib_root)
+        : stdlib_root_{std::move(stdlib_root)}
+    {
+    }
+
+    void load_custom_services() override
+    {
+        nw::kernel::runtime().add_module_path(stdlib_root_ / "core");
+        nw::kernel::runtime().add_module_path(stdlib_root_ / "nwn1");
+    }
     bool load_rules() const override { return true; }
+
+private:
+    fs::path stdlib_root_;
 };
 
 } // namespace
@@ -778,17 +796,323 @@ static int run_scan_spec(const GenSpec& spec, const fs::path& out_root,
 }
 
 // ---------------------------------------------------------------------------
+// Shared structured specs
+// ---------------------------------------------------------------------------
+
+static std::string unqualified_type(nw::StringView type)
+{
+    const auto separator = type.rfind('.');
+    return std::string{separator == nw::StringView::npos
+            ? type
+            : type.substr(separator + 1)};
+}
+
+static fs::path config_output_subdir(nw::StringView config_path)
+{
+    std::string relative{config_path};
+    std::replace(relative.begin(), relative.end(), '.', '/');
+    return relative;
+}
+
+static bool valid_output_subdir(const fs::path& path)
+{
+    if (path.empty() || path.is_absolute()) { return false; }
+    return std::ranges::none_of(path,
+        [](const auto& component) {
+            return component == "." || component == "..";
+        });
+}
+
+static bool emit_materialized_scalar(
+    std::ostream& out, const nw::smalls::DataScalar& scalar)
+{
+    if (const auto* integer = std::get_if<int32_t>(&scalar)) {
+        out << *integer;
+    } else if (const auto* floating = std::get_if<float>(&scalar)) {
+        auto text = fmt::format("{:.6g}", *floating);
+        if (text.find('.') == std::string::npos
+            && text.find('e') == std::string::npos) {
+            text += ".0";
+        }
+        out << text;
+    } else if (const auto* boolean = std::get_if<bool>(&scalar)) {
+        out << (*boolean ? "true" : "false");
+    } else if (const auto* string = std::get_if<nw::String>(&scalar)) {
+        out << '"' << escape_smalls_string(*string) << '"';
+    } else if (const auto* resref = std::get_if<nw::Resref>(&scalar)) {
+        out << "resref(\"" << escape_smalls_string(resref->string()) << "\")";
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static const nw::smalls::MaterializedDataValue* materialized_value(
+    const nw::smalls::MaterializedDataBatch& batch,
+    const nw::smalls::MaterializedDataRow& row,
+    nw::StringView target)
+{
+    const auto values = batch.row_values(row);
+    const auto found = std::ranges::find(
+        values, target, &nw::smalls::MaterializedDataValue::target);
+    return found == values.end() ? nullptr : &*found;
+}
+
+static bool emit_structured_snapshot(
+    const fs::path& output,
+    const nw::smalls::DataSpec& spec,
+    const nw::smalls::MaterializedDataBatch& batch,
+    const nw::smalls::MaterializedDataRow& row)
+{
+    std::ofstream out{output};
+    if (!out) {
+        fmt::print(stderr, "Error: cannot write '{}'\n", output.string());
+        return false;
+    }
+
+    out << unqualified_type(spec.entry_type) << " {\n";
+    size_t component = 0;
+    const size_t component_count = spec.fields.size() + spec.field_groups.size();
+    for (const auto& field : spec.fields) {
+        const auto* value = materialized_value(batch, row, field.target);
+        if (!value) {
+            fmt::print(stderr, "Error: materialized row {} has no target '{}'\n",
+                row.id, field.target);
+            return false;
+        }
+        out << "    " << field.target << " = ";
+        if (!emit_materialized_scalar(out, value->value)) { return false; }
+        if (++component < component_count) { out << ','; }
+        out << '\n';
+    }
+    for (const auto& group : spec.field_groups) {
+        out << "    " << group.target << " = "
+            << unqualified_type(group.type) << " {\n";
+        for (size_t index = 0; index < group.fields.size(); ++index) {
+            const auto& field = group.fields[index];
+            const auto target = fmt::format("{}.{}", group.target, field.target);
+            const auto* value = materialized_value(batch, row, target);
+            if (!value) {
+                fmt::print(stderr, "Error: materialized row {} has no target '{}'\n",
+                    row.id, target);
+                return false;
+            }
+            out << "        " << field.target << " = ";
+            if (!emit_materialized_scalar(out, value->value)) { return false; }
+            if (index + 1 < group.fields.size()) { out << ','; }
+            out << '\n';
+        }
+        out << "    }";
+        if (++component < component_count) { out << ','; }
+        out << '\n';
+    }
+    out << "}\n";
+    return static_cast<bool>(out);
+}
+
+static bool compute_structured_snapshot_filenames(
+    const nw::smalls::DataSpec& spec,
+    const nw::StaticTwoDA& source,
+    const nw::smalls::MaterializedDataBatch& batch,
+    std::vector<std::string>& output)
+{
+    if (spec.snapshot_filename_column.empty()) {
+        fmt::print(stderr,
+            "Error: data spec '{}' does not declare a snapshot filename column\n",
+            spec.source_path.string());
+        return false;
+    }
+
+    std::vector<std::string> candidate;
+    candidate.reserve(batch.rows.size());
+    std::set<std::string> used;
+    for (const auto& row : batch.rows) {
+        nw::String source_name;
+        if (!source.get_to(static_cast<size_t>(row.id),
+                spec.snapshot_filename_column, source_name, false)
+            || source_name.empty() || source_name == "****") {
+            fmt::print(stderr,
+                "Error: data spec '{}' row {} has no snapshot filename in column '{}'\n",
+                spec.source_path.string(), row.id,
+                spec.snapshot_filename_column);
+            return false;
+        }
+
+        auto filename = slugify(std::string{source_name});
+        if (filename.empty()) {
+            fmt::print(stderr,
+                "Error: data spec '{}' row {} snapshot filename sanitizes to empty\n",
+                spec.source_path.string(), row.id);
+            return false;
+        }
+        if (!used.insert(filename).second) {
+            fmt::print(stderr,
+                "Error: data spec '{}' row {} has duplicate sanitized snapshot filename '{}'\n",
+                spec.source_path.string(), row.id, filename);
+            return false;
+        }
+        candidate.push_back(std::move(filename));
+    }
+    output = std::move(candidate);
+    return true;
+}
+
+static int run_structured_spec(
+    const nw::smalls::DataSpec& spec,
+    const fs::path& out_root,
+    bool force)
+{
+    const auto* source = nw::kernel::twodas().get(spec.source_resource);
+    if (!source) {
+        fmt::print(stderr, "Error: 2da '{}' not found\n", spec.source_resource);
+        return 1;
+    }
+
+    nw::smalls::MaterializedDataBatch batch;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    const bool materialized = nw::smalls::materialize_data_rows(
+        spec, *source, batch, diagnostics);
+    for (const auto& diagnostic : diagnostics) {
+        const std::string_view label = diagnostic.severity
+                == nw::smalls::DiagnosticSeverity::warning
+            ? "Warning"
+            : "Error";
+        fmt::print(stderr, "{}: {} row {} target '{}': {}\n",
+            label, diagnostic.source.string(), diagnostic.row,
+            diagnostic.target, diagnostic.message);
+    }
+    if (!materialized) { return 1; }
+
+    std::vector<std::string> filenames;
+    if (!compute_structured_snapshot_filenames(
+            spec, *source, batch, filenames)) {
+        return 1;
+    }
+
+    const auto relative = config_output_subdir(spec.config_path);
+    if (!valid_output_subdir(relative)) {
+        fmt::print(stderr, "Error: data spec '{}' has unsafe output path '{}'\n",
+            spec.source_path.string(), relative.string());
+        return 1;
+    }
+    const auto out_dir = out_root / relative;
+    std::error_code ec;
+    fs::create_directories(out_dir, ec);
+    if (ec) {
+        fmt::print(stderr, "Error: create dir '{}': {}\n",
+            out_dir.string(), ec.message());
+        return 1;
+    }
+
+    size_t emitted = 0;
+    size_t skipped = 0;
+    for (size_t index = 0; index < batch.rows.size(); ++index) {
+        const auto& row = batch.rows[index];
+        const auto output = out_dir / (filenames[index] + ".smalls");
+        if (!force && fs::exists(output)) {
+            ++skipped;
+            continue;
+        }
+        if (!emit_structured_snapshot(output, spec, batch, row)) { return 1; }
+        ++emitted;
+    }
+    fmt::print("[{}] emitted={} skipped={} filtered={} (rows: {})\n",
+        spec.source_path.stem().string(), emitted, skipped,
+        source->rows() - batch.rows.size(), source->rows());
+    return 0;
+}
+
+static bool same_file_contents(const fs::path& lhs, const fs::path& rhs)
+{
+    std::error_code ec;
+    const auto lhs_size = fs::file_size(lhs, ec);
+    if (ec) { return false; }
+    const auto rhs_size = fs::file_size(rhs, ec);
+    if (ec || lhs_size != rhs_size) { return false; }
+
+    std::ifstream left{lhs, std::ios::binary};
+    std::ifstream right{rhs, std::ios::binary};
+    return std::equal(std::istreambuf_iterator<char>{left},
+        std::istreambuf_iterator<char>{},
+        std::istreambuf_iterator<char>{right},
+        std::istreambuf_iterator<char>{});
+}
+
+static std::set<fs::path> relative_files(const fs::path& root)
+{
+    std::set<fs::path> result;
+    std::error_code ec;
+    if (!fs::is_directory(root, ec)) { return result; }
+    for (fs::recursive_directory_iterator it{root, ec}, end;
+        !ec && it != end; it.increment(ec)) {
+        if (it->is_regular_file()) {
+            result.insert(fs::relative(it->path(), root));
+        }
+    }
+    return result;
+}
+
+static size_t report_snapshot_diff(
+    const fs::path& generated,
+    const fs::path& checked_in,
+    const fs::path& display_root)
+{
+    const auto generated_files = relative_files(generated);
+    const auto checked_files = relative_files(checked_in);
+    std::set<fs::path> all;
+    std::ranges::set_union(generated_files, checked_files,
+        std::inserter(all, all.end()));
+
+    size_t changes = 0;
+    for (const auto& relative : all) {
+        const bool has_generated = generated_files.contains(relative);
+        const bool has_checked = checked_files.contains(relative);
+        char status = 0;
+        if (has_generated && !has_checked) {
+            status = 'A';
+        } else if (!has_generated && has_checked) {
+            status = 'D';
+        } else if (!same_file_contents(
+                       generated / relative, checked_in / relative)) {
+            status = 'M';
+        }
+        if (status) {
+            fmt::print("{} {}\n", status,
+                (display_root / relative).generic_string());
+            ++changes;
+        }
+    }
+    return changes;
+}
+
+static fs::path make_temporary_output()
+{
+    const auto seed = std::chrono::steady_clock::now()
+                          .time_since_epoch()
+                          .count();
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        const auto path = fs::temp_directory_path()
+            / fmt::format("smalls-datagen-{}-{}", seed, attempt);
+        std::error_code ec;
+        if (fs::create_directory(path, ec)) { return path; }
+    }
+    return {};
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 static void print_usage(const char* prog)
 {
-    fmt::print("Usage: {} --nwn <path> --out <dir> [options]\n\n", prog);
+    fmt::print("Usage: {} --nwn <path> (--out <dir> | --check <dir>) [options]\n\n", prog);
     fmt::print("Required:\n");
     fmt::print("  --nwn <path>     Path to NWN installation directory\n");
-    fmt::print("  --out <dir>      Output root (e.g. lib/nw/smalls/scripts/nwn1)\n\n");
+    fmt::print("  --out <dir>      Snapshot root (e.g. lib/nw/smalls/scripts)\n");
+    fmt::print("  --check <dir>    Generate in a temporary tree and report snapshot diff\n\n");
     fmt::print("Optional:\n");
     fmt::print("  --specs <dir>    JSON spec directory (default: adjacent to binary)\n");
+    fmt::print("  --data-specs <dir> Structured specs (default: packaged nwn1/data_specs)\n");
     fmt::print("  --entity <name>  Only process this spec (e.g. feats)\n");
     fmt::print("  --no-overwrite   Skip existing files (default: overwrite)\n");
 }
@@ -798,7 +1122,8 @@ int main(int argc, char* argv[])
     nowide::args _(argc, argv);
     nw::init_logger(argc, argv);
 
-    std::string nwn_path, out_path, specs_path, entity_filter;
+    std::string nwn_path, out_path, check_path, specs_path, data_specs_path,
+        entity_filter;
     bool force = true;
 
     for (int i = 1; i < argc; ++i) {
@@ -807,8 +1132,12 @@ int main(int argc, char* argv[])
             nwn_path = argv[++i];
         else if (arg == "--out" && i + 1 < argc)
             out_path = argv[++i];
+        else if (arg == "--check" && i + 1 < argc)
+            check_path = argv[++i];
         else if (arg == "--specs" && i + 1 < argc)
             specs_path = argv[++i];
+        else if (arg == "--data-specs" && i + 1 < argc)
+            data_specs_path = argv[++i];
         else if (arg == "--entity" && i + 1 < argc)
             entity_filter = argv[++i];
         else if (arg == "--no-overwrite")
@@ -819,17 +1148,22 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (nwn_path.empty() || out_path.empty()) {
+    if (nwn_path.empty() || (out_path.empty() == check_path.empty())) {
         print_usage(argv[0]);
         return 1;
     }
 
+    const fs::path executable_dir = fs::absolute(fs::path{argv[0]}).parent_path();
     if (specs_path.empty())
-        specs_path = (fs::path(argv[0]).parent_path() / "specs").string();
+        specs_path = (executable_dir / "specs").string();
+    if (data_specs_path.empty())
+        data_specs_path = (executable_dir / "stdlib/nwn1/data_specs").string();
+
+    fs::path temporary_output;
 
     nw::kernel::config().set_paths(nwn_path, "");
     nw::kernel::config().initialize();
-    DatagenProfile profile;
+    DatagenProfile profile{executable_dir / "stdlib"};
     nw::kernel::set_game_profile(&profile);
     nw::kernel::services().start();
 
@@ -847,14 +1181,33 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (spec_files.empty()) {
-        fmt::print(stderr, "No spec files found in '{}'{}\n", specs_path,
-            entity_filter.empty() ? "" : fmt::format(" (filter: '{}')", entity_filter));
+    std::ranges::sort(spec_files);
+
+    nw::Vector<fs::path> data_spec_files;
+    ec.clear();
+    for (const auto& entry : fs::directory_iterator(data_specs_path, ec)) {
+        if (entry.path().extension() != ".json") { continue; }
+        if (!entity_filter.empty() && entry.path().stem() != entity_filter) {
+            continue;
+        }
+        data_spec_files.push_back(entry.path());
+    }
+    if (ec) {
+        fmt::print(stderr, "Error: iterate data specs '{}': {}\n",
+            data_specs_path, ec.message());
         nw::kernel::services().shutdown();
         return 1;
     }
+    std::ranges::sort(data_spec_files);
 
-    std::sort(spec_files.begin(), spec_files.end());
+    if (spec_files.empty() && data_spec_files.empty()) {
+        fmt::print(stderr, "No matching specs found{}.\n",
+            entity_filter.empty()
+                ? ""
+                : fmt::format(" for entity '{}'", entity_filter));
+        nw::kernel::services().shutdown();
+        return 1;
+    }
 
     // Parse all specs
     std::vector<GenSpec> specs;
@@ -863,8 +1216,58 @@ int main(int argc, char* argv[])
         if (parse_spec(sp, s)) specs.push_back(std::move(s));
     }
 
+    nw::Vector<nw::smalls::DataSpec> data_specs;
+    nw::Vector<nw::smalls::DataDiagnostic> data_diagnostics;
+    if (!data_spec_files.empty()
+        && !nw::smalls::parse_data_specs(
+            data_spec_files, data_specs, data_diagnostics)) {
+        for (const auto& diagnostic : data_diagnostics) {
+            fmt::print(stderr, "Error: {} target '{}': {}\n",
+                diagnostic.source.string(), diagnostic.target,
+                diagnostic.message);
+        }
+        nw::kernel::services().shutdown();
+        return 1;
+    }
+
+    if (!check_path.empty()) {
+        temporary_output = make_temporary_output();
+        if (temporary_output.empty()) {
+            fmt::print(stderr, "Error: unable to create temporary output directory\n");
+            nw::kernel::services().shutdown();
+            return 1;
+        }
+        out_path = temporary_output.string();
+        force = true;
+    }
+
     int ret = 0;
     fs::path out_root = out_path;
+
+    std::set<fs::path> output_subdirs;
+    for (const auto& spec : specs) {
+        output_subdirs.insert(spec.output_subdir);
+    }
+    for (const auto& spec : data_specs) {
+        output_subdirs.insert(config_output_subdir(spec.config_path));
+    }
+    for (const auto& relative : output_subdirs) {
+        if (!valid_output_subdir(relative)) {
+            fmt::print(stderr, "Error: unsafe generated output path '{}'\n",
+                relative.string());
+            ret = 1;
+            continue;
+        }
+        if (force) {
+            std::error_code remove_error;
+            fs::remove_all(out_root / relative, remove_error);
+            if (remove_error) {
+                fmt::print(stderr, "Error: remove generated directory '{}': {}\n",
+                    (out_root / relative).string(), remove_error.message());
+                ret = 1;
+            }
+        }
+    }
 
     // Global scan results: spec_name → (2da_name → integer ID)
     std::map<std::string, ScanResult> scan_results;
@@ -883,6 +1286,28 @@ int main(int argc, char* argv[])
         if (run_standard_spec(spec, out_root, force, scan_results) != 0) ret = 1;
     }
 
+    for (const auto& spec : data_specs) {
+        if (run_structured_spec(spec, out_root, force) != 0) { ret = 1; }
+    }
+
+    if (!check_path.empty() && ret == 0) {
+        size_t changes = 0;
+        for (const auto& relative : output_subdirs) {
+            changes += report_snapshot_diff(out_root / relative,
+                fs::path{check_path} / relative, relative);
+        }
+        fmt::print("snapshot changes={}\n", changes);
+        if (changes != 0) { ret = 1; }
+    }
+
     nw::kernel::services().shutdown();
+    if (!temporary_output.empty()) {
+        std::error_code cleanup_error;
+        fs::remove_all(temporary_output, cleanup_error);
+        if (cleanup_error) {
+            fmt::print(stderr, "Warning: cleanup '{}': {}\n",
+                temporary_output.string(), cleanup_error.message());
+        }
+    }
     return ret;
 }

@@ -1,34 +1,54 @@
-from nwn1.rules import { AppearanceRules };
+from nwn1.rules import { AppearanceDefinition, AppearanceRules };
+from core.creature import { AppearanceInfo, publish_appearance_info };
 
 import core.array as Array;
 import core.creature as NativeCreature;
-import nwn1.rules as Rules;
 
 var _loaded = false;
-var _appearances: array!(AppearanceRules);
-const appearance_invalid = AppearanceRules{ id = -1 };
+var _rules: array!(AppearanceRules);
+var _valid: array!(bool);
 
-fn _ensure_loaded() {
-    if (_loaded) { return; }
-    _appearances = load_config!(AppearanceRules)("nwn1.data.appearance");
+fn init(): bool {
+    if (_loaded) { return true; }
+
+    var definitions = load_config!(AppearanceDefinition)("nwn1.data.appearance");
+    var infos: array!(AppearanceInfo) = {};
+    var rules: array!(AppearanceRules) = {};
+    var valid: array!(bool) = {};
+    for (var index = 0; index < Array.len(definitions); index += 1) {
+        var definition = Array.get(definitions, index);
+        if (definition.id == index && definition.info.id == index) {
+            Array.push(infos, definition.info);
+            Array.push(rules, definition.rules);
+            Array.push(valid, true);
+        } else {
+            var invalid_info: AppearanceInfo;
+            invalid_info.id = -1;
+            var invalid_rules: AppearanceRules;
+            Array.push(infos, invalid_info);
+            Array.push(rules, invalid_rules);
+            Array.push(valid, false);
+        }
+    }
+    if (!publish_appearance_info(infos)) { return false; }
+
+    _rules = rules;
+    _valid = valid;
     _loaded = true;
+    return true;
 }
 
 fn count(): int {
-    _ensure_loaded();
-    return Array.len(_appearances);
+    init();
+    return Array.len(_valid);
 }
 
 fn get_rules(appearance: int): AppearanceRules {
-    _ensure_loaded();
-    if (appearance >= 0 && appearance < Array.len(_appearances)) {
-        var result = Array.get(_appearances, appearance);
-        if (result.id == appearance) {
-            return result;
-        }
+    if (exists(appearance)) {
+        return Array.get(_rules, appearance);
     }
-
-    return appearance_invalid;
+    var invalid: AppearanceRules;
+    return invalid;
 }
 
 fn get_info(appearance: int): NativeCreature.AppearanceInfo {
@@ -36,5 +56,8 @@ fn get_info(appearance: int): NativeCreature.AppearanceInfo {
 }
 
 fn exists(appearance: int): bool {
-    return get_rules(appearance).id == appearance && get_info(appearance).id == appearance;
+    init();
+    return appearance >= 0
+        && appearance < Array.len(_valid)
+        && Array.get(_valid, appearance);
 }

@@ -848,6 +848,43 @@ TEST(KernelResources, LoadModuleHaksUsesSearchRootsInOrder)
     delete rm;
 }
 
+TEST(KernelResources, ModuleHakPrecedenceFeedsResolvedResourceRegistry)
+{
+    const fs::path root = "tmp/resman_module_hak_precedence";
+    const fs::path module = root / "module";
+    const fs::path hak_root = root / "hak";
+    const fs::path hak = hak_root / "project_dep";
+    fs::remove_all(root);
+    fs::create_directories(module);
+    fs::create_directories(hak);
+    {
+        std::ofstream out{module / "module.ifo", std::ios::binary};
+        ASSERT_TRUE(out);
+        out << "module marker\n";
+    }
+    {
+        std::ofstream out{module / "appearance.2da", std::ios::binary};
+        ASSERT_TRUE(out);
+        out << "module appearance\n";
+    }
+    {
+        std::ofstream out{hak / "appearance.2da", std::ios::binary};
+        ASSERT_TRUE(out);
+        out << "hak appearance\n";
+    }
+
+    nw::ResourceManager resources{nwk::global_allocator()};
+    ASSERT_TRUE(resources.load_module(module));
+    nw::Vector<nw::String> haks{"project_dep"};
+    nw::Vector<fs::path> roots{hak_root};
+    ASSERT_EQ(resources.load_module_haks(haks, roots), 1);
+    resources.build_registry();
+
+    auto data = resources.demand({"appearance"sv, nw::ResourceType::twoda});
+    ASSERT_GT(data.bytes.size(), 0);
+    EXPECT_EQ(data.bytes.string_view(), "hak appearance\n");
+}
+
 TEST(KernelResources, LoadModuleHaksAcceptsExtensionAndCaseVariants)
 {
     const fs::path root = "tmp/resman_hak_extension_case";

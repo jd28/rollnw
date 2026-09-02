@@ -27,6 +27,7 @@ struct ObjectSpatialState {
     glm::vec3 scale{1.0f};
     glm::vec3 velocity{0.0f};
     glm::vec3 angular_velocity{0.0f};
+    float movement_rate = -1.0f;
     uint32_t flags = 0;
 };
 
@@ -328,6 +329,7 @@ struct ObjectComponentSystem {
     bool set_scale(ObjectHandle obj, glm::vec3 scale);
     bool set_velocity(ObjectHandle obj, glm::vec3 velocity);
     bool set_angular_velocity(ObjectHandle obj, glm::vec3 velocity);
+    bool set_movement_rate(ObjectHandle obj, float value);
 
     void remove(ObjectHandle obj) noexcept;
     void remove(ObjectBase& obj) noexcept;

@@ -211,6 +211,7 @@ PreviewCreatureModelLoad resolve_creature_model_from_appearance(nw::Appearance a
 
     result.appearance = script_int_field(rt, executed.value, "appearance", -1);
     result.model_type = script_int_field(rt, executed.value, "model_type", -1);
+    result.model_flags = script_int_field(rt, executed.value, "model_flags");
     result.hand_item_reason = script_int_field(rt, executed.value, "hand_item_reason");
     result.wing_tail_scale = script_float_field(rt, executed.value, "wing_tail_scale", 1.0f);
     result.helmet_scale_m = script_float_field(rt, executed.value, "helmet_scale_m", 1.0f);

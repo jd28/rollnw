@@ -1,0 +1,153 @@
+{
+  "source": {
+    "kind": "twoda",
+    "resource": "appearance",
+    "valid_when": {
+      "column": "LABEL",
+      "on_missing": "omit_row"
+    }
+  },
+  "output": {
+    "config_path": "nwn1.data.appearance",
+    "entry_type": "nwn1.rules.AppearanceDefinition",
+    "snapshot_filename": { "column": "LABEL" },
+    "fields": [
+      {
+        "target": "id",
+        "value": { "kind": "row_index" }
+      }
+    ],
+    "field_groups": [
+      {
+        "target": "info",
+        "owner": "native",
+        "type": "core.creature.AppearanceInfo",
+        "fields": [
+          {
+            "target": "id",
+            "value": { "kind": "row_index" }
+          },
+          {
+            "target": "label",
+            "value": { "kind": "column", "column": "LABEL", "type": "string" }
+          },
+          {
+            "target": "string_ref",
+            "value": { "kind": "column", "column": "STRING_REF", "type": "int", "on_missing": "default", "default": -1 }
+          },
+          {
+            "target": "base_name",
+            "value": { "kind": "column", "column": "NAME", "type": "string", "on_missing": "default", "default": "" }
+          },
+          {
+            "target": "model",
+            "value": { "kind": "column", "column": "RACE", "type": "resref", "on_missing": "default", "default": "" }
+          },
+          {
+            "target": "model_type",
+            "value": {
+              "kind": "enum",
+              "column": "MODELTYPE",
+              "values": {
+                "P": 0,
+                "S": 1,
+                "F": 2,
+                "L": 3,
+                "SW": 1,
+                "ST": 1,
+                "SWT": 1,
+                "FW": 2,
+                "FT": 2,
+                "FWT": 2,
+                "LW": 3,
+                "LT": 3,
+                "LWT": 3
+              }
+            }
+          },
+          {
+            "target": "model_flags",
+            "value": {
+              "kind": "enum",
+              "column": "MODELTYPE",
+              "values": {
+                "P": 3,
+                "S": 0,
+                "F": 0,
+                "L": 0,
+                "SW": 1,
+                "FW": 1,
+                "LW": 1,
+                "ST": 2,
+                "FT": 2,
+                "LT": 2,
+                "SWT": 3,
+                "FWT": 3,
+                "LWT": 3
+              }
+            }
+          },
+          {
+            "target": "wing_tail_scale",
+            "value": { "kind": "column", "column": "WING_TAIL_SCALE", "type": "float", "on_missing": "default", "default": 1.0 }
+          },
+          {
+            "target": "helmet_scale_m",
+            "value": { "kind": "column", "column": "HELMET_SCALE_M", "type": "float", "on_missing": "default", "default": 1.0 }
+          },
+          {
+            "target": "helmet_scale_f",
+            "value": { "kind": "column", "column": "HELMET_SCALE_F", "type": "float", "on_missing": "default", "default": 1.0 }
+          },
+          {
+            "target": "weapon_scale",
+            "value": { "kind": "column", "column": "WEAPONSCALE", "type": "float", "on_missing": "default", "default": -1.0 }
+          },
+          {
+            "target": "has_arms",
+            "value": { "kind": "column", "column": "HASARMS", "type": "bool", "on_missing": "default", "default": false }
+          },
+          {
+            "target": "personal_space",
+            "value": { "kind": "column", "column": "PERSPACE", "type": "float", "on_missing": "default", "default": -1.0 }
+          }
+        ]
+      },
+      {
+        "target": "rules",
+        "owner": "smalls",
+        "type": "nwn1.rules.AppearanceRules",
+        "fields": [
+          {
+            "target": "size",
+            "value": { "kind": "column", "column": "SIZECATEGORY", "type": "int", "on_missing": "default", "default": 0 }
+          },
+          {
+            "target": "movement_rate",
+            "value": {
+              "kind": "enum",
+              "column": "MOVERATE",
+              "values": {
+                "PLAYER": 0,
+                "PC_Movement": 0,
+                "NOMOVE": 1,
+                "Immobile": 1,
+                "VSLOW": 2,
+                "Very_Slow": 2,
+                "SLOW": 3,
+                "NORM": 4,
+                "Normal": 4,
+                "FAST": 5,
+                "VFAST": 6,
+                "Very_Fast": 6,
+                "DEFAULT": 7,
+                "DFAST": 8,
+                "DM_Fast": 8
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

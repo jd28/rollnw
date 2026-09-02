@@ -172,9 +172,13 @@ or throughput improvement, measure its representative input before and after.
 
 `load_config!` produces shared rules data. Its common path is one load per
 `(normalized path, entry type)` followed by indexed reads from the cached array.
-Required tables are initialized during profile startup so missing data fails
-before normal rules execution. Optional tooling tables may load lazily only when
-their API makes the failure explicit.
+Required domains are initialized during profile startup so malformed data is
+diagnosed before normal rules execution. Row-local failures leave indexed holes
+and do not remove valid entries from the domain. A structural source failure
+becomes an empty domain and does not prevent the remaining profile, module, or
+client from loading. Structural package and schema failures remain fatal.
+Optional tooling tables may load lazily only when their API makes the failure
+explicit.
 
 Propsets contain live object state. The engine creates or finds the row from an
 object handle; scripts do not construct free-standing propset values. If config
@@ -240,7 +244,8 @@ Reimport is the migration path for authored legacy data.
 | Profile root or required package | Fail configuration/startup |
 | Required module missing or has diagnostics | Fail the owning subsystem's initialization |
 | Invalid propset schema | Fail profile initialization before object load |
-| Required config batch violates its declared invariant | Owning profile initializer rejects it |
+| Required config source or column is unavailable | Publish an empty domain and continue profile startup |
+| Config row violates its declared value invariant | Diagnose that row, leave its indexed slot empty, and preserve valid rows |
 | Sparse or out-of-range config ID | Domain accessor returns its documented invalid value |
 | Invalid or stale object handle | Reject the complete operation |
 | Invalid native mutation batch | Reject without partial writes |

@@ -12,6 +12,7 @@
 #include "ScriptHeap.hpp"
 #include "SourceLocation.hpp"
 #include "Token.hpp"
+#include "data_spec.hpp"
 #include "types.hpp"
 
 #include <fmt/format.h>
@@ -1066,6 +1067,18 @@ public:
         Vector<TwoDAColumnMapping> mappings,
         TwoDAConfigMerge merge = TwoDAConfigMerge::twoda_only);
 
+    /// Register one private structured data spec. Registered spec paths are
+    /// authoritative over checked-in config snapshots.
+    bool register_data_spec(DataSpec spec, String& diagnostic);
+
+    /// Find the structured binding for one config path. Slash spelling is
+    /// accepted here only because callers may be inspecting boundary input.
+    const DataSpec* data_spec(StringView path) const;
+
+    /// Retained bytes owned by a published spec-backed config array: VM heap
+    /// allocations plus its contiguous out-of-heap value buffer.
+    size_t data_spec_retained_vm_bytes(StringView path) const;
+
     /// Load all .smalls files from a directory path as an array!(T).
     /// Assembles entries using the [[index]] field. Caches permanently.
     Value load_config_array_value(StringView path, TypeID config_type);
@@ -1464,11 +1477,15 @@ private:
     Vector<HeapPtr> config_roots_;
     absl::flat_hash_map<std::pair<String, TypeID>, HeapPtr> config_array_cache_;
     absl::flat_hash_map<String, TwoDAConverterSpec> twoda_converters_;
+    absl::flat_hash_map<String, DataSpec> data_specs_;
+    absl::flat_hash_map<String, size_t> data_spec_retained_vm_bytes_;
 
     Value load_config_value(StringView path, StringView prelude_module);
     Value load_twoda_as_config_array(StringView path, TypeID config_type,
         const StructDef* def, uint32_t index_field_idx,
         const TwoDAConverterSpec& conv, std::span<const Value> seed_rows = {});
+    Value load_data_spec_as_config_array(
+        StringView path, TypeID config_type, const DataSpec& spec);
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;

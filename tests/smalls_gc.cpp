@@ -65,6 +65,18 @@ bool heap_list_is_well_formed(const Runtime& runtime)
     return true;
 }
 
+bool finish_minor_collection(Runtime& runtime, GarbageCollector& gc)
+{
+    // One unit advances one root/object work item. Profile-owned config grows
+    // this batch, so derive the safety bound from the live allocation volume
+    // instead of assuming a fixed startup corpus.
+    const size_t step_limit = runtime.heap_.alloc_count() * 8 + 4096;
+    for (size_t step = 0; step < step_limit; ++step) {
+        if (gc.collect_minor_step(1)) { return true; }
+    }
+    return false;
+}
+
 } // namespace
 
 struct SmallsGCTest : public testing::Test {
@@ -778,10 +790,7 @@ TEST_F(SmallsGCTest, MinorStepCollectsUnreachableYoung)
     ASSERT_NE(tmp.value, 0);
     ASSERT_TRUE(heap_contains(runtime, tmp));
 
-    bool done = false;
-    for (int i = 0; i < 4096 && !done; ++i) {
-        done = gc->collect_minor_step(1);
-    }
+    const bool done = finish_minor_collection(runtime, *gc);
     ASSERT_TRUE(done);
     EXPECT_FALSE(heap_contains(runtime, tmp));
 }
@@ -805,10 +814,7 @@ TEST_F(SmallsGCTest, RememberedOldObjectKeepsYoungChildAlive)
 
     ASSERT_TRUE(runtime.array_set(old_arr, 0, Value::make_string(young_child)));
 
-    bool done = false;
-    for (int i = 0; i < 4096 && !done; ++i) {
-        done = gc->collect_minor_step(1);
-    }
+    const bool done = finish_minor_collection(runtime, *gc);
     ASSERT_TRUE(done);
     EXPECT_TRUE(heap_contains(runtime, young_child));
 
@@ -837,10 +843,7 @@ TEST_F(SmallsGCTest, MinorSweepHandlesInterleavedOldYoungAllObjects)
 
     runtime.push(Value::make_heap(y1, runtime.string_type()));
 
-    bool done = false;
-    for (int i = 0; i < 4096 && !done; ++i) {
-        done = gc->collect_minor_step(1);
-    }
+    const bool done = finish_minor_collection(runtime, *gc);
     ASSERT_TRUE(done);
 
     EXPECT_TRUE(heap_contains(runtime, y1));

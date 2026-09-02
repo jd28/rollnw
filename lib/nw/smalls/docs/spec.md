@@ -1912,10 +1912,13 @@ GC behavior is configurable via `GCConfig`: `young_threshold` (default 256KB), `
    registering with them.
 3. Selected profile modules own propset schemas, shared rules/config data, and
    gameplay policy.
-4. Imported source tables are partitioned into native `Info` facts and profile
-   `Rules` data by actual consumer.
-5. Selected toolset modules own replaceable authoring projections consumed by
-   RML and RCSS.
+4. `smalls-datagen` partitions imported source fields once inside a generated
+   definition row. The selected profile loader publishes its native `Info[]`
+   group to C++ and retains its SmallS `Rules[]` group. A source table is not
+   an ownership unit.
+5. Native C++ toolset code owns replaceable authoring projections and
+   interaction state consumed by RML and RCSS. Toolset SmallS is limited to
+   gameplay-policy calls and thin event adapters.
 
 **Per-domain migration:**
 1. Classify each datum from its readers, writers, frequency, and invariants.

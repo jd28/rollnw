@@ -1,5 +1,6 @@
 #include "Profile.hpp"
 
+#include "body_part_catalog.hpp"
 #include "constants.hpp"
 #include "rules.hpp"
 #include "scriptbridge.hpp"
@@ -17,10 +18,15 @@
 #include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
 #include "../../smalls/Smalls.hpp"
+#include "../../smalls/data_spec.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/profile.hpp"
 
+#include <algorithm>
+#include <array>
+#include <filesystem>
 #include <map>
+#include <string_view>
 #include <utility>
 
 namespace nwk = nw::kernel;
@@ -30,6 +36,66 @@ using namespace std::literals;
 namespace nwn1 {
 
 namespace {
+
+void register_structured_data_specs()
+{
+    namespace fs = std::filesystem;
+    constexpr std::array filenames{
+        "appearance.json"sv,
+    };
+
+    nw::Vector<fs::path> paths;
+    for (const auto& module_path : nw::kernel::runtime().module_paths()) {
+        const auto spec_path = module_path / "data_specs";
+        const bool has_specs = std::ranges::any_of(filenames,
+            [&](std::string_view filename) {
+                return fs::is_regular_file(spec_path / filename);
+            });
+        if (!has_specs) { continue; }
+        if (!paths.empty()) {
+            throw std::runtime_error(fmt::format(
+                "rules: multiple data-spec packages found at '{}' and '{}'",
+                paths.front().parent_path().string(), spec_path.string()));
+        }
+        for (std::string_view filename : filenames) {
+            const auto path = spec_path / filename;
+            if (!fs::is_regular_file(path)) {
+                throw std::runtime_error(fmt::format(
+                    "rules: required data spec '{}' is missing",
+                    path.string()));
+            }
+            paths.push_back(path);
+        }
+    }
+    if (paths.empty()) {
+        throw std::runtime_error(
+            "rules: package data_specs/appearance.json was not found");
+    }
+
+    nw::Vector<nw::smalls::DataSpec> specs;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    if (!nw::smalls::parse_data_specs(paths, specs, diagnostics)) {
+        const auto detail = diagnostics.empty()
+            ? nw::String{"unknown parse error"}
+            : fmt::format("{}: {} (target '{}')",
+                  diagnostics.front().source.string(),
+                  diagnostics.front().message,
+                  diagnostics.front().target);
+        throw std::runtime_error(fmt::format(
+            "rules: failed to parse structured data specs: {}", detail));
+    }
+
+    for (auto& spec : specs) {
+        nw::String diagnostic;
+        const auto path = spec.source_path;
+        if (!nw::kernel::runtime().register_data_spec(
+                std::move(spec), diagnostic)) {
+            throw std::runtime_error(fmt::format(
+                "rules: failed to register data spec '{}': {}",
+                path.string(), diagnostic));
+        }
+    }
+}
 
 template <typename Array>
 void load_rule_rows(const nw::StaticTwoDA& source, nw::StringView source_name, Array& output)
@@ -99,25 +165,6 @@ void register_twoda_config_converters()
         }
     }
 
-    srt.register_twoda_converter("nwn1.data.appearance", "appearance", {
-                                                                           CM{"SIZECATEGORY", "size"},
-                                                                           CM{"MOVERATE", "walkrate", {
-                                                                                                          {"PLAYER", 0},
-                                                                                                          {"NOMOVE", 1},
-                                                                                                          {"VSLOW", 2},
-                                                                                                          {"SLOW", 3},
-                                                                                                          {"NORM", 4},
-                                                                                                          {"FAST", 5},
-                                                                                                          {"VFAST", 6},
-                                                                                                          {"DEFAULT", 7},
-                                                                                                          {"DFAST", 8},
-                                                                                                      }},
-                                                                           CM{"WING_TAIL_SCALE", "wing_tail_scale", {}, {}, 0, 1.0f},
-                                                                           CM{"HELMET_SCALE_M", "helmet_scale_m", {}, {}, 0, 1.0f},
-                                                                           CM{"HELMET_SCALE_F", "helmet_scale_f", {}, {}, 0, 1.0f},
-                                                                           CM{"WEAPONSCALE", "weapon_scale", {}, {}, 0, -1.0f},
-                                                                           CM{"HASARMS", "has_arms", {}, {}, 0, 0.0f, true},
-                                                                       });
     srt.register_twoda_converter("nwn1.data.placeables", "placeables", {
                                                                            CM{"LightColor", "light_color", {}, {}, -1},
                                                                            CM{"LightOffsetX", "light_offset_x"},
@@ -150,20 +197,9 @@ void register_twoda_config_converters()
                                                                            CM{"HIDELEGR", "hide_thigh_right"},
                                                                            CM{"HIDECHEST", "hide_torso"},
                                                                        });
-    srt.register_twoda_converter("nwn1.data.wingmodel", "wingmodel", {
-                                                                         CM{"LABEL", "label"},
-                                                                         CM{"MODEL", "model"},
-                                                                     });
-    srt.register_twoda_converter("nwn1.data.tailmodel", "tailmodel", {
-                                                                         CM{"LABEL", "label"},
-                                                                         CM{"MODEL", "model"},
-                                                                     });
     srt.register_twoda_converter("nwn1.data.creaturesize", "creaturesize", {
                                                                                CM{"ACATTACKMOD", "ac_attack_mod"},
                                                                            });
-    srt.register_twoda_converter("nwn1.data.creaturespeed", "creaturespeed", {
-                                                                                 CM{"WALKRATE", "walkrate"},
-                                                                             });
     srt.register_twoda_converter("nwn1.data.fractionalcr", "fractionalcr", {
                                                                                CM{"Min", "min"},
                                                                                CM{"Denominator", "denominator"},
@@ -332,12 +368,31 @@ void load_baseitem_definitions()
     auto& rt = nw::kernel::runtime();
     auto result = rt.execute_script("nwn1.baseitems", "init");
     if (!result.ok()) {
-        throw std::runtime_error(
-            fmt::format("rules: failed to load base-item definitions: {}",
-                result.error_message));
+        LOG_F(ERROR,
+            "rules: failed to load base-item definitions; continuing without that config domain: {}",
+            result.error_message);
+        return;
     }
     if (result.value.type_id != rt.bool_type() || !result.value.data.bval) {
-        throw std::runtime_error("rules: invalid base-item definitions");
+        LOG_F(ERROR,
+            "rules: invalid base-item definitions; continuing without that config domain");
+    }
+}
+
+void load_data_definitions(nw::StringView module, nw::StringView label)
+{
+    auto& rt = nw::kernel::runtime();
+    auto result = rt.execute_script(module, "init");
+    if (!result.ok()) {
+        LOG_F(ERROR,
+            "rules: failed to load {} definitions; continuing without that config domain: {}",
+            label, result.error_message);
+        return;
+    }
+    if (result.value.type_id != rt.bool_type() || !result.value.data.bval) {
+        LOG_F(ERROR,
+            "rules: invalid {} definitions; continuing without that config domain",
+            label);
     }
 }
 
@@ -346,6 +401,7 @@ void load_baseitem_definitions()
 bool Profile::load_rules() const
 {
     LOG_F(INFO, "[nwn1] loading rules...");
+    register_structured_data_specs();
     register_twoda_config_converters();
 
     // == Load Rules ==========================================================
@@ -389,10 +445,12 @@ bool Profile::load_rules() const
 
     // == Load 2das ===========================================================
 
-    nw::StaticTwoDA appearances{nw::kernel::resman().demand({"appearance"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA wingmodels{nw::kernel::resman().demand({"wingmodel"sv, nw::ResourceType::twoda})};
+    nw::StaticTwoDA tailmodels{nw::kernel::resman().demand({"tailmodel"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
@@ -400,8 +458,18 @@ bool Profile::load_rules() const
     nw::String temp_string;
 
     auto& rules = nw::kernel::rules();
-    load_rule_rows(appearances, "appearance", rules.appearances);
+    load_data_definitions("nwn1.appearances", "appearance");
+    nw::String body_part_diagnostic;
+    if (!build_body_part_catalog(rules.appearances, phenotypes,
+            nw::kernel::resman(), rules.creature_body_parts,
+            body_part_diagnostic)) {
+        throw std::runtime_error(fmt::format(
+            "rules: failed to build creature body-part catalog: {}",
+            body_part_diagnostic));
+    }
     load_rule_rows(placeables, "placeables", rules.placeables);
+    load_rule_rows(wingmodels, "wingmodel", rules.wingmodels);
+    load_rule_rows(tailmodels, "tailmodel", rules.tailmodels);
     load_baseitem_definitions();
 
     // Class policy is generated as Smalls config. Keep the load-time check here

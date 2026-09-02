@@ -256,7 +256,9 @@ The profile-package migration is complete when tests prove:
 - `<root>.propsets` registers the complete schema batch and pools are primed
   once before the first object;
 - disabling init does not disable schema registration;
-- required domain config failures stop initialization;
+- row-local domain config failures preserve valid indexed entries, while a
+  structural source failure publishes an empty domain without stopping
+  unrelated profile initialization;
 - packaged game, client, and LSP distributions contain complete required
   packages; and
 - serialized propset names, GFF conversion policy, fixtures, and tests all use

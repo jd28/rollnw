@@ -54,13 +54,17 @@ bool publish_baseitem_info(Value value)
     const TypeID info_type = rt.type_id("core.item.BaseItemInfo");
     auto* array = rt.get_array_typed(value.data.hptr);
     if (!array || info_type == invalid_type_id
-        || array->element_type() != info_type || array->size() == 0) {
+        || array->element_type() != info_type) {
         return false;
     }
 
     auto& rules = nw::kernel::rules();
     nw::BaseItemArray next{rules.allocator()};
     next.entries.reserve(array->size());
+    if (array->size() == 0) {
+        rules.baseitems = std::move(next);
+        return true;
+    }
 
     size_t valid_count = 0;
     for (size_t i = 0; i < array->size(); ++i) {

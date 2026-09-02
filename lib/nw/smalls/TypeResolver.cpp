@@ -2636,6 +2636,24 @@ void TypeResolver::visit(CallExpression* expr)
     GenericInference inference{ctx, rt};
     CallResolver call_resolver{*this, rt, validator, inference};
     call_resolver.resolve(expr);
+
+    if (expr->intrinsic_id != IntrinsicId::LoadConfig
+        || expr->args.size() != 1 || expr->inferred_type_args.size() != 1) {
+        return;
+    }
+
+    const auto* path = dynamic_cast<const LiteralExpression*>(expr->args[0]);
+    if (!path || !path->data.is<PString>()) { return; }
+
+    const auto* spec = rt.data_spec(path->data.as<PString>());
+    if (!spec) { return; }
+
+    const TypeID requested = expr->inferred_type_args[0];
+    if (rt.type_name(requested) != spec->entry_type) {
+        ctx.errorf(expr->args[0]->range_,
+            "load_config! path '{}' requires '{}', got '{}'",
+            path->data.as<PString>(), spec->entry_type, rt.type_name(requested));
+    }
 }
 
 void TypeResolver::visit(CastExpression* expr)

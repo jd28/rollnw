@@ -35,6 +35,7 @@ struct PreviewCreatureModelLoad {
     std::string error;
     int32_t appearance = -1;
     int32_t model_type = -1;
+    int32_t model_flags = 0;
     int32_t hand_item_reason = 0;
     float wing_tail_scale = 1.0f;
     float helmet_scale_m = 1.0f;

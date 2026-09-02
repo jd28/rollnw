@@ -5,6 +5,7 @@
 import core.types as T;
 import core.string as String;
 from core.item import { BaseItemInfo };
+from core.creature import { AppearanceInfo };
 import nwn1.requirements as Requirements;
 from nwn1.requirements import { RequirementQualifier };
 
@@ -43,12 +44,11 @@ const appearance_model_type_invalid = -1;
 const appearance_model_type_parts = 0;        // MODELTYPE=P
 const appearance_model_type_simple = 1;       // MODELTYPE=S
 const appearance_model_type_full = 2;         // MODELTYPE=F
-const appearance_model_type_large = 3;        // MODELTYPE=L
-const appearance_model_type_full_tail = 4;    // MODELTYPE=FT
-const appearance_model_type_full_wings = 5;   // MODELTYPE=FW
-const appearance_model_type_full_wings_tail = 6;
-const appearance_model_type_large_wings_tail = 7;
-const appearance_model_type_simple_wings_tail = 8;
+const appearance_model_type_limited = 3;      // MODELTYPE=L
+
+const appearance_model_flag_wings_allowed = 1;
+const appearance_model_flag_tail_allowed = 2;
+const appearance_model_flags_all = 3;
 
 fn item_model_number_suffix(model_number: int): string {
     return String.pad_left(f"{model_number}", 3, "0");
@@ -168,15 +168,16 @@ type FeatEntry {
 
 [[value_type]]
 type AppearanceRules {
+    size: int;
+    movement_rate: int;
+};
+
+[[value_type]]
+type AppearanceDefinition {
     [[index]]
-    id:              int;
-    size:            int;
-    walkrate:        int;
-    wing_tail_scale: float;
-    helmet_scale_m:  float;
-    helmet_scale_f:  float;
-    weapon_scale:    float;
-    has_arms:        bool;
+    id:    int;
+    info:  AppearanceInfo;
+    rules: AppearanceRules;
 };
 
 [[value_type]]
@@ -184,13 +185,6 @@ type CreatureSizeEntry {
     [[index]]
     id: int;
     ac_attack_mod: int;
-};
-
-[[value_type]]
-type CreatureSpeedEntry {
-    [[index]]
-    id:       int;
-    walkrate: float;
 };
 
 [[value_type]]
@@ -232,22 +226,6 @@ type RobePartsEntry {
     hide_thigh_left: int;
     hide_thigh_right: int;
     hide_torso: int;
-};
-
-[[value_type]]
-type WingModelEntry {
-    [[index]]
-    id:    int;
-    label: string;
-    model: T.ResRef;
-};
-
-[[value_type]]
-type TailModelEntry {
-    [[index]]
-    id:    int;
-    label: string;
-    model: T.ResRef;
 };
 
 [[value_type]]

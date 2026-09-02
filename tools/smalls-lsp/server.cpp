@@ -7,6 +7,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/smalls/AstLocator.hpp>
 #include <nw/smalls/Smalls.hpp>
+#include <nw/smalls/data_spec.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <absl/container/flat_hash_map.h>
@@ -553,7 +554,22 @@ struct LspServer {
         // from the buffer, so an open buffer never loses to the on-disk copy.
         auto it = open_documents.find(uri);
         if (it != open_documents.end()) {
-            lang::Script* script = rt.load_module_from_source(module_name, it->second.text);
+            lang::Script* previous_prelude = rt.user_prelude();
+            const auto* spec = data_spec_for_module(rt, module_name);
+            if (spec) {
+                const auto separator = spec->entry_type.rfind('.');
+                if (separator != nw::String::npos) {
+                    rt.set_user_prelude(spec->entry_type.substr(0, separator));
+                }
+            }
+            std::string wrapped;
+            std::string_view source = it->second.text;
+            if (spec) {
+                wrapped = fmt::format("var __config = {};", source);
+                source = wrapped;
+            }
+            lang::Script* script = rt.load_module_from_source(module_name, source);
+            rt.set_user_prelude(previous_prelude ? previous_prelude->name() : nw::StringView{});
             if (script) { remember_module_uri(script, uri); }
             return script;
         }
@@ -795,10 +811,9 @@ struct LspServer {
         definition_link_support_ = json_bool(req,
             {"params", "capabilities", "textDocument", "definition", "linkSupport"});
         code_action_literal_support_ = json_bool(req,
-            {"params", "capabilities", "textDocument", "codeAction",
-                "codeActionLiteralSupport", "codeActionKind", "valueSet"})
-            || find_json_value(req, {"params", "capabilities", "textDocument", "codeAction",
-                   "codeActionLiteralSupport"})
+                                           {"params", "capabilities", "textDocument", "codeAction",
+                                               "codeActionLiteralSupport", "codeActionKind", "valueSet"})
+            || find_json_value(req, {"params", "capabilities", "textDocument", "codeAction", "codeActionLiteralSupport"})
                 != nullptr;
         watched_files_registration_ = json_bool(req,
             {"params", "capabilities", "workspace", "didChangeWatchedFiles",
@@ -812,6 +827,7 @@ struct LspServer {
         apply_workspace_folders(rt, find_json_value(req, {"params", "workspaceFolders"}));
         apply_module_paths(rt,
             find_json_value(req, {"params", "initializationOptions", "modulePaths"}));
+        register_all_data_specs(rt);
         apply_inlay_hint_options(
             find_json_value(req, {"params", "initializationOptions", "inlayHints"}));
 
@@ -849,8 +865,7 @@ struct LspServer {
         };
 
         initialized_ = true;
-        send_response(id, {{"serverInfo", {{"name", "smalls-lsp"}, {"version", "0.1.0"}}},
-                              {"capabilities", std::move(capabilities)}});
+        send_response(id, {{"serverInfo", {{"name", "smalls-lsp"}, {"version", "0.1.0"}}}, {"capabilities", std::move(capabilities)}});
     }
 
     // -- Configuration -------------------------------------------------------
@@ -899,6 +914,68 @@ struct LspServer {
             return;
         }
         rt.add_module_path(path);
+        register_data_specs(rt, path);
+    }
+
+    void register_all_data_specs(lang::Runtime& rt)
+    {
+        for (const auto& path : rt.module_paths()) {
+            register_data_specs(rt, path);
+        }
+    }
+
+    void register_data_specs(lang::Runtime& rt, const std::filesystem::path& package_path)
+    {
+        const auto directory = canonical_or_normalized(package_path / "data_specs");
+        const std::string directory_key = directory.string();
+        if (registered_spec_directories_.contains(directory_key)) { return; }
+
+        std::error_code ec;
+        if (!std::filesystem::is_directory(directory, ec)) { return; }
+
+        nw::Vector<std::filesystem::path> paths;
+        std::filesystem::directory_iterator it{directory, ec}, end;
+        for (; !ec && it != end; it.increment(ec)) {
+            if (it->is_regular_file(ec) && it->path().extension() == ".json") {
+                paths.push_back(it->path());
+            }
+        }
+        if (ec) {
+            log(LogLevel::error,
+                fmt::format("unable to enumerate data specs '{}': {}",
+                    directory.string(), ec.message()));
+            return;
+        }
+        std::ranges::sort(paths);
+
+        nw::Vector<lang::DataSpec> specs;
+        nw::Vector<lang::DataDiagnostic> diagnostics;
+        if (!lang::parse_data_specs(paths, specs, diagnostics)) {
+            for (const auto& diagnostic : diagnostics) {
+                log(LogLevel::error,
+                    fmt::format("data spec '{}', target '{}': {}",
+                        diagnostic.source.string(), diagnostic.target,
+                        diagnostic.message));
+            }
+            return;
+        }
+
+        for (auto& spec : specs) {
+            nw::String diagnostic;
+            if (!rt.register_data_spec(std::move(spec), diagnostic)) {
+                log(LogLevel::error, diagnostic);
+                return;
+            }
+        }
+        registered_spec_directories_.insert(directory_key);
+    }
+
+    static const lang::DataSpec* data_spec_for_module(
+        const lang::Runtime& rt, std::string_view module_name)
+    {
+        const auto separator = module_name.rfind('.');
+        if (separator == std::string_view::npos) { return nullptr; }
+        return rt.data_spec(module_name.substr(0, separator));
     }
 
     void apply_inlay_hint_options(const json* settings)
@@ -976,18 +1053,13 @@ struct LspServer {
             write_message({{"jsonrpc", "2.0"},
                 {"id", fmt::format("smalls-unreg-{}", ++server_request_id_)},
                 {"method", "client/unregisterCapability"},
-                {"params", {{"unregisterations", json::array({json{
-                    {"id", watcher_registration_id}, 
-                    {"method", "workspace/didChangeWatchedFiles"}}})}}}});
+                {"params", {{"unregisterations", json::array({json{{"id", watcher_registration_id}, {"method", "workspace/didChangeWatchedFiles"}}})}}}});
         }
 
         write_message({{"jsonrpc", "2.0"},
             {"id", fmt::format("smalls-reg-{}", ++server_request_id_)},
             {"method", "client/registerCapability"},
-            {"params", {{"registrations", json::array({json{
-                {"id", watcher_registration_id},
-                {"method", "workspace/didChangeWatchedFiles"},
-                {"registerOptions", {{"watchers", std::move(watchers)}}}}})}}}});
+            {"params", {{"registrations", json::array({json{{"id", watcher_registration_id}, {"method", "workspace/didChangeWatchedFiles"}, {"registerOptions", {{"watchers", std::move(watchers)}}}}})}}}});
         watchers_registered_ = true;
     }
 
@@ -1225,8 +1297,6 @@ struct LspServer {
         if (document == open_documents.end()) {
             return;
         }
-        const std::string& text = document->second.text;
-
         if (auto root = module_root_for_uri(uri); !root.empty()) {
             rt.add_module_path(root);
         }
@@ -1238,7 +1308,7 @@ struct LspServer {
         std::array<std::string_view, 1> changed_modules{module_name};
         rt.evict_modules(changed_modules);
 
-        lang::Script* script = rt.load_module_from_source(module_name, text);
+        lang::Script* script = get_or_load_module(rt, module_name, uri);
         if (!script) {
             return;
         }
@@ -1288,8 +1358,7 @@ struct LspServer {
 
         auto cached = latest_diagnostics_.find(*uri);
         json items = cached != latest_diagnostics_.end() ? cached->second : json::array();
-        send_response(id, {{"kind", "full"}, {"resultId", result_id},
-                              {"items", std::move(items)}});
+        send_response(id, {{"kind", "full"}, {"resultId", result_id}, {"items", std::move(items)}});
     }
 
     /// Answers `workspace/diagnostic`.
@@ -1518,8 +1587,7 @@ struct LspServer {
         }
         // Deleting the line, rather than the declaration's own range, avoids
         // leaving a blank line behind.
-        json edit{{"range", make_line_range(static_cast<int>(*line), 0,
-                      static_cast<int>(*line) + 1, 0)},
+        json edit{{"range", make_line_range(static_cast<int>(*line), 0, static_cast<int>(*line) + 1, 0)},
             {"newText", ""}};
         actions.push_back(
             single_edit_action("Remove unused import", uri, std::move(edit), diagnostic, true));
@@ -1708,6 +1776,66 @@ struct LspServer {
 
     // -- Hover ---------------------------------------------------------------
 
+    static std::string data_spec_provenance(
+        const lang::DataSpec& spec, std::string_view field_name)
+    {
+        auto describe = [&](const lang::DataFieldSpec& field,
+                            std::string_view target,
+                            std::string_view owner) -> std::string {
+            if (field.target != field_name) { return {}; }
+
+            std::string source;
+            std::string transform;
+            switch (field.value.kind) {
+            case lang::DataValueKind::row_index:
+                source = "source row index";
+                transform = "row_index";
+                break;
+            case lang::DataValueKind::column:
+                source = fmt::format("`{}.{}`", spec.source_resource,
+                    field.value.column);
+                transform = "column";
+                break;
+            case lang::DataValueKind::enum_value:
+                source = fmt::format("`{}.{}`", spec.source_resource,
+                    field.value.column);
+                transform = "enum";
+                break;
+            }
+            return fmt::format(
+                "- target `{}`: {} via `{}`; owner `{}`",
+                target, source, transform, owner);
+        };
+
+        std::vector<std::string> matches;
+        for (const auto& field : spec.fields) {
+            if (auto text = describe(field, field.target, "transport");
+                !text.empty()) {
+                matches.push_back(std::move(text));
+            }
+        }
+        for (const auto& group : spec.field_groups) {
+            const std::string_view owner = group.owner == lang::DataOwner::native
+                ? "native"
+                : "smalls";
+            for (const auto& field : group.fields) {
+                if (auto text = describe(field,
+                        fmt::format("{}.{}", group.target, field.target), owner);
+                    !text.empty()) {
+                    matches.push_back(std::move(text));
+                }
+            }
+        }
+        if (matches.empty()) { return {}; }
+
+        std::string result = fmt::format(
+            "\n\n---\n\nData spec `{}`:", spec.config_path);
+        for (const auto& match : matches) {
+            result += "\n" + match;
+        }
+        return result;
+    }
+
     void handle_hover(const json& req, const RequestId& id)
     {
         auto& rt = nw::kernel::runtime();
@@ -1762,6 +1890,9 @@ struct LspServer {
         content += "\n```";
         if (!sym.comment.empty()) {
             content += "\n\n---\n\n" + sym.comment;
+        }
+        if (const auto* spec = data_spec_for_module(rt, cached_module_name(rt, uri))) {
+            content += data_spec_provenance(*spec, word);
         }
 
         json result{{"contents", {{"kind", "markdown"}, {"value", std::move(content)}}}};
@@ -1933,7 +2064,8 @@ struct LspServer {
         auto relative = rt.module_name_to_path(provider_name);
         std::error_code ec;
         for (const auto& module_path : rt.module_paths()) {
-            auto candidate = canonical_or_normalized(module_path / relative);
+            auto candidate = canonical_or_normalized(
+                module_effective_root(module_path) / relative);
             if (std::filesystem::exists(candidate, ec)) {
                 return path_to_uri(candidate);
             }
@@ -2182,10 +2314,7 @@ struct LspServer {
             label += " -> " + std::string(rt.type_name(function->type_id_));
         }
 
-        send_response(id, {{"signatures", json::array({json{{"label", std::move(label)},
-                                             {"parameters", std::move(parameters)}}})},
-                              {"activeSignature", 0},
-                              {"activeParameter", static_cast<int>(help.active_param)}});
+        send_response(id, {{"signatures", json::array({json{{"label", std::move(label)}, {"parameters", std::move(parameters)}}})}, {"activeSignature", 0}, {"activeParameter", static_cast<int>(help.active_param)}});
     }
 
     // -- Inlay hints ---------------------------------------------------------
@@ -2599,6 +2728,7 @@ struct LspServer {
     absl::node_hash_map<std::string, std::string> module_uris_;
     size_t module_path_generation_ = std::numeric_limits<size_t>::max();
     absl::node_hash_map<std::string, TokenSnapshot> token_snapshots_;
+    absl::flat_hash_set<std::string> registered_spec_directories_;
     /// Last published set per document, so a pull request needs no recompile.
     absl::node_hash_map<std::string, json> latest_diagnostics_;
     absl::node_hash_map<std::string, std::vector<std::string>> export_index_;

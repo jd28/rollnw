@@ -30,6 +30,25 @@ struct AstLocator : public BaseVisitor {
     const BraceInitLiteral* brace_init = nullptr; // Keep track if our symbol is in a brace init
     size_t active_param = 0;
 
+    const Script* provider_for_struct(
+        const Type* type, const StructDef* definition) const
+    {
+        if (!definition || !definition->decl) { return parent_; }
+        const Script* provider = parent_->provider_for_decl(definition->decl);
+        if (provider->owns_declaration(definition->decl)) { return provider; }
+
+        const StringView type_name = type ? type->name.view() : StringView{};
+        const auto separator = type_name.rfind('.');
+        if (separator != StringView::npos) {
+            if (const auto* module = nw::kernel::runtime().get_module(
+                    type_name.substr(0, separator));
+                module && module->owns_declaration(definition->decl)) {
+                return module;
+            }
+        }
+        return provider;
+    }
+
     // -- Visitor -------------------------------------------------------------
 
     virtual void visit(Ast* script) override
@@ -380,23 +399,7 @@ struct AstLocator : public BaseVisitor {
                 path = expr;
                 auto vd = struct_def->decl->locate_member_decl(symbol_);
                 if (vd) {
-                    // Find the script that owns this struct definition so that
-                    // view_from_range uses the correct source text (cross-module fix).
-                    const Script* field_script = parent_;
-                    for (auto* imp : parent_->ast().imports) {
-                        if (auto* alias = dynamic_cast<AliasedImportDecl*>(imp)) {
-                            if (!alias->loaded_module) { continue; }
-                            for (auto* d : alias->loaded_module->ast().decls) {
-                                if (d == struct_def->decl) { field_script = alias->loaded_module; break; }
-                            }
-                        } else if (auto* sel = dynamic_cast<SelectiveImportDecl*>(imp)) {
-                            if (!sel->loaded_module) { continue; }
-                            for (auto* d : sel->loaded_module->ast().decls) {
-                                if (d == struct_def->decl) { field_script = sel->loaded_module; break; }
-                            }
-                        }
-                        if (field_script != parent_) { break; }
-                    }
+                    const Script* field_script = provider_for_struct(type, struct_def);
                     result_ = field_script->declaration_to_symbol(vd);
                     result_.kind = SymbolKind::field;
                     result_.provider = field_script;
@@ -472,21 +475,7 @@ struct AstLocator : public BaseVisitor {
                     if (struct_def && struct_def->decl) {
                         auto vd = struct_def->decl->locate_member_decl(symbol_);
                         if (vd) {
-                            const Script* field_script = parent_;
-                            for (auto* imp : parent_->ast().imports) {
-                                if (auto* alias = dynamic_cast<AliasedImportDecl*>(imp)) {
-                                    if (!alias->loaded_module) { continue; }
-                                    for (auto* d : alias->loaded_module->ast().decls) {
-                                        if (d == struct_def->decl) { field_script = alias->loaded_module; break; }
-                                    }
-                                } else if (auto* sel = dynamic_cast<SelectiveImportDecl*>(imp)) {
-                                    if (!sel->loaded_module) { continue; }
-                                    for (auto* d : sel->loaded_module->ast().decls) {
-                                        if (d == struct_def->decl) { field_script = sel->loaded_module; break; }
-                                    }
-                                }
-                                if (field_script != parent_) { break; }
-                            }
+                            const Script* field_script = provider_for_struct(type, struct_def);
                             result_ = field_script->declaration_to_symbol(vd);
                             result_.kind = SymbolKind::field;
                             result_.provider = field_script;

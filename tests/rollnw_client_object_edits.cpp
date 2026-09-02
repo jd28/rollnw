@@ -1764,9 +1764,9 @@ TEST(ClientObjectEdits, CreatureAccessoryBatchRebuildsSocketRowsAndSharesUndoRed
     nw::toolset::AppearanceCatalog wings;
     nw::toolset::AppearanceCatalog tails;
     ASSERT_TRUE(nw::toolset::build_appearance_catalog(
-        runtime, nw::toolset::AppearanceCatalogKind::wing, wings));
+        nw::toolset::AppearanceCatalogKind::wing, wings));
     ASSERT_TRUE(nw::toolset::build_appearance_catalog(
-        runtime, nw::toolset::AppearanceCatalogKind::tail, tails));
+        nw::toolset::AppearanceCatalogKind::tail, tails));
     const auto usable_row = [](const nw::toolset::AppearanceCatalog& catalog, int32_t current) {
         return std::find_if(catalog.rows.begin(), catalog.rows.end(), [current](const auto& row) {
             return row.id > 0 && row.id != current && !row.model.empty()

@@ -83,8 +83,38 @@ nwn1.data.classes -> nwn1/data/classes/
 nwn1/data/classes -> nwn1/data/classes/
 ```
 
-Both dot and slash forms are accepted. Only direct children of the table
-directory are loaded.
+Repository sources and data specs use the dotted form. The runtime accepts the
+slash form only at its external compatibility boundary and normalizes it to the
+same key. Only direct children of the table directory are loaded.
+
+## Generated Snapshot Contract
+
+Rows generated from an installed game's resolved resources are local review
+artifacts. They are not source inputs and are not committed for the migrated
+appearance path. Runtime materializes that path directly from the active
+resource set through its registered data spec. Existing unmigrated data
+directories retain their current runtime behavior pending a separate repository
+and licensing decision.
+
+Generate local appearance snapshots under the ignored build tree with:
+
+```console
+./build/tools/smalls-datagen/smalls-datagen --nwn <nwn-dir> --out build/generated-smalls --entity appearance
+```
+
+Reproduce and compare that local snapshot through a temporary tree without
+overwriting it with:
+
+```console
+./build/tools/smalls-datagen/smalls-datagen --nwn <nwn-dir> --check build/generated-smalls --entity appearance
+```
+
+Each filename is the source spec's declared label column, sanitized to lowercase
+ASCII with spaces represented by underscores. The numeric source row remains
+inside the definition as `id`; it is not encoded in the filename. Missing,
+empty-after-sanitization, or duplicate names reject the complete generation
+batch. This keeps local review naming independent of runtime identity and leaves
+the filename source replaceable by a future scheme such as UUIDs.
 
 ## Loading From Script
 
@@ -159,6 +189,10 @@ empty result during initialization.
 - normalizes dot and slash paths before lookup
 - requires `T` to be a struct with an `int` `[[index]]` field
 - rejects `T` when it is a propset or contains a propset field
+- gives a registered structured data spec authority over converters and
+  filesystem rows for that path
+- structurally validates a spec against the active resolved resource batch,
+  materializes valid rows, and leaves rejected source IDs as indexed holes
 - for a `twoda_only` converter, imports every row from the active 2DA directly
 - otherwise, loads and sorts direct `.smalls` entries below the table path
 - sizes a 2DA-backed array to the source row count
@@ -170,6 +204,11 @@ Out-of-range and bad data behavior is explicit:
 
 - missing table path logs a warning and returns an empty array
 - missing registered 2DA logs a warning and returns an empty array
+- a structured data spec logs row-local diagnostics, drops only those rows,
+  and retains the source row extent so valid rows remain available at their
+  original IDs; every hole has `[[index]] == -1`, including source row zero
+- a missing source or required column returns a cached typed empty array; it
+  does not fail the calling script or profile startup
 - invalid entry type, propset-containing entry type, missing `[[index]]`, or
   non-`int` index fails the intrinsic
 - entries that fail to load, have non-`int` indexes, or have negative indexes
@@ -178,6 +217,23 @@ Out-of-range and bad data behavior is explicit:
 
 Because sparse IDs produce array holes, rules modules should bounds-check before
 reading and should define the fallback value at the API boundary.
+
+## Structured Data Specs
+
+Migrated package paths are described by JSON files in the owning package's
+`data_specs/` directory. These are ordinary installed package resources: the
+runtime, datagen, and language server parse the same files. They are not
+compiled into C++ or copied into generated headers. A missing, ambiguous, or
+invalid required package spec aborts NWN1 profile startup.
+
+The private format in this tranche implements only `row_index`, `column`, and
+`enum`, with row `reject`, typed `default`, and `omit_row` policies. It has no
+format-version, plugin, schema-negotiation, scan, join, grid, or general
+dependency machinery. Boolean columns read `0` as false and `1` as true. Other
+integer values are malformed source data: materialization warns and coerces
+them to true so a source defect does not abort profile startup. The output's
+`snapshot_filename.column` is sink metadata used only by datagen; runtime
+identity remains the required `id` `row_index` field.
 
 ## 2DA Bridge
 
@@ -198,17 +254,24 @@ directly without changing the lookup code.
 spell rows, progression tables, and similar data that is loaded once and
 queried many times.
 
-NWN1 base items demonstrate a split shared-data boundary. Checked-in
-`BaseItemDefinition` struct literals are the canonical row source.
-`load_config!` loads one indexed definition batch. Profile SmallS retains the
-`BaseItemRules` policy rows and publishes a copied `BaseItemInfo` fact batch to
-native `core.item` consumers that require layout, model, icon, and inventory
-geometry. The two projections join by the same stable base-item ID; neither is a
-second authoritative source.
+NWN1 base items demonstrate the split shared-data import boundary. The checked-in
+`BaseItemDefinition` combines a C++-registered `BaseItemInfo` value and a SmallS
+`BaseItemRules` value beneath one stable source ID. `load_config!` loads that
+generated transport batch once. The NWN1 initialization module publishes the
+complete positional `BaseItemInfo[]` batch into canonical C++ storage and
+retains `BaseItemRules[]` for gameplay.
 
-Legacy 2DAs remain valid converter inputs for tables still using registered
-runtime converters. For canonical base-item definitions, 2DA conversion is an
-offline import path rather than a second runtime source.
+SmallS is the one-time import adapter, not the semantic owner of
+`BaseItemInfo`. Native runtime consumers read only the published C++ array.
+The loader must not retain a second `_infos` array or answer native fact queries.
+The current config cache still roots the immutable combined definition batch;
+that retained source copy is a measurable memory cost, not a second writer.
+Do not add a one-shot config loader without measuring that cost.
+
+Legacy 2DAs remain valid inputs while domains migrate. A mixed table must not
+retain independent native and SmallS runtime converter lists after migration.
+The implemented private data-spec contract is documented below under
+[Structured Data Specs](#structured-data-specs).
 
 Propsets are for per-object game state: hit points, ability scores, combat
 state, class levels, inventory-facing state, and other data attached to a live

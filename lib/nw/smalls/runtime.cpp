@@ -19,6 +19,7 @@
 #include "TypeResolver.hpp"
 #include "Validator.hpp"
 #include "VirtualMachine.hpp"
+#include "data_transform.hpp"
 #include "stdlib.hpp"
 
 #include "../formats/StaticTwoDA.hpp"
@@ -6350,6 +6351,12 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
         return Value{};
     }
 
+    const auto data_spec_it = data_specs_.find(canonical_path);
+    if (data_spec_it != data_specs_.end()) {
+        return load_data_spec_as_config_array(
+            canonical_path, config_type, data_spec_it->second);
+    }
+
     auto conv_it = twoda_converters_.find(canonical_path);
     if (conv_it != twoda_converters_.end()
         && conv_it->second.merge == TwoDAConfigMerge::twoda_only) {
@@ -6509,6 +6516,240 @@ void Runtime::register_twoda_converter(StringView path, StringView twoda_name,
 {
     twoda_converters_.insert_or_assign(normalize_module_name(path),
         TwoDAConverterSpec{String(twoda_name), std::move(mappings), merge});
+}
+
+bool Runtime::register_data_spec(DataSpec spec, String& diagnostic)
+{
+    diagnostic.clear();
+    const String canonical = normalize_module_name(spec.config_path);
+    if (canonical.empty() || canonical != spec.config_path) {
+        diagnostic = "Data spec config path is not canonical dotted syntax";
+        return false;
+    }
+    if (data_specs_.contains(canonical)) {
+        diagnostic = fmt::format("Duplicate data spec path '{}'", canonical);
+        return false;
+    }
+    data_specs_.emplace(canonical, std::move(spec));
+    return true;
+}
+
+const DataSpec* Runtime::data_spec(StringView path) const
+{
+    const auto found = data_specs_.find(normalize_module_name(path));
+    return found == data_specs_.end() ? nullptr : &found->second;
+}
+
+size_t Runtime::data_spec_retained_vm_bytes(StringView path) const
+{
+    const auto found = data_spec_retained_vm_bytes_.find(
+        normalize_module_name(path));
+    return found == data_spec_retained_vm_bytes_.end() ? 0 : found->second;
+}
+
+Value Runtime::load_data_spec_as_config_array(
+    StringView path, TypeID config_type, const DataSpec& spec)
+{
+    auto cache_key = std::make_pair(String(path), config_type);
+    const auto make_empty_array = [&]() -> Value {
+        const HeapPtr empty = create_array_typed(config_type, 0);
+        if (!empty.value) { return {}; }
+        const auto* header = heap_.get_header(empty);
+        if (!header) { return {}; }
+        config_roots_.push_back(empty);
+        config_array_cache_.emplace(cache_key, empty);
+        data_spec_retained_vm_bytes_.insert_or_assign(
+            String{path}, header->alloc_size);
+        return Value::make_heap(empty, header->type_id);
+    };
+
+    const Type* config_type_info = get_type(config_type);
+    if (!config_type_info || config_type_info->name.view() != spec.entry_type) {
+        LOG_F(ERROR,
+            "[config] data spec '{}': load_config! type '{}' does not match declared entry type '{}'",
+            path,
+            config_type_info ? config_type_info->name.view() : StringView{"<invalid>"},
+            spec.entry_type);
+        return Value{};
+    }
+
+    StaticTwoDA source{kernel::resman().demand(
+        {spec.source_resource, ResourceType::twoda})};
+    MaterializedDataBatch batch;
+    Vector<DataDiagnostic> diagnostics;
+    const bool materialization_succeeded = materialize_data_rows(
+        spec, source, batch, diagnostics);
+    for (const auto& diagnostic : diagnostics) {
+        if (diagnostic.severity == DiagnosticSeverity::warning) {
+            LOG_F(WARNING, "[config] data spec '{}', row {}, target '{}': {}",
+                diagnostic.source.string(), diagnostic.row,
+                diagnostic.target, diagnostic.message);
+        } else {
+            LOG_F(ERROR, "[config] data spec '{}', row {}, target '{}': {}",
+                diagnostic.source.string(), diagnostic.row,
+                diagnostic.target, diagnostic.message);
+        }
+    }
+    if (!materialization_succeeded) {
+        LOG_F(WARNING,
+            "[config] data spec '{}' could not structurally materialize '{}'; continuing with an empty config array",
+            spec.source_path.string(), path);
+        return make_empty_array();
+    }
+
+    const size_t array_size = batch.indexed_size;
+    HeapPtr array_ptr = create_array_typed(config_type, array_size);
+    if (!array_ptr.value) { return Value{}; }
+    IArray* array = get_array_typed(array_ptr);
+    if (!array) { return Value{}; }
+    array->resize(array_size);
+    if (auto* struct_array = dynamic_cast<StructArray*>(array)) {
+        const StructDef* config_def = get_struct_def(config_type);
+        if (!config_def) { return Value{}; }
+        const uint32_t index_field = find_index_field(config_def);
+        if (index_field == UINT32_MAX
+            || index_field >= config_def->field_count) { return Value{}; }
+        const uint32_t index_offset = config_def->fields[index_field].offset;
+        if (index_offset > struct_array->elem_size
+            || sizeof(int32_t) > struct_array->elem_size - index_offset) {
+            return Value{};
+        }
+        constexpr int32_t invalid_index = -1;
+        for (size_t index = 0; index < array_size; ++index) {
+            std::memcpy(struct_array->buffer.data()
+                    + index * struct_array->elem_size + index_offset,
+                &invalid_index, sizeof(invalid_index));
+        }
+    }
+    const Value array_value = Value::make_heap(
+        array_ptr, heap_.get_header(array_ptr)->type_id);
+    ScopedRoots array_roots{*this, 1};
+    array_roots.add(array_value);
+
+    const TypeID resref_type = type_id("core.types.ResRef", false);
+    size_t retained_string_bytes = 0;
+    const auto unwrap = [&](TypeID type_id) {
+        const Type* type = get_type(type_id);
+        while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
+            const TypeID next = type->type_params[0].as<TypeID>();
+            if (next == invalid_type_id || next == type_id) { break; }
+            type_id = next;
+            type = get_type(type_id);
+        }
+        return type_id;
+    };
+
+    const auto write_value = [&](uint8_t* root,
+                                 const MaterializedDataValue& materialized) {
+        uint8_t* data = root;
+        TypeID type_id = config_type;
+        StringView remaining = materialized.target;
+        while (true) {
+            const auto dot = remaining.find('.');
+            const StringView field_name = dot == StringView::npos
+                ? remaining
+                : remaining.substr(0, dot);
+            const StructDef* struct_def = get_struct_def(type_id);
+            if (!struct_def) { return false; }
+            const uint32_t field_index = struct_def->field_index(field_name);
+            if (field_index == UINT32_MAX) { return false; }
+            const FieldDef& field = struct_def->fields[field_index];
+            uint8_t* field_data = data + field.offset;
+            TypeID field_type = unwrap(field.type_id);
+
+            if (dot != StringView::npos) {
+                const Type* nested = get_type(field_type);
+                if (!nested || nested->type_kind != TK_struct) { return false; }
+                data = field_data;
+                type_id = field_type;
+                remaining.remove_prefix(dot + 1);
+                continue;
+            }
+
+            switch (materialized.type) {
+            case DataValueType::integer:
+                if (field_type != int_type()
+                    || !std::holds_alternative<int32_t>(materialized.value)) {
+                    return false;
+                }
+                *reinterpret_cast<int32_t*>(field_data)
+                    = std::get<int32_t>(materialized.value);
+                return true;
+            case DataValueType::floating:
+                if (field_type != float_type()
+                    || !std::holds_alternative<float>(materialized.value)) {
+                    return false;
+                }
+                *reinterpret_cast<float*>(field_data)
+                    = std::get<float>(materialized.value);
+                return true;
+            case DataValueType::boolean:
+                if (field_type != bool_type()
+                    || !std::holds_alternative<bool>(materialized.value)) {
+                    return false;
+                }
+                *reinterpret_cast<bool*>(field_data)
+                    = std::get<bool>(materialized.value);
+                return true;
+            case DataValueType::string: {
+                if (field_type != string_type()
+                    || !std::holds_alternative<String>(materialized.value)) {
+                    return false;
+                }
+                const HeapPtr string = alloc_string(
+                    std::get<String>(materialized.value));
+                if (const auto* string_header = heap_.try_get_header(string)) {
+                    retained_string_bytes += string_header->alloc_size;
+                    const auto* repr = static_cast<const StringRepr*>(
+                        heap_.get_ptr(string));
+                    if (const auto* backing_header = heap_.try_get_header(repr->backing)) {
+                        retained_string_bytes += backing_header->alloc_size;
+                    }
+                }
+                std::memcpy(field_data, &string, sizeof(string));
+                return true;
+            }
+            case DataValueType::resref:
+                if (field_type != resref_type
+                    || !std::holds_alternative<Resref>(materialized.value)) {
+                    return false;
+                }
+                std::memcpy(field_data,
+                    &std::get<Resref>(materialized.value), sizeof(Resref));
+                return true;
+            }
+            return false;
+        }
+    };
+
+    for (const auto& row : batch.rows) {
+        HeapPtr entry = alloc_struct(config_type);
+        if (!entry.value) { return Value{}; }
+        ScopedRoots entry_roots{*this, 1};
+        entry_roots.add(Value::make_heap(entry, config_type));
+        auto* data = static_cast<uint8_t*>(heap_.get_ptr(entry));
+        for (const auto& value : batch.row_values(row)) {
+            if (!write_value(data, value)) {
+                LOG_F(ERROR,
+                    "[config] data spec '{}': target '{}' does not match SmallS entry type '{}'",
+                    path, value.target, spec.entry_type);
+                return Value{};
+            }
+        }
+        array->set_value(static_cast<size_t>(row.id),
+            Value::make_heap(entry, config_type), *this);
+    }
+
+    auto* header = heap_.get_header(array_ptr);
+    if (!header) { return Value{}; }
+    size_t retained_bytes = header->alloc_size + retained_string_bytes;
+    if (const auto* struct_array = dynamic_cast<const StructArray*>(array)) {
+        retained_bytes += struct_array->buffer.capacity();
+    }
+    config_roots_.push_back(array_ptr);
+    config_array_cache_.emplace(std::move(cache_key), array_ptr);
+    data_spec_retained_vm_bytes_.insert_or_assign(String{path}, retained_bytes);
+    return array_value;
 }
 
 Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,

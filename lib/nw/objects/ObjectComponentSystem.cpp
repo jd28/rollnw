@@ -1711,6 +1711,21 @@ bool ObjectComponentSystem::set_angular_velocity(ObjectHandle obj, glm::vec3 vel
     return true;
 }
 
+bool ObjectComponentSystem::set_movement_rate(ObjectHandle obj, float value)
+{
+    if (!std::isfinite(value) || value < 0.0f) {
+        return false;
+    }
+
+    ObjectSpatialState* row = get_or_create_spatial(obj);
+    if (!row) {
+        return false;
+    }
+
+    row->movement_rate = value;
+    return true;
+}
+
 void ObjectComponentSystem::remove(ObjectHandle obj) noexcept
 {
     remove_spatial(obj);

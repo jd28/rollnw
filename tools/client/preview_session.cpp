@@ -4,6 +4,7 @@
 
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/nav/NavGeometry.hpp>
 #include <nw/nav/NavTileBuild.hpp>
@@ -82,87 +83,35 @@ bool valid_camera(const PreviewCameraState& camera)
         && camera.distance > 0.0f;
 }
 
-int32_t movement_rate_row(StringView value)
-{
-    constexpr std::array<StringView, 9> names{
-        "PLAYER",
-        "NOMOVE",
-        "VSLOW",
-        "SLOW",
-        "NORM",
-        "FAST",
-        "VFAST",
-        "DEFAULT",
-        "DFAST",
-    };
-    for (size_t index = 0; index < names.size(); ++index) {
-        if (string::icmp(value, names[index])) return static_cast<int32_t>(index);
-    }
-    if (const auto numeric = string::from<int32_t>(value)) return *numeric;
-    return -1;
-}
-
-float valid_speed_row(const StaticTwoDA* speeds, int32_t row)
-{
-    if (!speeds || row < 0 || static_cast<size_t>(row) >= speeds->rows()) return -1.0f;
-    float rate = -1.0f;
-    if (!speeds->get_to(static_cast<size_t>(row), "WALKRATE", rate, false)
-        || !std::isfinite(rate)
-        || rate < 0.0f) {
-        return -1.0f;
-    }
-    return rate;
-}
-
 float resolve_walk_rate(ObjectHandle actor, bool& fallback, bool& disabled)
 {
     fallback = false;
     disabled = false;
-    const auto& components = kernel::objects().components();
-    const auto* visual = components.find_visual(actor);
-    const auto* appearances = kernel::twodas().get("appearance");
-    const auto* speeds = kernel::twodas().get("creaturespeed");
-
-    int32_t speed_row = -1;
-    if (visual && appearances && visual->appearance >= 0
-        && static_cast<size_t>(visual->appearance) < appearances->rows()) {
-        StringView value;
-        if (appearances->get_to(
-                static_cast<size_t>(visual->appearance), "MOVERATE", value, false)) {
-            speed_row = movement_rate_row(value);
+    if (const auto* spatial
+        = kernel::objects().components().find_spatial(actor)) {
+        if (spatial->movement_rate == 0.0f) {
+            disabled = true;
+            return 0.0f;
+        }
+        if (spatial->movement_rate > 0.0f) {
+            return spatial->movement_rate;
         }
     }
 
-    if (speed_row == 1) {
-        disabled = true;
-        return 0.0f;
-    }
-    if (const float rate = valid_speed_row(speeds, speed_row); rate > 0.0f) return rate;
-
     fallback = true;
-    if (const float player_rate = valid_speed_row(speeds, 0); player_rate > 0.0f) {
-        return player_rate;
-    }
     return fallback_walk_rate;
 }
 
 float resolve_actor_clearance(ObjectHandle actor)
 {
     const auto* visual = kernel::objects().components().find_visual(actor);
-    const auto* appearances = kernel::twodas().get("appearance");
-    if (!visual || !appearances || visual->appearance < 0
-        || static_cast<size_t>(visual->appearance) >= appearances->rows()) {
+    if (!visual) { return -1.0f; }
+    const auto* appearance = kernel::rules().appearances.get(
+        Appearance::make(visual->appearance));
+    if (!appearance || appearance->personal_space < 0.0f) {
         return -1.0f;
     }
-
-    float clearance = -1.0f;
-    if (!appearances->get_to(
-            static_cast<size_t>(visual->appearance), "PERSPACE", clearance, false)
-        || !std::isfinite(clearance)
-        || clearance < 0.0f) {
-        return -1.0f;
-    }
-    return clearance + preview_clearance_padding;
+    return appearance->personal_space + preview_clearance_padding;
 }
 
 glm::vec2 clamped_movement_axis(glm::vec2 axis)

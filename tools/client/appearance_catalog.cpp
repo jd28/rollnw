@@ -3,9 +3,6 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
-#include <nw/resources/assets.hpp>
-#include <nw/smalls/Array.hpp>
-#include <nw/smalls/runtime.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -14,25 +11,10 @@
 namespace nw::toolset {
 namespace {
 
-struct ConfigLayout {
-    const smalls::StructDef* definition = nullptr;
-    uint32_t id = UINT32_MAX;
-    uint32_t label = UINT32_MAX;
-    uint32_t name = UINT32_MAX;
-    uint32_t model = UINT32_MAX;
-    uint32_t model_type = UINT32_MAX;
-};
-
 bool accessory_catalog(AppearanceCatalogKind kind) noexcept
 {
     return kind == AppearanceCatalogKind::wing
         || kind == AppearanceCatalogKind::tail;
-}
-
-bool native_catalog(AppearanceCatalogKind kind) noexcept
-{
-    return kind == AppearanceCatalogKind::creature
-        || kind == AppearanceCatalogKind::placeable;
 }
 
 std::string lower_ascii(std::string_view value)
@@ -76,57 +58,6 @@ std::string make_search_text(const AppearanceCatalogRow& row)
     result.push_back('\n');
     result += id;
     return result;
-}
-
-bool resolve_layout(smalls::Runtime& runtime,
-    AppearanceCatalogKind kind,
-    smalls::TypeID& type_id,
-    std::string_view& config_path,
-    ConfigLayout& layout,
-    std::string& diagnostic)
-{
-    if (!runtime.load_module("nwn1.rules")) {
-        diagnostic = "nwn1.rules could not be loaded";
-        return false;
-    }
-
-    switch (kind) {
-    case AppearanceCatalogKind::creature:
-    case AppearanceCatalogKind::placeable:
-        diagnostic = "Native appearance catalogs do not use a Smalls config layout";
-        return false;
-    case AppearanceCatalogKind::wing:
-        type_id = runtime.type_id("nwn1.rules.WingModelEntry", false);
-        config_path = "nwn1.data.wingmodel";
-        break;
-    case AppearanceCatalogKind::tail:
-        type_id = runtime.type_id("nwn1.rules.TailModelEntry", false);
-        config_path = "nwn1.data.tailmodel";
-        break;
-    }
-    layout.definition = runtime.get_struct_def(type_id);
-    if (type_id == smalls::invalid_type_id || !layout.definition) {
-        diagnostic = "Appearance catalog schema is unavailable";
-        return false;
-    }
-
-    layout.id = layout.definition->field_index("id");
-    layout.label = layout.definition->field_index("label");
-    layout.name = accessory_catalog(kind)
-        ? UINT32_MAX
-        : layout.definition->field_index("name");
-    layout.model = layout.definition->field_index("model");
-    layout.model_type = kind == AppearanceCatalogKind::creature
-        ? layout.definition->field_index("model_type")
-        : UINT32_MAX;
-    if (layout.id == UINT32_MAX || layout.label == UINT32_MAX
-        || layout.model == UINT32_MAX
-        || (!accessory_catalog(kind) && layout.name == UINT32_MAX)
-        || (kind == AppearanceCatalogKind::creature && layout.model_type == UINT32_MAX)) {
-        diagnostic = "Appearance catalog schema is incomplete";
-        return false;
-    }
-    return true;
 }
 
 bool valid_source_row(AppearanceCatalogKind kind,
@@ -186,6 +117,39 @@ void append_catalog_row(AppearanceCatalog& catalog,
     catalog.rows.push_back(std::move(row));
 }
 
+template <typename Entries>
+bool build_accessory_catalog(
+    AppearanceCatalogKind kind, const Entries& entries, AppearanceCatalog& output)
+{
+    AppearanceCatalog result;
+    result.kind = kind;
+    result.source_row_count = entries.size();
+    if (result.source_row_count
+        > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        result.status = AppearanceCatalogStatus::unavailable;
+        result.diagnostic = "Native creature accessory table exceeds the supported row count";
+        output = std::move(result);
+        return false;
+    }
+
+    result.rows.reserve(std::max<size_t>(1, entries.size()));
+    const auto* none = entries.empty() ? nullptr : &entries.front();
+    append_catalog_row(result, 0, -1, "None",
+        none ? none->label : std::string_view{},
+        none ? none->model.view() : std::string_view{});
+    for (size_t index = 1; index < entries.size(); ++index) {
+        const auto& entry = entries[index];
+        if (!entry.valid()) { continue; }
+        append_catalog_row(result,
+            static_cast<int32_t>(index), -1, entry.editor_name(),
+            entry.label, entry.model.view());
+    }
+
+    finish_catalog(result);
+    output = std::move(result);
+    return true;
+}
+
 bool build_native_catalog(AppearanceCatalogKind kind, AppearanceCatalog& output)
 {
     AppearanceCatalog result;
@@ -230,6 +194,10 @@ bool build_native_catalog(AppearanceCatalogKind kind, AppearanceCatalog& output)
                 entry.label,
                 entry.model.view());
         }
+    } else if (kind == AppearanceCatalogKind::wing) {
+        return build_accessory_catalog(kind, rules.wingmodels.entries, output);
+    } else if (kind == AppearanceCatalogKind::tail) {
+        return build_accessory_catalog(kind, rules.tailmodels.entries, output);
     } else {
         result.status = AppearanceCatalogStatus::unavailable;
         result.diagnostic = "Unsupported native appearance catalog kind";
@@ -258,79 +226,9 @@ size_t AppearanceCatalog::data_bytes() const noexcept
 }
 
 bool build_appearance_catalog(
-    smalls::Runtime& runtime, AppearanceCatalogKind kind, AppearanceCatalog& output)
+    AppearanceCatalogKind kind, AppearanceCatalog& output)
 {
-    if (native_catalog(kind)) {
-        return build_native_catalog(kind, output);
-    }
-
-    AppearanceCatalog result;
-    result.kind = kind;
-
-    smalls::TypeID type_id;
-    std::string_view config_path;
-    ConfigLayout layout;
-    if (!resolve_layout(runtime, kind, type_id, config_path, layout, result.diagnostic)) {
-        result.status = AppearanceCatalogStatus::unavailable;
-        output = std::move(result);
-        return false;
-    }
-
-    const auto array_value = runtime.load_config_array_value(config_path, type_id);
-    auto* array = runtime.get_array_typed(array_value.data.hptr);
-    if (array_value.type_id == smalls::invalid_type_id || !array) {
-        result.status = AppearanceCatalogStatus::unavailable;
-        result.diagnostic = "Smalls appearance config array is unavailable";
-        output = std::move(result);
-        return false;
-    }
-    if (array->size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
-        result.status = AppearanceCatalogStatus::unavailable;
-        result.diagnostic = "Smalls appearance config array exceeds the supported row count";
-        output = std::move(result);
-        return false;
-    }
-
-    result.source_row_count = array->size();
-    result.rows.reserve(array->size());
-    for (size_t index = 0; index < array->size(); ++index) {
-        const void* entry = array->element_data(index);
-        int32_t id = -1;
-        int32_t strref = -1;
-        int32_t model_type = -1;
-        Resref model_ref;
-        smalls::ScriptString label;
-        if (!runtime.read_struct_data_field(entry, layout.definition, layout.id, id)
-            || (layout.name != UINT32_MAX
-                && !runtime.read_struct_data_field(entry, layout.definition, layout.name, strref))
-            || !runtime.read_struct_data_field(entry, layout.definition, layout.model, model_ref)
-            || !runtime.read_struct_data_field(entry, layout.definition, layout.label, label)
-            || (kind == AppearanceCatalogKind::creature
-                && !runtime.read_struct_data_field(
-                    entry, layout.definition, layout.model_type, model_type))) {
-            continue;
-        }
-
-        const std::string model{model_ref.view()};
-        const std::string label_text = label.ptr.value == 0
-            ? std::string{}
-            : std::string{label.view(runtime)};
-        if (!valid_source_row(kind, id, model_type, label_text, model)) {
-            continue;
-        }
-
-        std::string name;
-        if (accessory_catalog(kind) && id == 0) {
-            name = "None";
-        } else if (strref >= 0) {
-            name = kernel::strings().get(static_cast<uint32_t>(strref));
-        }
-        append_catalog_row(result, id, model_type, name, label_text, model);
-    }
-
-    finish_catalog(result);
-    output = std::move(result);
-    return true;
+    return build_native_catalog(kind, output);
 }
 
 void filter_appearance_catalog(

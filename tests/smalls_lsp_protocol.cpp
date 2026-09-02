@@ -461,8 +461,7 @@ json initialize_message(json capabilities = json::object())
 json did_open_message(std::string_view uri, std::string_view source, int version = 1)
 {
     return {{"jsonrpc", "2.0"}, {"method", "textDocument/didOpen"},
-        {"params", {{"textDocument", {{"uri", uri}, {"languageId", "smalls"},
-                        {"version", version}, {"text", source}}}}}};
+        {"params", {{"textDocument", {{"uri", uri}, {"languageId", "smalls"}, {"version", version}, {"text", source}}}}}};
 }
 
 json make_range(int start_line, int start_character, int end_line, int end_character)
@@ -475,6 +474,18 @@ json document_request(int id, std::string_view method, std::string_view uri)
 {
     return {{"jsonrpc", "2.0"}, {"id", id}, {"method", method},
         {"params", {{"textDocument", {{"uri", uri}}}}}};
+}
+
+std::pair<int, int> source_position(
+    std::string_view source, std::string_view needle)
+{
+    const size_t offset = source.find(needle);
+    if (offset == std::string_view::npos) { return {-1, -1}; }
+    const size_t line_start = source.rfind('\n', offset);
+    return {
+        static_cast<int>(std::count(source.begin(), source.begin() + offset, '\n')),
+        static_cast<int>(offset - (line_start == std::string_view::npos ? 0 : line_start + 1)),
+    };
 }
 
 /// Every symbol's selectionRange must sit inside its range, or VS Code drops it.
@@ -524,13 +535,10 @@ TEST_F(SmallsLSP, ProtocolIgnoresNotificationShapedRequests)
              "textDocument/documentSymbol", "textDocument/foldingRange",
              "textDocument/semanticTokens/full"}) {
         conversation.push_back({{"jsonrpc", "2.0"}, {"method", method},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 1}, {"character", 8}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 1}, {"character", 8}}}}}});
     }
     conversation.push_back({{"jsonrpc", "2.0"}, {"method", "textDocument/inlayHint"},
-        {"params", {{"textDocument", {{"uri", uri}}},
-            {"range", {{"start", {{"line", 0}, {"character", 0}}},
-                {"end", {{"line", 2}, {"character", 1}}}}}}}});
+        {"params", {{"textDocument", {{"uri", uri}}}, {"range", {{"start", {{"line", 0}, {"character", 0}}}, {"end", {{"line", 2}, {"character", 1}}}}}}}});
     // A real request afterwards proves the server survived the notifications.
     conversation.push_back(document_request(42, "textDocument/documentSymbol", uri));
 
@@ -684,8 +692,7 @@ fn main(): int {
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         document_request(2, "textDocument/foldingRange", uri),
         {{"jsonrpc", "2.0"}, {"id", 3}, {"method", "textDocument/selectionRange"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"positions", json::array({{{"line", 4}, {"character", 12}}})}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"positions", json::array({{{"line", 4}, {"character", 12}}})}}}}});
 
     const json* folding = response_with_id(messages, 2);
     ASSERT_NE(folding, nullptr);
@@ -736,17 +743,14 @@ TEST_F(SmallsLSP, ProtocolAppliesIncrementalEditBatches)
 
     // Two edits in one batch, the first on a line containing multi-byte text.
     json changes = json::array(
-        {{{"range", {{"start", {{"line", 1}, {"character", 8}}},
-                        {"end", {{"line", 1}, {"character", 9}}}}},
+        {{{"range", {{"start", {{"line", 1}, {"character", 8}}}, {"end", {{"line", 1}, {"character", 9}}}}},
              {"text", "alpha"}},
-            {{"range", {{"start", {{"line", 2}, {"character", 8}}},
-                 {"end", {{"line", 2}, {"character", 9}}}}},
+            {{"range", {{"start", {{"line", 2}, {"character", 8}}}, {"end", {{"line", 2}, {"character", 9}}}}},
                 {"text", "beta"}}});
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"method", "textDocument/didChange"},
-            {"params", {{"textDocument", {{"uri", uri}, {"version", 2}}},
-                {"contentChanges", changes}}}},
+            {"params", {{"textDocument", {{"uri", uri}, {"version", 2}}}, {"contentChanges", changes}}}},
         document_request(2, "textDocument/semanticTokens/full", uri)});
 
     const json* response = response_with_id(messages, 2);
@@ -781,8 +785,7 @@ fn main(): int {
     auto messages = run_conversation({initialize_message(capabilities),
         did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/definition"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 5}, {"character", 12}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 5}, {"character", 12}}}}}}});
 
     const json* response = response_with_id(messages, 2);
     ASSERT_NE(response, nullptr);
@@ -809,8 +812,7 @@ fn main(): int {
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/completion"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 5}, {"character", 14}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 5}, {"character", 14}}}}}}});
 
     const json* completion = response_with_id(messages, 2);
     ASSERT_NE(completion, nullptr);
@@ -850,8 +852,7 @@ fn broken(: {
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         document_request(2, "textDocument/documentSymbol", uri),
         {{"jsonrpc", "2.0"}, {"id", 3}, {"method", "textDocument/selectionRange"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"positions", json::array({{{"line", 4}, {"character", 10}}})}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"positions", json::array({{{"line", 4}, {"character", 10}}})}}}}});
 
     const json* symbols = response_with_id(messages, 2);
     ASSERT_NE(symbols, nullptr);
@@ -914,11 +915,9 @@ fn main(): int {
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/definition"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 5}, {"character", 12}}}}}},
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 5}, {"character", 12}}}}}},
         {{"jsonrpc", "2.0"}, {"id", 3}, {"method", "textDocument/declaration"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 5}, {"character", 12}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 5}, {"character", 12}}}}}}});
 
     const json* definition = response_with_id(messages, 2);
     ASSERT_NE(definition, nullptr);
@@ -947,11 +946,9 @@ fn main(p: Point): int {
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/hover"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 4}, {"character", 12}}}}}},
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 4}, {"character", 12}}}}}},
         {{"jsonrpc", "2.0"}, {"id", 3}, {"method", "textDocument/typeDefinition"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"position", {{"line", 5}, {"character", 12}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", 5}, {"character", 12}}}}}}});
 
     // Without a range the editor cannot underline the hovered symbol.
     const json* hover = response_with_id(messages, 2);
@@ -1091,10 +1088,7 @@ fn probe(a: int): int {
     auto action_messages = run_conversation({initialize_message(code_action_capabilities()),
         did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/codeAction"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"range", (*unused)["range"]},
-                {"context", {{"diagnostics", json::array({*unused})},
-                    {"only", json::array({"quickfix"})}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", (*unused)["range"]}, {"context", {{"diagnostics", json::array({*unused})}, {"only", json::array({"quickfix"})}}}}}}});
 
     const json* actions = response_with_id(action_messages, 2);
     ASSERT_NE(actions, nullptr);
@@ -1118,10 +1112,7 @@ TEST_F(SmallsLSP, ProtocolHonorsCodeActionOnlyFilter)
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/codeAction"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"range", make_range(0, 0, 0, 0)},
-                {"context", {{"diagnostics", json::array()},
-                    {"only", json::array({"refactor.extract"})}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", make_range(0, 0, 0, 0)}, {"context", {{"diagnostics", json::array()}, {"only", json::array({"refactor.extract"})}}}}}}});
 
     const json* actions = response_with_id(messages, 2);
     ASSERT_NE(actions, nullptr);
@@ -1152,9 +1143,7 @@ json did_change_message(std::string_view uri, int version, int line, int charact
     std::string_view text)
 {
     return {{"jsonrpc", "2.0"}, {"method", "textDocument/didChange"},
-        {"params", {{"textDocument", {{"uri", uri}, {"version", version}}},
-            {"contentChanges", json::array({{{"range", make_range(line, character, line, character)},
-                {"text", text}}})}}}};
+        {"params", {{"textDocument", {{"uri", uri}, {"version", version}}}, {"contentChanges", json::array({{{"range", make_range(line, character, line, character)}, {"text", text}}})}}}};
 }
 
 } // namespace
@@ -1443,9 +1432,7 @@ TEST_F(SmallsLSP, ProtocolOffersSuggestionAndImportFixes)
     auto action_messages = run_conversation({initialize_message(capabilities),
         did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/codeAction"},
-            {"params", {{"textDocument", {{"uri", uri}}}, {"range", (*unresolved)["range"]},
-                {"context", {{"diagnostics", json::array({*unresolved})},
-                    {"only", json::array({"quickfix"})}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", (*unresolved)["range"]}, {"context", {{"diagnostics", json::array({*unresolved})}, {"only", json::array({"quickfix"})}}}}}}});
 
     const json* response = response_with_id(action_messages, 2);
     ASSERT_NE(response, nullptr);
@@ -1488,9 +1475,7 @@ TEST_F(SmallsLSP, ProtocolCodeActionsIgnoreDiagnosticMessageText)
     auto action_messages = run_conversation({initialize_message(code_action_capabilities()),
         did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/codeAction"},
-            {"params", {{"textDocument", {{"uri", uri}}}, {"range", unused["range"]},
-                {"context", {{"diagnostics", json::array({unused})},
-                    {"only", json::array({"quickfix"})}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", unused["range"]}, {"context", {{"diagnostics", json::array({unused})}, {"only", json::array({"quickfix"})}}}}}}});
 
     const json* response = response_with_id(action_messages, 2);
     ASSERT_NE(response, nullptr);
@@ -1518,9 +1503,7 @@ fn probe(): int {
     auto messages = run_conversation({initialize_message(code_action_capabilities()),
         did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/codeAction"},
-            {"params", {{"textDocument", {{"uri", uri}}}, {"range", make_range(7, 20, 7, 20)},
-                {"context", {{"diagnostics", json::array()},
-                    {"only", json::array({"quickfix"})}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", make_range(7, 20, 7, 20)}, {"context", {{"diagnostics", json::array()}, {"only", json::array({"quickfix"})}}}}}}});
 
     const json* response = response_with_id(messages, 2);
     ASSERT_NE(response, nullptr);
@@ -1559,9 +1542,7 @@ TEST_F(SmallsLSP, ProtocolFallsBackToCommandsWithoutLiteralSupport)
     auto action_messages = run_conversation({initialize_message(),
         did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/codeAction"},
-            {"params", {{"textDocument", {{"uri", uri}}}, {"range", unused["range"]},
-                {"context", {{"diagnostics", json::array({unused})},
-                    {"only", json::array({"quickfix"})}}}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", unused["range"]}, {"context", {{"diagnostics", json::array({unused})}, {"only", json::array({"quickfix"})}}}}}}});
 
     const json* response = response_with_id(action_messages, 2);
     ASSERT_NE(response, nullptr);
@@ -1587,8 +1568,7 @@ fn probe(): int {
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source),
         {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/inlayHint"},
-            {"params", {{"textDocument", {{"uri", uri}}},
-                {"range", make_range(0, 0, 8, 0)}}}}});
+            {"params", {{"textDocument", {{"uri", uri}}}, {"range", make_range(0, 0, 8, 0)}}}}});
 
     const json* initialize = response_with_id(messages, 1);
     ASSERT_NE(initialize, nullptr);
@@ -1690,4 +1670,102 @@ TEST_F(SmallsLSP, ProtocolCompletionDetailComesFromTheResolvedType)
     EXPECT_EQ(detail.find("fn "), std::string::npos) << detail;
     EXPECT_FALSE(detail.empty());
     EXPECT_NE(detail, label);
+}
+
+TEST_F(SmallsLSP, ProtocolTypesAppearanceSnapshotsAndReportsDataProvenance)
+{
+    const auto scripts = std::filesystem::weakly_canonical(
+        std::filesystem::path{__FILE__}.parent_path().parent_path()
+        / "lib/nw/smalls/scripts");
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(scripts / "core");
+    runtime.add_module_path(scripts / "nwn1");
+
+    const auto target = scripts / "nwn1/data/appearance/dwarf.smalls";
+    constexpr std::string_view source = R"(AppearanceDefinition {
+    id = 0,
+    info = AppearanceInfo {
+        id = 0,
+        label = "Dwarf",
+        string_ref = 1985,
+        base_name = "Character_model",
+        model = resref("d"),
+        model_type = 0,
+        model_flags = 3,
+        wing_tail_scale = 1.0,
+        helmet_scale_m = 1.15,
+        helmet_scale_f = 0.95,
+        weapon_scale = 1.0,
+        has_arms = true,
+        personal_space = 0.3
+    },
+    rules = AppearanceRules {
+        size = 3,
+        movement_rate = 4
+    }
+}
+)";
+    const auto [line, column] = source_position(source, "movement_rate");
+    ASSERT_GE(line, 0);
+    ASSERT_GE(column, 0);
+    const std::string uri = smalls_lsp::native_path_to_uri(target.string());
+
+    auto messages = run_conversation({initialize_message(),
+        did_open_message(uri, source),
+        {{"jsonrpc", "2.0"}, {"id", 2}, {"method", "textDocument/hover"},
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", line}, {"character", column + 2}}}}}},
+        {{"jsonrpc", "2.0"}, {"id", 3}, {"method", "textDocument/definition"},
+            {"params", {{"textDocument", {{"uri", uri}}}, {"position", {{"line", line}, {"character", column + 2}}}}}}});
+
+    const json* diagnostics = diagnostics_with_version(messages, uri, 1);
+    ASSERT_NE(diagnostics, nullptr);
+    EXPECT_TRUE((*diagnostics)["params"]["diagnostics"].empty())
+        << (*diagnostics)["params"]["diagnostics"].dump(2);
+
+    const json* hover = response_with_id(messages, 2);
+    ASSERT_NE(hover, nullptr);
+    ASSERT_FALSE((*hover)["result"].is_null());
+    const std::string hover_text = (*hover)["result"]["contents"]["value"].get<std::string>();
+    EXPECT_NE(hover_text.find("appearance.MOVERATE"), std::string::npos);
+    EXPECT_NE(hover_text.find("`enum`"), std::string::npos);
+    EXPECT_NE(hover_text.find("owner `smalls`"), std::string::npos);
+
+    const json* definition = response_with_id(messages, 3);
+    ASSERT_NE(definition, nullptr);
+    ASSERT_TRUE((*definition)["result"].is_object())
+        << (*definition).dump(2);
+    EXPECT_NE((*definition)["result"]["uri"].get<std::string>().find(
+                  "nwn1/rules.smalls"),
+        std::string::npos)
+        << (*definition)["result"].dump(2);
+}
+
+TEST_F(SmallsLSP, ProtocolDiagnosesMismatchedBoundConfigType)
+{
+    const auto scripts = std::filesystem::weakly_canonical(
+        std::filesystem::path{__FILE__}.parent_path().parent_path()
+        / "lib/nw/smalls/scripts");
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(scripts / "core");
+    runtime.add_module_path(scripts / "nwn1");
+
+    constexpr std::string_view uri = "file:///tmp/smalls_lsp_data_spec_type_mismatch.smalls";
+    constexpr std::string_view source = R"(import nwn1.rules as R;
+
+fn wrong_type() {
+    var rows = load_config!(R.CreatureSizeEntry)("nwn1.data.appearance");
+}
+)";
+    auto messages = run_conversation(
+        {initialize_message(), did_open_message(uri, source)});
+
+    const json* diagnostics = diagnostics_with_version(messages, uri, 1);
+    ASSERT_NE(diagnostics, nullptr);
+    bool found = false;
+    for (const auto& diagnostic : (*diagnostics)["params"]["diagnostics"]) {
+        const std::string message = diagnostic.value("message", "");
+        found |= message.find("requires 'nwn1.rules.AppearanceDefinition'")
+            != std::string::npos;
+    }
+    EXPECT_TRUE(found);
 }

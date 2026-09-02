@@ -39,7 +39,7 @@ different boundaries. They are not interchangeable storage annotations.
 | Native object component | C++ | Engine data required directly by native systems or protected by native ownership/lifetime invariants | Native ABI operations only |
 | Profile propset | Selected profile's `<root>.propsets` module | Object-local game schema and script policy state | `get_propset!` |
 | Profile rules/config batch | Selected profile module | Shared interpretation, tuning, and policy tables | Ordinary Smalls values |
-| Toolset projection | Selected toolset module | Replaceable editor state, labels, filters, and rows | RmlUi data-model binding |
+| Native toolset projection | C++ client/toolset | Editor state, labels, filters, and copied rows over native facts | RmlUi data-model binding |
 
 Every production `[[propset]]` belongs to the selected profile's single
 `<root>.propsets` module. `core.*` contains the native ABI and reusable
@@ -78,7 +78,9 @@ Classify a datum from its real readers, writers, frequency, and invariants:
    to expose that value.
 5. If the datum is shared immutable rules data, partition it by consumer:
    native addressing/storage facts become native `Info` rows and script policy
-   becomes profile `Rules` rows. Join them by a stable scalar key.
+   becomes profile `Rules` rows. For imported 2DAs, generate one
+   `Definition {id, info, rules}` transport row, publish `Info[]` to C++ once,
+   retain `Rules[]` in SmallS, and join them by the stable source ID.
 6. If the datum exists only to display or interact with an editor, it is a
    toolset projection, not object storage.
 
@@ -98,7 +100,7 @@ or source table columns. The consumer and required invariant decide the owner.
 | Base-item model/icon/layout facts | Native `BaseItemInfo` facts | Native asset addressing and inventory geometry |
 | Base-item combat and requirement policy | `nwn1.item` rules/config | Moddable game behavior |
 | Creature ability scores, feats, classes, and scripts | Profile propsets | Profile-defined object schema consumed by rules |
-| Editor rows, filters, selected tab, and labels | Toolset Smalls | Replaceable authoring projection |
+| Editor rows, filters, selected tab, and labels | Native C++ toolset | Native authoring projection and interaction state |
 
 ### Cost Of Each Choice
 
@@ -109,8 +111,8 @@ The ownership choice determines where cost is paid:
 | Native component | Native allocation/access and explicit component serialization | C++ rebuild, fixed layout/versioning, typed bridge and invariant tests |
 | Profile propset | Handle lookup plus profile-script reads/writes; dynamic fields carry managed lifetime work | Qualified schema key, profile bootstrap, reimport when the schema name changes |
 | Native ABI value/fact | Value conversion or copy across the VM boundary | Registered layout and explicit range/error contract |
-| Native `Info` plus profile `Rules` split | One import pass per projection and a scalar-key join at use sites | Each source field must have exactly one runtime owner |
-| Toolset projection | Rebuild on invalidation and viewport-bounded RmlUi materialization | No durable object migration; workflow remains replaceable |
+| Native `Info` plus profile `Rules` split | One generated definition load, one linear split/native publication, and a scalar-key join at use sites | Each source field must have exactly one runtime owner; cached definitions retain an immutable VM source copy |
+| Native toolset projection | Rebuild on invalidation and viewport-bounded RmlUi materialization | No durable object migration; interaction changes require a C++ rebuild |
 
 No general performance ranking is implied. Use the simplest owner that serves
 the observed consumers and preserves the required invariant. If a proposed

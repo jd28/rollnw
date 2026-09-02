@@ -21,6 +21,9 @@ Rules::Rules(MemoryResource* scope)
     , spellschools{allocator()}
     , skills{allocator()}
     , appearances{allocator()}
+    , wingmodels{allocator()}
+    , tailmodels{allocator()}
+    , creature_body_parts{allocator()}
     , baseitems{allocator()}
     , placeables{allocator()}
 {

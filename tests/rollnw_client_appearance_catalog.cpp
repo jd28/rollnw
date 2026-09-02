@@ -4,7 +4,8 @@
 
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/smalls/runtime.hpp>
+#include <nw/kernel/Rules.hpp>
+#include <nw/resources/ResourceManager.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -20,7 +21,7 @@ TEST(ClientAppearanceCatalog, BuildsSortedNativeCreatureRowsAndFiltersStableIndi
 
     nw::toolset::AppearanceCatalog catalog;
     ASSERT_TRUE(nw::toolset::build_appearance_catalog(
-        nw::kernel::runtime(), nw::toolset::AppearanceCatalogKind::creature, catalog))
+        nw::toolset::AppearanceCatalogKind::creature, catalog))
         << catalog.diagnostic;
     ASSERT_EQ(catalog.status, nw::toolset::AppearanceCatalogStatus::ready);
     EXPECT_GT(catalog.source_row_count, catalog.rows.size());
@@ -80,7 +81,7 @@ TEST(ClientAppearanceCatalog, BuildsAndFiltersNativePlaceableRows)
 
     nw::toolset::AppearanceCatalog catalog;
     ASSERT_TRUE(nw::toolset::build_appearance_catalog(
-        nw::kernel::runtime(), nw::toolset::AppearanceCatalogKind::placeable, catalog))
+        nw::toolset::AppearanceCatalogKind::placeable, catalog))
         << catalog.diagnostic;
 
     const auto* corpse = nw::toolset::find_appearance_catalog_row(catalog, 109);
@@ -96,7 +97,7 @@ TEST(ClientAppearanceCatalog, BuildsAndFiltersNativePlaceableRows)
     }));
 }
 
-TEST(ClientAppearanceCatalog, BuildsSparseWingAndTailRowsFromSmallsLabels)
+TEST(ClientAppearanceCatalog, BuildsSparseNativeWingAndTailRows)
 {
     auto module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(module);
@@ -104,8 +105,7 @@ TEST(ClientAppearanceCatalog, BuildsSparseWingAndTailRowsFromSmallsLabels)
     const auto check_catalog = [](nw::toolset::AppearanceCatalogKind kind,
                                    std::string_view resource) {
         nw::toolset::AppearanceCatalog catalog;
-        ASSERT_TRUE(nw::toolset::build_appearance_catalog(
-            nw::kernel::runtime(), kind, catalog))
+        ASSERT_TRUE(nw::toolset::build_appearance_catalog(kind, catalog))
             << catalog.diagnostic;
         ASSERT_EQ(catalog.status, nw::toolset::AppearanceCatalogStatus::ready);
         ASSERT_FALSE(catalog.rows.empty());
@@ -135,6 +135,18 @@ TEST(ClientAppearanceCatalog, BuildsSparseWingAndTailRowsFromSmallsLabels)
         std::string expected_name{label};
         std::replace(expected_name.begin(), expected_name.end(), '_', ' ');
         EXPECT_EQ(source_row->name, expected_name);
+
+        const nw::CreatureAccessoryModelInfo* native_row = nullptr;
+        if (kind == nw::toolset::AppearanceCatalogKind::wing) {
+            native_row = nw::kernel::rules().wingmodels.get(
+                nw::WingModel::make(source_row->id));
+        } else {
+            native_row = nw::kernel::rules().tailmodels.get(
+                nw::TailModel::make(source_row->id));
+        }
+        ASSERT_NE(native_row, nullptr);
+        EXPECT_EQ(native_row->label, source_row->label);
+        EXPECT_EQ(native_row->model.view(), source_row->model);
 
         std::vector<uint32_t> matches;
         nw::toolset::filter_appearance_catalog(catalog, source_row->label, matches);

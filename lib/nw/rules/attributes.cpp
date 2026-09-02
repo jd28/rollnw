@@ -5,10 +5,14 @@
 
 #include "nlohmann/json.hpp"
 
+#include <algorithm>
+
 namespace nw {
 
 DEFINE_RULE_TYPE(Ability);
 DEFINE_RULE_TYPE(Appearance);
+DEFINE_RULE_TYPE(WingModel);
+DEFINE_RULE_TYPE(TailModel);
 DEFINE_RULE_TYPE(PlaceableAppearance);
 DEFINE_RULE_TYPE(ArmorClass);
 DEFINE_RULE_TYPE(Phenotype);
@@ -41,43 +45,30 @@ AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags)
 // -- AppearanceInfo ----------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-AppearanceInfo::AppearanceInfo(const TwoDARowView& tda)
-{
-    tda.get_to("LABEL", label);
-    tda.get_to("STRING_REF", string_ref);
-    tda.get_to("NAME", base_name);
-    String raw_model;
-    tda.get_to("RACE", raw_model);
-    model = Resref{raw_model};
-
-    String raw_model_type;
-    tda.get_to("MODELTYPE", raw_model_type);
-    if (string::icmp(raw_model_type, "P")) {
-        model_type = AppearanceModelType::parts;
-    } else if (string::icmp(raw_model_type, "S")) {
-        model_type = AppearanceModelType::simple;
-    } else if (string::icmp(raw_model_type, "F")) {
-        model_type = AppearanceModelType::full;
-    } else if (string::icmp(raw_model_type, "L")) {
-        model_type = AppearanceModelType::large;
-    } else if (string::icmp(raw_model_type, "FT")) {
-        model_type = AppearanceModelType::full_tail;
-    } else if (string::icmp(raw_model_type, "FW")) {
-        model_type = AppearanceModelType::full_wings;
-    } else if (string::icmp(raw_model_type, "FWT")) {
-        model_type = AppearanceModelType::full_wings_tail;
-    } else if (string::icmp(raw_model_type, "LWT")) {
-        model_type = AppearanceModelType::large_wings_tail;
-    } else if (string::icmp(raw_model_type, "SWT")) {
-        model_type = AppearanceModelType::simple_wings_tail;
-    }
-}
-
 String AppearanceInfo::editor_name() const
 {
     auto string = nw::kernel::strings().get(string_ref);
     if (!string.empty()) { return string; }
     return label;
+}
+
+// -- CreatureAccessoryModelInfo ---------------------------------------------
+// ----------------------------------------------------------------------------
+
+CreatureAccessoryModelInfo::CreatureAccessoryModelInfo(const TwoDARowView& tda)
+{
+    tda.get_to("LABEL", label);
+    String raw_model;
+    tda.get_to("MODEL", raw_model);
+    model = Resref{raw_model};
+}
+
+String CreatureAccessoryModelInfo::editor_name() const
+{
+    String result = label;
+    std::replace(result.begin(), result.end(), '_', ' ');
+    if (result.empty()) { result = model.view(); }
+    return result;
 }
 
 // -- PlaceableAppearanceInfo -------------------------------------------------

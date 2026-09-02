@@ -253,6 +253,7 @@ add_executable(rollnw_test
     resources.cpp
 
     rules_effects.cpp
+    rules_creature_body_parts.cpp
     rules_qualifier.cpp
     rules_random.cpp
     rules_requirement.cpp
@@ -268,6 +269,7 @@ add_executable(rollnw_test
     smalls_bytecode.cpp
     smalls_bytecode_verifier.cpp
     smalls_compiler.cpp
+    smalls_data_transform.cpp
     smalls_gc.cpp
     smalls_diagnostics.cpp
     smalls_lexer.cpp

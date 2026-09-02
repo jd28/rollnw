@@ -67,6 +67,7 @@ add_library(nw STATIC
     objects/Location.cpp
 
     profiles/nwn1/constants.cpp
+    profiles/nwn1/body_part_catalog.cpp
     profiles/nwn1/creature_ability_loadout.cpp
     profiles/nwn1/equipment_gff.cpp
     profiles/nwn1/gff_propset_component_json.cpp
@@ -99,6 +100,7 @@ add_library(nw STATIC
     rules/Class.cpp
     rules/combat.cpp
     rules/combat_scheduler.cpp
+    rules/creature_body_parts.cpp
     rules/Dice.cpp
     rules/effects.cpp
     rules/feats.cpp
@@ -128,6 +130,8 @@ add_library(nw STATIC
     smalls/Bytecode.cpp
     smalls/BytecodeVerifier.cpp
     smalls/Context.cpp
+    smalls/data_spec.cpp
+    smalls/data_transform.cpp
     smalls/Diagnostic.cpp
     smalls/GarbageCollector.cpp
     smalls/Lexer.cpp

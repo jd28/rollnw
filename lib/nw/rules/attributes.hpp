@@ -81,22 +81,33 @@ enum struct AppearanceModelType : int32_t {
     parts = 0,
     simple = 1,
     full = 2,
-    large = 3,
-    full_tail = 4,
-    full_wings = 5,
-    full_wings_tail = 6,
-    large_wings_tail = 7,
-    simple_wings_tail = 8,
+    limited = 3,
 };
 
-struct AppearanceInfo {
-    AppearanceInfo(const TwoDARowView& tda);
+enum struct AppearanceModelFlags : uint32_t {
+    none = 0,
+    wings_allowed = 1 << 0,
+    tail_allowed = 1 << 1,
+};
 
+DEFINE_ENUM_FLAGS(AppearanceModelFlags)
+
+constexpr auto appearance_model_flags_all = AppearanceModelFlags::wings_allowed
+    | AppearanceModelFlags::tail_allowed;
+
+struct AppearanceInfo {
     String label;
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
     String base_name;
     Resref model;
     AppearanceModelType model_type = AppearanceModelType::invalid;
+    AppearanceModelFlags model_flags = AppearanceModelFlags::none;
+    float wing_tail_scale = 1.0f;
+    float helmet_scale_m = 1.0f;
+    float helmet_scale_f = 1.0f;
+    float weapon_scale = -1.0f;
+    float personal_space = -1.0f;
+    bool has_arms = false;
 
     /// Gets the name to display when using in contexts like a toolset.
     String editor_name() const;
@@ -105,6 +116,27 @@ struct AppearanceInfo {
 };
 
 using AppearanceArray = RuleTypeArray<Appearance, AppearanceInfo>;
+
+// -- Creature Accessory Models ----------------------------------------------
+// ----------------------------------------------------------------------------
+
+DECLARE_RULE_TYPE(WingModel);
+DECLARE_RULE_TYPE(TailModel);
+
+struct CreatureAccessoryModelInfo {
+    CreatureAccessoryModelInfo() = default;
+    explicit CreatureAccessoryModelInfo(const TwoDARowView& tda);
+
+    String label;
+    Resref model;
+
+    /// Gets the name to display when using in contexts like a toolset.
+    String editor_name() const;
+    bool valid() const noexcept { return !label.empty() || !model.empty(); }
+};
+
+using WingModelArray = RuleTypeArray<WingModel, CreatureAccessoryModelInfo>;
+using TailModelArray = RuleTypeArray<TailModel, CreatureAccessoryModelInfo>;
 
 // -- Placeable Appearance ---------------------------------------------------
 // ----------------------------------------------------------------------------

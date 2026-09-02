@@ -7,6 +7,7 @@
 #include "../rules/Class.hpp"
 #include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"
+#include "../rules/creature_body_parts.hpp"
 #include "../rules/feats.hpp"
 #include "../rules/items.hpp"
 #include "../rules/system.hpp"
@@ -50,6 +51,9 @@ struct Rules : public Service {
     SpellSchoolArray spellschools;
     SkillArray skills;
     AppearanceArray appearances;
+    WingModelArray wingmodels;
+    TailModelArray tailmodels;
+    CreatureBodyPartCatalog creature_body_parts;
     BaseItemArray baseitems;
     PlaceableAppearanceArray placeables;
 

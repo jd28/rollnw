@@ -1,14 +1,45 @@
 from core.types import { Class, ResRef, Spell };
 
-[[native]]
+[[native, value_type]]
 type AppearanceInfo {
     id: int;
+    label: string;
+    string_ref: int;
+    base_name: string;
     model: ResRef;
     model_type: int;
+    model_flags: int;
+    wing_tail_scale: float;
+    helmet_scale_m: float;
+    helmet_scale_f: float;
+    weapon_scale: float;
+    personal_space: float;
+    has_arms: bool;
 };
 
 [[native]] fn appearance_info(id: int): AppearanceInfo;
+[[native]] fn publish_appearance_info(entries: array!(AppearanceInfo)): bool;
+[[native]] fn accessory_model(accessory: int, id: int): ResRef;
+[[native]] fn accessory_exists(accessory: int, id: int): bool;
+const body_part_info_flag_editor_visible = 1;
+const body_part_info_flag_robe = 2;
+const body_part_option_flag_empty = 1;
+const body_part_option_flag_mirror = 2;
+const body_part_option_flag_armor = 4;
+[[native]] fn body_part_assembly(appearance: int, gender: int, phenotype: int, fallback_phenotype: int): int;
+[[native]] fn body_part_count(assembly: int): int;
+[[native]] fn body_part_id_at(assembly: int, index: int): int;
+[[native]] fn body_part_mirror(assembly: int, part: int): int;
+[[native]] fn body_part_flags(assembly: int, part: int): int;
+[[native]] fn body_part_label(assembly: int, part: int): string;
+[[native]] fn body_part_anchor(assembly: int, part: int): ResRef;
+[[native]] fn body_part_option_count(assembly: int, part: int): int;
+[[native]] fn body_part_option_id_at(assembly: int, part: int, index: int): int;
+[[native]] fn body_part_option_flags_at(assembly: int, part: int, index: int): int;
+[[native]] fn body_part_option_exists(assembly: int, part: int, option: int): bool;
+[[native]] fn body_part_model(assembly: int, part: int, option: int, prefer_mirror: bool): ResRef;
 [[native]] fn set_vitals(obj: Creature, hp_current: int, hp_max: int): bool;
+[[native]] fn set_movement_rate(obj: Creature, value: float): bool;
 [[native]] fn get_vitals_hp_current(obj: Creature): int;
 [[native]] fn get_vitals_hp_max(obj: Creature): int;
 [[native]] fn get_ability_loadout_count(obj: Creature): int;

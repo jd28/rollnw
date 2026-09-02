@@ -4923,7 +4923,7 @@ void rebuild_active_appearances(AppState& state, nw::ObjectHandle object)
 
     auto& catalog = appearance_catalog(state, *kind);
     if (catalog.status == nw::toolset::AppearanceCatalogStatus::empty) {
-        (void)nw::toolset::build_appearance_catalog(nw::kernel::runtime(), *kind, catalog);
+        (void)nw::toolset::build_appearance_catalog(*kind, catalog);
     }
     if (object.type == nw::ObjectType::creature) {
         for (const auto accessory_kind : {
@@ -4933,7 +4933,7 @@ void rebuild_active_appearances(AppState& state, nw::ObjectHandle object)
             auto& accessory_catalog = appearance_catalog(state, accessory_kind);
             if (accessory_catalog.status == nw::toolset::AppearanceCatalogStatus::empty) {
                 (void)nw::toolset::build_appearance_catalog(
-                    nw::kernel::runtime(), accessory_kind, accessory_catalog);
+                    accessory_kind, accessory_catalog);
             }
         }
     } else {

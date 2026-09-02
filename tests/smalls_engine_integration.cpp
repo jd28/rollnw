@@ -15,6 +15,7 @@
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/smalls/Array.hpp>
+#include <nw/smalls/data_spec.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/util/scope_exit.hpp>
 
@@ -3443,6 +3444,135 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicBuildsClassArray)
     EXPECT_EQ(result.value.data.ival, 1);
 }
 
+TEST_F(SmallsEngineIntegration, MalformedStructuredRowsRemainHolesWithoutFailingCaller)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    constexpr std::string_view spec_source = R"json({
+        "source": {
+            "kind": "twoda",
+            "resource": "data_spec_rows",
+            "valid_when": { "column": "LABEL", "on_missing": "omit_row" }
+        },
+        "output": {
+            "config_path": "test.data.malformed_appearance",
+            "entry_type": "nwn1.rules.AppearanceDefinition",
+            "fields": [
+                { "target": "id", "value": { "kind": "row_index" } }
+            ],
+            "field_groups": [
+                {
+                    "target": "info",
+                    "owner": "native",
+                    "type": "core.creature.AppearanceInfo",
+                    "fields": [
+                        {
+                            "target": "id",
+                            "value": { "kind": "row_index" }
+                        },
+                        {
+                            "target": "model_type",
+                            "value": {
+                                "kind": "enum",
+                                "column": "KIND",
+                                "values": { "P": 0, "F": 2 }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    })json";
+
+    nw::smalls::DataSpec spec;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    ASSERT_TRUE(nw::smalls::parse_data_spec(
+        spec_source, "test/data_specs/malformed_appearance.json", spec, diagnostics));
+    ASSERT_TRUE(diagnostics.empty());
+    nw::String registration_diagnostic;
+    ASSERT_TRUE(rt.register_data_spec(std::move(spec), registration_diagnostic))
+        << registration_diagnostic;
+
+    auto* script = rt.load_module_from_source("test.malformed_config_is_recoverable", R"(
+        import core.array as Array;
+        import nwn1.rules as Rules;
+
+        fn main(): bool {
+            var first = load_config!(Rules.AppearanceDefinition)(
+                "test.data.malformed_appearance");
+            var cached = load_config!(Rules.AppearanceDefinition)(
+                "test.data.malformed_appearance");
+            if (Array.len(first) != 3 || Array.len(cached) != 3) {
+                return false;
+            }
+            var malformed = Array.get(first, 0);
+            var valid_a = Array.get(first, 1);
+            var valid_b = Array.get(first, 2);
+            return malformed.id == -1
+                && valid_a.id == 1 && valid_a.info.id == 1
+                && valid_a.info.model_type == 2
+                && valid_b.id == 2 && valid_b.info.id == 2
+                && valid_b.info.model_type == 0;
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    EXPECT_GT(rt.data_spec_retained_vm_bytes(
+                  "test.data.malformed_appearance"),
+        0u);
+}
+
+TEST_F(SmallsEngineIntegration, MissingStructuredSourceReturnsEmptyArrayWithoutFailingCaller)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    constexpr std::string_view spec_source = R"json({
+        "source": { "kind": "twoda", "resource": "does_not_exist" },
+        "output": {
+            "config_path": "test.data.missing_source",
+            "entry_type": "nwn1.rules.AppearanceDefinition",
+            "fields": [
+                { "target": "id", "value": { "kind": "row_index" } }
+            ]
+        }
+    })json";
+
+    nw::smalls::DataSpec spec;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    ASSERT_TRUE(nw::smalls::parse_data_spec(
+        spec_source, "test/data_specs/missing_source.json", spec, diagnostics));
+    ASSERT_TRUE(diagnostics.empty());
+    nw::String registration_diagnostic;
+    ASSERT_TRUE(rt.register_data_spec(std::move(spec), registration_diagnostic))
+        << registration_diagnostic;
+
+    auto* script = rt.load_module_from_source("test.missing_config_source", R"(
+        import core.array as Array;
+        import nwn1.rules as Rules;
+
+        fn main(): bool {
+            var first = load_config!(Rules.AppearanceDefinition)(
+                "test.data.missing_source");
+            var cached = load_config!(Rules.AppearanceDefinition)(
+                "test.data.missing_source");
+            return Array.len(first) == 0 && Array.len(cached) == 0;
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    EXPECT_GT(rt.data_spec_retained_vm_bytes("test.data.missing_source"), 0u);
+}
+
 TEST_F(SmallsEngineIntegration, LegacyClassTableRetainsMissingSmallsFields)
 {
     auto& rt = nw::kernel::runtime();
@@ -3764,22 +3894,14 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicProgressionTables)
 
     std::string_view source = R"(
         import core.array as arr;
-        import nwn1.creature_speeds as CreatureSpeeds;
         import nwn1.fractional_cr as FractionalCr;
         import nwn1.rules as R;
 
         fn main(): int {
-            var speeds = load_config!(R.CreatureSpeedEntry)("nwn1.data.creaturespeed");
-            if (arr.len(speeds) == 0) { return -1; }
-            var player_speed = arr.get(speeds, 0);
-            if (player_speed.walkrate <= 0.0) { return -2; }
-            if (CreatureSpeeds.walkrate(0) != player_speed.walkrate) { return -3; }
-            if (CreatureSpeeds.walkrate(-1) != 0.0) { return -4; }
-
             var fractional = load_config!(R.FractionalChallengeRatingEntry)("nwn1.data.fractionalcr");
-            if (arr.len(fractional) == 0) { return -5; }
+            if (arr.len(fractional) == 0) { return -1; }
             var rounded = FractionalCr.resolve(0.5);
-            if (rounded <= 0.0 || rounded > 1.0) { return -6; }
+            if (rounded <= 0.0 || rounded > 1.0) { return -2; }
             return 1;
         }
     )";
@@ -3791,6 +3913,84 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicProgressionTables)
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, CreatureBaseMoveRatesAreProfileRules)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    std::string_view source = R"(
+        import nwn1.creature_speeds as CreatureSpeeds;
+
+        fn main(): bool {
+            return CreatureSpeeds.get_base_moverate(0) == 2.0
+                && CreatureSpeeds.get_base_moverate(1) == 0.0
+                && CreatureSpeeds.get_base_moverate(2) == 0.75
+                && CreatureSpeeds.get_base_moverate(3) == 1.25
+                && CreatureSpeeds.get_base_moverate(4) == 1.75
+                && CreatureSpeeds.get_base_moverate(5) == 2.25
+                && CreatureSpeeds.get_base_moverate(6) == 2.75
+                && CreatureSpeeds.get_base_moverate(7) == 0.0
+                && CreatureSpeeds.get_base_moverate(8) == 5.5
+                && CreatureSpeeds.get_base_moverate(-1) == 0.0
+                && CreatureSpeeds.get_base_moverate(9) == 0.0;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.creature_base_move_rates", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+}
+
+TEST_F(SmallsEngineIntegration, CreatureMovementRateIsPushedToNativeSpatialState)
+{
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+
+    auto& components = nw::kernel::objects().components();
+    const auto* spatial = components.find_spatial(creature->handle());
+    ASSERT_NE(spatial, nullptr);
+    EXPECT_FLOAT_EQ(spatial->movement_rate, 1.75f);
+
+    auto& rt = nw::kernel::runtime();
+    std::string_view source = R"(
+        import core.creature as NativeCreature;
+        import nwn1.creature as C;
+        from nwn1.propsets import { CreatureLevels };
+
+        fn set_fast(creature: Creature): bool {
+            var levels = get_propset!(CreatureLevels)(creature);
+            levels.walkrate = 5;
+            return C.update_movement_rate(creature)
+                && C.get_base_moverate(creature) == 2.25
+                && !NativeCreature.set_movement_rate(creature, -1.0);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.creature_movement_rate_push", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto result = rt.execute_script(script, "set_fast",
+        {nw::smalls::Value::make_object(creature->handle())});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+
+    spatial = components.find_spatial(creature->handle());
+    ASSERT_NE(spatial, nullptr);
+    EXPECT_FLOAT_EQ(spatial->movement_rate, 2.25f);
+    EXPECT_FALSE(components.set_movement_rate(creature->handle(),
+        std::numeric_limits<float>::quiet_NaN()));
+    EXPECT_FLOAT_EQ(spatial->movement_rate, 2.25f);
+
+    nw::kernel::objects().destroy(creature->handle());
 }
 
 TEST_F(SmallsEngineIntegration, Nwn1FeatRequirementsUseSmallsConfig)
@@ -3977,6 +4177,32 @@ TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTab
         nw::BaseItem::make(*nwn1::base_item_shortsword));
     ASSERT_NE(after, nullptr);
     EXPECT_EQ(after->label, before_label);
+}
+
+TEST_F(SmallsEngineIntegration, EmptyBaseItemPublicationClearsOnlyBaseItemDomain)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    ASSERT_FALSE(nw::kernel::rules().baseitems.entries.empty());
+
+    auto* script = rt.load_module_from_source(
+        "test.empty_baseitem_info_publication", R"(
+            import core.array as Array;
+            from core.item import { BaseItemInfo, publish_baseitem_info };
+
+            fn main(): bool {
+                var empty: array!(BaseItemInfo) = {};
+                return publish_baseitem_info(empty);
+            }
+        )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    EXPECT_TRUE(nw::kernel::rules().baseitems.entries.empty());
+    EXPECT_FALSE(nw::kernel::rules().appearances.entries.empty());
 }
 
 TEST_F(SmallsEngineIntegration, Nwn1BaseItemRequirementsUseSmallsRules)
@@ -4249,13 +4475,13 @@ TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
             var info = A.get_info(bodak);
             var rules = A.get_rules(bodak);
             if (info.id != bodak) { return -2; }
-            if (rules.id != bodak) { return -3; }
             if (T.resref_to_string(info.model) != "c_bodak") { return -4; }
             if (info.model_type != R.appearance_model_type_full) { return -5; }
+            if (info.model_flags != 0) { return -22; }
             if (rules.size != 3) { return -6; }
-            if (rules.walkrate != 5) { return -7; }
-            if (rules.weapon_scale != 1.0) { return -8; }
-            if (!rules.has_arms) { return -9; }
+            if (rules.movement_rate != 5) { return -7; }
+            if (info.weapon_scale != 1.0) { return -8; }
+            if (!info.has_arms) { return -9; }
 
             var resolved = C.resolve_creature_model(bodak);
             if (!resolved.valid) { return -10; }
@@ -4271,6 +4497,8 @@ TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
             if (!humanoid.humanoid) { return -18; }
             if (T.resref_to_string(humanoid.model) != "") { return -19; }
             if (T.resref_to_string(humanoid.race) != "h") { return -20; }
+            if (humanoid.model_type != R.appearance_model_type_parts) { return -23; }
+            if (humanoid.model_flags != R.appearance_model_flags_all) { return -24; }
 
             var invalid = C.resolve_creature_model(-1);
             if (invalid.valid) { return -21; }
@@ -4289,8 +4517,13 @@ TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
     ASSERT_NE(rules_type, nw::smalls::invalid_type_id);
     ASSERT_NE(rt.get_struct_def(info_type), nullptr);
     ASSERT_NE(rt.get_struct_def(rules_type), nullptr);
-    EXPECT_FALSE(rt.get_struct_def(info_type)->is_value_type);
+    EXPECT_TRUE(rt.get_struct_def(info_type)->is_value_type);
     EXPECT_TRUE(rt.get_struct_def(rules_type)->is_value_type);
+
+    const size_t appearance_bytes = rt.data_spec_retained_vm_bytes("nwn1.data.appearance");
+    EXPECT_GT(appearance_bytes, 0u);
+    RecordProperty("appearance_retained_vm_bytes",
+        std::to_string(appearance_bytes));
 
     nw::Vector<nw::smalls::Value> args;
     args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_bodak));
@@ -4299,6 +4532,148 @@ TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, InvalidAppearancePublicationPreservesNativeTable)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    const auto appearance = nw::Appearance::make(*nwn1::appearance_type_bodak);
+    const auto* before = nw::kernel::rules().appearances.get(appearance);
+    ASSERT_NE(before, nullptr);
+    const auto before_label = before->label;
+    std::string_view source = R"(
+        import core.array as Array;
+        from core.creature import {
+            AppearanceInfo,
+            publish_appearance_info
+        };
+
+        fn main(invalid_field: int): bool {
+            var invalid: AppearanceInfo;
+            invalid.id = 0;
+            invalid.label = "invalid";
+            invalid.string_ref = -1;
+            invalid.model_type = 0;
+            invalid.model_flags = 3;
+            invalid.wing_tail_scale = 1.0;
+            invalid.helmet_scale_m = 1.0;
+            invalid.helmet_scale_f = 1.0;
+            invalid.weapon_scale = -1.0;
+            invalid.personal_space = -1.0;
+            if (invalid_field == 0) { invalid.id = 1; }
+            elif (invalid_field == 1) { invalid.model_flags = 4; }
+            elif (invalid_field == 2) { invalid.model_flags = 0; }
+
+            var entries: array!(AppearanceInfo) = {};
+            Array.push(entries, invalid);
+
+            return !publish_appearance_info(entries);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.invalid_appearance_info_publication", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    for (int32_t invalid_field = 0; invalid_field < 3; ++invalid_field) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(nw::smalls::Value::make_int(invalid_field));
+        const auto result = rt.execute_script(script, "main", args);
+        ASSERT_TRUE(result.ok()) << result.error_message;
+        EXPECT_TRUE(result.value.data.bval) << "invalid field " << invalid_field;
+    }
+
+    const auto* after = nw::kernel::rules().appearances.get(appearance);
+    ASSERT_NE(after, nullptr);
+    EXPECT_EQ(after->label, before_label);
+}
+
+TEST_F(SmallsEngineIntegration, EmptyAppearancePublicationClearsOnlyAppearanceDomain)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    ASSERT_FALSE(nw::kernel::rules().appearances.entries.empty());
+
+    auto* script = rt.load_module_from_source(
+        "test.empty_appearance_info_publication", R"(
+            import core.array as Array;
+            from core.creature import { AppearanceInfo, publish_appearance_info };
+
+            fn main(): bool {
+                var empty: array!(AppearanceInfo) = {};
+                return publish_appearance_info(empty);
+            }
+        )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto result = rt.execute_script(script, "main", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    EXPECT_TRUE(nw::kernel::rules().appearances.entries.empty());
+    EXPECT_FALSE(nw::kernel::rules().baseitems.entries.empty());
+}
+
+TEST_F(SmallsEngineIntegration, NativeCreatureAccessoryFactsFeedSmallsRules)
+{
+    const auto first_model = [](const auto& entries) {
+        for (size_t index = 1; index < entries.size(); ++index) {
+            if (entries[index].valid() && !entries[index].model.empty()) {
+                return static_cast<int32_t>(index);
+            }
+        }
+        return int32_t{-1};
+    };
+    const int32_t wing = first_model(nw::kernel::rules().wingmodels.entries);
+    const int32_t tail = first_model(nw::kernel::rules().tailmodels.entries);
+    ASSERT_GT(wing, 0);
+    ASSERT_GT(tail, 0);
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    std::string_view source = R"(
+        import core.creature as NativeCreature;
+        import core.types as T;
+        import nwn1.creature as CreatureRules;
+
+        fn has_model(accessory: int, id: int): bool {
+            return NativeCreature.accessory_exists(accessory, id)
+                && T.resref_to_string(
+                    NativeCreature.accessory_model(accessory, id)) != "";
+        }
+
+        fn rejects_invalid(): bool {
+            return !NativeCreature.accessory_exists(-1, 1)
+                && !NativeCreature.accessory_exists(0, -1)
+                && !NativeCreature.accessory_exists(1, 2147483647)
+                && T.resref_to_string(
+                    NativeCreature.accessory_model(2, 1)) == "";
+        }
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.native_creature_accessory_facts", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    const auto check_model = [&](int32_t accessory, int32_t id) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(nw::smalls::Value::make_int(accessory));
+        args.push_back(nw::smalls::Value::make_int(id));
+        return rt.execute_script(script, "has_model", args);
+    };
+    auto result = check_model(0, wing);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    result = check_model(1, tail);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    result = rt.execute_script(script, "rejects_invalid", {});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
 }
 
 TEST_F(SmallsEngineIntegration, CoreItemReturnsStoreInventoryByCategory)
@@ -4502,7 +4877,7 @@ TEST_F(SmallsEngineIntegration, CanonicalDefinitionsRejectOutOfRangeIds)
             if (B.exists(Item.BaseItemType(-1))) { return -1; }
             if (B.exists(Item.BaseItemType(B.count()))) { return -2; }
             if (invalid_creature.id != -1) { return -3; }
-            if (invalid_appearance_rules.id != -1) { return -4; }
+            if (invalid_appearance_rules.size != 0) { return -4; }
             if (invalid_placeable.id != -1) { return -5; }
             if (invalid_placeable_rules.id != -1) { return -6; }
             if (invalid_base_item.label != "") { return -7; }

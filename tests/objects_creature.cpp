@@ -73,6 +73,7 @@ struct CreatureModelLookup {
     std::string error;
     int32_t appearance = -1;
     int32_t model_type = -1;
+    int32_t model_flags = 0;
     int32_t hand_item_reason = 0;
     float wing_tail_scale = 1.0f;
     float helmet_scale_m = 1.0f;
@@ -639,6 +640,7 @@ CreatureModelLookup resolve_creature_model_from_appearance(nw::Appearance appear
     result.error = script_string_field(rt, executed.value, "error");
     result.appearance = script_int_field(rt, executed.value, "appearance", -1);
     result.model_type = script_int_field(rt, executed.value, "model_type", -1);
+    result.model_flags = script_int_field(rt, executed.value, "model_flags");
     result.hand_item_reason = script_int_field(rt, executed.value, "hand_item_reason");
     result.wing_tail_scale = script_float_field(rt, executed.value, "wing_tail_scale", 1.0f);
     result.helmet_scale_m = script_float_field(rt, executed.value, "helmet_scale_m", 1.0f);
@@ -907,6 +909,8 @@ TEST(Creature, ResolveModelUsesNativeAppearanceData)
     ASSERT_TRUE(bodak.has_model()) << bodak.error;
     EXPECT_EQ(bodak.model, nw::Resref{"c_bodak"});
     EXPECT_EQ(bodak.race, nw::Resref{"c_bodak"});
+    EXPECT_EQ(bodak.model_type, static_cast<int32_t>(nw::AppearanceModelType::full));
+    EXPECT_EQ(bodak.model_flags, 0);
     EXPECT_TRUE(bodak.hand_item_visible);
     EXPECT_FLOAT_EQ(bodak.hand_item_scale, 1.0f);
     EXPECT_FLOAT_EQ(bodak.wing_tail_scale, 1.0f);
@@ -916,6 +920,8 @@ TEST(Creature, ResolveModelUsesNativeAppearanceData)
     EXPECT_TRUE(human.humanoid);
     EXPECT_FALSE(human.has_model());
     EXPECT_EQ(human.race, nw::Resref{"h"});
+    EXPECT_EQ(human.model_type, static_cast<int32_t>(nw::AppearanceModelType::parts));
+    EXPECT_EQ(human.model_flags, static_cast<int32_t>(nw::appearance_model_flags_all));
     EXPECT_TRUE(human.hand_item_visible);
     EXPECT_FLOAT_EQ(human.hand_item_scale, 1.0f);
 }
