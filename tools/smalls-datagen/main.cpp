@@ -535,7 +535,9 @@ int main(int argc, char* argv[])
     fs::path temporary_output;
 
     nw::kernel::config().set_paths(nwn_path, "");
-    nw::kernel::config().initialize();
+    nw::ConfigOptions config_options;
+    config_options.profile = "nwn1";
+    nw::kernel::config().initialize(std::move(config_options));
     DatagenProfile profile{executable_dir / "stdlib"};
     nw::kernel::set_game_profile(&profile);
     nw::kernel::services().start();

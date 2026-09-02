@@ -22,7 +22,9 @@ examples
     #include <nw/script/Nss.hpp>
 
     // Start the kernel, if you want to load game assets
-    nw::kernel::config().initialize();
+    nw::ConfigOptions config_options;
+    config_options.profile = "nwn1";
+    nw::kernel::config().initialize(std::move(config_options));
     nw::kernel::services().start();
 
     auto ctx = std::make_unique<nw::script::Context>();

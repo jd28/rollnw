@@ -104,4 +104,23 @@ TEST(Kernel, ConfigProfileOption)
 
     options.profile = "1invalid";
     EXPECT_THROW(config.initialize(options), std::invalid_argument);
+
+    options.profile = "";
+    EXPECT_THROW(config.initialize(options), std::invalid_argument);
+}
+
+TEST(Kernel, GameServicesRequireExplicitProfile)
+{
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    services.shutdown();
+
+    config.initialize({});
+    EXPECT_FALSE(config.profile().has_value());
+    EXPECT_THROW(services.start(), std::runtime_error);
+
+    nw::ConfigOptions options;
+    options.profile = "nwn1";
+    config.initialize(std::move(options));
+    EXPECT_NO_THROW(services.start());
 }

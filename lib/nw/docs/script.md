@@ -13,7 +13,9 @@ reading, analyzing, and migrating existing NWN content.
 #include <nw/kernel/Kernel.hpp>
 #include <nw/script/Nss.hpp>
 
-nw::kernel::config().initialize();
+nw::ConfigOptions config_options;
+config_options.profile = "nwn1";
+nw::kernel::config().initialize(std::move(config_options));
 nw::kernel::services().start();
 
 auto ctx = std::make_unique<nw::script::Context>();

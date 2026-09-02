@@ -275,7 +275,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         // bootstrap the shipped core and exactly one selected profile.
         if (!language_only) {
             add_module_path(std::filesystem::path("stdlib") / "core");
-            add_module_path(std::filesystem::path("stdlib") / kernel::config().profile());
+            add_module_path(std::filesystem::path("stdlib") / *kernel::config().profile());
         }
 
         LOG_F(INFO, "[runtime] Initializing Runtime and registering internal types");
@@ -303,7 +303,7 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
             return;
         }
 
-        const auto& profile_root = kernel::config().profile();
+        const auto& profile_root = *kernel::config().profile();
         const auto propsets_module = fmt::format("{}.propsets", profile_root);
         auto* propsets = load_module(propsets_module);
         if (!propsets || propsets->errors() != 0) {

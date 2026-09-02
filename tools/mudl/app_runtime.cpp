@@ -750,7 +750,7 @@ void register_smalls_packages()
     const auto stdlib_path = std::filesystem::path{base_path} / "stdlib";
     auto& runtime = nw::kernel::runtime();
     runtime.add_module_path(stdlib_path / "core");
-    runtime.add_module_path(stdlib_path / nw::kernel::config().profile());
+    runtime.add_module_path(stdlib_path / *nw::kernel::config().profile());
 }
 
 } // namespace
@@ -777,6 +777,9 @@ bool init_kernel_services(std::string_view module_path, std::string_view user_pa
         }
     }
     nw::kernel::config().set_paths(install_info.install, user_dir);
+    nw::ConfigOptions config_options;
+    config_options.profile = "nwn1";
+    nw::kernel::config().initialize(std::move(config_options));
     register_shader_resources();
     register_smalls_packages();
 

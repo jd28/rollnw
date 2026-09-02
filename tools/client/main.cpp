@@ -324,7 +324,7 @@ void register_smalls_packages()
     const auto stdlib_path = client_base_path() / "stdlib";
     auto& runtime = nw::kernel::runtime();
     runtime.add_module_path(stdlib_path / "core");
-    runtime.add_module_path(stdlib_path / nw::kernel::config().profile());
+    runtime.add_module_path(stdlib_path / *nw::kernel::config().profile());
 }
 
 bool client_ui_dir_exists(const std::filesystem::path& path)
@@ -9471,6 +9471,10 @@ bool ensure_project_import_kernel(nw::toolset::ProjectImportFormat format, std::
 
     try {
         nw::kernel::config().set_paths(install.install, install.user);
+        nw::ConfigOptions config_options;
+        config_options.profile = "nwn1";
+        config_options.init_module = "";
+        nw::kernel::config().initialize(std::move(config_options));
         nw::kernel::config().set_init_module("");
         nw::kernel::services().create();
         register_smalls_packages();
@@ -9563,6 +9567,10 @@ int main(int argc, char* argv[])
         return 1;
     }
     nw::kernel::config().set_paths(install.install, install.user);
+    nw::ConfigOptions config_options;
+    config_options.profile = "nwn1";
+    config_options.init_module = "";
+    nw::kernel::config().initialize(std::move(config_options));
     nw::kernel::config().set_init_module("");
     nw::kernel::services().create();
     register_smalls_packages();

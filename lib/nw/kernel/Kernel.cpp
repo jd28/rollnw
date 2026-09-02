@@ -170,7 +170,12 @@ void Services::create(ServiceMode mode)
 
     mode_ = mode;
     if (mode_ == ServiceMode::game && !profile_) {
-        if (config().profile() == "nwn1"
+        const auto& selected_profile = config().profile();
+        if (!selected_profile) {
+            throw std::runtime_error(
+                "game services require an explicitly selected runtime profile");
+        }
+        if (*selected_profile == "nwn1"
             && (config().version() == GameVersion::vEE
                 || config().version() == GameVersion::v1_69)) {
             profile_ = kernel_scope_.alloc_obj<nwn1::Profile>();

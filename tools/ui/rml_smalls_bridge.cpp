@@ -498,6 +498,10 @@ bool RmlSmallsBridge::initialize()
             }
 
             nw::kernel::config().set_paths(install.install, install.user);
+            nw::ConfigOptions config_options;
+            config_options.profile = "nwn1";
+            config_options.init_module = "";
+            nw::kernel::config().initialize(std::move(config_options));
             nw::kernel::config().set_init_module("");
             services.start();
 

@@ -1,6 +1,6 @@
 # Explicit Runtime Profile Selection
 
-Status: open.
+Status: complete.
 
 ## Problem
 

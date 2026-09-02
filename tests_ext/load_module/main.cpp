@@ -12,7 +12,9 @@ int main(int argc, char* argv[])
 
     nw::init_logger(argc, argv);
     if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
-    nw::kernel::config().initialize();
+    nw::ConfigOptions config_options;
+    config_options.profile = "nwn1";
+    nw::kernel::config().initialize(std::move(config_options));
 
     auto mod = nw::kernel::load_module(argv[1]);
     if (!mod) { return 1; }

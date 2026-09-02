@@ -382,7 +382,10 @@ int main(int argc, char* argv[])
     nw::init_logger(argc, argv);
 
     if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
-    nw::kernel::config().initialize({true, false});
+    nw::ConfigOptions config_options;
+    config_options.include_user = false;
+    config_options.profile = "nwn1";
+    nw::kernel::config().initialize(std::move(config_options));
     nw::kernel::services().start();
 
     struct TilePathNodeStats {

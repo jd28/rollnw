@@ -29,7 +29,9 @@ While the library is far from done, basic usage would be as follows.
         nw::kernel::config().set_version(GameVersion::v1_69);
 
         // Sets config for the system, paths, version, etc.
-        nw::kernel::config().initialize();
+        nw::ConfigOptions config_options;
+        config_options.profile = "nwn1";
+        nw::kernel::config().initialize(std::move(config_options));
 
         // Initializes all systems
         nw::kernel::services().start();

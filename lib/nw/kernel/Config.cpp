@@ -27,17 +27,19 @@ bool valid_profile_root(std::string_view value)
 
 void Config::initialize(ConfigOptions options)
 {
-    if (!valid_profile_root(options.profile)) {
+    if (options.profile && !valid_profile_root(*options.profile)) {
         throw std::invalid_argument("profile root must match [a-z_][a-z0-9_]*");
     }
-    if (options.combat_policy_module.empty()) {
-        options.combat_policy_module = options.profile + ".combat";
-    }
-    if (options.effects_policy_module.empty()) {
-        options.effects_policy_module = options.profile + ".effects";
-    }
-    if (options.init_module.empty()) {
-        options.init_module = options.profile + ".init";
+    if (options.profile) {
+        if (options.combat_policy_module.empty()) {
+            options.combat_policy_module = *options.profile + ".combat";
+        }
+        if (options.effects_policy_module.empty()) {
+            options.effects_policy_module = *options.profile + ".effects";
+        }
+        if (options.init_module.empty()) {
+            options.init_module = *options.profile + ".init";
+        }
     }
     options_ = std::move(options);
 
@@ -92,7 +94,7 @@ const std::string& Config::init_module() const noexcept
     return options_.init_module;
 }
 
-const std::string& Config::profile() const noexcept
+const std::optional<std::string>& Config::profile() const noexcept
 {
     return options_.profile;
 }

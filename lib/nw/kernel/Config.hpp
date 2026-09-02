@@ -2,6 +2,7 @@
 
 #include "../util/game_install.hpp"
 
+#include <optional>
 #include <string>
 
 namespace nw {
@@ -10,7 +11,7 @@ namespace nw {
 struct ConfigOptions {
     bool include_install = true; ///< Load Game install files
     bool include_user = true;    ///< Load User files, note: if false, value overrides ``include_nwsync``
-    std::string profile = "nwn1";
+    std::optional<std::string> profile;
     std::string combat_policy_module;
     std::string effects_policy_module;
     std::string init_module;
@@ -43,7 +44,7 @@ struct Config {
     const std::string& init_module() const noexcept;
 
     /// Gets configured game profile id
-    const std::string& profile() const noexcept;
+    const std::optional<std::string>& profile() const noexcept;
 
     /// Sets combat policy module path
     void set_combat_policy_module(std::string module);

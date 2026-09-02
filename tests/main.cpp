@@ -44,7 +44,9 @@ int main(int argc, char* argv[])
     if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
 
     if (!list_tests) {
-        nw::kernel::config().initialize();
+        nw::ConfigOptions config_options;
+        config_options.profile = "nwn1";
+        nw::kernel::config().initialize(std::move(config_options));
         nw::kernel::services().start();
     }
 
