@@ -376,7 +376,7 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
             .value = 37,
             .label = "Composite",
             .detail = "Model 3, variation 7",
-            .split_model_color = true,
+            .split_model_variation = true,
         },
         {
             .part = 4,
@@ -505,6 +505,11 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     ASSERT_EQ(color_fields.size(), 2);
     auto model_fields = bound_elements_by_class(*document, "item_model_field");
     ASSERT_EQ(model_fields.size(), 3);
+    auto composite_labels = bound_elements_by_class(
+        *document, "item_composite_model_label");
+    ASSERT_EQ(composite_labels.size(), 2);
+    EXPECT_EQ(composite_labels[0]->GetInnerRML(), "Model");
+    EXPECT_EQ(composite_labels[1]->GetInnerRML(), "Variation");
 
     const auto layer_model = std::ranges::find_if(model_fields,
         [](const Rml::Element* element) {

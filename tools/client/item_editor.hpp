@@ -50,7 +50,7 @@ struct ItemEditorPart {
     std::string label;
     std::string detail;
     bool per_part_colors = false;
-    bool split_model_color = false;
+    bool split_model_variation = false;
 };
 
 struct ItemEditorColor {

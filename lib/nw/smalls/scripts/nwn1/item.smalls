@@ -68,10 +68,10 @@ const item_color_metal2 = 5;
 const item_part_color_inherit = 255;
 const item_editor_color_count = 176;
 const item_editor_model_value_count = 256;
-const item_editor_composite_color_count = 10;
+const item_editor_composite_variation_count = 10;
 const item_editor_composite_model_count = 26;
 const item_editor_model_axis_model = 0;
-const item_editor_model_axis_color = 1;
+const item_editor_model_axis_variation = 1;
 const item_property_field_subtype = 0;
 const item_property_field_param = 1;
 const item_property_field_cost = 2;
@@ -100,7 +100,7 @@ type ItemEditorPartRow {
     value: int;
     detail: string;
     per_part_colors: bool;
-    split_model_color: bool;
+    split_model_variation: bool;
 };
 
 type ItemEditorModelOptionRow {
@@ -808,7 +808,7 @@ fn _append_item_editor_part(
         value = value,
         detail = detail,
         per_part_colors = per_part_colors,
-        split_model_color = model_type == Rules.item_model_type_composite,
+        split_model_variation = model_type == Rules.item_model_type_composite,
     };
     Array.push(rows, row);
 }
@@ -936,21 +936,24 @@ fn _get_composite_model_options(
     part: int,
     current: int): array!(ItemEditorModelOptionRow) {
     var rows: array!(ItemEditorModelOptionRow) = {};
-    var current_model = current / item_editor_composite_color_count;
-    var current_color = current % item_editor_composite_color_count;
+    var current_model = current / item_editor_composite_variation_count;
+    var current_variation = current % item_editor_composite_variation_count;
     if (current_model == 0) {
         Array.push(rows, _item_editor_model_option(0, current, "None", ""));
     }
     for (var model = 1; model < item_editor_composite_model_count; model += 1) {
         var target = -1;
-        for (var color = 1; color < item_editor_composite_color_count; color += 1) {
-            var packed = model * item_editor_composite_color_count + color;
+        for (var variation = 1;
+            variation < item_editor_composite_variation_count;
+            variation += 1) {
+            var packed
+                = model * item_editor_composite_variation_count + variation;
             if (packed >= item_editor_model_value_count) {
                 break;
             }
             if (_item_editor_model_option_available(
                     base_item, entry, part, packed)) {
-                if (target < 0 || color == current_color) {
+                if (target < 0 || variation == current_variation) {
                     target = packed;
                 }
             }
@@ -968,19 +971,22 @@ fn _get_composite_model_options(
     return rows;
 }
 
-fn _get_composite_color_options(
+fn _get_composite_variation_options(
     base_item: int,
     entry: base.BaseItemInfo,
     part: int,
     current: int): array!(ItemEditorModelOptionRow) {
     var rows: array!(ItemEditorModelOptionRow) = {};
-    var current_model = current / item_editor_composite_color_count;
-    var current_color = current % item_editor_composite_color_count;
-    if (current_color == 0) {
+    var current_model = current / item_editor_composite_variation_count;
+    var current_variation = current % item_editor_composite_variation_count;
+    if (current_variation == 0) {
         Array.push(rows, _item_editor_model_option(0, current, "None", ""));
     }
-    for (var color = 1; color < item_editor_composite_color_count; color += 1) {
-        var packed = current_model * item_editor_composite_color_count + color;
+    for (var variation = 1;
+        variation < item_editor_composite_variation_count;
+        variation += 1) {
+        var packed
+            = current_model * item_editor_composite_variation_count + variation;
         if (packed >= item_editor_model_value_count) {
             break;
         }
@@ -990,8 +996,8 @@ fn _get_composite_color_options(
                     base_item, entry, part, packed))) {
             continue;
         }
-        Array.push(rows, _item_editor_model_option(color, packed,
-            f"Variation {color}", _item_editor_model_option_detail(
+        Array.push(rows, _item_editor_model_option(variation, packed,
+            f"Variation {variation}", _item_editor_model_option_detail(
                 base_item, entry, part, packed)));
     }
     return rows;
@@ -1010,7 +1016,7 @@ fn get_item_model_editor_options(
     }
     var info = BaseItems.get_info(base_item_type);
     if ((axis != item_editor_model_axis_model
-            && axis != item_editor_model_axis_color)
+            && axis != item_editor_model_axis_variation)
         || (info.model_type != Rules.item_model_type_composite
             && axis != item_editor_model_axis_model)) {
         return rows;
@@ -1020,8 +1026,8 @@ fn get_item_model_editor_options(
         return rows;
     }
     if (info.model_type == Rules.item_model_type_composite) {
-        if (axis == item_editor_model_axis_color) {
-            return _get_composite_color_options(
+        if (axis == item_editor_model_axis_variation) {
+            return _get_composite_variation_options(
                 stats.base_item, info, part, current);
         }
         return _get_composite_model_options(

@@ -20,7 +20,7 @@ constexpr std::string_view applied_list = "item.properties.applied";
 constexpr std::string_view option_list = "item.properties.options";
 constexpr std::string_view model_list = "item.appearance.models";
 constexpr int32_t model_axis_model = 0;
-constexpr int32_t model_axis_color = 1;
+constexpr int32_t model_axis_variation = 1;
 
 smalls::Value object_value(smalls::Runtime& runtime, ObjectHandle object)
 {
@@ -139,8 +139,8 @@ std::optional<ItemEditorSnapshot> read_snapshot(
                     && read_string(runtime, value, "detail", row.detail)
                     && read_bool(runtime, value, "per_part_colors",
                         row.per_part_colors)
-                    && read_bool(runtime, value, "split_model_color",
-                        row.split_model_color);
+                    && read_bool(runtime, value, "split_model_variation",
+                        row.split_model_variation);
             })
         || !copy_rows(runtime,
             read_array(runtime, result.value, "colors"), snapshot.colors,
@@ -393,8 +393,9 @@ bool ItemEditor::refresh_model_options(
 {
     const auto* part = find_part(model_part_);
     if (!part
-        || (!part->split_model_color && model_axis_ != model_axis_model)
-        || (model_axis_ != model_axis_model && model_axis_ != model_axis_color)) {
+        || (!part->split_model_variation && model_axis_ != model_axis_model)
+        || (model_axis_ != model_axis_model
+            && model_axis_ != model_axis_variation)) {
         return false;
     }
     model_options_ = read_model_options(
@@ -419,8 +420,8 @@ bool ItemEditor::refresh_model_options(
         }
     }
     std::string title = part->label;
-    if (part->split_model_color) {
-        title += model_axis_ == model_axis_model ? " Model" : " Color";
+    if (part->split_model_variation) {
+        title += model_axis_ == model_axis_model ? " Model" : " Variation";
     }
     if (!host.set_items(model_list, std::move(items))
         || !host.set_title(model_list, std::move(title))

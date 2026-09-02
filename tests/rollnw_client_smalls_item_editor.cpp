@@ -386,7 +386,7 @@ TEST(ClientSmallsItemEditor, PreparesFlatVisualBatches)
     EXPECT_EQ(color_batch->patches[0].before, *stored);
 }
 
-TEST(ClientSmallsItemEditor, CompositeModelAndColorAxesUsePackedTargets)
+TEST(ClientSmallsItemEditor, CompositeModelAndVariationAxesUsePackedTargets)
 {
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(module);
@@ -403,7 +403,8 @@ TEST(ClientSmallsItemEditor, CompositeModelAndColorAxesUsePackedTargets)
     ASSERT_TRUE(current);
     nw::smalls::Value part_row;
     ASSERT_TRUE(parts->get_value(0, part_row, runtime));
-    EXPECT_EQ(read_bool_field(runtime, part_row, "split_model_color"), true);
+    EXPECT_EQ(
+        read_bool_field(runtime, part_row, "split_model_variation"), true);
     const auto* model_rows = item_rows(runtime, item->handle(),
         "get_item_model_editor_options", current->part, 0);
     ASSERT_NE(model_rows, nullptr);
@@ -450,14 +451,14 @@ TEST(ClientSmallsItemEditor, CompositeModelAndColorAxesUsePackedTargets)
         nw::toolset::ObjectEditDirection::forward)
             .ok());
 
-    const auto* color_rows = item_rows(runtime, item->handle(),
+    const auto* variation_rows = item_rows(runtime, item->handle(),
         "get_item_model_editor_options", current->part, 1);
-    ASSERT_NE(color_rows, nullptr);
-    ASSERT_GT(color_rows->size(), 0);
+    ASSERT_NE(variation_rows, nullptr);
+    ASSERT_GT(variation_rows->size(), 0);
     found_current = false;
-    for (size_t index = 0; index < color_rows->size(); ++index) {
+    for (size_t index = 0; index < variation_rows->size(); ++index) {
         nw::smalls::Value row;
-        ASSERT_TRUE(color_rows->get_value(index, row, runtime));
+        ASSERT_TRUE(variation_rows->get_value(index, row, runtime));
         const auto value = read_int_field(runtime, row, "value");
         const auto packed_value = read_int_field(runtime, row, "packed_value");
         const auto label = read_string_field(runtime, row, "label");

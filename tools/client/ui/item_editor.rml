@@ -86,7 +86,7 @@
                   </button>
                 </div>
                 <div class="item_composite_model_field">
-                  <span class="item_composite_model_label">Color</span>
+                  <span class="item_composite_model_label">Variation</span>
                   <button class="combobox_field item_model_field" type="button"
                           data-attr-id="part.variation_id"
                           data-class-item_model_dropdown_anchor="part.variation_open"
@@ -95,7 +95,7 @@
                           data-list-id="item.appearance.models"
                           data-attr-data-focus-after-activate="part.variation_id"
                           data-event-click="open_model(part.part, 1)">
-                    <span class="combobox_value item_model_value">{{ part.color_value }}</span>
+                    <span class="combobox_value item_model_value">{{ part.variation_value }}</span>
                     <span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span>
                   </button>
                 </div>

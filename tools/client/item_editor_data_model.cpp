@@ -60,7 +60,7 @@ struct ItemEditorDataModel::Impl {
     struct PartRow {
         int32_t part = -1;
         int32_t model_value = 0;
-        int32_t color_value = 0;
+        int32_t variation_value = 0;
         std::string label;
         std::string display;
         std::string model_id;
@@ -117,14 +117,14 @@ struct ItemEditorDataModel::Impl {
             PartRow part{
                 .part = source.part,
                 .model_value = source.value / 10,
-                .color_value = source.value % 10,
+                .variation_value = source.value % 10,
                 .label = source.label,
                 .display = source.detail.empty()
                     ? std::to_string(source.value)
                     : source.detail,
                 .model_id = model_field_id(source.part, 0),
                 .variation_id = model_field_id(source.part, 1),
-                .split = source.split_model_color,
+                .split = source.split_model_variation,
                 .model_active = input.model_part == source.part
                     && input.model_axis == 0,
                 .variation_active = input.model_part == source.part
@@ -348,7 +348,8 @@ struct ItemEditorDataModel::Impl {
         return part
             && part.RegisterMember("part", &PartRow::part)
             && part.RegisterMember("model_value", &PartRow::model_value)
-            && part.RegisterMember("color_value", &PartRow::color_value)
+            && part.RegisterMember(
+                "variation_value", &PartRow::variation_value)
             && part.RegisterMember("label", &PartRow::label)
             && part.RegisterMember("display", &PartRow::display)
             && part.RegisterMember("model_id", &PartRow::model_id)
