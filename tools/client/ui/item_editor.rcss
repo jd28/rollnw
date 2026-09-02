@@ -123,34 +123,12 @@
   text-transform: uppercase;
 }
 .item_composite_model_field .item_model_field {
-  flex: 0 0 28px;
+  flex: 0 0 30px;
   width: 100%;
 }
 .item_model_field {
-  display: flex;
   flex: 1 1 auto;
-  align-items: center;
-  justify-content: space-between;
-  height: 28px;
   min-width: 80px;
-  padding: 0 8px;
-  border: 1px #36414c;
-  border-radius: 0px;
-  background: #10161b;
-  color: #dce3ea;
-}
-.item_model_field:hover,
-.item_model_field:focus {
-  border-color: #bca36a;
-  background: #1c252d;
-}
-.item_field_arrow {
-  width: 0px;
-  height: 0px;
-  margin-left: 7px;
-  border-left: 4px transparent;
-  border-right: 4px transparent;
-  border-top: 5px #98a5b1;
 }
 .item_part_color_fields,
 .item_global_color_fields {
@@ -238,73 +216,9 @@
   width: 100%;
   height: 100%;
 }
-.item_option_rows .virtual_combobox_option,
-.item_option_rows .managed_list_row {
-  display: flex;
-  align-items: center;
-  height: 64px;
-  border-bottom: 1px #2b3540;
-}
-.item_option_rows .virtual_combobox_option_value,
-.item_option_rows .virtual_combobox_option_detail {
-  line-height: 63px;
-}
 .item_option_rows .managed_list_icon {
-  width: 56px;
-  height: 56px;
-  margin: 4px 8px;
-}
-.item_option_rows .managed_list_cell {
-  display: flex;
-  align-items: center;
-  min-width: 0px;
-  height: 64px;
-  padding: 0 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.item_option_rows .managed_list_cell.cell_0 {
-  flex: 0 0 84px;
-  color: #e3e8ed;
-}
-.item_option_rows .managed_list_cell.cell_1 {
-  flex: 1;
-  color: #8e9ba7;
-}
-.item_option_rows .managed_list_row.selected {
-  background: #2a3741;
-}
-#item_option_rows .managed_list_row {
-  height: 34px;
-}
-#item_option_rows .managed_list_icon {
   display: none;
 }
-#item_option_rows .managed_list_cell {
-  display: block;
-  height: 34px;
-  line-height: 33px;
-}
-#item_option_rows .managed_list_cell.cell_0 {
-  flex: 0 0 auto;
-  max-width: 48%;
-  padding: 0 8px;
-  color: #e3e8ed;
-  font-weight: 700;
-}
-#item_option_rows .managed_list_cell.cell_1 {
-  flex: 1 1 auto;
-  padding: 0 8px 0 0;
-  overflow: hidden;
-  color: #8996a2;
-  font-family: RollnwMono;
-  font-size: 10px;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .item_color_inherit {
   display: none;
   height: 28px;

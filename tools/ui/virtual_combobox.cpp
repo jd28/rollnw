@@ -55,7 +55,7 @@ public:
 
     [[nodiscard]] std::string_view row_extra_classes() const override
     {
-        return "virtual_combobox_option";
+        return "combobox_option";
     }
 
     [[nodiscard]] std::string render_row_inner(int index, bool /*selected*/) const override
@@ -63,11 +63,11 @@ public:
         const auto& item = items_[static_cast<size_t>(index)];
         std::string markup;
         markup.reserve(item.label.size() + item.detail.size() + 128);
-        markup += "<span class=\"virtual_combobox_option_value\">";
+        markup += "<span class=\"combobox_option_value\">";
         markup += escape_markup(item.label);
         markup += "</span>";
         if (!item.detail.empty()) {
-            markup += "<span class=\"virtual_combobox_option_detail\">";
+            markup += "<span class=\"combobox_option_detail\">";
             markup += escape_markup(item.detail);
             markup += "</span>";
         }

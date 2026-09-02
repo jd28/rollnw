@@ -148,6 +148,9 @@ public:
         int32_t part,
         int32_t axis,
         VirtualListHost& host);
+    // Hides a committed model popup while retaining its bounded option batch
+    // so the focused field can continue cycling adjacent values.
+    bool hide_model_options(VirtualListHost& host);
     bool close_appearance(VirtualListHost& host);
     bool open_color(int32_t part, int32_t color, VirtualListHost& host);
     bool select_color(int32_t color);

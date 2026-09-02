@@ -266,10 +266,12 @@ bool ItemEditor::ensure_lists(VirtualListHost& host)
         return true;
     }
     const UiListConfig config{.row_height = 34, .overscan = 6, .columns = 1};
+    const UiListConfig model_config{
+        .row_height = 30, .overscan = 6, .columns = 1};
     if (!host.create(std::string{available_list}, config)
         || !host.create(std::string{applied_list}, config)
         || !host.create(std::string{option_list}, config)
-        || !host.create(std::string{model_list}, config)
+        || !host.create(std::string{model_list}, model_config)
         || !host.set_title(option_list, "Property Value")
         || !host.set_visible(option_list, false)
         || !host.set_visible(model_list, false)
@@ -317,8 +319,13 @@ bool ItemEditor::refresh(smalls::Runtime& runtime,
         appearance_mode_ = ItemEditorAppearanceMode::main;
         model_part_ = -1;
         model_axis_ = model_axis_model;
+        model_options_.clear();
         color_part_ = -1;
         color_channel_ = 0;
+        if (!host.set_items(model_list, {})
+            || !host.set_visible(model_list, false)) {
+            return false;
+        }
     }
     snapshot_ = *snapshot;
 
@@ -437,7 +444,7 @@ bool ItemEditor::open_model(smalls::Runtime& runtime,
 {
     if (appearance_mode_ == ItemEditorAppearanceMode::model
         && model_part_ == part && model_axis_ == axis) {
-        return close_appearance(host);
+        return hide_model_options(host);
     }
     model_part_ = part;
     model_axis_ = axis;
@@ -460,6 +467,15 @@ bool ItemEditor::close_appearance(VirtualListHost& host)
     model_options_.clear();
     return host.set_items(model_list, {})
         && host.set_visible(model_list, false);
+}
+
+bool ItemEditor::hide_model_options(VirtualListHost& host)
+{
+    if (!ensure_lists(host) || model_part_ < 0 || model_options_.empty()) {
+        return false;
+    }
+    appearance_mode_ = ItemEditorAppearanceMode::main;
+    return host.set_visible(model_list, false);
 }
 
 bool ItemEditor::open_color(
@@ -493,8 +509,7 @@ std::optional<ItemEditorColorEdit> ItemEditor::color_edit(int32_t value) const
 std::optional<ItemEditorModelEdit> ItemEditor::activate_model(
     const UiListSelection& selection) const
 {
-    if (appearance_mode_ != ItemEditorAppearanceMode::model
-        || selection.index < 0
+    if (model_part_ < 0 || model_options_.empty() || selection.index < 0
         || static_cast<size_t>(selection.index) >= model_options_.size()) {
         return std::nullopt;
     }

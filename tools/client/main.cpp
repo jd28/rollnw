@@ -5212,14 +5212,14 @@ void append_appearance_catalog_field_markup(std::string& content_markup,
 {
     content_markup += "<div class=\"appearance_catalog_editor\"><div class=\"appearance_field_label\">";
     content_markup += appearance_editor_field_label(field);
-    content_markup += "</div><div class=\"appearance_field appearance_catalog_field\" data-field=\"";
+    content_markup += "</div><div class=\"combobox_field appearance_field appearance_catalog_field\" data-field=\"";
     content_markup += appearance_editor_field_name(field);
-    content_markup += "\"><span>";
+    content_markup += "\"><span class=\"combobox_value\">";
     content_markup += escape_html(current
             ? appearance_editor_label(state, field, *current)
             : appearance_editor_label(state, field));
-    content_markup += "</span><span class=\"appearance_field_arrow\">"
-                      "<span class=\"appearance_field_arrow_indicator\"></span></span></div>";
+    content_markup += "</span><span class=\"combobox_arrow\">"
+                      "<span class=\"combobox_arrow_indicator\"></span></span></div>";
     content_markup += "</div>";
 }
 
@@ -5826,7 +5826,7 @@ void append_creature_spell_filter_field(std::string& markup,
     if (active) {
         markup += " id=\"active_creature_spell_filter_field\" tabindex=\"0\"";
     }
-    markup += " class=\"creature_spell_filter_field";
+    markup += " class=\"combobox_field creature_spell_filter_field";
     if (active && state.creature_spell_combobox.popup_visible()) {
         markup += " open";
     }
@@ -5838,10 +5838,10 @@ void append_creature_spell_filter_field(std::string& markup,
     } else {
         markup += "metamagic";
     }
-    markup += "\"><span class=\"creature_spell_filter_value\">";
+    markup += "\"><span class=\"combobox_value creature_spell_filter_value\">";
     markup += escape_html(value);
-    markup += "</span><span class=\"creature_spell_filter_arrow\">"
-              "<span class=\"creature_spell_filter_arrow_indicator\"></span></span>"
+    markup += "</span><span class=\"combobox_arrow\">"
+              "<span class=\"combobox_arrow_indicator\"></span></span>"
               "</div></label>";
 }
 
@@ -5944,7 +5944,7 @@ void append_creature_workbench_overlay_markup(
     if (active_creature_spell_filter_matches_tab(state)
         && state.creature_spell_combobox.popup_visible()) {
         markup += "<div id=\"creature_spell_filter_options\" "
-                  "class=\"virtual_combobox_options creature_spell_filter_options\"";
+                  "class=\"combobox_options combobox_popup creature_spell_filter_options\"";
         if (state.creature_spell_popup_placement) {
             const auto& placement = *state.creature_spell_popup_placement;
             markup += " style=\"left:";
@@ -10483,6 +10483,21 @@ int main(int argc, char* argv[])
                         break;
                     }
                     auto* top_hit = context ? context->GetElementAtPoint(point) : nullptr;
+                    if (event.button.button == SDL_BUTTON_LEFT
+                        && !nw::toolset::combobox_contains_element(top_hit)) {
+                        const bool closed_smalls
+                            = close_active_smalls_selector(doc);
+                        const bool closed_spell
+                            = state.creature_spell_combobox.is_active();
+                        if (closed_spell) {
+                            clear_creature_spell_filter(state);
+                            refresh_workspace_content(doc, state);
+                        }
+                        if (closed_smalls || closed_spell) {
+                            context->Update();
+                            top_hit = context->GetElementAtPoint(point);
+                        }
+                    }
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
                         viewer_viewport
                         && point_within_viewport(viewer_viewport->rect, point)
@@ -10878,6 +10893,15 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
+                auto* wheel_hit = context
+                    ? context->GetElementAtPoint(point)
+                    : nullptr;
+                if (nw::toolset::combobox_popup_contains_element(
+                        wheel_hit)) {
+                    // RmlUi scrolls the open popup. Focused-field cycling is
+                    // only the closed combobox path.
+                    break;
+                }
                 if (event.wheel.y != 0.0f) {
                     const SDL_Keymod modifiers = SDL_GetModState();
                     auto* focused_managed_list = find_ancestor_with_class(
@@ -11246,7 +11270,7 @@ int main(int argc, char* argv[])
                         } else if (find_ancestor_with_id(hit, "creature_color_selector")) {
                             release_workspace_mouse_up();
                             handled = true;
-                        } else if (auto* option = find_ancestor_with_class(hit, "virtual_combobox_option")) {
+                        } else if (auto* option = find_ancestor_with_class(hit, "combobox_option")) {
                             const std::string key = option->GetAttribute<Rml::String>("data-key", "");
                             const auto value = parse_decimal_int32(key);
                             if (value && active_creature_spell_filter_matches_tab(state)) {

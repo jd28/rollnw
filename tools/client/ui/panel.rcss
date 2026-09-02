@@ -65,6 +65,52 @@ button, input { font-family: RollnwSans; font-weight: 500; }
   color: #e7ebef;
   border: 1px #3a4652;
 }
+/* One visual and focus contract for every anchored choice field. */
+.combobox_field {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  min-width: 0px;
+  padding: 0px 7px;
+  border: 1px #3a4651;
+  border-radius: 2px;
+  background: #10161b;
+  color: #e4e9ed;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.combobox_field:hover,
+.combobox_field:focus,
+.combobox_field.open {
+  border-color: #a78d62;
+  background: #151d23;
+}
+.combobox_field * { pointer-events: none; }
+.combobox_value {
+  flex: 1;
+  min-width: 0px;
+  height: 28px;
+  line-height: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combobox_arrow {
+  display: flex;
+  flex: 0 0 18px;
+  height: 28px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.combobox_arrow_indicator {
+  width: 0px;
+  height: 0px;
+  border-left: 4px transparent;
+  border-right: 4px transparent;
+  border-top: 5px #98a5b1;
+}
+.combobox_close { display: none; }
 #panel {
   position: absolute;
   left: 0px;
@@ -1885,44 +1931,8 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   line-height: 20px;
 }
 .appearance_field {
-  width: 100%;
-  height: 30px;
-  border: 1px #3a4651;
-  border-radius: 2px;
-  background: #10161b;
-  color: #e4e9ed;
   font-size: 12px;
-  box-sizing: border-box;
-}
-.appearance_field {
-  display: flex;
-  padding: 0px 8px;
   line-height: 28px;
-  cursor: pointer;
-}
-.appearance_field:hover {
-  border-color: #596673;
-  background: #151d23;
-}
-.appearance_field span:first-child {
-  flex: 1;
-  min-width: 0px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.appearance_field_arrow {
-  display: flex;
-  flex: 0 0 18px;
-  align-items: center;
-  justify-content: flex-end;
-}
-.appearance_field_arrow_indicator {
-  width: 0px;
-  height: 0px;
-  border-left: 4px transparent;
-  border-right: 4px transparent;
-  border-top: 5px #9da8b2;
 }
 .appearance_selector {
   display: flex;
@@ -2113,7 +2123,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .body_part_rows .managed_list_row.selected {
   z-index: 25;
 }
-.virtual_combobox_options {
+.combobox_options {
   position: absolute;
   left: 0px;
   top: 0px;
@@ -2141,7 +2151,8 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   overflow-y: auto;
   overflow-x: hidden;
 }
-.body_part_option_rows .managed_list_row {
+.combobox_option,
+.combobox_options .managed_list_row {
   display: flex;
   width: 100%;
   height: 30px;
@@ -2152,69 +2163,54 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   box-sizing: border-box;
   cursor: pointer;
 }
-.body_part_option_rows .managed_list_row:hover {
+.combobox_option:hover, .combobox_option.hovered,
+.combobox_options .managed_list_row:hover {
   background: #202930;
 }
-.body_part_option_rows .managed_list_row.selected {
+.combobox_option.selected,
+.combobox_options .managed_list_row.selected {
   border-left: 2px #a78d62;
   padding-left: 6px;
   background: #25313b;
 }
-.body_part_option_rows .managed_list_cell {
-  height: 29px;
-  line-height: 29px;
-}
-.body_part_option_rows .managed_list_cell.cell_0 {
-  flex: 1;
-  min-width: 0px;
-  color: #e4e9ed;
-  font-family: RollnwMono;
-  font-size: 11px;
-}
-.body_part_option_rows .managed_list_cell.cell_1 {
-  flex: 0 0 72px;
-  color: #8996a1;
-  font-size: 11px;
-  text-align: right;
-}
-.virtual_combobox_option {
-  display: flex;
-  width: 100%;
-  height: 30px;
-  padding: 0px 8px;
-  border-bottom: 1px #29333c;
-  background: #151b21;
-  color: #dbe2e8;
-  box-sizing: border-box;
-  cursor: pointer;
-}
-.virtual_combobox_option:hover, .virtual_combobox_option.hovered {
-  background: #202930;
-}
-.virtual_combobox_option.selected {
-  border-left: 2px #a78d62;
-  padding-left: 6px;
-  background: #25313b;
-}
-.virtual_combobox_option * {
+.combobox_option * {
   pointer-events: none;
 }
-.virtual_combobox_option_value {
+.combobox_option_value,
+.combobox_options .managed_list_cell.cell_0 {
+  display: block;
   flex: 1;
   min-width: 0px;
+  height: 29px;
+  overflow: hidden;
   color: #e4e9ed;
+  font-family: RollnwSans;
+  font-size: 11px;
+  line-height: 29px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combobox_option_detail,
+.combobox_options .managed_list_cell.cell_1 {
+  display: block;
+  flex: 0 0 72px;
+  height: 29px;
+  overflow: hidden;
+  color: #8996a1;
   font-family: RollnwMono;
   font-size: 11px;
   line-height: 29px;
-}
-.virtual_combobox_option_detail {
-  flex: 0 0 72px;
-  color: #8996a1;
-  font-size: 11px;
-  line-height: 29px;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.virtual_combobox_option_icon {
+.body_part_option_popup .managed_list_cell.cell_0 {
+  font-family: RollnwMono;
+}
+.body_part_option_popup .managed_list_cell.cell_1 {
+  flex: 0 0 52px;
+}
+.combobox_option_icon {
   flex: 0 0 48px;
   width: 48px;
   height: 48px;
@@ -2475,52 +2471,9 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   height: 18px;
 }
 .creature_spell_filter_field {
-  display: flex;
-  width: 100%;
-  height: 30px;
-  min-width: 0px;
-  padding-left: 7px;
-  border: 1px #3a4651;
-  border-radius: 2px;
-  background: #10161b;
-  color: #e4e9ed;
   font-size: 11px;
-  box-sizing: border-box;
-  cursor: pointer;
-}
-.creature_spell_filter_field:hover,
-.creature_spell_filter_field:focus,
-.creature_spell_filter_field.open {
-  border-color: #a78d62;
-  background: #151d23;
-}
-.creature_spell_filter_field * {
-  pointer-events: none;
 }
 .creature_spell_filter_value {
-  flex: 1;
-  min-width: 0px;
-  height: 28px;
-  line-height: 28px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.creature_spell_filter_arrow {
-  display: flex;
-  flex: 0 0 24px;
-  height: 28px;
-  align-items: center;
-  justify-content: center;
-}
-.creature_spell_filter_arrow_indicator {
-  width: 0px;
-  height: 0px;
-  border-left: 4px transparent;
-  border-right: 4px transparent;
-  border-top: 5px #8996a1;
-}
-.creature_spell_filter_options .virtual_combobox_option_value {
   font-family: RollnwSans;
 }
 .creature_inventory_editor {

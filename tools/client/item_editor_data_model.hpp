@@ -33,6 +33,9 @@ public:
 
     bool initialize(Rml::Context& context, Dispatch dispatch);
     void refresh(ItemEditorAppearanceInput input);
+    // Queues the retained model field for focus after RML has materialized the
+    // refreshed document. No active model field leaves the request unchanged.
+    void request_model_focus();
     bool apply_pending_focus(Rml::ElementDocument* document);
     void shutdown();
 

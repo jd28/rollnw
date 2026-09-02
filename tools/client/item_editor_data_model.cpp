@@ -38,6 +38,12 @@ std::string pixel_offset(int32_t cell)
     return std::to_string(cell * palette_display_cell_size) + "px";
 }
 
+std::string model_field_id(int32_t part, int32_t axis)
+{
+    return "item_model_field_" + std::to_string(part) + "_"
+        + std::to_string(axis);
+}
+
 } // namespace
 
 struct ItemEditorDataModel::Impl {
@@ -57,8 +63,12 @@ struct ItemEditorDataModel::Impl {
         int32_t color_value = 0;
         std::string label;
         std::string display;
+        std::string model_id;
+        std::string variation_id;
         std::vector<ColorRow> colors;
         bool split = false;
+        bool model_active = false;
+        bool variation_active = false;
         bool model_open = false;
         bool variation_open = false;
     };
@@ -73,11 +83,11 @@ struct ItemEditorDataModel::Impl {
         parts.clear();
         color_channels.clear();
         color_title.clear();
+        model_focus_id.clear();
         selected_palette.clear();
         selected_left = "0px";
         selected_top = "0px";
         error.clear();
-        pending_focus.clear();
     }
 
     ColorRow make_color_row(
@@ -112,14 +122,19 @@ struct ItemEditorDataModel::Impl {
                 .display = source.detail.empty()
                     ? std::to_string(source.value)
                     : source.detail,
+                .model_id = model_field_id(source.part, 0),
+                .variation_id = model_field_id(source.part, 1),
                 .split = source.split_model_color,
-                .model_open = input.mode == ItemEditorAppearanceMode::model
-                    && input.model_part == source.part
+                .model_active = input.model_part == source.part
                     && input.model_axis == 0,
-                .variation_open = input.mode == ItemEditorAppearanceMode::model
-                    && input.model_part == source.part
+                .variation_active = input.model_part == source.part
                     && input.model_axis == 1,
             };
+            part.model_open = input.mode == ItemEditorAppearanceMode::model
+                && part.model_active;
+            part.variation_open
+                = input.mode == ItemEditorAppearanceMode::model
+                && part.variation_active;
             if (source.per_part_colors) {
                 for (const auto& color : input.colors) {
                     if (color.part != source.part || !valid_color_row(color)
@@ -184,6 +199,11 @@ struct ItemEditorDataModel::Impl {
         if (!live) {
             dirty();
             return;
+        }
+        if (input.model_part >= 0
+            && (input.model_axis == 0 || input.model_axis == 1)) {
+            model_focus_id = model_field_id(
+                input.model_part, input.model_axis);
         }
 
         switch (input.mode) {
@@ -255,7 +275,7 @@ struct ItemEditorDataModel::Impl {
         std::array<int32_t, 2> arguments{};
         if (read_arguments(input, arguments)) {
             dispatch_command("toolset.item.appearance.open_model", arguments,
-                "item_option_rows");
+                model_field_id(arguments[0], arguments[1]));
         }
     }
 
@@ -331,8 +351,13 @@ struct ItemEditorDataModel::Impl {
             && part.RegisterMember("color_value", &PartRow::color_value)
             && part.RegisterMember("label", &PartRow::label)
             && part.RegisterMember("display", &PartRow::display)
+            && part.RegisterMember("model_id", &PartRow::model_id)
+            && part.RegisterMember("variation_id", &PartRow::variation_id)
             && part.RegisterMember("colors", &PartRow::colors)
             && part.RegisterMember("split", &PartRow::split)
+            && part.RegisterMember("model_active", &PartRow::model_active)
+            && part.RegisterMember(
+                "variation_active", &PartRow::variation_active)
             && part.RegisterMember("model_open", &PartRow::model_open)
             && part.RegisterMember(
                 "variation_open", &PartRow::variation_open)
@@ -351,6 +376,7 @@ struct ItemEditorDataModel::Impl {
             && constructor.Bind("color_channels", &color_channels)
             && constructor.Bind("palette_values", &palette_values)
             && constructor.Bind("color_title", &color_title)
+            && constructor.Bind("model_focus_id", &model_focus_id)
             && constructor.Bind("selected_palette", &selected_palette)
             && constructor.Bind("selected_left", &selected_left)
             && constructor.Bind("selected_top", &selected_top)
@@ -378,6 +404,7 @@ struct ItemEditorDataModel::Impl {
     std::vector<ColorRow> color_channels;
     std::vector<int32_t> palette_values;
     std::string color_title;
+    std::string model_focus_id;
     std::string selected_palette;
     std::string selected_left;
     std::string selected_top;
@@ -429,6 +456,14 @@ void ItemEditorDataModel::refresh(ItemEditorAppearanceInput input)
     impl_->refresh(input);
 }
 
+void ItemEditorDataModel::request_model_focus()
+{
+    if (impl_->model_focus_id.empty()) {
+        return;
+    }
+    impl_->pending_focus = impl_->model_focus_id;
+}
+
 bool ItemEditorDataModel::apply_pending_focus(
     Rml::ElementDocument* document)
 {
@@ -455,6 +490,7 @@ void ItemEditorDataModel::shutdown()
     impl_->dispatch = {};
     impl_->context_name.clear();
     impl_->context = nullptr;
+    impl_->pending_focus.clear();
     impl_->clear_view();
 }
 

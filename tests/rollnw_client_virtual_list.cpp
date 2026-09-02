@@ -337,6 +337,9 @@ TEST(ClientVirtualComboBox, OpensAtSelectedKeyAndMaterializesBoundedRows)
     EXPECT_EQ(first.scroll_top, 2'130);
     EXPECT_LE(count_markup_rows(first.markup), 18);
     EXPECT_NE(first.markup.find("data-key=\"80\""), std::string::npos);
+    EXPECT_NE(first.markup.find("combobox_option"), std::string::npos);
+    EXPECT_NE(first.markup.find("combobox_option_value"),
+        std::string::npos);
 
     const auto stable = combobox.update(300, first.scroll_top, false);
     EXPECT_FALSE(stable.replace_markup);

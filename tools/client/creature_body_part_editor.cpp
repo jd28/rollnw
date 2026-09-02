@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <utility>
 
 namespace nw::toolset {
 
@@ -119,36 +120,27 @@ bool CreatureBodyPartEditor::refresh_options(
     std::vector<UiListItem> items;
     items.reserve(options.size() + (valid_current && !current_present ? 1u : 0u));
     option_ids_.reserve(items.capacity());
+    const auto append_option = [&](int32_t option_id, std::string detail) {
+        const bool has_detail = !detail.empty();
+        items.push_back(UiListItem{
+            .key = std::to_string(option_id),
+            .cells = {std::to_string(option_id), std::move(detail), {}, {}},
+            .cell_count = static_cast<uint8_t>(has_detail ? 2 : 1),
+            .enabled_mask = static_cast<uint8_t>(has_detail ? 3 : 1),
+        });
+        option_ids_.push_back(option_id);
+    };
 
     bool current_added = !valid_current || current_present;
     for (const auto& option : options) {
         if (!current_added && current < option.option_id) {
-            items.push_back(UiListItem{
-                .key = std::to_string(current),
-                .cells = {std::to_string(current), "Current", {}, {}},
-                .cell_count = 2,
-                .enabled_mask = 3,
-            });
-            option_ids_.push_back(current);
+            append_option(current, "Current");
             current_added = true;
         }
-        items.push_back(UiListItem{
-            .key = std::to_string(option.option_id),
-            .cells = {std::to_string(option.option_id),
-                option_detail(option.flags), {}, {}},
-            .cell_count = 2,
-            .enabled_mask = 3,
-        });
-        option_ids_.push_back(option.option_id);
+        append_option(option.option_id, option_detail(option.flags));
     }
     if (!current_added) {
-        items.push_back(UiListItem{
-            .key = std::to_string(current),
-            .cells = {std::to_string(current), "Current", {}, {}},
-            .cell_count = 2,
-            .enabled_mask = 3,
-        });
-        option_ids_.push_back(current);
+        append_option(current, "Current");
     }
 
     if (!host.set_items(body_part_options_list, std::move(items))

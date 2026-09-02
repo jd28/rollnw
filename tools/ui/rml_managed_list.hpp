@@ -60,8 +60,16 @@ bool sync_managed_lists(Rml::ElementDocument* document,
 // invalid, or currently unmaterialized anchors leave the popup unchanged.
 bool position_managed_list_popups(Rml::ElementDocument* document);
 
-// Captures an optional declarative focus target from the nearest managed list.
-// Missing or malformed attributes produce no request.
+// True when the hit is inside a shared combobox field or popup. Null and
+// unrelated elements are outside; callers use this boundary for dismissal.
+[[nodiscard]] bool combobox_contains_element(Rml::Element* element);
+
+// True only when the hit is inside a shared combobox popup. Wheel dispatch
+// uses this narrower boundary so open options scroll instead of activating.
+[[nodiscard]] bool combobox_popup_contains_element(Rml::Element* element);
+
+// Captures an optional declarative focus target from the nearest managed list
+// or cycling field. Missing or malformed attributes produce no request.
 [[nodiscard]] std::optional<ManagedListFocusTarget> managed_list_focus_target(
     Rml::Element* element);
 
@@ -76,7 +84,8 @@ bool activate_managed_list_element(Rml::Element* element, VirtualListHost& host)
 
 // Advances and activates the selected row for the nearest .managed_list_cycle
 // element. data-cycle-list-id can redirect the operation to another host list;
-// empty lists and zero deltas are rejected.
+// only a managed-list viewport receives the resulting scroll offset. Empty
+// lists and zero deltas are rejected.
 bool cycle_managed_list_element(
     Rml::Element* element, VirtualListHost& host, int delta);
 

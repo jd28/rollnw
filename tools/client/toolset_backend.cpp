@@ -796,12 +796,13 @@ void ToolsetBackend::register_native_commands()
             auto result = execute_command(
                 "object.item.set_model_part", args, context);
             if (result.ok()) {
-                if (!item_editor_.close_appearance(ui_v1_host())
+                if (!item_editor_.hide_model_options(ui_v1_host())
                     || !refresh_item_editor()) {
                     return command_result(CommandStatus::failed,
                         "Item editor refresh failed",
                         CommandOutputChannel::error);
                 }
+                item_editor_data_model_.request_model_focus();
                 result.message.clear();
                 result.output_channel = CommandOutputChannel::none;
             }

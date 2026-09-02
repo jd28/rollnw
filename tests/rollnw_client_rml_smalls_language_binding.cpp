@@ -521,12 +521,25 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     auto* option_rows = document->GetElementById("item_option_rows");
     ASSERT_NE(option_rows, nullptr);
     EXPECT_TRUE(item_model.apply_pending_focus(document));
-    EXPECT_EQ(context->GetFocusElement(), option_rows);
+    auto* focused_model = document->GetElementById("item_model_field_4_0");
+    ASSERT_NE(focused_model, nullptr);
+    EXPECT_EQ(context->GetFocusElement(), focused_model);
+    EXPECT_TRUE(focused_model->IsClassSet("combobox_field"));
+    EXPECT_TRUE(focused_model->IsClassSet("managed_list_cycle"));
+    EXPECT_TRUE(focused_model->IsClassSet("open"));
+    EXPECT_EQ(focused_model->GetAttribute<Rml::String>(
+                  "data-focus-after-activate", ""),
+        "item_model_field_4_0");
+    EXPECT_EQ(option_rows->GetAttribute<Rml::String>(
+                  "data-focus-after-activate", ""),
+        "item_model_field_4_0");
     EXPECT_NE(document->GetElementById("item_appearance_main"), nullptr);
     auto* model_dropdown = document->GetElementById(
         "item_model_dropdown");
     ASSERT_NE(model_dropdown, nullptr);
     EXPECT_TRUE(model_dropdown->IsVisible(true));
+    EXPECT_TRUE(model_dropdown->IsClassSet("combobox_popup"));
+    EXPECT_TRUE(model_dropdown->IsClassSet("combobox_options"));
     EXPECT_EQ(model_dropdown->GetAttribute<Rml::String>(
                   "data-anchor-element-class", ""),
         "item_model_dropdown_anchor");
@@ -534,6 +547,21 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
         *document, "item_model_dropdown_anchor");
     ASSERT_EQ(model_anchors.size(), 1);
     EXPECT_TRUE(model_anchors.front()->IsVisible(true));
+    (void)nw::toolset::position_managed_list_popups(document);
+    option_rows->SetInnerRML(
+        "<div class='managed_list_row' data-list-id='item.appearance.models' data-index='0'>"
+        "<span class='managed_list_cell cell_0' data-cell='0'>Model 6</span>"
+        "<span class='managed_list_cell cell_1' data-cell='1'>wplss_t_031</span>"
+        "</div>");
+    context->Update();
+    Rml::ElementList option_labels;
+    Rml::ElementList option_details;
+    option_rows->GetElementsByClassName(option_labels, "cell_0");
+    option_rows->GetElementsByClassName(option_details, "cell_1");
+    ASSERT_EQ(option_labels.size(), 1u);
+    ASSERT_EQ(option_details.size(), 1u);
+    EXPECT_GT(option_labels.front()->GetOffsetWidth(), 20.0f);
+    EXPECT_GT(option_details.front()->GetOffsetWidth(), 40.0f);
 
     model_fields = bound_elements_by_class(*document, "item_model_field");
     const auto open_layer_model = std::ranges::find_if(model_fields,
@@ -550,6 +578,20 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     model_dropdown = document->GetElementById("item_model_dropdown");
     ASSERT_NE(model_dropdown, nullptr);
     EXPECT_FALSE(model_dropdown->IsVisible(true));
+    focused_model = document->GetElementById("item_model_field_4_0");
+    ASSERT_NE(focused_model, nullptr);
+    EXPECT_TRUE(focused_model->IsClassSet("managed_list_cycle"));
+    EXPECT_FALSE(focused_model->IsClassSet("open"));
+    EXPECT_TRUE(item_model.apply_pending_focus(document));
+    EXPECT_EQ(context->GetFocusElement(), focused_model);
+    focused_model->Blur();
+    item_model.request_model_focus();
+    item_model.refresh(input);
+    context->Update();
+    ASSERT_TRUE(item_model.apply_pending_focus(document));
+    focused_model = document->GetElementById("item_model_field_4_0");
+    ASSERT_NE(focused_model, nullptr);
+    EXPECT_EQ(context->GetFocusElement(), focused_model);
     color_fields = bound_elements_by_class(*document, "item_color_field");
     ASSERT_EQ(color_fields.size(), 2);
     ASSERT_TRUE(color_fields.front()->DispatchEvent("click", {}));
@@ -817,6 +859,8 @@ TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
                                "tools/client/ui/creature_editor.rml\"/>"
                                "<style>body { font-family: Inter; }"
                                ".body_part_rows .managed_list_cell.cell_1 {"
+                               "font-family: Inter; font-weight: normal; }"
+                               "#body_part_option_popup .managed_list_cell {"
                                "font-family: Inter; font-weight: normal; }</style></head>"
                                "<body><template src=\"creature-workbench\"></template></body></rml>";
     auto* context = Rml::CreateContext(
@@ -922,6 +966,27 @@ TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
 
     rows->Blur();
     EXPECT_FALSE(rows->IsPseudoClassSet("focus"));
+
+    popup->SetClass("active", true);
+    option_rows->SetInnerRML(
+        "<div class='managed_list_row selected'>"
+        "<span id='body-part-option-number' class='managed_list_cell cell_0'>119</span>"
+        "<span id='body-part-option-detail' class='managed_list_cell cell_1'>Current</span>"
+        "</div>");
+    context->Update();
+    auto* option_number = document->GetElementById(
+        "body-part-option-number");
+    auto* option_detail = document->GetElementById(
+        "body-part-option-detail");
+    ASSERT_NE(option_number, nullptr);
+    ASSERT_NE(option_detail, nullptr);
+    EXPECT_GE(option_number->GetOffsetWidth(), 30.0f);
+    EXPECT_GE(option_detail->GetOffsetWidth(), 50.0f);
+    auto* option_number_text = rmlui_dynamic_cast<Rml::ElementText*>(
+        option_number->GetFirstChild());
+    ASSERT_NE(option_number_text, nullptr);
+    ASSERT_FALSE(option_number_text->GetLines().empty());
+    EXPECT_EQ(option_number_text->GetLines().front().text, "119");
 
     auto* secondary = document->GetElementById(
         "creature_appearance_secondary_dynamic");
@@ -1262,6 +1327,9 @@ TEST(ClientRmlManagedList, ActivationReturnsFocusAndCyclesDeclaredTarget)
       <span id="model-hit" class="managed_list_cell" data-cell="0">1</span>
     </div>
   </div>
+  <button id="combobox-cycle-field" class="combobox_field managed_list_cycle"
+          data-list-id="models"
+          data-focus-after-activate="combobox-cycle-field">1</button>
 </body></rml>
 )RML");
     ASSERT_NE(document, nullptr);
@@ -1357,9 +1425,23 @@ TEST(ClientRmlManagedList, ActivationReturnsFocusAndCyclesDeclaredTarget)
     ASSERT_TRUE(selected_part);
     EXPECT_EQ(selected_part->index, -1);
 
-    model_field->Blur();
-    EXPECT_FALSE(model_field->IsPseudoClassSet("focus"));
-    EXPECT_NE(context->GetFocusElement(), model_field);
+    auto* combobox_field = document->GetElementById(
+        "combobox-cycle-field");
+    ASSERT_NE(combobox_field, nullptr);
+    const auto combobox_focus = nw::toolset::managed_list_focus_target(
+        combobox_field);
+    ASSERT_TRUE(combobox_focus);
+    EXPECT_EQ(combobox_focus->element_id, "combobox-cycle-field");
+    ASSERT_TRUE(nw::toolset::cycle_managed_list_element(
+        combobox_field, host, -1));
+    EXPECT_FLOAT_EQ(combobox_field->GetScrollTop(), 0.0f);
+    ASSERT_TRUE(nw::toolset::focus_managed_list_target(
+        document, *combobox_focus));
+    EXPECT_EQ(context->GetFocusElement(), combobox_field);
+
+    combobox_field->Blur();
+    EXPECT_FALSE(combobox_field->IsPseudoClassSet("focus"));
+    EXPECT_NE(context->GetFocusElement(), combobox_field);
 
     document->Close();
     context->Update();
@@ -1483,10 +1565,13 @@ body { display: block; width: 440px; height: 500px; font-family: Inter; }
     <div id="popup" class="managed_list_popup active"
          data-anchor-list-id="parts" data-anchor-cell="1"
          data-popup-bounds-id="bounds" data-popup-height="300"></div>
-    <button id="field_anchor" class="field_anchor" type="button">Variation 44</button>
-    <div id="field_popup" class="managed_list_popup active"
+    <button id="field_anchor" class="combobox_field field_anchor" type="button">Variation 44</button>
+    <div id="field_popup" class="combobox_popup managed_list_popup active"
          data-anchor-element-class="field_anchor"
-         data-popup-bounds-id="bounds" data-popup-height="300"></div>
+         data-popup-bounds-id="bounds" data-popup-height="300">
+      <span id="field_popup_child">Choice</span>
+    </div>
+    <div id="outside"></div>
   </div>
 </body>
 </rml>
@@ -1501,6 +1586,24 @@ body { display: block; width: 440px; height: 500px; font-family: Inter; }
     ASSERT_NE(popup, nullptr);
     ASSERT_NE(field_popup, nullptr);
     ASSERT_NE(bounds, nullptr);
+    auto* field_anchor = document->GetElementById("field_anchor");
+    auto* field_popup_child = document->GetElementById("field_popup_child");
+    auto* outside = document->GetElementById("outside");
+    ASSERT_NE(field_anchor, nullptr);
+    ASSERT_NE(field_popup_child, nullptr);
+    ASSERT_NE(outside, nullptr);
+    EXPECT_TRUE(nw::toolset::combobox_contains_element(field_anchor));
+    EXPECT_TRUE(nw::toolset::combobox_contains_element(field_popup));
+    EXPECT_FALSE(nw::toolset::combobox_contains_element(outside));
+    EXPECT_FALSE(nw::toolset::combobox_contains_element(nullptr));
+    EXPECT_FALSE(
+        nw::toolset::combobox_popup_contains_element(field_anchor));
+    EXPECT_TRUE(
+        nw::toolset::combobox_popup_contains_element(field_popup));
+    EXPECT_TRUE(
+        nw::toolset::combobox_popup_contains_element(field_popup_child));
+    EXPECT_FALSE(nw::toolset::combobox_popup_contains_element(outside));
+    EXPECT_FALSE(nw::toolset::combobox_popup_contains_element(nullptr));
     EXPECT_TRUE(popup->IsClassSet("active"));
     EXPECT_GT(bounds->GetOffsetWidth(), 0.0f);
     EXPECT_GT(bounds->GetOffsetHeight(), 0.0f);
@@ -2083,6 +2186,10 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     ASSERT_TRUE(body_part_options);
     EXPECT_TRUE(body_part_options->visible);
     ASSERT_FALSE(body_part_options->items.empty());
+    for (const auto& item : body_part_options->items) {
+        EXPECT_EQ(item.cells[0], item.key);
+        EXPECT_FALSE(item.cells[0].empty());
+    }
     EXPECT_EQ(body_part_options->items.front().key, "0");
     EXPECT_NE(std::ranges::find(body_part_options->items, "1",
                   &nw::toolset::UiListItem::key),
@@ -2094,6 +2201,22 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
                   &nw::toolset::UiListItem::key),
         body_part_options->items.end());
     EXPECT_LT(body_part_options->items.size(), 255u);
+    const auto plain_body_part_option = std::ranges::find_if(
+        body_part_options->items,
+        [](const nw::toolset::UiListItem& item) {
+            return item.cells[1].empty();
+        });
+    ASSERT_NE(plain_body_part_option, body_part_options->items.end());
+    EXPECT_EQ(plain_body_part_option->cell_count, 1);
+    EXPECT_EQ(plain_body_part_option->enabled_mask, 1u);
+    const auto tagged_body_part_option = std::ranges::find_if(
+        body_part_options->items,
+        [](const nw::toolset::UiListItem& item) {
+            return !item.cells[1].empty();
+        });
+    ASSERT_NE(tagged_body_part_option, body_part_options->items.end());
+    EXPECT_EQ(tagged_body_part_option->cell_count, 2);
+    EXPECT_EQ(tagged_body_part_option->enabled_mask, 3u);
     ASSERT_GE(body_part_options->selected_index, 0);
     ASSERT_LT(static_cast<size_t>(body_part_options->selected_index),
         body_part_options->items.size());
@@ -2319,6 +2442,37 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     EXPECT_EQ(nw::toolset::object_mutation_state().epoch,
         mutation_epoch_before_edit + 1);
     EXPECT_EQ(workspace.undo_count(), undo_count_before_edit + 1);
+
+    auto retained_model_options = nw::toolset::ui_v1_host().window(
+        "item.appearance.models", 300, 0);
+    ASSERT_TRUE(retained_model_options);
+    EXPECT_FALSE(retained_model_options->visible);
+    EXPECT_EQ(retained_model_options->items.size(),
+        model_options->items.size());
+    EXPECT_EQ(retained_model_options->selected_index, replacement_index);
+    const int cycle_delta
+        = replacement_index + 1
+            < static_cast<int>(retained_model_options->items.size())
+        ? 1
+        : -1;
+    const int cycled_index = replacement_index + cycle_delta;
+    const int32_t model_before_cycle
+        = nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts[static_cast<size_t>(opened_item_part)];
+    const uint64_t mutation_epoch_before_cycle
+        = nw::toolset::object_mutation_state().epoch;
+    const size_t undo_count_before_cycle = workspace.undo_count();
+    ASSERT_TRUE(cycle_managed_list(
+        "item.appearance.models", cycle_delta));
+    EXPECT_NE(nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts[static_cast<size_t>(opened_item_part)],
+        model_before_cycle);
+    EXPECT_EQ(nw::toolset::object_mutation_state().epoch,
+        mutation_epoch_before_cycle + 1);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_cycle + 1);
+    retained_model_options = nw::toolset::ui_v1_host().window(
+        "item.appearance.models", 300, 0);
+    ASSERT_TRUE(retained_model_options);
+    EXPECT_FALSE(retained_model_options->visible);
+    EXPECT_EQ(retained_model_options->selected_index, cycled_index);
 
     const auto first_models_before_stale_event
         = nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts;

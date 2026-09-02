@@ -133,7 +133,7 @@
     </div>
     <div id="creature_workbench_overlays">
       <div id="body_part_option_popup"
-           class="virtual_combobox_options body_part_option_popup managed_list_panel managed_list_popup smalls_selector"
+           class="combobox_options combobox_popup body_part_option_popup managed_list_panel managed_list_popup smalls_selector"
            data-list-id="creature.appearance.body_part_options"
            data-anchor-list-id="creature.appearance.body_parts"
            data-anchor-cell="1"

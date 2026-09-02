@@ -73,28 +73,43 @@
               <div data-if="part.split" class="item_composite_model_fields">
                 <div class="item_composite_model_field">
                   <span class="item_composite_model_label">Model</span>
-                  <button class="item_model_field" type="button"
+                  <button class="combobox_field item_model_field" type="button"
+                          data-attr-id="part.model_id"
                           data-class-item_model_dropdown_anchor="part.model_open"
+                          data-class-open="part.model_open"
+                          data-class-managed_list_cycle="part.model_active"
+                          data-list-id="item.appearance.models"
+                          data-attr-data-focus-after-activate="part.model_id"
                           data-event-click="open_model(part.part, 0)">
-                    <span class="item_model_value">{{ part.model_value }}</span>
-                    <span class="item_field_arrow"></span>
+                    <span class="combobox_value item_model_value">{{ part.model_value }}</span>
+                    <span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span>
                   </button>
                 </div>
                 <div class="item_composite_model_field">
                   <span class="item_composite_model_label">Color</span>
-                  <button class="item_model_field" type="button"
+                  <button class="combobox_field item_model_field" type="button"
+                          data-attr-id="part.variation_id"
                           data-class-item_model_dropdown_anchor="part.variation_open"
+                          data-class-open="part.variation_open"
+                          data-class-managed_list_cycle="part.variation_active"
+                          data-list-id="item.appearance.models"
+                          data-attr-data-focus-after-activate="part.variation_id"
                           data-event-click="open_model(part.part, 1)">
-                    <span class="item_model_value">{{ part.color_value }}</span>
-                    <span class="item_field_arrow"></span>
+                    <span class="combobox_value item_model_value">{{ part.color_value }}</span>
+                    <span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span>
                   </button>
                 </div>
               </div>
-              <button data-if="part.split == false" class="item_model_field"
+              <button data-if="part.split == false" class="combobox_field item_model_field"
+                      data-attr-id="part.model_id"
                       data-class-item_model_dropdown_anchor="part.model_open"
+                      data-class-open="part.model_open"
+                      data-class-managed_list_cycle="part.model_active"
+                      data-list-id="item.appearance.models"
+                      data-attr-data-focus-after-activate="part.model_id"
                       type="button" data-event-click="open_model(part.part, 0)">
-                <span class="item_model_value">{{ part.display }}</span>
-                <span class="item_field_arrow"></span>
+                <span class="combobox_value item_model_value">{{ part.display }}</span>
+                <span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span>
               </button>
               <div data-if="part.colors.size &gt; 0"
                    class="item_part_color_fields visible">
@@ -111,7 +126,7 @@
 
         <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 1"
              id="item_model_dropdown"
-             class="virtual_combobox_options item_model_dropdown managed_list_panel managed_list_popup active"
+             class="combobox_options combobox_popup item_model_dropdown managed_list_panel managed_list_popup smalls_selector active"
              data-list-id="item.appearance.models"
              data-anchor-element-class="item_model_dropdown_anchor"
              data-popup-bounds-id="item_appearance_dynamic"
@@ -119,9 +134,11 @@
           <div id="item_option_rows"
                class="item_option_rows item_model_list managed_list_rows managed_list_cycle"
                tabindex="0" data-list-id="item.appearance.models"
-               data-focus-after-activate="item_appearance_main"
+               data-attr-data-focus-after-activate="model_focus_id"
                data-scroll-selected="true"
                data-empty-text="No models are available."></div>
+          <button class="combobox_close smalls_selector_close" type="button"
+                  data-event-click="close_appearance()"></button>
         </div>
 
         <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 2 &amp;&amp; color_valid"

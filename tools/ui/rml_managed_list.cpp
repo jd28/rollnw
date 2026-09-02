@@ -454,6 +454,17 @@ bool sync_managed_lists(Rml::ElementDocument* document,
     return position_managed_list_popups(document) || changed;
 }
 
+bool combobox_contains_element(Rml::Element* element)
+{
+    return ancestor_with_class(element, "combobox_field")
+        || combobox_popup_contains_element(element);
+}
+
+bool combobox_popup_contains_element(Rml::Element* element)
+{
+    return ancestor_with_class(element, "combobox_popup");
+}
+
 bool activate_managed_list_element(Rml::Element* element, VirtualListHost& host)
 {
     auto* list = ancestor_with_class(element, "managed_list_rows");
@@ -484,6 +495,9 @@ std::optional<ManagedListFocusTarget> managed_list_focus_target(
     Rml::Element* element)
 {
     auto* list = ancestor_with_class(element, "managed_list_rows");
+    if (!list) {
+        list = ancestor_with_class(element, "managed_list_cycle");
+    }
     if (!list) {
         return std::nullopt;
     }
@@ -562,7 +576,8 @@ bool cycle_managed_list_element(
     if (!next_scroll) {
         return false;
     }
-    if (list_id == source_list_id) {
+    if (list_id == source_list_id
+        && list->IsClassSet("managed_list_rows")) {
         list->SetScrollTop(static_cast<float>(*next_scroll));
     }
     return true;
