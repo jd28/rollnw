@@ -102,6 +102,49 @@ The implemented private data-spec contract is documented in
 Persistence, authored overrides, and long-lived reload behavior remain separate
 work in [`issues/persist-native-authoring-tables.md`](../../../issues/persist-native-authoring-tables.md).
 
+### First native-data tranche report (2026-09-02)
+
+The first tranche migrated the NWN1 creature body-part catalog and the mixed
+`appearance.2da` domain. Its implementation commit changed 58 files with 4,818
+insertions and 984 deletions. The appearance transform required 16 field
+operations: two `row_index`, eleven `column`, and three `enum` operations. It
+retains 1,301,487 VM bytes for the test resource set.
+
+The current body-part popup benchmark is the start of the performance series;
+no older revision was rebuilt and no speedup is claimed. Ten repetitions over
+a representative 74-option humanoid selector measured:
+
+| Measurement | Wall time | CPU time |
+| --- | ---: | ---: |
+| Mean | 17.966 us | 17.915 us |
+| Median | 17.952 us | 17.907 us |
+| Standard deviation | 0.288 us | 0.293 us |
+| Coefficient of variation | 1.60% | 1.64% |
+
+The benchmark recorded zero `resource_exists` calls. CPU frequency scaling was
+enabled and host load was elevated, so the result is suitable as a same-machine
+baseline, not as a universal latency figure.
+
+The local appearance snapshot transform emitted 838 rows and omitted 14,262
+from 15,100 source rows. The snapshot is an ignored local review artifact, not
+runtime authority and not a committed game-data copy. The legal and repository
+retention decision for the existing 2,111-file corpus remains open in
+[`issues/audit-checked-in-nwn-derived-data.md`](../../../issues/audit-checked-in-nwn-derived-data.md).
+
+The complete test binary passed 1,904 of 1,904 tests in 473.5 seconds. Covered
+behavior includes sparse row publication, module/hak resource precedence,
+appearance and body-part mutation/undo/redo, preview camera and root-transform
+preservation across appearance refresh, and combobox focus, cycling, close, and
+scroll behavior.
+
+The reusable pieces were the package spec parser and diagnostics,
+`StaticTwoDA` row access, flat batch materializer, runtime/datagen sinks,
+canonical config binding and provenance, and native indexed publication. A
+`baseitems.2da` migration would reuse those pieces but adds one observed
+five-column feat-requirement aggregate plus its contiguous storage and VM
+writer. No further table migration is approved by this report; it requires a
+new ownership and cost decision, including the unresolved corpus legal audit.
+
 ## Modifiers
 
 The older modifier system is built on integer, floating-point, string, and

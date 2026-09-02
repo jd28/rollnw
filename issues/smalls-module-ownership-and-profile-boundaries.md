@@ -843,8 +843,10 @@ native components + registered nwn1.propsets rows
       to native C++ data models.
 - [ ] Keep object-workbench tabs and panels as static RML when practical;
       C++ may own their typed operational state.
-- [ ] Verify appearance/body-part changes preserve viewport camera and creature
-      orientation and retain keyboard/mouse interaction correctly.
+- [x] Verify appearance/body-part changes preserve viewport camera and creature
+      orientation and retain keyboard/mouse interaction correctly. Renderer
+      refresh tests preserve the camera matrix and creature root transform;
+      managed-list tests cover focus, cycling, popup close, and user scrolling.
 
 ### Phase 4: Migrate Remaining Profile Schemas
 
