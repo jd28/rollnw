@@ -61,20 +61,26 @@ not Smalls source. The cost is fine; the file identity is missing.
 Flipping `workspaceDiagnostics` to true is a one-line change once config files
 declare what they are.
 
-## Required decision
+## Accepted decision
 
-Whether a config file's type binding is declared in the file itself — a header
-naming `T` — or inferred from `load_config!` call sites across the workspace.
-Inference requires the index and breaks when a file has no caller yet; a
-declared header is explicit, verifiable in isolation, and greppable. Decide
-before building the provider, because every feature above depends on it.
+Each package-owned data spec binds its `config_path` to one fully qualified
+`entry_type`. The LSP discovers the same `data_specs` directory from registered
+package module paths and reads its config bindings and field provenance. Direct
+config children are typed from that binding even when no `load_config!` caller
+exists.
+
+Do not add a repeated type header to every generated row and do not infer the
+canonical binding from call sites. More than one spec binding the same config
+path is an error. A `load_config!(T)` call that disagrees with the spec is a
+call-site diagnostic. The private, unversioned JSON shape and validation
+behavior are documented in `lib/nw/smalls/docs/load-config.md`.
 
 ## Done
 
 - Config files are identified by declared identity, never by parse failure,
   and the `looks_like_config_file` suppression is gone.
-- The file-to-type binding rule is decided, documented, and tested for the
-  no-caller and multiple-caller cases.
+- The package-spec file-to-type binding is tested for no-caller, duplicate
+  binding, and call-site mismatch cases.
 - Completion inside a config file offers `T`'s fields with their types.
 - Go-to-definition from a config entry lands on the field declaration in `T`,
   and from `load_config!(T)` lands on the config file.
