@@ -1,11 +1,7 @@
-import core.array as Array;
-
 from core.commands.v1 import { command_execute };
 from core.rmlui import {
     Command,
-    command_focus,
     command_set_class,
-    command_set_rml,
 };
 from core.ui import { ListSelection, UiListBinding };
 
@@ -22,30 +18,8 @@ fn _selection_args(selection: ListSelection): array!(string) {
     };
 }
 
-fn _appearance(command: string, args: array!(string), focus_id: string = ""):
-    array!(Command) {
-    var result = command_execute(command, args);
-    if (!_succeeded(result.status)) { return {}; }
-    var commands: array!(Command) = {{
-        operation = command_set_rml,
-        element_id = "item_appearance_dynamic",
-        value = result.message,
-        state = false,
-    }};
-    if (focus_id != "") {
-        var focus: Command = {
-            operation = command_focus,
-            element_id = focus_id,
-            value = "",
-            state = true,
-        };
-        Array.push(commands, focus);
-    }
-    return commands;
-}
-
-// Thin RML event adapters. Native code owns every copied row, selector,
-// selection, and popup lifetime; profile SmallS only supplies policy batches.
+// Native code owns copied presentation rows and selector state. Profile SmallS
+// supplies the policy batch and remains the only writer of live Item state.
 fn initialize(): bool {
     return _succeeded(command_execute("toolset.item.initialize", {}).status);
 }
@@ -63,39 +37,6 @@ fn details_refresh(): array!(Command) {
         value = "not_applicable",
         state = result.message != "1",
     }};
-}
-
-fn appearance_refresh(): array!(Command) {
-    return _appearance("toolset.item.refresh", {});
-}
-
-fn open_model_selector(part: int, axis: int): array!(Command) {
-    return _appearance("toolset.item.appearance.open_model",
-        { f"{part}", f"{axis}" }, "item_option_rows");
-}
-
-fn close_appearance_selector(): array!(Command) {
-    return _appearance("toolset.item.appearance.close", {});
-}
-
-fn open_color_selector(part: int, color: int): array!(Command) {
-    return _appearance("toolset.item.appearance.open_color",
-        { f"{part}", f"{color}" }, "item_color_selector_close");
-}
-
-fn select_color_channel(color: int): array!(Command) {
-    return _appearance("toolset.item.appearance.select_color",
-        { f"{color}" }, "item_color_selector_close");
-}
-
-fn apply_color(value: int): array!(Command) {
-    return _appearance("toolset.item.appearance.apply_color",
-        { f"{value}" }, "item_color_selector_close");
-}
-
-fn inherit_color(): array!(Command) {
-    return _appearance("toolset.item.appearance.inherit_color", {},
-        "item_color_selector_close");
 }
 
 fn on_model_activate(selection: ListSelection) {

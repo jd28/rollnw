@@ -1,7 +1,7 @@
 # rollnw | client Object Workbench and Property Surfaces
 
 Status: object-workbench vertical slices implemented and verified through
-2026-08-19.
+2026-08-19; Item appearance ownership updated 2026-09-01.
 
 ## Problem
 
@@ -265,19 +265,19 @@ The observed project corpus contains 1,460 item blueprints. Its base-item table
 contains 91 rows: 39 simple, 2 layered, 49 composite, and 1 armor row. An item
 has at most 19 model parts and 6 color channels. The current rules configuration
 contains 84 item-property definitions, and the largest observed item has 40
-assigned properties. Invalid handles, duplicate parts or color channels,
-out-of-range part/model/color values, malformed typed rows, and batches beyond
-the native protocol bounds reject the complete snapshot; they are never
-partially displayed or clamped.
+assigned properties. Invalid handles or malformed typed VM rows reject the
+complete snapshot copy. The native RmlUi projection omits duplicate part IDs
+or color-channel keys and color rows outside the drawable palette domain; an
+invalid active color row produces a local diagnostic.
 
-The item appearance and item-property surfaces retain no C++ presentation
-snapshot. Smalls reads the live Item and emits escaped RML for the bounded
-appearance structure plus flat managed-list row batches for variable
-option/property selectors. The RML document owns only static workbench structure
-and styling. Generic C++ maps Smalls palette identifiers to installed texture
-resources, emits only the viewport-sized managed-list window, routes events
-through the shared transaction bus, and stores exact flat before/after values
-for undo. It does not retain item row mirrors or VM pointers.
+The Item appearance surface copies the complete SmallS policy snapshot into a
+native RmlUi data model. That model owns bounded part/color presentation rows,
+selector state, focus, and the fixed 176-cell palette index for the active
+Item. Static structure and appearance event wiring live in RML. The variable
+model/property option batches remain viewport-sized managed-list windows.
+Native commands route edits through the shared transaction bus and store exact
+flat before/after values for undo. No VM pointer or RmlUi element pointer is
+retained across the snapshot copy.
 
 The General surface follows the same boundary. `core.object` exposes only the
 live ObjectBase `resref`, resolved name, tag, and comment. `nwn1.item` combines
@@ -292,12 +292,13 @@ protocol. A resolved display string is not sufficient undo data for a
 `LocString` or `TextRef` because it omits other languages, TLK fallback, and the
 difference between authored text and runtime override.
 
-Smalls owns part order, labels, legal sparse model values, palette selection,
-property definitions, option labels, defaults, selector state, and mutation
-policy. Model/color command preparation is a bounded batch transform over at
-most 19 model parts or 114 part/channel pairs. Invalid handles, duplicate or
-unordered keys, unavailable sparse values, and out-of-range values reject the
-complete batch; no partial edit enters history.
+SmallS owns part order, labels, legal sparse model values, palette meaning,
+property definitions, option labels, defaults, and mutation policy. Native C++
+owns selector state and the copied RmlUi projection. Model/color command
+preparation is a bounded batch transform over at most 19 model parts or 114
+part/channel pairs. Invalid handles, unavailable sparse values, and out-of-range
+values reject the complete edit. A presentation-row diagnostic does not block
+the Item, module, or client.
 
 Color edits cross the transaction boundary as a flat pair batch: Smalls emits
 an opaque integer key followed by the exact stored value for each requested

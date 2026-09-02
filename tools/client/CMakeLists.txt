@@ -38,6 +38,7 @@ add_executable(rollnw-client
     creature_body_part_editor.cpp
     dialog_view.cpp
     item_editor.cpp
+    item_editor_data_model.cpp
     viewer_viewport.cpp
     main.cpp
     renderer.cpp

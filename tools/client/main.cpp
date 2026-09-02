@@ -9866,6 +9866,11 @@ int main(int argc, char* argv[])
             "Failed to initialize the RmlUi Smalls presentation model");
         return 1;
     }
+    if (!state.backend.initialize_item_editor_data_model(*context)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Failed to initialize the Item editor presentation model");
+        return 1;
+    }
 
     auto* doc = load_rml_document_from_resource(*context, ui_resources, panel_rml);
     if (!doc) {
@@ -12236,6 +12241,7 @@ int main(int argc, char* argv[])
                 nw::toolset::ui_v1_host(), state.managed_lists, false)) {
             context->Update();
         }
+        state.backend.apply_item_editor_pending_focus(doc);
         if (apply_output_scroll_after_layout(doc, state)) {
             context->Update();
         }
@@ -12505,6 +12511,7 @@ int main(int argc, char* argv[])
         "change", &object_variable_change_listener, false);
     context->RemoveEventListener(
         "blur", &object_variable_change_listener, true);
+    state.backend.shutdown_item_editor_data_model();
     state.rml_smalls_data_model->shutdown();
     Rml::RemoveContext("command_palette");
     Rml::RemoveContext("viewer_fps");

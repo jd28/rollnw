@@ -54,10 +54,116 @@
       </div>
     </div>
 
-    <div id="item_surface_appearance" class="item_workbench_surface">
-      <div id="item_appearance_dynamic" class="smalls_refresh"
-           onrefresh="appearance_refresh()">
-        <div class="property_tree_empty">Waiting for a live Item.</div>
+    <div id="item_surface_appearance" class="item_workbench_surface"
+         data-model="item_editor">
+      <div id="item_appearance_dynamic">
+        <div data-if="error != ''" class="property_tree_empty error">{{ error }}</div>
+        <div data-if="error == '' &amp;&amp; live == false"
+             class="property_tree_empty">Waiting for a live Item.</div>
+        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 0 &amp;&amp; has_parts == false"
+             class="property_tree_empty">This item has no editable visual parts.</div>
+
+        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 0 &amp;&amp; has_parts"
+             id="item_appearance_main" class="item_appearance_editor active">
+          <div class="item_editor_section_title">Models</div>
+          <div id="item_model_rows">
+            <div data-for="part : parts" class="item_model_row visible"
+                 data-class-item_composite_model_row="part.split">
+              <span class="item_model_label">{{ part.label }}</span>
+              <div data-if="part.split" class="item_composite_model_fields">
+                <div class="item_composite_model_field">
+                  <span class="item_composite_model_label">Model</span>
+                  <button class="item_model_field" type="button"
+                          data-event-click="open_model(part.part, 0)">
+                    <span class="item_model_value">{{ part.model_value }}</span>
+                    <span class="item_field_arrow"></span>
+                  </button>
+                </div>
+                <div class="item_composite_model_field">
+                  <span class="item_composite_model_label">Color</span>
+                  <button class="item_model_field" type="button"
+                          data-event-click="open_model(part.part, 1)">
+                    <span class="item_model_value">{{ part.color_value }}</span>
+                    <span class="item_field_arrow"></span>
+                  </button>
+                </div>
+              </div>
+              <button data-if="part.split == false" class="item_model_field"
+                      type="button" data-event-click="open_model(part.part, 0)">
+                <span class="item_model_value">{{ part.display }}</span>
+                <span class="item_field_arrow"></span>
+              </button>
+              <div data-if="part.colors.size &gt; 0"
+                   class="item_part_color_fields visible">
+                <button data-for="color : part.colors"
+                        class="item_color_field visible" type="button"
+                        data-class-inherited="color.inherited"
+                        data-event-click="open_color(color.part, color.color)">
+                  <img data-attr-src="color.palette" data-attr-rect="color.rect" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 1"
+             id="item_option_selector" class="item_selector active">
+          <div class="item_selector_header">
+            <button id="item_selector_close" class="item_selector_close panel_back_button"
+                    type="button" title="Back" data-event-click="close_appearance()">
+              <span class="panel_back_icon">
+                <span class="panel_back_head"></span>
+                <span class="panel_back_shaft"></span>
+              </span>
+            </button>
+            <div class="item_selector_title managed_list_title"
+                 data-list-id="item.appearance.models"></div>
+          </div>
+          <div id="item_option_rows"
+               class="item_option_rows item_model_list managed_list_rows managed_list_cycle"
+               tabindex="0" data-list-id="item.appearance.models"
+               data-empty-text="No models are available."></div>
+        </div>
+
+        <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 2 &amp;&amp; color_valid"
+             id="item_color_selector" class="item_selector item_color_selector active">
+          <div class="item_selector_header">
+            <button id="item_color_selector_close" class="item_selector_close panel_back_button"
+                    type="button" title="Back" data-event-click="close_appearance()">
+              <span class="panel_back_icon">
+                <span class="panel_back_head"></span>
+                <span class="panel_back_shaft"></span>
+              </span>
+            </button>
+            <div class="item_selector_title">{{ color_title }}</div>
+            <button data-if="can_inherit" id="item_color_inherit"
+                    class="item_color_inherit visible" type="button"
+                    data-event-click="inherit_color()">Inherit</button>
+          </div>
+          <div class="item_color_channels">
+            <button data-for="color : color_channels"
+                    class="item_color_channel visible" type="button"
+                    data-class-active="color.active"
+                    data-event-click="select_color(color.color)">
+              <img data-attr-src="color.palette" data-attr-rect="color.rect" />
+              <span>{{ color.label }}</span>
+            </button>
+          </div>
+          <div class="item_color_palette_body">
+            <div class="item_color_palette">
+              <img data-attr-src="selected_palette" />
+              <div class="item_color_palette_hits">
+                <button data-for="value : palette_values"
+                        class="item_color_palette_cell" type="button"
+                        data-attr-title="'Color ' + value"
+                        data-event-click="apply_color(value)"></button>
+              </div>
+              <div class="item_color_selection"
+                   data-style-left="selected_left"
+                   data-style-top="selected_top"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -402,6 +402,56 @@ bool ToolsetBackend::initialize()
     return ensure_data_object_editor_lists();
 }
 
+bool ToolsetBackend::initialize_item_editor_data_model(Rml::Context& context)
+{
+    const bool initialized = item_editor_data_model_.initialize(context,
+        [this](std::string_view command,
+            std::span<const int32_t> arguments,
+            std::string& diagnostic) {
+            std::vector<std::string> storage;
+            storage.reserve(arguments.size());
+            for (const int32_t value : arguments) {
+                storage.push_back(std::to_string(value));
+            }
+            std::vector<std::string_view> views;
+            views.reserve(storage.size());
+            for (const auto& value : storage) {
+                views.push_back(value);
+            }
+
+            CommandContext command_context{
+                .source = CommandSource::widget,
+                .workspace = workspace_,
+            };
+            auto result = execute_command(
+                command, views, std::move(command_context));
+            if (result.should_log() && shell_) {
+                shell_->append_output(
+                    command_output_channel_name(result.output_channel),
+                    result.message);
+            }
+            if (!result.ok()) {
+                diagnostic = result.message;
+            }
+            return result.ok();
+        });
+    if (initialized) {
+        item_editor_data_model_.refresh(item_editor_.appearance_input());
+    }
+    return initialized;
+}
+
+bool ToolsetBackend::apply_item_editor_pending_focus(
+    Rml::ElementDocument* document)
+{
+    return item_editor_data_model_.apply_pending_focus(document);
+}
+
+void ToolsetBackend::shutdown_item_editor_data_model()
+{
+    item_editor_data_model_.shutdown();
+}
+
 bool ToolsetBackend::refresh_creature_body_part_editor()
 {
     auto& host = ui_v1_host();
@@ -427,8 +477,11 @@ bool ToolsetBackend::refresh_creature_body_part_editor()
 bool ToolsetBackend::refresh_item_editor()
 {
     const ObjectHandle object = bridge_ ? bridge_->active_object() : ObjectHandle{};
-    return item_editor_.refresh(
-        kernel::runtime(), object, ui_v1_host());
+    if (!item_editor_.refresh(kernel::runtime(), object, ui_v1_host())) {
+        return false;
+    }
+    item_editor_data_model_.refresh(item_editor_.appearance_input());
+    return true;
 }
 
 bool ToolsetBackend::ensure_data_object_editor_lists()
@@ -600,12 +653,17 @@ void ToolsetBackend::register_native_commands()
             return result;
         });
 
-    const auto item_markup_result = [this](bool ok) {
+    const auto item_result = [](bool ok) {
         return command_result(
             ok ? CommandStatus::success : CommandStatus::failed,
-            ok ? item_editor_.appearance_markup()
-               : std::string{"Item editor operation failed"},
+            ok ? std::string{} : std::string{"Item editor operation failed"},
             ok ? CommandOutputChannel::none : CommandOutputChannel::error);
+    };
+    const auto item_state_result = [this, item_result](bool ok) {
+        if (ok) {
+            item_editor_data_model_.refresh(item_editor_.appearance_input());
+        }
+        return item_result(ok);
     };
     const auto stale_item_editor_result = []() {
         return command_result(CommandStatus::rejected,
@@ -613,13 +671,13 @@ void ToolsetBackend::register_native_commands()
     };
     register_hidden_editor_command(
         "toolset.item.initialize",
-        [this, item_markup_result](const CommandInvocation&, CommandContext&) {
-            return item_markup_result(refresh_item_editor());
+        [this, item_result](const CommandInvocation&, CommandContext&) {
+            return item_result(refresh_item_editor());
         });
     register_hidden_editor_command(
         "toolset.item.refresh",
-        [this, item_markup_result](const CommandInvocation&, CommandContext&) {
-            return item_markup_result(refresh_item_editor());
+        [this, item_result](const CommandInvocation&, CommandContext&) {
+            return item_result(refresh_item_editor());
         });
     register_hidden_editor_command(
         "toolset.item.details",
@@ -634,44 +692,44 @@ void ToolsetBackend::register_native_commands()
         });
     register_hidden_editor_command(
         "toolset.item.appearance.open_model",
-        [this, item_markup_result, stale_item_editor_result](
+        [this, item_state_result, stale_item_editor_result](
             const CommandInvocation& invocation, CommandContext&) {
             if (!item_editor_is_current()) {
                 return stale_item_editor_result();
             }
             const auto part = parse_i32(command_arg_string(invocation.args, 0));
             const auto axis = parse_i32(command_arg_string(invocation.args, 1));
-            return item_markup_result(part && axis
+            return item_state_result(part && axis
                 && item_editor_.open_model(
                     kernel::runtime(), *part, *axis, ui_v1_host()));
         });
     register_hidden_editor_command(
         "toolset.item.appearance.close",
-        [this, item_markup_result](const CommandInvocation&, CommandContext&) {
-            return item_markup_result(
+        [this, item_state_result](const CommandInvocation&, CommandContext&) {
+            return item_state_result(
                 item_editor_.close_appearance(ui_v1_host()));
         });
     register_hidden_editor_command(
         "toolset.item.appearance.open_color",
-        [this, item_markup_result, stale_item_editor_result](
+        [this, item_state_result, stale_item_editor_result](
             const CommandInvocation& invocation, CommandContext&) {
             if (!item_editor_is_current()) {
                 return stale_item_editor_result();
             }
             const auto part = parse_i32(command_arg_string(invocation.args, 0));
             const auto color = parse_i32(command_arg_string(invocation.args, 1));
-            return item_markup_result(part && color
+            return item_state_result(part && color
                 && item_editor_.open_color(*part, *color, ui_v1_host()));
         });
     register_hidden_editor_command(
         "toolset.item.appearance.select_color",
-        [this, item_markup_result, stale_item_editor_result](
+        [this, item_state_result, stale_item_editor_result](
             const CommandInvocation& invocation, CommandContext&) {
             if (!item_editor_is_current()) {
                 return stale_item_editor_result();
             }
             const auto color = parse_i32(command_arg_string(invocation.args, 0));
-            return item_markup_result(
+            return item_state_result(
                 color && item_editor_.select_color(*color));
         });
 
@@ -697,7 +755,7 @@ void ToolsetBackend::register_native_commands()
                 return command_result(CommandStatus::failed,
                     "Item editor refresh failed", CommandOutputChannel::error);
             }
-            result.message = item_editor_.appearance_markup();
+            result.message.clear();
             result.output_channel = CommandOutputChannel::none;
         }
         return result;
@@ -744,7 +802,7 @@ void ToolsetBackend::register_native_commands()
                         "Item editor refresh failed",
                         CommandOutputChannel::error);
                 }
-                result.message = item_editor_.appearance_markup();
+                result.message.clear();
                 result.output_channel = CommandOutputChannel::none;
             }
             return result;

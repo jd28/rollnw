@@ -21,9 +21,6 @@ constexpr std::string_view option_list = "item.properties.options";
 constexpr std::string_view model_list = "item.appearance.models";
 constexpr int32_t model_axis_model = 0;
 constexpr int32_t model_axis_color = 1;
-constexpr int32_t palette_columns = 16;
-constexpr int32_t palette_rows = 11;
-constexpr int32_t palette_cell_size = 24;
 
 smalls::Value object_value(smalls::Runtime& runtime, ObjectHandle object)
 {
@@ -245,43 +242,6 @@ std::vector<ItemEditorPropertyOption> read_property_options(
     return rows;
 }
 
-std::string escape_rml(std::string_view value)
-{
-    std::string output;
-    output.reserve(value.size());
-    for (const char ch : value) {
-        switch (ch) {
-        case '&':
-            output += "&amp;";
-            break;
-        case '<':
-            output += "&lt;";
-            break;
-        case '>':
-            output += "&gt;";
-            break;
-        case '\'':
-            output += "&#39;";
-            break;
-        case '"':
-            output += "&quot;";
-            break;
-        default:
-            output += ch;
-            break;
-        }
-    }
-    return output;
-}
-
-std::string_view palette_asset(int32_t palette) noexcept
-{
-    if (palette == 0) { return "mvpal_cloth.png"; }
-    if (palette == 1) { return "mvpal_leather.png"; }
-    if (palette == 2) { return "mvpal_armor01.png"; }
-    return {};
-}
-
 bool selection_matches(const UiListSelection& selection,
     std::string_view list_id, int32_t value, size_t count)
 {
@@ -291,6 +251,14 @@ bool selection_matches(const UiListSelection& selection,
 }
 
 } // namespace
+
+std::string_view item_editor_palette_asset(int32_t palette) noexcept
+{
+    if (palette == 0) { return "mvpal_cloth.png"; }
+    if (palette == 1) { return "mvpal_leather.png"; }
+    if (palette == 2) { return "mvpal_armor01.png"; }
+    return {};
+}
 
 bool ItemEditor::ensure_lists(VirtualListHost& host)
 {
@@ -324,7 +292,7 @@ bool ItemEditor::clear(VirtualListHost& host)
     snapshot_ = ItemEditorSnapshot{};
     model_options_.clear();
     property_options_.clear();
-    appearance_mode_ = AppearanceMode::main;
+    appearance_mode_ = ItemEditorAppearanceMode::main;
     model_part_ = -1;
     model_axis_ = model_axis_model;
     color_part_ = -1;
@@ -346,7 +314,7 @@ bool ItemEditor::refresh(smalls::Runtime& runtime,
     const auto snapshot = read_snapshot(runtime, object);
     if (!snapshot) { return clear(host); }
     if (snapshot_.object != object) {
-        appearance_mode_ = AppearanceMode::main;
+        appearance_mode_ = ItemEditorAppearanceMode::main;
         model_part_ = -1;
         model_axis_ = model_axis_model;
         color_part_ = -1;
@@ -386,7 +354,7 @@ bool ItemEditor::refresh(smalls::Runtime& runtime,
         || !close_property_options(host)) {
         return false;
     }
-    return appearance_mode_ != AppearanceMode::model
+    return appearance_mode_ != ItemEditorAppearanceMode::model
         || refresh_model_options(runtime, host);
 }
 
@@ -477,13 +445,13 @@ bool ItemEditor::open_model(smalls::Runtime& runtime,
         model_axis_ = model_axis_model;
         return false;
     }
-    appearance_mode_ = AppearanceMode::model;
+    appearance_mode_ = ItemEditorAppearanceMode::model;
     return true;
 }
 
 bool ItemEditor::close_appearance(VirtualListHost& host)
 {
-    appearance_mode_ = AppearanceMode::main;
+    appearance_mode_ = ItemEditorAppearanceMode::main;
     model_part_ = -1;
     model_axis_ = model_axis_model;
     color_part_ = -1;
@@ -497,8 +465,8 @@ bool ItemEditor::open_color(
     int32_t part, int32_t color, VirtualListHost& host)
 {
     const auto* row = find_color(part, color);
-    if (!row || palette_asset(row->palette).empty()) { return false; }
-    appearance_mode_ = AppearanceMode::color;
+    if (!row || item_editor_palette_asset(row->palette).empty()) { return false; }
+    appearance_mode_ = ItemEditorAppearanceMode::color;
     color_part_ = part;
     color_channel_ = color;
     return host.set_visible(model_list, false);
@@ -514,7 +482,7 @@ bool ItemEditor::select_color(int32_t color)
 std::optional<ItemEditorColorEdit> ItemEditor::color_edit(int32_t value) const
 {
     const auto* row = find_color(color_part_, color_channel_);
-    if (!row || (value != 255 && (value < 0 || value >= palette_columns * palette_rows))
+    if (!row || (value != 255 && (value < 0 || value >= item_editor_palette_cell_count))
         || (value == 255 && color_part_ < 0)) {
         return std::nullopt;
     }
@@ -524,7 +492,8 @@ std::optional<ItemEditorColorEdit> ItemEditor::color_edit(int32_t value) const
 std::optional<ItemEditorModelEdit> ItemEditor::activate_model(
     const UiListSelection& selection) const
 {
-    if (appearance_mode_ != AppearanceMode::model || selection.index < 0
+    if (appearance_mode_ != ItemEditorAppearanceMode::model
+        || selection.index < 0
         || static_cast<size_t>(selection.index) >= model_options_.size()) {
         return std::nullopt;
     }
@@ -671,153 +640,16 @@ bool ItemEditor::select_applied(int32_t index, VirtualListHost& host) const
         false);
 }
 
-std::string ItemEditor::appearance_markup() const
+ItemEditorAppearanceInput ItemEditor::appearance_input() const noexcept
 {
-    if (snapshot_.object.type != ObjectType::item) {
-        return "<div class='property_tree_empty'>Waiting for a live Item.</div>";
-    }
-    if (appearance_mode_ == AppearanceMode::model) {
-        return "<div id='item_option_selector' class='item_selector smalls_selector active'><div class='item_selector_header'><button id='item_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='close_appearance_selector()'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title managed_list_title' data-list-id='item.appearance.models'></div></div><div id='item_option_rows' class='item_option_rows item_model_list managed_list_rows managed_list_cycle' tabindex='0' data-list-id='item.appearance.models' data-empty-text='No models are available.'></div></div>";
-    }
-    if (appearance_mode_ == AppearanceMode::color) {
-        const auto* selected = find_color(color_part_, color_channel_);
-        if (!selected || palette_asset(selected->palette).empty()) {
-            return "<div class='property_tree_empty error'>Item color data is unavailable.</div>";
-        }
-        const auto* part = find_part(color_part_);
-        const std::string title = color_part_ < 0
-            ? "Item Colors"
-            : part ? part->label
-                   : "Item";
-        std::string markup = "<div id='item_color_selector' class='item_selector item_color_selector smalls_selector active'><div class='item_selector_header'><button id='item_color_selector_close' class='item_selector_close smalls_selector_close' type='button' title='Back' onclick='close_appearance_selector()'><span class='item_selector_back_icon'><span class='item_selector_back_head'></span><span class='item_selector_back_shaft'></span></span></button><div class='item_selector_title'>";
-        markup += escape_rml(title);
-        markup += "</div>";
-        if (color_part_ >= 0) {
-            markup += "<button id='item_color_inherit' class='item_color_inherit visible' type='button' onclick='inherit_color()'>Inherit</button>";
-        }
-        markup += "</div><div class='item_color_channels'>";
-        for (const auto& row : snapshot_.colors) {
-            if (row.part != color_part_) { continue; }
-            markup += "<button id='item_color_channel_";
-            markup += std::to_string(row.color);
-            markup += "' class='item_color_channel visible";
-            if (row.color == color_channel_) { markup += " active"; }
-            markup += "' type='button' onclick='select_color_channel(";
-            markup += std::to_string(row.color);
-            markup += ")'><img src='";
-            markup += palette_asset(row.palette);
-            markup += "' rect='";
-            markup += std::to_string((row.value % palette_columns) * 32);
-            markup += " ";
-            markup += std::to_string((row.value / palette_columns) * 32);
-            markup += " 32 32' /><span>";
-            markup += escape_rml(row.label);
-            markup += "</span></button>";
-        }
-        markup += "</div><div class='item_color_palette_body'><div class='item_color_palette'><img src='";
-        markup += palette_asset(selected->palette);
-        markup += "' /><div class='item_color_palette_hits'>";
-        for (int32_t value = 0; value < palette_columns * palette_rows; ++value) {
-            markup += "<button id='item_palette_";
-            markup += std::to_string(value);
-            markup += "' class='item_color_palette_cell' type='button' title='Color ";
-            markup += std::to_string(value);
-            markup += "' onclick='apply_color(";
-            markup += std::to_string(value);
-            markup += ")'></button>";
-        }
-        markup += "</div><div class='item_color_selection' style='left:";
-        markup += std::to_string(
-            (selected->value % palette_columns) * palette_cell_size);
-        markup += "px;top:";
-        markup += std::to_string(
-            (selected->value / palette_columns) * palette_cell_size);
-        markup += "px'></div></div></div></div>";
-        return markup;
-    }
-
-    if (snapshot_.parts.empty()) {
-        return "<div class='property_tree_empty'>This item has no editable visual parts.</div>";
-    }
-    std::string markup = "<div id='item_appearance_main' class='item_appearance_editor active'><div class='item_editor_section_title'>Models</div><div id='item_model_rows'>";
-    for (const auto& part : snapshot_.parts) {
-        markup += "<div class='item_model_row";
-        if (part.split_model_color) {
-            markup += " item_composite_model_row";
-        }
-        markup += " visible'><span class='item_model_label'>";
-        markup += escape_rml(part.label);
-        markup += "</span>";
-        const auto append_model_button = [&](int32_t axis,
-                                             std::string_view label,
-                                             int32_t value) {
-            if (!label.empty()) {
-                markup += "<div class='item_composite_model_field'><span class='item_composite_model_label'>";
-                markup += label;
-                markup += "</span>";
-            }
-            markup += "<button id='item_model_";
-            markup += std::to_string(part.part);
-            markup += "_";
-            markup += std::to_string(axis);
-            markup += "' class='item_model_field' type='button' onclick='open_model_selector(";
-            markup += std::to_string(part.part);
-            markup += ", ";
-            markup += std::to_string(axis);
-            markup += ")'><span class='item_model_value'>";
-            markup += std::to_string(value);
-            markup += "</span><span class='item_field_arrow'></span></button>";
-            if (!label.empty()) { markup += "</div>"; }
-        };
-        if (part.split_model_color) {
-            markup += "<div class='item_composite_model_fields'>";
-            append_model_button(model_axis_model, "Model", part.value / 10);
-            append_model_button(model_axis_color, "Color", part.value % 10);
-            markup += "</div>";
-        } else {
-            markup += "<button id='item_model_";
-            markup += std::to_string(part.part);
-            markup += "_0' class='item_model_field' type='button' onclick='open_model_selector(";
-            markup += std::to_string(part.part);
-            markup += ", 0)'><span class='item_model_value'>";
-            markup += escape_rml(part.detail.empty()
-                    ? std::to_string(part.value)
-                    : part.detail);
-            markup += "</span><span class='item_field_arrow'></span></button>";
-        }
-        if (part.per_part_colors) {
-            markup += "<div class='item_part_color_fields visible'>";
-            for (const auto& color : snapshot_.colors) {
-                if (color.part != part.part
-                    || palette_asset(color.palette).empty()
-                    || color.value < 0
-                    || color.value >= palette_columns * palette_rows) {
-                    continue;
-                }
-                markup += "<button id='item_color_";
-                markup += std::to_string(color.part);
-                markup += "_";
-                markup += std::to_string(color.color);
-                markup += "' class='item_color_field visible";
-                if (color.inherited) { markup += " inherited"; }
-                markup += "' type='button' onclick='open_color_selector(";
-                markup += std::to_string(color.part);
-                markup += ", ";
-                markup += std::to_string(color.color);
-                markup += ")'><img src='";
-                markup += palette_asset(color.palette);
-                markup += "' rect='";
-                markup += std::to_string((color.value % palette_columns) * 32);
-                markup += " ";
-                markup += std::to_string((color.value / palette_columns) * 32);
-                markup += " 32 32' /></button>";
-            }
-            markup += "</div>";
-        }
-        markup += "</div>";
-    }
-    markup += "</div></div>";
-    return markup;
+    return ItemEditorAppearanceInput{
+        .object = snapshot_.object,
+        .parts = snapshot_.parts,
+        .colors = snapshot_.colors,
+        .mode = appearance_mode_,
+        .color_part = color_part_,
+        .color_channel = color_channel_,
+    };
 }
 
 } // namespace nw::toolset

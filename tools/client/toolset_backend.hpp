@@ -3,6 +3,7 @@
 #include "command_bus.hpp"
 #include "creature_body_part_editor.hpp"
 #include "item_editor.hpp"
+#include "item_editor_data_model.hpp"
 #include "project.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "shell_controller.hpp"
@@ -43,6 +44,9 @@ public:
     void bind(RmlSmallsBridge* bridge, ShellController* shell, WorkspaceState* workspace) noexcept;
     void set_document_save_handler(DocumentSaveHandler handler);
     bool initialize();
+    bool initialize_item_editor_data_model(Rml::Context& context);
+    bool apply_item_editor_pending_focus(Rml::ElementDocument* document);
+    void shutdown_item_editor_data_model();
 
     [[nodiscard]] std::vector<RecentModuleEntry> list_modules(std::string_view query, size_t limit = 16) const;
     [[nodiscard]] std::vector<LoadedAreaEntry> list_areas(std::string_view query) const;
@@ -95,6 +99,7 @@ private:
     DocumentSaveHandler document_save_handler_;
     CreatureBodyPartEditor creature_body_part_editor_;
     ItemEditor item_editor_;
+    ItemEditorDataModel item_editor_data_model_;
     uint64_t data_object_list_generation_ = 0;
     mutable std::vector<LoadedAreaEntry> loaded_areas_;
     std::filesystem::path current_project_dir_;

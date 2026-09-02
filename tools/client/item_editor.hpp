@@ -5,7 +5,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace nw::smalls {
@@ -93,6 +95,28 @@ struct ItemEditorColorEdit {
     int32_t value = -1;
 };
 
+enum class ItemEditorAppearanceMode : uint8_t {
+    main,
+    model,
+    color,
+};
+
+struct ItemEditorAppearanceInput {
+    ObjectHandle object{};
+    std::span<const ItemEditorPart> parts;
+    std::span<const ItemEditorColor> colors;
+    ItemEditorAppearanceMode mode = ItemEditorAppearanceMode::main;
+    int32_t color_part = -1;
+    int32_t color_channel = 0;
+};
+
+inline constexpr int32_t item_editor_palette_columns = 16;
+inline constexpr int32_t item_editor_palette_rows = 11;
+inline constexpr int32_t item_editor_palette_cell_count = item_editor_palette_columns * item_editor_palette_rows;
+
+[[nodiscard]] std::string_view item_editor_palette_asset(
+    int32_t palette) noexcept;
+
 struct ItemEditorPropertyValueEdit {
     int32_t index = -1;
     int32_t field = -1;
@@ -116,7 +140,7 @@ public:
     {
         return snapshot_.applied_properties.size();
     }
-    [[nodiscard]] std::string appearance_markup() const;
+    [[nodiscard]] ItemEditorAppearanceInput appearance_input() const noexcept;
 
     bool open_model(smalls::Runtime& runtime,
         int32_t part,
@@ -143,10 +167,6 @@ public:
     bool select_applied(int32_t index, VirtualListHost& host) const;
 
 private:
-    enum class AppearanceMode : uint8_t { main,
-        model,
-        color };
-
     bool ensure_lists(VirtualListHost& host);
     bool refresh_model_options(
         smalls::Runtime& runtime, VirtualListHost& host);
@@ -157,7 +177,7 @@ private:
     ItemEditorSnapshot snapshot_;
     std::vector<ItemEditorModelOption> model_options_;
     std::vector<ItemEditorPropertyOption> property_options_;
-    AppearanceMode appearance_mode_ = AppearanceMode::main;
+    ItemEditorAppearanceMode appearance_mode_ = ItemEditorAppearanceMode::main;
     int32_t model_part_ = -1;
     int32_t model_axis_ = 0;
     int32_t color_part_ = -1;

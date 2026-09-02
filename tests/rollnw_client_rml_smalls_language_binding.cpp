@@ -1,4 +1,5 @@
 #include "appearance_catalog.hpp"
+#include "item_editor_data_model.hpp"
 #include "object_edits.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
@@ -111,6 +112,26 @@ bool diagnostic_contains(const nw::toolset::RmlSmallsLanguageBinding& binding, s
     });
 }
 
+Rml::ElementList bound_elements_by_class(
+    Rml::ElementDocument& document, const Rml::String& class_name)
+{
+    Rml::ElementList elements;
+    document.GetElementsByClassName(elements, class_name);
+    std::erase_if(elements, [](Rml::Element* element) {
+        if (!element->IsVisible(true)) {
+            return true;
+        }
+        for (auto* ancestor = element; ancestor;
+            ancestor = ancestor->GetParentNode()) {
+            if (ancestor->HasAttribute("data-for")) {
+                return true;
+            }
+        }
+        return false;
+    });
+    return elements;
+}
+
 class RmlVirtualListAdapter final : public nw::toolset::VirtualListAdapter {
 public:
     explicit RmlVirtualListAdapter(int size)
@@ -182,6 +203,11 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
 
     auto* context = Rml::CreateContext("item-workbench-template-test", {800, 600});
     ASSERT_NE(context, nullptr);
+    nw::toolset::ItemEditorDataModel item_model;
+    ASSERT_TRUE(item_model.initialize(*context,
+        [](std::string_view, std::span<const int32_t>, std::string&) {
+            return true;
+        }));
     auto* document = context->LoadDocumentFromMemory(
         source, "item_workbench_template_test.rml");
     ASSERT_NE(document, nullptr);
@@ -222,7 +248,7 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
         "</div></div>");
     auto* appearance = document->GetElementById("item_appearance_dynamic");
     ASSERT_NE(appearance, nullptr);
-    EXPECT_TRUE(appearance->IsClassSet("smalls_refresh"));
+    EXPECT_FALSE(appearance->IsClassSet("smalls_refresh"));
     auto* property_tree = document->GetElementById("property_tree_rows");
     ASSERT_NE(property_tree, nullptr);
     EXPECT_EQ(property_tree->GetParentNode(), details);
@@ -317,12 +343,233 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     EXPECT_EQ(blur_listener.value, "2");
     context->RemoveEventListener("blur", &blur_listener, true);
 
-    Rml::ElementList model_rows;
-    document->GetElementsByClassName(model_rows, "item_model_row");
+    auto model_rows = bound_elements_by_class(*document, "item_model_row");
     EXPECT_TRUE(model_rows.empty());
 
     document->Close();
+    item_model.shutdown();
     Rml::RemoveContext("item-workbench-template-test");
+}
+
+TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace(
+        "tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+
+    auto* context = Rml::CreateContext(
+        "item-appearance-data-model-test", {800, 600});
+    ASSERT_NE(context, nullptr);
+    bool outer_live = true;
+    auto outer_model = context->CreateDataModel("toolset_presentation");
+    ASSERT_TRUE(static_cast<bool>(outer_model));
+    ASSERT_TRUE(outer_model.Bind("outer_live", &outer_live));
+
+    nw::ObjectHandle object;
+    object.type = nw::ObjectType::item;
+    std::vector<nw::toolset::ItemEditorPart> parts{
+        {
+            .part = 2,
+            .value = 37,
+            .label = "Composite",
+            .detail = "Model 3, variation 7",
+            .split_model_color = true,
+        },
+        {
+            .part = 4,
+            .value = 9,
+            .label = "Layer",
+            .detail = "Layer Nine",
+            .per_part_colors = true,
+        },
+    };
+    std::vector<nw::toolset::ItemEditorColor> colors{
+        {
+            .part = 4,
+            .color = 0,
+            .value = 17,
+            .stored_value = 17,
+            .palette = 0,
+            .label = "Cloth 1",
+        },
+        {
+            .part = 4,
+            .color = 1,
+            .value = 34,
+            .stored_value = 255,
+            .palette = 1,
+            .label = "Leather 1",
+            .inherited = true,
+        },
+        {
+            .part = 4,
+            .color = 2,
+            .value = 176,
+            .stored_value = 176,
+            .palette = 2,
+            .label = "Malformed",
+        },
+        {
+            .part = 4,
+            .color = 1,
+            .value = 35,
+            .stored_value = 35,
+            .palette = 1,
+            .label = "Duplicate",
+        },
+    };
+    nw::toolset::ItemEditorAppearanceInput input{
+        .object = object,
+        .parts = parts,
+        .colors = colors,
+    };
+
+    struct Invocation {
+        std::string command;
+        std::vector<int32_t> arguments;
+    };
+    std::vector<Invocation> invocations;
+    nw::toolset::ItemEditorDataModel item_model;
+    ASSERT_TRUE(item_model.initialize(*context,
+        [&](std::string_view command, std::span<const int32_t> arguments,
+            std::string&) {
+            invocations.push_back({std::string{command},
+                std::vector<int32_t>{arguments.begin(), arguments.end()}});
+            if (command == "toolset.item.appearance.open_model") {
+                input.mode = nw::toolset::ItemEditorAppearanceMode::model;
+            } else if (command == "toolset.item.appearance.close") {
+                input.mode = nw::toolset::ItemEditorAppearanceMode::main;
+            } else if (command == "toolset.item.appearance.open_color") {
+                input.mode = nw::toolset::ItemEditorAppearanceMode::color;
+                input.color_part = arguments[0];
+                input.color_channel = arguments[1];
+            } else if (command
+                == "toolset.item.appearance.select_color") {
+                input.color_channel = arguments[0];
+            } else if (command == "toolset.item.appearance.apply_color") {
+                const auto selected = std::ranges::find_if(colors,
+                    [&](const auto& row) {
+                        return row.part == input.color_part
+                            && row.color == input.color_channel;
+                    });
+                if (selected != colors.end()) {
+                    selected->value = arguments[0];
+                }
+            }
+            item_model.refresh(input);
+            return true;
+        }));
+    item_model.refresh(input);
+
+    const std::filesystem::path ui_resource_path = "tools/client/ui";
+    const std::string source = "<rml><head>"
+                               "<link type=\"text/css\" href=\""
+        + (ui_resource_path / "panel.rcss").generic_string()
+        + "\"/>"
+          "<link type=\"text/css\" href=\""
+        + (ui_resource_path / "item_editor.rcss").generic_string()
+        + "\"/>"
+          "<link type=\"text/template\" href=\""
+        + (ui_resource_path / "item_editor.rml").generic_string()
+        + "\"/><style>body, button, input { font-family: Inter; font-weight: normal; }</style>"
+          "</head><body data-model=\"toolset_presentation\">"
+          "<template src=\"item-workbench\"></template></body></rml>";
+    auto* document = context->LoadDocumentFromMemory(
+        source, "item_appearance_data_model_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+    auto* appearance_surface = document->GetElementById(
+        "item_surface_appearance");
+    ASSERT_NE(appearance_surface, nullptr);
+    appearance_surface->SetClass("active", true);
+    context->Update();
+
+    auto model_rows = bound_elements_by_class(*document, "item_model_row");
+    ASSERT_EQ(model_rows.size(), 2);
+    auto color_fields = bound_elements_by_class(*document, "item_color_field");
+    ASSERT_EQ(color_fields.size(), 2);
+    auto model_fields = bound_elements_by_class(*document, "item_model_field");
+    ASSERT_EQ(model_fields.size(), 3);
+
+    const auto layer_model = std::ranges::find_if(model_fields,
+        [](const Rml::Element* element) {
+            return element->GetInnerRML().find("Layer Nine")
+                != Rml::String::npos;
+        });
+    ASSERT_NE(layer_model, model_fields.end());
+    ASSERT_TRUE((*layer_model)->DispatchEvent("click", {}));
+    ASSERT_EQ(invocations.size(), 1);
+    EXPECT_EQ(invocations.back().command,
+        "toolset.item.appearance.open_model");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{4, 0}));
+    context->Update();
+    auto* option_rows = document->GetElementById("item_option_rows");
+    ASSERT_NE(option_rows, nullptr);
+    EXPECT_TRUE(item_model.apply_pending_focus(document));
+    EXPECT_EQ(context->GetFocusElement(), option_rows);
+
+    auto* model_close = document->GetElementById("item_selector_close");
+    ASSERT_NE(model_close, nullptr);
+    ASSERT_TRUE(model_close->DispatchEvent("click", {}));
+    context->Update();
+    color_fields = bound_elements_by_class(*document, "item_color_field");
+    ASSERT_EQ(color_fields.size(), 2);
+    ASSERT_TRUE(color_fields.front()->DispatchEvent("click", {}));
+    ASSERT_EQ(invocations.back().command,
+        "toolset.item.appearance.open_color");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{4, 0}));
+    context->Update();
+
+    auto channels = bound_elements_by_class(*document, "item_color_channel");
+    ASSERT_EQ(channels.size(), 2);
+    auto palette_cells = bound_elements_by_class(
+        *document, "item_color_palette_cell");
+    ASSERT_EQ(palette_cells.size(),
+        static_cast<size_t>(nw::toolset::item_editor_palette_cell_count));
+    auto* color_close = document->GetElementById(
+        "item_color_selector_close");
+    ASSERT_NE(color_close, nullptr);
+    EXPECT_TRUE(item_model.apply_pending_focus(document));
+    EXPECT_EQ(context->GetFocusElement(), color_close);
+
+    ASSERT_TRUE(channels[1]->DispatchEvent("click", {}));
+    context->Update();
+    EXPECT_EQ(invocations.back().command,
+        "toolset.item.appearance.select_color");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{1}));
+    palette_cells = bound_elements_by_class(
+        *document, "item_color_palette_cell");
+    ASSERT_GT(palette_cells.size(), 42);
+    ASSERT_TRUE(palette_cells[42]->DispatchEvent("click", {}));
+    context->Update();
+    EXPECT_EQ(invocations.back().command,
+        "toolset.item.appearance.apply_color");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{42}));
+    auto selections = bound_elements_by_class(
+        *document, "item_color_selection");
+    ASSERT_EQ(selections.size(), 1);
+    auto* selection = selections.front();
+    ASSERT_NE(selection->GetProperty("left"), nullptr);
+    ASSERT_NE(selection->GetProperty("top"), nullptr);
+    EXPECT_EQ(selection->GetProperty("left")->ToString(), "240px");
+    EXPECT_EQ(selection->GetProperty("top")->ToString(), "48px");
+
+    input.color_channel = 2;
+    item_model.refresh(input);
+    context->Update();
+    const auto appearance_rml = document->GetElementById(
+                                            "item_appearance_dynamic")
+                                    ->GetInnerRML();
+    EXPECT_NE(appearance_rml.find("Item color data is unavailable."),
+        Rml::String::npos);
+
+    document->Close();
+    item_model.shutdown();
+    Rml::RemoveContext("item-appearance-data-model-test");
 }
 
 TEST(ClientRmlTemplates, DoorWorkbenchExpandsNativeAppearanceStructure)

@@ -394,6 +394,7 @@ if(TARGET RmlUi::RmlUi)
         rollnw_client_rml_smalls_language_binding.cpp
         ../tools/client/creature_body_part_editor.cpp
         ../tools/client/item_editor.cpp
+        ../tools/client/item_editor_data_model.cpp
         ../tools/client/toolset_backend.cpp
         ../tools/ui/rml_smalls_data_model.cpp
         ../tools/ui/rml_smalls_expression_binding.cpp

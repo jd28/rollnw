@@ -15,16 +15,9 @@
   <script>
 from toolset.item_editor import {
     add_selected_property,
-    appearance_refresh,
-    apply_color,
     close_property_options,
-    close_appearance_selector,
     details_refresh,
-    inherit_color,
-    open_color_selector,
-    open_model_selector,
     remove_selected_property,
-    select_color_channel,
 };
 from toolset.creature_editor import {
     body_parts_refresh,
