@@ -1,0 +1,32 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "feat",
+    "valid_when": { "column": "FEAT", "positive_int_column": "FEAT", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.feats",
+    "entry_type": "nwn1.rules.FeatEntry",
+    "snapshot_filename": { "strref_column": "FEAT" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name", "value": { "kind": "column", "column": "FEAT", "type": "int" } },
+      { "target": "min_level", "value": { "kind": "constant", "type": "int", "value": 0 } },
+      { "target": "max_level", "value": { "kind": "column", "column": "MaxLevel", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "min_str", "value": { "kind": "column", "column": "MINSTR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "min_dex", "value": { "kind": "column", "column": "MINDEX", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "min_con", "value": { "kind": "column", "column": "MINCON", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "min_int", "value": { "kind": "column", "column": "MININT", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "min_wis", "value": { "kind": "column", "column": "MINWIS", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "min_cha", "value": { "kind": "column", "column": "MINCHA", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "prereq_feat1", "value": { "kind": "column", "column": "PREREQFEAT1", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "prereq_feat2", "value": { "kind": "column", "column": "PREREQFEAT2", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "max_cr", "value": { "kind": "column", "column": "MAXCR", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "cr_value", "value": { "kind": "column", "column": "CRValue", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "passive", "value": { "kind": "constant", "type": "bool", "value": false } },
+      { "target": "uses", "value": { "kind": "column", "column": "USESPERDAY", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "epic", "value": { "kind": "column", "column": "PreReqEpic", "type": "bool", "on_missing": "default", "default": false } },
+      { "target": "master", "value": { "kind": "column", "column": "MASTERFEAT", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "successor", "value": { "kind": "column", "column": "SUCCESSOR", "type": "int", "on_missing": "default", "default": -1 } }
+    ]
+  }
+}

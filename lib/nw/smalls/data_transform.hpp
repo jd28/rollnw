@@ -1,9 +1,10 @@
 #pragma once
 
+#include "../formats/StaticTwoDA.hpp"
 #include "data_spec.hpp"
 
 namespace nw {
-struct StaticTwoDA;
+struct ResourceManager;
 }
 
 namespace nw::smalls {
@@ -14,7 +15,32 @@ struct MaterializedDataValue {
     DataValueType type = DataValueType::integer;
     DataValueKind transform = DataValueKind::column;
     String source_column;
-    DataScalar value;
+    struct IntegerStruct {
+        Vector<std::pair<String, int32_t>> fields;
+    };
+    using Value = std::variant<std::monostate, int32_t, float, bool, String,
+        Resref, Vector<int32_t>, Vector<IntegerStruct>>;
+    Value value;
+};
+
+struct DataTwoDAResource {
+    String name;
+    StaticTwoDA active;
+    StaticTwoDA base;
+};
+
+struct DataTwoDAReferenceSet {
+    String column;
+    Vector<DataTwoDAResource> resources;
+};
+
+// Concrete input batch for one transform. The active primary table owns the
+// output row extent. Base tables are consulted only when an entire requested
+// column is absent from the corresponding active table.
+struct DataSourceBatch {
+    StaticTwoDA primary;
+    StaticTwoDA primary_base;
+    Vector<DataTwoDAReferenceSet> references;
 };
 
 struct MaterializedDataRow {
@@ -42,6 +68,18 @@ struct MaterializedDataBatch {
 bool materialize_data_rows(
     const DataSpec& spec,
     const StaticTwoDA& source,
+    MaterializedDataBatch& output,
+    Vector<DataDiagnostic>& diagnostics);
+
+bool load_data_sources(
+    const DataSpec& spec,
+    const ResourceManager& resources,
+    DataSourceBatch& output,
+    Vector<DataDiagnostic>& diagnostics);
+
+bool materialize_data_rows(
+    const DataSpec& spec,
+    const DataSourceBatch& sources,
     MaterializedDataBatch& output,
     Vector<DataDiagnostic>& diagnostics);
 

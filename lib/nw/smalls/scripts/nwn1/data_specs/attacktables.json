@@ -1,0 +1,11 @@
+{
+  "source": { "kind": "twoda_references", "resource": "classes", "reference_column": "AttackBonusTable" },
+  "output": {
+    "config_path": "nwn1.data.attacktables",
+    "entry_type": "nwn1.rules.AttackTableEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "bonuses", "value": { "kind": "column_array", "column": "BAB", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

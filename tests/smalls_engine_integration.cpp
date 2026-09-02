@@ -3568,58 +3568,6 @@ TEST_F(SmallsEngineIntegration, MissingStructuredSourceReturnsEmptyArrayWithoutF
     EXPECT_GT(rt.data_spec_retained_vm_bytes("test.data.missing_source"), 0u);
 }
 
-TEST_F(SmallsEngineIntegration, LegacyClassTableRetainsMissingSmallsFields)
-{
-    auto& rt = nw::kernel::runtime();
-    auto* types = rt.load_module_from_source("test.legacy_class_types", R"(
-        [[value_type]]
-        type LegacyClassEntry {
-            [[index]]
-            id: int;
-            hit_die: int;
-            spellcaster: bool;
-            memorizes_spells: bool;
-            spell_table: int;
-        };
-    )");
-    ASSERT_NE(types, nullptr);
-    ASSERT_EQ(types->errors(), 0);
-
-    rt.add_module_path(fs::path("test_data/smalls_config/test"));
-    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
-    using Merge = nw::smalls::Runtime::TwoDAConfigMerge;
-    rt.register_twoda_converter("test.data.legacy_classes", "legacy_classes", {
-                                                                                  CM{"HitDie", "hit_die"},
-                                                                                  CM{"SpellCaster", "spellcaster"},
-                                                                                  CM{"MemorizesSpells", "memorizes_spells"},
-                                                                                  CM{"SpellTableColumn", "spell_table"},
-                                                                              },
-        Merge::seed_rows);
-
-    const auto entry_type = rt.type_id("test.legacy_class_types.LegacyClassEntry", false);
-    ASSERT_NE(entry_type, nw::smalls::invalid_type_id);
-    const auto entries_value = rt.load_config_array_value("test.data.legacy_classes", entry_type);
-    ASSERT_NE(entries_value.type_id, nw::smalls::invalid_type_id);
-    auto* entries = rt.get_array_typed(entries_value.data.hptr);
-    ASSERT_NE(entries, nullptr);
-    ASSERT_EQ(entries->size(), 11);
-
-    nw::smalls::Value wizard;
-    ASSERT_TRUE(entries->get_value(10, wizard, rt));
-    const auto* definition = rt.get_struct_def(entry_type);
-    ASSERT_NE(definition, nullptr);
-    auto read = [&](std::string_view field) {
-        const uint32_t index = definition->field_index(field);
-        EXPECT_NE(index, UINT32_MAX);
-        return rt.read_struct_value_field(wizard, definition, index);
-    };
-
-    EXPECT_EQ(read("hit_die").data.ival, 7);
-    EXPECT_TRUE(read("spellcaster").data.bval);
-    EXPECT_TRUE(read("memorizes_spells").data.bval);
-    EXPECT_EQ(read("spell_table").data.ival, 5);
-}
-
 TEST_F(SmallsEngineIntegration, Nwn1ClassSaveBonusUsesSmallsConfig)
 {
     auto& rt = nw::kernel::runtime();

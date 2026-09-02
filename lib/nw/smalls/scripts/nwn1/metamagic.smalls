@@ -33,7 +33,9 @@ fn _ensure_loaded() {
 
 fn _entry_exists(row: int): bool {
     _ensure_loaded();
-    return row >= 0 && row < Array.len(_entries);
+    return row >= 0
+        && row < Array.len(_entries)
+        && Array.get(_entries, row).id == row;
 }
 
 fn count(): int {

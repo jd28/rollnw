@@ -21,7 +21,9 @@ fn resolve(challenge_rating: float): float {
     _ensure_loaded();
     for (var i = 0; i < Array.len(_entries); i += 1) {
         var entry = Array.get(_entries, i);
-        if (entry.min < challenge_rating && entry.denominator != 0) {
+        if (entry.id == i
+            && entry.min < challenge_rating
+            && entry.denominator != 0) {
             return 1.0 / (entry.denominator as float);
         }
     }

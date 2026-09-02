@@ -1791,6 +1791,10 @@ struct LspServer {
                 source = "source row index";
                 transform = "row_index";
                 break;
+            case lang::DataValueKind::constant:
+                source = "data spec";
+                transform = "constant";
+                break;
             case lang::DataValueKind::column:
                 source = fmt::format("`{}.{}`", spec.source_resource,
                     field.value.column);
@@ -1800,6 +1804,29 @@ struct LspServer {
                 source = fmt::format("`{}.{}`", spec.source_resource,
                     field.value.column);
                 transform = "enum";
+                break;
+            case lang::DataValueKind::reference_index:
+                source = fmt::format("`{}.{}`", spec.source_resource,
+                    field.value.column);
+                transform = "reference_index";
+                break;
+            case lang::DataValueKind::fixed_array:
+                source = fmt::format("`{}` columns", spec.source_resource);
+                transform = "fixed_array";
+                break;
+            case lang::DataValueKind::indirect_grid:
+                source = fmt::format("2DA named by `{}.{}`",
+                    spec.source_resource, field.value.column);
+                transform = "indirect_grid";
+                break;
+            case lang::DataValueKind::column_array:
+                source = fmt::format("referenced 2DA column `{}`",
+                    field.value.column);
+                transform = "column_array";
+                break;
+            case lang::DataValueKind::struct_array:
+                source = fmt::format("`{}` columns", spec.source_resource);
+                transform = "struct_array";
                 break;
             }
             return fmt::format(

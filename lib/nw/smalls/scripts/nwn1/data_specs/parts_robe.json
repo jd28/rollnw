@@ -1,0 +1,29 @@
+{
+  "source": { "kind": "twoda", "resource": "parts_robe" },
+  "output": {
+    "config_path": "nwn1.data.parts_robe",
+    "entry_type": "nwn1.rules.RobePartsEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "hide_belt", "value": { "kind": "column", "column": "HIDEBELT", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_bicep_left", "value": { "kind": "column", "column": "HIDEBICEPL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_bicep_right", "value": { "kind": "column", "column": "HIDEBICEPR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_foot_left", "value": { "kind": "column", "column": "HIDEFOOTL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_foot_right", "value": { "kind": "column", "column": "HIDEFOOTR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_forearm_left", "value": { "kind": "column", "column": "HIDEFOREL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_forearm_right", "value": { "kind": "column", "column": "HIDEFORER", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_hand_left", "value": { "kind": "column", "column": "HIDEHANDL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_hand_right", "value": { "kind": "column", "column": "HIDEHANDR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_head", "value": { "kind": "column", "column": "HIDEHEAD", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_neck", "value": { "kind": "column", "column": "HIDENECK", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_pelvis", "value": { "kind": "column", "column": "HIDEPELVIS", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_shin_left", "value": { "kind": "column", "column": "HIDESHINL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_shin_right", "value": { "kind": "column", "column": "HIDESHINR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_shoulder_left", "value": { "kind": "column", "column": "HIDESHOL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_shoulder_right", "value": { "kind": "column", "column": "HIDESHOR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_thigh_left", "value": { "kind": "column", "column": "HIDELEGL", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_thigh_right", "value": { "kind": "column", "column": "HIDELEGR", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "hide_torso", "value": { "kind": "column", "column": "HIDECHEST", "type": "int", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

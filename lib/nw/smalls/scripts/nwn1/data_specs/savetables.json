@@ -1,0 +1,13 @@
+{
+  "source": { "kind": "twoda_references", "resource": "classes", "reference_column": "SavingThrowTable" },
+  "output": {
+    "config_path": "nwn1.data.savetables",
+    "entry_type": "nwn1.rules.SaveTableEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "fort", "value": { "kind": "column_array", "column": "FortSave", "on_missing": "default", "default": 0 } },
+      { "target": "reflex", "value": { "kind": "column_array", "column": "RefSave", "on_missing": "default", "default": 0 } },
+      { "target": "will", "value": { "kind": "column_array", "column": "WillSave", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

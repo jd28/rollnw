@@ -201,6 +201,93 @@ LABEL KIND SCALE
     EXPECT_EQ(batch.rows.front().id, 0);
 }
 
+TEST(SmallsDataTransform, FallsBackOnlyWhenWholeActiveColumnIsMissing)
+{
+    constexpr std::string_view spec_source = R"json({
+  "source": {
+    "kind": "twoda",
+    "resource": "test_rows",
+    "valid_when": { "column": "LABEL", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "test.data.rows",
+    "entry_type": "test.rules.Definition",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "inherited", "value": { "kind": "column", "column": "INHERITED", "type": "int" } },
+      { "target": "owned", "value": { "kind": "column", "column": "OWNED", "type": "int", "on_missing": "default", "default": -1 } }
+    ]
+  }
+})json";
+    nw::smalls::DataSpec spec;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    ASSERT_TRUE(nw::smalls::parse_data_spec(
+        spec_source, "test/data_specs/rows.json", spec, diagnostics));
+
+    nw::smalls::DataSourceBatch sources;
+    sources.primary = nw::StaticTwoDA{std::string_view{R"2da(2DA V2.0
+
+LABEL OWNED
+0 alpha ****
+)2da"}};
+    sources.primary_base = nw::StaticTwoDA{std::string_view{R"2da(2DA V2.0
+
+LABEL OWNED INHERITED
+0 base 99 42
+1 base_extra 100 43
+)2da"}};
+    ASSERT_TRUE(sources.primary.is_valid());
+    ASSERT_TRUE(sources.primary_base.is_valid());
+
+    nw::smalls::MaterializedDataBatch batch;
+    ASSERT_TRUE(nw::smalls::materialize_data_rows(
+        spec, sources, batch, diagnostics));
+    ASSERT_EQ(batch.rows.size(), 1);
+    EXPECT_EQ(batch.indexed_size, 1);
+    const auto* inherited = find_value(batch, batch.rows.front(), "inherited");
+    const auto* owned = find_value(batch, batch.rows.front(), "owned");
+    ASSERT_NE(inherited, nullptr);
+    ASSERT_NE(owned, nullptr);
+    EXPECT_EQ(std::get<int32_t>(inherited->value), 42);
+    EXPECT_EQ(std::get<int32_t>(owned->value), -1);
+}
+
+TEST(SmallsDataTransform, AllNwn1PackageSpecsParse)
+{
+    const auto root = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR}
+        / "lib/nw/smalls/scripts/nwn1/data_specs";
+    const std::array names{
+        "appearance.json",
+        "armor.json",
+        "attacktables.json",
+        "baseitems.json",
+        "classes.json",
+        "cloakmodels.json",
+        "creaturesize.json",
+        "feats.json",
+        "fractionalcr.json",
+        "metamagic.json",
+        "parts_robe.json",
+        "phenotype.json",
+        "placeables.json",
+        "races.json",
+        "savetables.json",
+        "skills.json",
+        "spells.json",
+    };
+    nw::Vector<std::filesystem::path> paths;
+    paths.reserve(names.size());
+    for (const auto* name : names) {
+        paths.push_back(root / name);
+    }
+
+    nw::Vector<nw::smalls::DataSpec> specs;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    EXPECT_TRUE(nw::smalls::parse_data_specs(paths, specs, diagnostics));
+    EXPECT_TRUE(diagnostics.empty());
+    EXPECT_EQ(specs.size(), names.size());
+}
+
 TEST(SmallsDataTransform, SnapshotFilenameIsOptionalSinkMetadata)
 {
     constexpr std::string_view source = R"json({

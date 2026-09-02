@@ -27,7 +27,9 @@ fn count(): int {
 fn exists(class_id: Class): bool {
     _ensure_loaded();
     var index = class_id as int;
-    return index >= 0 && index < Array.len(_classes);
+    return index >= 0
+        && index < Array.len(_classes)
+        && Array.get(_classes, index).id == index;
 }
 
 fn name_strref(class_id: Class): StrRef {

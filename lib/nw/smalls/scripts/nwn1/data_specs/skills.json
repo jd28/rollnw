@@ -1,0 +1,18 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "skills",
+    "valid_when": { "column": "label", "positive_int_column": "Name", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.skills",
+    "entry_type": "nwn1.rules.SkillEntry",
+    "snapshot_filename": { "strref_column": "Name" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name", "value": { "kind": "column", "column": "Name", "type": "int" } },
+      { "target": "untrained", "value": { "kind": "column", "column": "Untrained", "type": "bool", "on_missing": "default", "default": false } },
+      { "target": "ability", "value": { "kind": "enum", "column": "KeyAbility", "values": { "str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5 }, "on_missing": "default", "default": -1 } },
+      { "target": "armor_check_penalty", "value": { "kind": "column", "column": "ArmorCheckPenalty", "type": "bool", "on_missing": "default", "default": false } }
+    ]
+  }
+}

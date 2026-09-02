@@ -1,0 +1,11 @@
+{
+  "source": { "kind": "twoda", "resource": "armor" },
+  "output": {
+    "config_path": "nwn1.data.armor",
+    "entry_type": "nwn1.rules.ArmorEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "cost", "value": { "kind": "column", "column": "Cost", "type": "float", "on_missing": "default", "default": 0.0 } }
+    ]
+  }
+}

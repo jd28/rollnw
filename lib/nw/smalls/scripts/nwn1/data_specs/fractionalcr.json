@@ -1,0 +1,12 @@
+{
+  "source": { "kind": "twoda", "resource": "fractionalcr" },
+  "output": {
+    "config_path": "nwn1.data.fractionalcr",
+    "entry_type": "nwn1.rules.FractionalChallengeRatingEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "min", "value": { "kind": "column", "column": "Min", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "denominator", "value": { "kind": "column", "column": "Denominator", "type": "int", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

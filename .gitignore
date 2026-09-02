@@ -70,4 +70,4 @@ nwnee*
 !lib/nw/render/nwn/**
 
 # Generated from an installed NWN data set; local review artifacts only.
-/lib/nw/smalls/scripts/nwn1/data/appearance/
+/lib/nw/smalls/scripts/nwn1/data/

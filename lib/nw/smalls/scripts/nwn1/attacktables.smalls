@@ -25,6 +25,7 @@ fn bonus(table_id: int, level: int): int {
         return 0;
     }
     var table = Array.get(_tables, table_id);
+    if (table.id != table_id) { return 0; }
     var idx = level - 1;
     if (idx >= Array.len(table.bonuses)) { return 0; }
     return Array.get(table.bonuses, idx);

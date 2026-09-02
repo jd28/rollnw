@@ -127,23 +127,26 @@ baseline, not as a universal latency figure.
 
 The local appearance snapshot transform emitted 838 rows and omitted 14,262
 from 15,100 source rows. The snapshot is an ignored local review artifact, not
-runtime authority and not a committed game-data copy. The legal and repository
-retention decision for the existing 2,111-file corpus remains open in
-[`issues/audit-checked-in-nwn-derived-data.md`](../../../issues/audit-checked-in-nwn-derived-data.md).
+runtime authority and not a committed game-data copy. The follow-up audit
+removed the existing 2,111-file, approximately 8.3 MB game-derived corpus from
+the repository. All 17 production NWN1 config paths now materialize from active
+resources through package data specs; snapshots are optional local output.
 
-The complete test binary passed 1,904 of 1,904 tests in 473.5 seconds. Covered
-behavior includes sparse row publication, module/hak resource precedence,
-appearance and body-part mutation/undo/redo, preview camera and root-transform
-preservation across appearance refresh, and combobox focus, cycling, close, and
-scroll behavior.
+After the all-config migration, the complete test binary passed 1,906 of 1,906
+tests in 395.8 seconds. Covered behavior includes sparse row publication,
+row-local failure recovery, base-game whole-column fallback, module/hak
+resource precedence, appearance and body-part mutation/undo/redo, preview
+camera and root-transform preservation across appearance refresh, and combobox
+focus, cycling, close, and scroll behavior.
 
 The reusable pieces were the package spec parser and diagnostics,
 `StaticTwoDA` row access, flat batch materializer, runtime/datagen sinks,
 canonical config binding and provenance, and native indexed publication. A
-`baseitems.2da` migration would reuse those pieces but adds one observed
-five-column feat-requirement aggregate plus its contiguous storage and VM
-writer. No further table migration is approved by this report; it requires a
-new ownership and cost decision, including the unresolved corpus legal audit.
+`baseitems.2da` migration reused those pieces and added one observed five-column
+feat-requirement aggregate plus its contiguous storage and VM writer. The
+subsequent ownership review approved migration of all remaining production
+config paths. It did not make data specs the owner of native-only facts or of
+authored SmallS policy.
 
 ## Modifiers
 

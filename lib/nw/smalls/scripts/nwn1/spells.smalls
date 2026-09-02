@@ -24,7 +24,9 @@ fn count(): int {
 fn exists(spell: Spell): bool {
     _ensure_loaded();
     var index = spell as int;
-    return index >= 0 && index < Array.len(_spells);
+    return index >= 0
+        && index < Array.len(_spells)
+        && Array.get(_spells, index).id == index;
 }
 
 // Returns the innate level of the spell, or -1 if invalid.

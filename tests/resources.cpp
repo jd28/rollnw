@@ -885,6 +885,45 @@ TEST(KernelResources, ModuleHakPrecedenceFeedsResolvedResourceRegistry)
     EXPECT_EQ(data.bytes.string_view(), "hak appearance\n");
 }
 
+TEST(KernelResources, BaseTwoDARegistryBypassesModuleOverrides)
+{
+    const fs::path root = "tmp/resman_base_twoda";
+    const fs::path base = root / "base";
+    const fs::path module = root / "module";
+    fs::remove_all(root);
+    fs::create_directories(base);
+    fs::create_directories(module);
+    {
+        std::ofstream out{base / "appearance.2da", std::ios::binary};
+        ASSERT_TRUE(out);
+        out << "base appearance\n";
+    }
+    {
+        std::ofstream out{module / "module.ifo", std::ios::binary};
+        ASSERT_TRUE(out);
+        out << "module marker\n";
+    }
+    {
+        std::ofstream out{module / "appearance.2da", std::ios::binary};
+        ASSERT_TRUE(out);
+        out << "module appearance\n";
+    }
+
+    nw::ResourceManager resources{nwk::global_allocator()};
+    ASSERT_TRUE(resources.add_base_container(root, "base"));
+    ASSERT_TRUE(resources.load_module(module));
+    resources.build_registry();
+
+    auto active = resources.demand(
+        {"appearance"sv, nw::ResourceType::twoda});
+    ASSERT_GT(active.bytes.size(), 0);
+    EXPECT_EQ(active.bytes.string_view(), "module appearance\n");
+
+    auto fallback = resources.demand_base_twoda("appearance");
+    ASSERT_GT(fallback.bytes.size(), 0);
+    EXPECT_EQ(fallback.bytes.string_view(), "base appearance\n");
+}
+
 TEST(KernelResources, LoadModuleHaksAcceptsExtensionAndCaseVariants)
 {
     const fs::path root = "tmp/resman_hak_extension_case";

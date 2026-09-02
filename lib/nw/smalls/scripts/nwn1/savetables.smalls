@@ -27,6 +27,7 @@ fn save_bonus(table_id: int, level: int, save_type: Save): int {
         return 0;
     }
     var table = Array.get(_tables, table_id);
+    if (table.id != table_id) { return 0; }
     var idx = level - 1;
     switch (save_type as int) {
         case 1: {

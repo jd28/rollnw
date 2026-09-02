@@ -1023,52 +1023,8 @@ public:
 
     // -- Config Arrays -------------------------------------------------------
 
-    /// Maps a 2da column name to a smalls struct field name.
-    struct TwoDAColumnMapping {
-        String column; // 2da column name, e.g. "HitDie"
-        String field;  // smalls struct field name, e.g. "hit_die"
-        /// Optional case-insensitive string→int enum map. When non-empty, the column is
-        /// read as a string and looked up here; unrecognized values produce -1.
-        Vector<std::pair<String, int32_t>> string_enum;
-        /// Optional secondary 2DA loader. When non-empty, `column` names a 2DA resource;
-        /// that 2DA is loaded and each row fills one element of the listed fixed-array fields.
-        /// `field` is unused in this mode. Maps secondary_column → primary_fixed_array_field.
-        Vector<std::pair<String, String>> secondary_columns;
-        int32_t int_default = 0;
-        float float_default = 0.0f;
-        bool bool_default = false;
-        /// Optional secondary 2DA row-major fixed-array loader. `column` names
-        /// the secondary 2DA, `field` names the primary fixed-array field,
-        /// and columns are read as `secondary_grid_column_prefix + index`.
-        String secondary_grid_column_prefix;
-        int32_t secondary_grid_column_count = 0;
-        String secondary_grid_limit_column;
-        /// Resource type used when `field` is core.types.Resource.
-        ResourceType::type resource_type = ResourceType::invalid;
-    };
-
-    enum class TwoDAConfigMerge : uint8_t {
-        twoda_only,
-        replace_rows,
-        seed_rows,
-    };
-
-    /// Registered converter for a config-array path.
-    struct TwoDAConverterSpec {
-        String twoda_name;
-        Vector<TwoDAColumnMapping> mappings;
-        TwoDAConfigMerge merge = TwoDAConfigMerge::twoda_only;
-    };
-
-    /// Register a 2da-based converter for a load_config! path.
-    /// When load_config!(T)(path) is called, it reads the named 2da. Matching
-    /// .smalls entries may replace rows or seed fields absent from the 2da.
-    void register_twoda_converter(StringView path, StringView twoda_name,
-        Vector<TwoDAColumnMapping> mappings,
-        TwoDAConfigMerge merge = TwoDAConfigMerge::twoda_only);
-
     /// Register one private structured data spec. Registered spec paths are
-    /// authoritative over checked-in config snapshots.
+    /// authoritative over authored config entries.
     bool register_data_spec(DataSpec spec, String& diagnostic);
 
     /// Find the structured binding for one config path. Slash spelling is
@@ -1476,14 +1432,10 @@ private:
 
     Vector<HeapPtr> config_roots_;
     absl::flat_hash_map<std::pair<String, TypeID>, HeapPtr> config_array_cache_;
-    absl::flat_hash_map<String, TwoDAConverterSpec> twoda_converters_;
     absl::flat_hash_map<String, DataSpec> data_specs_;
     absl::flat_hash_map<String, size_t> data_spec_retained_vm_bytes_;
 
     Value load_config_value(StringView path, StringView prelude_module);
-    Value load_twoda_as_config_array(StringView path, TypeID config_type,
-        const StructDef* def, uint32_t index_field_idx,
-        const TwoDAConverterSpec& conv, std::span<const Value> seed_rows = {});
     Value load_data_spec_as_config_array(
         StringView path, TypeID config_type, const DataSpec& spec);
 

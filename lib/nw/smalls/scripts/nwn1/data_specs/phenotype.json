@@ -1,0 +1,12 @@
+{
+  "source": { "kind": "twoda", "resource": "phenotype" },
+  "output": {
+    "config_path": "nwn1.data.phenotype",
+    "entry_type": "nwn1.rules.PhenotypeEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name", "value": { "kind": "column", "column": "Name", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "fallback", "value": { "kind": "column", "column": "DefaultPhenoType", "type": "int", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

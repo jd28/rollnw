@@ -1,0 +1,17 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "metamagic",
+    "valid_when": { "column": "Name", "positive_int_column": "Name", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.metamagic",
+    "entry_type": "nwn1.rules.MetamagicEntry",
+    "snapshot_filename": { "strref_column": "Name" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name", "value": { "kind": "column", "column": "Name", "type": "int" } },
+      { "target": "level_adjustment", "value": { "kind": "column", "column": "LevelAdjustment", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "feat", "value": { "kind": "column", "column": "FeatRequired", "type": "int", "on_missing": "default", "default": -1 } }
+    ]
+  }
+}

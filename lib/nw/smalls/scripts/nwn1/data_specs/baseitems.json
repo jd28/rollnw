@@ -1,0 +1,57 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "baseitems",
+    "valid_when": { "column": "label", "positive_int_column": "Name", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.baseitems",
+    "entry_type": "nwn1.rules.BaseItemDefinition",
+    "snapshot_filename": { "column": "label" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } }
+    ],
+    "field_groups": [
+      {
+        "target": "info", "owner": "native", "type": "core.item.BaseItemInfo",
+        "fields": [
+          { "target": "label", "value": { "kind": "column", "column": "label", "type": "string" } },
+          { "target": "name", "value": { "kind": "column", "column": "Name", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "model_type", "value": { "kind": "column", "column": "ModelType", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "item_class", "value": { "kind": "column", "column": "ItemClass", "type": "resref", "on_missing": "default", "default": "" } },
+          { "target": "default_model", "value": { "kind": "column", "column": "DefaultModel", "type": "resref", "on_missing": "default", "default": "" } },
+          { "target": "default_icon", "value": { "kind": "column", "column": "DefaultIcon", "type": "resref", "on_missing": "default", "default": "" } },
+          { "target": "item_property_column", "value": { "kind": "column", "column": "PropColumn", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "inventory_width", "value": { "kind": "column", "column": "InvSlotWidth", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "inventory_height", "value": { "kind": "column", "column": "InvSlotHeight", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "equipable_slots", "value": { "kind": "column", "column": "EquipableSlots", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "stack_size", "value": { "kind": "column", "column": "Stacking", "type": "int", "on_missing": "default", "default": 1 } },
+          { "target": "is_container", "value": { "kind": "column", "column": "Container", "type": "bool", "on_missing": "default", "default": false } }
+        ]
+      },
+      {
+        "target": "rules", "owner": "smalls", "type": "nwn1.rules.BaseItemRules",
+        "fields": [
+          { "target": "base_cost", "value": { "kind": "column", "column": "BaseCost", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "cost_multiplier", "value": { "kind": "column", "column": "ItemMultiplier", "type": "float", "on_missing": "default", "default": 1.0 } },
+          { "target": "requirements", "value": { "kind": "struct_array", "element_type": "nwn1.requirements.RequirementQualifier", "columns": ["ReqFeat0", "ReqFeat1", "ReqFeat2", "ReqFeat3", "ReqFeat4"], "value_field": "subtype", "constant_fields": { "req_type": 7, "match": 0, "value": 1 } } },
+          { "target": "base_ac", "value": { "kind": "column", "column": "BaseAC", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "damage_num", "value": { "kind": "column", "column": "NumDice", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "damage_die", "value": { "kind": "column", "column": "DieToRoll", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "crit_threat", "value": { "kind": "column", "column": "CritThreat", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "crit_multiplier", "value": { "kind": "column", "column": "CritHitMult", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "weapon_type", "value": { "kind": "column", "column": "WeaponType", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "ranged", "value": { "kind": "column", "column": "RangedWeapon", "type": "bool", "warn_on_coerce": false, "on_missing": "default", "default": false } },
+          { "target": "weapon_size", "value": { "kind": "column", "column": "WeaponSize", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "weapon_focus_feat", "value": { "kind": "column", "column": "WeaponFocusFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "epic_weapon_focus_feat", "value": { "kind": "column", "column": "EpicWeaponFocusFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "weapon_specialization_feat", "value": { "kind": "column", "column": "WeaponSpecializationFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "epic_weapon_specialization_feat", "value": { "kind": "column", "column": "EpicWeaponSpecializationFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "weapon_improved_critical_feat", "value": { "kind": "column", "column": "WeaponImprovedCriticalFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "epic_weapon_overwhelming_critical_feat", "value": { "kind": "column", "column": "EpicWeaponOverwhelmingCriticalFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "epic_weapon_devastating_critical_feat", "value": { "kind": "column", "column": "EpicWeaponDevastatingCriticalFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "weapon_of_choice_feat", "value": { "kind": "column", "column": "WeaponOfChoiceFeat", "type": "int", "on_missing": "default", "default": -1 } }
+        ]
+      }
+    ]
+  }
+}

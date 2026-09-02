@@ -22,7 +22,9 @@ fn count(): int {
 fn exists(skill: Skill): bool {
     _ensure_loaded();
     var index = skill as int;
-    return index >= 0 && index < Array.len(_skills);
+    return index >= 0
+        && index < Array.len(_skills)
+        && Array.get(_skills, index).id == index;
 }
 
 fn name_strref(skill: Skill): StrRef {

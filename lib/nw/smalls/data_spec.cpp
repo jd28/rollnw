@@ -102,10 +102,27 @@ bool parse_expression(
     if (kind == "row_index") {
         output.kind = DataValueKind::row_index;
         output.type = DataValueType::integer;
+    } else if (kind == "constant") {
+        output.kind = DataValueKind::constant;
     } else if (kind == "column") {
         output.kind = DataValueKind::column;
     } else if (kind == "enum") {
         output.kind = DataValueKind::enum_value;
+        output.type = DataValueType::integer;
+    } else if (kind == "reference_index") {
+        output.kind = DataValueKind::reference_index;
+        output.type = DataValueType::integer;
+    } else if (kind == "fixed_array") {
+        output.kind = DataValueKind::fixed_array;
+        output.type = DataValueType::integer;
+    } else if (kind == "indirect_grid") {
+        output.kind = DataValueKind::indirect_grid;
+        output.type = DataValueType::integer;
+    } else if (kind == "column_array") {
+        output.kind = DataValueKind::column_array;
+        output.type = DataValueType::integer;
+    } else if (kind == "struct_array") {
+        output.kind = DataValueKind::struct_array;
         output.type = DataValueType::integer;
     } else {
         add_diagnostic(diagnostics, source_path, target,
@@ -113,7 +130,8 @@ bool parse_expression(
         return false;
     }
 
-    if (output.kind == DataValueKind::column) {
+    if (output.kind == DataValueKind::column
+        || output.kind == DataValueKind::constant) {
         if (!source.contains("type") || !source["type"].is_string()
             || !parse_value_type(source["type"].get<std::string>(), output.type)) {
             add_diagnostic(diagnostics, source_path, target,
@@ -121,9 +139,20 @@ bool parse_expression(
             return false;
         }
     }
+    if (source.contains("warn_on_coerce")) {
+        if (!source["warn_on_coerce"].is_boolean()) {
+            add_diagnostic(diagnostics, source_path, target,
+                "warn_on_coerce must be boolean");
+            return false;
+        }
+        output.warn_on_bool_coerce = source["warn_on_coerce"].get<bool>();
+    }
 
     if (output.kind == DataValueKind::column
-        || output.kind == DataValueKind::enum_value) {
+        || output.kind == DataValueKind::enum_value
+        || output.kind == DataValueKind::reference_index
+        || output.kind == DataValueKind::indirect_grid
+        || output.kind == DataValueKind::column_array) {
         if (!source.contains("column") || !source["column"].is_string()
             || source["column"].get<std::string>().empty()) {
             add_diagnostic(diagnostics, source_path, target,
@@ -131,6 +160,82 @@ bool parse_expression(
             return false;
         }
         output.column = source["column"].get<std::string>();
+    }
+
+    if (output.kind == DataValueKind::constant) {
+        if (!source.contains("value")
+            || !parse_scalar(source["value"], output.type,
+                output.default_value)) {
+            add_diagnostic(diagnostics, source_path, target,
+                "Constant expression requires a typed 'value'");
+            return false;
+        }
+    }
+
+    if (output.kind == DataValueKind::fixed_array
+        || output.kind == DataValueKind::struct_array) {
+        if (!source.contains("columns") || !source["columns"].is_array()) {
+            add_diagnostic(diagnostics, source_path, target,
+                "Array expression requires a 'columns' array");
+            return false;
+        }
+        for (const auto& column : source["columns"]) {
+            if (!column.is_string() || column.get<std::string>().empty()) {
+                add_diagnostic(diagnostics, source_path, target,
+                    "Array expression columns must be non-empty strings");
+                return false;
+            }
+            output.columns.push_back(column.get<std::string>());
+        }
+        if (output.columns.empty()) {
+            add_diagnostic(diagnostics, source_path, target,
+                "Array expression requires at least one column");
+            return false;
+        }
+    }
+
+    if (output.kind == DataValueKind::reference_index) {
+        output.reference_column = source.value("reference_column", output.column);
+        if (output.reference_column.empty()) {
+            add_diagnostic(diagnostics, source_path, target,
+                "Reference-index expression requires 'reference_column'");
+            return false;
+        }
+    }
+
+    if (output.kind == DataValueKind::indirect_grid) {
+        output.column_prefix = source.value("column_prefix", "");
+        output.limit_column = source.value("limit_column", "");
+        output.column_count = source.value("column_count", 0);
+        output.array_size = source.value("array_size", 0);
+        if (output.column_prefix.empty() || output.column_count <= 0
+            || output.array_size <= 0) {
+            add_diagnostic(diagnostics, source_path, target,
+                "Indirect grid requires column_prefix, positive column_count, and positive array_size");
+            return false;
+        }
+    }
+
+    if (output.kind == DataValueKind::struct_array) {
+        output.element_value_field = source.value("value_field", "");
+        output.element_type = source.value("element_type", "");
+        if (output.element_value_field.empty()
+            || output.element_type.empty()
+            || !source.contains("constant_fields")
+            || !source["constant_fields"].is_object()) {
+            add_diagnostic(diagnostics, source_path, target,
+                "Struct array requires element_type, value_field, and constant_fields");
+            return false;
+        }
+        for (const auto& [name, value] : source["constant_fields"].items()) {
+            if (name.empty() || !value.is_number_integer()) {
+                add_diagnostic(diagnostics, source_path, target,
+                    "Struct-array constant fields must be named integers");
+                return false;
+            }
+            output.element_constant_fields.push_back(
+                {name, value.get<int32_t>()});
+        }
     }
 
     if (output.kind == DataValueKind::enum_value) {
@@ -232,18 +337,37 @@ bool parse_spec_json(
     }
     const auto& source = root["source"];
     const auto& sink = root["output"];
-    if (!source.is_object() || source.value("kind", "") != "twoda"
-        || !source.contains("resource") || !source["resource"].is_string()) {
+    if (!source.is_object()) {
         add_diagnostic(diagnostics, source_path, {},
-            "Data spec source must be a named 'twoda' resource");
+            "Data spec source must be an object");
         return false;
     }
+    const auto source_kind = source.value("kind", "");
+    if ((source_kind != "twoda" && source_kind != "twoda_references")
+        || !source.contains("resource") || !source["resource"].is_string()) {
+        add_diagnostic(diagnostics, source_path, {},
+            "Data spec source must be a named 'twoda' or 'twoda_references' resource");
+        return false;
+    }
+    output.source_kind = source_kind == "twoda_references"
+        ? DataSourceKind::twoda_references
+        : DataSourceKind::twoda;
     output.source_path = source_path;
     output.source_resource = source["resource"].get<std::string>();
     if (output.source_resource.empty()) {
         add_diagnostic(diagnostics, source_path, {},
             "Data spec source resource must not be empty");
         return false;
+    }
+    if (output.source_kind == DataSourceKind::twoda_references) {
+        if (!source.contains("reference_column")
+            || !source["reference_column"].is_string()
+            || source["reference_column"].get<std::string>().empty()) {
+            add_diagnostic(diagnostics, source_path, {},
+                "twoda_references source requires 'reference_column'");
+            return false;
+        }
+        output.source_reference_column = source["reference_column"].get<std::string>();
     }
 
     if (source.contains("valid_when")) {
@@ -260,6 +384,14 @@ bool parse_spec_json(
             return false;
         }
         output.valid_column = valid["column"].get<std::string>();
+        if (valid.contains("positive_int_column")) {
+            if (!valid["positive_int_column"].is_string()) {
+                add_diagnostic(diagnostics, source_path, {},
+                    "Data spec positive_int_column must be a string");
+                return false;
+            }
+            output.valid_positive_int_column = valid["positive_int_column"].get<std::string>();
+        }
     }
 
     if (!sink.is_object() || !sink.contains("config_path")
@@ -280,13 +412,22 @@ bool parse_spec_json(
 
     if (sink.contains("snapshot_filename")) {
         if (!sink["snapshot_filename"].is_object()
-            || !sink["snapshot_filename"].contains("column")
-            || !sink["snapshot_filename"]["column"].is_string()) {
+            || (sink["snapshot_filename"].contains("column")
+                == sink["snapshot_filename"].contains("strref_column"))) {
             add_diagnostic(diagnostics, source_path, {},
-                "Data spec snapshot filename requires a column");
+                "Data spec snapshot filename requires exactly one column or strref_column");
             return false;
         }
-        output.snapshot_filename_column = sink["snapshot_filename"]["column"].get<std::string>();
+        const char* key = sink["snapshot_filename"].contains("strref_column")
+            ? "strref_column"
+            : "column";
+        if (!sink["snapshot_filename"][key].is_string()) {
+            add_diagnostic(diagnostics, source_path, {},
+                "Data spec snapshot filename source must be a string");
+            return false;
+        }
+        output.snapshot_filename_column = sink["snapshot_filename"][key].get<std::string>();
+        output.snapshot_filename_is_strref = key == std::string_view{"strref_column"};
         if (output.snapshot_filename_column.empty()) {
             add_diagnostic(diagnostics, source_path, {},
                 "Data spec snapshot filename column must not be empty");

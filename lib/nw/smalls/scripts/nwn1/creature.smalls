@@ -549,6 +549,9 @@ fn _robe_hides_body_part(robe_part: int, part: int): bool {
     }
 
     var robe = arr.get(_parts_robe, robe_part);
+    if (robe.id != robe_part) {
+        return false;
+    }
     if (part == Cre.body_part_belt) { return robe.hide_belt != 0; }
     if (part == Cre.body_part_bicep_left) { return robe.hide_bicep_left != 0; }
     if (part == Cre.body_part_bicep_right) { return robe.hide_bicep_right != 0; }
@@ -577,8 +580,14 @@ fn _phenotype_fallback(phenotype: int): int {
         return 0;
     }
 
-    var fallback = arr.get(_phenotypes, phenotype).fallback;
-    if (fallback < 0 || fallback >= arr.len(_phenotypes)) {
+    var entry = arr.get(_phenotypes, phenotype);
+    if (entry.id != phenotype) {
+        return 0;
+    }
+    var fallback = entry.fallback;
+    if (fallback < 0
+        || fallback >= arr.len(_phenotypes)
+        || arr.get(_phenotypes, fallback).id != fallback) {
         return 0;
     }
     return fallback;

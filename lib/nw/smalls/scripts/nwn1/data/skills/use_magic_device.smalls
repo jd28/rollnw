@@ -1,7 +1,0 @@
-SkillEntry {
-    id = 19,
-    name = StrRef(288),
-    untrained = false,
-    ability = 5,
-    armor_check_penalty = false
-}

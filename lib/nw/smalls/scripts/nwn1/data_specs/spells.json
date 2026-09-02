@@ -1,0 +1,15 @@
+{
+  "source": { "kind": "twoda", "resource": "spells", "valid_when": { "column": "label", "on_missing": "omit_row" } },
+  "output": {
+    "config_path": "nwn1.data.spells",
+    "entry_type": "nwn1.rules.SpellEntry",
+    "snapshot_filename": { "column": "label" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "innate_level", "value": { "kind": "column", "column": "Innate", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "school", "value": { "kind": "enum", "column": "School", "values": { "G": 0, "A": 1, "C": 2, "D": 3, "E": 4, "V": 5, "I": 6, "N": 7, "T": 8 }, "on_missing": "default", "default": -1 } },
+      { "target": "user_type", "value": { "kind": "column", "column": "UserType", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "class_levels", "value": { "kind": "fixed_array", "columns": ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Wiz_Sorc"], "on_missing": "default", "default": -1 } }
+    ]
+  }
+}

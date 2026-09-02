@@ -1,0 +1,15 @@
+{
+  "source": { "kind": "twoda", "resource": "placeables" },
+  "output": {
+    "config_path": "nwn1.data.placeables",
+    "entry_type": "nwn1.rules.PlaceableRules",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "light_color", "value": { "kind": "column", "column": "LightColor", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "light_offset_x", "value": { "kind": "column", "column": "LightOffsetX", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "light_offset_y", "value": { "kind": "column", "column": "LightOffsetY", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "light_offset_z", "value": { "kind": "column", "column": "LightOffsetZ", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "static", "value": { "kind": "column", "column": "Static", "type": "bool", "on_missing": "default", "default": false } }
+    ]
+  }
+}

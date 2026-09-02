@@ -1,0 +1,11 @@
+{
+  "source": { "kind": "twoda", "resource": "creaturesize" },
+  "output": {
+    "config_path": "nwn1.data.creaturesize",
+    "entry_type": "nwn1.rules.CreatureSizeEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "ac_attack_mod", "value": { "kind": "column", "column": "ACATTACKMOD", "type": "int", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

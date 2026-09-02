@@ -255,6 +255,7 @@ void ResourceManager::unfreeze()
 {
     frozen_ = false;
     registry_.clear();
+    base_twoda_registry_.clear();
     advance_generation();
 }
 
@@ -266,6 +267,7 @@ void ResourceManager::unload_module()
     module_haks_.clear();
     module_.reset();
     registry_.clear();
+    base_twoda_registry_.clear();
     frozen_ = false;
     advance_generation();
     update_container_search();
@@ -347,6 +349,7 @@ void ResourceManager::build_registry()
 
     ENSURE_OR_RETURN(!frozen_, "[resman] asset registry is already frozen");
     Container* current = nullptr;
+    base_twoda_registry_.clear();
 
     size_t sz = 0;
     {
@@ -375,6 +378,19 @@ void ResourceManager::build_registry()
         }
     }
 
+    // Preserve only the winning installed/base-layer 2DAs. The main registry
+    // intentionally stores one winner; data-spec transforms need this lower
+    // layer only when an overriding table lacks an entire column.
+    auto base_twoda_cb = [this, &current](Resource uri, const ContainerKey* key) {
+        if (uri.type == ResourceType::twoda) {
+            base_twoda_registry_.insert(uri, current, key);
+        }
+    };
+    for (auto& [cont, _] : game_) {
+        current = get_container(cont);
+        current->visit(base_twoda_cb);
+    }
+
     frozen_ = true;
     advance_generation();
 }
@@ -390,6 +406,16 @@ ResourceData ResourceManager::demand(Resource uri) const
     auto result = registry_.demand(uri);
     if (parent_ && result.bytes.size() == 0) {
         result = parent_->demand(uri);
+    }
+    return result;
+}
+
+ResourceData ResourceManager::demand_base_twoda(Resref resref) const
+{
+    auto result = base_twoda_registry_.demand(
+        {resref, ResourceType::twoda});
+    if (parent_ && result.bytes.size() == 0) {
+        result = parent_->demand_base_twoda(resref);
     }
     return result;
 }

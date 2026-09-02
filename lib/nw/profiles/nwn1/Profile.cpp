@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
-#include <map>
 #include <string_view>
 #include <utility>
 
@@ -42,6 +41,22 @@ void register_structured_data_specs()
     namespace fs = std::filesystem;
     constexpr std::array filenames{
         "appearance.json"sv,
+        "armor.json"sv,
+        "attacktables.json"sv,
+        "baseitems.json"sv,
+        "classes.json"sv,
+        "cloakmodels.json"sv,
+        "creaturesize.json"sv,
+        "feats.json"sv,
+        "fractionalcr.json"sv,
+        "metamagic.json"sv,
+        "parts_robe.json"sv,
+        "phenotype.json"sv,
+        "placeables.json"sv,
+        "races.json"sv,
+        "savetables.json"sv,
+        "skills.json"sv,
+        "spells.json"sv,
     };
 
     nw::Vector<fs::path> paths;
@@ -69,7 +84,7 @@ void register_structured_data_specs()
     }
     if (paths.empty()) {
         throw std::runtime_error(
-            "rules: package data_specs/appearance.json was not found");
+            "rules: package data_specs was not found");
     }
 
     nw::Vector<nw::smalls::DataSpec> specs;
@@ -129,189 +144,6 @@ bool load_optional_rule_rows(
         output.entries.emplace_back(source.row(i));
     }
     return true;
-}
-
-void register_twoda_config_converters()
-{
-    // Register 2da-based converters for smalls load_config! paths before any
-    // object callbacks can force scripts to load these modules.
-    using CM = nw::smalls::Runtime::TwoDAColumnMapping;
-    using Merge = nw::smalls::Runtime::TwoDAConfigMerge;
-    auto& srt = nw::kernel::runtime();
-
-    // Scan classes.2da for unique SavingThrowTable and AttackBonusTable values
-    // and assign stable integer IDs (sorted alphabetically for consistency with datagen).
-    nw::Vector<std::pair<nw::String, int32_t>> save_table_enum;
-    nw::Vector<std::pair<nw::String, int32_t>> atk_table_enum;
-    nw::Vector<std::pair<nw::String, int32_t>> spell_table_enum{
-        {"bard", 0},
-        {"cleric", 1},
-        {"druid", 2},
-        {"paladin", 3},
-        {"ranger", 4},
-        {"wiz_sorc", 5},
-    };
-    auto spell_progression_grid = [](nw::String column, nw::String field, nw::String limit_column = {}) {
-        CM result;
-        result.column = std::move(column);
-        result.field = std::move(field);
-        result.secondary_grid_column_prefix = "SpellLevel";
-        result.secondary_grid_column_count = 10;
-        result.secondary_grid_limit_column = std::move(limit_column);
-        return result;
-    };
-    {
-        auto* cls_tda = nw::kernel::twodas().get("classes");
-        if (cls_tda) {
-            std::map<std::string, int32_t> save_map, atk_map;
-            for (size_t i = 0; i < cls_tda->rows(); ++i) {
-                nw::String tbl;
-                if (cls_tda->get_to(i, "SavingThrowTable", tbl) && !tbl.empty()) {
-                    save_map.emplace(tbl, 0);
-                }
-                if (cls_tda->get_to(i, "AttackBonusTable", tbl) && !tbl.empty()) {
-                    atk_map.emplace(tbl, 0);
-                }
-            }
-            int32_t id = 0;
-            for (auto& [name, _] : save_map) {
-                save_table_enum.push_back({name, id++});
-            }
-            id = 0;
-            for (auto& [name, _] : atk_map) {
-                atk_table_enum.push_back({name, id++});
-            }
-        }
-    }
-
-    srt.register_twoda_converter("nwn1.data.placeables", "placeables", {
-                                                                           CM{"LightColor", "light_color", {}, {}, -1},
-                                                                           CM{"LightOffsetX", "light_offset_x"},
-                                                                           CM{"LightOffsetY", "light_offset_y"},
-                                                                           CM{"LightOffsetZ", "light_offset_z"},
-                                                                           CM{"Static", "static"},
-                                                                       });
-    srt.register_twoda_converter("nwn1.data.phenotype", "phenotype", {
-                                                                         CM{"Name", "name"},
-                                                                         CM{"DefaultPhenoType", "fallback"},
-                                                                     });
-    srt.register_twoda_converter("nwn1.data.parts_robe", "parts_robe", {
-                                                                           CM{"HIDEBELT", "hide_belt"},
-                                                                           CM{"HIDEBICEPL", "hide_bicep_left"},
-                                                                           CM{"HIDEBICEPR", "hide_bicep_right"},
-                                                                           CM{"HIDEFOOTL", "hide_foot_left"},
-                                                                           CM{"HIDEFOOTR", "hide_foot_right"},
-                                                                           CM{"HIDEFOREL", "hide_forearm_left"},
-                                                                           CM{"HIDEFORER", "hide_forearm_right"},
-                                                                           CM{"HIDEHANDL", "hide_hand_left"},
-                                                                           CM{"HIDEHANDR", "hide_hand_right"},
-                                                                           CM{"HIDEHEAD", "hide_head"},
-                                                                           CM{"HIDENECK", "hide_neck"},
-                                                                           CM{"HIDEPELVIS", "hide_pelvis"},
-                                                                           CM{"HIDESHINL", "hide_shin_left"},
-                                                                           CM{"HIDESHINR", "hide_shin_right"},
-                                                                           CM{"HIDESHOL", "hide_shoulder_left"},
-                                                                           CM{"HIDESHOR", "hide_shoulder_right"},
-                                                                           CM{"HIDELEGL", "hide_thigh_left"},
-                                                                           CM{"HIDELEGR", "hide_thigh_right"},
-                                                                           CM{"HIDECHEST", "hide_torso"},
-                                                                       });
-    srt.register_twoda_converter("nwn1.data.creaturesize", "creaturesize", {
-                                                                               CM{"ACATTACKMOD", "ac_attack_mod"},
-                                                                           });
-    srt.register_twoda_converter("nwn1.data.fractionalcr", "fractionalcr", {
-                                                                               CM{"Min", "min"},
-                                                                               CM{"Denominator", "denominator"},
-                                                                           });
-    srt.register_twoda_converter("nwn1.data.classes", "classes", {
-                                                                     CM{"Name", "name"},
-                                                                     CM{"HitDie", "hit_die"},
-                                                                     CM{"SavingThrowTable", "saves_table", save_table_enum},
-                                                                     CM{"AttackBonusTable", "attack_table", atk_table_enum},
-                                                                     CM{"SpellCaster", "spellcaster"},
-                                                                     CM{"MemorizesSpells", "memorizes_spells"},
-                                                                     CM{"SpellbookRestricted", "spellbook_restricted"},
-                                                                     CM{"SpellTableColumn", "spell_table", spell_table_enum},
-                                                                     spell_progression_grid("SpellGainTable", "spells_gained", "NumSpellLevels"),
-                                                                     spell_progression_grid("SpellKnownTable", "spells_known"),
-                                                                     CM{"Arcane", "arcane"},
-                                                                     CM{"ArcSpellLvlMod", "arcane_spellgain_mod"},
-                                                                     CM{"DivSpellLvlMod", "divine_spellgain_mod"},
-                                                                     CM{"SpellcastingAbil", "caster_ability", {
-                                                                                                                  {"str", 0},
-                                                                                                                  {"dex", 1},
-                                                                                                                  {"con", 2},
-                                                                                                                  {"int", 3},
-                                                                                                                  {"wis", 4},
-                                                                                                                  {"cha", 5},
-                                                                                                              }},
-                                                                 },
-        Merge::seed_rows);
-    srt.register_twoda_converter("nwn1.data.spells", "spells", {
-                                                                   CM{"Innate", "innate_level"},
-                                                                   CM{"UserType", "user_type"},
-                                                                   CM{"School", "school", {
-                                                                                              {"G", 0},
-                                                                                              {"A", 1},
-                                                                                              {"C", 2},
-                                                                                              {"D", 3},
-                                                                                              {"E", 4},
-                                                                                              {"V", 5},
-                                                                                              {"I", 6},
-                                                                                              {"N", 7},
-                                                                                              {"T", 8},
-                                                                                          }},
-                                                                   CM{"Bard", "class_levels[0]", {}, {}, -1},
-                                                                   CM{"Cleric", "class_levels[1]", {}, {}, -1},
-                                                                   CM{"Druid", "class_levels[2]", {}, {}, -1},
-                                                                   CM{"Paladin", "class_levels[3]", {}, {}, -1},
-                                                                   CM{"Ranger", "class_levels[4]", {}, {}, -1},
-                                                                   CM{"Wiz_Sorc", "class_levels[5]", {}, {}, -1},
-                                                               });
-    srt.register_twoda_converter("nwn1.data.metamagic", "metamagic", {
-                                                                         CM{"Name", "name"},
-                                                                         CM{"LevelAdjustment", "level_adjustment"},
-                                                                         CM{"FeatRequired", "feat", {}, {}, -1},
-                                                                     });
-    srt.register_twoda_converter("nwn1.data.feats", "feat", {
-                                                                CM{"FEAT", "name"},
-                                                                CM{"MINLEVELCLASS", "min_level"},
-                                                                CM{"MaxLevel", "max_level", {}, {}, -1},
-                                                                CM{"MINSTR", "min_str"},
-                                                                CM{"MINDEX", "min_dex"},
-                                                                CM{"MINCON", "min_con"},
-                                                                CM{"MININT", "min_int"},
-                                                                CM{"MINWIS", "min_wis"},
-                                                                CM{"MINCHA", "min_cha"},
-                                                                CM{"PREREQFEAT1", "prereq_feat1", {}, {}, -1},
-                                                                CM{"PREREQFEAT2", "prereq_feat2", {}, {}, -1},
-                                                                CM{"MAXCR", "max_cr"},
-                                                                CM{"CRValue", "cr_value"},
-                                                                CM{"USESPERDAY", "uses"},
-                                                                CM{"PreReqEpic", "epic"},
-                                                                CM{"MASTERFEAT", "master", {}, {}, -1},
-                                                                CM{"SUCCESSOR", "successor", {}, {}, -1},
-                                                            });
-    srt.register_twoda_converter("nwn1.data.skills", "skills", {
-                                                                   CM{"Name", "name"},
-                                                                   CM{"Untrained", "untrained"},
-                                                                   CM{"KeyAbility", "ability", {
-                                                                                                   {"str", 0},
-                                                                                                   {"dex", 1},
-                                                                                                   {"con", 2},
-                                                                                                   {"int", 3},
-                                                                                                   {"wis", 4},
-                                                                                                   {"cha", 5},
-                                                                                               }},
-                                                                   CM{"ArmorCheckPenalty", "armor_check_penalty"},
-                                                               });
-    srt.register_twoda_converter("nwn1.data.cloakmodels", "cloakmodel", {
-                                                                            CM{"ICON", "icon", {}, {}, -1},
-                                                                            CM{"MODEL", "model", {}, {}, -1},
-                                                                        });
-    srt.register_twoda_converter("nwn1.data.armor", "armor", {
-                                                                 CM{"Cost", "cost"},
-                                                             });
 }
 
 void update_placeable_visual(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
@@ -413,7 +245,6 @@ bool Profile::load_rules() const
 {
     LOG_F(INFO, "[nwn1] loading rules...");
     register_structured_data_specs();
-    register_twoda_config_converters();
 
     // == Load Rules ==========================================================
 

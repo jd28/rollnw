@@ -1,0 +1,12 @@
+{
+  "source": { "kind": "twoda", "resource": "cloakmodel" },
+  "output": {
+    "config_path": "nwn1.data.cloakmodels",
+    "entry_type": "nwn1.rules.CloakModelEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "icon", "value": { "kind": "column", "column": "ICON", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "model", "value": { "kind": "column", "column": "MODEL", "type": "int", "on_missing": "default", "default": -1 } }
+    ]
+  }
+}

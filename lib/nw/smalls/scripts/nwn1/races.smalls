@@ -3,10 +3,26 @@ import nwn1.constants as Const;
 
 import core.array as Array;
 
-var _races: array!(RaceEntry) = load_config!(RaceEntry)("nwn1.data.races");
+var _loaded = false;
+var _races: array!(RaceEntry);
+
+fn _ensure_loaded() {
+    if (_loaded) {
+        return;
+    }
+    _races = load_config!(RaceEntry)("nwn1.data.races");
+    _loaded = true;
+}
+
+fn _exists(race_id: int): bool {
+    _ensure_loaded();
+    return race_id >= 0
+        && race_id < Array.len(_races)
+        && Array.get(_races, race_id).id == race_id;
+}
 
 fn size(race_id: int): int {
-    if (race_id < 0 || race_id >= Array.len(_races)) {
+    if (!_exists(race_id)) {
         return Const.creature_size_medium;
     }
     var entry = _races[race_id];
@@ -18,14 +34,14 @@ fn size(race_id: int): int {
 }
 
 fn name_strref(race_id: int): StrRef {
-    if (race_id < 0 || race_id >= Array.len(_races)) {
+    if (!_exists(race_id)) {
         return StrRef(-1);
     }
     return Array.get(_races, race_id).name;
 }
 
 fn ability_modifier(race_id: int, ability: int): int {
-    if (ability < 0 || ability >= 6 || race_id < 0 || race_id >= Array.len(_races)) {
+    if (ability < 0 || ability >= 6 || !_exists(race_id)) {
         return 0;
     }
     var entry = _races[race_id];
@@ -34,7 +50,7 @@ fn ability_modifier(race_id: int, ability: int): int {
 }
 
 fn cr_modifier(race_id: int): float {
-    if (race_id < 0 || race_id >= Array.len(_races)) {
+    if (!_exists(race_id)) {
         return 0.0;
     }
     var entry = _races[race_id];

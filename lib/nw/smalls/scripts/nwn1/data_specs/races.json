@@ -1,0 +1,19 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "racialtypes",
+    "valid_when": { "column": "Name", "positive_int_column": "Name", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.races",
+    "entry_type": "nwn1.rules.RaceEntry",
+    "snapshot_filename": { "strref_column": "Name" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name", "value": { "kind": "column", "column": "Name", "type": "int" } },
+      { "target": "size", "value": { "kind": "constant", "type": "int", "value": 3 } },
+      { "target": "abilities", "value": { "kind": "fixed_array", "columns": ["StrAdjust", "DexAdjust", "ConAdjust", "IntAdjust", "WisAdjust", "ChaAdjust"], "on_missing": "default", "default": 0 } },
+      { "target": "cr_modifier", "value": { "kind": "column", "column": "CRModifier", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "player_race", "value": { "kind": "column", "column": "PlayerRace", "type": "bool", "on_missing": "default", "default": false } }
+    ]
+  }
+}

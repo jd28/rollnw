@@ -1,0 +1,28 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "classes",
+    "valid_when": { "column": "label", "positive_int_column": "Name", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.classes",
+    "entry_type": "nwn1.rules.ClassEntry",
+    "snapshot_filename": { "strref_column": "Name" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name", "value": { "kind": "column", "column": "Name", "type": "int" } },
+      { "target": "hit_die", "value": { "kind": "column", "column": "HitDie", "type": "int", "on_missing": "default", "default": 6 } },
+      { "target": "saves_table", "value": { "kind": "reference_index", "column": "SavingThrowTable", "on_missing": "default", "default": 0 } },
+      { "target": "attack_table", "value": { "kind": "reference_index", "column": "AttackBonusTable", "on_missing": "default", "default": 0 } },
+      { "target": "spellcaster", "value": { "kind": "column", "column": "SpellCaster", "type": "bool", "on_missing": "default", "default": false } },
+      { "target": "memorizes_spells", "value": { "kind": "column", "column": "MemorizesSpells", "type": "bool", "on_missing": "default", "default": false } },
+      { "target": "spellbook_restricted", "value": { "kind": "column", "column": "SpellbookRestricted", "type": "bool", "on_missing": "default", "default": false } },
+      { "target": "spell_table", "value": { "kind": "enum", "column": "SpellTableColumn", "values": { "bard": 0, "cleric": 1, "druid": 2, "paladin": 3, "ranger": 4, "wiz_sorc": 5 }, "on_missing": "default", "default": -1 } },
+      { "target": "spells_gained", "value": { "kind": "indirect_grid", "column": "SpellGainTable", "column_prefix": "SpellLevel", "column_count": 10, "array_size": 600, "limit_column": "NumSpellLevels", "on_missing": "default", "default": 0 } },
+      { "target": "spells_known", "value": { "kind": "indirect_grid", "column": "SpellKnownTable", "column_prefix": "SpellLevel", "column_count": 10, "array_size": 600, "on_missing": "default", "default": 0 } },
+      { "target": "arcane", "value": { "kind": "column", "column": "Arcane", "type": "bool", "on_missing": "default", "default": false } },
+      { "target": "arcane_spellgain_mod", "value": { "kind": "column", "column": "ArcSpellLvlMod", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "divine_spellgain_mod", "value": { "kind": "column", "column": "DivSpellLvlMod", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "caster_ability", "value": { "kind": "enum", "column": "SpellcastingAbil", "values": { "str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5 }, "on_missing": "default", "default": -1 } }
+    ]
+  }
+}

@@ -22,7 +22,6 @@
 #include "data_transform.hpp"
 #include "stdlib.hpp"
 
-#include "../formats/StaticTwoDA.hpp"
 #include "xxhash/xxh3.h"
 #include <absl/hash/hash.h>
 #include <absl/strings/str_cat.h>
@@ -6358,13 +6357,6 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
             canonical_path, config_type, data_spec_it->second);
     }
 
-    auto conv_it = twoda_converters_.find(canonical_path);
-    if (conv_it != twoda_converters_.end()
-        && conv_it->second.merge == TwoDAConfigMerge::twoda_only) {
-        return load_twoda_as_config_array(
-            canonical_path, config_type, def, index_field_idx, conv_it->second);
-    }
-
     // Build resref prefix: "nwn1.data.classes" → "nwn1/data/classes/"
     // Resources in the resman are registered with forward-slash paths (no extension).
     String resref_prefix = path_to_string(module_name_to_path(canonical_path, "")) + "/";
@@ -6390,10 +6382,6 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     };
 
     if (matching_resrefs.empty()) {
-        if (conv_it != twoda_converters_.end()) {
-            return load_twoda_as_config_array(
-                canonical_path, config_type, def, index_field_idx, conv_it->second);
-        }
         LOG_F(WARNING, "[config] load_config! no entries found for path '{}'", canonical_path);
         return make_empty_array();
     }
@@ -6456,45 +6444,14 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     // Restore prelude
     user_prelude_ = prev_prelude;
 
-    if (conv_it != twoda_converters_.end()
-        && conv_it->second.merge == TwoDAConfigMerge::seed_rows) {
-        const size_t seed_count = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
-        Vector<Value> seed_rows(seed_count);
-        for (const auto& entry : entries) {
-            seed_rows[static_cast<size_t>(entry.index)] = entry.val;
-        }
-        return load_twoda_as_config_array(
-            canonical_path, config_type, def, index_field_idx, conv_it->second, seed_rows);
-    }
-
-    Value base_array;
-    if (conv_it != twoda_converters_.end()) {
-        base_array = load_twoda_as_config_array(
-            canonical_path, config_type, def, index_field_idx, conv_it->second);
-        if (base_array.type_id == invalid_type_id) {
-            return Value{};
-        }
-    }
-
-    HeapPtr array_ptr;
-    IArray* arr = nullptr;
-    if (base_array.type_id != invalid_type_id) {
-        array_ptr = base_array.data.hptr;
-        arr = get_array_typed(array_ptr);
-        if (!arr) { return Value{}; }
-    } else {
-        const size_t initial_size = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
-        array_ptr = create_array_typed(config_type, initial_size);
-        if (array_ptr.value == 0) { return Value{}; }
-        arr = get_array_typed(array_ptr);
-        if (!arr) { return Value{}; }
-        arr->resize(initial_size);
-    }
-
-    const size_t required_size = max_index >= 0 ? static_cast<size_t>(max_index + 1) : 0;
-    if (arr->size() < required_size) {
-        arr->resize(required_size);
-    }
+    const size_t initial_size = max_index >= 0
+        ? static_cast<size_t>(max_index + 1)
+        : 0;
+    HeapPtr array_ptr = create_array_typed(config_type, initial_size);
+    if (array_ptr.value == 0) { return Value{}; }
+    IArray* arr = get_array_typed(array_ptr);
+    if (!arr) { return Value{}; }
+    arr->resize(initial_size);
 
     // For duplicate indices, later entries (sorted by filename) win
     for (const auto& e : entries) {
@@ -6504,19 +6461,10 @@ Value Runtime::load_config_array_value(StringView path, TypeID config_type)
     auto* header = heap_.get_header(array_ptr);
     if (!header) return Value{};
 
-    if (base_array.type_id == invalid_type_id) {
-        config_roots_.push_back(array_ptr);
-        config_array_cache_.emplace(cache_key, array_ptr);
-    }
+    config_roots_.push_back(array_ptr);
+    config_array_cache_.emplace(cache_key, array_ptr);
 
     return Value::make_heap(array_ptr, header->type_id);
-}
-
-void Runtime::register_twoda_converter(StringView path, StringView twoda_name,
-    Vector<TwoDAColumnMapping> mappings, TwoDAConfigMerge merge)
-{
-    twoda_converters_.insert_or_assign(normalize_module_name(path),
-        TwoDAConverterSpec{String(twoda_name), std::move(mappings), merge});
 }
 
 bool Runtime::register_data_spec(DataSpec spec, String& diagnostic)
@@ -6574,12 +6522,13 @@ Value Runtime::load_data_spec_as_config_array(
         return Value{};
     }
 
-    StaticTwoDA source{kernel::resman().demand(
-        {spec.source_resource, ResourceType::twoda})};
+    DataSourceBatch sources;
     MaterializedDataBatch batch;
     Vector<DataDiagnostic> diagnostics;
-    const bool materialization_succeeded = materialize_data_rows(
-        spec, source, batch, diagnostics);
+    const bool sources_loaded = load_data_sources(
+        spec, kernel::resman(), sources, diagnostics);
+    const bool materialization_succeeded = sources_loaded
+        && materialize_data_rows(spec, sources, batch, diagnostics);
     for (const auto& diagnostic : diagnostics) {
         if (diagnostic.severity == DiagnosticSeverity::warning) {
             LOG_F(WARNING, "[config] data spec '{}', row {}, target '{}': {}",
@@ -6640,7 +6589,8 @@ Value Runtime::load_data_spec_as_config_array(
         return type_id;
     };
 
-    const auto write_value = [&](uint8_t* root,
+    size_t retained_nested_bytes = 0;
+    const auto write_value = [&](HeapPtr root_ptr, uint8_t* root,
                                  const MaterializedDataValue& materialized) {
         uint8_t* data = root;
         TypeID type_id = config_type;
@@ -6665,6 +6615,131 @@ Value Runtime::load_data_spec_as_config_array(
                 type_id = field_type;
                 remaining.remove_prefix(dot + 1);
                 continue;
+            }
+
+            if (const auto* integers = std::get_if<Vector<int32_t>>(&materialized.value)) {
+                const Type* array_type = get_type(field_type);
+                if (!array_type
+                    || (array_type->type_kind != TK_fixed_array
+                        && array_type->type_kind != TK_array)
+                    || array_type->type_params.empty()
+                    || !array_type->type_params[0].is<TypeID>()) {
+                    LOG_F(ERROR,
+                        "[config] integer-array target '{}' has invalid array type '{}'",
+                        materialized.target,
+                        array_type ? array_type->name.view() : StringView{"<invalid>"});
+                    return false;
+                }
+                const TypeID element_type = unwrap(
+                    array_type->type_params[0].as<TypeID>());
+                if (element_type != int_type()) {
+                    LOG_F(ERROR,
+                        "[config] integer-array target '{}' has non-int element type '{}'",
+                        materialized.target, type_name(element_type));
+                    return false;
+                }
+                if (array_type->type_kind == TK_fixed_array) {
+                    if (!array_type->type_params[1].is<int32_t>()
+                        || array_type->type_params[1].as<int32_t>() < 0
+                        || static_cast<size_t>(
+                               array_type->type_params[1].as<int32_t>())
+                            != integers->size()) {
+                        return false;
+                    }
+                    std::memcpy(field_data, integers->data(),
+                        integers->size() * sizeof(int32_t));
+                    return true;
+                }
+                if (array_type->type_kind != TK_array) {
+                    LOG_F(ERROR,
+                        "[config] integer-array target '{}' is neither fixed nor dynamic",
+                        materialized.target);
+                    return false;
+                }
+                HeapPtr field_array_ptr = *reinterpret_cast<const HeapPtr*>(field_data);
+                if (!field_array_ptr.value) {
+                    field_array_ptr = create_array_typed(
+                        array_type->type_params[0].as<TypeID>(),
+                        integers->size());
+                    if (!field_array_ptr.value) { return false; }
+                    std::memcpy(field_data, &field_array_ptr,
+                        sizeof(field_array_ptr));
+                    gc_->write_barrier(root_ptr, field_array_ptr);
+                }
+                IArray* values = get_array_typed(field_array_ptr);
+                if (!values) {
+                    LOG_F(ERROR,
+                        "[config] integer-array target '{}' has no initialized array",
+                        materialized.target);
+                    return false;
+                }
+                values->resize(integers->size());
+                for (size_t index = 0; index < integers->size(); ++index) {
+                    if (!values->set_value(index,
+                            Value::make_int((*integers)[index]), *this)) {
+                        LOG_F(ERROR,
+                            "[config] integer-array target '{}' rejected element {}",
+                            materialized.target, index);
+                        return false;
+                    }
+                }
+                if (const auto* nested_header = heap_.try_get_header(field_array_ptr)) {
+                    retained_nested_bytes += nested_header->alloc_size;
+                }
+                retained_nested_bytes += values->capacity()
+                    * sizeof(int32_t);
+                return true;
+            }
+
+            if (const auto* structs = std::get_if<
+                    Vector<MaterializedDataValue::IntegerStruct>>(
+                    &materialized.value)) {
+                const Type* array_type = get_type(field_type);
+                if (!array_type || array_type->type_kind != TK_array
+                    || !array_type->type_params[0].is<TypeID>()) {
+                    return false;
+                }
+                const TypeID element_type = array_type->type_params[0].as<TypeID>();
+                if (!get_struct_def(element_type)) { return false; }
+                HeapPtr field_array_ptr = *reinterpret_cast<const HeapPtr*>(field_data);
+                if (!field_array_ptr.value) {
+                    field_array_ptr = create_array_typed(element_type,
+                        structs->size());
+                    if (!field_array_ptr.value) { return false; }
+                    std::memcpy(field_data, &field_array_ptr,
+                        sizeof(field_array_ptr));
+                    gc_->write_barrier(root_ptr, field_array_ptr);
+                }
+                IArray* values = get_array_typed(field_array_ptr);
+                if (!values) { return false; }
+                values->clear();
+                values->reserve(structs->size());
+                for (const auto& source_element : *structs) {
+                    const HeapPtr element = alloc_struct(element_type);
+                    if (!element.value) { return false; }
+                    ScopedRoots element_roots{*this, 1};
+                    element_roots.add(
+                        Value::make_heap(element, element_type));
+                    for (const auto& [name, integer] :
+                        source_element.fields) {
+                        if (!write_struct_field(element, element_type, name,
+                                Value::make_int(integer))) {
+                            return false;
+                        }
+                    }
+                    values->append_value(
+                        Value::make_heap(element, element_type), *this);
+                    if (const auto* element_header = heap_.try_get_header(element)) {
+                        retained_nested_bytes += element_header->alloc_size;
+                    }
+                }
+                if (const auto* nested_header = heap_.try_get_header(field_array_ptr)) {
+                    retained_nested_bytes += nested_header->alloc_size;
+                }
+                if (const auto* struct_values = dynamic_cast<const StructArray*>(values)) {
+                    retained_nested_bytes += struct_values->buffer.capacity();
+                }
+                return true;
             }
 
             switch (materialized.type) {
@@ -6730,7 +6805,7 @@ Value Runtime::load_data_spec_as_config_array(
         entry_roots.add(Value::make_heap(entry, config_type));
         auto* data = static_cast<uint8_t*>(heap_.get_ptr(entry));
         for (const auto& value : batch.row_values(row)) {
-            if (!write_value(data, value)) {
+            if (!write_value(entry, data, value)) {
                 LOG_F(ERROR,
                     "[config] data spec '{}': target '{}' does not match SmallS entry type '{}'",
                     path, value.target, spec.entry_type);
@@ -6743,7 +6818,8 @@ Value Runtime::load_data_spec_as_config_array(
 
     auto* header = heap_.get_header(array_ptr);
     if (!header) { return Value{}; }
-    size_t retained_bytes = header->alloc_size + retained_string_bytes;
+    size_t retained_bytes = header->alloc_size + retained_string_bytes
+        + retained_nested_bytes;
     if (const auto* struct_array = dynamic_cast<const StructArray*>(array)) {
         retained_bytes += struct_array->buffer.capacity();
     }
@@ -6751,359 +6827,6 @@ Value Runtime::load_data_spec_as_config_array(
     config_array_cache_.emplace(std::move(cache_key), array_ptr);
     data_spec_retained_vm_bytes_.insert_or_assign(String{path}, retained_bytes);
     return array_value;
-}
-
-Value Runtime::load_twoda_as_config_array(StringView path, TypeID config_type,
-    const StructDef* def, uint32_t index_field_idx, const TwoDAConverterSpec& conv,
-    std::span<const Value> seed_rows)
-{
-    auto cache_key = std::make_pair(String(path), config_type);
-
-    StaticTwoDA tda{kernel::resman().demand({conv.twoda_name, ResourceType::twoda})};
-    if (!tda.is_valid()) {
-        LOG_F(WARNING, "[config] twoda converter: '{}' not found", conv.twoda_name);
-        HeapPtr empty = create_array_typed(config_type, 0);
-        if (empty.value == 0) return Value{};
-        auto* hdr = heap_.get_header(empty);
-        config_roots_.push_back(empty);
-        config_array_cache_.emplace(cache_key, empty);
-        return hdr ? Value::make_heap(empty, hdr->type_id) : Value{};
-    }
-
-    size_t nrows = tda.rows();
-    HeapPtr array_ptr = create_array_typed(config_type, nrows);
-    if (!array_ptr.value) return Value{};
-    IArray* arr = get_array_typed(array_ptr);
-    if (!arr) return Value{};
-    arr->resize(nrows);
-
-    const Type* config_struct_type = get_type(config_type);
-    if (!config_struct_type) { return Value{}; }
-
-    const TypeID resref_type = type_id("core.types.ResRef", false);
-    const TypeID resource_type = type_id("core.types.Resource", false);
-
-    Vector<size_t> primary_columns;
-    primary_columns.reserve(conv.mappings.size());
-    for (const auto& mapping : conv.mappings) {
-        const size_t column = tda.column_index(mapping.column);
-        primary_columns.push_back(column);
-        if (column == StaticTwoDA::npos) {
-            LOG_F(WARNING, "[config] twoda converter '{}': missing column '{}'",
-                conv.twoda_name, mapping.column);
-        }
-    }
-
-    for (size_t i = 0; i < nrows; ++i) {
-        HeapPtr entry = alloc_struct(config_type);
-        if (!entry.value) continue;
-        uint8_t* data = static_cast<uint8_t*>(heap_.get_ptr(entry));
-
-        const bool has_seed = i < seed_rows.size()
-            && seed_rows[i].type_id == config_type;
-        if (has_seed) {
-            Value seed = seed_rows[i];
-            if (const void* seed_data = get_value_data_ptr(seed)) {
-                std::memcpy(data, seed_data, config_struct_type->size);
-            }
-        }
-
-        // Write [[index]] field = row index
-        *reinterpret_cast<int32_t*>(data + def->fields[index_field_idx].offset) = static_cast<int32_t>(i);
-
-        // Write each mapped column into the corresponding field
-        for (size_t mapping_index = 0; mapping_index < conv.mappings.size(); ++mapping_index) {
-            const auto& m = conv.mappings[mapping_index];
-            const size_t primary_column = primary_columns[mapping_index];
-            const bool has_primary_column = primary_column != StaticTwoDA::npos;
-            if (!has_primary_column && has_seed) { continue; }
-
-            // Handle secondary 2DA row-major fixed-array loading.
-            if (!m.secondary_grid_column_prefix.empty() && m.secondary_grid_column_count > 0) {
-                StringView table_name;
-                if (!has_primary_column
-                    || !tda.get_to(i, primary_column, table_name)
-                    || table_name.empty() || table_name == "****") {
-                    continue;
-                }
-
-                uint32_t fidx = def->field_index(m.field);
-                if (fidx == UINT32_MAX) { continue; }
-                const FieldDef& fd = def->fields[fidx];
-
-                TypeID arr_type = fd.type_id;
-                const Type* arr_ftype = get_type(arr_type);
-                while (arr_ftype && (arr_ftype->type_kind == TK_newtype || arr_ftype->type_kind == TK_alias)) {
-                    TypeID next = arr_ftype->type_params[0].as<TypeID>();
-                    if (next == invalid_type_id || next == arr_type) { break; }
-                    arr_type = next;
-                    arr_ftype = get_type(arr_type);
-                }
-                if (!arr_ftype || arr_ftype->type_kind != TK_fixed_array
-                    || !arr_ftype->type_params[0].is<TypeID>()
-                    || !arr_ftype->type_params[1].is<int32_t>()) {
-                    continue;
-                }
-
-                TypeID elem_type = arr_ftype->type_params[0].as<TypeID>();
-                int32_t fixed_size = arr_ftype->type_params[1].as<int32_t>();
-                const Type* elem_obj = get_type(elem_type);
-                while (elem_obj && (elem_obj->type_kind == TK_newtype || elem_obj->type_kind == TK_alias)) {
-                    TypeID next = elem_obj->type_params[0].as<TypeID>();
-                    if (next == invalid_type_id || next == elem_type) { break; }
-                    elem_type = next;
-                    elem_obj = get_type(elem_type);
-                }
-                if (!elem_obj || elem_obj->type_kind != TK_primitive) { continue; }
-
-                StaticTwoDA sec{kernel::resman().demand({String(table_name), ResourceType::twoda})};
-                if (!sec.is_valid()) { continue; }
-
-                uint8_t* fptr = data + fd.offset;
-                for (size_t row = 0; row < sec.rows(); ++row) {
-                    int32_t column_limit = m.secondary_grid_column_count;
-                    if (!m.secondary_grid_limit_column.empty()) {
-                        if (!sec.get_to(row, m.secondary_grid_limit_column, column_limit, false)) {
-                            column_limit = 0;
-                        }
-                    }
-                    column_limit = std::clamp(column_limit, int32_t{0}, m.secondary_grid_column_count);
-
-                    for (int32_t col = 0; col < m.secondary_grid_column_count; ++col) {
-                        size_t fixed_index = row * static_cast<size_t>(m.secondary_grid_column_count) + static_cast<size_t>(col);
-                        if (fixed_index >= static_cast<size_t>(fixed_size)) { break; }
-
-                        uint8_t* eptr = fptr + fixed_index * elem_obj->size;
-                        if (elem_type == int_type()) {
-                            int32_t v = m.int_default;
-                            if (col < column_limit) {
-                                sec.get_to(row, fmt::format("{}{}", m.secondary_grid_column_prefix, col), v, false);
-                            }
-                            *reinterpret_cast<int32_t*>(eptr) = v;
-                        } else if (elem_type == float_type()) {
-                            float v = m.float_default;
-                            if (col < column_limit) {
-                                sec.get_to(row, fmt::format("{}{}", m.secondary_grid_column_prefix, col), v, false);
-                            }
-                            *reinterpret_cast<float*>(eptr) = v;
-                        }
-                    }
-                }
-                continue;
-            }
-
-            // Handle secondary 2DA loading (column names a 2DA resource; rows fill fixed arrays)
-            if (!m.secondary_columns.empty()) {
-                StringView table_name;
-                if (!has_primary_column
-                    || !tda.get_to(i, primary_column, table_name)
-                    || table_name.empty() || table_name == "****") {
-                    continue;
-                }
-                StaticTwoDA sec{kernel::resman().demand({String(table_name), ResourceType::twoda})};
-                if (!sec.is_valid()) continue;
-                size_t sec_nrows = sec.rows();
-
-                for (const auto& [sec_col, prim_field] : m.secondary_columns) {
-                    uint32_t fidx = def->field_index(prim_field);
-                    if (fidx == UINT32_MAX) continue;
-                    const FieldDef& fd = def->fields[fidx];
-
-                    TypeID arr_type = fd.type_id;
-                    const Type* arr_ftype = get_type(arr_type);
-                    while (arr_ftype && (arr_ftype->type_kind == TK_newtype || arr_ftype->type_kind == TK_alias)) {
-                        TypeID next = arr_ftype->type_params[0].as<TypeID>();
-                        if (next == invalid_type_id || next == arr_type) break;
-                        arr_type = next;
-                        arr_ftype = get_type(arr_type);
-                    }
-                    if (!arr_ftype || arr_ftype->type_kind != TK_fixed_array
-                        || !arr_ftype->type_params[0].is<TypeID>()
-                        || !arr_ftype->type_params[1].is<int32_t>()) continue;
-
-                    TypeID elem_type = arr_ftype->type_params[0].as<TypeID>();
-                    int32_t fixed_size = arr_ftype->type_params[1].as<int32_t>();
-                    const Type* elem_obj = get_type(elem_type);
-                    while (elem_obj && (elem_obj->type_kind == TK_newtype || elem_obj->type_kind == TK_alias)) {
-                        TypeID next = elem_obj->type_params[0].as<TypeID>();
-                        if (next == invalid_type_id || next == elem_type) break;
-                        elem_type = next;
-                        elem_obj = get_type(elem_type);
-                    }
-                    if (!elem_obj || elem_obj->type_kind != TK_primitive) continue;
-
-                    uint8_t* fptr = data + fd.offset;
-                    for (size_t j = 0; j < sec_nrows && j < static_cast<size_t>(fixed_size); ++j) {
-                        uint8_t* eptr = fptr + j * elem_obj->size;
-                        if (elem_type == int_type()) {
-                            int32_t v = 0;
-                            sec.get_to(j, sec_col, v);
-                            *reinterpret_cast<int32_t*>(eptr) = v;
-                        } else if (elem_type == float_type()) {
-                            float v = 0.f;
-                            sec.get_to(j, sec_col, v);
-                            *reinterpret_cast<float*>(eptr) = v;
-                        }
-                    }
-                }
-                continue;
-            }
-
-            StringView field_name = m.field;
-            int32_t fixed_index = -1;
-
-            auto lbracket = field_name.find('[');
-            if (lbracket != StringView::npos && field_name.back() == ']') {
-                StringView idx_str = field_name.substr(lbracket + 1, field_name.size() - lbracket - 2);
-                if (!idx_str.empty()) {
-                    bool ok = true;
-                    int32_t parsed = 0;
-                    for (char ch : idx_str) {
-                        if (!std::isdigit(static_cast<unsigned char>(ch))) {
-                            ok = false;
-                            break;
-                        }
-                        parsed = parsed * 10 + (ch - '0');
-                    }
-                    if (ok) {
-                        fixed_index = parsed;
-                        field_name = field_name.substr(0, lbracket);
-                    }
-                }
-            }
-
-            uint32_t fidx = def->field_index(field_name);
-            if (fidx == UINT32_MAX) continue;
-            const FieldDef& fd = def->fields[fidx];
-            uint8_t* fptr = data + fd.offset;
-
-            TypeID field_type = fd.type_id;
-            const Type* ftype = get_type(field_type);
-
-            if (fixed_index >= 0) {
-                while (ftype && (ftype->type_kind == TK_newtype || ftype->type_kind == TK_alias)) {
-                    TypeID next = ftype->type_params[0].as<TypeID>();
-                    if (next == invalid_type_id || next == field_type) break;
-                    field_type = next;
-                    ftype = get_type(field_type);
-                }
-
-                if (!ftype || ftype->type_kind != TK_fixed_array || !ftype->type_params[0].is<TypeID>() || !ftype->type_params[1].is<int32_t>()) {
-                    continue;
-                }
-
-                int32_t fixed_size = ftype->type_params[1].as<int32_t>();
-                if (fixed_index < 0 || fixed_index >= fixed_size) {
-                    continue;
-                }
-
-                TypeID elem_type = ftype->type_params[0].as<TypeID>();
-                const Type* elem_type_obj = get_type(elem_type);
-                while (elem_type_obj && (elem_type_obj->type_kind == TK_newtype || elem_type_obj->type_kind == TK_alias)) {
-                    TypeID next = elem_type_obj->type_params[0].as<TypeID>();
-                    if (next == invalid_type_id || next == elem_type) break;
-                    elem_type = next;
-                    elem_type_obj = get_type(elem_type);
-                }
-
-                if (!elem_type_obj || elem_type_obj->type_kind != TK_primitive) {
-                    continue;
-                }
-
-                uint8_t* eptr = fptr + static_cast<size_t>(fixed_index) * elem_type_obj->size;
-                if (elem_type == int_type()) {
-                    int32_t v = m.int_default;
-                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
-                    *reinterpret_cast<int32_t*>(eptr) = v;
-                } else if (elem_type == float_type()) {
-                    float v = m.float_default;
-                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
-                    *reinterpret_cast<float*>(eptr) = v;
-                } else if (elem_type == bool_type()) {
-                    int32_t v = m.bool_default ? 1 : 0;
-                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
-                    *reinterpret_cast<bool*>(eptr) = (v != 0);
-                }
-                continue;
-            }
-
-            // Unwrap newtypes to find the underlying primitive type
-            while (ftype && (ftype->type_kind == TK_newtype || ftype->type_kind == TK_alias)) {
-                TypeID next = ftype->type_params[0].as<TypeID>();
-                if (next == invalid_type_id || next == field_type) break;
-                field_type = next;
-                ftype = get_type(field_type);
-            }
-
-            if (is_native_value_type(field_type)) {
-                if (field_type == resref_type) {
-                    StringView value;
-                    if (has_primary_column
-                        && tda.get_to(i, primary_column, value)
-                        && !value.empty() && value != "****") {
-                        nw::Resref resref{value};
-                        std::memcpy(fptr, &resref, sizeof(resref));
-                    }
-                } else if (field_type == resource_type && m.resource_type != ResourceType::invalid) {
-                    StringView value;
-                    if (has_primary_column
-                        && tda.get_to(i, primary_column, value)
-                        && !value.empty() && value != "****") {
-                        nw::Resource resource{value, m.resource_type};
-                        std::memcpy(fptr, &resource, sizeof(resource));
-                    }
-                }
-                continue;
-            }
-
-            if (field_type == string_type()) {
-                StringView value;
-                if (has_primary_column
-                    && tda.get_to(i, primary_column, value)
-                    && value != "****") {
-                    const HeapPtr string = alloc_string(value);
-                    write_struct_field_by_index(entry, def, fidx, Value::make_string(string));
-                }
-                continue;
-            }
-
-            if (!ftype || ftype->type_kind != TK_primitive) continue;
-
-            if (field_type == int_type()) {
-                if (!m.string_enum.empty()) {
-                    StringView sv;
-                    if (has_primary_column) { tda.get_to(i, primary_column, sv); }
-                    int32_t v = -1;
-                    for (const auto& [k, kv] : m.string_enum) {
-                        if (nw::string::icmp(k, sv)) {
-                            v = kv;
-                            break;
-                        }
-                    }
-                    *reinterpret_cast<int32_t*>(fptr) = v;
-                } else {
-                    int32_t v = m.int_default;
-                    if (has_primary_column) { tda.get_to(i, primary_column, v); }
-                    *reinterpret_cast<int32_t*>(fptr) = v;
-                }
-            } else if (field_type == float_type()) {
-                float v = m.float_default;
-                if (has_primary_column) { tda.get_to(i, primary_column, v); }
-                *reinterpret_cast<float*>(fptr) = v;
-            } else if (field_type == bool_type()) {
-                int32_t v = m.bool_default ? 1 : 0;
-                if (has_primary_column) { tda.get_to(i, primary_column, v); }
-                *reinterpret_cast<bool*>(fptr) = (v != 0);
-            }
-        }
-
-        arr->set_value(i, Value::make_heap(entry, config_type), *this);
-    }
-
-    auto* header = heap_.get_header(array_ptr);
-    config_roots_.push_back(array_ptr);
-    config_array_cache_.emplace(cache_key, array_ptr);
-    return header ? Value::make_heap(array_ptr, header->type_id) : Value{};
 }
 
 } // namespace nw::smalls

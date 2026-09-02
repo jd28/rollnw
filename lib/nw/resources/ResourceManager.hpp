@@ -70,6 +70,11 @@ struct ResourceManager final : public kernel::Service {
     /// Demand some resource
     ResourceData demand(Resource uri) const;
 
+    /// Demand the highest-priority 2DA below module and hak resources. This
+    /// supports column-level compatibility when an overriding 2DA predates a
+    /// column present in the installed game data.
+    ResourceData demand_base_twoda(Resref resref) const;
+
     /// Demand some resource by resource priority
     ResourceData demand_in_order(Resref resref, std::initializer_list<ResourceType::type> restypes) const;
 
@@ -142,6 +147,10 @@ private:
     Vector<unique_container> module_haks_;
 
     Vector<LocatorPayload> game_;
+
+    /// Winning resources from `game_`, restricted to 2DAs so compatibility
+    /// lookup does not duplicate the complete visible-resource registry.
+    ResourceRegistry base_twoda_registry_;
 
     // currentgame, savegame, nwsync_savegame - Not dealing with this for now..
 

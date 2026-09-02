@@ -132,11 +132,11 @@ Representative files show the current shape directly:
 
 ### Current Native Storage
 
-SmallS loads the checked-in `BaseItemDefinition` batch and publishes its
-`BaseItemInfo` values to C++ once. `BaseItemInfo` contains model type, item
-class, default model/icon, item-property column, inventory dimensions, equip
-slots, stack size, and container state (`lib/nw/rules/items.hpp`). The legacy
-`baseitems.2da` is used only by the offline generator.
+The shared package spec materializes `BaseItemDefinition` from the active
+`baseitems.2da` batch, and SmallS publishes its `BaseItemInfo` values to C++
+once. `BaseItemInfo` contains model type, item class, default model/icon,
+item-property column, inventory dimensions, equip slots, stack size, and
+container state (`lib/nw/rules/items.hpp`).
 
 The native Item source visual record is fixed:
 
@@ -310,15 +310,15 @@ qualified names.
 | base cost, multiplier, weapon/armor combat data | `BaseItemRules` in SmallS | Gameplay calculation policy |
 | required feats and feat mappings | `BaseItemRules` in SmallS | Moddable gameplay requirements |
 
-`BaseItemDefinition` is the sole authored row. Its outer `id` is the only
-numeric identity; nested `BaseItemInfo` and `BaseItemRules` values contain no
-duplicate ID. SmallS retains the definition array and publishes only the dense
-positional info batch to C++. C++ never declares or reads the rules layout.
-No runtime join exists.
+`BaseItemDefinition` is the sole runtime transport row. Its outer `id` is the
+only numeric identity; nested `BaseItemInfo` and `BaseItemRules` values contain
+no duplicate ID. SmallS retains the definition array and publishes only the
+dense positional info batch to C++. C++ never declares or reads the rules
+layout. No runtime join exists.
 
-The checked-in files are named from sanitized lowercase legacy labels. The
-offline importer absorbs fixed `ReqFeat0..4` columns into the semantic
-`requirements` array and emits `default_model` directly as a `ResRef`.
+The shared transformer absorbs fixed `ReqFeat0..4` columns into the semantic
+`requirements` array and materializes `default_model` directly as a `ResRef`.
+Optional local snapshots use sanitized lowercase labels and are not committed.
 
 The native declaration moves from the generic `nwn1.rules` bucket to
 `core.item`. `BaseItemRules` remains a SmallS profile projection under
