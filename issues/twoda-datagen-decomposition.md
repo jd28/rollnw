@@ -171,8 +171,22 @@ contiguous aggregate storage and a VM writer. Before that work, ownership of
 property column, equip mask, stack size, and container flag must be audited from
 their real readers.
 
-Classes, feats, spells, progression grids, doors, placeables, races, and other
+Classes, feats, spells, progression grids, placeable rules, races, and other
 tables remain outside this gate.
+
+## Post-Gate Door Ownership Decision
+
+The later ownership review made a separate, explicit decision for
+`doortypes.2da` and `genericdoors.2da`: these are native resource/model facts,
+not retained SmallS configuration. The NWN1 profile now loads them directly
+into sparse native `Rules` arrays. `nwn1.doors` reads the native facts, retains
+the two-selector interpretation and mutation policy, and pushes resolved visual
+rows into C++.
+
+This did not expand the shared data-spec transformer and did not generate or
+commit derived Door row files. A missing optional Door table logs and publishes
+an empty domain; a malformed row remains an invalid sparse slot while valid
+rows remain available.
 
 ## Decision Required Before Expansion
 
