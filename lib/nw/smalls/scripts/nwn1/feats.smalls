@@ -8,6 +8,11 @@ import nwn1.creature as NCre;
 var _loaded = false;
 var _feats: array!(FeatEntry);
 
+type FeatEditorRow {
+    id:          int;
+    name_strref: int;
+};
+
 fn _ensure_loaded() {
     if (_loaded) {
         return;
@@ -70,6 +75,21 @@ fn name_strref(feat: Feat): StrRef {
     }
     var entry = _entry(feat);
     return entry.name;
+}
+
+fn editor_rows(): array!(FeatEditorRow) {
+    _ensure_loaded();
+    var result: array!(FeatEditorRow) = {};
+    Array.reserve(result, Array.len(_feats));
+    for (var index = 0; index < Array.len(_feats); index += 1) {
+        var feat = Array.get(_feats, index);
+        if (feat.id != index) { continue; }
+        Array.push(result, FeatEditorRow {
+            id = feat.id,
+            name_strref = feat.name as int,
+        });
+    }
+    return result;
 }
 
 fn uses_per_day(feat: Feat): int {

@@ -87,10 +87,11 @@ type CreatureSpellMetamagicEditorRow {
 };
 
 type CreatureSpellEditorRow {
-    spell: int;
-    level: int;
-    uses: int;
-    known: bool;
+    spell:       int;
+    name_strref: int;
+    level:       int;
+    uses:        int;
+    known:       bool;
 };
 
 type CreaturePropertyEditorGroup {
@@ -2178,6 +2179,7 @@ fn get_spell_editor_rows(obj: Creature, class_: Class, meta: int): array!(Creatu
         arr.push(row_indices, arr.len(rows));
         var row: CreatureSpellEditorRow = {
             spell = spell_id,
+            name_strref = Spells.name_strref(spell) as int,
             level = level,
             uses = 0,
             known = !restricted,

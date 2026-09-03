@@ -20,6 +20,11 @@ void register_core_prelude(Runtime& rt)
     println_meta.return_type = rt.void_type();
     println_meta.params.push_back(ParamMetadata{String("message"), rt.string_type()});
 
+    FunctionMetadata warn_meta;
+    warn_meta.name = "warn";
+    warn_meta.return_type = rt.void_type();
+    warn_meta.params.push_back(ParamMetadata{String("message"), rt.string_type()});
+
     FunctionMetadata assert_meta;
     assert_meta.name = "assert";
     assert_meta.return_type = rt.void_type();
@@ -43,6 +48,7 @@ void register_core_prelude(Runtime& rt)
     iface.module_path = "core.prelude";
     iface.functions.push_back(print_meta);
     iface.functions.push_back(println_meta);
+    iface.functions.push_back(warn_meta);
     iface.functions.push_back(assert_meta);
     iface.functions.push_back(error_meta);
     iface.functions.push_back(panic_meta);
@@ -78,6 +84,21 @@ void register_core_prelude(Runtime& rt)
             return Value(runtime->void_type());
         },
         .metadata = println_meta});
+
+    rt.register_native_function(NativeFunction{
+        .name = "core.prelude.warn",
+        .wrapper = +[](Runtime* runtime, const Value* args, uint8_t argc) -> Value {
+            if (!runtime || argc != 1) { return Value{}; }
+            if (args[0].type_id != runtime->string_type()) { return Value{}; }
+
+            StringView msg;
+            if (args[0].data.hptr.value != 0) {
+                msg = runtime->get_string_view(args[0].data.hptr);
+            }
+            LOG_F(WARNING, "[smalls] {}", msg);
+            return Value(runtime->void_type());
+        },
+        .metadata = warn_meta});
 
     rt.register_native_function(NativeFunction{
         .name = "core.prelude.assert",

@@ -1,10 +1,8 @@
 #include "smalls_creature_spells.hpp"
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/rules/Spell.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -176,13 +174,14 @@ bool copy_spell_rows(smalls::Runtime& runtime,
         return false;
     }
 
-    const auto& spells = kernel::rules().spells;
     output.rows.reserve(array->size());
     for (size_t index = 0; index < array->size(); ++index) {
         smalls::Value value;
         CreatureSpellRow row;
+        int32_t name_strref = -1;
         if (!array->get_value(index, value, runtime)
             || !read_int_field(runtime, value, "spell", row.spell_id)
+            || !read_int_field(runtime, value, "name_strref", name_strref)
             || !read_int_field(runtime, value, "level", row.level)
             || !read_int_field(runtime, value, "uses", row.uses)
             || !read_bool_field(runtime, value, "known", row.known)
@@ -190,14 +189,8 @@ bool copy_spell_rows(smalls::Runtime& runtime,
             return false;
         }
 
-        std::string name;
-        const Spell spell = Spell::make(row.spell_id);
-        if (spells.is_valid(spell)) {
-            name = spells.entries[spell.idx()].editor_name();
-        }
-        if (name.empty() || name.starts_with("Bad Strref")) {
-            name = "Spell " + std::to_string(row.spell_id);
-        }
+        const std::string name = localized_name(
+            name_strref, "Spell", row.spell_id);
         row.name = append_text(name, output.text);
         output.rows.push_back(row);
     }

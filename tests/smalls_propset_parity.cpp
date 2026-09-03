@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
@@ -616,6 +617,9 @@ static void check_creature_stats_parity(
     for (const char** f = array_fields; *f; ++f) {
         size_t legacy_size = read_array_size(rt, ref_l, def, *f);
         size_t import_size = read_array_size(rt, ref_i, def, *f);
+        if (std::string_view{*f} == "skills") {
+            EXPECT_GE(import_size, nwk::rules().skill_count());
+        }
         ASSERT_EQ(legacy_size, import_size) << "CreatureStats." << *f;
         for (size_t i = 0; i < legacy_size; ++i) {
             EXPECT_EQ(read_elem(rt, ref_l, def, *f, i),

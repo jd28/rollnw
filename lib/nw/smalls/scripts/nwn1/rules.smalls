@@ -128,11 +128,20 @@ type AttackTableEntry {
 [[value_type]]
 type SpellEntry {
     [[index]]
-    id:           int;
-    innate_level: int;      // -1 if invalid
-    school:       int;      // SpellSchool int, -1=none
-    user_type:    int;
-    class_levels: int[6];   // Bard, Cleric, Druid, Paladin, Ranger, Wiz/Sorc; -1=not a class spell
+    id:            int;
+    name_strref:   StrRef;
+    innate_level:  int;      // -1 if invalid
+    school:        int;      // SpellSchool int, -1=none
+    school_letter: string;   // active spells.2da source value
+    user_type:     int;
+    class_levels:  int[6];   // Bard, Cleric, Druid, Paladin, Ranger, Wiz/Sorc; -1=not a class spell
+};
+
+[[value_type]]
+type SpellSchoolEntry {
+    [[index]]
+    id:     int;
+    letter: string;
 };
 
 [[value_type]]

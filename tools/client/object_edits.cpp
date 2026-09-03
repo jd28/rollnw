@@ -3,7 +3,6 @@
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Rules.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Encounter.hpp>
@@ -15,7 +14,6 @@
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
-#include <nw/rules/feats.hpp>
 #include <nw/serialization/component_propset_json.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -1052,8 +1050,7 @@ ObjectEditApplyResult validate_creature_feats(
     for (const auto& patch : batch.patches) {
         if (patch.object.type != ObjectType::creature || patch.key > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())
             || (patch.before != 0 && patch.before != 1) || (patch.after != 0 && patch.after != 1)
-            || patch.before == patch.after
-            || !kernel::rules().feats.is_valid(Feat::make(patch.key))) {
+            || patch.before == patch.after) {
             return edit_result(ObjectEditStatus::invalid_batch, "Creature feat patch is invalid");
         }
 

@@ -2,6 +2,7 @@
 #include "nwn1_test_builders.hpp"
 #include "smalls_fixtures.hpp"
 
+#include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
@@ -4854,10 +4855,13 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
-    const auto& race_entries = nw::kernel::rules().races.entries;
-    ASSERT_FALSE(race_entries.empty());
-
-    const int max_races = std::min<int>(static_cast<int>(race_entries.size()), 16);
+    nw::StaticTwoDA races{nw::kernel::resman().demand(
+        nw::Resource{nw::StringView{"racialtypes"}, nw::ResourceType::twoda})};
+    ASSERT_TRUE(races.is_valid());
+    constexpr std::array ability_columns{
+        "StrAdjust", "DexAdjust", "ConAdjust",
+        "IntAdjust", "WisAdjust", "ChaAdjust"};
+    const int max_races = std::min<int>(static_cast<int>(races.rows()), 16);
     for (int race = 0; race < max_races; ++race) {
         for (int ability = 0; ability < 6; ++ability) {
             nw::Vector<nw::smalls::Value> args;
@@ -4866,7 +4870,10 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
 
             auto result = rt.execute_script(script, "main", args);
             ASSERT_TRUE(result.ok()) << result.error_message;
-            EXPECT_EQ(result.value.data.ival, race_entries[race].ability_modifiers[ability])
+            int32_t expected = 0;
+            races.get_to(static_cast<size_t>(race),
+                ability_columns[static_cast<size_t>(ability)], expected, false);
+            EXPECT_EQ(result.value.data.ival, expected)
                 << "race=" << race << " ability=" << ability;
         }
 

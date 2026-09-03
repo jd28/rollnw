@@ -2,16 +2,25 @@ from nwn1.rules import { SkillEntry, StrRef };
 from core.types import { Skill, Ability };
 
 import core.array as Array;
+import core.creature as NativeCreature;
 
 var _loaded = false;
 var _skills: array!(SkillEntry);
 
-fn _ensure_loaded() {
+fn _ensure_loaded(): bool {
     if (_loaded) {
-        return;
+        return true;
     }
     _skills = load_config!(SkillEntry)("nwn1.data.skills");
+    if (!NativeCreature.publish_skill_count(Array.len(_skills))) {
+        return false;
+    }
     _loaded = true;
+    return true;
+}
+
+fn init(): bool {
+    return _ensure_loaded();
 }
 
 fn count(): int {

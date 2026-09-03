@@ -1,22 +1,18 @@
 #pragma once
 
 #include "../log.hpp"
-#include "../objects/Creature.hpp"
 #include "../objects/ObjectBase.hpp"
-#include "../objects/Placeable.hpp"
-#include "../rules/Class.hpp"
-#include "../rules/Spell.hpp"
 #include "../rules/attributes.hpp"
 #include "../rules/creature_body_parts.hpp"
-#include "../rules/feats.hpp"
 #include "../rules/items.hpp"
 #include "../rules/system.hpp"
 #include "../util/FixedVector.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <limits>
-#include <memory>
-#include <utility>
+#include <tuple>
+#include <type_traits>
 
 namespace nw::kernel {
 
@@ -36,6 +32,12 @@ struct Rules : public Service {
     /// Gets maximum spell levels
     size_t maximum_spell_levels() const noexcept { return maximum_spell_levels_; }
 
+    /// Publishes the validated skill domain size used by creature GFF padding.
+    bool publish_skill_count(int32_t count) noexcept;
+
+    /// Gets the active skill domain size.
+    size_t skill_count() const noexcept { return skill_count_; }
+
     /// Meets requirements
     bool meets_requirement(const Requirement& req, const ObjectBase* obj) const;
 
@@ -45,11 +47,6 @@ struct Rules : public Service {
     /// Get service stats
     nlohmann::json stats() const override;
 
-    FeatArray feats;
-    RaceArray races;
-    SpellArray spells;
-    SpellSchoolArray spellschools;
-    SkillArray skills;
     AppearanceArray appearances;
     WingModelArray wingmodels;
     TailModelArray tailmodels;
@@ -62,6 +59,7 @@ struct Rules : public Service {
 private:
     QualifierMatcher qualifier_matcher_ = nullptr;
     size_t maximum_spell_levels_ = 10;
+    size_t skill_count_ = 0;
 };
 
 inline Rules& rules()

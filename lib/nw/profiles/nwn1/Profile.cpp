@@ -1,20 +1,15 @@
 #include "Profile.hpp"
 
-#include "constants.hpp"
 #include "rules.hpp"
 #include "scriptbridge.hpp"
 
 #include "../../formats/StaticTwoDA.hpp"
 #include "../../kernel/Kernel.hpp"
-#include "../../kernel/Rules.hpp"
-#include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../resources/ResourceManager.hpp"
 #include "../../rules/combat_scheduler.hpp"
-#include "../../rules/feats.hpp"
 #include "../../rules/system.hpp"
-#include "../../smalls/Smalls.hpp"
 #include "../../smalls/data_spec.hpp"
 #include "../../smalls/runtime.hpp"
 #include "../../util/profile.hpp"
@@ -22,8 +17,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <utility>
-
-namespace nwk = nw::kernel;
 
 using namespace std::literals;
 
@@ -233,12 +226,6 @@ bool Profile::load_rules() const
     // == Load 2das ===========================================================
 
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
-    nw::String temp_string;
 
     load_data_definitions("nwn1.appearances", "appearance");
     load_data_definitions("nwn1.placeables", "placeable");
@@ -248,101 +235,14 @@ bool Profile::load_rules() const
     load_data_definitions("nwn1.tail_models", "tail-model");
     load_baseitem_definitions();
     load_data_definitions("nwn1.phenotypes", "phenotype");
+    load_data_definitions("nwn1.skills", "skill");
+    load_data_definitions("nwn1.spellschools", "spell-school");
+    load_data_definitions("nwn1.spells", "spell");
 
     // Class policy is generated as Smalls config. Keep the load-time check here
     // because the profile still requires classes.2da for nwn1.data.classes.
     if (!classes.is_valid()) {
         throw std::runtime_error("rules: failed to load 'classes.2da'");
-    }
-
-    // Feats
-    auto& feat_array = nw::kernel::rules().feats;
-    if (feat.is_valid()) {
-        feat_array.entries.reserve(feat.rows());
-        for (size_t i = 0; i < feat.rows(); ++i) {
-            const auto& info = feat_array.entries.emplace_back(feat.row(i));
-            if (info.constant) {
-                feat_array.constant_to_index.emplace(info.constant, nw::Feat::make(int32_t(i)));
-            } else if (info.valid()) {
-                LOG_F(WARNING, "[nwn1] valid feat ({}) with invalid constant", i);
-            }
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'feat.2da'");
-    }
-
-    // Races
-    auto& race_array = nw::kernel::rules().races;
-    if (racialtypes.is_valid()) {
-        race_array.entries.reserve(racialtypes.rows());
-        for (size_t i = 0; i < racialtypes.rows(); ++i) {
-            const auto& info = race_array.entries.emplace_back(racialtypes.row(i));
-            if (info.constant) {
-                race_array.constant_to_index.emplace(info.constant, nw::Race::make(int32_t(i)));
-            } else if (info.valid()) {
-                LOG_F(WARNING, "[nwn1] valid race ({}) with invalid constant", i);
-            }
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'racialtypes.2da'");
-    }
-
-    // Skills
-    auto& skill_array = nw::kernel::rules().skills;
-    if (skills.is_valid()) {
-        skill_array.entries.reserve(skills.rows());
-        for (size_t i = 0; i < skills.rows(); ++i) {
-            const auto& info = skill_array.entries.emplace_back(skills.row(i));
-            if (info.constant) {
-                skill_array.constant_to_index.emplace(info.constant, nw::Skill::make(int32_t(i)));
-            } else if (info.valid()) {
-                LOG_F(WARNING, "[nwn1] valid skill ({}) with invalid constant", i);
-            }
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'skills.2da'");
-    }
-
-    // Spell Schools
-    auto& spell_school_array = nw::kernel::rules().spellschools;
-    if (spellschools.is_valid()) {
-        spell_school_array.entries.reserve(spellschools.rows());
-        for (size_t i = 0; i < spellschools.rows(); ++i) {
-            spell_school_array.entries.emplace_back(spellschools.row(i));
-        }
-    }
-
-    // Spells
-    auto& spell_array = nw::kernel::rules().spells;
-    if (spells.is_valid()) {
-        spell_array.entries.reserve(spells.rows());
-        for (size_t i = 0; i < spells.rows(); ++i) {
-            spell_array.entries.emplace_back(spells.row(i));
-        }
-    } else {
-        throw std::runtime_error("rules: failed to load 'spells.2da'");
-    }
-
-    // == Postprocess 2das ====================================================
-
-    // Skill
-    for (size_t i = 0; i < skills.rows(); ++i) {
-        auto& info = skill_array.entries[i];
-        if (skills.get_to(i, "KeyAbility", temp_string)) {
-            if (nw::string::icmp("str", temp_string)) {
-                info.ability = ability_strength;
-            } else if (nw::string::icmp("dex", temp_string)) {
-                info.ability = ability_dexterity;
-            } else if (nw::string::icmp("con", temp_string)) {
-                info.ability = ability_constitution;
-            } else if (nw::string::icmp("int", temp_string)) {
-                info.ability = ability_intelligence;
-            } else if (nw::string::icmp("wis", temp_string)) {
-                info.ability = ability_wisdom;
-            } else if (nw::string::icmp("cha", temp_string)) {
-                info.ability = ability_charisma;
-            }
-        }
     }
 
     return true;

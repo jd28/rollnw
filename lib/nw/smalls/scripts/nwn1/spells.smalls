@@ -1,7 +1,9 @@
-from nwn1.rules import { SpellEntry };
+from nwn1.rules import { SpellEntry, StrRef };
 from core.types import { Spell, SpellSchool };
 
 import core.array as Array;
+import core.string as String;
+import nwn1.spellschools as SpellSchools;
 
 var _loaded = false;
 var _spells: array!(SpellEntry);
@@ -12,8 +14,42 @@ fn _ensure_loaded() {
     if (_loaded) {
         return;
     }
-    _spells = load_config!(SpellEntry)("nwn1.data.spells");
+
+    SpellSchools.init();
+    var source = load_config!(SpellEntry)("nwn1.data.spells");
+    var resolved: array!(SpellEntry) = {};
+    Array.reserve(resolved, Array.len(source));
+    for (var spell_id = 0; spell_id < Array.len(source); spell_id += 1) {
+        var spell = Array.get(source, spell_id);
+        if (spell.id == spell_id) {
+            var letter = String.to_lower(spell.school_letter);
+            var match = -1;
+            var matches = 0;
+            for (var school_id = 0; school_id < SpellSchools.count(); school_id += 1) {
+                var school = SpellSchools.entry(school_id);
+                if (school.id == school_id
+                    && letter != ""
+                    && String.to_lower(school.letter) == letter) {
+                    match = school_id;
+                    matches += 1;
+                }
+            }
+            if (matches == 1) {
+                spell.school = match;
+            } else {
+                spell.school = -1;
+                warn(f"spell {spell_id} has missing or duplicate school letter '{spell.school_letter}'");
+            }
+        }
+        Array.push(resolved, spell);
+    }
+    _spells = resolved;
     _loaded = true;
+}
+
+fn init(): bool {
+    _ensure_loaded();
+    return _loaded;
 }
 
 fn count(): int {
@@ -43,6 +79,13 @@ fn school(spell: Spell): SpellSchool {
         return SpellSchool(-1);
     }
     return SpellSchool(Array.get(_spells, spell as int).school);
+}
+
+fn name_strref(spell: Spell): StrRef {
+    if (!exists(spell)) {
+        return StrRef(-1);
+    }
+    return Array.get(_spells, spell as int).name_strref;
 }
 
 // Returns the user_type field of a spell (0 if invalid).

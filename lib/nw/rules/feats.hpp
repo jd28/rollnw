@@ -1,54 +1,18 @@
 #pragma once
 
-#include "../resources/assets.hpp"
 #include "rule_type.hpp"
 #include "system.hpp"
 
-#include <absl/container/flat_hash_map.h>
-
+#include <algorithm>
 #include <cstdint>
-#include <limits>
+#include <tuple>
 
 namespace nw {
-
-struct TwoDARowView;
 
 // -- Feats -------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 DECLARE_RULE_TYPE(Feat);
-
-/// Feat definition
-struct FeatInfo {
-    FeatInfo() = default;
-    FeatInfo(const TwoDARowView& tda);
-
-    uint32_t name = 0xFFFFFFFF;
-    uint32_t description = 0xFFFFFFFF;
-    Resource icon;
-    bool all_can_use = false;
-    int category = -1;
-    int max_cr = 0;
-    int spell = -1;
-    Feat successor = Feat::invalid();
-    float cr_value = 0.0f;
-    int uses = 0;
-    int master = 0;
-    bool target_self = false;
-    InternedString constant;
-    int tools_categories = 0;
-    bool hostile = false;
-    bool epic = false;
-    bool requires_action = false;
-
-    /// Gets the name to display when using in contexts like a toolset.
-    String editor_name() const;
-
-    bool valid() const noexcept { return name != 0xFFFFFFFF; }
-};
-
-/// Feat Singleton Component
-using FeatArray = RuleTypeArray<Feat, FeatInfo>;
 
 // Not Implemented Yet
 // - MINATTACKBONUS

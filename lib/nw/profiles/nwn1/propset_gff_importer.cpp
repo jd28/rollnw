@@ -587,7 +587,7 @@ void PropsetGffImporter::import_list_scalar(const FieldGffPolicy& fp,
     size_t sz = list.valid() ? list.size() : 0;
     size_t out_size = sz;
     if (lm.pad_to_rules_skill_count) {
-        size_t rules_skill_count = nw::kernel::rules().skills.entries.size();
+        const size_t rules_skill_count = nw::kernel::rules().skill_count();
         if (out_size < rules_skill_count) { out_size = rules_skill_count; }
     }
     std::vector<nw::smalls::Value> values;

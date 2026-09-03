@@ -15,11 +15,6 @@ const std::type_index Rules::type_index{typeid(Rules)};
 
 Rules::Rules(MemoryResource* scope)
     : Service(scope)
-    , feats{allocator()}
-    , races{allocator()}
-    , spells{allocator()}
-    , spellschools{allocator()}
-    , skills{allocator()}
     , appearances{allocator()}
     , wingmodels{allocator()}
     , tailmodels{allocator()}
@@ -29,6 +24,13 @@ Rules::Rules(MemoryResource* scope)
     , doortypes{allocator()}
     , genericdoors{allocator()}
 {
+}
+
+bool Rules::publish_skill_count(int32_t count) noexcept
+{
+    if (count < 0) { return false; }
+    skill_count_ = static_cast<size_t>(count);
+    return true;
 }
 
 void Rules::initialize(ServiceInitTime time)

@@ -6,8 +6,10 @@
     "snapshot_filename": { "column": "label" },
     "fields": [
       { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "name_strref", "value": { "kind": "column", "column": "Name", "type": "int", "on_missing": "default", "default": -1 } },
       { "target": "innate_level", "value": { "kind": "column", "column": "Innate", "type": "int", "on_missing": "default", "default": -1 } },
-      { "target": "school", "value": { "kind": "enum", "column": "School", "values": { "G": 0, "A": 1, "C": 2, "D": 3, "E": 4, "V": 5, "I": 6, "N": 7, "T": 8 }, "on_missing": "default", "default": -1 } },
+      { "target": "school", "value": { "kind": "constant", "type": "int", "value": -1 } },
+      { "target": "school_letter", "value": { "kind": "column", "column": "School", "type": "string", "on_missing": "default", "default": "" } },
       { "target": "user_type", "value": { "kind": "column", "column": "UserType", "type": "int", "on_missing": "default", "default": 0 } },
       { "target": "class_levels", "value": { "kind": "fixed_array", "columns": ["Bard", "Cleric", "Druid", "Paladin", "Ranger", "Wiz_Sorc"], "on_missing": "default", "default": -1 } }
     ]

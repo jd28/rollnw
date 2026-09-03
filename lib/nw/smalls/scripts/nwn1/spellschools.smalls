@@ -1,0 +1,29 @@
+from nwn1.rules import { SpellSchoolEntry };
+
+import core.array as Array;
+
+var _loaded = false;
+var _schools: array!(SpellSchoolEntry);
+
+fn init(): bool {
+    if (_loaded) { return true; }
+    _schools = load_config!(SpellSchoolEntry)("nwn1.data.spellschools");
+    _loaded = true;
+    return true;
+}
+
+fn count(): int {
+    init();
+    return Array.len(_schools);
+}
+
+fn entry(index: int): SpellSchoolEntry {
+    init();
+    if (index >= 0 && index < Array.len(_schools)) {
+        var result = Array.get(_schools, index);
+        if (result.id == index) { return result; }
+    }
+    var invalid: SpellSchoolEntry;
+    invalid.id = -1;
+    return invalid;
+}

@@ -1,9 +1,8 @@
 #include "smalls_creature_feats.hpp"
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/kernel/Rules.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/rules/feats.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -112,6 +111,21 @@ bool read_assigned_feats(smalls::Runtime& runtime,
     return true;
 }
 
+bool read_int_field(smalls::Runtime& runtime,
+    const smalls::Value& row,
+    std::string_view field,
+    int32_t& output)
+{
+    if (row.storage != smalls::ValueStorage::heap || row.data.hptr.value == 0) {
+        return false;
+    }
+    const auto value = runtime.read_struct_field(
+        row.data.hptr, row.type_id, field);
+    if (value.type_id != runtime.int_type()) { return false; }
+    output = value.data.ival;
+    return true;
+}
+
 } // namespace
 
 std::string_view CreatureFeatViewSnapshot::text_view(CreatureFeatTextSlice slice) const noexcept
@@ -142,32 +156,53 @@ void build_creature_feat_rows(smalls::Runtime& runtime,
         return;
     }
 
-    const auto& entries = kernel::rules().feats.entries;
+    const auto editor_rows = runtime.execute_script(
+        "nwn1.feats", "editor_rows", {});
+    auto* entries = editor_rows.ok()
+        ? runtime.get_array_typed(editor_rows.value.data.hptr)
+        : nullptr;
     constexpr size_t max_feat_entries = static_cast<size_t>(std::numeric_limits<int32_t>::max());
-    if (entries.size() > max_feat_entries) {
+    if (!entries || entries->size() > max_feat_entries) {
         output.status = CreatureFeatViewStatus::invalid_data;
-        output.diagnostic = "Feat rules exceed the virtual-list row range";
+        output.diagnostic = "Smalls feat editor rows are unavailable";
         return;
     }
-    output.rows.reserve(entries.size());
+    output.rows.reserve(entries->size());
     size_t assigned_index = 0;
-    for (size_t feat_index = 0; feat_index < entries.size(); ++feat_index) {
-        const auto& feat = entries[feat_index];
-        if (!feat.valid()) {
-            continue;
+    int32_t previous_feat_id = -1;
+    for (size_t index = 0; index < entries->size(); ++index) {
+        smalls::Value row;
+        int32_t feat_id = -1;
+        int32_t name_strref = -1;
+        if (!entries->get_value(index, row, runtime)
+            || !read_int_field(runtime, row, "id", feat_id)
+            || !read_int_field(runtime, row, "name_strref", name_strref)
+            || feat_id <= previous_feat_id || name_strref < 0) {
+            output = {};
+            output.object = active_object;
+            output.status = CreatureFeatViewStatus::invalid_data;
+            output.diagnostic = "Smalls feat editor rows contain invalid data";
+            return;
         }
+        previous_feat_id = feat_id;
 
-        const std::string name = feat.editor_name();
+        std::string name = kernel::strings().get(
+            static_cast<uint32_t>(name_strref));
+        if (name.empty() || name.starts_with("Bad Strref")) {
+            name = "Feat " + std::to_string(feat_id);
+        }
         if (!contains_casefold_ascii(name, query)) {
             continue;
         }
 
-        while (assigned_index < assigned.size() && assigned[assigned_index] < feat_index) {
+        const auto feat_index = static_cast<uint32_t>(feat_id);
+        while (assigned_index < assigned.size()
+            && assigned[assigned_index] < feat_index) {
             ++assigned_index;
         }
         const bool is_assigned = assigned_index < assigned.size() && assigned[assigned_index] == feat_index;
         output.rows.push_back({
-            static_cast<uint32_t>(feat_index),
+            feat_index,
             append_text(name, output.text),
             is_assigned,
         });

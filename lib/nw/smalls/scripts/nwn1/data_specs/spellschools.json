@@ -1,0 +1,14 @@
+{
+  "source": {
+    "kind": "twoda", "resource": "spellschools",
+    "valid_when": { "column": "Label", "on_missing": "omit_row" }
+  },
+  "output": {
+    "config_path": "nwn1.data.spellschools",
+    "entry_type": "nwn1.rules.SpellSchoolEntry",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "letter", "value": { "kind": "column", "column": "Letter", "type": "string", "on_missing": "default", "default": "" } }
+    ]
+  }
+}
