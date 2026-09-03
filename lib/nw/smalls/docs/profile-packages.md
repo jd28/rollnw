@@ -77,7 +77,7 @@ module names are not repeated in normal configuration.
 | Propset schema | `<root>.propsets` | Always | Runtime bootstrap; missing or invalid fails startup |
 | Profile hooks | `<root>.profile` | Game mode | Runtime bootstrap; a missing hook or invalid signature fails startup |
 | Profile initialization | `<root>.init` | Normal game/runtime startup | Runtime; tools may explicitly disable execution |
-| Combat policy | `<root>.combat` | Combat subsystem enabled | Combat subsystem initialization |
+| Combat policy | `<root>.combat` | Game mode | Runtime bootstrap; missing exports or an invalid result layout fails startup |
 | Effect policy | `<root>.effects` | Effect subsystem enabled | Effect subsystem initialization |
 | Config table | `<root>.data.<table>` | Owning domain requires the table | Domain/profile initializer |
 | Domain policy | `<root>.<domain>` | Owning profile or subsystem requires it | That consumer's initialization |
@@ -150,6 +150,7 @@ configured module search paths + selected root
     -> register PropsetSchema[] and prime pools once
     -> register sorted data_specs/*.json independently
     -> load and validate mandatory <root>.profile hooks
+    -> load and validate mandatory <root>.combat policy
     -> <root>.profile::init initializes every native/config domain
     -> execute <root>.init when enabled
     -> permit object creation and deserialization
@@ -172,9 +173,21 @@ Boundary contracts:
    live only for the Runtime service generation.
 8. Each data-spec file is registered independently. A malformed file disables
    only its domain; profile initialization attempts every remaining domain.
+9. `<root>.combat` must provide
+   `resolve_attack(Creature, object)` and
+   `resolve_attack_cooldown_ticks(Creature, int) -> int`. The first result is a
+   value struct containing the integer fields `attack_type`, `attack_result`,
+   `attack_roll`, `attack_bonus`, `armor_class`, `nth_attack`, `damage_total`,
+   `critical_multiplier`, `critical_threat`, `concealment`, and
+   `iteration_penalty`; the boolean fields `is_ranged` and
+   `target_is_creature`; and the array fields `effects_to_apply` and
+   `effects_to_remove`. The native scheduler caches the validated module,
+   functions, and field offsets for the service generation.
 
 The selected profile and configuration are singletons. The schema declarations,
-config entries, and native publications they produce are batches.
+config entries, and native publications they produce are batches. Changing a
+combat-policy override requires a new service generation; requests reject a
+configuration that no longer matches the cached policy.
 
 ## Propset Schema Contract
 
@@ -257,6 +270,7 @@ schema, rules, resource, or object bootstrap.
 | Declared install/user container absent | Skip the optional container |
 | `<root>.propsets` absent or invalid | Fail startup before object load |
 | `<root>.profile` absent or missing a required hook | Fail startup before rules/object work |
+| `<root>.combat` absent or its required contract is invalid | Fail startup before rules/object work |
 | Required subsystem policy absent | Fail that subsystem's initialization |
 | `<root>.init` disabled explicitly | Skip only init execution; schemas remain required |
 | Required config table absent or invalid | Publish an empty owning domain, report degraded initialization, and preserve siblings |
@@ -281,6 +295,8 @@ The profile-package migration is complete when tests prove:
 - `<root>.propsets` registers the complete schema batch and pools are primed
   once before the first object;
 - missing `match_qualifier` rejects game startup before requirement evaluation;
+- missing or structurally invalid combat policy rejects game startup, and a
+  structurally valid package-specific result type drives native scheduling;
 - disabling init does not disable schema registration;
 - row-local domain config failures preserve valid indexed entries, while a
   structural source failure publishes an empty domain without stopping

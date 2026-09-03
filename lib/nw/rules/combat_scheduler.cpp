@@ -5,37 +5,59 @@
 #include "../kernel/Kernel.hpp"
 #include "../objects/Creature.hpp"
 #include "../objects/ObjectManager.hpp"
-#include "../profiles/nwn1/scriptbridge.hpp"
 #include "../smalls/Array.hpp"
 #include "../smalls/Bytecode.hpp"
+#include "../smalls/Smalls.hpp"
 #include "../smalls/runtime.hpp"
 #include "combat.hpp"
 #include "effects.hpp"
 
 #include <algorithm>
+#include <array>
+#include <limits>
 #include <vector>
 
 namespace nw::combat {
 namespace {
 
-StringView configured_combat_module() noexcept
+bool is_int_compatible_type(const smalls::Runtime& runtime, smalls::TypeID type_id) noexcept
 {
-    return kernel::config().combat_policy_module();
+    while (true) {
+        const auto* type = runtime.get_type(type_id);
+        if (!type) { return false; }
+        if (type->type_kind != smalls::TK_alias
+            && type->type_kind != smalls::TK_newtype) {
+            return type->primitive_kind == smalls::PK_int;
+        }
+        if (!type->type_params[0].is<smalls::TypeID>()) { return false; }
+        type_id = type->type_params[0].as<smalls::TypeID>();
+    }
 }
 
-const smalls::StructDef* get_attack_data_def(smalls::Runtime& rt, const smalls::Value& value)
+bool is_array_type(const smalls::Runtime& runtime, smalls::TypeID type_id) noexcept
 {
-    const auto* type = rt.get_type(value.type_id);
+    const auto* type = runtime.get_type(type_id);
+    return type && type->type_kind == smalls::TK_array;
+}
+
+const smalls::StructDef* get_value_struct_def(
+    smalls::Runtime& runtime, smalls::TypeID type_id)
+{
+    const auto* type = runtime.get_type(type_id);
     if (!type || type->type_kind != smalls::TK_struct || !type->type_params[0].is<smalls::StructID>()) {
         return nullptr;
     }
 
-    if (rt.type_name(value.type_id) != "nwn1.combat_primitives.AttackData") {
-        return nullptr;
-    }
-
     auto struct_id = type->type_params[0].as<smalls::StructID>();
-    return rt.type_table_.get(struct_id);
+    const auto* result = runtime.type_table_.get(struct_id);
+    return result && result->is_value_type ? result : nullptr;
+}
+
+smalls::Value make_object_arg(smalls::Runtime& runtime, ObjectHandle handle)
+{
+    auto result = smalls::Value::make_object(handle);
+    result.type_id = runtime.object_subtype_for_tag(handle.type);
+    return result;
 }
 
 void read_effects_apply_at_offset(smalls::Runtime& rt, const smalls::Value& data,
@@ -107,18 +129,103 @@ struct AttackDataOffsetCache {
     AttackDataFieldCache effects_to_remove;
 };
 
-struct ResolveAttackCache {
+struct CombatPolicyCache {
     uint64_t service_generation = 0;
     String module;
-    bool nwn1_initialized = false;
-    bool known_missing = false;
-    bool function_resolved = false;
     smalls::BytecodeModule* bytecode_module = nullptr;
-    const smalls::CompiledFunction* compiled_function = nullptr;
+    const smalls::CompiledFunction* resolve_attack = nullptr;
+    const smalls::CompiledFunction* resolve_attack_cooldown_ticks = nullptr;
     AttackDataOffsetCache offsets;
 };
 
-thread_local ResolveAttackCache s_resolve_attack;
+thread_local CombatPolicyCache combat_policy;
+
+bool combat_policy_is_current() noexcept
+{
+    return combat_policy.bytecode_module
+        && combat_policy.service_generation == kernel::services().generation()
+        && combat_policy.module == kernel::config().combat_policy_module();
+}
+
+bool function_has_parameters(smalls::Runtime& runtime,
+    const smalls::CompiledFunction* function,
+    std::span<const smalls::TypeID> parameters)
+{
+    if (!function || function->param_count != parameters.size()) { return false; }
+    for (size_t index = 0; index < parameters.size(); ++index) {
+        if (runtime.get_function_param_type(function->function_type, index)
+            != parameters[index]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool resolve_attack_data_offsets(smalls::Runtime& runtime,
+    smalls::TypeID result_type, AttackDataOffsetCache& result)
+{
+    const auto* definition = get_value_struct_def(runtime, result_type);
+    if (!definition) { return false; }
+
+    auto resolve = [&](StringView name,
+                       bool (*accepts)(const smalls::Runtime&, smalls::TypeID)) {
+        AttackDataFieldCache field;
+        const uint32_t index = definition->field_index(name);
+        if (index == UINT32_MAX) { return field; }
+        const auto& source = definition->fields[index];
+        if (!accepts(runtime, source.type_id)) { return field; }
+        field.offset = source.offset;
+        field.type_id = source.type_id;
+        return field;
+    };
+    auto accepts_int = [](const smalls::Runtime& candidate_runtime,
+                           smalls::TypeID type_id) {
+        return is_int_compatible_type(candidate_runtime, type_id);
+    };
+    auto accepts_bool = [](const smalls::Runtime& candidate_runtime,
+                            smalls::TypeID type_id) {
+        return type_id == candidate_runtime.bool_type();
+    };
+
+    result.attack_type = resolve("attack_type", accepts_int);
+    result.attack_result = resolve("attack_result", accepts_int);
+    result.attack_roll = resolve("attack_roll", accepts_int);
+    result.attack_bonus = resolve("attack_bonus", accepts_int);
+    result.armor_class = resolve("armor_class", accepts_int);
+    result.nth_attack = resolve("nth_attack", accepts_int);
+    result.damage_total = resolve("damage_total", accepts_int);
+    result.critical_multiplier = resolve("critical_multiplier", accepts_int);
+    result.critical_threat = resolve("critical_threat", accepts_int);
+    result.concealment = resolve("concealment", accepts_int);
+    result.iteration_penalty = resolve("iteration_penalty", accepts_int);
+    result.is_ranged = resolve("is_ranged", accepts_bool);
+    result.target_is_creature = resolve("target_is_creature", accepts_bool);
+    result.effects_to_apply = resolve("effects_to_apply", is_array_type);
+    result.effects_to_remove = resolve("effects_to_remove", is_array_type);
+
+    const std::array required{
+        result.attack_type,
+        result.attack_result,
+        result.attack_roll,
+        result.attack_bonus,
+        result.armor_class,
+        result.nth_attack,
+        result.damage_total,
+        result.critical_multiplier,
+        result.critical_threat,
+        result.concealment,
+        result.iteration_penalty,
+        result.is_ranged,
+        result.target_is_creature,
+        result.effects_to_apply,
+        result.effects_to_remove,
+    };
+    result.valid = std::ranges::all_of(required,
+        [](const AttackDataFieldCache& field) {
+            return field.offset != UINT32_MAX;
+        });
+    return result.valid;
+}
 
 struct ScheduledAttackEvent {
     ObjectHandle attacker;
@@ -239,130 +346,95 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
 
 } // namespace
 
+bool initialize_policy(smalls::Runtime& runtime)
+{
+    CombatPolicyCache candidate;
+    candidate.service_generation = kernel::services().generation();
+    candidate.module = kernel::config().combat_policy_module();
+    if (candidate.module.empty()) {
+        LOG_F(ERROR, "[combat] no package combat policy module is configured");
+        combat_policy = {};
+        return false;
+    }
+
+    auto* script = runtime.load_module(candidate.module);
+    if (!script || script->errors() != 0) {
+        LOG_F(ERROR, "[combat] failed to load package combat policy '{}'",
+            candidate.module);
+        combat_policy = {};
+        return false;
+    }
+    candidate.bytecode_module = runtime.get_or_compile_module(script);
+    if (!candidate.bytecode_module) {
+        LOG_F(ERROR, "[combat] failed to compile package combat policy '{}'",
+            candidate.module);
+        combat_policy = {};
+        return false;
+    }
+
+    candidate.resolve_attack = candidate.bytecode_module->get_function("resolve_attack");
+    candidate.resolve_attack_cooldown_ticks = candidate.bytecode_module->get_function("resolve_attack_cooldown_ticks");
+    const auto creature_type = runtime.object_subtype_for_tag(ObjectType::creature);
+    const std::array attack_parameters{creature_type, runtime.object_type()};
+    const std::array cooldown_parameters{creature_type, runtime.int_type()};
+    if (!function_has_parameters(runtime, candidate.resolve_attack,
+            attack_parameters)
+        || !function_has_parameters(runtime,
+            candidate.resolve_attack_cooldown_ticks, cooldown_parameters)
+        || !candidate.resolve_attack_cooldown_ticks
+        || !is_int_compatible_type(runtime,
+            candidate.resolve_attack_cooldown_ticks->return_type)) {
+        LOG_F(ERROR,
+            "[combat] package policy '{}' has invalid required function signatures",
+            candidate.module);
+        combat_policy = {};
+        return false;
+    }
+
+    if (!resolve_attack_data_offsets(runtime,
+            candidate.resolve_attack->return_type, candidate.offsets)) {
+        LOG_F(ERROR,
+            "[combat] package policy '{}.resolve_attack' has an invalid result layout",
+            candidate.module);
+        combat_policy = {};
+        return false;
+    }
+
+    combat_policy = std::move(candidate);
+    return true;
+}
+
 bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
 {
-    if (!attacker || !target) {
-        return false;
-    }
-
-    auto module_sv = configured_combat_module();
-    if (module_sv.empty()) {
-        LOG_F(ERROR, "[combat] resolve_attack: no combat policy module configured");
-        return false;
-    }
+    if (!attacker || !target) { return false; }
 
     auto& rt = kernel::runtime();
-    auto& cache = s_resolve_attack;
-
-    // Runtime-owned bytecode and type metadata do not survive a service
-    // restart. Allocators may reuse their addresses, so pointer comparison is
-    // not a valid lifetime check.
-    const uint64_t service_generation = kernel::services().generation();
-    if (cache.service_generation != service_generation) {
-        cache = {};
-    }
-
-    // Invalidate cache when the configured policy module name changes.
-    if (cache.module != module_sv) {
-        cache = {};
-        cache.module = String(module_sv);
-    }
-    cache.service_generation = service_generation;
-
-    // Always get the current BytecodeModule* to detect runtime restarts.
-    auto* script = rt.get_module(module_sv);
-    if (!script) {
-        LOG_F(ERROR, "[combat] combat policy module '{}' not found", module_sv);
-        return false;
-    }
-    auto* fresh_module = rt.get_or_compile_module(script);
-    if (!fresh_module) {
-        LOG_F(ERROR, "[combat] combat policy module '{}' failed to compile", module_sv);
-        return false;
-    }
-
-    // If BytecodeModule pointer changed (e.g., runtime restarted between calls),
-    // reset all derived cache state so we don't use dangling pointers.
-    if (cache.bytecode_module != fresh_module) {
-        cache.bytecode_module = fresh_module;
-        cache.nwn1_initialized = false;
-        cache.compiled_function = nullptr;
-        cache.function_resolved = false;
-        cache.known_missing = false;
-        cache.offsets = {};
-    }
-
-    // Ensure nwn1 smalls are initialized once per (policy module, runtime instance).
-    if (!cache.nwn1_initialized) {
-        if (!nwn1::bridge::ensure_nwn1_smalls_initialized()) {
-            return false;
-        }
-        cache.nwn1_initialized = true;
-    }
-
-    // Resolve and cache the compiled function pointer.
-    if (!cache.function_resolved) {
-        cache.compiled_function = cache.bytecode_module->get_function("resolve_attack");
-        cache.function_resolved = true;
-        cache.known_missing = (cache.compiled_function == nullptr);
-        if (cache.known_missing) {
-            LOG_F(ERROR, "[combat] combat policy '{}.resolve_attack' not found", module_sv);
-        }
-    }
-
-    if (cache.known_missing) {
+    if (!combat_policy_is_current()) {
+        LOG_F(ERROR,
+            "[combat] package combat policy is unavailable for the current service generation");
         return false;
     }
 
     Vector<smalls::Value> args;
-    args.push_back(nwn1::bridge::make_object_arg(attacker->handle()));
-    args.push_back(nwn1::bridge::make_object_arg(target->handle()));
+    args.push_back(make_object_arg(rt, attacker->handle()));
+    args.push_back(make_object_arg(rt, target->handle()));
 
-    auto exec_result = rt.execute_compiled(cache.bytecode_module, cache.compiled_function, args);
+    auto exec_result = rt.execute_compiled(combat_policy.bytecode_module,
+        combat_policy.resolve_attack, args);
 
     if (!exec_result.ok()) {
-        LOG_F(WARNING, "[combat] {}.resolve_attack failed: {}", module_sv, exec_result.error_message);
+        LOG_F(WARNING, "[combat] {}.resolve_attack failed: {}",
+            combat_policy.module, exec_result.error_message);
         return false;
     }
-
-    // Build the field-offset cache once from the first valid return value.
-    if (!cache.offsets.valid) {
-        const auto* def = get_attack_data_def(rt, exec_result.value);
-        if (!def) {
-            LOG_F(ERROR, "[combat] {}.resolve_attack returned invalid nwn1.combat_primitives.AttackData", module_sv);
-            return false;
-        }
-        auto& c = cache.offsets;
-        auto resolve = [&](StringView name) -> AttackDataFieldCache {
-            uint32_t idx = def->field_index(name);
-            if (idx == UINT32_MAX) { return {}; }
-            return {def->fields[idx].offset, def->fields[idx].type_id};
-        };
-        c.attack_type = resolve("attack_type");
-        c.attack_result = resolve("attack_result");
-        c.attack_roll = resolve("attack_roll");
-        c.attack_bonus = resolve("attack_bonus");
-        c.armor_class = resolve("armor_class");
-        c.nth_attack = resolve("nth_attack");
-        c.damage_total = resolve("damage_total");
-        c.critical_multiplier = resolve("critical_multiplier");
-        c.critical_threat = resolve("critical_threat");
-        c.concealment = resolve("concealment");
-        c.iteration_penalty = resolve("iteration_penalty");
-        c.is_ranged = resolve("is_ranged");
-        c.target_is_creature = resolve("target_is_creature");
-        c.effects_to_apply = resolve("effects_to_apply");
-        c.effects_to_remove = resolve("effects_to_remove");
-        c.valid = (c.attack_type.offset != UINT32_MAX);
-    }
-
-    if (!cache.offsets.valid) {
-        LOG_F(ERROR, "[combat] {}.resolve_attack AttackData missing required fields", module_sv);
+    if (exec_result.value.type_id != combat_policy.resolve_attack->return_type) {
+        LOG_F(ERROR, "[combat] {}.resolve_attack returned an invalid result type",
+            combat_policy.module);
         return false;
     }
 
     // Decode using pre-cached byte offsets.
-    const auto& c = cache.offsets;
+    const auto& c = combat_policy.offsets;
     auto read_int = [&](const AttackDataFieldCache& fc) -> int32_t {
         return rt.read_value_field_at_offset(exec_result.value, fc.offset, fc.type_id).data.ival;
     };
@@ -399,19 +471,27 @@ bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
 
 uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks)
 {
-    if (!attacker) {
+    if (!attacker || !combat_policy_is_current()) { return 1; }
+
+    auto& runtime = kernel::runtime();
+    Vector<smalls::Value> args;
+    args.push_back(make_object_arg(runtime, attacker->handle()));
+    const auto bounded_round_ticks = std::min<uint32_t>(round_ticks,
+        static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
+    args.push_back(smalls::Value::make_int(
+        static_cast<int32_t>(bounded_round_ticks)));
+
+    const auto result = runtime.execute_compiled(combat_policy.bytecode_module,
+        combat_policy.resolve_attack_cooldown_ticks, args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "[combat] {}.resolve_attack_cooldown_ticks failed: {}",
+            combat_policy.module, result.error_message);
         return 1;
     }
 
-    Vector<smalls::Value> args;
-    args.push_back(nwn1::bridge::make_object_arg(attacker->handle()));
-    args.push_back(smalls::Value::make_int(static_cast<int32_t>(round_ticks)));
-
-    if (auto value = nwn1::bridge::call_nwn1_module_int("nwn1.combat", "resolve_attack_cooldown_ticks", args)) {
-        return std::max<uint32_t>(1, static_cast<uint32_t>(*value));
-    }
-
-    return 1;
+    return result.value.data.ival > 0
+        ? static_cast<uint32_t>(result.value.data.ival)
+        : 1;
 }
 
 bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_ticks)

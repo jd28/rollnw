@@ -154,18 +154,6 @@ static nw::smalls::Script* load_nwn1_combat_decompose_benchmark_script()
     )");
 }
 
-static nw::smalls::Script* load_nwn1_policy_full_timing_benchmark_script()
-{
-    return nw::kernel::runtime().load_module_from_source("bench.nwn1_policy_full", R"(
-        from core.combat import { AttackData };
-        import nwn1.combat as Combat;
-
-        fn resolve_attack(attacker: Creature, target: object): AttackData {
-            return Combat.resolve_attack(attacker, target);
-        }
-    )");
-}
-
 static nw::Vector<nw::smalls::Value> make_creature_script_args(nw::Creature* attacker, nw::Creature* target)
 {
     nw::Vector<nw::smalls::Value> args;
@@ -332,7 +320,7 @@ static void benchmark_resolve_attack_direct_module_context_case(
     nwk::unload_module();
 }
 
-static void benchmark_resolve_attack_policy_toggle(benchmark::State& state, bool enable_policy_full)
+static void benchmark_resolve_attack_cached_policy(benchmark::State& state)
 {
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     if (!module) {
@@ -348,30 +336,8 @@ static void benchmark_resolve_attack_policy_toggle(benchmark::State& state, bool
         return;
     }
 
-    auto previous_policy = nwk::config().combat_policy_module();
-    if (enable_policy_full) {
-        auto* script = load_nwn1_policy_full_timing_benchmark_script();
-        if (!script || script->errors() != 0) {
-            nwk::config().set_combat_policy_module(previous_policy);
-            nwk::unload_module();
-            state.SkipWithError("failed to load policy_full module script");
-            return;
-        }
-        nwk::config().set_combat_policy_module("bench.nwn1_policy_full");
-    } else {
-        auto* script = nwk::runtime().load_module("nwn1.combat");
-        if (!script || script->errors() != 0) {
-            nwk::config().set_combat_policy_module(previous_policy);
-            nwk::unload_module();
-            state.SkipWithError("failed to load nwn1.combat module script");
-            return;
-        }
-        nwk::config().set_combat_policy_module("nwn1.combat");
-    }
-
     nw::AttackData warmup{};
     if (!nw::combat::resolve_attack(attacker, target, &warmup)) {
-        nwk::config().set_combat_policy_module(previous_policy);
         nwk::unload_module();
         state.SkipWithError("failed to warm up resolve_attack");
         return;
@@ -398,7 +364,6 @@ static void benchmark_resolve_attack_policy_toggle(benchmark::State& state, bool
         gc->collect_minor();
     }
 
-    nwk::config().set_combat_policy_module(previous_policy);
     nwk::unload_module();
 }
 
@@ -644,12 +609,7 @@ static void BM_creature_attack_direct_nwn1_combat_module_context_case_drorry_mag
 
 static void BM_creature_attack_ab_policy_off(benchmark::State& state)
 {
-    benchmark_resolve_attack_policy_toggle(state, false);
-}
-
-static void BM_creature_attack_ab_policy_full(benchmark::State& state)
-{
-    benchmark_resolve_attack_policy_toggle(state, true);
+    benchmark_resolve_attack_cached_policy(state);
 }
 
 static void benchmark_smalls_decompose(benchmark::State& state, const char* fn_name)
@@ -758,7 +718,6 @@ BENCHMARK(BM_effect_batch_callback_pipeline)
     ->Args({1000, 1})
     ->Args({1000, 2});
 BENCHMARK(BM_creature_attack_ab_policy_off);
-BENCHMARK(BM_creature_attack_ab_policy_full);
 BENCHMARK(BM_smalls_attack_decompose_scalar);
 BENCHMARK(BM_smalls_attack_decompose_minimal_attack_data);
 BENCHMARK(BM_smalls_attack_decompose_full_attack_data);

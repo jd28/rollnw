@@ -4,6 +4,7 @@
 #include "../kernel/Strings.hpp"
 #include "../log.hpp"
 #include "../resources/StaticDirectory.hpp"
+#include "../rules/combat_scheduler.hpp"
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
 #include "../util/profile.hpp"
@@ -335,6 +336,10 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
 
         register_package_data_specs();
         load_profile_hooks();
+        if (!combat::initialize_policy(*this)) {
+            throw std::runtime_error(
+                "runtime: configured package combat policy does not implement the required contract");
+        }
 
         if (time == nw::kernel::ServiceInitTime::kernel_start) {
             execute_profile_init();

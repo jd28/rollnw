@@ -46,7 +46,8 @@ struct Config {
     /// Gets configured game profile id
     const std::optional<std::string>& profile() const noexcept;
 
-    /// Sets combat policy module path
+    /// Sets combat policy module path. A running game service rejects combat
+    /// requests until a new service generation validates the new module.
     void set_combat_policy_module(std::string module);
 
     /// Sets init module path

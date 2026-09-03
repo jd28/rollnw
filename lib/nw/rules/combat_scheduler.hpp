@@ -7,7 +7,15 @@ struct AttackData;
 struct Creature;
 struct ObjectBase;
 
+namespace smalls {
+struct Runtime;
+}
+
 namespace combat {
+
+/// Resolves and validates the configured package combat policy for this
+/// Runtime/service generation.
+bool initialize_policy(smalls::Runtime& runtime);
 
 /// Resolves one attack using the configured combat policy module.
 bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out = nullptr);
