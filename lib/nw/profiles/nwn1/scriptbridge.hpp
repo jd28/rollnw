@@ -17,8 +17,6 @@ namespace nwn1 {
 
 bool equip_item(nw::Creature* obj, nw::Item* item, nw::EquipIndex slot);
 nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
-int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove);
-void refresh_combat_weapon_cache(nw::Creature* obj);
 
 } // namespace nwn1
 

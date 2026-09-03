@@ -3,7 +3,6 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/rules/system.hpp>
@@ -50,25 +49,25 @@ TEST(Requirement, Basic)
     EXPECT_TRUE(ent);
 
     nw::Requirement req{{
-        nw::qualifier_ability(nwn1::ability_strength, nw::QualifierMatch::lte, 20),
-        nw::qualifier_ability(nwn1::ability_constitution, 15),
-        nw::qualifier_ability(nwn1::ability_constitution, nw::QualifierMatch::lte, 20),
-        nw::qualifier_skill(nwn1::skill_discipline, 35),
+        nw::qualifier_ability(nw::Ability::make(0), nw::QualifierMatch::lte, 20),
+        nw::qualifier_ability(nw::Ability::make(2), 15),
+        nw::qualifier_ability(nw::Ability::make(2), nw::QualifierMatch::lte, 20),
+        nw::qualifier_skill(nw::Skill::make(3), 35),
     }};
 
     EXPECT_FALSE(nwk::rules().meets_requirement(req, ent));
 
     nw::Requirement req2{{
-        nw::qualifier_ability(nwn1::ability_constitution, 15),
-        nw::qualifier_ability(nwn1::ability_constitution, nw::QualifierMatch::lte, 20),
-        nw::qualifier_skill(nwn1::skill_discipline, 35),
+        nw::qualifier_ability(nw::Ability::make(2), 15),
+        nw::qualifier_ability(nw::Ability::make(2), nw::QualifierMatch::lte, 20),
+        nw::qualifier_skill(nw::Skill::make(3), 35),
     }};
 
     EXPECT_TRUE(nwk::rules().meets_requirement(req2, ent));
 
-    nw::Requirement req3{{nw::qualifier_ability(nwn1::ability_constitution, 15),
-                             nw::qualifier_ability(nwn1::ability_strength, nw::QualifierMatch::lte, 20),
-                             nw::qualifier_skill(nwn1::skill_discipline, 35)},
+    nw::Requirement req3{{nw::qualifier_ability(nw::Ability::make(2), 15),
+                             nw::qualifier_ability(nw::Ability::make(0), nw::QualifierMatch::lte, 20),
+                             nw::qualifier_skill(nw::Skill::make(3), 35)},
         false};
 
     EXPECT_TRUE(nwk::rules().meets_requirement(req3, ent));

@@ -4,7 +4,6 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Location.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
@@ -65,7 +64,7 @@ TEST(Area, GffDeserialize)
 
     EXPECT_TRUE(ent->creatures.size() > 0);
     EXPECT_EQ(ent->creatures[0]->resref, "test_creature");
-    EXPECT_EQ(creature_ability_score_from_script(ent->creatures[0], nwn1::ability_strength, true), 20);
+    EXPECT_EQ(creature_ability_score_from_script(ent->creatures[0], nw::Ability::make(0), true), 20);
 
     size_t comment_count = 0;
     const auto count_comments = [&comment_count](const auto& objects) {

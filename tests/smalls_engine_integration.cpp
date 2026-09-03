@@ -12,7 +12,6 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Player.hpp>
 #include <nw/objects/Store.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/smalls/Array.hpp>
@@ -662,9 +661,9 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemEquipApisProcessItemProperties)
 
     auto* creature = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     ASSERT_NE(creature, nullptr);
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_gloves};
+    rollnw::tests::TestItemGff item_spec{.base_item = nw::BaseItem::make(36)};
     item_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_ability_bonus),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(0)),
         .subtype = 0,
         .cost_value = 2,
     });
@@ -741,7 +740,7 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksUpdateVisualRowsForChangedSlot
     ASSERT_TRUE(components.clear_visual(creature->handle(), -1));
 
     rollnw::tests::TestItemGff gloves_spec{
-        .base_item = nwn1::base_item_gloves,
+        .base_item = nw::BaseItem::make(36),
         .model_parts = {1, 0, 0},
     };
     auto* gloves = rollnw::tests::make_item_from_gff(gloves_spec);
@@ -749,7 +748,7 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksUpdateVisualRowsForChangedSlot
     gloves->instantiate();
 
     rollnw::tests::TestItemGff cloak_spec{
-        .base_item = nwn1::base_item_cloak,
+        .base_item = nw::BaseItem::make(80),
         .model_shape = rollnw::tests::TestItemModelShape::layered,
         .model_parts = {1, 0, 0},
         .model_colors = {11, 12, 13, 14, 15, 16},
@@ -872,11 +871,11 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksRebuildHumanoidBodyRowsForHead
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_human, 1, 1));
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(6), 1, 1));
     ASSERT_TRUE(creature->instantiate());
 
     rollnw::tests::TestItemGff helmet_spec{
-        .base_item = nwn1::base_item_helmet,
+        .base_item = nw::BaseItem::make(17),
         .model_parts = {1, 0, 0},
     };
     auto* helmet = rollnw::tests::make_item_from_gff(helmet_spec);
@@ -974,7 +973,7 @@ TEST_F(SmallsEngineIntegration, Nwn1SetAppearanceDefaultsMissingDynamicBodyParts
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_bodak, 0, 0));
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(23), 0, 0));
     ASSERT_TRUE(creature->instantiate());
 
     std::string_view source = R"(
@@ -1007,7 +1006,7 @@ TEST_F(SmallsEngineIntegration, Nwn1SetAppearanceDefaultsMissingDynamicBodyParts
     auto object = nw::smalls::Value::make_object(creature->handle());
     object.type_id = rt.object_subtype_for_tag(creature->handle().type);
     args.push_back(object);
-    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_human));
+    args.push_back(nw::smalls::Value::make_int(*nw::Appearance::make(6)));
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
     ASSERT_EQ(result.value.data.ival, 1);
@@ -1034,7 +1033,7 @@ TEST_F(SmallsEngineIntegration, Nwn1HumanoidVisualRowsUseCreaturePhenotypeBefore
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
     ASSERT_TRUE(seed_creature_appearance_propset(
-        creature, nwn1::appearance_type_human, 1, 1, 16));
+        creature, nw::Appearance::make(6), 1, 1, 16));
     ASSERT_TRUE(creature->instantiate());
 
     const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
@@ -1063,11 +1062,11 @@ TEST_F(SmallsEngineIntegration, Nwn1HumanoidArmorPreservesMissingSegmentsAndSupp
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
     ASSERT_TRUE(seed_creature_appearance_propset(
-        creature, nwn1::appearance_type_human, 1, 1));
+        creature, nw::Appearance::make(6), 1, 1));
     ASSERT_TRUE(creature->instantiate());
 
     rollnw::tests::TestItemGff armor_spec{
-        .base_item = nwn1::base_item_armor,
+        .base_item = nw::BaseItem::make(16),
         .model_shape = rollnw::tests::TestItemModelShape::layered,
         .model_colors = {31, 32, 33, 34, 35, 36},
     };
@@ -1244,7 +1243,7 @@ TEST_F(SmallsEngineIntegration, Nwn1SetBodyPartsOwnsBatchValidationAndVisualUpda
 
     result = rt.execute_script(script,
         "reject_static",
-        {object, nw::smalls::Value::make_int(*nwn1::appearance_type_bodak)});
+        {object, nw::smalls::Value::make_int(*nw::Appearance::make(23))});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
 
@@ -1488,7 +1487,7 @@ TEST_F(SmallsEngineIntegration, Nwn1StandaloneItemVisualWritesVisualRows)
     ASSERT_TRUE(mod);
 
     rollnw::tests::TestItemGff item_spec{
-        .base_item = nwn1::base_item_gloves,
+        .base_item = nw::BaseItem::make(36),
         .model_shape = rollnw::tests::TestItemModelShape::layered,
         .model_parts = {1, 0, 0},
         .model_colors = {11, 12, 13, 14, 15, 16},
@@ -1610,7 +1609,7 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemGeneratorCanTranslateItemProperty)
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_gloves};
+    rollnw::tests::TestItemGff item_spec{.base_item = nw::BaseItem::make(36)};
     item_spec.properties.push_back({
         .type = 65000,
         .subtype = 0,
@@ -2248,7 +2247,7 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemGeneratorTypeSpecificOverCppFallback)
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_gloves};
+    rollnw::tests::TestItemGff item_spec{.base_item = nw::BaseItem::make(36)};
     item_spec.properties.push_back({
         .type = 65001,
         .subtype = 0,
@@ -2317,7 +2316,7 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemProcessCallsSmallsDirectly)
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_gloves};
+    rollnw::tests::TestItemGff item_spec{.base_item = nw::BaseItem::make(36)};
     item_spec.properties.push_back({
         .type = 65002,
         .subtype = 0,
@@ -2384,9 +2383,9 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemSmallsGeneratorsReplaceDefaultPath)
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_gloves};
+    rollnw::tests::TestItemGff item_spec{.base_item = nw::BaseItem::make(36)};
     item_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_ability_bonus),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(0)),
         .subtype = 0,
         .cost_value = 2,
     });
@@ -2444,9 +2443,9 @@ TEST_F(SmallsEngineIntegration, Nwn1MonsterDamageItemPropertyAppliesBaseWeaponDa
 
     auto* creature = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    rollnw::tests::TestItemGff item_spec{.base_item = nwn1::base_item_cbludgweapon};
+    rollnw::tests::TestItemGff item_spec{.base_item = nw::BaseItem::make(71)};
     item_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_monster_damage),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(77)),
         .cost_value = 1,
     });
     auto* item = rollnw::tests::make_item_from_gff(item_spec);
@@ -2480,8 +2479,8 @@ TEST_F(SmallsEngineIntegration, Nwn1MonsterDamageItemPropertyAppliesBaseWeaponDa
     EXPECT_EQ(result.value.data.ival, 1);
     ASSERT_EQ(creature->effects().size(), 1);
     const auto& effect = *creature->effects().begin();
-    EXPECT_EQ(effect.type, nwn1::effect_type_damage_increase);
-    EXPECT_EQ(effect.subtype, *nwn1::damage_type_base_weapon);
+    EXPECT_EQ(effect.type, nw::EffectType::make(13));
+    EXPECT_EQ(effect.subtype, *nw::Damage::make(12));
 
     nw::kernel::objects().destroy(item->handle());
     nw::kernel::objects().destroy(creature->handle());
@@ -2547,9 +2546,9 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatKeenThreatReadsItemStatsPropset)
     auto* attacker = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(attacker, nullptr);
 
-    rollnw::tests::TestItemGff weapon_spec{.base_item = nwn1::base_item_longsword};
+    rollnw::tests::TestItemGff weapon_spec{.base_item = nw::BaseItem::make(1)};
     weapon_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_keen),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(43)),
     });
     auto* weapon = rollnw::tests::make_item_from_gff(weapon_spec);
     ASSERT_NE(weapon, nullptr);
@@ -2680,7 +2679,7 @@ TEST_F(SmallsEngineIntegration, Nwn1EquipmentArmorClassProducerUsesEquippedItems
     auto* armor = nw::kernel::objects().load<nw::Item>(nw::Resref{"nw_maarcl004"});
     ASSERT_NE(armor, nullptr);
 
-    rollnw::tests::TestItemGff shield_spec{.base_item = nwn1::base_item_smallshield};
+    rollnw::tests::TestItemGff shield_spec{.base_item = nw::BaseItem::make(14)};
     auto* shield = rollnw::tests::make_item_from_gff(shield_spec);
     ASSERT_NE(shield, nullptr);
     shield->instantiate();
@@ -3343,11 +3342,11 @@ TEST_F(SmallsEngineIntegration, PropsetScript_CreatureProgressionFromPropsets)
             "class_levels", i, 0));
     }
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, levels_ref, levels_def,
-        "classes", 0, *nwn1::class_type_fighter));
+        "classes", 0, *nw::Class::make(4)));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, levels_ref, levels_def,
         "class_levels", 0, 3));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, levels_ref, levels_def,
-        "classes", 1, *nwn1::class_type_rogue));
+        "classes", 1, *nw::Class::make(8)));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, levels_ref, levels_def,
         "class_levels", 1, 2));
 
@@ -3356,7 +3355,7 @@ TEST_F(SmallsEngineIntegration, PropsetScript_CreatureProgressionFromPropsets)
     ASSERT_NO_FATAL_FAILURE(require_propset(rt, cre->handle(),
         "nwn1.propsets.CreatureStats", stats_ref, stats_def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def,
-        "feats", {*nwn1::feat_epic_toughness_1, *nwn1::feat_epic_toughness_1, *nwn1::feat_epic_toughness_4}));
+        "feats", {*nw::Feat::make(754), *nw::Feat::make(754), *nw::Feat::make(757)}));
 
     std::string_view source = R"(
         import nwn1.creature_state as Cre;
@@ -3682,7 +3681,7 @@ TEST_F(SmallsEngineIntegration, Nwn1CreatureKnowsSpellUsesSmallsClassSpellConfig
 
     auto* creature = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_2.utc");
     ASSERT_NE(creature, nullptr);
-    remove_known_spell_from_script(creature, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball);
+    remove_known_spell_from_script(creature, nw::Class::make(9), nw::Spell::make(39));
 
     std::string_view source = R"(
         from core.types import { Spell };
@@ -4047,7 +4046,7 @@ TEST_F(SmallsEngineIntegration, CanonicalBaseItemDefinitionBuildsRuntimeProjecti
     EXPECT_TRUE(rt.get_struct_def(rules_type)->is_value_type);
 
     nw::Vector<nw::smalls::Value> args;
-    args.push_back(nw::smalls::Value::make_int(*nwn1::base_item_shortsword));
+    args.push_back(nw::smalls::Value::make_int(*nw::BaseItem::make(0)));
     args.push_back(nw::smalls::Value::make_int(0));
     args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(nw::ItemModelType::composite)));
 
@@ -4056,7 +4055,7 @@ TEST_F(SmallsEngineIntegration, CanonicalBaseItemDefinitionBuildsRuntimeProjecti
     EXPECT_EQ(result.value.data.ival, 1);
 
     const auto* native_info = nw::kernel::rules().baseitems.get(
-        nw::BaseItem::make(*nwn1::base_item_shortsword));
+        nw::BaseItem::make(*nw::BaseItem::make(0)));
     ASSERT_NE(native_info, nullptr);
     EXPECT_EQ(native_info->label, "shortsword");
     EXPECT_EQ(native_info->model_type, nw::ItemModelType::composite);
@@ -4069,7 +4068,7 @@ TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTab
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
     const auto* before = nw::kernel::rules().baseitems.get(
-        nw::BaseItem::make(*nwn1::base_item_shortsword));
+        nw::BaseItem::make(*nw::BaseItem::make(0)));
     ASSERT_NE(before, nullptr);
     const auto before_label = before->label;
 
@@ -4115,7 +4114,7 @@ TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTab
     }
 
     const auto* after = nw::kernel::rules().baseitems.get(
-        nw::BaseItem::make(*nwn1::base_item_shortsword));
+        nw::BaseItem::make(*nw::BaseItem::make(0)));
     ASSERT_NE(after, nullptr);
     EXPECT_EQ(after->label, before_label);
 }
@@ -4178,7 +4177,7 @@ TEST_F(SmallsEngineIntegration, Nwn1BaseItemRequirementsUseSmallsRules)
         auto creature_value = nw::smalls::Value::make_object(creature->handle());
         creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
         args.push_back(creature_value);
-        args.push_back(nw::smalls::Value::make_int(*nwn1::base_item_shortsword));
+        args.push_back(nw::smalls::Value::make_int(*nw::BaseItem::make(0)));
 
         return rt.execute_script(script, "main", args);
     };
@@ -4425,8 +4424,8 @@ TEST_F(SmallsEngineIntegration, NativeAppearanceInfoAndSmallsRules)
         std::to_string(appearance_bytes));
 
     nw::Vector<nw::smalls::Value> args;
-    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_bodak));
-    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_human));
+    args.push_back(nw::smalls::Value::make_int(*nw::Appearance::make(23)));
+    args.push_back(nw::smalls::Value::make_int(*nw::Appearance::make(6)));
 
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
@@ -4438,7 +4437,7 @@ TEST_F(SmallsEngineIntegration, InvalidAppearancePublicationPreservesNativeTable
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
-    const auto appearance = nw::Appearance::make(*nwn1::appearance_type_bodak);
+    const auto appearance = nw::Appearance::make(*nw::Appearance::make(23));
     const auto* before = nw::kernel::rules().appearances.get(appearance);
     ASSERT_NE(before, nullptr);
     const auto before_label = before->label;
@@ -4824,7 +4823,7 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicPathNormalizationForBaseItemD
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
     nw::Vector<nw::smalls::Value> args;
-    args.push_back(nw::smalls::Value::make_int(*nwn1::base_item_shortsword));
+    args.push_back(nw::smalls::Value::make_int(*nw::BaseItem::make(0)));
 
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok()) << result.error_message;
@@ -4879,7 +4878,7 @@ TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicRaceEntry)
 
         auto size_result = rt.execute_script(script, "race_size", args);
         ASSERT_TRUE(size_result.ok()) << size_result.error_message;
-        EXPECT_EQ(size_result.value.data.ival, nwn1::creature_size_medium)
+        EXPECT_EQ(size_result.value.data.ival, 3)
             << "race=" << race;
     }
 }
@@ -4899,9 +4898,9 @@ TEST_F(SmallsEngineIntegration, Nwn1MassiveCriticalDamageRollFires)
         "test_data/user/development/test_creature.utc");
     ASSERT_NE(target, nullptr);
 
-    rollnw::tests::TestItemGff weapon_spec{.base_item = nwn1::base_item_longsword};
+    rollnw::tests::TestItemGff weapon_spec{.base_item = nw::BaseItem::make(1)};
     weapon_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_massive_criticals),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(74)),
         .cost_value = 0,
     });
     auto* weapon = rollnw::tests::make_item_from_gff(weapon_spec);
@@ -4973,9 +4972,9 @@ TEST_F(SmallsEngineIntegration, Nwn1MassiveCriticalDamageRollBenchmarkSmoke)
         "test_data/user/development/test_creature.utc");
     ASSERT_NE(target, nullptr);
 
-    rollnw::tests::TestItemGff weapon_spec{.base_item = nwn1::base_item_longsword};
+    rollnw::tests::TestItemGff weapon_spec{.base_item = nw::BaseItem::make(1)};
     weapon_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_massive_criticals),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(74)),
         .cost_value = 0,
     });
     auto* weapon = rollnw::tests::make_item_from_gff(weapon_spec);

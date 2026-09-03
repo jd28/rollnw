@@ -5,7 +5,6 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <algorithm>
@@ -26,7 +25,7 @@ TEST(ClientSmallsCreatureSpells, BuildsSortedFilteredRowsFromLiveLoadout)
         -1, -1, snapshot);
     ASSERT_EQ(snapshot.status, nw::toolset::CreatureSpellViewStatus::ready)
         << snapshot.diagnostic;
-    EXPECT_EQ(snapshot.selected_class, *nwn1::class_type_wizard);
+    EXPECT_EQ(snapshot.selected_class, *nw::Class::make(10));
     EXPECT_TRUE(snapshot.memorizes);
     ASSERT_FALSE(snapshot.rows.empty());
 
@@ -45,7 +44,7 @@ TEST(ClientSmallsCreatureSpells, BuildsSortedFilteredRowsFromLiveLoadout)
     }
 
     const auto fireball = std::ranges::find(snapshot.rows,
-        *nwn1::spell_fireball, &nw::toolset::CreatureSpellRow::spell_id);
+        *nw::Spell::make(58), &nw::toolset::CreatureSpellRow::spell_id);
     ASSERT_NE(fireball, snapshot.rows.end());
     EXPECT_EQ(fireball->level, 3);
 
@@ -53,7 +52,7 @@ TEST(ClientSmallsCreatureSpells, BuildsSortedFilteredRowsFromLiveLoadout)
     const std::string fireball_name{snapshot.text_view(fireball->name)};
     nw::toolset::filter_creature_spell_rows(snapshot, fireball_name, 3, matches);
     ASSERT_EQ(matches.size(), 1);
-    EXPECT_EQ(snapshot.rows[matches.front()].spell_id, *nwn1::spell_fireball);
+    EXPECT_EQ(snapshot.rows[matches.front()].spell_id, *nw::Spell::make(58));
 
     nw::toolset::filter_creature_spell_rows(snapshot, "", 10, matches);
     EXPECT_TRUE(matches.empty());
@@ -78,14 +77,14 @@ TEST(ClientSmallsCreatureSpells, ProjectsKnownStateForSpontaneousCaster)
 
     nw::toolset::CreatureSpellViewSnapshot snapshot;
     nw::toolset::build_creature_spell_rows(nwk::runtime(), creature->handle(),
-        *nwn1::class_type_sorcerer, *nw::metamagic_none, snapshot);
+        *nw::Class::make(9), *nw::metamagic_none, snapshot);
     ASSERT_EQ(snapshot.status, nw::toolset::CreatureSpellViewStatus::ready)
         << snapshot.diagnostic;
-    EXPECT_EQ(snapshot.selected_class, *nwn1::class_type_sorcerer);
+    EXPECT_EQ(snapshot.selected_class, *nw::Class::make(9));
     EXPECT_FALSE(snapshot.memorizes);
 
     const auto light = std::ranges::find(snapshot.rows,
-        *nwn1::spell_light, &nw::toolset::CreatureSpellRow::spell_id);
+        *nw::Spell::make(100), &nw::toolset::CreatureSpellRow::spell_id);
     ASSERT_NE(light, snapshot.rows.end());
     EXPECT_TRUE(light->known);
     EXPECT_EQ(light->uses, 0);

@@ -1,6 +1,9 @@
 #pragma once
 
-#include "nw/profiles/nwn1/constants.hpp"
+#include "nw/rules/Class.hpp"
+#include "nw/rules/combat.hpp"
+#include "nw/rules/effects.hpp"
+#include "nw/rules/items.hpp"
 
 namespace nw {
 struct Effect;

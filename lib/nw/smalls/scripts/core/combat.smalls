@@ -1,16 +1,16 @@
 from core.types import { AttackType, Damage, EffectType };
 import core.effects as effects;
 
-[[native]] fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus_race: int, versus_alignment_flags: int): int;
+[[native]] fn attack_bonus_effect_delta(obj: Creature, attack_type: AttackType, any_attack_type: AttackType, increase_type: EffectType, decrease_type: EffectType, versus_race: int, versus_alignment_flags: int): int;
 [[native]] fn roll_uniform_int(min: int, max: int): int;
 [[native]] fn aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus_race: int, versus_alignment_flags: int, int_index: int, stack_policy: int): int;
 [[native]] fn aggregate_effect_int_filtered(obj: object, effect_type: EffectType, subtype: int, versus_race: int, versus_alignment_flags: int, filter_int_index: int, filter_int_value: int, int_index: int, stack_policy: int): int;
-[[native]] fn damage_immunity_effect_delta(obj: object, damage_type: Damage, versus_race: int, versus_alignment_flags: int): int;
+[[native]] fn damage_immunity_effect_delta(obj: object, increase_type: EffectType, decrease_type: EffectType, damage_type: Damage, versus_race: int, versus_alignment_flags: int): int;
 [[native]] fn object_effect_count(obj: object): int;
 [[native]] fn object_effect_at(obj: object, index: int): effects.Effect;
 [[native]] fn object_find_first_effect_of(obj: object, effect_type: int, subtype: int, start_index: int): int;
-[[native]] fn effect_best_damage_reduction(obj: object, power: int): effects.Effect;
-[[native]] fn effect_best_damage_resistance(obj: object, damage_type: Damage): effects.Effect;
+[[native]] fn effect_best_damage_reduction(obj: object, effect_type: EffectType, power: int): effects.Effect;
+[[native]] fn effect_best_damage_resistance(obj: object, effect_type: EffectType, damage_type: Damage): effects.Effect;
 [[native]] fn roll_dice(dice: int, sides: int, bonus: int, multiplier: int): int;
 [[native]] fn creature_effect_version(obj: Creature): int;
 [[native]] fn creature_equip_version(obj: Creature): int;

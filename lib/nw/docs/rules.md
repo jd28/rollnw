@@ -1,9 +1,9 @@
 # Rules
 
-This page preserves the useful context for the older C++ rules and modifier
-system. New rules authoring work is moving toward [Smalls](../smalls/docs/index.md)
-and [propsets](../smalls/docs/propset-architecture.md) so rule data can be
-authored, tested, and embedded without growing hardcoded C++ policy.
+This page records the runtime rules ownership boundary. Gameplay rule authoring
+lives in the selected package's [SmallS](../smalls/docs/index.md) modules and
+[propsets](../smalls/docs/propset-architecture.md); C++ retains engine storage,
+native catalogs, and the narrow protocols consumed by native code.
 
 ## Original Goals
 
@@ -150,23 +150,11 @@ subsequent ownership review approved migration of all remaining production
 config paths. It did not make data specs the owner of native-only facts or of
 authored SmallS policy.
 
-## Modifiers
+## Runtime Rules
 
-The older modifier system is built on integer, floating-point, string, and
-function inputs stored in the global rules service. Modifier resolution calls a
-registered callback or uses helpers such as sum/max resolution for common cases.
-
-```cpp
-auto mod = nw::make_modifier(
-    mod_type_hitpoints,
-    20,
-    "dnd-3.0-epic-toughness",
-    nw::ModifierSource::feat,
-    { nw::qualifier_feat(nwn1::feat_epic_toughness_1) });
-
-nw::kernel::rules().modifiers.add(mod);
-```
-
-This remains useful compatibility context, especially for existing NWN profile
-behavior. It should not be treated as the only rules direction for new authored
-game systems.
+Gameplay modifiers and master-feat associations live in the selected package's
+SmallS modules. C++ retains only the native catalogs and storage protocols
+required by native consumers, plus the qualifier protocol that delegates its
+interpretation to the mandatory package matcher. `nwn1.constants` is the sole
+named NWN rules-value declaration; C++ constructs typed numeric IDs only at
+native storage, traversal, and test-fixture boundaries.

@@ -13,7 +13,6 @@
 
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/Item.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/Smalls.hpp>
@@ -288,6 +287,26 @@ BENCHMARK(BM_script_resolve);
 
 // BENCHMARK(BM_model_parse);
 
+static int process_item_properties_for_benchmark(
+    nw::Creature* creature, const nw::Item* item, nw::EquipIndex index, bool remove)
+{
+    if (!creature || !item || !nwn1::bridge::ensure_nwn1_smalls_initialized()) {
+        return 0;
+    }
+
+    auto& rt = nwk::runtime();
+    rt.init_object_propsets(item->handle());
+    nw::Vector<nw::smalls::Value> args{
+        nwn1::bridge::make_object_arg(creature->handle()),
+        nwn1::bridge::make_object_arg(item->handle()),
+        nw::smalls::Value::make_int(static_cast<int32_t>(index)),
+        nw::smalls::Value::make_bool(remove),
+    };
+    constexpr uint64_t gas_limit = 10'000'000;
+    auto result = rt.execute_script("core.item", "process_item_properties", args, gas_limit);
+    return result.ok() ? result.value.data.ival : 0;
+}
+
 static void BM_itemprop_smalls_process(benchmark::State& state)
 {
     auto* creature = nwk::objects().make<nw::Creature>();
@@ -295,14 +314,14 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
         state.SkipWithError("failed to create creature");
         return;
     }
-    rollnw::tests::TestItemGff spec{.base_item = nwn1::base_item_gloves};
+    rollnw::tests::TestItemGff spec{.base_item = nw::BaseItem::make(36)};
     spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_ability_bonus),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(0)),
         .subtype = static_cast<uint16_t>(*nw::Ability::make(0)),
         .cost_value = 2,
     });
     spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_ability_bonus),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(0)),
         .subtype = static_cast<uint16_t>(*nw::Ability::make(1)),
         .cost_value = 2,
     });
@@ -315,8 +334,8 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
     }
 
     // Prime the smalls lazy generator init before benchmarking
-    nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, false);
-    nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+    process_item_properties_for_benchmark(creature, item, nw::EquipIndex::arms, false);
+    process_item_properties_for_benchmark(creature, item, nw::EquipIndex::arms, true);
 
     auto& rt = nwk::runtime();
     auto* gc = rt.gc();
@@ -325,8 +344,8 @@ static void BM_itemprop_smalls_process(benchmark::State& state)
     size_t iters = 0;
 
     for (auto _ : state) {
-        nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, false);
-        nwn1::process_item_properties(creature, item, nw::EquipIndex::arms, true);
+        process_item_properties_for_benchmark(creature, item, nw::EquipIndex::arms, false);
+        process_item_properties_for_benchmark(creature, item, nw::EquipIndex::arms, true);
 
         ++iters;
         if (gc && (iters % 1024) == 0) {

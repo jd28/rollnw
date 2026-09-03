@@ -18,7 +18,6 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Waypoint.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/render/render_service.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/render/viewer/preview_model_animation.hpp>
@@ -919,7 +918,7 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsSkinnedMindflayer
 {
     namespace viewer = nw::render::viewer;
 
-    auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_mindflayer);
+    auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(413));
     if (!appearance || appearance->model_type == nw::AppearanceModelType::parts || appearance->model.empty()) {
         GTEST_SKIP() << "single-model mindflayer appearance unavailable";
     }
@@ -937,7 +936,7 @@ TEST(RenderViewerPreparedDraws, DynamicCreatureLoadReportCountsSkinnedMindflayer
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_mindflayer));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(413)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
@@ -1368,7 +1367,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
 {
     namespace viewer = nw::render::viewer;
 
-    auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_bodak);
+    auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(23));
     if (!appearance || appearance->model_type == nw::AppearanceModelType::parts || appearance->model.empty()) {
         GTEST_SKIP() << "single-model bodak appearance unavailable";
     }
@@ -1385,7 +1384,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathCreatesStaticRenderModelCr
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_bodak));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(23)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 1));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
@@ -1494,7 +1493,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
 {
     namespace viewer = nw::render::viewer;
 
-    auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_bodak);
+    auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(23));
     if (!appearance || appearance->model_type == nw::AppearanceModelType::parts || appearance->model.empty()) {
         GTEST_SKIP() << "single-model bodak appearance unavailable";
     }
@@ -1523,7 +1522,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAttachesEquippedHandItems)
     if (!creature) {
         GTEST_SKIP() << "nw_chicken creature blueprint unavailable";
     }
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_bodak));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(23)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
@@ -1585,7 +1584,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelDynamicSkinnedCreatureSamplesSkinM
 {
     namespace viewer = nw::render::viewer;
 
-    auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_mindflayer);
+    auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(413));
     if (!appearance || appearance->model_type == nw::AppearanceModelType::parts || appearance->model.empty()) {
         GTEST_SKIP() << "single-model mindflayer appearance unavailable";
     }
@@ -1597,7 +1596,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelDynamicSkinnedCreatureSamplesSkinM
     if (!creature) {
         GTEST_SKIP() << "nw_chicken creature blueprint unavailable";
     }
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_mindflayer));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(413)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {
@@ -1687,12 +1686,12 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
     };
     ASSERT_TRUE(resource_payloads_available(model_resources));
 
-    auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_human);
+    auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(6));
     if (!appearance || appearance->model_type != nw::AppearanceModelType::parts) {
         GTEST_SKIP() << "humanoid human appearance unavailable";
     }
     auto* replacement_appearance = nw::kernel::rules().appearances.get(
-        nwn1::appearance_type_bodak);
+        nw::Appearance::make(23));
     if (!replacement_appearance
         || replacement_appearance->model_type == nw::AppearanceModelType::parts
         || replacement_appearance->model.empty()) {
@@ -1712,7 +1711,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_human));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(6)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "body_part_head", 1));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "body_part_pelvis", 1));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "body_part_torso", 1));
@@ -1843,7 +1842,7 @@ TEST(RenderViewerPreparedDraws, NwnRenderModelLoadPathAssemblesHumanoidCreature)
     const glm::mat4 camera_before_refresh = session->camera().get_view_matrix();
     const std::string model_name_before_refresh = scene->static_models.front()->name;
     auto appearance_edit = nw::toolset::make_object_appearance_edit(
-        nw::kernel::runtime(), active_object, *nwn1::appearance_type_bodak);
+        nw::kernel::runtime(), active_object, *nw::Appearance::make(23));
     ASSERT_TRUE(appearance_edit);
     const auto appearance_result = nw::toolset::apply_object_appearance_edit(
         nw::kernel::runtime(), *appearance_edit, nw::toolset::ObjectEditDirection::forward);
@@ -1962,7 +1961,7 @@ TEST(RenderViewerPreparedDraws, HumanoidCreatureWingAndTailUseAnimatedSocketAtta
 {
     namespace viewer = nw::render::viewer;
 
-    auto* appearance = nw::kernel::rules().appearances.get(nwn1::appearance_type_human);
+    auto* appearance = nw::kernel::rules().appearances.get(nw::Appearance::make(6));
     if (!appearance || appearance->model_type != nw::AppearanceModelType::parts) {
         GTEST_SKIP() << "humanoid human appearance unavailable";
     }
@@ -1989,7 +1988,7 @@ TEST(RenderViewerPreparedDraws, HumanoidCreatureWingAndTailUseAnimatedSocketAtta
     if (!creature) {
         GTEST_SKIP() << "development fixture failed to load: " << creature_fixture.string();
     }
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_human));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(6)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "body_part_head", 1));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "body_part_pelvis", 1));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "body_part_torso", 1));
@@ -2593,7 +2592,7 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
 
     auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken"sv);
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nwn1::appearance_type_bodak));
+    ASSERT_TRUE(set_creature_appearance_propset_int(creature, "appearance", *nw::Appearance::make(23)));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "wings", 0));
     ASSERT_TRUE(set_creature_appearance_propset_int(creature, "tail", 0));
     for (auto& equip : creature->equipment.equips) {

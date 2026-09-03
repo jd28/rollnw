@@ -2,6 +2,7 @@ from core.types import { AttackType, ArmorClass, Damage, DamageRoll, EffectType 
 import core.bit as bit;
 import core.combat as Native;
 import core.effects as effects;
+import nwn1.constants as Const;
 from nwn1.propsets import { CreatureStats };
 
 const alignment_flag_none = 0;
@@ -87,8 +88,15 @@ fn versus_alignment_flags(versus: object): int {
 }
 
 fn attack_bonus_effect_delta_clamped(obj: Creature, attack_type: AttackType, versus: object): int {
-    return Native.attack_bonus_effect_delta_clamped(obj, attack_type,
+    var result = Native.attack_bonus_effect_delta(obj, attack_type, Const.attack_type_any,
+        Const.effect_type_attack_increase, Const.effect_type_attack_decrease,
         versus_race(versus), versus_alignment_flags(versus));
+    if (result < -20) {
+        return -20;
+    } elif (result > 20) {
+        return 20;
+    }
+    return result;
 }
 
 fn aggregate_effect_int(obj: object, effect_type: EffectType, subtype: int, versus: object, int_index: int, stack_policy: int): int {
@@ -103,6 +111,15 @@ fn aggregate_effect_int_filtered(obj: object, effect_type: EffectType, subtype: 
 }
 
 fn damage_immunity_effect_delta(obj: object, damage_type: Damage, versus: object): int {
-    return Native.damage_immunity_effect_delta(obj, damage_type,
+    return Native.damage_immunity_effect_delta(obj,
+        Const.effect_type_damage_immunity_increase, Const.effect_type_damage_immunity_decrease, damage_type,
         versus_race(versus), versus_alignment_flags(versus));
+}
+
+fn effect_best_damage_reduction(obj: object, power: int): effects.Effect {
+    return Native.effect_best_damage_reduction(obj, Const.effect_type_damage_reduction, power);
+}
+
+fn effect_best_damage_resistance(obj: object, damage_type: Damage): effects.Effect {
+    return Native.effect_best_damage_resistance(obj, Const.effect_type_damage_resistance, damage_type);
 }

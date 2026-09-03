@@ -7,7 +7,6 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
@@ -692,7 +691,7 @@ TEST(Item, ResolveCloakVisualUsesNativeItemVisualComponent)
     ASSERT_TRUE(mod);
 
     rollnw::tests::TestItemGff item_spec{
-        .base_item = nwn1::base_item_cloak,
+        .base_item = nw::BaseItem::make(80),
         .model_shape = rollnw::tests::TestItemModelShape::layered,
         .model_parts = {2, 0, 0},
         .model_colors = {1, 0, 0, 0, 0, 0},
@@ -860,15 +859,15 @@ TEST(Item, SmallsHasPropertyReadsNativeComponent)
         .model_parts = {1, 2, 3},
     };
     item_spec.properties.push_back({
-        .type = static_cast<uint16_t>(*nwn1::ip_keen),
+        .type = static_cast<uint16_t>(*nw::ItemPropertyType::make(43)),
         .subtype = 7,
     });
     auto* item = rollnw::tests::make_item_from_gff(item_spec);
     ASSERT_NE(item, nullptr);
 
-    EXPECT_TRUE(script_has_item_property(item, nwn1::ip_keen, -1, "test.has_item_property_any"));
-    EXPECT_TRUE(script_has_item_property(item, nwn1::ip_keen, 7, "test.has_item_property_subtype"));
-    EXPECT_FALSE(script_has_item_property(item, nwn1::ip_keen, 8, "test.has_item_property_missing_subtype"));
+    EXPECT_TRUE(script_has_item_property(item, nw::ItemPropertyType::make(43), -1, "test.has_item_property_any"));
+    EXPECT_TRUE(script_has_item_property(item, nw::ItemPropertyType::make(43), 7, "test.has_item_property_subtype"));
+    EXPECT_FALSE(script_has_item_property(item, nw::ItemPropertyType::make(43), 8, "test.has_item_property_missing_subtype"));
 
     nw::kernel::objects().destroy(item->handle());
 }

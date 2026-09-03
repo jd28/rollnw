@@ -3,7 +3,6 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/AstCompiler.hpp>
 #include <nw/smalls/Bytecode.hpp>
@@ -14,8 +13,8 @@
 
 #include <benchmark/benchmark.h>
 
-#include "../tests/nwn1_test_builders.hpp"
 #include "../tests/item_gff_builders.hpp"
+#include "../tests/nwn1_test_builders.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -813,7 +812,7 @@ static void BM_smalls_damage_reduction_scan(benchmark::State& state)
     const int count = static_cast<int>(state.range(0));
     for (int i = 0; i < count; ++i) {
         apply_benchmark_effect(target, nwn1::effect_damage_reduction(5 + (i % 4), 10 + (i % 3), 0));
-        apply_benchmark_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 2 + (i % 3), 0));
+        apply_benchmark_effect(target, nwn1::effect_damage_resistance(nw::Damage::make(8), 2 + (i % 3), 0));
     }
 
     auto& rt = nw::kernel::runtime();
@@ -871,8 +870,8 @@ static void BM_smalls_damage_resistance_scan(benchmark::State& state)
 
     const int count = static_cast<int>(state.range(0));
     for (int i = 0; i < count; ++i) {
-        apply_benchmark_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 2 + (i % 4), 0));
-        apply_benchmark_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_cold, 2 + (i % 4), 0));
+        apply_benchmark_effect(target, nwn1::effect_damage_resistance(nw::Damage::make(8), 2 + (i % 4), 0));
+        apply_benchmark_effect(target, nwn1::effect_damage_resistance(nw::Damage::make(5), 2 + (i % 4), 0));
         apply_benchmark_effect(target, nwn1::effect_damage_reduction(5 + (i % 3), 10 + (i % 2), 0));
     }
 

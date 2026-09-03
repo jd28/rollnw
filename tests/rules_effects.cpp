@@ -7,7 +7,6 @@
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/rules/attributes.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/rules/feats.hpp>
@@ -61,7 +60,7 @@ TEST(Rules, Effects)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto eff = nwk::effects().create(nwn1::effect_type_haste);
+    auto eff = nwk::effects().create(nw::EffectType::make(1));
     ASSERT_NE(eff, nullptr);
     eff->set_string(2, "my string");
     EXPECT_EQ(eff->get_string(2), "my string");
@@ -78,7 +77,7 @@ TEST(Rules, ItemProperties)
     auto str = test_itemprop_to_string(ip);
     EXPECT_EQ(str, "Haste");
 
-    auto ip2 = nwn1::itemprop_ability_modifier(nwn1::ability_strength, 6);
+    auto ip2 = nwn1::itemprop_ability_modifier(nw::Ability::make(0), 6);
     auto str2 = test_itemprop_to_string(ip2);
     EXPECT_EQ(str2, "Enhancement Bonus: Strength +6");
 }
@@ -89,7 +88,7 @@ TEST(EffectSystem, Pool)
     EXPECT_TRUE(mod);
 
     for (size_t i = 0; i < 100; ++i) {
-        auto eff = nwk::effects().create(nwn1::effect_type_haste);
+        auto eff = nwk::effects().create(nw::EffectType::make(1));
         nwk::effects().destroy(eff);
     }
 }
@@ -99,7 +98,7 @@ TEST(EffectSystem, ApplyRemoveEffect)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto eff = nwk::effects().create(nwn1::effect_type_haste);
+    auto eff = nwk::effects().create(nw::EffectType::make(1));
 
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj);
@@ -119,7 +118,7 @@ TEST(EffectSystem, IPCostParamTables)
 
     EXPECT_TRUE(nwk::effects().ip_cost_table(4));
     EXPECT_TRUE(nwk::effects().ip_param_table(3));
-    EXPECT_EQ(nwk::effects().ip_definition(nwn1::ip_ability_bonus)->name, 649u);
+    EXPECT_EQ(nwk::effects().ip_definition(nw::ItemPropertyType::make(0))->name, 649u);
     EXPECT_TRUE(nwk::effects().itemprops());
 }
 

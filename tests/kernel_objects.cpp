@@ -14,7 +14,6 @@
 #include <nw/objects/Trigger.hpp>
 
 #include <nw/kernel/Strings.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -115,7 +114,7 @@ TEST(ObjectSystem, LoadCreature)
 
     EXPECT_TRUE(ent);
     EXPECT_EQ(ent->resref, "nw_chicken");
-    EXPECT_EQ(creature_ability_score_from_script(ent, nwn1::ability_dexterity, true), 7);
+    EXPECT_EQ(creature_ability_score_from_script(ent, nw::Ability::make(1), true), 7);
     auto& rt = nwk::runtime();
     auto appearance = find_creature_appearance_propset(rt, ent);
     ASSERT_NE(appearance.type_id, nw::smalls::invalid_type_id);

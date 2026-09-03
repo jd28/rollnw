@@ -18,7 +18,6 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/smalls/Array.hpp>
@@ -608,7 +607,7 @@ TEST(ClientObjectEdits, CreatureFeatCommitSharesDirtyUndoRedoAndEpoch)
     auto* creature = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     ASSERT_NE(creature, nullptr);
 
-    const auto feat = nwn1::feat_epic_toughness_1;
+    const auto feat = nw::Feat::make(754);
     ASSERT_FALSE(read_feat(creature, feat));
 
     nw::toolset::ObjectEditBatch batch;
@@ -710,11 +709,11 @@ TEST(ClientObjectEdits, CreatureKnownSpellCommitUsesSmallsAndRestoresUndoRedo)
         "test_data/user/development/sorcrdd.utc");
     ASSERT_NE(creature, nullptr);
     ASSERT_EQ(read_spell_editor_value(creature, "get_known_spell_editor_value",
-                  nwn1::class_type_sorcerer, nwn1::spell_light),
+                  nw::Class::make(9), nw::Spell::make(100)),
         1);
 
     auto edit = nw::toolset::make_creature_known_spell_edit(nwk::runtime(),
-        creature->handle(), *nwn1::class_type_sorcerer, *nwn1::spell_light, false);
+        creature->handle(), *nw::Class::make(9), *nw::Spell::make(100), false);
     ASSERT_TRUE(edit);
 
     nw::toolset::WorkspaceState workspace;
@@ -728,17 +727,17 @@ TEST(ClientObjectEdits, CreatureKnownSpellCommitUsesSmallsAndRestoresUndoRedo)
     ASSERT_TRUE(committed.ok()) << committed.message;
     ASSERT_TRUE(committed.undo_action);
     EXPECT_EQ(read_spell_editor_value(creature, "get_known_spell_editor_value",
-                  nwn1::class_type_sorcerer, nwn1::spell_light),
+                  nw::Class::make(9), nw::Spell::make(100)),
         0);
 
     workspace.push_undo(*committed.undo_action);
     EXPECT_TRUE(workspace.undo(context).ok());
     EXPECT_EQ(read_spell_editor_value(creature, "get_known_spell_editor_value",
-                  nwn1::class_type_sorcerer, nwn1::spell_light),
+                  nw::Class::make(9), nw::Spell::make(100)),
         1);
     EXPECT_TRUE(workspace.redo(context).ok());
     EXPECT_EQ(read_spell_editor_value(creature, "get_known_spell_editor_value",
-                  nwn1::class_type_sorcerer, nwn1::spell_light),
+                  nw::Class::make(9), nw::Spell::make(100)),
         0);
 }
 
@@ -754,20 +753,20 @@ TEST(ClientObjectEdits, CreatureMemorizedSpellCommitRemovesOneExactUse)
     ASSERT_NE(loadout, nullptr);
     const auto target = std::find_if(loadout->entries.begin(), loadout->entries.end(),
         [](const auto& entry) {
-            return entry.slot >= 0 && entry.source == *nwn1::class_type_wizard
-                && entry.ability == *nwn1::spell_light
+            return entry.slot >= 0 && entry.source == *nw::Class::make(10)
+                && entry.ability == *nw::Spell::make(100)
                 && entry.modifier == *nw::metamagic_none;
         });
     ASSERT_NE(target, loadout->entries.end());
     ASSERT_TRUE(components.set_slotted_ability(creature->handle(), target->source,
         target->tier, target->slot, target->ability, target->modifier, 0));
     const int32_t before = read_spell_editor_value(creature,
-        "get_memorized_spell_editor_value", nwn1::class_type_wizard,
-        nwn1::spell_light, nw::metamagic_none);
+        "get_memorized_spell_editor_value", nw::Class::make(10),
+        nw::Spell::make(100), nw::metamagic_none);
     ASSERT_GT(before, 0);
 
     auto edit = nw::toolset::make_creature_memorized_spell_edit(nwk::runtime(),
-        creature->handle(), *nwn1::class_type_wizard, *nwn1::spell_light,
+        creature->handle(), *nw::Class::make(10), *nw::Spell::make(100),
         *nw::metamagic_none, -1);
     ASSERT_TRUE(edit);
     ASSERT_EQ(edit->rows.size(), 1);
@@ -785,7 +784,7 @@ TEST(ClientObjectEdits, CreatureMemorizedSpellCommitRemovesOneExactUse)
     ASSERT_TRUE(committed.ok()) << committed.message;
     ASSERT_TRUE(committed.undo_action);
     EXPECT_EQ(read_spell_editor_value(creature, "get_memorized_spell_editor_value",
-                  nwn1::class_type_wizard, nwn1::spell_light, nw::metamagic_none),
+                  nw::Class::make(10), nw::Spell::make(100), nw::metamagic_none),
         before - 1);
     EXPECT_FALSE(std::any_of(loadout->entries.begin(), loadout->entries.end(),
         [&edited_row](const auto& entry) {
@@ -796,7 +795,7 @@ TEST(ClientObjectEdits, CreatureMemorizedSpellCommitRemovesOneExactUse)
     workspace.push_undo(*committed.undo_action);
     EXPECT_TRUE(workspace.undo(context).ok());
     EXPECT_EQ(read_spell_editor_value(creature, "get_memorized_spell_editor_value",
-                  nwn1::class_type_wizard, nwn1::spell_light, nw::metamagic_none),
+                  nw::Class::make(10), nw::Spell::make(100), nw::metamagic_none),
         before);
     const auto restored = std::find_if(loadout->entries.begin(), loadout->entries.end(),
         [&edited_row](const auto& entry) {
@@ -808,7 +807,7 @@ TEST(ClientObjectEdits, CreatureMemorizedSpellCommitRemovesOneExactUse)
     EXPECT_EQ(restored->flags, 0);
     EXPECT_TRUE(workspace.redo(context).ok());
     EXPECT_EQ(read_spell_editor_value(creature, "get_memorized_spell_editor_value",
-                  nwn1::class_type_wizard, nwn1::spell_light, nw::metamagic_none),
+                  nw::Class::make(10), nw::Spell::make(100), nw::metamagic_none),
         before - 1);
     EXPECT_FALSE(std::any_of(loadout->entries.begin(), loadout->entries.end(),
         [&edited_row](const auto& entry) {
@@ -1540,7 +1539,7 @@ TEST(ClientObjectEdits, AppearanceUndoRestoresBodyPartsInitializedBySmalls)
     object.type_id = runtime.object_subtype_for_tag(creature->handle().type);
     auto prepared = runtime.execute_script(script,
         "make_bodyless",
-        {object, nw::smalls::Value::make_int(*nwn1::appearance_type_bodak)});
+        {object, nw::smalls::Value::make_int(*nw::Appearance::make(23))});
     ASSERT_TRUE(prepared.ok()) << prepared.error_message;
     ASSERT_EQ(prepared.value.data.ival, 1);
 
@@ -1552,7 +1551,7 @@ TEST(ClientObjectEdits, AppearanceUndoRestoresBodyPartsInitializedBySmalls)
     ASSERT_EQ(body_part_sum(), 0);
 
     auto edit = nw::toolset::make_object_appearance_edit(
-        runtime, creature->handle(), *nwn1::appearance_type_human);
+        runtime, creature->handle(), *nw::Appearance::make(6));
     ASSERT_TRUE(edit);
 
     nw::toolset::WorkspaceState workspace;
@@ -1565,18 +1564,18 @@ TEST(ClientObjectEdits, AppearanceUndoRestoresBodyPartsInitializedBySmalls)
         std::move(*edit), "Set appearance", context);
     ASSERT_TRUE(committed.ok()) << committed.message;
     ASSERT_TRUE(committed.undo_action);
-    EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nwn1::appearance_type_human);
+    EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nw::Appearance::make(6));
     EXPECT_EQ(body_part_sum(), 16);
 
     workspace.push_undo(*committed.undo_action);
     const auto undone = workspace.undo(context);
     ASSERT_TRUE(undone.ok()) << undone.message;
-    EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nwn1::appearance_type_bodak);
+    EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nw::Appearance::make(23));
     EXPECT_EQ(body_part_sum(), 0);
 
     const auto redone = workspace.redo(context);
     ASSERT_TRUE(redone.ok()) << redone.message;
-    EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nwn1::appearance_type_human);
+    EXPECT_EQ(nw::toolset::object_appearance(runtime, creature->handle()), *nw::Appearance::make(6));
     EXPECT_EQ(body_part_sum(), 16);
 }
 
@@ -2800,7 +2799,7 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveBlueprintJsonAtomically)
     const int32_t original_plot = read_plot(creature);
     ASSERT_TRUE(original_plot == 0 || original_plot == 1);
     const int32_t edited_plot = 1 - original_plot;
-    const auto feat = nwn1::feat_epic_toughness_1;
+    const auto feat = nw::Feat::make(754);
     ASSERT_FALSE(read_feat(creature, feat));
 
     nw::toolset::ObjectEditBatch plot_batch;

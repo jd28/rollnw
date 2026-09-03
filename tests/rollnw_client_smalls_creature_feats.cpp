@@ -5,7 +5,6 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -45,7 +44,7 @@ TEST(ClientSmallsCreatureFeats, BuildsFilteredRowsFromLiveAssignmentData)
             << previous << " should sort before " << current;
     }
 
-    const auto feat = nwn1::feat_epic_toughness_1;
+    const auto feat = nw::Feat::make(754);
     auto row = std::find_if(snapshot.rows.begin(), snapshot.rows.end(), [feat](const auto& value) {
         return value.feat_id == static_cast<uint32_t>(*feat);
     });

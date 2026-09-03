@@ -11,7 +11,6 @@
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/combat_scheduler.hpp>
@@ -676,7 +675,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_EQ(script_int_field(rt, appearance1, "appearance"), 31);
     auto stats1 = find_creature_propset(rt, obj1, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats1.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, stats1, "abilities", *nwn1::ability_dexterity), 7);
+    EXPECT_EQ(script_fixed_int_field(rt, stats1, "abilities", *nw::Ability::make(1)), 7);
     EXPECT_EQ(script_int_field(rt, stats1, "gender"), 1);
     EXPECT_EQ(creature_alignment_flags_from_script(obj1),
         static_cast<int32_t>(nw::align_true_neutral));
@@ -696,7 +695,7 @@ TEST(Creature, GffDeserialize)
     EXPECT_TRUE(nw::get_equipped_item(obj2, nw::EquipIndex::chest));
     auto stats2 = find_creature_propset(rt, obj2, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats2.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, stats2, "abilities", *nwn1::ability_dexterity), 13);
+    EXPECT_EQ(script_fixed_int_field(rt, stats2, "abilities", *nw::Ability::make(1)), 13);
     EXPECT_EQ(script_int_field(rt, stats2, "ac_natural_bonus"), 0);
     ASSERT_EQ(script_array_size(rt, stats2, "special_abilities"), 1);
     auto special_ability = script_array_value(rt, stats2, "special_abilities", 0);
@@ -739,7 +738,7 @@ TEST(Creature, GffDeserializeImportsPropsets)
 
     auto stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), dexterity);
+    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nw::Ability::make(1)), dexterity);
 
     auto health = find_creature_propset(rt, creature, "nwn1.propsets.CreatureHealth");
     ASSERT_NE(health.type_id, nw::smalls::invalid_type_id);
@@ -772,13 +771,13 @@ TEST(Creature, InstantiatePreservesImportedPropsetsWithoutLegacyCombatMirrors)
     auto& rt = nw::kernel::runtime();
     auto stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), dexterity);
+    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nw::Ability::make(1)), dexterity);
 
     ASSERT_TRUE(creature->instantiate());
 
     stats = find_creature_propset(rt, creature, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), dexterity);
+    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nw::Ability::make(1)), dexterity);
 
     auto combat = find_creature_propset(rt, creature, "nwn1.propsets.CreatureCombat");
     ASSERT_NE(combat.type_id, nw::smalls::invalid_type_id);
@@ -856,9 +855,9 @@ TEST(Creature, CreatureStatsFeatsImportAndInsert)
     EXPECT_TRUE(knows_feat_from_script(ent, rando_feat));
     EXPECT_FALSE(add_creature_propset_feat(ent, rando_feat));
 
-    EXPECT_FALSE(knows_feat_from_script(ent, nwn1::feat_epic_toughness_1));
-    EXPECT_TRUE(add_creature_propset_feat(ent, nwn1::feat_epic_toughness_1));
-    EXPECT_TRUE(knows_feat_from_script(ent, nwn1::feat_epic_toughness_1));
+    EXPECT_FALSE(knows_feat_from_script(ent, nw::Feat::make(754)));
+    EXPECT_TRUE(add_creature_propset_feat(ent, nw::Feat::make(754)));
+    EXPECT_TRUE(knows_feat_from_script(ent, nw::Feat::make(754)));
 }
 
 TEST(Creature, CreatureStatsFeatOperationsPreserveSortedUniqueStorage)
@@ -903,7 +902,7 @@ TEST(Creature, ResolveModelUsesNativeAppearanceData)
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     EXPECT_TRUE(mod);
 
-    auto bodak = resolve_creature_model_from_appearance(nwn1::appearance_type_bodak);
+    auto bodak = resolve_creature_model_from_appearance(nw::Appearance::make(23));
     ASSERT_TRUE(bodak.valid()) << bodak.error;
     EXPECT_FALSE(bodak.humanoid);
     ASSERT_TRUE(bodak.has_model()) << bodak.error;
@@ -915,7 +914,7 @@ TEST(Creature, ResolveModelUsesNativeAppearanceData)
     EXPECT_FLOAT_EQ(bodak.hand_item_scale, 1.0f);
     EXPECT_FLOAT_EQ(bodak.wing_tail_scale, 1.0f);
 
-    auto human = resolve_creature_model_from_appearance(nwn1::appearance_type_human);
+    auto human = resolve_creature_model_from_appearance(nw::Appearance::make(6));
     ASSERT_TRUE(human.valid()) << human.error;
     EXPECT_TRUE(human.humanoid);
     EXPECT_FALSE(human.has_model());
@@ -933,14 +932,14 @@ TEST(Creature, UpdateVisualUsesNonHumanoidNativeModelRow)
 
     auto* creature = nwk::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_bodak));
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(23)));
 
     auto& rt = nwk::runtime();
     nw::Vector<nw::smalls::Value> args;
     auto creature_value = nw::smalls::Value::make_object(creature->handle());
     creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
     args.push_back(creature_value);
-    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_bodak));
+    args.push_back(nw::smalls::Value::make_int(*nw::Appearance::make(23)));
 
     auto updated = rt.execute_script("nwn1.creature", "update_visual_by_appearance", args);
     ASSERT_TRUE(updated.ok()) << updated.error_message;
@@ -949,7 +948,7 @@ TEST(Creature, UpdateVisualUsesNonHumanoidNativeModelRow)
 
     const auto* visual = nwk::objects().components().find_visual(creature->handle());
     ASSERT_NE(visual, nullptr);
-    EXPECT_EQ(visual->appearance, *nwn1::appearance_type_bodak);
+    EXPECT_EQ(visual->appearance, *nw::Appearance::make(23));
     EXPECT_EQ(visual->base_plt_color_mask, creature_plt_mask);
     EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_hair], 11);
     EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_skin], 12);
@@ -976,14 +975,14 @@ TEST(Creature, UpdateVisualUsesSmallsAttachmentRows)
 
     auto* creature = nwk::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_bodak, 1));
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(23), 1));
 
     auto& rt = nwk::runtime();
     nw::Vector<nw::smalls::Value> args;
     auto creature_value = nw::smalls::Value::make_object(creature->handle());
     creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
     args.push_back(creature_value);
-    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_bodak));
+    args.push_back(nw::smalls::Value::make_int(*nw::Appearance::make(23)));
 
     auto updated = rt.execute_script("nwn1.creature", "update_visual_by_appearance", args);
     ASSERT_TRUE(updated.ok()) << updated.error_message;
@@ -1021,14 +1020,14 @@ TEST(Creature, UpdateVisualUsesHumanoidSmallsBodyRows)
 
     auto* creature = nwk::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_human, 0, 0, 1));
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(6), 0, 0, 1));
 
     auto& rt = nwk::runtime();
     nw::Vector<nw::smalls::Value> args;
     auto creature_value = nw::smalls::Value::make_object(creature->handle());
     creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
     args.push_back(creature_value);
-    args.push_back(nw::smalls::Value::make_int(*nwn1::appearance_type_human));
+    args.push_back(nw::smalls::Value::make_int(*nw::Appearance::make(6)));
 
     auto updated = rt.execute_script("nwn1.creature", "update_visual_by_appearance", args);
     ASSERT_TRUE(updated.ok()) << updated.error_message;
@@ -1037,7 +1036,7 @@ TEST(Creature, UpdateVisualUsesHumanoidSmallsBodyRows)
 
     const auto* visual = nwk::objects().components().find_visual(creature->handle());
     ASSERT_NE(visual, nullptr);
-    EXPECT_EQ(visual->appearance, *nwn1::appearance_type_human);
+    EXPECT_EQ(visual->appearance, *nw::Appearance::make(6));
     EXPECT_EQ(visual->base_plt_color_mask, creature_plt_mask);
     EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_hair], 11);
     EXPECT_EQ(visual->base_plt_colors.data[nw::plt_layer_skin], 12);
@@ -1069,13 +1068,13 @@ TEST(Creature, InstantiatePopulatesHumanoidSmallsBodyRows)
 
     auto* creature = nwk::objects().make<nw::Creature>();
     ASSERT_NE(creature, nullptr);
-    ASSERT_TRUE(seed_creature_appearance_propset(creature, nwn1::appearance_type_human, 0, 0, 1));
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(6), 0, 0, 1));
 
     ASSERT_TRUE(creature->instantiate());
 
     const auto* visual = nwk::objects().components().find_visual(creature->handle());
     ASSERT_NE(visual, nullptr);
-    EXPECT_EQ(visual->appearance, *nwn1::appearance_type_human);
+    EXPECT_EQ(visual->appearance, *nw::Appearance::make(6));
 
     bool found_torso = false;
     for (const auto& row : visual->models) {
@@ -1098,20 +1097,20 @@ TEST(Creature, FeatSearch)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    EXPECT_TRUE(knows_feat_from_script(ent, nwn1::feat_epic_toughness_2));
-    EXPECT_FALSE(knows_feat_from_script(ent, nwn1::feat_epic_toughness_1));
+    EXPECT_TRUE(knows_feat_from_script(ent, nw::Feat::make(755)));
+    EXPECT_FALSE(knows_feat_from_script(ent, nw::Feat::make(754)));
 
-    auto [feat, nth] = feat_successor_from_script(ent, nwn1::feat_epic_toughness_2);
+    auto [feat, nth] = feat_successor_from_script(ent, nw::Feat::make(755));
     EXPECT_TRUE(nth);
-    EXPECT_EQ(feat, nwn1::feat_epic_toughness_4);
+    EXPECT_EQ(feat, nw::Feat::make(757));
 
-    auto [feat2, nth2] = feat_successor_from_script(ent, nwn1::feat_epic_great_wisdom_1);
+    auto [feat2, nth2] = feat_successor_from_script(ent, nw::Feat::make(804));
     EXPECT_EQ(nth2, 0);
 
-    auto feat3 = highest_feat_in_range_from_script(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
-    EXPECT_EQ(feat3, nwn1::feat_epic_toughness_4);
+    auto feat3 = highest_feat_in_range_from_script(ent, nw::Feat::make(754), nw::Feat::make(763));
+    EXPECT_EQ(feat3, nw::Feat::make(757));
 
-    auto n = count_feats_in_range_from_script(ent, nwn1::feat_epic_toughness_1, nwn1::feat_epic_toughness_10);
+    auto n = count_feats_in_range_from_script(ent, nw::Feat::make(754), nw::Feat::make(763));
     EXPECT_EQ(n, 3); // char doesn't have et1.
 }
 
@@ -1124,35 +1123,35 @@ TEST(Creature, Ability)
     EXPECT_TRUE(obj);
     EXPECT_TRUE(obj->instantiate());
 
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength), 40);
-    EXPECT_EQ(creature_ability_modifier_from_script(obj, nwn1::ability_strength), 15);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0)), 40);
+    EXPECT_EQ(creature_ability_modifier_from_script(obj, nw::Ability::make(0)), 15);
 
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_dexterity), 17);
-    EXPECT_EQ(creature_ability_modifier_from_script(obj, nwn1::ability_dexterity), 3);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(1)), 17);
+    EXPECT_EQ(creature_ability_modifier_from_script(obj, nw::Ability::make(1)), 3);
 
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 40);
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_great_strength_1));
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 41);
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_great_strength_2));
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 42);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 40);
+    EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(814)));
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 41);
+    EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(815)));
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 42);
 
-    auto eff = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
+    auto eff = nwn1::effect_ability_modifier(nw::Ability::make(0), 5);
     EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
     EXPECT_TRUE(obj->effects().size() > 0);
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 47);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 47);
 
-    auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, -3);
+    auto eff2 = nwn1::effect_ability_modifier(nw::Ability::make(0), -3);
     EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 44);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 44);
 
     // Belt of Cloud Giant Strength
     auto item = nwk::objects().load<nw::Item>("x2_it_mbelt001"sv);
     EXPECT_TRUE(item);
     EXPECT_TRUE(nwn1::equip_item(obj, item, nw::EquipIndex::belt));
     EXPECT_TRUE(obj->effects().size() > 1);
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 52);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 52);
     EXPECT_TRUE(nwn1::unequip_item(obj, nw::EquipIndex::belt));
-    EXPECT_EQ(creature_ability_score_from_script(obj, nwn1::ability_strength, false), 44);
+    EXPECT_EQ(creature_ability_score_from_script(obj, nw::Ability::make(0), false), 44);
 
     // Class stat gain
     auto obj2 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/sorcrdd.utc");
@@ -1162,11 +1161,11 @@ TEST(Creature, Ability)
     auto& rt = nw::kernel::runtime();
     auto obj2_stats = find_creature_propset(rt, obj2, "nwn1.propsets.CreatureStats");
     ASSERT_NE(obj2_stats.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, obj2_stats, "abilities", *nwn1::ability_strength), 15);
-    EXPECT_EQ(creature_ability_score_from_script(obj2, nwn1::ability_strength), 23);
+    EXPECT_EQ(script_fixed_int_field(rt, obj2_stats, "abilities", *nw::Ability::make(0)), 15);
+    EXPECT_EQ(creature_ability_score_from_script(obj2, nw::Ability::make(0)), 23);
 
-    EXPECT_EQ(script_fixed_int_field(rt, obj2_stats, "abilities", *nwn1::ability_constitution), 14);
-    EXPECT_EQ(creature_ability_score_from_script(obj2, nwn1::ability_constitution), 14); // This is an elf!
+    EXPECT_EQ(script_fixed_int_field(rt, obj2_stats, "abilities", *nw::Ability::make(2)), 14);
+    EXPECT_EQ(creature_ability_score_from_script(obj2, nw::Ability::make(2)), 14); // This is an elf!
 }
 
 TEST(Creature, Skills)
@@ -1181,19 +1180,19 @@ TEST(Creature, Skills)
             auto obj = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
             ASSERT_TRUE(obj);
 
-            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline, nullptr, true), 40);
-            EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_skill_focus_discipline));
-            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 61);
-            EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_skill_focus_discipline));
-            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 71);
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nw::Skill::make(3), nullptr, true), 40);
+            EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(175)));
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nw::Skill::make(3)), 61);
+            EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(592)));
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nw::Skill::make(3)), 71);
 
-            auto eff = nwn1::effect_skill_modifier(nwn1::skill_discipline, 5);
+            auto eff = nwn1::effect_skill_modifier(nw::Skill::make(3), 5);
             EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
-            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 76);
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nw::Skill::make(3)), 76);
 
-            auto eff2 = nwn1::effect_ability_modifier(nwn1::ability_strength, 5);
+            auto eff2 = nwn1::effect_ability_modifier(nw::Ability::make(0), 5);
             EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
-            EXPECT_EQ(creature_skill_rank_from_script(obj, nwn1::skill_discipline), 78);
+            EXPECT_EQ(creature_skill_rank_from_script(obj, nw::Skill::make(3)), 78);
         }
 
         if (pass == 0) {
@@ -1210,7 +1209,7 @@ TEST(Creature, Attack)
 
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(obj);
-    EXPECT_TRUE(test_has_effect_applied(obj, nwn1::effect_type_damage_increase, *nwn1::damage_type_base_weapon));
+    EXPECT_TRUE(test_has_effect_applied(obj, nw::EffectType::make(13), *nw::Damage::make(12)));
 
     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
     EXPECT_TRUE(obj2);
@@ -1218,7 +1217,7 @@ TEST(Creature, Attack)
     for (size_t i = 0; i < 100; ++i) {
         nw::AttackData data1;
         EXPECT_TRUE(nw::combat::resolve_attack(obj, obj2, &data1));
-        EXPECT_EQ(data1.type, nwn1::attack_type_unarmed);
+        EXPECT_EQ(data1.type, nw::AttackType::make(3));
         if (nw::is_attack_type_hit(data1.result)) {
             EXPECT_GT(data1.damage_total, 0);
         } else {
@@ -1232,7 +1231,7 @@ TEST(Creature, Attack)
     for (size_t i = 0; i < 100; ++i) {
         nw::AttackData data1;
         EXPECT_TRUE(nw::combat::resolve_attack(obj3, obj, &data1));
-        EXPECT_EQ(data1.type, nwn1::attack_type_onhand);
+        EXPECT_EQ(data1.type, nw::AttackType::make(1));
         if (nw::is_attack_type_hit(data1.result)) {
             EXPECT_GT(data1.damage_total, 0);
         } else {
@@ -1248,7 +1247,7 @@ TEST(Creature, Attack)
     for (size_t i = 0; i < 100; ++i) {
         nw::AttackData data1;
         EXPECT_TRUE(nw::combat::resolve_attack(obj4, vs4, &data1));
-        EXPECT_EQ(data1.type, nwn1::attack_type_onhand);
+        EXPECT_EQ(data1.type, nw::AttackType::make(1));
         if (nw::is_attack_type_hit(data1.result)) {
             EXPECT_GT(data1.damage_total, 0);
         } else {
@@ -1339,14 +1338,14 @@ TEST(Creature, BaseAttackBonus)
 
     EXPECT_EQ(27, creature_base_attack_bonus_from_script(obj));
 
-    EXPECT_FALSE(knows_feat_from_script(obj, nwn1::feat_weapon_focus_unarmed));
-    EXPECT_FALSE(knows_feat_from_script(obj, nwn1::feat_epic_weapon_focus_unarmed));
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_weapon_focus_unarmed));
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_weapon_focus_unarmed));
+    EXPECT_FALSE(knows_feat_from_script(obj, nw::Feat::make(100)));
+    EXPECT_FALSE(knows_feat_from_script(obj, nw::Feat::make(630)));
+    EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(100)));
+    EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(630)));
 
-    auto eff1 = nwn1::effect_attack_modifier(nwn1::attack_type_any, 2);
+    auto eff1 = nwn1::effect_attack_modifier(nw::AttackType::make(0), 2);
     EXPECT_TRUE(nwk::effects().apply_to(obj, eff1));
-    auto eff2 = nwn1::effect_attack_modifier(nwn1::attack_type_unarmed, 3);
+    auto eff2 = nwn1::effect_attack_modifier(nw::AttackType::make(3), 3);
     EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
 }
 
@@ -1406,7 +1405,7 @@ TEST(Creature, CombatPolicyModuleResolveAttackFullPayloadIntegration)
     nwk::config().set_combat_policy_module("test.custom_combat_policy_attack_full_payload");
     nw::AttackData attack;
     ASSERT_TRUE(nw::combat::resolve_attack(attacker, target, &attack));
-    EXPECT_EQ(attack.type, nwn1::attack_type_offhand);
+    EXPECT_EQ(attack.type, nw::AttackType::make(2));
     EXPECT_EQ(attack.result, nw::AttackResult::hit_by_roll);
     EXPECT_EQ(attack.attack_roll, 19);
     EXPECT_EQ(attack.attack_bonus, 42);
@@ -1435,14 +1434,15 @@ TEST(Creature, CombatPolicyModuleDamageMitigationEffectConsumption)
 
     auto& rt = nw::kernel::runtime();
     auto* script = rt.load_module_from_source("test.custom_combat_policy_damage_mitigation_effect_consumption", R"(
-        import core.combat as C;
         import core.effects as Eff;
         import core.object as Obj;
         import nwn1.combat as Combat;
-        from nwn1.constants import { damage_type_fire };
-
-        const effect_type_damage_reduction = 12;
-        const effect_type_damage_resistance = 2;
+        import nwn1.combat_primitives as C;
+        from nwn1.constants import {
+            damage_type_fire,
+            effect_type_damage_reduction,
+            effect_type_damage_resistance
+        };
 
         fn add_damage_reduction(target: Creature, amount: int, bypass: int, remaining: int): int {
             var eff = Eff.create();
@@ -1450,7 +1450,7 @@ TEST(Creature, CombatPolicyModuleDamageMitigationEffectConsumption)
                 return 0;
             }
 
-            Eff.set_type(eff, effect_type_damage_reduction);
+            Eff.set_type(eff, effect_type_damage_reduction as int);
             Eff.set_int(eff, 0, amount);
             Eff.set_int(eff, 1, bypass);
             Eff.set_int(eff, 2, remaining);
@@ -1463,7 +1463,7 @@ TEST(Creature, CombatPolicyModuleDamageMitigationEffectConsumption)
                 return 0;
             }
 
-            Eff.set_type(eff, effect_type_damage_resistance);
+            Eff.set_type(eff, effect_type_damage_resistance as int);
             Eff.set_subtype(eff, damage_type_fire as int);
             Eff.set_int(eff, 0, amount);
             Eff.set_int(eff, 1, remaining);
@@ -1553,12 +1553,12 @@ TEST(Creature, ChallengRating)
 //     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
 //     EXPECT_TRUE(obj);
 
-//     int multiplier = nwn1::resolve_critical_multiplier(obj, nwn1::attack_type_onhand);
+//     int multiplier = nwn1::resolve_critical_multiplier(obj, nw::AttackType::make(1));
 //     EXPECT_EQ(multiplier, 3);
 
 //     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
 //     EXPECT_TRUE(obj2);
-//     int multiplier2 = nwn1::resolve_critical_multiplier(obj2, nwn1::attack_type_onhand);
+//     int multiplier2 = nwn1::resolve_critical_multiplier(obj2, nw::AttackType::make(1));
 //     EXPECT_EQ(multiplier2, 2);
 // }
 
@@ -1571,13 +1571,13 @@ TEST(Creature, ChallengRating)
 //     EXPECT_TRUE(obj1);
 //     auto weapon1 = nw::get_equipped_item(obj1, nw::EquipIndex::righthand);
 //     EXPECT_TRUE(weapon1);
-//     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon1).test(nwn1::damage_type_slashing));
+//     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon1).test(nw::Damage::make(2)));
 
 //     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
 //     EXPECT_TRUE(obj2);
 //     auto weapon2 = nw::get_equipped_item(obj2, nw::EquipIndex::arms);
 //     EXPECT_TRUE(weapon2);
-//     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon2).test(nwn1::damage_type_bludgeoning));
+//     EXPECT_TRUE(nwn1::resolve_weapon_damage_flags(weapon2).test(nw::Damage::make(0)));
 // }
 
 // TEST(Creature, DamageImmunity)
@@ -1588,20 +1588,20 @@ TEST(Creature, ChallengRating)
 //     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
 //     EXPECT_TRUE(obj);
 
-//     auto eff = nwn1::effect_damage_immunity(nwn1::damage_type_bludgeoning, 10);
+//     auto eff = nwn1::effect_damage_immunity(nw::Damage::make(0), 10);
 //     EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
-//     EXPECT_EQ(nwn1::resolve_damage_immunity(obj, nwn1::damage_type_bludgeoning), 10);
+//     EXPECT_EQ(nwn1::resolve_damage_immunity(obj, nw::Damage::make(0)), 10);
 
-//     auto eff2 = nwn1::effect_damage_immunity(nwn1::damage_type_bludgeoning, -3);
+//     auto eff2 = nwn1::effect_damage_immunity(nw::Damage::make(0), -3);
 //     EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
-//     EXPECT_EQ(nwn1::resolve_damage_immunity(obj, nwn1::damage_type_bludgeoning), 7);
+//     EXPECT_EQ(nwn1::resolve_damage_immunity(obj, nw::Damage::make(0)), 7);
 
 //     // Fake RDD.
 //     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
 //     EXPECT_TRUE(obj2);
-//     obj2->levels.entries[0].id = nwn1::class_type_dragon_disciple;
+//     obj2->levels.entries[0].id = nw::Class::make(18)_disciple;
 //     obj2->levels.entries[0].level = 20;
-//     EXPECT_EQ(nwn1::resolve_damage_immunity(obj2, nwn1::damage_type_fire), 100);
+//     EXPECT_EQ(nwn1::resolve_damage_immunity(obj2, nw::Damage::make(8)), 100);
 // }
 
 // TEST(Creature, DamageReduction)
@@ -1628,18 +1628,18 @@ TEST(Creature, ChallengRating)
 //     // Fake DD.
 //     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
 //     EXPECT_TRUE(obj2);
-//     obj2->levels.entries[0].id = nwn1::class_type_dwarven_defender;
+//     obj2->levels.entries[0].id = nw::Class::make(36);
 //     obj2->levels.entries[0].level = 20;
 //     EXPECT_EQ(nwn1::resolve_damage_reduction(obj2, 1).first, 12);
 
 //     // Fake Barb.
 //     auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
 //     EXPECT_TRUE(obj3);
-//     obj3->levels.entries[0].id = nwn1::class_type_barbarian;
+//     obj3->levels.entries[0].id = nw::Class::make(0);
 //     obj3->levels.entries[0].level = 20;
 //     EXPECT_EQ(nwn1::resolve_damage_reduction(obj3, 1).first, 4);
 
-//     add_creature_propset_feat(obj3, nwn1::feat_epic_damage_reduction_6);
+//     add_creature_propset_feat(obj3, nw::Feat::make(493));
 //     EXPECT_EQ(nwn1::resolve_damage_reduction(obj3, 1).first, 10);
 // }
 
@@ -1651,15 +1651,15 @@ TEST(Creature, ChallengRating)
 //     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
 //     EXPECT_TRUE(obj);
 
-//     auto eff = nwn1::effect_damage_resistance(nwn1::damage_type_acid, 10);
+//     auto eff = nwn1::effect_damage_resistance(nw::Damage::make(4), 10);
 //     EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
-//     EXPECT_EQ(nwn1::resolve_damage_resistance(obj, nwn1::damage_type_acid).first, 10);
-//     EXPECT_EQ(nwn1::resolve_damage_resistance(obj, nwn1::damage_type_fire).first, 0);
+//     EXPECT_EQ(nwn1::resolve_damage_resistance(obj, nw::Damage::make(4)).first, 10);
+//     EXPECT_EQ(nwn1::resolve_damage_resistance(obj, nw::Damage::make(8)).first, 0);
 
 //     auto obj3 = nwk::objects().load_file<nw::Creature>("test_data/user/development/nw_chicken.utc");
 //     EXPECT_TRUE(obj3);
-//     add_creature_propset_feat(obj3, nwn1::feat_epic_energy_resistance_sonic_3);
-//     EXPECT_EQ(nwn1::resolve_damage_resistance(obj3, nwn1::damage_type_sonic).first, 30);
+//     add_creature_propset_feat(obj3, nw::Feat::make(575));
+//     EXPECT_EQ(nwn1::resolve_damage_resistance(obj3, nw::Damage::make(11)).first, 30);
 // }
 
 TEST(Creature, Hitpoints)
@@ -1694,9 +1694,9 @@ TEST(Creature, Hitpoints)
     EXPECT_EQ(vitals->hp_current, 4);
     EXPECT_EQ(vitals->hp_max, 4);
 
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_toughness));
+    EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(40)));
     EXPECT_EQ(object_hitpoints_from_script("get_max_hitpoints", obj), 5);
-    EXPECT_TRUE(add_creature_propset_feat(obj, nwn1::feat_epic_toughness_5));
+    EXPECT_TRUE(add_creature_propset_feat(obj, nw::Feat::make(758)));
     EXPECT_EQ(object_hitpoints_from_script("get_max_hitpoints", obj), 105);
 }
 
@@ -1707,19 +1707,19 @@ TEST(Creature, SavingThrows)
 
     auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     EXPECT_TRUE(obj);
-    EXPECT_EQ(creature_saving_throw_from_script(obj, nwn1::saving_throw_fort), 20);
-    EXPECT_EQ(creature_saving_throw_from_script(obj, nwn1::saving_throw_reflex), 21);
-    EXPECT_EQ(creature_saving_throw_from_script(obj, nwn1::saving_throw_will), 13);
+    EXPECT_EQ(creature_saving_throw_from_script(obj, nw::Save::make(1)), 20);
+    EXPECT_EQ(creature_saving_throw_from_script(obj, nw::Save::make(2)), 21);
+    EXPECT_EQ(creature_saving_throw_from_script(obj, nw::Save::make(3)), 13);
 
-    auto eff = nwn1::effect_save_modifier(nwn1::saving_throw_fort, 5);
+    auto eff = nwn1::effect_save_modifier(nw::Save::make(1), 5);
     EXPECT_TRUE(eff);
     EXPECT_TRUE(nwk::effects().apply_to(obj, eff));
-    EXPECT_EQ(creature_saving_throw_from_script(obj, nwn1::saving_throw_fort), 25);
+    EXPECT_EQ(creature_saving_throw_from_script(obj, nw::Save::make(1)), 25);
 
-    auto eff2 = nwn1::effect_save_modifier(nwn1::saving_throw_fort, -2);
+    auto eff2 = nwn1::effect_save_modifier(nw::Save::make(1), -2);
     EXPECT_TRUE(eff2);
     EXPECT_TRUE(nwk::effects().apply_to(obj, eff2));
-    EXPECT_EQ(creature_saving_throw_from_script(obj, nwn1::saving_throw_fort), 23);
+    EXPECT_EQ(creature_saving_throw_from_script(obj, nw::Save::make(1)), 23);
 }
 
 TEST(Creature, JsonSerialization)
@@ -1748,7 +1748,7 @@ TEST(Creature, JsonSerialization)
     auto& rt = nw::kernel::runtime();
     auto stats = find_creature_propset(rt, ent2, "nwn1.propsets.CreatureStats");
     ASSERT_NE(stats.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nwn1::ability_dexterity), 13);
+    EXPECT_EQ(script_fixed_int_field(rt, stats, "abilities", *nw::Ability::make(1)), 13);
 
     auto descriptor = find_creature_propset(rt, ent2, "nwn1.propsets.CreatureDescriptor");
     ASSERT_NE(descriptor.type_id, nw::smalls::invalid_type_id);
@@ -1884,10 +1884,10 @@ TEST(Creature, EffectsApplyRemove)
 
     auto eff = nwn1::effect_haste();
     EXPECT_TRUE(obj->effects().add(eff));
-    EXPECT_TRUE(test_has_effect_applied(obj, nwn1::effect_type_haste));
+    EXPECT_TRUE(test_has_effect_applied(obj, nw::EffectType::make(1)));
     EXPECT_TRUE(obj->effects().size());
     EXPECT_TRUE(obj->effects().remove(eff));
-    EXPECT_FALSE(test_has_effect_applied(obj, nwn1::effect_type_haste));
+    EXPECT_FALSE(test_has_effect_applied(obj, nw::EffectType::make(1)));
     EXPECT_EQ(obj->effects().size(), 0);
     EXPECT_FALSE(obj->effects().remove(nullptr));
 }
@@ -1917,8 +1917,8 @@ TEST(Creature, EffectsBatchCallback)
     EXPECT_TRUE(apply_failed.empty());
 
     ASSERT_EQ(g_effect_batch_types.size(), 2);
-    EXPECT_EQ(g_effect_batch_types[0], nwn1::effect_type_haste);
-    EXPECT_EQ(g_effect_batch_types[1], nwn1::effect_type_temporary_hitpoints);
+    EXPECT_EQ(g_effect_batch_types[0], nw::EffectType::make(1));
+    EXPECT_EQ(g_effect_batch_types[1], nw::EffectType::make(15));
     EXPECT_TRUE(g_effect_batch_is_apply);
 
     g_effect_batch_types.clear();
@@ -1941,56 +1941,56 @@ TEST(Creature, Casting)
 
     auto obj1 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_2.utc");
     EXPECT_TRUE(obj1);
-    EXPECT_EQ(creature_get_caster_level_from_script(obj1, nwn1::class_type_sorcerer), 20);
-    EXPECT_EQ(creature_get_caster_level_from_script(obj1, nwn1::class_type_assassin), 0);
+    EXPECT_EQ(creature_get_caster_level_from_script(obj1, nw::Class::make(9)), 20);
+    EXPECT_EQ(creature_get_caster_level_from_script(obj1, nw::Class::make(30)), 0);
 
-    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj1, nwn1::class_type_sorcerer, 7), 7);
+    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj1, nw::Class::make(9), 7), 7);
 
     // Sorcerer - Known Spells
-    EXPECT_FALSE(creature_add_known_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball));
-    creature_remove_known_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball);
-    EXPECT_TRUE(creature_get_knows_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_mordenkainens_sword));
-    creature_remove_known_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_mordenkainens_sword);
-    EXPECT_TRUE(creature_add_known_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball));
-    EXPECT_TRUE(creature_get_knows_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball));
-    creature_remove_known_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball);
-    EXPECT_FALSE(creature_get_knows_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball));
+    EXPECT_FALSE(creature_add_known_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39)));
+    creature_remove_known_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39));
+    EXPECT_TRUE(creature_get_knows_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(123)));
+    creature_remove_known_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(123));
+    EXPECT_TRUE(creature_add_known_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39)));
+    EXPECT_TRUE(creature_get_knows_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39)));
+    creature_remove_known_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39));
+    EXPECT_FALSE(creature_get_knows_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39)));
 
     // Sorcerer - No Memorized Spells
-    EXPECT_FALSE(creature_add_memorized_spell_from_script(obj1, nwn1::class_type_sorcerer, nwn1::spell_delayed_blast_fireball));
+    EXPECT_FALSE(creature_add_memorized_spell_from_script(obj1, nw::Class::make(9), nw::Spell::make(39)));
 
     auto obj2 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
     EXPECT_TRUE(obj2);
     auto obj2_levels = find_creature_propset(nw::kernel::runtime(), obj2, "nwn1.propsets.CreatureLevels");
     ASSERT_NE(obj2_levels.type_id, nw::smalls::invalid_type_id);
-    EXPECT_EQ(creature_propset_level_by_class(nw::kernel::runtime(), obj2_levels, nwn1::class_type_wizard), 15);
-    EXPECT_EQ(creature_propset_level_by_class(nw::kernel::runtime(), obj2_levels, nwn1::class_type_palemaster), 6);
-    EXPECT_EQ(creature_get_caster_level_from_script(obj2, nwn1::class_type_wizard), 18);
+    EXPECT_EQ(creature_propset_level_by_class(nw::kernel::runtime(), obj2_levels, nw::Class::make(10)), 15);
+    EXPECT_EQ(creature_propset_level_by_class(nw::kernel::runtime(), obj2_levels, nw::Class::make(34)), 6);
+    EXPECT_EQ(creature_get_caster_level_from_script(obj2, nw::Class::make(10)), 18);
 
-    EXPECT_EQ(creature_ability_modifier_from_script(obj2, nwn1::ability_intelligence), 5);
-    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 18);
-    EXPECT_TRUE(add_creature_propset_feat(obj2, nwn1::feat_spell_focus_evocation));
-    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 20);
-    EXPECT_TRUE(add_creature_propset_feat(obj2, nwn1::feat_greater_spell_focus_evocation));
-    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 22);
-    EXPECT_TRUE(add_creature_propset_feat(obj2, nwn1::feat_epic_spell_focus_evocation));
-    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nwn1::class_type_wizard, nwn1::spell_fireball), 24);
+    EXPECT_EQ(creature_ability_modifier_from_script(obj2, nw::Ability::make(3)), 5);
+    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nw::Class::make(10), nw::Spell::make(58)), 18);
+    EXPECT_TRUE(add_creature_propset_feat(obj2, nw::Feat::make(169)));
+    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nw::Class::make(10), nw::Spell::make(58)), 20);
+    EXPECT_TRUE(add_creature_propset_feat(obj2, nw::Feat::make(397)));
+    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nw::Class::make(10), nw::Spell::make(58)), 22);
+    EXPECT_TRUE(add_creature_propset_feat(obj2, nw::Feat::make(614)));
+    EXPECT_EQ(creature_get_spell_dc_from_script(obj2, nw::Class::make(10), nw::Spell::make(58)), 24);
 
-    EXPECT_TRUE(creature_add_known_spell_from_script(obj2, nwn1::class_type_wizard, nwn1::spell_delayed_blast_fireball));
-    EXPECT_FALSE(creature_add_known_spell_from_script(obj2, nwn1::class_type_wizard, nwn1::spell_delayed_blast_fireball));
+    EXPECT_TRUE(creature_add_known_spell_from_script(obj2, nw::Class::make(10), nw::Spell::make(39)));
+    EXPECT_FALSE(creature_add_known_spell_from_script(obj2, nw::Class::make(10), nw::Spell::make(39)));
 
-    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nwn1::class_type_wizard, 0), 5);
-    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nwn1::class_type_wizard, 8), 3);
-    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nwn1::class_type_wizard, 9), 2);
+    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nw::Class::make(10), 0), 5);
+    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nw::Class::make(10), 8), 3);
+    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nw::Class::make(10), 9), 2);
 
-    EXPECT_EQ(creature_get_available_spell_slots_from_script(obj2, nwn1::class_type_wizard, 9), 2);
+    EXPECT_EQ(creature_get_available_spell_slots_from_script(obj2, nw::Class::make(10), 9), 2);
 
-    auto eff2 = nwn1::effect_bonus_spell_slot(nwn1::class_type_wizard, 9);
+    auto eff2 = nwn1::effect_bonus_spell_slot(nw::Class::make(10), 9);
     EXPECT_TRUE(eff2);
     nwk::effects().apply_to(obj2, eff2);
-    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nwn1::class_type_wizard, 9), 3);
+    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nw::Class::make(10), 9), 3);
     EXPECT_TRUE(recompute_creature_available_spell_slots(obj2));
-    EXPECT_EQ(creature_get_available_spell_slots_from_script(obj2, nwn1::class_type_wizard, 9), 3);
+    EXPECT_EQ(creature_get_available_spell_slots_from_script(obj2, nw::Class::make(10), 9), 3);
 }
 
 TEST(Creature, AbilityLoadout)
@@ -2002,24 +2002,24 @@ TEST(Creature, AbilityLoadout)
 
     auto obj1 = nwk::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
     EXPECT_TRUE(obj1);
-    EXPECT_EQ(components.count_slotted_ability(obj1->handle(), *nwn1::class_type_wizard,
-                  *nwn1::spell_light, -1),
+    EXPECT_EQ(components.count_slotted_ability(obj1->handle(), *nw::Class::make(10),
+                  *nw::Spell::make(100), -1),
         1);
 
     auto obj2 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/sorcrdd.utc");
     EXPECT_TRUE(obj2);
     EXPECT_TRUE(obj2->save("tmp/sorcrdd.utc.json"));
-    EXPECT_EQ(creature_get_caster_level_from_script(obj2, nwn1::class_type_sorcerer), 20);
+    EXPECT_EQ(creature_get_caster_level_from_script(obj2, nw::Class::make(9)), 20);
     EXPECT_TRUE(components.find_ability_loadout(obj2->handle()));
-    EXPECT_TRUE(creature_get_knows_spell_from_script(obj2, nwn1::class_type_sorcerer, nwn1::spell_light));
-    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nwn1::class_type_sorcerer, 0), 7);
+    EXPECT_TRUE(creature_get_knows_spell_from_script(obj2, nw::Class::make(9), nw::Spell::make(100)));
+    EXPECT_EQ(creature_compute_total_spell_slots_from_script(obj2, nw::Class::make(9), 0), 7);
 
     auto obj3 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_1.utc");
     EXPECT_TRUE(obj3);
     EXPECT_TRUE(obj3->save("tmp/spell_test_1.utc.json"));
     EXPECT_TRUE(components.find_ability_loadout(obj3->handle()));
-    EXPECT_TRUE(creature_get_knows_spell_from_script(obj3, nwn1::class_type_bard, nwn1::spell_bulls_strength));
-    EXPECT_EQ(components.unslotted_ability_count(obj3->handle(), *nwn1::class_type_bard), 1);
+    EXPECT_TRUE(creature_get_knows_spell_from_script(obj3, nw::Class::make(1), nw::Spell::make(9)));
+    EXPECT_EQ(components.unslotted_ability_count(obj3->handle(), *nw::Class::make(1)), 1);
 
     auto obj4 = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/spell_test_2.utc");
     EXPECT_TRUE(obj4);
@@ -2041,26 +2041,26 @@ TEST(Creature, AbilityLoadout)
         EXPECT_FALSE(saved["nwn1.propsets.CreatureLevels"].contains("spellbook"));
     }
     EXPECT_TRUE(components.find_ability_loadout(obj4->handle()));
-    EXPECT_EQ(components.count_slotted_ability(obj4->handle(), *nwn1::class_type_cleric,
-                  *nwn1::spell_hammer_of_the_gods, -1),
+    EXPECT_EQ(components.count_slotted_ability(obj4->handle(), *nw::Class::make(2),
+                  *nw::Spell::make(76), -1),
         3);
-    EXPECT_EQ(creature_available_spell_uses_from_script(obj4, nwn1::class_type_cleric,
-                  nwn1::spell_hammer_of_the_gods, 4, nw::metamagic_any),
+    EXPECT_EQ(creature_available_spell_uses_from_script(obj4, nw::Class::make(2),
+                  nw::Spell::make(76), 4, nw::metamagic_any),
         3);
-    EXPECT_EQ(creature_available_spell_uses_from_script(obj4, nwn1::class_type_cleric,
-                  nwn1::spell_hammer_of_the_gods, 5, nw::metamagic_any),
+    EXPECT_EQ(creature_available_spell_uses_from_script(obj4, nw::Class::make(2),
+                  nw::Spell::make(76), 5, nw::metamagic_any),
         0);
-    EXPECT_EQ(components.slotted_ability_count(obj4->handle(), *nwn1::class_type_cleric), 66);
-    EXPECT_EQ(components.find_slotted_ability_slot(obj4->handle(), *nwn1::class_type_cleric, 4,
-                  *nwn1::spell_hammer_of_the_gods, *nw::metamagic_none),
+    EXPECT_EQ(components.slotted_ability_count(obj4->handle(), *nw::Class::make(2)), 66);
+    EXPECT_EQ(components.find_slotted_ability_slot(obj4->handle(), *nw::Class::make(2), 4,
+                  *nw::Spell::make(76), *nw::metamagic_none),
         4);
-    components.clear_slotted_ability(obj4->handle(), *nwn1::class_type_cleric, 4, 4);
-    EXPECT_EQ(components.first_empty_ability_slot(obj4->handle(), *nwn1::class_type_cleric, 4), 4);
-    EXPECT_EQ(components.count_slotted_ability(obj4->handle(), *nwn1::class_type_cleric,
-                  *nwn1::spell_hammer_of_the_gods, -1),
+    components.clear_slotted_ability(obj4->handle(), *nw::Class::make(2), 4, 4);
+    EXPECT_EQ(components.first_empty_ability_slot(obj4->handle(), *nw::Class::make(2), 4), 4);
+    EXPECT_EQ(components.count_slotted_ability(obj4->handle(), *nw::Class::make(2),
+                  *nw::Spell::make(76), -1),
         2);
-    EXPECT_EQ(components.find_slotted_ability_slot(obj4->handle(), *nwn1::class_type_cleric, 4,
-                  *nwn1::spell_hammer_of_the_gods, *nw::metamagic_none),
+    EXPECT_EQ(components.find_slotted_ability_slot(obj4->handle(), *nw::Class::make(2), 4,
+                  *nw::Spell::make(76), *nw::metamagic_none),
         5);
 }
 

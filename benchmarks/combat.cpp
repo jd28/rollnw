@@ -2,7 +2,6 @@
 #include <nw/kernel/Memory.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/rules/combat_scheduler.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/Smalls.hpp>
@@ -273,9 +272,9 @@ static void benchmark_resolve_attack_direct_module_context_case(
 
     if (magic_profile) {
         if (!apply_benchmark_effect(attacker, nwn1::effect_haste())
-            || !apply_benchmark_effect(attacker, nwn1::effect_attack_modifier(nwn1::attack_type_any, 5))
-            || !apply_benchmark_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 20, 100))
-            || !apply_benchmark_effect(target, nwn1::effect_damage_immunity(nwn1::damage_type_fire, 30))) {
+            || !apply_benchmark_effect(attacker, nwn1::effect_attack_modifier(nw::AttackType::make(0), 5))
+            || !apply_benchmark_effect(target, nwn1::effect_damage_resistance(nw::Damage::make(8), 20, 100))
+            || !apply_benchmark_effect(target, nwn1::effect_damage_immunity(nw::Damage::make(8), 30))) {
             nwk::unload_module();
             state.SkipWithError("failed to apply benchmark magic profile effects");
             return;
@@ -410,13 +409,13 @@ static bool apply_effect_stack_profile(nw::Creature* attacker, nw::Creature* tar
     }
 
     for (int i = 0; i < count; ++i) {
-        if (!apply_benchmark_effect(attacker, nwn1::effect_attack_modifier(nwn1::attack_type_any, 1 + (i % 3)))) {
+        if (!apply_benchmark_effect(attacker, nwn1::effect_attack_modifier(nw::AttackType::make(0), 1 + (i % 3)))) {
             return false;
         }
-        if (!apply_benchmark_effect(target, nwn1::effect_damage_resistance(nwn1::damage_type_fire, 5 + (i % 4), 0))) {
+        if (!apply_benchmark_effect(target, nwn1::effect_damage_resistance(nw::Damage::make(8), 5 + (i % 4), 0))) {
             return false;
         }
-        if (!apply_benchmark_effect(target, nwn1::effect_damage_immunity(nwn1::damage_type_fire, 2 + (i % 4)))) {
+        if (!apply_benchmark_effect(target, nwn1::effect_damage_immunity(nw::Damage::make(8), 2 + (i % 4)))) {
             return false;
         }
     }
@@ -427,7 +426,7 @@ static bool apply_effect_stack_profile(nw::Creature* attacker, nw::Creature* tar
 static nw::Effect* make_callback_bench_effect(int mode, int index)
 {
     if (mode == 0) {
-        auto* effect = nw::kernel::effects().create(nwn1::effect_type_miss_chance);
+        auto* effect = nw::kernel::effects().create(nw::EffectType::make(75));
         if (effect) {
             effect->set_int(0, 10 + (index % 20));
         }
@@ -439,7 +438,7 @@ static nw::Effect* make_callback_bench_effect(int mode, int index)
             return nwn1::effect_haste();
         }
 
-        auto* effect = nw::kernel::effects().create(nwn1::effect_type_miss_chance);
+        auto* effect = nw::kernel::effects().create(nw::EffectType::make(75));
         if (effect) {
             effect->set_int(0, 10 + (index % 20));
         }
@@ -455,7 +454,7 @@ static nw::Effect* make_callback_bench_effect(int mode, int index)
         return effect;
     }
 
-    auto* fallback = nw::kernel::effects().create(nwn1::effect_type_miss_chance);
+    auto* fallback = nw::kernel::effects().create(nw::EffectType::make(75));
     if (fallback) {
         fallback->set_int(0, 10 + (index % 20));
     }

@@ -13,7 +13,7 @@ namespace nwn1 {
 nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
 {
     if (modifier == 0) { return nullptr; }
-    auto type = modifier > 0 ? effect_type_ability_increase : effect_type_ability_decrease;
+    auto type = modifier > 0 ? nw::EffectType::make(36) : nw::EffectType::make(37);
     int value = modifier > 0 ? modifier : -modifier;
 
     auto eff = nw::kernel::effects().create(type);
@@ -25,7 +25,7 @@ nw::Effect* effect_ability_modifier(nw::Ability ability, int modifier)
 nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier)
 {
     if (modifier == 0) { return nullptr; }
-    auto efftype = modifier > 0 ? effect_type_ac_increase : effect_type_ac_decrease;
+    auto efftype = modifier > 0 ? nw::EffectType::make(48) : nw::EffectType::make(49);
     int value = modifier > 0 ? modifier : -modifier;
 
     auto eff = nw::kernel::effects().create(efftype);
@@ -37,8 +37,8 @@ nw::Effect* effect_armor_class_modifier(nw::ArmorClass type, int modifier)
 nw::Effect* effect_attack_modifier(nw::AttackType attack, int modifier)
 {
     if (modifier == 0) { return nullptr; }
-    auto eff = nw::kernel::effects().create(effect_type_attack_increase);
-    eff->handle().type = modifier > 0 ? effect_type_attack_increase : effect_type_attack_decrease;
+    auto eff = nw::kernel::effects().create(nw::EffectType::make(10));
+    eff->handle().type = modifier > 0 ? nw::EffectType::make(10) : nw::EffectType::make(11);
     eff->handle().subtype = *attack;
     eff->set_int(0, std::abs(modifier));
     return eff;
@@ -50,7 +50,7 @@ nw::Effect* effect_bonus_spell_slot(nw::Class class_, int spell_level)
         return nullptr;
     }
 
-    auto eff = nw::kernel::effects().create(effect_type_bonus_spell_of_level);
+    auto eff = nw::kernel::effects().create(nw::EffectType::make(78));
     eff->handle().subtype = *class_;
     eff->set_int(0, spell_level);
     return eff;
@@ -60,8 +60,8 @@ nw::Effect* effect_damage_immunity(nw::Damage type, int value)
 {
     if (value == 0) { return nullptr; }
     value = std::clamp(value, -100, 100);
-    auto eff = nw::kernel::effects().create(effect_type_damage_immunity_increase);
-    eff->handle().type = value > 0 ? effect_type_damage_immunity_increase : effect_type_damage_immunity_decrease;
+    auto eff = nw::kernel::effects().create(nw::EffectType::make(16));
+    eff->handle().type = value > 0 ? nw::EffectType::make(16) : nw::EffectType::make(17);
     eff->handle().subtype = *type;
     eff->set_int(0, std::abs(value));
     return eff;
@@ -70,7 +70,7 @@ nw::Effect* effect_damage_immunity(nw::Damage type, int value)
 nw::Effect* effect_damage_reduction(int value, int power, int max)
 {
     if (value == 0 || power <= 0) { return nullptr; }
-    auto eff = nw::kernel::effects().create(effect_type_damage_reduction);
+    auto eff = nw::kernel::effects().create(nw::EffectType::make(12));
     eff->set_int(0, value);
     eff->set_int(1, power);
     eff->set_int(2, max);
@@ -80,7 +80,7 @@ nw::Effect* effect_damage_reduction(int value, int power, int max)
 nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max)
 {
     if (value <= 0) { return nullptr; }
-    auto eff = nw::kernel::effects().create(effect_type_damage_resistance);
+    auto eff = nw::kernel::effects().create(nw::EffectType::make(2));
     eff->handle().subtype = *type;
     eff->set_int(0, value);
     eff->set_int(1, max);
@@ -89,13 +89,13 @@ nw::Effect* effect_damage_resistance(nw::Damage type, int value, int max)
 
 nw::Effect* effect_haste()
 {
-    return nw::kernel::effects().create(effect_type_haste);
+    return nw::kernel::effects().create(nw::EffectType::make(1));
 }
 
 nw::Effect* effect_hitpoints_temporary(int amount)
 {
     if (amount <= 0) { return nullptr; }
-    auto eff = nw::kernel::effects().create(effect_type_temporary_hitpoints);
+    auto eff = nw::kernel::effects().create(nw::EffectType::make(15));
     eff->set_int(0, amount);
     return eff;
 }
@@ -103,7 +103,7 @@ nw::Effect* effect_hitpoints_temporary(int amount)
 nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs)
 {
     if (modifier == 0) { return nullptr; }
-    auto type = modifier > 0 ? effect_type_saving_throw_increase : effect_type_saving_throw_decrease;
+    auto type = modifier > 0 ? nw::EffectType::make(26) : nw::EffectType::make(27);
     auto eff = nw::kernel::effects().create(type);
     eff->handle().subtype = *save;
     eff->set_int(0, std::abs(modifier));
@@ -114,7 +114,7 @@ nw::Effect* effect_save_modifier(nw::Save save, int modifier, nw::SaveVersus vs)
 nw::Effect* effect_skill_modifier(nw::Skill skill, int modifier)
 {
     if (modifier == 0) { return nullptr; }
-    auto type = modifier > 0 ? effect_type_skill_increase : effect_type_skill_decrease;
+    auto type = modifier > 0 ? nw::EffectType::make(55) : nw::EffectType::make(56);
     int value = modifier > 0 ? modifier : -modifier;
 
     auto eff = nw::kernel::effects().create(type);
@@ -127,7 +127,7 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
 {
     nw::ItemProperty result;
     if (modifier == 0) { return result; }
-    result.type = uint16_t(modifier > 0 ? *ip_ability_bonus : *ip_decreased_ability_score);
+    result.type = uint16_t(modifier > 0 ? *nw::ItemPropertyType::make(0) : *nw::ItemPropertyType::make(27));
     result.subtype = uint16_t(*ability);
     result.cost_value = uint16_t(std::abs(modifier));
     return result;
@@ -136,14 +136,14 @@ nw::ItemProperty itemprop_ability_modifier(nw::Ability ability, int modifier)
 nw::ItemProperty itemprop_haste()
 {
     nw::ItemProperty result;
-    result.type = uint16_t(*ip_haste);
+    result.type = uint16_t(*nw::ItemPropertyType::make(35));
     return result;
 }
 
 nw::ItemProperty itemprop_keen()
 {
     nw::ItemProperty result;
-    result.type = uint16_t(*ip_keen);
+    result.type = uint16_t(*nw::ItemPropertyType::make(43));
     return result;
 }
 

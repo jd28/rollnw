@@ -2,8 +2,8 @@
 
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/rules/Spell.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/util/game_install.hpp>
@@ -51,7 +51,7 @@ TEST(KernelRules, Spells)
 
     nw::String letter;
     ASSERT_TRUE(spells.get_to(
-        nwn1::spell_acid_fog.idx(), "School", letter, false));
+        nw::Spell::make(0).idx(), "School", letter, false));
     int32_t expected_school = -1;
     int32_t matches = 0;
     for (size_t index = 0; index < schools.rows(); ++index) {
@@ -76,7 +76,7 @@ TEST(KernelRules, Spells)
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0);
     const auto result = nwk::runtime().execute_script(script, "main",
-        {nw::smalls::Value::make_int(*nwn1::spell_acid_fog)});
+        {nw::smalls::Value::make_int(*nw::Spell::make(0))});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, expected_school);
 }
@@ -121,7 +121,7 @@ Label Letter
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0);
     const auto result = nwk::runtime().execute_script(script, "main",
-        {nw::smalls::Value::make_int(*nwn1::spell_acid_fog)});
+        {nw::smalls::Value::make_int(*nw::Spell::make(0))});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 0);
 }

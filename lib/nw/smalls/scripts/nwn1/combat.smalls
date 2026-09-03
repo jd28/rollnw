@@ -1234,7 +1234,7 @@ fn resolve_critical_threat(obj: Creature, attack_type: Const.AttackType): int {
 
 // Get resistance value for damage type - queries effect fresh (not cached)
 fn get_resistance_value(obj: object, damage_type: Const.Damage): int {
-    var effect = NativeCombat.effect_best_damage_resistance(obj, damage_type);
+    var effect = C.effect_best_damage_resistance(obj, damage_type);
     return effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
 }
 
@@ -1289,7 +1289,7 @@ fn resolve_damage_reduction(obj: object, power: int, versus: object): int {
     if (power <= 0) { return 0; }
 
     var mod_bonus = _damage_reduction_modifier_bonus(obj, versus);
-    var effect = NativeCombat.effect_best_damage_reduction(obj, power);
+    var effect = C.effect_best_damage_reduction(obj, power);
     var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
 
     if (mod_bonus >= effect_bonus) {
@@ -1314,7 +1314,7 @@ fn apply_damage_reduction(obj: object, power: int, versus: object, incoming: int
     }
 
     var mod_bonus = _damage_reduction_modifier_bonus(obj, versus);
-    var effect = NativeCombat.effect_best_damage_reduction(obj, power);
+    var effect = C.effect_best_damage_reduction(obj, power);
     var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
 
     var amount = effect_bonus;
@@ -1357,7 +1357,7 @@ fn apply_damage_resistance(obj: object, damage_type: Const.Damage, versus: objec
     }
 
     var mod_bonus = _damage_resistance_modifier_bonus(obj, damage_type, versus);
-    var effect = NativeCombat.effect_best_damage_resistance(obj, damage_type);
+    var effect = C.effect_best_damage_resistance(obj, damage_type);
     var effect_bonus = effects.is_valid(effect) ? effects.get_int(effect, 0) : 0;
 
     var amount = effect_bonus;
@@ -1770,7 +1770,7 @@ fn _make_elemental_damage_result(target: object, attacker: Creature, dmg_type: C
             if (res_amount > remaining) { res_amount = remaining; }
 
             if (res_amount > 0 && res_mod < res_eff_bonus) {
-                var res_eff_consume = NativeCombat.effect_best_damage_resistance(target, dmg_type);
+                var res_eff_consume = C.effect_best_damage_resistance(target, dmg_type);
                 if (effects.is_valid(res_eff_consume)) {
                     var res_remaining = effects.get_int(res_eff_consume, 1);
                     if (res_remaining > 0) {
@@ -1786,7 +1786,7 @@ fn _make_elemental_damage_result(target: object, attacker: Creature, dmg_type: C
                 }
             }
         } else {
-            var res_eff = NativeCombat.effect_best_damage_resistance(target, dmg_type);
+            var res_eff = C.effect_best_damage_resistance(target, dmg_type);
             var res_eff_bonus = effects.is_valid(res_eff) ? effects.get_int(res_eff, 0) : 0;
             res_amount = res_eff_bonus;
             if (res_mod >= res_eff_bonus) { res_amount = res_mod; }
@@ -1884,7 +1884,7 @@ fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature
 
     var power = weapon_power;
     if (remaining > 0 && power > 0) {
-        var reduction_effect = NativeCombat.effect_best_damage_reduction(target, power);
+        var reduction_effect = C.effect_best_damage_reduction(target, power);
         var reduction_mod_bonus = _damage_reduction_modifier_bonus(target, attacker);
         var reduction_effect_bonus = effects.is_valid(reduction_effect) ? effects.get_int(reduction_effect, 0) : 0;
 
@@ -1928,7 +1928,7 @@ fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature
             if (resistance_amount > remaining) { resistance_amount = remaining; }
 
             if (resistance_amount > 0 && resistance_mod_bonus < resistance_effect_bonus) {
-                var resistance_effect_consume = NativeCombat.effect_best_damage_resistance(target, result.damage_type);
+                var resistance_effect_consume = C.effect_best_damage_resistance(target, result.damage_type);
                 if (effects.is_valid(resistance_effect_consume)) {
                     var resistance_remaining = effects.get_int(resistance_effect_consume, 1);
                     var resistance_next = resistance_remaining;
@@ -1946,7 +1946,7 @@ fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature
                 }
             }
         } else {
-            var resistance_effect = NativeCombat.effect_best_damage_resistance(target, result.damage_type);
+            var resistance_effect = C.effect_best_damage_resistance(target, result.damage_type);
             var resistance_effect_valid = effects.is_valid(resistance_effect);
             var resistance_effect_bonus = resistance_effect_valid ? effects.get_int(resistance_effect, 0) : 0;
             resistance_amount = resistance_effect_bonus;

@@ -3,7 +3,8 @@
 #include "../../functions.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../objects/ObjectManager.hpp"
-#include "../../profiles/nwn1/constants.hpp"
+#include "../../rules/Dice.hpp"
+#include "../../rules/combat.hpp"
 
 #include <algorithm>
 
@@ -24,31 +25,30 @@ nw::Versus make_versus(int32_t race, int32_t align_flags) noexcept
     return vs;
 }
 
-int32_t damage_immunity_effect_delta_uncached(const nw::ObjectBase* base, int32_t damage_type, nw::Versus vs)
+int32_t damage_immunity_effect_delta_uncached(const nw::ObjectBase* base, nw::EffectType increase_type,
+    nw::EffectType decrease_type, int32_t damage_type, nw::Versus vs)
 {
-    if (!base) {
+    if (!base || increase_type == nw::EffectType::invalid() || decrease_type == nw::EffectType::invalid()) {
         return 0;
     }
 
     auto begin = std::begin(base->effects());
     auto end = std::end(base->effects());
-    auto [eff_bonus, _bonus_it] = nw::sum_effects_of<int>(begin, end, nwn1::effect_type_damage_immunity_increase,
-        damage_type, vs);
-    auto [eff_penalty, _penalty_it] = nw::sum_effects_of<int>(begin, end, nwn1::effect_type_damage_immunity_decrease,
-        damage_type, vs);
+    auto [eff_bonus, _bonus_it] = nw::sum_effects_of<int>(begin, end, increase_type, damage_type, vs);
+    auto [eff_penalty, _penalty_it] = nw::sum_effects_of<int>(begin, end, decrease_type, damage_type, vs);
 
     return eff_bonus - eff_penalty;
 }
 
-nw::Effect* effect_best_damage_reduction_uncached(const nw::ObjectBase* base, int32_t power)
+nw::Effect* effect_best_damage_reduction_uncached(const nw::ObjectBase* base, nw::EffectType effect_type, int32_t power)
 {
-    if (!base || power <= 0) {
+    if (!base || effect_type == nw::EffectType::invalid() || power <= 0) {
         return nullptr;
     }
 
     auto begin = std::begin(base->effects());
     auto end = std::end(base->effects());
-    auto it = nw::find_first_effect_of(begin, end, nwn1::effect_type_damage_reduction);
+    auto it = nw::find_first_effect_of(begin, end, effect_type);
     if (it == end) {
         return nullptr;
     }
@@ -56,7 +56,7 @@ nw::Effect* effect_best_damage_reduction_uncached(const nw::ObjectBase* base, in
     nw::Effect* best_eff = nullptr;
     int32_t best = 0;
     int32_t best_remain = 0;
-    while (it != end && it->type == nwn1::effect_type_damage_reduction) {
+    while (it != end && it->type == effect_type) {
         if (it->effect) {
             int32_t amount = it->effect->get_int(0);
             int32_t bypass = it->effect->get_int(1);
@@ -73,19 +73,20 @@ nw::Effect* effect_best_damage_reduction_uncached(const nw::ObjectBase* base, in
     return best_eff;
 }
 
-nw::Effect* effect_best_damage_resistance_uncached(const nw::ObjectBase* base, int32_t damage_type)
+nw::Effect* effect_best_damage_resistance_uncached(const nw::ObjectBase* base, nw::EffectType effect_type,
+    int32_t damage_type)
 {
-    if (!base) { return nullptr; }
+    if (!base || effect_type == nw::EffectType::invalid()) { return nullptr; }
 
     auto begin = std::begin(base->effects());
     auto end = std::end(base->effects());
-    auto it = nw::find_first_effect_of(begin, end, nwn1::effect_type_damage_resistance);
+    auto it = nw::find_first_effect_of(begin, end, effect_type);
     if (it == end) { return nullptr; }
 
     nw::Effect* best_eff = nullptr;
     int32_t best = 0;
     int32_t best_remain = 0;
-    while (it != end && it->type == nwn1::effect_type_damage_resistance) {
+    while (it != end && it->type == effect_type) {
         if (it->effect && it->effect->handle().subtype == damage_type) {
             int32_t amount = it->effect->get_int(0);
             int32_t remain = it->effect->get_int(1);
@@ -111,6 +112,7 @@ struct EffectFolder {
     {
         switch (policy) {
         default:
+            break;
         case 0:
             acc += v;
             break;
@@ -153,49 +155,52 @@ const nw::ObjectBase* as_object_const(nw::ObjectHandle obj)
     return nw::kernel::objects().get_object_base(obj);
 }
 
-int32_t attack_bonus_effect_delta_clamped(nw::ObjectHandle obj, int32_t attack_type, nw::Versus vs)
+int32_t attack_bonus_effect_delta(nw::ObjectHandle obj, int32_t attack_type, int32_t any_attack_type,
+    nw::EffectType increase_type, nw::EffectType decrease_type, nw::Versus vs)
 {
     auto* cre = as_creature(obj);
-    if (!cre) {
+    if (!cre || attack_type < 0 || any_attack_type < 0
+        || increase_type == nw::EffectType::invalid() || decrease_type == nw::EffectType::invalid()) {
         return 0;
     }
 
     auto begin = std::begin(cre->effects());
     auto end = std::end(cre->effects());
     auto type = nw::AttackType::make(attack_type);
+    auto any_type = nw::AttackType::make(any_attack_type);
 
     int bonus = 0;
     auto bonus_adder = [&bonus](int mod) { bonus += mod; };
-    auto it = nw::resolve_effects_of<int>(begin, end, nwn1::effect_type_attack_increase, *nwn1::attack_type_any, vs,
+    auto it = nw::resolve_effects_of<int>(begin, end, increase_type, *any_type, vs,
         bonus_adder, &nw::effect_extract_int0);
 
-    if (type != nwn1::attack_type_any) {
-        it = nw::resolve_effects_of<int>(it, end, nwn1::effect_type_attack_increase, *type, vs,
+    if (type != any_type) {
+        it = nw::resolve_effects_of<int>(it, end, increase_type, *type, vs,
             bonus_adder, &nw::effect_extract_int0);
     }
 
     int decrease = 0;
     auto decrease_adder = [&decrease](int mod) { decrease += mod; };
-    it = nw::resolve_effects_of<int>(it, end, nwn1::effect_type_attack_decrease, *nwn1::attack_type_any, vs,
+    it = nw::resolve_effects_of<int>(it, end, decrease_type, *any_type, vs,
         decrease_adder, &nw::effect_extract_int0);
 
-    if (type != nwn1::attack_type_any) {
-        nw::resolve_effects_of<int>(it, end, nwn1::effect_type_attack_decrease, *type, vs,
+    if (type != any_type) {
+        nw::resolve_effects_of<int>(it, end, decrease_type, *type, vs,
             decrease_adder, &nw::effect_extract_int0);
     }
 
-    auto [min, max] = nw::kernel::effects().limits.attack;
-    return std::clamp(bonus - decrease, min, max);
+    return bonus - decrease;
 }
 
-int32_t damage_immunity_effect_delta(nw::ObjectHandle obj, int32_t damage_type, nw::Versus vs)
+int32_t damage_immunity_effect_delta(nw::ObjectHandle obj, nw::EffectType increase_type,
+    nw::EffectType decrease_type, int32_t damage_type, nw::Versus vs)
 {
     auto* base = as_object_const(obj);
     if (!base) {
         return 0;
     }
 
-    return damage_immunity_effect_delta_uncached(base, damage_type, vs);
+    return damage_immunity_effect_delta_uncached(base, increase_type, decrease_type, damage_type, vs);
 }
 
 int32_t object_effect_count(nw::ObjectHandle obj)
@@ -247,22 +252,22 @@ int32_t object_find_first_effect_of(nw::ObjectHandle obj, int32_t effect_type, i
     return static_cast<int32_t>(std::distance(begin, it));
 }
 
-nw::Effect* effect_best_damage_reduction(nw::ObjectHandle obj, int32_t power)
+nw::Effect* effect_best_damage_reduction(nw::ObjectHandle obj, nw::EffectType effect_type, int32_t power)
 {
     auto* base = as_object_const(obj);
     if (!base || power <= 0) {
         return nullptr;
     }
 
-    return effect_best_damage_reduction_uncached(base, power);
+    return effect_best_damage_reduction_uncached(base, effect_type, power);
 }
 
-nw::Effect* effect_best_damage_resistance(nw::ObjectHandle obj, int32_t damage_type)
+nw::Effect* effect_best_damage_resistance(nw::ObjectHandle obj, nw::EffectType effect_type, int32_t damage_type)
 {
     auto* base = as_object_const(obj);
     if (!base) { return nullptr; }
 
-    return effect_best_damage_resistance_uncached(base, damage_type);
+    return effect_best_damage_resistance_uncached(base, effect_type, damage_type);
 }
 
 int32_t roll_uniform_int(int32_t min, int32_t max)
@@ -279,7 +284,8 @@ int32_t aggregate_effect_int(nw::ObjectHandle obj, int32_t effect_type, int32_t 
     nw::Versus vs, int32_t int_index, int32_t stack_policy)
 {
     auto* base = as_object_const(obj);
-    if (!base || int_index < 0) {
+    if (!base || effect_type < 0 || int_index < 0
+        || int_index >= nw::Effect::ints_count || stack_policy < 0 || stack_policy > 3) {
         return 0;
     }
 
@@ -301,7 +307,9 @@ int32_t aggregate_effect_int_filtered(nw::ObjectHandle obj, int32_t effect_type,
     int32_t int_index, int32_t stack_policy)
 {
     auto* base = as_object_const(obj);
-    if (!base || int_index < 0 || filter_int_index < 0) {
+    if (!base || effect_type < 0 || int_index < 0 || int_index >= nw::Effect::ints_count
+        || filter_int_index < 0 || filter_int_index >= nw::Effect::ints_count
+        || stack_policy < 0 || stack_policy > 3) {
         return 0;
     }
 
@@ -351,19 +359,19 @@ void register_core_combat(Runtime& rt)
     }
 
     rt.module("core.combat")
-        .function("attack_bonus_effect_delta_clamped", +[](nw::ObjectHandle obj, int32_t attack_type, int32_t versus_race, int32_t versus_alignment_flags) -> int32_t { return attack_bonus_effect_delta_clamped(obj, attack_type, make_versus(versus_race, versus_alignment_flags)); })
+        .function("attack_bonus_effect_delta", +[](nw::ObjectHandle obj, int32_t attack_type, int32_t any_attack_type, int32_t increase_type, int32_t decrease_type, int32_t versus_race, int32_t versus_alignment_flags) -> int32_t { return attack_bonus_effect_delta(obj, attack_type, any_attack_type, nw::EffectType::make(increase_type), nw::EffectType::make(decrease_type), make_versus(versus_race, versus_alignment_flags)); })
         .function("roll_uniform_int", +[](int32_t min, int32_t max) -> int32_t { return roll_uniform_int(min, max); })
         .function("aggregate_effect_int", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t versus_race, int32_t versus_alignment_flags, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int(obj, effect_type, subtype, make_versus(versus_race, versus_alignment_flags), int_index, stack_policy); })
         .function("aggregate_effect_int_filtered", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t versus_race, int32_t versus_alignment_flags, int32_t filter_int_index, int32_t filter_int_value, int32_t int_index, int32_t stack_policy) -> int32_t { return aggregate_effect_int_filtered(obj, effect_type, subtype, make_versus(versus_race, versus_alignment_flags), filter_int_index, filter_int_value, int_index, stack_policy); })
-        .function("damage_immunity_effect_delta", +[](nw::ObjectHandle obj, int32_t damage_type, int32_t versus_race, int32_t versus_alignment_flags) -> int32_t { return damage_immunity_effect_delta(obj, damage_type, make_versus(versus_race, versus_alignment_flags)); })
+        .function("damage_immunity_effect_delta", +[](nw::ObjectHandle obj, int32_t increase_type, int32_t decrease_type, int32_t damage_type, int32_t versus_race, int32_t versus_alignment_flags) -> int32_t { return damage_immunity_effect_delta(obj, nw::EffectType::make(increase_type), nw::EffectType::make(decrease_type), damage_type, make_versus(versus_race, versus_alignment_flags)); })
         .function("object_effect_count", +[](nw::ObjectHandle obj) -> int32_t { return object_effect_count(obj); })
         .function("object_effect_at", +[](nw::ObjectHandle obj, int32_t index) -> nw::TypedHandle { return object_effect_at(obj, index); })
         .function("object_find_first_effect_of", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t subtype, int32_t start_index) -> int32_t { return object_find_first_effect_of(obj, effect_type, subtype, start_index); })
-        .function("effect_best_damage_reduction", +[](nw::ObjectHandle obj, int32_t power) -> nw::TypedHandle {
-            auto* eff = effect_best_damage_reduction(obj, power);
+        .function("effect_best_damage_reduction", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t power) -> nw::TypedHandle {
+            auto* eff = effect_best_damage_reduction(obj, nw::EffectType::make(effect_type), power);
             return eff ? eff->handle().to_typed_handle() : nw::TypedHandle{}; })
-        .function("effect_best_damage_resistance", +[](nw::ObjectHandle obj, int32_t damage_type) -> nw::TypedHandle {
-            auto* eff = effect_best_damage_resistance(obj, damage_type);
+        .function("effect_best_damage_resistance", +[](nw::ObjectHandle obj, int32_t effect_type, int32_t damage_type) -> nw::TypedHandle {
+            auto* eff = effect_best_damage_resistance(obj, nw::EffectType::make(effect_type), damage_type);
             return eff ? eff->handle().to_typed_handle() : nw::TypedHandle{}; })
         .function("roll_dice", +[](int32_t dice, int32_t sides, int32_t bonus, int32_t multiplier) -> int32_t { return roll_dice_amount(dice, sides, bonus, multiplier); })
         .function("creature_effect_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_effect_version(obj); })

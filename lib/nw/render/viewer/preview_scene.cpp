@@ -30,7 +30,6 @@
 #include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/serialization/Gff.hpp>

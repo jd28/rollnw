@@ -9,7 +9,6 @@
 #include "../../objects/ObjectManager.hpp"
 #include "../../rules/combat_scheduler.hpp"
 #include "../../smalls/Array.hpp"
-#include "../../util/profile.hpp"
 
 namespace nwn1::bridge {
 namespace {
@@ -209,36 +208,6 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot)
     }
 
     return nullptr;
-}
-
-int process_item_properties(nw::Creature* obj, const nw::Item* item, nw::EquipIndex index, bool remove)
-{
-    NW_PROFILE_SCOPE_N("nwn1::process_item_properties");
-    if (!obj || !item) { return 0; }
-    if (!bridge::ensure_nwn1_smalls_initialized()) { return 0; }
-
-    auto& rt = nw::kernel::runtime();
-    rt.init_object_propsets(item->handle());
-
-    nw::Vector<nw::smalls::Value> args;
-    push_object_arg(args, obj);
-    push_object_arg(args, item);
-    args.push_back(nw::smalls::Value::make_int(static_cast<int32_t>(index)));
-    args.push_back(nw::smalls::Value::make_bool(remove));
-
-    constexpr uint64_t item_props_gas_limit = 10'000'000;
-    auto result = rt.execute_script("core.item", "process_item_properties", args, item_props_gas_limit);
-    if (result.ok()) { return result.value.data.ival; }
-    LOG_F(ERROR, "[nwn1.bridge] core.item.process_item_properties failed: {}", result.error_message);
-    return 0;
-}
-
-void refresh_combat_weapon_cache(nw::Creature* obj)
-{
-    if (!obj) { return; }
-    nw::Vector<nw::smalls::Value> args;
-    push_object_arg(args, obj);
-    bridge::call_nwn1_module_value("nwn1.combat", "refresh_combat_weapon_cache", args);
 }
 
 } // namespace nwn1
