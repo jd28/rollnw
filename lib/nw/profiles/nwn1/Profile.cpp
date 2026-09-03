@@ -5,11 +5,9 @@
 #include "rules.hpp"
 #include "scriptbridge.hpp"
 
-#include "../../formats/Ini.hpp"
 #include "../../formats/StaticTwoDA.hpp"
 #include "../../kernel/Kernel.hpp"
 #include "../../kernel/Rules.hpp"
-#include "../../kernel/Strings.hpp"
 #include "../../kernel/TwoDACache.hpp"
 #include "../../objects/Creature.hpp"
 #include "../../objects/ObjectManager.hpp"
@@ -411,100 +409,6 @@ bool Profile::load_rules() const
             } else if (nw::string::icmp("cha", temp_string)) {
                 info.ability = ability_charisma;
             }
-        }
-    }
-
-    return true;
-}
-
-bool Profile::load_resources()
-{
-    bool include_user = nwk::config().options().include_user;
-    bool include_install = nwk::config().options().include_install;
-    auto version = nwk::config().version();
-
-    // Overrides
-    if (include_user && version == nw::GameVersion::vEE) {
-        nwk::resman().add_override_container(nwk::config().user_path(), "development");
-    }
-
-    if (include_user) {
-        nwk::resman().add_override_container(nwk::config().user_path(), "portraits",
-            nw::ResourceType::texture);
-    }
-
-    if (include_install) {
-        nwk::resman().add_override_container(nwk::config().install_path() / "data", "prt",
-            nw::ResourceType::texture);
-    }
-
-    // Base
-    if (include_user) {
-        nwk::resman().add_base_container(nwk::config().user_path(), "override");
-    }
-
-    if (include_install) {
-        nwk::resman().add_base_container(nwk::config().install_path() / "data", "ovr");
-    }
-
-    if (include_user) {
-        nwk::resman().add_base_container(nwk::config().user_path(), "ambient",
-            nw::ResourceType::sound);
-        nwk::resman().add_base_container(nwk::config().user_path(), "music",
-            nw::ResourceType::sound);
-    }
-
-    if (include_install) {
-        nwk::resman().add_base_container(nwk::config().install_path() / "data", "amb",
-            nw::ResourceType::sound);
-        nwk::resman().add_base_container(nwk::config().install_path() / "data", "mus",
-            nw::ResourceType::sound);
-    }
-
-    if (include_user) {
-        if (std::filesystem::exists(nwk::config().user_path() / "userpatch.ini")) {
-            nw::Ini user_patch{nwk::config().user_path() / "userpatch.ini"};
-            if (user_patch.valid()) {
-                int i = 0;
-                nw::String file;
-                while (user_patch.get_to(fmt::format("Patch/PatchFile{:03d}", i++), file)) {
-                    if (!nwk::resman().add_base_container(nwk::config().user_path() / "patch", file)) {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if (include_install) {
-        if (version == nw::GameVersion::vEE) {
-            auto lang = nwk::strings().global_language();
-            if (lang != nw::LanguageID::english) {
-                auto shortcode = nw::Language::to_string(lang);
-                nwk::resman().add_base_container(
-                    nwk::config().install_path() / "lang" / shortcode / "data", "nwn_base_loc");
-            }
-
-            nwk::resman().add_base_container(
-                nwk::config().install_path() / "data", "nwn_retail");
-
-            nwk::resman().add_base_container(
-                nwk::config().install_path() / "data", "nwn_base");
-
-        } else {
-            nwk::resman().add_base_container(nwk::config().install_path() / "texturepacks", "xp2_tex_tpa");
-            nwk::resman().add_base_container(nwk::config().install_path() / "texturepacks", "xp1_tex_tpa");
-            nwk::resman().add_base_container(nwk::config().install_path() / "texturepacks", "textures_tpa");
-            nwk::resman().add_base_container(nwk::config().install_path() / "texturepacks", "tiles_tpa");
-
-            nwk::resman().add_base_container(nwk::config().install_path(), "xp3patch");
-            nwk::resman().add_base_container(nwk::config().install_path(), "xp3");
-            nwk::resman().add_base_container(nwk::config().install_path(), "xp2patch");
-            nwk::resman().add_base_container(nwk::config().install_path(), "xp2");
-            nwk::resman().add_base_container(nwk::config().install_path(), "xp1patch");
-            nwk::resman().add_base_container(nwk::config().install_path(), "xp1");
-            nwk::resman().add_base_container(nwk::config().install_path(), "patch");
-            nwk::resman().add_base_container(nwk::config().install_path(), "chitin");
         }
     }
 

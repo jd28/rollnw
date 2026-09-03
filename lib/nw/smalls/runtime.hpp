@@ -629,6 +629,16 @@ struct Runtime : public nw::kernel::Service {
     /// Gets the list of module search paths
     const Vector<std::filesystem::path>& module_paths() const { return module_paths_; }
 
+    /// Resolves and retains exactly one selected package directory from the
+    /// configured module paths for this runtime generation.
+    const std::filesystem::path& select_package_directory(StringView package_root);
+
+    /// Gets the package directory selected during service preflight.
+    const std::filesystem::path& selected_package_directory() const noexcept
+    {
+        return selected_package_directory_;
+    }
+
     /// Core prelude module (loaded once if available)
     Script* core_prelude();
     Script* core_test();
@@ -1359,6 +1369,7 @@ private:
 
     // Paths to search for module files
     Vector<std::filesystem::path> module_paths_;
+    std::filesystem::path selected_package_directory_;
 
     // Memory and resource management for scripts
     MemoryArena arena_;

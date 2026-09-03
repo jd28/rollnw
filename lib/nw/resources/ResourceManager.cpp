@@ -1,12 +1,14 @@
 #include "ResourceManager.hpp"
 
+#include "ResourceManifest.hpp"
 #include "StaticDirectory.hpp"
 #include "StaticErf.hpp"
 #include "StaticKey.hpp"
 #include "StaticZip.hpp"
 
 #include "../formats/palette_textures.hpp"
-#include "../kernel/GameProfile.hpp"
+#include "../kernel/Strings.hpp"
+#include "../smalls/runtime.hpp"
 #include "../util/macros.hpp"
 #include "../util/platform.hpp"
 #include "../util/profile.hpp"
@@ -116,8 +118,35 @@ void ResourceManager::initialize(kernel::ServiceInitTime time)
         auto start = std::chrono::high_resolution_clock::now();
 
         {
-            NW_PROFILE_SCOPE_N("resman.initialize.load_resources");
-            kernel::services().profile()->load_resources();
+            NW_PROFILE_SCOPE_N("resman.initialize.load_resource_manifest");
+            const auto& package_directory = kernel::runtime().select_package_directory(
+                *kernel::config().profile());
+            const auto& options = kernel::config().options();
+            ResourceManifestContext context{
+                .install_root = kernel::config().install_path(),
+                .user_root = kernel::config().user_path(),
+                .version = kernel::config().version(),
+                .language = kernel::strings().global_language(),
+                .include_install = options.include_install,
+                .include_user = options.include_user,
+            };
+            Vector<ResourceManifestContainer> containers;
+            String diagnostic;
+            if (!load_resource_manifest(package_directory, context,
+                    containers, diagnostic)) {
+                throw std::runtime_error(fmt::format(
+                    "resman: unable to establish package resource policy: {}",
+                    diagnostic));
+            }
+            for (const auto& container : containers) {
+                if (container.precedence == ResourceManifestPrecedence::override) {
+                    add_override_container(container.directory,
+                        container.name, container.resource_type);
+                } else {
+                    add_base_container(container.directory,
+                        container.name, container.resource_type);
+                }
+            }
         }
         {
             NW_PROFILE_SCOPE_N("resman.initialize.update_search");

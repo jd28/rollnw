@@ -1,0 +1,220 @@
+[
+  {
+    "kind": "container",
+    "version": "ee",
+    "root": "user",
+    "directory": "",
+    "name": "development",
+    "precedence": "override",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "root": "user",
+    "directory": "",
+    "name": "portraits",
+    "precedence": "override",
+    "resource_type": "texture"
+  },
+  {
+    "kind": "container",
+    "root": "install",
+    "directory": "data",
+    "name": "prt",
+    "precedence": "override",
+    "resource_type": "texture"
+  },
+  {
+    "kind": "container",
+    "root": "user",
+    "directory": "",
+    "name": "override",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "root": "install",
+    "directory": "data",
+    "name": "ovr",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "root": "user",
+    "directory": "",
+    "name": "ambient",
+    "precedence": "base",
+    "resource_type": "sound"
+  },
+  {
+    "kind": "container",
+    "root": "user",
+    "directory": "",
+    "name": "music",
+    "precedence": "base",
+    "resource_type": "sound"
+  },
+  {
+    "kind": "container",
+    "root": "install",
+    "directory": "data",
+    "name": "amb",
+    "precedence": "base",
+    "resource_type": "sound"
+  },
+  {
+    "kind": "container",
+    "root": "install",
+    "directory": "data",
+    "name": "mus",
+    "precedence": "base",
+    "resource_type": "sound"
+  },
+  {
+    "kind": "ini_series",
+    "root": "user",
+    "file": "userpatch.ini",
+    "section": "Patch",
+    "key_prefix": "PatchFile",
+    "digits": 3,
+    "container_directory": "patch",
+    "precedence": "base"
+  },
+  {
+    "kind": "container",
+    "version": "ee",
+    "root": "install",
+    "directory": "lang/$language/data",
+    "name": "nwn_base_loc",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "ee",
+    "root": "install",
+    "directory": "data",
+    "name": "nwn_retail",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "ee",
+    "root": "install",
+    "directory": "data",
+    "name": "nwn_base",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "texturepacks",
+    "name": "xp2_tex_tpa",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "texturepacks",
+    "name": "xp1_tex_tpa",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "texturepacks",
+    "name": "textures_tpa",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "texturepacks",
+    "name": "tiles_tpa",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "xp3patch",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "xp3",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "xp2patch",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "xp2",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "xp1patch",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "xp1",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "patch",
+    "precedence": "base",
+    "resource_type": "any"
+  },
+  {
+    "kind": "container",
+    "version": "1.69",
+    "root": "install",
+    "directory": "",
+    "name": "chitin",
+    "precedence": "base",
+    "resource_type": "any"
+  }
+]

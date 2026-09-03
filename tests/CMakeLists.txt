@@ -251,6 +251,7 @@ add_executable(rollnw_test
     objects_waypoint.cpp
 
     resources.cpp
+    resource_manifest.cpp
 
     rules_effects.cpp
     rules_creature_body_parts.cpp

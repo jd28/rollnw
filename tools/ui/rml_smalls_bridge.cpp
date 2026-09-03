@@ -503,11 +503,11 @@ bool RmlSmallsBridge::initialize()
             config_options.init_module = "";
             nw::kernel::config().initialize(std::move(config_options));
             nw::kernel::config().set_init_module("");
-            services.start();
-
+            services.create();
             auto& rt = nw::kernel::runtime();
             add_smalls_paths(rt, smalls_scripts);
             g_paths_registered = true;
+            services.start();
             g_kernel_started = true;
         }
 

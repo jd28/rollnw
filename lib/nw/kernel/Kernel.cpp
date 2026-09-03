@@ -186,6 +186,10 @@ void Services::create(ServiceMode mode)
 
     // Load all the default services.
     load_services();
+    if (mode_ == ServiceMode::game) {
+        runtime().add_module_path(fs::path("stdlib") / "core");
+        runtime().add_module_path(fs::path("stdlib") / *config().profile());
+    }
     CHECK_F(generation_ != UINT64_MAX, "kernel: service generation overflow");
     ++generation_;
     services_created_ = true;

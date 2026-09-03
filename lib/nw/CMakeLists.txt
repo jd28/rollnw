@@ -90,6 +90,7 @@ add_library(nw STATIC
     resources/assets.cpp
     resources/Container.cpp
     resources/Erf.cpp
+    resources/ResourceManifest.cpp
     resources/ResourceManager.cpp
     resources/StaticDirectory.cpp
     resources/StaticErf.cpp

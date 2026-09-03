@@ -11,9 +11,6 @@ struct Profile : nw::GameProfile {
     /// Load rules
     /// @see ``rules.hpp`` and ``rules.cpp``
     bool load_rules() const override;
-
-    /// Load containers into resman
-    bool load_resources() override;
 };
 
 } // namespace nwn1

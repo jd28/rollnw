@@ -271,13 +271,6 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
     if (time == nw::kernel::ServiceInitTime::kernel_start || time == kernel::ServiceInitTime::module_pre_load) {
         const bool language_only = kernel::services().mode() == kernel::ServiceMode::language;
 
-        // Language tooling supplies explicit package paths. Game runtimes
-        // bootstrap the shipped core and exactly one selected profile.
-        if (!language_only) {
-            add_module_path(std::filesystem::path("stdlib") / "core");
-            add_module_path(std::filesystem::path("stdlib") / *kernel::config().profile());
-        }
-
         LOG_F(INFO, "[runtime] Initializing Runtime and registering internal types");
         register_internal_types();
         register_core_prelude(*this);
@@ -2921,6 +2914,41 @@ void Runtime::add_module_path(const std::filesystem::path& path)
     } else {
         LOG_F(WARNING, "[runtime] Module path does not exist or is not a directory: {}", path_to_string(path));
     }
+}
+
+const std::filesystem::path& Runtime::select_package_directory(StringView package_root)
+{
+    namespace fs = std::filesystem;
+    if (!selected_package_directory_.empty()) {
+        if (selected_package_directory_.filename() != package_root) {
+            throw std::runtime_error(fmt::format(
+                "runtime: package '{}' was already selected for this service generation",
+                selected_package_directory_.filename().string()));
+        }
+        return selected_package_directory_;
+    }
+
+    for (const auto& path : module_paths_) {
+        if (path.filename() != package_root) { continue; }
+        if (!fs::is_regular_file(path / "package.json")) {
+            throw std::runtime_error(fmt::format(
+                "runtime: selected package directory '{}' has no package.json",
+                path.string()));
+        }
+        if (!selected_package_directory_.empty()) {
+            throw std::runtime_error(fmt::format(
+                "runtime: multiple directories provide selected package '{}': '{}' and '{}'",
+                package_root, selected_package_directory_.string(), path.string()));
+        }
+        selected_package_directory_ = path;
+    }
+
+    if (selected_package_directory_.empty()) {
+        throw std::runtime_error(fmt::format(
+            "runtime: selected package '{}' was not found in the module paths",
+            package_root));
+    }
+    return selected_package_directory_;
 }
 
 Script* Runtime::core_prelude()

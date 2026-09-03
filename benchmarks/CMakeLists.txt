@@ -86,7 +86,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/
     DESTINATION ${CMAKE_INSTALL_BINDIR}/stdlib
     FILES_MATCHING
         PATTERN "*.smalls"
-        PATTERN "package.json"
+        PATTERN "*.json"
 )
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/tests/test_data/
