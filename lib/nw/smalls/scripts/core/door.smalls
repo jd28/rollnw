@@ -11,3 +11,5 @@ type DoorAppearanceInfo {
 [[native]] fn door_type_info(id: int): DoorAppearanceInfo;
 [[native]] fn generic_door_count(): int;
 [[native]] fn generic_door_info(id: int): DoorAppearanceInfo;
+[[native]] fn publish_door_type_info(entries: array!(DoorAppearanceInfo)): bool;
+[[native]] fn publish_generic_door_info(entries: array!(DoorAppearanceInfo)): bool;

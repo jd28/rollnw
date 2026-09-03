@@ -4,6 +4,7 @@
 #include "../../objects/ObjectComponentSystem.hpp"
 #include "../../objects/ObjectManager.hpp"
 #include "../../profiles/nwn1/body_part_catalog.hpp"
+#include "../../resources/ResourceManager.hpp"
 #include "../../rules/creature_body_parts.hpp"
 
 #include <algorithm>
@@ -28,6 +29,12 @@ struct ScriptAppearanceInfo {
     float weapon_scale = -1.0f;
     float personal_space = -1.0f;
     bool has_arms = false;
+};
+
+struct ScriptCreatureAccessoryModelInfo {
+    int32_t id = -1;
+    ScriptString label;
+    nw::Resref model;
 };
 
 ScriptAppearanceInfo appearance_info(int32_t id)
@@ -117,6 +124,88 @@ bool publish_appearance_info(Value value)
     }
     if (valid_count == 0) { return false; }
     rules.appearances = std::move(next);
+    return true;
+}
+
+template <typename Array>
+bool publish_accessory_model_info_impl(
+    Runtime& rt, Value value, Array& destination)
+{
+    const TypeID info_type = rt.type_id(
+        "core.creature.CreatureAccessoryModelInfo");
+    auto* array = rt.get_array_typed(value.data.hptr);
+    if (!array || info_type == invalid_type_id
+        || array->element_type() != info_type) {
+        return false;
+    }
+
+    Array next{nw::kernel::rules().allocator()};
+    next.entries.reserve(array->size());
+    for (size_t index = 0; index < array->size(); ++index) {
+        Value element;
+        if (!array->get_value(index, element, rt)
+            || element.type_id != info_type) {
+            return false;
+        }
+        const auto source = detail::value_cast<ScriptCreatureAccessoryModelInfo>(
+            &rt, element);
+        if (source.id == -1) {
+            next.entries.emplace_back();
+            continue;
+        }
+        if (source.id != static_cast<int32_t>(index)) {
+            return false;
+        }
+        nw::CreatureAccessoryModelInfo target;
+        target.label = source.label.view(rt);
+        target.model = source.model;
+        next.entries.push_back(std::move(target));
+    }
+    destination = std::move(next);
+    return true;
+}
+
+bool publish_accessory_model_info(int32_t accessory, Value value)
+{
+    auto& rt = nw::kernel::runtime();
+    if (accessory == 0) {
+        return publish_accessory_model_info_impl(
+            rt, value, nw::kernel::rules().wingmodels);
+    }
+    if (accessory == 1) {
+        return publish_accessory_model_info_impl(
+            rt, value, nw::kernel::rules().tailmodels);
+    }
+    return false;
+}
+
+bool publish_body_part_catalog(Value value)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* array = rt.get_array_typed(value.data.hptr);
+    if (!array || array->element_type() != rt.int_type()) {
+        return false;
+    }
+
+    nw::Vector<int32_t> fallbacks;
+    fallbacks.reserve(array->size());
+    for (size_t index = 0; index < array->size(); ++index) {
+        Value element;
+        if (!array->get_value(index, element, rt)
+            || element.type_id != rt.int_type()) {
+            return false;
+        }
+        fallbacks.push_back(element.data.ival);
+    }
+
+    nw::String diagnostic;
+    if (!nwn1::build_body_part_catalog(nw::kernel::rules().appearances,
+            fallbacks, nw::kernel::resman(),
+            nw::kernel::rules().creature_body_parts, diagnostic)) {
+        LOG_F(ERROR, "rules: failed to publish creature body-part catalog: {}",
+            diagnostic);
+        return false;
+    }
     return true;
 }
 
@@ -308,8 +397,15 @@ void register_core_creature(Runtime& rt)
         .field("personal_space", &ScriptAppearanceInfo::personal_space)
         .field("has_arms", &ScriptAppearanceInfo::has_arms)
         .end_struct()
+        .native_struct<ScriptCreatureAccessoryModelInfo>("CreatureAccessoryModelInfo")
+        .field("id", &ScriptCreatureAccessoryModelInfo::id)
+        .field("label", &ScriptCreatureAccessoryModelInfo::label)
+        .field("model", &ScriptCreatureAccessoryModelInfo::model)
+        .end_struct()
         .function("appearance_info", &appearance_info)
         .function("publish_appearance_info", &publish_appearance_info)
+        .function("publish_accessory_model_info", &publish_accessory_model_info)
+        .function("publish_body_part_catalog", &publish_body_part_catalog)
         .function("accessory_model", &accessory_model)
         .function("accessory_exists", &accessory_exists)
         .function("body_part_assembly", &body_part_assembly)

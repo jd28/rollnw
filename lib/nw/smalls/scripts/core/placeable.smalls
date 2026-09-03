@@ -1,10 +1,12 @@
 from core.types import { ResRef };
 
-[[native]]
+[[native, value_type]]
 type PlaceableAppearanceInfo {
     id:         int;
+    label:      string;
     string_ref: int;
     model:      ResRef;
 };
 
 [[native]] fn placeable_info(id: int): PlaceableAppearanceInfo;
+[[native]] fn publish_placeable_info(entries: array!(PlaceableAppearanceInfo)): bool;

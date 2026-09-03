@@ -55,12 +55,40 @@ fn _invalid_lighting(): PlaceableResolvedLighting {
     };
 }
 
-fn _ensure_loaded() {
+fn _ensure_loaded(): bool {
     if (_loaded) {
-        return;
+        return true;
     }
-    _placeables = load_config!(Rules.PlaceableRules)("nwn1.data.placeables");
+
+    var definitions = load_config!(Rules.PlaceableDefinition)("nwn1.data.placeables");
+    var infos: array!(NativePlaceable.PlaceableAppearanceInfo) = {};
+    var rules: array!(Rules.PlaceableRules) = {};
+    for (var index = 0; index < Array.len(definitions); index += 1) {
+        var definition = Array.get(definitions, index);
+        if (definition.id == index
+            && definition.info.id == index
+            && definition.rules.id == index) {
+            Array.push(infos, definition.info);
+            Array.push(rules, definition.rules);
+        } else {
+            var invalid_info: NativePlaceable.PlaceableAppearanceInfo;
+            invalid_info.id = -1;
+            var invalid_rules: Rules.PlaceableRules;
+            invalid_rules.id = -1;
+            Array.push(infos, invalid_info);
+            Array.push(rules, invalid_rules);
+        }
+    }
+    if (!NativePlaceable.publish_placeable_info(infos)) {
+        return false;
+    }
+    _placeables = rules;
     _loaded = true;
+    return true;
+}
+
+fn init(): bool {
+    return _ensure_loaded();
 }
 
 fn get_rules(appearance: int): Rules.PlaceableRules {

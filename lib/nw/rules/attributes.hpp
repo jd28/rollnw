@@ -124,9 +124,6 @@ DECLARE_RULE_TYPE(WingModel);
 DECLARE_RULE_TYPE(TailModel);
 
 struct CreatureAccessoryModelInfo {
-    CreatureAccessoryModelInfo() = default;
-    explicit CreatureAccessoryModelInfo(const TwoDARowView& tda);
-
     String label;
     Resref model;
 
@@ -144,9 +141,6 @@ using TailModelArray = RuleTypeArray<TailModel, CreatureAccessoryModelInfo>;
 DECLARE_RULE_TYPE(PlaceableAppearance);
 
 struct PlaceableAppearanceInfo {
-    PlaceableAppearanceInfo() = default;
-    explicit PlaceableAppearanceInfo(const TwoDARowView& tda);
-
     String label;
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
     Resref model;
@@ -164,9 +158,6 @@ DECLARE_RULE_TYPE(DoorType);
 DECLARE_RULE_TYPE(GenericDoor);
 
 struct DoorTypeInfo {
-    DoorTypeInfo() = default;
-    explicit DoorTypeInfo(const TwoDARowView& tda);
-
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
     Resref model;
 
@@ -175,9 +166,6 @@ struct DoorTypeInfo {
 };
 
 struct GenericDoorInfo {
-    GenericDoorInfo() = default;
-    explicit GenericDoorInfo(const TwoDARowView& tda);
-
     uint32_t string_ref = std::numeric_limits<uint32_t>::max();
     Resref model;
 

@@ -1,0 +1,25 @@
+import core.array as Array;
+import core.creature as NativeCreature;
+import nwn1.rules as Rules;
+
+var _loaded = false;
+
+fn init(): bool {
+    if (_loaded) { return true; }
+
+    var definitions = load_config!(Rules.CreatureAccessoryModelDefinition)("nwn1.data.tailmodels");
+    var infos: array!(NativeCreature.CreatureAccessoryModelInfo) = {};
+    for (var index = 0; index < Array.len(definitions); index += 1) {
+        var definition = Array.get(definitions, index);
+        if (definition.id == index && definition.info.id == index) {
+            Array.push(infos, definition.info);
+        } else {
+            var invalid: NativeCreature.CreatureAccessoryModelInfo;
+            invalid.id = -1;
+            Array.push(infos, invalid);
+        }
+    }
+    if (!NativeCreature.publish_accessory_model_info(1, infos)) { return false; }
+    _loaded = true;
+    return true;
+}

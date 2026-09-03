@@ -1,0 +1,25 @@
+import core.array as Array;
+import core.door as NativeDoor;
+import nwn1.rules as Rules;
+
+var _loaded = false;
+
+fn init(): bool {
+    if (_loaded) { return true; }
+
+    var definitions = load_config!(Rules.DoorAppearanceDefinition)("nwn1.data.genericdoors");
+    var infos: array!(NativeDoor.DoorAppearanceInfo) = {};
+    for (var index = 0; index < Array.len(definitions); index += 1) {
+        var definition = Array.get(definitions, index);
+        if (definition.id == index && definition.info.id == index) {
+            Array.push(infos, definition.info);
+        } else {
+            var invalid: NativeDoor.DoorAppearanceInfo;
+            invalid.id = -1;
+            Array.push(infos, invalid);
+        }
+    }
+    if (!NativeDoor.publish_generic_door_info(infos)) { return false; }
+    _loaded = true;
+    return true;
+}

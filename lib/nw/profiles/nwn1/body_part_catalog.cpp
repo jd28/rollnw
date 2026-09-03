@@ -1,6 +1,5 @@
 #include "body_part_catalog.hpp"
 
-#include "../../formats/StaticTwoDA.hpp"
 #include "../../resources/ResourceManager.hpp"
 #include "../../rules/attributes.hpp"
 #include "../../rules/creature_body_parts.hpp"
@@ -183,27 +182,22 @@ bool decode_model_resource(
 
 bool build_body_part_catalog(
     const nw::AppearanceArray& appearances,
-    const nw::StaticTwoDA& phenotypes,
+    std::span<const int32_t> phenotype_fallbacks,
     const nw::ResourceManager& resources,
     nw::CreatureBodyPartCatalog& output,
     nw::String& diagnostic)
 {
     diagnostic.clear();
-    if (!phenotypes.is_valid() || phenotypes.rows() == 0) {
-        diagnostic = "Creature body-part catalog requires phenotype.2da";
+    if (phenotype_fallbacks.empty()) {
+        diagnostic = "Creature body-part catalog requires phenotype fallbacks";
         return false;
     }
-
-    nw::Vector<int32_t> phenotype_fallbacks(phenotypes.rows(), 0);
-    for (size_t phenotype = 0; phenotype < phenotypes.rows(); ++phenotype) {
-        int32_t fallback = 0;
-        if (!phenotypes.get_to(
-                phenotype, "DefaultPhenoType", fallback, false)
-            || fallback < 0
-            || static_cast<size_t>(fallback) >= phenotypes.rows()) {
-            fallback = 0;
+    for (const auto fallback : phenotype_fallbacks) {
+        if (fallback < 0
+            || static_cast<size_t>(fallback) >= phenotype_fallbacks.size()) {
+            diagnostic = "Creature body-part catalog received an out-of-range phenotype fallback";
+            return false;
         }
-        phenotype_fallbacks[phenotype] = fallback;
     }
 
     nw::Vector<AssemblyDescriptor> assemblies;

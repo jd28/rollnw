@@ -58,14 +58,6 @@ String AppearanceInfo::editor_name() const
 // -- CreatureAccessoryModelInfo ---------------------------------------------
 // ----------------------------------------------------------------------------
 
-CreatureAccessoryModelInfo::CreatureAccessoryModelInfo(const TwoDARowView& tda)
-{
-    tda.get_to("LABEL", label);
-    String raw_model;
-    tda.get_to("MODEL", raw_model);
-    model = Resref{raw_model};
-}
-
 String CreatureAccessoryModelInfo::editor_name() const
 {
     String result = label;
@@ -77,15 +69,6 @@ String CreatureAccessoryModelInfo::editor_name() const
 // -- PlaceableAppearanceInfo -------------------------------------------------
 // ----------------------------------------------------------------------------
 
-PlaceableAppearanceInfo::PlaceableAppearanceInfo(const TwoDARowView& tda)
-{
-    tda.get_to("Label", label);
-    tda.get_to("StrRef", string_ref);
-    String raw_model;
-    tda.get_to("ModelName", raw_model);
-    model = Resref{raw_model};
-}
-
 String PlaceableAppearanceInfo::editor_name() const
 {
     auto string = nw::kernel::strings().get(string_ref);
@@ -94,15 +77,6 @@ String PlaceableAppearanceInfo::editor_name() const
 }
 
 namespace {
-
-Resref door_model_resref(StringView value)
-{
-    if (value.empty() || string::icmp(value, "****")
-        || string::icmp(value, "null") || string::icmp(value, "none")) {
-        return {};
-    }
-    return Resref{value};
-}
 
 String door_editor_name(uint32_t string_ref, Resref model)
 {
@@ -115,25 +89,9 @@ String door_editor_name(uint32_t string_ref, Resref model)
 
 } // namespace
 
-DoorTypeInfo::DoorTypeInfo(const TwoDARowView& tda)
-{
-    tda.get_to("StringRefGame", string_ref);
-    String raw_model;
-    tda.get_to("Model", raw_model);
-    model = door_model_resref(raw_model);
-}
-
 String DoorTypeInfo::editor_name() const
 {
     return door_editor_name(string_ref, model);
-}
-
-GenericDoorInfo::GenericDoorInfo(const TwoDARowView& tda)
-{
-    tda.get_to("Name", string_ref);
-    String raw_model;
-    tda.get_to("ModelName", raw_model);
-    model = door_model_resref(raw_model);
 }
 
 String GenericDoorInfo::editor_name() const

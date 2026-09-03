@@ -2,14 +2,31 @@
   "source": { "kind": "twoda", "resource": "placeables" },
   "output": {
     "config_path": "nwn1.data.placeables",
-    "entry_type": "nwn1.rules.PlaceableRules",
+    "entry_type": "nwn1.rules.PlaceableDefinition",
     "fields": [
-      { "target": "id", "value": { "kind": "row_index" } },
-      { "target": "light_color", "value": { "kind": "column", "column": "LightColor", "type": "int", "on_missing": "default", "default": -1 } },
-      { "target": "light_offset_x", "value": { "kind": "column", "column": "LightOffsetX", "type": "float", "on_missing": "default", "default": 0.0 } },
-      { "target": "light_offset_y", "value": { "kind": "column", "column": "LightOffsetY", "type": "float", "on_missing": "default", "default": 0.0 } },
-      { "target": "light_offset_z", "value": { "kind": "column", "column": "LightOffsetZ", "type": "float", "on_missing": "default", "default": 0.0 } },
-      { "target": "static", "value": { "kind": "column", "column": "Static", "type": "bool", "on_missing": "default", "default": false } }
+      { "target": "id", "value": { "kind": "row_index" } }
+    ],
+    "field_groups": [
+      {
+        "target": "info", "owner": "native", "type": "core.placeable.PlaceableAppearanceInfo",
+        "fields": [
+          { "target": "id", "value": { "kind": "row_index" } },
+          { "target": "label", "value": { "kind": "column", "column": "Label", "type": "string", "on_missing": "default", "default": "" } },
+          { "target": "string_ref", "value": { "kind": "column", "column": "StrRef", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "model", "value": { "kind": "column", "column": "ModelName", "type": "resref", "on_missing": "default", "default": "" } }
+        ]
+      },
+      {
+        "target": "rules", "owner": "smalls", "type": "nwn1.rules.PlaceableRules",
+        "fields": [
+          { "target": "id", "value": { "kind": "row_index" } },
+          { "target": "light_color", "value": { "kind": "column", "column": "LightColor", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "light_offset_x", "value": { "kind": "column", "column": "LightOffsetX", "type": "float", "on_missing": "default", "default": 0.0 } },
+          { "target": "light_offset_y", "value": { "kind": "column", "column": "LightOffsetY", "type": "float", "on_missing": "default", "default": 0.0 } },
+          { "target": "light_offset_z", "value": { "kind": "column", "column": "LightOffsetZ", "type": "float", "on_missing": "default", "default": 0.0 } },
+          { "target": "static", "value": { "kind": "column", "column": "Static", "type": "bool", "on_missing": "default", "default": false } }
+        ]
+      }
     ]
   }
 }

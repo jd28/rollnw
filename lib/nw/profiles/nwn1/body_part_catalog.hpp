@@ -4,10 +4,10 @@
 #include "../../rules/creature_body_parts.hpp"
 
 #include <cstdint>
+#include <span>
 
 namespace nw {
 struct ResourceManager;
-struct StaticTwoDA;
 }
 
 namespace nwn1 {
@@ -17,7 +17,7 @@ namespace nwn1 {
 // confined to this adapter.
 [[nodiscard]] bool build_body_part_catalog(
     const nw::AppearanceArray& appearances,
-    const nw::StaticTwoDA& phenotypes,
+    std::span<const int32_t> phenotype_fallbacks,
     const nw::ResourceManager& resources,
     nw::CreatureBodyPartCatalog& output,
     nw::String& diagnostic);

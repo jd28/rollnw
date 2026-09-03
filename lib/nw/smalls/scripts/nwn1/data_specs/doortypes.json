@@ -1,0 +1,20 @@
+{
+  "source": { "kind": "twoda", "resource": "doortypes" },
+  "output": {
+    "config_path": "nwn1.data.doortypes",
+    "entry_type": "nwn1.rules.DoorAppearanceDefinition",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } }
+    ],
+    "field_groups": [
+      {
+        "target": "info", "owner": "native", "type": "core.door.DoorAppearanceInfo",
+        "fields": [
+          { "target": "id", "value": { "kind": "row_index" } },
+          { "target": "string_ref", "value": { "kind": "column", "column": "StringRefGame", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "model", "value": { "kind": "column", "column": "Model", "type": "resref", "on_missing": "default", "default": "" } }
+        ]
+      }
+    ]
+  }
+}

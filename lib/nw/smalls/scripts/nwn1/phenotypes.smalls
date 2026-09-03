@@ -1,0 +1,26 @@
+import core.array as Array;
+import core.creature as NativeCreature;
+import nwn1.rules as Rules;
+
+var _loaded = false;
+
+fn init(): bool {
+    if (_loaded) { return true; }
+
+    var definitions = load_config!(Rules.PhenotypeEntry)("nwn1.data.phenotype");
+    var fallbacks: array!(int) = {};
+    for (var index = 0; index < Array.len(definitions); index += 1) {
+        var definition = Array.get(definitions, index);
+        var fallback = definition.fallback;
+        if (definition.id != index
+            || fallback < 0
+            || fallback >= Array.len(definitions)
+            || Array.get(definitions, fallback).id != fallback) {
+            fallback = 0;
+        }
+        Array.push(fallbacks, fallback);
+    }
+    if (!NativeCreature.publish_body_part_catalog(fallbacks)) { return false; }
+    _loaded = true;
+    return true;
+}

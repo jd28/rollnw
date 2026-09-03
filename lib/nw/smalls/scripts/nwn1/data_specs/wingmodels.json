@@ -1,0 +1,20 @@
+{
+  "source": { "kind": "twoda", "resource": "wingmodel" },
+  "output": {
+    "config_path": "nwn1.data.wingmodels",
+    "entry_type": "nwn1.rules.CreatureAccessoryModelDefinition",
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } }
+    ],
+    "field_groups": [
+      {
+        "target": "info", "owner": "native", "type": "core.creature.CreatureAccessoryModelInfo",
+        "fields": [
+          { "target": "id", "value": { "kind": "row_index" } },
+          { "target": "label", "value": { "kind": "column", "column": "LABEL", "type": "string", "on_missing": "default", "default": "" } },
+          { "target": "model", "value": { "kind": "column", "column": "MODEL", "type": "resref", "on_missing": "default", "default": "" } }
+        ]
+      }
+    ]
+  }
+}

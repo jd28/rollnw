@@ -5,7 +5,9 @@
 import core.types as T;
 import core.string as String;
 from core.item import { BaseItemInfo };
-from core.creature import { AppearanceInfo };
+from core.creature import { AppearanceInfo, CreatureAccessoryModelInfo };
+from core.door import { DoorAppearanceInfo };
+from core.placeable import { PlaceableAppearanceInfo };
 import nwn1.requirements as Requirements;
 from nwn1.requirements import { RequirementQualifier };
 
@@ -268,6 +270,28 @@ type PlaceableRules {
     light_offset_y: float;
     light_offset_z: float;
     static:         bool;
+};
+
+[[value_type]]
+type PlaceableDefinition {
+    [[index]]
+    id:    int;
+    info:  PlaceableAppearanceInfo;
+    rules: PlaceableRules;
+};
+
+[[value_type]]
+type DoorAppearanceDefinition {
+    [[index]]
+    id:   int;
+    info: DoorAppearanceInfo;
+};
+
+[[value_type]]
+type CreatureAccessoryModelDefinition {
+    [[index]]
+    id:   int;
+    info: CreatureAccessoryModelInfo;
 };
 
 [[value_type]]

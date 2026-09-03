@@ -4232,12 +4232,70 @@ TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
     ASSERT_NE(rules_type, nw::smalls::invalid_type_id);
     ASSERT_NE(rt.get_struct_def(info_type), nullptr);
     ASSERT_NE(rt.get_struct_def(rules_type), nullptr);
-    EXPECT_FALSE(rt.get_struct_def(info_type)->is_value_type);
+    EXPECT_TRUE(rt.get_struct_def(info_type)->is_value_type);
     EXPECT_TRUE(rt.get_struct_def(rules_type)->is_value_type);
 
     auto result = rt.execute_script(script, "main", {});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, 1);
+}
+
+TEST_F(SmallsEngineIntegration, ResidualNativePublishersAreTransactionalPerDomain)
+{
+    auto& rt = nw::kernel::runtime();
+    const auto placeable_count = nw::kernel::rules().placeables.entries.size();
+    const auto door_count = nw::kernel::rules().doortypes.entries.size();
+    const auto wing_count = nw::kernel::rules().wingmodels.entries.size();
+    ASSERT_GT(placeable_count, 0u);
+    ASSERT_GT(door_count, 0u);
+    ASSERT_GT(wing_count, 0u);
+
+    auto* script = rt.load_module_from_source(
+        "test.residual_native_publishers_transactional", R"(
+            import core.array as Array;
+            import core.creature as Creature;
+            import core.door as Door;
+            import core.placeable as Placeable;
+
+            fn reject_placeables(): bool {
+                var row: Placeable.PlaceableAppearanceInfo;
+                row.id = 1;
+                var rows: array!(Placeable.PlaceableAppearanceInfo) = {};
+                Array.push(rows, row);
+                return !Placeable.publish_placeable_info(rows);
+            }
+
+            fn reject_doors(): bool {
+                var row: Door.DoorAppearanceInfo;
+                row.id = 1;
+                var rows: array!(Door.DoorAppearanceInfo) = {};
+                Array.push(rows, row);
+                return !Door.publish_door_type_info(rows);
+            }
+
+            fn reject_wings(): bool {
+                var row: Creature.CreatureAccessoryModelInfo;
+                row.id = 1;
+                var rows: array!(Creature.CreatureAccessoryModelInfo) = {};
+                Array.push(rows, row);
+                return !Creature.publish_accessory_model_info(0, rows);
+            }
+        )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    for (const auto function : {
+             "reject_placeables", "reject_doors", "reject_wings"}) {
+        const auto result = rt.execute_script(script, function, {});
+        ASSERT_TRUE(result.ok()) << result.error_message;
+        EXPECT_TRUE(result.value.data.bval) << function;
+    }
+
+    EXPECT_EQ(nw::kernel::rules().placeables.entries.size(), placeable_count);
+    EXPECT_EQ(nw::kernel::rules().doortypes.entries.size(), door_count);
+    EXPECT_EQ(nw::kernel::rules().wingmodels.entries.size(), wing_count);
+    EXPECT_FALSE(nw::kernel::rules().genericdoors.entries.empty());
+    EXPECT_FALSE(nw::kernel::rules().tailmodels.entries.empty());
 }
 
 TEST_F(SmallsEngineIntegration, LoadConfigIntrinsicCloakModelEntry)

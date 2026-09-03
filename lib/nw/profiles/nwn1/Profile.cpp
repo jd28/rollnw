@@ -1,6 +1,5 @@
 #include "Profile.hpp"
 
-#include "body_part_catalog.hpp"
 #include "constants.hpp"
 #include "rules.hpp"
 #include "scriptbridge.hpp"
@@ -21,9 +20,7 @@
 #include "../../util/profile.hpp"
 
 #include <algorithm>
-#include <array>
 #include <filesystem>
-#include <string_view>
 #include <utility>
 
 namespace nwk = nw::kernel;
@@ -37,111 +34,61 @@ namespace {
 void register_structured_data_specs()
 {
     namespace fs = std::filesystem;
-    constexpr std::array filenames{
-        "appearance.json"sv,
-        "armor.json"sv,
-        "attacktables.json"sv,
-        "baseitems.json"sv,
-        "classes.json"sv,
-        "cloakmodels.json"sv,
-        "creaturesize.json"sv,
-        "feats.json"sv,
-        "fractionalcr.json"sv,
-        "metamagic.json"sv,
-        "parts_robe.json"sv,
-        "phenotype.json"sv,
-        "placeables.json"sv,
-        "races.json"sv,
-        "savetables.json"sv,
-        "skills.json"sv,
-        "spells.json"sv,
-    };
+    const auto& package_directory = nw::kernel::runtime().select_package_directory(
+        *nw::kernel::config().profile());
+    const auto spec_directory = package_directory / "data_specs";
+    std::error_code error;
+    if (!fs::is_directory(spec_directory, error) || error) {
+        throw std::runtime_error(fmt::format(
+            "rules: package data-spec directory '{}' was not found",
+            spec_directory.string()));
+    }
 
     nw::Vector<fs::path> paths;
-    for (const auto& module_path : nw::kernel::runtime().module_paths()) {
-        const auto spec_path = module_path / "data_specs";
-        const bool has_specs = std::ranges::any_of(filenames,
-            [&](std::string_view filename) {
-                return fs::is_regular_file(spec_path / filename);
-            });
-        if (!has_specs) { continue; }
-        if (!paths.empty()) {
-            throw std::runtime_error(fmt::format(
-                "rules: multiple data-spec packages found at '{}' and '{}'",
-                paths.front().parent_path().string(), spec_path.string()));
-        }
-        for (std::string_view filename : filenames) {
-            const auto path = spec_path / filename;
-            if (!fs::is_regular_file(path)) {
-                throw std::runtime_error(fmt::format(
-                    "rules: required data spec '{}' is missing",
-                    path.string()));
-            }
-            paths.push_back(path);
+    for (const auto& entry : fs::directory_iterator(spec_directory, error)) {
+        if (error) { break; }
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            paths.push_back(entry.path());
         }
     }
-    if (paths.empty()) {
-        throw std::runtime_error(
-            "rules: package data_specs was not found");
-    }
-
-    nw::Vector<nw::smalls::DataSpec> specs;
-    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
-    if (!nw::smalls::parse_data_specs(paths, specs, diagnostics)) {
-        const auto detail = diagnostics.empty()
-            ? nw::String{"unknown parse error"}
-            : fmt::format("{}: {} (target '{}')",
-                  diagnostics.front().source.string(),
-                  diagnostics.front().message,
-                  diagnostics.front().target);
+    if (error) {
         throw std::runtime_error(fmt::format(
-            "rules: failed to parse structured data specs: {}", detail));
+            "rules: failed to enumerate package data specs '{}': {}",
+            spec_directory.string(), error.message()));
     }
+    std::ranges::sort(paths);
 
-    for (auto& spec : specs) {
+    for (const auto& path : paths) {
+        nw::Vector<nw::smalls::DataSpec> specs;
+        nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+        if (!nw::smalls::parse_data_specs(
+                std::span<const fs::path>{&path, 1}, specs, diagnostics)) {
+            const auto detail = diagnostics.empty()
+                ? nw::String{"unknown parse error"}
+                : fmt::format("{}: {} (target '{}')",
+                      diagnostics.front().source.string(),
+                      diagnostics.front().message,
+                      diagnostics.front().target);
+            LOG_F(ERROR,
+                "rules: failed to parse structured data spec '{}'; disabling only that domain: {}",
+                path.string(), detail);
+            continue;
+        }
+
+        if (specs.size() != 1) {
+            LOG_F(ERROR,
+                "rules: data spec '{}' produced {} domains; disabling that file",
+                path.string(), specs.size());
+            continue;
+        }
         nw::String diagnostic;
-        const auto path = spec.source_path;
         if (!nw::kernel::runtime().register_data_spec(
-                std::move(spec), diagnostic)) {
-            throw std::runtime_error(fmt::format(
-                "rules: failed to register data spec '{}': {}",
-                path.string(), diagnostic));
+                std::move(specs.front()), diagnostic)) {
+            LOG_F(ERROR,
+                "rules: failed to register data spec '{}'; disabling only that domain: {}",
+                path.string(), diagnostic);
         }
     }
-}
-
-template <typename Array>
-void load_rule_rows(const nw::StaticTwoDA& source, nw::StringView source_name, Array& output)
-{
-    if (!source.is_valid()) {
-        throw std::runtime_error(
-            fmt::format("rules: failed to load '{}.2da'", source_name));
-    }
-
-    output.clear();
-    output.entries.reserve(source.rows());
-    for (size_t i = 0; i < source.rows(); ++i) {
-        output.entries.emplace_back(source.row(i));
-    }
-}
-
-template <typename Array>
-bool load_optional_rule_rows(
-    const nw::StaticTwoDA& source, nw::StringView source_name, Array& output)
-{
-    output.clear();
-    if (!source.is_valid()) {
-        LOG_F(ERROR,
-            "rules: failed to load optional '{}.2da'; continuing with an empty domain",
-            source_name);
-        return false;
-    }
-
-    output.entries.reserve(source.rows());
-    for (size_t i = 0; i < source.rows(); ++i) {
-        output.entries.emplace_back(source.row(i));
-    }
-    return true;
 }
 
 void update_placeable_visual(nw::smalls::Runtime& rt, nw::ObjectBase* obj)
@@ -287,34 +234,20 @@ bool Profile::load_rules() const
 
     nw::StaticTwoDA classes{nw::kernel::resman().demand({"classes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA feat{nw::kernel::resman().demand({"feat"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA placeables{nw::kernel::resman().demand({"placeables"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA doortypes{nw::kernel::resman().demand({"doortypes"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA genericdoors{nw::kernel::resman().demand({"genericdoors"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA phenotypes{nw::kernel::resman().demand({"phenotype"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA wingmodels{nw::kernel::resman().demand({"wingmodel"sv, nw::ResourceType::twoda})};
-    nw::StaticTwoDA tailmodels{nw::kernel::resman().demand({"tailmodel"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA racialtypes{nw::kernel::resman().demand({"racialtypes"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA skills{nw::kernel::resman().demand({"skills"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spells{nw::kernel::resman().demand({"spells"sv, nw::ResourceType::twoda})};
     nw::StaticTwoDA spellschools{nw::kernel::resman().demand({"spellschools"sv, nw::ResourceType::twoda})};
     nw::String temp_string;
 
-    auto& rules = nw::kernel::rules();
     load_data_definitions("nwn1.appearances", "appearance");
-    nw::String body_part_diagnostic;
-    if (!build_body_part_catalog(rules.appearances, phenotypes,
-            nw::kernel::resman(), rules.creature_body_parts,
-            body_part_diagnostic)) {
-        throw std::runtime_error(fmt::format(
-            "rules: failed to build creature body-part catalog: {}",
-            body_part_diagnostic));
-    }
-    load_rule_rows(placeables, "placeables", rules.placeables);
-    load_optional_rule_rows(doortypes, "doortypes", rules.doortypes);
-    load_optional_rule_rows(genericdoors, "genericdoors", rules.genericdoors);
-    load_rule_rows(wingmodels, "wingmodel", rules.wingmodels);
-    load_rule_rows(tailmodels, "tailmodel", rules.tailmodels);
+    load_data_definitions("nwn1.placeables", "placeable");
+    load_data_definitions("nwn1.door_types", "door-type");
+    load_data_definitions("nwn1.generic_doors", "generic-door");
+    load_data_definitions("nwn1.wing_models", "wing-model");
+    load_data_definitions("nwn1.tail_models", "tail-model");
     load_baseitem_definitions();
+    load_data_definitions("nwn1.phenotypes", "phenotype");
 
     // Class policy is generated as Smalls config. Keep the load-time check here
     // because the profile still requires classes.2da for nwn1.data.classes.

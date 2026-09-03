@@ -256,36 +256,20 @@ TEST(SmallsDataTransform, AllNwn1PackageSpecsParse)
 {
     const auto root = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR}
         / "lib/nw/smalls/scripts/nwn1/data_specs";
-    const std::array names{
-        "appearance.json",
-        "armor.json",
-        "attacktables.json",
-        "baseitems.json",
-        "classes.json",
-        "cloakmodels.json",
-        "creaturesize.json",
-        "feats.json",
-        "fractionalcr.json",
-        "metamagic.json",
-        "parts_robe.json",
-        "phenotype.json",
-        "placeables.json",
-        "races.json",
-        "savetables.json",
-        "skills.json",
-        "spells.json",
-    };
     nw::Vector<std::filesystem::path> paths;
-    paths.reserve(names.size());
-    for (const auto* name : names) {
-        paths.push_back(root / name);
+    for (const auto& entry : std::filesystem::directory_iterator(root)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            paths.push_back(entry.path());
+        }
     }
+    std::ranges::sort(paths);
 
     nw::Vector<nw::smalls::DataSpec> specs;
     nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
     EXPECT_TRUE(nw::smalls::parse_data_specs(paths, specs, diagnostics));
     EXPECT_TRUE(diagnostics.empty());
-    EXPECT_EQ(specs.size(), names.size());
+    EXPECT_EQ(specs.size(), paths.size());
+    EXPECT_GE(specs.size(), 21u);
 }
 
 TEST(SmallsDataTransform, SnapshotFilenameIsOptionalSinkMetadata)

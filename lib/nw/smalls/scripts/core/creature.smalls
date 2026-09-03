@@ -19,6 +19,16 @@ type AppearanceInfo {
 
 [[native]] fn appearance_info(id: int): AppearanceInfo;
 [[native]] fn publish_appearance_info(entries: array!(AppearanceInfo)): bool;
+
+[[native, value_type]]
+type CreatureAccessoryModelInfo {
+    id:    int;
+    label: string;
+    model: ResRef;
+};
+
+[[native]] fn publish_accessory_model_info(accessory: int, entries: array!(CreatureAccessoryModelInfo)): bool;
+[[native]] fn publish_body_part_catalog(phenotype_fallbacks: array!(int)): bool;
 [[native]] fn accessory_model(accessory: int, id: int): ResRef;
 [[native]] fn accessory_exists(accessory: int, id: int): bool;
 const body_part_info_flag_editor_visible = 1;
