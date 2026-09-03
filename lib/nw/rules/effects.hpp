@@ -291,7 +291,7 @@ private:
     Vector<ItemPropertyDefinition> ip_definitions_;
     Vector<const StaticTwoDA*> ip_cost_table_;
     Vector<const StaticTwoDA*> ip_param_table_;
-    const StaticTwoDA* itemprop_table_;
+    const StaticTwoDA* itemprop_table_ = nullptr;
     EffectEventFunc event_callback_;
     EffectBatchEventFunc event_batch_callback_;
     bool callback_timing_enabled_ = false;

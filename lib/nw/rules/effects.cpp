@@ -74,15 +74,26 @@ void dispatch_on_effects(nw::ObjectBase* obj, const nw::Vector<nw::Effect*>& eff
     if (effect_value_type == nw::smalls::invalid_type_id || marshaled_effects.empty()) { return; }
 
     auto array_ptr = rt.create_array_typed(effect_value_type, marshaled_effects.size());
-    if (!array_ptr.value) { release_pins(); return; }
+    if (!array_ptr.value) {
+        release_pins();
+        return;
+    }
 
     auto* array = rt.get_array_typed(array_ptr);
-    if (!array) { release_pins(); return; }
+    if (!array) {
+        release_pins();
+        return;
+    }
 
-    for (const auto& v : marshaled_effects) { array->append_value(v, rt); }
+    for (const auto& v : marshaled_effects) {
+        array->append_value(v, rt);
+    }
 
     auto* array_header = rt.heap_.get_header(array_ptr);
-    if (!array_header) { release_pins(); return; }
+    if (!array_header) {
+        release_pins();
+        return;
+    }
 
     args.push_back(nw::smalls::Value::make_heap(array_ptr, array_header->type_id));
     args.push_back(nw::smalls::Value::make_bool(is_apply));
@@ -90,7 +101,8 @@ void dispatch_on_effects(nw::ObjectBase* obj, const nw::Vector<nw::Effect*>& eff
     if (timing_stats) {
         timing_stats->marshal_ns += static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - marshal_start).count());
+                std::chrono::steady_clock::now() - marshal_start)
+                .count());
     }
 
     const auto dispatch_start = timing_stats ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
@@ -108,12 +120,109 @@ void dispatch_on_effects(nw::ObjectBase* obj, const nw::Vector<nw::Effect*>& eff
     if (timing_stats) {
         timing_stats->dispatch_ns += static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - dispatch_start).count());
+                std::chrono::steady_clock::now() - dispatch_start)
+                .count());
     }
 
     if (!result.ok()) {
         LOG_F(WARNING, "[effects] on_effects failed: {}", result.error_message);
     }
+}
+
+struct ItemPropertyCatalog {
+    Vector<ItemPropertyDefinition> definitions;
+    Vector<const StaticTwoDA*> cost_tables;
+    Vector<const StaticTwoDA*> param_tables;
+    const StaticTwoDA* baseitem_table = nullptr;
+};
+
+bool load_item_property_tables(StringView index_name, StringView column,
+    StringView kind, Vector<const StaticTwoDA*>& result)
+{
+    const auto* index = kernel::twodas().get(index_name);
+    if (!index) {
+        LOG_F(ERROR, "  ... missing item property {} index '{}'", kind, index_name);
+        return false;
+    }
+
+    result.assign(index->rows(), nullptr);
+    for (size_t row = 0; row < index->rows(); ++row) {
+        const auto resref = index->get<StringView>(row, column);
+        if (!resref) { continue; }
+
+        result[row] = kernel::twodas().get(*resref);
+        if (!result[row]) {
+            LOG_F(ERROR,
+                "  ... item property {} index row {} references missing table '{}'",
+                kind, row, *resref);
+            return false;
+        }
+    }
+    return true;
+}
+
+const StaticTwoDA* resolve_item_property_table_reference(
+    int32_t index, const Vector<const StaticTwoDA*>& tables,
+    StringView source_column, size_t source_row, bool& valid)
+{
+    if (index < 0 || static_cast<size_t>(index) >= tables.size()
+        || !tables[static_cast<size_t>(index)]) {
+        LOG_F(ERROR,
+            "  ... itempropdef row {} has invalid {} reference {}",
+            source_row, source_column, index);
+        valid = false;
+        return nullptr;
+    }
+    return tables[static_cast<size_t>(index)];
+}
+
+bool build_item_property_catalog(ItemPropertyCatalog& result)
+{
+    if (!load_item_property_tables(
+            "iprp_costtable", "Name", "cost", result.cost_tables)
+        || !load_item_property_tables(
+            "iprp_paramtable", "TableResRef", "parameter", result.param_tables)) {
+        return false;
+    }
+
+    const auto* definitions = kernel::twodas().get("itempropdef");
+    result.baseitem_table = kernel::twodas().get("itemprops");
+    if (!definitions || !result.baseitem_table) {
+        LOG_F(ERROR,
+            "  ... missing required item property table '{}'",
+            definitions ? "itemprops" : "itempropdef");
+        return false;
+    }
+
+    result.definitions.reserve(definitions->rows());
+    bool valid = true;
+    for (size_t row = 0; row < definitions->rows(); ++row) {
+        ItemPropertyDefinition definition;
+        definitions->get_to(row, "Name", definition.name);
+
+        if (const auto resref = definitions->get<StringView>(row, "SubTypeResRef")) {
+            definition.subtype = kernel::twodas().get(*resref);
+            if (!definition.subtype) {
+                LOG_F(ERROR,
+                    "  ... itempropdef row {} references missing subtype table '{}'",
+                    row, *resref);
+                valid = false;
+            }
+        }
+        if (const auto index = definitions->get<int32_t>(row, "CostTableResRef")) {
+            definition.cost_table = resolve_item_property_table_reference(
+                *index, result.cost_tables, "CostTableResRef", row, valid);
+        }
+        if (const auto index = definitions->get<int32_t>(row, "Param1ResRef")) {
+            definition.param_table = resolve_item_property_table_reference(
+                *index, result.param_tables, "Param1ResRef", row, valid);
+        }
+        definitions->get_to(row, "Cost", definition.cost);
+        definitions->get_to(row, "GameStrRef", definition.game_string);
+        definitions->get_to(row, "Description", definition.description);
+        result.definitions.push_back(definition);
+    }
+    return valid;
 }
 
 } // namespace
@@ -435,95 +544,21 @@ void EffectSystem::initialize(kernel::ServiceInitTime time)
     auto start = std::chrono::high_resolution_clock::now();
 
     LOG_F(INFO, "kernel: effect system initializing...");
-
-    {
-        NW_PROFILE_SCOPE_N("effects.initialize.cost_tables");
-        LOG_F(INFO, "  ... loading item property cost tables");
-        auto costtable = kernel::twodas().get("iprp_costtable");
-        if (costtable) {
-            ip_cost_table_.resize(costtable->rows());
-            std::optional<StringView> resref;
-            int count = 0;
-            for (size_t i = 0; i < costtable->rows(); ++i) {
-                if ((resref = costtable->get<StringView>(i, "Name"))) {
-                    auto tda = kernel::twodas().get(*resref);
-                    if (!tda) {
-                        LOG_F(WARNING, "  ... failed to load cost table {}", *resref);
-                        ip_cost_table_[i] = nullptr;
-                    } else {
-                        ip_cost_table_[i] = tda;
-                        ++count;
-                    }
-                }
-            }
-            LOG_F(INFO, "  ... loaded {} item property cost tables", count);
-        } else {
-            LOG_F(ERROR, "  ... failed to load item property cost tables");
-        }
-    }
-
-    {
-        NW_PROFILE_SCOPE_N("effects.initialize.param_tables");
-        LOG_F(INFO, "  ... loading item property param tables");
-        auto paramtable = kernel::twodas().get("iprp_paramtable");
-        if (paramtable) {
-            ip_param_table_.resize(paramtable->rows());
-            std::optional<StringView> resref;
-            int count = 0;
-            for (size_t i = 0; i < paramtable->rows(); ++i) {
-                if ((resref = paramtable->get<StringView>(i, "TableResRef"))) {
-                    auto tda = kernel::twodas().get(*resref);
-                    if (!tda) {
-                        LOG_F(WARNING, "  ... failed to load param table {}", *resref);
-                        ip_param_table_[i] = nullptr;
-                    } else {
-                        ip_param_table_[i] = tda;
-                        ++count;
-                    }
-                }
-            }
-            LOG_F(INFO, "  ... loaded {} item property param tables", count);
-        } else {
-            LOG_F(ERROR, "Failed to load item property param tables");
-        }
-    }
-
-    {
-        NW_PROFILE_SCOPE_N("effects.initialize.definitions");
-        LOG_F(INFO, "  ... loading item property definitions");
-        auto ipdef = kernel::twodas().get("itempropdef");
-        if (ipdef) {
-            int count = 0;
-            std::optional<StringView> temp;
-            for (size_t i = 0; i < ipdef->rows(); ++i) {
-                ItemPropertyDefinition def;
-                if (ipdef->get_to(i, "Name", def.name)) {
-                    if ((temp = ipdef->get<StringView>(i, "SubTypeResRef"))) {
-                        def.subtype = kernel::twodas().get(*temp);
-                    }
-                    if (auto cost = ipdef->get<int>(i, "CostTableResRef")) {
-                        def.cost_table = ip_cost_table_[size_t(*cost)];
-                    }
-                    if (auto param = ipdef->get<int>(i, "Param1ResRef")) {
-                        def.param_table = ip_param_table_[size_t(*param)];
-                    }
-                    ipdef->get_to(i, "Cost", def.cost);
-                    ipdef->get_to(i, "GameStrRef", def.game_string);
-                    ipdef->get_to(i, "Description", def.description);
-                    ++count;
-                }
-                ip_definitions_.push_back(def);
-            }
-            LOG_F(INFO, "  ... loaded {} item property definitions", count);
-        } else {
-            LOG_F(ERROR, "Failed to load item property definitions");
-        }
-    }
-
-    {
-        NW_PROFILE_SCOPE_N("effects.initialize.baseitem_table");
-        LOG_F(INFO, "  ... loading item property baseitem table");
-        itemprop_table_ = kernel::twodas().get("itemprops");
+    ItemPropertyCatalog candidate;
+    if (build_item_property_catalog(candidate)) {
+        ip_definitions_.swap(candidate.definitions);
+        ip_cost_table_.swap(candidate.cost_tables);
+        ip_param_table_.swap(candidate.param_tables);
+        itemprop_table_ = candidate.baseitem_table;
+        LOG_F(INFO,
+            "  ... published item property catalog: {} definitions, {} cost rows, {} parameter rows",
+            ip_definitions_.size(), ip_cost_table_.size(), ip_param_table_.size());
+    } else {
+        ip_definitions_.clear();
+        ip_cost_table_.clear();
+        ip_param_table_.clear();
+        itemprop_table_ = nullptr;
+        LOG_F(ERROR, "  ... rejected item property catalog");
     }
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
@@ -638,7 +673,9 @@ size_t EffectSystem::remove_from(ObjectBase* obj, const Vector<Effect*>& effects
     }
 
     if (destroy) {
-        for (auto* effect : removed_effects) { this->destroy(effect); }
+        for (auto* effect : removed_effects) {
+            this->destroy(effect);
+        }
     }
 
     return removed;
@@ -673,16 +710,22 @@ nlohmann::json EffectSystem::stats() const
 {
     nlohmann::json j;
     j["effect system"] = {
+        {"item_property_catalog", {
+                                      {"definitions", ip_definitions_.size()},
+                                      {"cost_table_rows", ip_cost_table_.size()},
+                                      {"param_table_rows", ip_param_table_.size()},
+                                      {"has_baseitem_table", itemprop_table_ != nullptr},
+                                  }},
         {"callback_timing_enabled", callback_timing_enabled_},
         {"callback_timing", {
-            {"filter_ns", callback_timing_stats_.filter_ns},
-            {"marshal_ns", callback_timing_stats_.marshal_ns},
-            {"dispatch_ns", callback_timing_stats_.dispatch_ns},
-            {"batches", callback_timing_stats_.batches},
-            {"effects_scanned", callback_timing_stats_.effects_scanned},
-            {"effects_dispatched", callback_timing_stats_.effects_dispatched},
-            {"dropped_invalid_handles", callback_timing_stats_.dropped_invalid_handles},
-        }},
+                                {"filter_ns", callback_timing_stats_.filter_ns},
+                                {"marshal_ns", callback_timing_stats_.marshal_ns},
+                                {"dispatch_ns", callback_timing_stats_.dispatch_ns},
+                                {"batches", callback_timing_stats_.batches},
+                                {"effects_scanned", callback_timing_stats_.effects_scanned},
+                                {"effects_dispatched", callback_timing_stats_.effects_dispatched},
+                                {"dropped_invalid_handles", callback_timing_stats_.dropped_invalid_handles},
+                            }},
     };
     return j;
 }

@@ -4,6 +4,7 @@
 
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -21,6 +22,27 @@ namespace fs = std::filesystem;
 namespace nwk = nw::kernel;
 
 namespace {
+
+struct TemporaryModuleServices {
+    fs::path path;
+
+    ~TemporaryModuleServices()
+    {
+        nwk::services().shutdown();
+        std::error_code error;
+        fs::remove_all(path, error);
+    }
+};
+
+void write_itempropdef(const fs::path& path, std::string_view cost_reference)
+{
+    std::ofstream out{path / "itempropdef.2da"};
+    out << "2DA V2.0\n\n"
+           "Name SubTypeResRef CostTableResRef Param1ResRef Cost GameStrRef Description\n"
+           "0 424242 **** "
+        << cost_reference
+        << " **** 1.5 424243 424244\n";
+}
 
 nw::String test_itemprop_to_string(const nw::ItemProperty& ip)
 {
@@ -120,6 +142,41 @@ TEST(EffectSystem, IPCostParamTables)
     EXPECT_TRUE(nwk::effects().ip_param_table(3));
     EXPECT_EQ(nwk::effects().ip_definition(nw::ItemPropertyType::make(0))->name, 649u);
     EXPECT_TRUE(nwk::effects().itemprops());
+}
+
+TEST(EffectSystem, ItemPropertyCatalogPublishesActiveModuleBatchAtomically)
+{
+    const fs::path module_path = "tmp/item_property_catalog_module";
+    std::error_code error;
+    fs::remove_all(module_path, error);
+    fs::copy("test_data/user/modules/module_as_dir", module_path,
+        fs::copy_options::recursive, error);
+    ASSERT_FALSE(error);
+    TemporaryModuleServices cleanup{module_path};
+
+    write_itempropdef(module_path, "****");
+    auto* module = nwk::load_module(module_path);
+    ASSERT_NE(module, nullptr);
+    ASSERT_EQ(nwk::effects().ip_definitions().size(), 1u);
+    EXPECT_EQ(nwk::effects().ip_definition(nw::ItemPropertyType::make(0))->name,
+        424242u);
+
+    nwk::effects().initialize(nwk::ServiceInitTime::module_post_load);
+    EXPECT_EQ(nwk::effects().ip_definitions().size(), 1u);
+
+    write_itempropdef(module_path, "-1");
+    module = nwk::load_module(module_path);
+    ASSERT_NE(module, nullptr);
+    EXPECT_TRUE(nwk::effects().ip_definitions().empty());
+    EXPECT_EQ(nwk::effects().itemprops(), nullptr);
+    EXPECT_FALSE(nwk::rules().appearances.entries.empty());
+
+    write_itempropdef(module_path, "2147483647");
+    module = nwk::load_module(module_path);
+    ASSERT_NE(module, nullptr);
+    EXPECT_TRUE(nwk::effects().ip_definitions().empty());
+    EXPECT_EQ(nwk::effects().itemprops(), nullptr);
+    EXPECT_FALSE(nwk::rules().appearances.entries.empty());
 }
 
 TEST(EffectSystem, EffectPool)
