@@ -43,13 +43,13 @@ void register_core_effects(Runtime& rt)
             nw::kernel::effects().destroy(e); })
         .function("get_int", +[](nw::TypedHandle eff, int32_t index) -> int32_t {
             auto* e = nw::kernel::effects().get(eff);
-            if (!e || index < 0) {
+            if (!e || index < 0 || index >= nw::Effect::ints_count) {
                 return 0;
             }
             return e->get_int(static_cast<size_t>(index)); })
         .function("set_int", +[](nw::TypedHandle eff, int32_t index, int32_t value) {
             auto* e = nw::kernel::effects().get(eff);
-            if (!e || index < 0) {
+            if (!e || index < 0 || index >= nw::Effect::ints_count) {
                 return;
             }
             e->set_int(static_cast<size_t>(index), value); })

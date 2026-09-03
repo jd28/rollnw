@@ -1,6 +1,8 @@
 #include "../stdlib.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace nw::smalls {
 
@@ -486,16 +488,21 @@ void register_core_array(Runtime& rt)
 
             IArray* in = runtime->get_array_typed(args[0].data.hptr);
             if (!in) { return Value{}; }
+            if (in->size() > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+                return Value{};
+            }
             TypeID elem_type = in->element_type();
 
-            int32_t start = args[1].data.ival;
-            int32_t end = args[2].data.ival;
-            int32_t len = static_cast<int32_t>(in->size());
-
-            if (start < 0) { start = std::max(0, len + start); }
-            if (end < 0) { end = std::max(0, len + end); }
-            if (start > len) { start = len; }
-            if (end > len) { end = len; }
+            const int32_t len = static_cast<int32_t>(in->size());
+            const auto normalize_index = [len](int32_t index) {
+                const int64_t normalized = index < 0
+                    ? static_cast<int64_t>(len) + index
+                    : index;
+                return static_cast<int32_t>(
+                    std::clamp<int64_t>(normalized, 0, len));
+            };
+            const int32_t start = normalize_index(args[1].data.ival);
+            const int32_t end = normalize_index(args[2].data.ival);
             if (start >= end) {
                 HeapPtr out_ptr = runtime->create_array_typed(elem_type, 0);
                 if (out_ptr.value == 0) { return Value{}; }

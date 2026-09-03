@@ -122,7 +122,9 @@ struct StructArray : IArray {
     void clear() override
     {
         count = 0;
-        memset(buffer.data(), 0, buffer.size());
+        if (!buffer.empty()) {
+            memset(buffer.data(), 0, buffer.size());
+        }
     }
 
     void resize(size_t n) override

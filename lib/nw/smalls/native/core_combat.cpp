@@ -7,6 +7,7 @@
 #include "../../rules/combat.hpp"
 
 #include <algorithm>
+#include <limits>
 
 namespace nw::smalls {
 
@@ -210,7 +211,10 @@ int32_t object_effect_count(nw::ObjectHandle obj)
         return 0;
     }
 
-    return static_cast<int32_t>(base->effects().size());
+    const size_t count = base->effects().size();
+    return count <= static_cast<size_t>(std::numeric_limits<int32_t>::max())
+        ? static_cast<int32_t>(count)
+        : std::numeric_limits<int32_t>::max();
 }
 
 nw::TypedHandle object_effect_at(nw::ObjectHandle obj, int32_t index)
@@ -220,13 +224,12 @@ nw::TypedHandle object_effect_at(nw::ObjectHandle obj, int32_t index)
         return {};
     }
 
-    const auto begin = std::begin(base->effects());
-    const auto end = std::end(base->effects());
-    if (begin + index >= end) {
+    const auto& effects = base->effects();
+    if (static_cast<size_t>(index) >= effects.size()) {
         return {};
     }
 
-    auto it = begin + index;
+    auto it = std::begin(effects) + index;
     if (it->effect) {
         return it->effect->handle().to_typed_handle();
     }
@@ -239,17 +242,22 @@ int32_t object_find_first_effect_of(nw::ObjectHandle obj, int32_t effect_type, i
     auto* base = as_object_const(obj);
     if (!base) { return -1; }
 
-    if (start_index < 0) { start_index = 0; }
-    auto begin = std::begin(base->effects());
-    auto end = std::end(base->effects());
+    const auto& effects = base->effects();
+    const size_t start = start_index > 0
+        ? static_cast<size_t>(start_index)
+        : 0;
+    if (start >= effects.size()) { return -1; }
 
-    if (begin + start_index >= end) {
-        return -1;
-    }
-
-    auto it = find_first_effect_of(begin + start_index, end, EffectType::make(effect_type), subtype);
+    auto begin = std::begin(effects);
+    auto end = std::end(effects);
+    auto it = find_first_effect_of(begin + start, end,
+        EffectType::make(effect_type), subtype);
     if (it == end) { return -1; }
-    return static_cast<int32_t>(std::distance(begin, it));
+
+    const auto index = std::distance(begin, it);
+    return index <= std::numeric_limits<int32_t>::max()
+        ? static_cast<int32_t>(index)
+        : -1;
 }
 
 nw::Effect* effect_best_damage_reduction(nw::ObjectHandle obj, nw::EffectType effect_type, int32_t power)

@@ -1,6 +1,6 @@
 # SmallS Rules Ownership Audit Follow-up
 
-Status: open. Tier 2.
+Status: complete. Tier 2.
 
 ## Goal
 
@@ -42,15 +42,20 @@ ASSUMPTION: event scheduling remains a native storage/lifetime invariant while
 attack cadence and attack resolution remain package policy — affects the
 combat-scheduler boundary.
 
-No combat latency or throughput baseline was collected by this audit. Any
-performance effect below is unverified until the existing representative combat
-test/benchmark is measured before and after on the same build and host.
+The existing `BM_creature_attack_ab_policy_off` benchmark was measured on the
+same host and build before and after package-policy caching, five repetitions
+each. Before: 49,189 ns mean CPU time, 49,385 ns median, 1,615 ns standard
+deviation. After: 47,639 ns mean, 47,465 ns median, 353 ns standard deviation.
+These are observations from one run, not evidence of a general performance
+improvement.
 
-## Remaining Findings
+## Resolved Findings
 
 ### 1. Publish item-property catalogs as complete active-resource batches
 
 Severity: high correctness and ownership risk.
+
+Status: complete in `1747455ff`.
 
 `EffectSystem::initialize` directly reads `iprp_costtable`, `iprp_paramtable`,
 `itempropdef`, and `itemprops` during both kernel startup and module post-load.
@@ -80,6 +85,8 @@ Done evidence:
 ### 3. Make the combat scheduler package-neutral
 
 Severity: medium architecture and lifecycle risk.
+
+Status: complete in `5675319f0`.
 
 `combat_scheduler.cpp` selects the configured module for `resolve_attack`, but
 still requires the concrete return type name
@@ -111,6 +118,8 @@ Done evidence:
 ### 4. Validate integer bounds before native iterator arithmetic
 
 Severity: medium correctness risk.
+
+Status: complete.
 
 `core_combat.cpp` computes `begin + index` and `begin + start_index` before
 proving that a SmallS-supplied signed integer is within the effect-array extent.
@@ -179,3 +188,44 @@ combat cost on the supported platform.
   indices, and stack policies return the existing empty result. Existing NWN1
   combat fixtures cover attack, immunity, reduction, and resistance behavior.
   No traversal benchmark was run and no performance improvement is claimed.
+- [x] Item-property definitions, cost tables, parameter tables, and base-item
+  permissions are validated into temporary contiguous storage and published as
+  one active-resource batch. The observed fixture publishes 88 definitions, 31
+  cost rows, and 12 parameter rows. Invalid signed references reject the whole
+  item-property domain; sibling rules domains remain initialized.
+- [x] Combat policy is resolved from the selected package at bootstrap and
+  cached for the service generation. The native scheduler contains no NWN1
+  module or type names, and runtime mutation of the package contract rejects
+  requests until the next service generation rather than lazily changing
+  policy.
+- [x] The 18 native SmallS translation units were audited for signed index and
+  count conversion. Effect-array indices and effect integer slots now reject
+  out-of-range values before native conversion or iterator arithmetic; array
+  slices normalize in 64-bit arithmetic and reject native arrays too large for
+  the SmallS `int` length. Counts that cross the native-to-SmallS boundary
+  saturate at `INT32_MAX`. A zero-capacity `StructArray::clear` uncovered by
+  UBSan now skips the zero-byte `memset` instead of passing a null pointer.
+
+## Verification
+
+- Focused normal tests passed for active-resource item-property replacement,
+  repeated initialization, all-or-nothing rejection, custom package combat,
+  invalid combat contracts, scheduler lifecycle, and signed integer boundaries.
+- Clang ASan/UBSan passed the item-property publication and signed-boundary
+  regressions (2 tests). Leak detection was disabled for this focused run after
+  the full sanitizer invocation reported existing VM-lifetime leaks unrelated
+  to these transforms; no ASan or UBSan diagnostic remained.
+- Signed-boundary coverage includes empty and two-entry effect arrays, valid
+  first/last indices, negative values, `INT32_MIN`, `INT32_MAX`, valid first/last
+  effect integer slots, and normalized slice endpoints.
+- The complete `rollnw_test` executable passed 1,927 tests from 154 suites in
+  444.964 seconds. `rollnw_benchmark`, `mudl`, `rollnw-client`, `smalls`,
+  `smalls-lsp`, and `smalls-datagen` all built successfully with their packaged
+  standard-library copies.
+
+The simplification pass removed a proposed runtime policy lookup from every
+attack: package functions and their flat return layout are validated once per
+service generation. It also avoided per-table partial state by using one
+temporary item-property batch and one publication. No registry, callback layer,
+hot reload state, generalized backend, or additional per-element branch was
+added.

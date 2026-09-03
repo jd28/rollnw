@@ -106,6 +106,146 @@ int32_t creature_ability_score_from_script(const nw::Creature* creature, nw::Abi
 
 } // namespace
 
+TEST_F(SmallsEngineIntegration, NativeIntegerBoundariesRejectBeforeIndexConversion)
+{
+    auto& rt = nw::kernel::runtime();
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    auto* script = rt.load_module_from_source(
+        "test.native_integer_boundaries", R"(
+        import core.array as Array;
+        import core.combat as Combat;
+        import core.effects as Effects;
+
+        fn effect_valid_at(obj: object, index: int): bool {
+            return Effects.is_valid(Combat.object_effect_at(obj, index));
+        }
+
+        fn effect_type_at(obj: object, index: int): int {
+            return Effects.get_type(Combat.object_effect_at(obj, index));
+        }
+
+        fn find_effect(obj: object, effect_type: int, start: int): int {
+            return Combat.object_find_first_effect_of(obj, effect_type, -1, start);
+        }
+
+        fn effect_int_roundtrip(index: int): int {
+            var effect = Effects.create();
+            Effects.set_int(effect, index, 42);
+            var result = Effects.get_int(effect, index);
+            Effects.destroy(effect);
+            return result;
+        }
+
+        fn slice_len(start: int, end: int): int {
+            var values: array!(int) = {10, 20, 30};
+            return Array.len(Array.slice(values, start, end));
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    auto object = nw::smalls::Value::make_object(creature->handle());
+    object.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    const auto call_object_index = [&](const char* function, int32_t index) {
+        nw::Vector<nw::smalls::Value> args{
+            object, nw::smalls::Value::make_int(index)};
+        return rt.execute_script(script, function, args);
+    };
+    const auto call_find = [&](int32_t effect_type, int32_t start) {
+        nw::Vector<nw::smalls::Value> args{
+            object,
+            nw::smalls::Value::make_int(effect_type),
+            nw::smalls::Value::make_int(start),
+        };
+        return rt.execute_script(script, "find_effect", args);
+    };
+    const auto call_int = [&](const char* function, int32_t value) {
+        nw::Vector<nw::smalls::Value> args{
+            nw::smalls::Value::make_int(value)};
+        return rt.execute_script(script, function, args);
+    };
+    const auto call_int_pair = [&](const char* function, int32_t first,
+                                   int32_t second) {
+        nw::Vector<nw::smalls::Value> args{
+            nw::smalls::Value::make_int(first),
+            nw::smalls::Value::make_int(second),
+        };
+        return rt.execute_script(script, function, args);
+    };
+
+    auto result = call_object_index("effect_valid_at", 0);
+    ASSERT_TRUE(result.ok());
+    EXPECT_FALSE(result.value.data.bval);
+    result = call_find(1, std::numeric_limits<int32_t>::min());
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, -1);
+
+    auto* first = nwn1::effect_haste();
+    auto* second = nwn1::effect_damage_resistance(nw::Damage::make(8), 5);
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    ASSERT_TRUE(nw::kernel::effects().apply_to(creature, first));
+    ASSERT_TRUE(nw::kernel::effects().apply_to(creature, second));
+
+    for (const int32_t index : {0, 1}) {
+        result = call_object_index("effect_valid_at", index);
+        ASSERT_TRUE(result.ok());
+        EXPECT_TRUE(result.value.data.bval);
+    }
+    for (const int32_t index : {std::numeric_limits<int32_t>::min(), -1, 2,
+             std::numeric_limits<int32_t>::max()}) {
+        result = call_object_index("effect_valid_at", index);
+        ASSERT_TRUE(result.ok());
+        EXPECT_FALSE(result.value.data.bval);
+    }
+
+    result = call_object_index("effect_type_at", 1);
+    ASSERT_TRUE(result.ok());
+    const int32_t second_type = result.value.data.ival;
+    result = call_find(second_type, 1);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+    result = call_find(second_type, std::numeric_limits<int32_t>::min());
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 1);
+    result = call_find(second_type, std::numeric_limits<int32_t>::max());
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, -1);
+
+    for (const int32_t index : {0, int32_t{nw::Effect::ints_count - 1}}) {
+        result = call_int("effect_int_roundtrip", index);
+        ASSERT_TRUE(result.ok());
+        EXPECT_EQ(result.value.data.ival, 42);
+    }
+    for (const int32_t index : {std::numeric_limits<int32_t>::min(), -1,
+             int32_t{nw::Effect::ints_count},
+             std::numeric_limits<int32_t>::max()}) {
+        result = call_int("effect_int_roundtrip", index);
+        ASSERT_TRUE(result.ok());
+        EXPECT_EQ(result.value.data.ival, 0);
+    }
+
+    result = call_int_pair("slice_len", 0, 3);
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 3);
+    result = call_int_pair("slice_len", -2,
+        std::numeric_limits<int32_t>::max());
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 2);
+    result = call_int_pair("slice_len",
+        std::numeric_limits<int32_t>::min(),
+        std::numeric_limits<int32_t>::max());
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 3);
+    result = call_int_pair("slice_len",
+        std::numeric_limits<int32_t>::max(),
+        std::numeric_limits<int32_t>::max());
+    ASSERT_TRUE(result.ok());
+    EXPECT_EQ(result.value.data.ival, 0);
+}
+
 TEST_F(SmallsEngineIntegration, CoreCreatureAbilityApisReflectAppliedEffects)
 {
     auto& rt = nw::kernel::runtime();
