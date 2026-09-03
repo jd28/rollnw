@@ -3,10 +3,15 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/constants.hpp>
 #include <nw/rules/system.hpp>
 
 namespace nwk = nw::kernel;
+
+TEST(Attributes, AlignmentCompositeConstants)
+{
+    EXPECT_EQ(nw::align_chaotic_evil,
+        nw::AlignmentFlags::chaotic | nw::AlignmentFlags::evil);
+}
 
 TEST(Qualifier, Basic)
 {
@@ -16,16 +21,16 @@ TEST(Qualifier, Basic)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto qual1 = nw::qualifier_ability(nwn1::ability_strength, nw::QualifierMatch::lte, 20); // less than 20 str.
+    auto qual1 = nw::qualifier_ability(nw::Ability::make(0), nw::QualifierMatch::lte, 20); // less than 20 str.
     EXPECT_FALSE(nw::kernel::rules().match(qual1, ent));
 
-    auto qual2 = nw::qualifier_ability(nwn1::ability_constitution, 15); // at least 15 con.
+    auto qual2 = nw::qualifier_ability(nw::Ability::make(2), 15); // at least 15 con.
     EXPECT_TRUE(nw::kernel::rules().match(qual2, ent));
 
-    auto qual3 = nw::qualifier_ability(nwn1::ability_constitution, nw::QualifierMatch::lte, 20); // at most 20 con.
+    auto qual3 = nw::qualifier_ability(nw::Ability::make(2), nw::QualifierMatch::lte, 20); // at most 20 con.
     EXPECT_TRUE(nw::kernel::rules().match(qual3, ent));
 
-    auto qual4 = nw::qualifier_skill(nwn1::skill_discipline, 35); // at least 35
+    auto qual4 = nw::qualifier_skill(nw::Skill::make(3), 35); // at least 35
     EXPECT_TRUE(nw::kernel::rules().match(qual4, ent));
 }
 
@@ -47,10 +52,10 @@ TEST(Qualifier, Race)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto qual1 = nw::qualifier_race(nwn1::racial_type_human);
+    auto qual1 = nw::qualifier_race(nw::Race::make(6));
     EXPECT_TRUE(nw::kernel::rules().match(qual1, ent));
 
-    auto qual2 = nw::qualifier_race(nwn1::racial_type_ooze);
+    auto qual2 = nw::qualifier_race(nw::Race::make(29));
     EXPECT_FALSE(nw::kernel::rules().match(qual2, ent));
 }
 
@@ -137,15 +142,15 @@ TEST(Qualifier, ClassLevel)
     auto ent = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
     EXPECT_TRUE(ent);
 
-    auto qual1 = nw::qualifier_class_level(nwn1::class_type_fighter, 30);
+    auto qual1 = nw::qualifier_class_level(nw::Class::make(4), 30);
     EXPECT_FALSE(nw::kernel::rules().match(qual1, ent));
 
-    auto qual2 = nw::qualifier_class_level(nwn1::class_type_fighter, 10);
+    auto qual2 = nw::qualifier_class_level(nw::Class::make(4), 10);
     EXPECT_TRUE(nw::kernel::rules().match(qual2, ent));
 
-    auto qual3 = nw::qualifier_class_level(nwn1::class_type_fighter, nw::QualifierMatch::lte, 1);
+    auto qual3 = nw::qualifier_class_level(nw::Class::make(4), nw::QualifierMatch::lte, 1);
     EXPECT_FALSE(nw::kernel::rules().match(qual3, ent));
 
-    auto qual4 = nw::qualifier_class_level(nwn1::class_type_fighter, nw::QualifierMatch::lte, 5);
+    auto qual4 = nw::qualifier_class_level(nw::Class::make(4), nw::QualifierMatch::lte, 5);
     EXPECT_FALSE(nw::kernel::rules().match(qual4, ent));
 }

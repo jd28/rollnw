@@ -53,9 +53,6 @@ enum struct AlignmentFlags {
     evil = 0x10,
 };
 
-/// Gets alignment axis from alignment flags
-AlignmentAxis alignment_axis_from_flags(AlignmentFlags flags);
-
 DEFINE_ENUM_FLAGS(AlignmentFlags)
 
 constexpr AlignmentFlags align_lawful_good = AlignmentFlags::lawful | AlignmentFlags::good;
@@ -66,7 +63,7 @@ constexpr AlignmentFlags align_true_neutral = AlignmentFlags::neutral;
 constexpr AlignmentFlags align_chaotic_neutral = AlignmentFlags::neutral | AlignmentFlags::chaotic;
 constexpr AlignmentFlags align_lawful_evil = AlignmentFlags::lawful | AlignmentFlags::evil;
 constexpr AlignmentFlags align_neutral_evil = AlignmentFlags::neutral | AlignmentFlags::evil;
-constexpr AlignmentFlags align_chaotic_evil = AlignmentFlags::chaotic | AlignmentFlags::good;
+constexpr AlignmentFlags align_chaotic_evil = AlignmentFlags::chaotic | AlignmentFlags::evil;
 
 // -- Appearance --------------------------------------------------------------
 // ----------------------------------------------------------------------------

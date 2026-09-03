@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../util/Variant.hpp"
-#include "Dice.hpp"
 #include "attributes.hpp"
 #include "rule_type.hpp"
 
@@ -105,22 +103,5 @@ struct ItemPropertyDefinition {
     uint32_t description = std::numeric_limits<uint32_t>::max();
     // Constants
 };
-
-enum struct WeaponModifierType {
-    attack_bonus,
-    crit_damage,
-    crit_mult,
-    crit_threat,
-    damage,
-};
-
-struct WeaponModifier {
-    WeaponModifierType type;
-    int feat = -1;
-    Variant<int, float, DiceRoll> value;
-};
-
-bool operator==(const WeaponModifier& lhs, const WeaponModifier& rhs);
-bool operator<(const WeaponModifier& lhs, const WeaponModifier& rhs);
 
 } // namespace nw

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../util/FunctionPtr.hpp"
 #include "../util/enum_flags.hpp"
 #include "damage.hpp"
 #include "effects.hpp"
@@ -15,8 +14,6 @@ namespace nw {
 struct Creature;
 struct Item;
 struct ObjectBase;
-struct ModifierResult;
-struct ModifierType;
 
 // -- Attack ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -92,13 +89,6 @@ DECLARE_RULE_TYPE(MissChanceType);
 
 DECLARE_RULE_TYPE(CombatMode);
 
-struct CombatModeFuncs {
-    FunctionPtr<ModifierResult(CombatMode, ModifierType, const Creature*)> modifier;
-    FunctionPtr<bool(CombatMode, const Creature*)> can_use;
-    FunctionPtr<void(CombatMode, Creature*)> apply;
-    FunctionPtr<void(CombatMode, Creature*)> remove;
-};
-
 // -- Poison ------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
@@ -115,12 +105,6 @@ using SituationFlag = RuleFlag<Situation, 64>;
 // ----------------------------------------------------------------------------
 
 DECLARE_RULE_TYPE(SpecialAttack);
-
-struct SpecialAttackFuncs {
-    FunctionPtr<ModifierResult(SpecialAttack, ModifierType, Creature*, const ObjectBase*)> modifier;
-    FunctionPtr<bool(SpecialAttack, Creature*, const ObjectBase*)> usable;
-    FunctionPtr<Effect*(SpecialAttack, Creature*, const ObjectBase*)> imapct;
-};
 
 // -- Target State ------------------------------------------------------------
 // ----------------------------------------------------------------------------
