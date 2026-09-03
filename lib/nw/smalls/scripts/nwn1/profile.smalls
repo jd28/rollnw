@@ -1,0 +1,67 @@
+import nwn1.appearances as Appearances;
+import nwn1.baseitems as BaseItems;
+import nwn1.combat as Combat;
+import nwn1.creature as CreatureRules;
+import nwn1.door_types as DoorTypes;
+import nwn1.doors as Doors;
+import nwn1.generic_doors as GenericDoors;
+import nwn1.hitpoints as Hitpoints;
+import nwn1.item as Item;
+import nwn1.phenotypes as Phenotypes;
+import nwn1.placeables as Placeables;
+import nwn1.requirement_matching as RequirementMatching;
+import nwn1.requirements as Requirements;
+import nwn1.skills as Skills;
+import nwn1.spells as Spells;
+import nwn1.spellschools as SpellSchools;
+import nwn1.tail_models as TailModels;
+import nwn1.wing_models as WingModels;
+
+fn init(): bool {
+    var result = true;
+    if (!Appearances.init()) { result = false; }
+    if (!BaseItems.init()) { result = false; }
+    if (!Placeables.init()) { result = false; }
+    if (!DoorTypes.init()) { result = false; }
+    if (!GenericDoors.init()) { result = false; }
+    if (!WingModels.init()) { result = false; }
+    if (!TailModels.init()) { result = false; }
+    if (!Phenotypes.init()) { result = false; }
+    if (!Skills.init()) { result = false; }
+    if (!SpellSchools.init()) { result = false; }
+    if (!Spells.init()) { result = false; }
+    return result;
+}
+
+fn object_instantiated(obj: object) {
+    if (obj is Placeable) {
+        Placeables.update_visual(obj);
+    } elif (obj is Door) {
+        Doors.update_visual(obj);
+    } elif (obj is Creature) {
+        var creature = obj;
+        Hitpoints.initialize_creature_health(creature);
+        CreatureRules.recompute_all_available_spell_slots(creature);
+        Combat.refresh_combat_weapon_cache(creature);
+        CreatureRules.update_visual(creature);
+        Item.update_creature_visual_equipment(creature);
+    }
+}
+
+fn match_qualifier(obj: object, req_type: int, subtype: int, match: int, value: int): bool {
+    var supported = req_type == Requirements.req_type_ability
+        || req_type == Requirements.req_type_alignment
+        || req_type == Requirements.req_type_bab
+        || req_type == Requirements.req_type_class_level
+        || req_type == Requirements.req_type_feat
+        || req_type == Requirements.req_type_level
+        || req_type == Requirements.req_type_race
+        || req_type == Requirements.req_type_skill;
+    if (!supported) {
+        // NWN treats requirement kinds it does not implement as satisfied.
+        return true;
+    }
+    if (!(obj is Creature)) { return false; }
+    return RequirementMatching.match_qualifier(
+        obj as Creature, req_type, subtype, match, value);
+}

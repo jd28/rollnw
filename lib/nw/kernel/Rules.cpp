@@ -1,15 +1,27 @@
 #include "Rules.hpp"
 
-#include "../util/profile.hpp"
-#include "../util/string.hpp"
-#include "GameProfile.hpp"
-#include "TwoDACache.hpp"
+#include "../smalls/runtime.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <cstddef>
+#include <stdexcept>
 
 namespace nw::kernel {
+
+namespace {
+
+bool match_profile_qualifier(const Qualifier& qualifier, const ObjectBase* object)
+{
+    return runtime().profile_match_qualifier(
+        object ? object->handle() : ObjectHandle{},
+        *qualifier.type,
+        qualifier.subtype,
+        static_cast<int32_t>(qualifier.match),
+        qualifier.value);
+}
+
+} // namespace
 
 const std::type_index Rules::type_index{typeid(Rules)};
 
@@ -35,28 +47,18 @@ bool Rules::publish_skill_count(int32_t count) noexcept
 
 void Rules::initialize(ServiceInitTime time)
 {
-    NW_PROFILE_SCOPE_N("rules.initialize");
-
     if (time != ServiceInitTime::kernel_start && time != ServiceInitTime::module_post_load) {
         return;
     }
-
-    auto start = std::chrono::high_resolution_clock::now();
-
-    LOG_F(INFO, "kernel: rules system initializing...");
-    {
-        NW_PROFILE_SCOPE_N("rules.initialize.load_rules");
-        services().profile()->load_rules();
-    }
-
-    auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    LOG_F(INFO, "kernel: rules system initialized. ({}ms)",
-        std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+    set_qualifier_matcher(match_profile_qualifier);
 }
 
 bool Rules::match(const Qualifier& qual, const ObjectBase* obj) const
 {
-    return qualifier_matcher_ ? qualifier_matcher_(qual, obj) : true;
+    if (!qualifier_matcher_) {
+        throw std::logic_error("rules: selected package qualifier matcher is unavailable");
+    }
+    return qualifier_matcher_(qual, obj);
 }
 
 bool Rules::meets_requirement(const Requirement& req, const ObjectBase* obj) const

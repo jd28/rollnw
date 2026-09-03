@@ -1,7 +1,6 @@
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/smalls/data_spec.hpp>
 #include <nw/smalls/data_transform.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -18,27 +17,6 @@
 #include <vector>
 
 namespace fs = std::filesystem;
-
-namespace {
-
-struct DatagenProfile final : nwn1::Profile {
-    explicit DatagenProfile(fs::path stdlib_root)
-        : stdlib_root_{std::move(stdlib_root)}
-    {
-    }
-
-    void load_custom_services() override
-    {
-        nw::kernel::runtime().add_module_path(stdlib_root_ / "core");
-        nw::kernel::runtime().add_module_path(stdlib_root_ / "nwn1");
-    }
-    bool load_rules() const override { return true; }
-
-private:
-    fs::path stdlib_root_;
-};
-
-} // namespace
 
 static std::string escape_smalls_string(const std::string& value)
 {
@@ -538,8 +516,9 @@ int main(int argc, char* argv[])
     nw::ConfigOptions config_options;
     config_options.profile = "nwn1";
     nw::kernel::config().initialize(std::move(config_options));
-    DatagenProfile profile{executable_dir / "stdlib"};
-    nw::kernel::set_game_profile(&profile);
+    nw::kernel::services().create();
+    nw::kernel::runtime().add_module_path(executable_dir / "stdlib/core");
+    nw::kernel::runtime().add_module_path(executable_dir / "stdlib/nwn1");
     nw::kernel::services().start();
 
     std::error_code ec;

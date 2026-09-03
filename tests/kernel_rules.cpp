@@ -7,9 +7,11 @@
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/util/game_install.hpp>
+#include <nw/util/scope_exit.hpp>
 #include <nw/util/string.hpp>
 
 #include <filesystem>
+#include <fstream>
 
 namespace nwk = nw::kernel;
 namespace fs = std::filesystem;
@@ -77,4 +79,49 @@ TEST(KernelRules, Spells)
         {nw::smalls::Value::make_int(*nwn1::spell_acid_fog)});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, expected_school);
+}
+
+TEST(KernelRules, ModuleSpellSchoolOverrideControlsSpellResolution)
+{
+    const fs::path override_path = "test_data/user/modules/module_as_dir/spellschools.2da";
+    const auto restore = create_scope_exit([&override_path]() {
+        std::error_code error;
+        fs::remove(override_path, error);
+        (void)nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    });
+
+    {
+        std::ofstream out{override_path};
+        ASSERT_TRUE(out);
+        out << R"(2DA V2.0
+
+Label Letter
+0 General C
+1 Abjuration A
+2 Conjuration X
+3 Divination D
+4 Enchantment E
+5 Evocation V
+6 Illusion I
+7 Necromancy N
+8 Transmutation T
+)";
+    }
+
+    ASSERT_NE(nwk::load_module("test_data/user/modules/module_as_dir/"), nullptr);
+    auto* script = nwk::runtime().load_module_from_source(
+        "test.module_spell_school_override", R"(
+            import nwn1.spells as Spells;
+            from core.types import { Spell };
+
+            fn main(spell: int): int {
+                return Spells.school(Spell(spell)) as int;
+            }
+        )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+    const auto result = nwk::runtime().execute_script(script, "main",
+        {nw::smalls::Value::make_int(*nwn1::spell_acid_fog)});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 0);
 }

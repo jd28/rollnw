@@ -6,11 +6,13 @@
 #include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/serialization/gff_conversion.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <nowide/cstdlib.hpp>
 
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
 
 using namespace std::literals;
@@ -123,4 +125,66 @@ TEST(Kernel, GameServicesRequireExplicitProfile)
     options.profile = "nwn1";
     config.initialize(std::move(options));
     EXPECT_NO_THROW(services.start());
+}
+
+TEST(Kernel, GameStartupRejectsPackageWithoutQualifierMatcher)
+{
+    namespace fs = std::filesystem;
+
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const fs::path package = fs::path{"stdlib"} / "missing_matcher";
+    services.shutdown();
+
+    const auto restore = create_scope_exit([&services, &config, &package]() {
+        services.shutdown();
+        std::error_code error;
+        fs::remove_all(package, error);
+        nw::ConfigOptions options;
+        options.profile = "nwn1";
+        config.initialize(std::move(options));
+    });
+
+    std::error_code directory_error;
+    fs::create_directories(package / "data_specs", directory_error);
+    ASSERT_FALSE(directory_error) << directory_error.message();
+
+    {
+        std::ofstream manifest{package / "resources.json"};
+        ASSERT_TRUE(manifest);
+        manifest << "[]\n";
+    }
+    {
+        std::ofstream metadata{package / "package.json"};
+        ASSERT_TRUE(metadata);
+        metadata << R"({"name":"missing-matcher","version":"1.0.0"})"
+                 << '\n';
+    }
+    {
+        std::ofstream propsets{package / "propsets.smalls"};
+        ASSERT_TRUE(propsets);
+        propsets << "const placeholder: int = 0;\n";
+    }
+    {
+        std::ofstream profile{package / "profile.smalls"};
+        ASSERT_TRUE(profile);
+        profile << R"(
+fn init(): bool { return true; }
+fn object_instantiated(_obj: object) {}
+)";
+    }
+
+    nw::ConfigOptions options;
+    options.profile = "missing_matcher";
+    options.init_module.clear();
+    config.initialize(std::move(options));
+
+    try {
+        services.start();
+        FAIL() << "game startup accepted a package without match_qualifier";
+    } catch (const std::runtime_error& error) {
+        EXPECT_NE(std::string_view{error.what()}.find("required hook contract"),
+            std::string_view::npos)
+            << error.what();
+    }
 }

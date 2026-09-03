@@ -386,6 +386,7 @@ int main(int argc, char* argv[])
     config_options.include_user = false;
     config_options.profile = "nwn1";
     nw::kernel::config().initialize(std::move(config_options));
+    nw::test::register_source_nwn1_packages();
     nw::kernel::services().start();
 
     struct TilePathNodeStats {

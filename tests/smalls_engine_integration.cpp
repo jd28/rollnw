@@ -3140,14 +3140,12 @@ static void write_propset_int_array(nw::smalls::Runtime& rt, const nw::smalls::V
     }
 }
 
-TEST_F(SmallsEngineIntegration, PropsetDestroyCallbackFreesCreatureSlots)
+TEST_F(SmallsEngineIntegration, GenericObjectLifecycleOwnsCreaturePropsets)
 {
     auto& rt = nw::kernel::runtime();
 
     auto* cre = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(cre, nullptr);
-
-    rt.init_object_propsets(cre->handle());
 
     nw::smalls::Value ref;
     const nw::smalls::StructDef* def = nullptr;
@@ -3155,13 +3153,12 @@ TEST_F(SmallsEngineIntegration, PropsetDestroyCallbackFreesCreatureSlots)
         "nwn1.propsets.CreatureStats", ref, def));
     ASSERT_NO_FATAL_FAILURE(write_propset_int_element(rt, ref, def, "abilities", 0, 18));
 
-    // Destroy triggers the destroy callback -> free_object_propsets
+    // Generic destruction frees the Runtime-owned propsets.
     nw::kernel::objects().destroy(cre->handle());
 
     // New creature at same slot should get zero-initialized propset
     auto* cre2 = nw::kernel::objects().make<nw::Creature>();
     ASSERT_NE(cre2, nullptr);
-    rt.init_object_propsets(cre2->handle());
 
     nw::smalls::Value ref2;
     const nw::smalls::StructDef* def2 = nullptr;

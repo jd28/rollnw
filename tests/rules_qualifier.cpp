@@ -29,6 +29,16 @@ TEST(Qualifier, Basic)
     EXPECT_TRUE(nw::kernel::rules().match(qual4, ent));
 }
 
+TEST(Qualifier, UnsupportedNwnTypeIsSatisfied)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    const auto qualifier = nw::make_qualifier(
+        nw::req_type_ac, -1, nw::QualifierMatch::gte, 100);
+    EXPECT_TRUE(nw::kernel::rules().match(qualifier, nullptr));
+}
+
 TEST(Qualifier, Race)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");

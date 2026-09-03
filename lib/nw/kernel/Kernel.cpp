@@ -1,7 +1,6 @@
 #include "Kernel.hpp"
 
 #include "../objects/ObjectManager.hpp"
-#include "../profiles/nwn1/Profile.hpp"
 #include "../resources/ResourceManager.hpp"
 #include "../rules/effects.hpp"
 #include "../smalls/runtime.hpp"
@@ -169,18 +168,11 @@ void Services::create(ServiceMode mode)
     }
 
     mode_ = mode;
-    if (mode_ == ServiceMode::game && !profile_) {
+    if (mode_ == ServiceMode::game) {
         const auto& selected_profile = config().profile();
         if (!selected_profile) {
             throw std::runtime_error(
                 "game services require an explicitly selected runtime profile");
-        }
-        if (*selected_profile == "nwn1"
-            && (config().version() == GameVersion::vEE
-                || config().version() == GameVersion::v1_69)) {
-            profile_ = kernel_scope_.alloc_obj<nwn1::Profile>();
-        } else {
-            throw std::runtime_error("currently selected game profile/version is unsupported");
         }
     }
 
@@ -228,11 +220,6 @@ void Services::start(ServiceMode mode)
     serices_started_ = true;
 }
 
-GameProfile* Services::profile() const
-{
-    return profile_;
-}
-
 ServiceMode Services::mode() const noexcept
 {
     return mode_;
@@ -240,12 +227,11 @@ ServiceMode Services::mode() const noexcept
 
 void Services::shutdown()
 {
-    if (!serices_started_) { return; }
+    if (!serices_started_ && !services_created_) { return; }
     LOG_F(INFO, "kernel: shutting down kernel services");
 
     services_ = std::array<ServiceEntry, 32>{};
     kernel_scope_.reset();
-    if (!user_profile_) { profile_ = nullptr; }
     services_count_ = 0;
     serices_started_ = false;
     services_created_ = false;
@@ -276,8 +262,6 @@ void Services::load_services()
     add<ModelCache>();
     add<TilesetRegistry>();
     add<FactionSystem>();
-
-    profile_->load_custom_services();
 }
 
 Config& config()
@@ -452,13 +436,6 @@ nlohmann::json stats()
         j["kernel_services"].push_back(s.service->stats());
     }
     return j;
-}
-
-void set_game_profile(GameProfile* profile)
-{
-    CHECK_F(!services().serices_started_, "[kernel] attempting set game profile after services have been started.");
-    services().profile_ = profile;
-    services().user_profile_ = true;
 }
 
 void unload_module()

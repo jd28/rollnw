@@ -177,9 +177,6 @@ struct ObjectManager : public kernel::Service {
     /// Run instantiate callback
     void run_instantiate_callback(ObjectBase* obj);
 
-    /// Set instantiate callback
-    void set_instantiate_callback(void (*callback)(ObjectBase*));
-
     /// Set destroy callback — called just before an object is freed
     void set_destroy_callback(void (*callback)(ObjectBase*));
 
@@ -193,8 +190,9 @@ struct ObjectManager : public kernel::Service {
     ObjectComponentSystem components_;
     ObjectArray objects_array_;
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
-    void (*instantiate_callback_)(ObjectBase*) = nullptr;
     void (*destroy_callback_)(ObjectBase*) = nullptr;
+
+    void initialize_new_object(ObjectBase* object);
 };
 
 inline ObjectType serial_id_to_obj_type(StringView id)
@@ -234,6 +232,7 @@ template <typename T>
 T* ObjectManager::make()
 {
     T* obj = static_cast<T*>(objects_array_.alloc(T::object_type));
+    initialize_new_object(obj);
     return obj;
 }
 

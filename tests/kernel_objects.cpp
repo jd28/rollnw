@@ -14,7 +14,6 @@
 #include <nw/objects/Trigger.hpp>
 
 #include <nw/kernel/Strings.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/serialization/GffBuilder.hpp>

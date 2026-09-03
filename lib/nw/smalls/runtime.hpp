@@ -392,6 +392,13 @@ struct Runtime : public nw::kernel::Service {
     ExecutionResult execute_script(StringView path, StringView function_name, const Vector<Value>& args = {},
         uint64_t gas_limit = default_gas_limit);
 
+    /// Executes the selected package's validated object-instantiation hook.
+    void profile_object_instantiated(ObjectHandle object);
+
+    /// Executes the selected package's validated qualifier matcher.
+    bool profile_match_qualifier(ObjectHandle object, int32_t type,
+        int32_t subtype, int32_t match, int32_t value);
+
     /// Resets VM error state for fresh execution
     void reset_error();
     void fail(StringView msg);
@@ -1371,6 +1378,13 @@ private:
     Vector<std::filesystem::path> module_paths_;
     std::filesystem::path selected_package_directory_;
 
+    // Validated package entry points are owned by the compiled-module cache for
+    // this Runtime/service generation. They are not GC-managed closures.
+    BytecodeModule* profile_hook_module_ = nullptr;
+    const CompiledFunction* profile_init_hook_ = nullptr;
+    const CompiledFunction* profile_object_instantiated_hook_ = nullptr;
+    const CompiledFunction* profile_match_qualifier_hook_ = nullptr;
+
     // Memory and resource management for scripts
     MemoryArena arena_;
     MemoryScope scope_;
@@ -1449,6 +1463,9 @@ private:
     Value load_config_value(StringView path, StringView prelude_module);
     Value load_data_spec_as_config_array(
         StringView path, TypeID config_type, const DataSpec& spec);
+    void register_package_data_specs();
+    void load_profile_hooks();
+    void execute_profile_init();
 
     uint32_t test_count_ = 0;
     uint32_t test_failures_ = 0;

@@ -13,9 +13,7 @@
 
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/Item.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
-#include <nw/profiles/nwn1/rules.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/Smalls.hpp>
@@ -497,9 +495,10 @@ int main(int argc, char** argv)
     nw::ConfigOptions config_options;
     config_options.profile = "nwn1";
     nwk::config().initialize(std::move(config_options));
-    nwk::services().start();
+    nwk::services().create();
     nw::kernel::runtime().add_module_path(resolve_stdlib_module_path(argv[0], "core"));
     nw::kernel::runtime().add_module_path(resolve_stdlib_module_path(argv[0], "nwn1"));
+    nwk::services().start();
 
     ::benchmark::Initialize(&argc, argv);
     if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;

@@ -1,8 +1,8 @@
 # Profile Packages And Bootstrap
 
 - **Version**: 0.1.0
-- **Last Updated**: 2026-08-01
-- **Status**: Normative target architecture
+- **Last Updated**: 2026-09-02
+- **Status**: Normative architecture
 
 ## Purpose
 
@@ -19,13 +19,16 @@ Inputs:
 - an ordered set of filesystem module search paths supplied before runtime
   initialization;
 - the shipped `core` package; and
-- the selected profile package.
+- the selected profile package, including `resources.json` and sorted
+  `data_specs/*.json` declarations.
 
 Outputs:
 
 - one resolved selected profile package;
+- one validated resource-container batch expanded from `resources.json`;
 - registered and validated profile propset schemas;
-- initialized subsystem policy modules and required profile config batches; and
+- validated mandatory profile hooks, initialized native/config domains, and
+  optional gameplay registrations; and
 - a runtime ready to create or deserialize objects.
 
 The selected profile is a true singleton for one kernel service generation.
@@ -70,7 +73,9 @@ module names are not repeated in normal configuration.
 
 | Role | Derived name | Required when | Consumer and failure point |
 |---|---|---|---|
+| Resource declaration | `<package>/resources.json` | Always | Resource preflight; missing or invalid fails startup |
 | Propset schema | `<root>.propsets` | Always | Runtime bootstrap; missing or invalid fails startup |
+| Profile hooks | `<root>.profile` | Game mode | Runtime bootstrap; a missing hook or invalid signature fails startup |
 | Profile initialization | `<root>.init` | Normal game/runtime startup | Runtime; tools may explicitly disable execution |
 | Combat policy | `<root>.combat` | Combat subsystem enabled | Combat subsystem initialization |
 | Effect policy | `<root>.effects` | Effect subsystem enabled | Effect subsystem initialization |
@@ -93,7 +98,9 @@ The NWN1 target layout is:
 ```text
 nwn1/
     package.json
+    resources.json
     propsets.smalls
+    profile.smalls
     init.smalls
     combat.smalls
     effects.smalls
@@ -103,6 +110,9 @@ nwn1/
     item.smalls
     creature.smalls
     ... other domain policy modules ...
+    data_specs/
+        appearances.json
+        ... one source-domain declaration per file ...
     data/
         baseitems/
             longsword.smalls
@@ -132,12 +142,15 @@ The startup transform is ordered and fails before ordinary object work:
 
 ```text
 configured module search paths + selected root
-    -> resolve shipped core and selected profile packages
+    -> resolve exactly one selected package directory
+    -> validate resources.json and expand the enabled container batch
+    -> initialize the resource search path
     -> register VM types, intrinsics, and native core ABI
     -> load and validate <root>.propsets
     -> register PropsetSchema[] and prime pools once
-    -> load modules required by enabled native subsystems
-    -> initialize required profile config batches
+    -> register sorted data_specs/*.json independently
+    -> load and validate mandatory <root>.profile hooks
+    -> <root>.profile::init initializes every native/config domain
     -> execute <root>.init when enabled
     -> permit object creation and deserialization
 ```
@@ -146,14 +159,19 @@ Boundary contracts:
 
 1. Module paths are complete before the service start phase invokes runtime
    initialization.
-2. Native value layouts are registered before profile source using them is
+2. `resources.json` is validated completely before any declared container is
+   applied. Missing declared containers are optional and skipped.
+3. Native value layouts are registered before profile source using them is
    resolved.
-3. `<root>.propsets` is required and has no module-level dependency on profile
+4. `<root>.propsets` is required and has no module-level dependency on profile
    initialization or toolset code.
-4. Every propset declaration is validated as a batch before pools are used.
-5. Pools are primed once after the complete schema module is valid.
-6. Required subsystem modules and config batches reject startup before object
-   creation if their invariants are not satisfied.
+5. Every propset declaration is validated as a batch before pools are used.
+6. Pools are primed once after the complete schema module is valid.
+7. `<root>.profile` must provide `init`, `object_instantiated`, and
+   `match_qualifier` with their exact signatures. Compiled-function references
+   live only for the Runtime service generation.
+8. Each data-spec file is registered independently. A malformed file disables
+   only its domain; profile initialization attempts every remaining domain.
 
 The selected profile and configuration are singletons. The schema declarations,
 config entries, and native publications they produce are batches.
@@ -204,9 +222,10 @@ not contain propset instances. If config rows seed object state, a profile batch
 transform applies ordinary seed rows to destination object handles.
 
 Required tables load during profile initialization. A table that is validly
-empty must be declared as such by its consumer; otherwise an empty required
-table is rejected. Sparse holes and out-of-range IDs are handled by the domain
-lookup API, not by unchecked array access.
+empty must be declared as such by its consumer. Structural source failure
+publishes an empty domain and reports degraded initialization without
+discarding successful siblings. Sparse holes and out-of-range IDs are handled
+by the domain lookup API, not by unchecked array access.
 
 ## Tool And Packaging Contract
 
@@ -234,17 +253,21 @@ schema, rules, resource, or object bootstrap.
 | Empty or invalid profile root | Reject configuration |
 | Required package directory absent | Fail startup |
 | Duplicate provider for required ABI/schema module | Fail startup |
+| `resources.json` absent, malformed, or unsafe | Fail startup before applying containers |
+| Declared install/user container absent | Skip the optional container |
 | `<root>.propsets` absent or invalid | Fail startup before object load |
+| `<root>.profile` absent or missing a required hook | Fail startup before rules/object work |
 | Required subsystem policy absent | Fail that subsystem's initialization |
 | `<root>.init` disabled explicitly | Skip only init execution; schemas remain required |
-| Required config table absent or invalid | Fail profile/domain initialization |
+| Required config table absent or invalid | Publish an empty owning domain, report degraded initialization, and preserve siblings |
 | Optional tool data absent | Empty projection plus bounded diagnostic |
 
-## Current Deviations
+## Focused Follow-up Work
 
-Implementation deviations are tracked by
-[`issues/smalls-module-ownership-and-profile-boundaries.md`](../../../../issues/smalls-module-ownership-and-profile-boundaries.md).
-New code follows the target contract rather than extending a deviation.
+The package/bootstrap ownership migration is complete. Remaining presentation
+cleanup belongs to
+[`issues/rollnw-client-object-workbench-and-property-surfaces.md`](../../../../issues/rollnw-client-object-workbench-and-property-surfaces.md),
+not to the closed ownership audit.
 
 ## Verification
 
@@ -252,9 +275,12 @@ The profile-package migration is complete when tests prove:
 
 - one configured root derives every default module role;
 - module paths are registered before runtime service initialization;
+- resource declarations are validated and applied in exact order before the
+  Runtime reads active game data;
 - missing or duplicate required package providers fail startup;
 - `<root>.propsets` registers the complete schema batch and pools are primed
   once before the first object;
+- missing `match_qualifier` rejects game startup before requirement evaluation;
 - disabling init does not disable schema registration;
 - row-local domain config failures preserve valid indexed entries, while a
   structural source failure publishes an empty domain without stopping

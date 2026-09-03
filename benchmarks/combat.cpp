@@ -3,7 +3,6 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/constants.hpp>
-#include <nw/profiles/nwn1/rules.hpp>
 #include <nw/rules/combat_scheduler.hpp>
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/Smalls.hpp>

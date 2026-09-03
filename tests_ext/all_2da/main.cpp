@@ -1,6 +1,5 @@
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
 #include <chrono>
@@ -15,6 +14,7 @@ int main(int argc, char* argv[])
     nw::ConfigOptions config_options;
     config_options.profile = "nwn1";
     nw::kernel::config().initialize(std::move(config_options));
+    nw::test::register_source_nwn1_packages();
     nw::kernel::services().start();
 
     std::string biggest_name;

@@ -74,10 +74,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    nw::ConfigOptions config_options;
-    config_options.profile = "nwn1";
-    nw::kernel::config().initialize(std::move(config_options));
-    nw::kernel::services().start();
+    nw::kernel::config().initialize({});
+    nw::kernel::services().start(nw::kernel::ServiceMode::language);
 
     auto& rt = nw::kernel::runtime();
 

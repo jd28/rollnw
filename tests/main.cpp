@@ -4,7 +4,6 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/util/string.hpp>
 

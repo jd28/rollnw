@@ -79,11 +79,9 @@ add_library(nw STATIC
     profiles/nwn1/object_name_preview.cpp
     profiles/nwn1/object_compat_fields.cpp
     profiles/nwn1/player_levelup_bridge.cpp
-    profiles/nwn1/Profile.cpp
     profiles/nwn1/propset_gff_policy.cpp
     profiles/nwn1/propset_gff_importer.cpp
     profiles/nwn1/propset_gff_exporter.cpp
-    profiles/nwn1/rules.cpp
     profiles/nwn1/scriptbridge.cpp
     profiles/nwn1/store_inventory_gff.cpp
 

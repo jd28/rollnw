@@ -93,13 +93,9 @@ struct TransientObject {
     ~TransientObject()
     {
         if (!obj) { return; }
-        if (rt) {
-            rt->free_object_propsets(obj->handle());
-        }
-
         nw::smalls::Runtime* kernel_rt = &nw::kernel::runtime();
-        if (kernel_rt != rt) {
-            kernel_rt->free_object_propsets(obj->handle());
+        if (rt && rt != kernel_rt) {
+            rt->free_object_propsets(obj->handle());
         }
 
         nw::kernel::objects().destroy(obj->handle());

@@ -18,8 +18,9 @@ authored, tested, and embedded without growing hardcoded C++ policy.
 
 **Attribute**: A feature inherent to an object, such as creature ability scores.
 
-**Profile**: A ruleset-specific layer that decouples rule values from the core
-rules service.
+**Profile package**: The selected ruleset package. Its files declare resource
+layout, and its SmallS modules own schema, interpretation, and behavior; it is
+not a C++ profile object.
 
 **Type**: A typed rule value, such as an armor class category. The rule system
 defines the type and invalid value; profiles define valid values.
@@ -35,8 +36,9 @@ of the table or column does not decide the owner.
 
 The imported-data boundary is fixed:
 
-- C++ canonically stores raw resource facts consumed by the engine, renderer,
-  resource resolution, native persistence machinery, or native editor.
+- The selected package's `resources.json` owns install-layout declarations.
+  C++ validates paths, constructs resource containers, and stores raw facts
+  consumed by the engine, renderer, native persistence machinery, or editor.
 - SmallS exclusively owns gameplay legality, interpretation, formulas, and
   composition. A source field read only by gameplay policy is a SmallS
   gameplay input.
@@ -56,10 +58,10 @@ definition has an `info` group using a C++-registered native value type and a
 `rules` group using a profile SmallS value type. The source row index remains
 their stable parent key; sparse rows are not compacted.
 
-The NWN1 SmallS initialization module is the import adapter: it loads the
-combined definitions once, publishes the complete `Info[]` batch to canonical
+The mandatory NWN1 SmallS profile initializer is the import adapter: it loads
+combined definitions once, publishes complete `Info[]` batches to canonical
 contiguous C++ storage, and retains `Rules[]` for gameplay. Runtime C++ and
-SmallS must not maintain independent converter lists for the same source.
+SmallS do not maintain independent converter lists for the same source.
 
 The accepted NWN1 field partitions begin with:
 

@@ -1905,13 +1905,14 @@ GC behavior is configurable via `GCConfig`: `young_threshold` (default 256KB), `
 ### Migration Strategy
 
 **Current Phase:**
-1. C++ owns the native ABI, native object components, resource decoding, and
-   invariant-preserving operations.
+1. Selected-package files own install-layout declarations. C++ owns validated
+   filesystem access, resource containers, the native ABI, native object
+   components, resource decoding, and invariant-preserving operations.
 2. Shared `core.*` modules own reusable profile-neutral implementations and
    registries on top of that ABI; consumers opt into them by calling or
    registering with them.
-3. Selected profile modules own propset schemas, shared rules/config data, and
-   gameplay policy.
+3. Selected profile modules own propset schemas, shared rules/config data,
+   gameplay policy, and mandatory initialization/object/qualifier behavior.
 4. `smalls-datagen` partitions imported source fields once inside a generated
    definition row. The selected profile loader publishes its native `Info[]`
    group to C++ and retains its SmallS `Rules[]` group. A source table is not

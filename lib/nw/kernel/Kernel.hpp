@@ -14,7 +14,6 @@
 namespace nw {
 
 // Forward decls
-struct GameProfile;
 struct Module;
 struct EffectSystem;
 struct ObjectManager;
@@ -101,9 +100,6 @@ struct Services {
     /// have not been created yet.
     [[nodiscard]] uint64_t generation() const noexcept;
 
-    /// Gets current game profile
-    GameProfile* profile() const;
-
     /// Gets the selected process service mode.
     [[nodiscard]] ServiceMode mode() const noexcept;
 
@@ -120,7 +116,6 @@ struct Services {
     T* get_mut();
 
     friend GlobalMemory* global_allocator();
-    friend void set_game_profile(GameProfile*);
     friend Module* load_module(const std::filesystem::path& path, bool instantiate, const ModuleLoadOptions& options);
     friend nlohmann::json stats();
     friend void unload_module();
@@ -128,8 +123,6 @@ struct Services {
 private:
     std::array<ServiceEntry, 32> services_;
     size_t services_count_ = 0;
-    GameProfile* profile_ = nullptr;
-    bool user_profile_ = false;
     GlobalMemory global_alloc_;
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;
@@ -213,10 +206,6 @@ nlohmann::json stats();
 
 /// Unloads currently active module
 void unload_module();
-
-/// Sets game profile. **Must** be called before nw::kernel::services().start();
-/// @note Caller retains ownerserhip of ``profile``.
-void set_game_profile(GameProfile* profile);
 
 } // namespace kernel
 } // namespace nw

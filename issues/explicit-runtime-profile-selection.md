@@ -10,6 +10,10 @@ ordinary game-mode kernel services therefore selects the NWN1 C++ profile,
 adds `stdlib/nwn1`, derives `nwn1.propsets`, and requires that module even when
 the executable never chose a profile.
 
+This was the pre-change state. The implementation now represents absence with
+`std::optional`, rejects game startup before service initialization, and has no
+C++ `GameProfile` injection path.
+
 This makes an omitted decision look like an intentional NWN1 dependency. The
 recent LSP failure exposed the coupling directly, and `mudl` reproduced it when
 its packaged NWN1 scripts were not discoverable. `mudl` does intentionally
@@ -59,8 +63,8 @@ removing the missing decision.
   profile package or propset module.
 - Every NWN1 executable and test that needs game services selects `nwn1`
   explicitly.
-- A consumer-provided `GameProfile` and a configured profile root cannot
-  disagree silently.
+- There is no consumer-provided C++ profile object that can disagree with the
+  configured package root.
 
 ## Implementation Audit
 

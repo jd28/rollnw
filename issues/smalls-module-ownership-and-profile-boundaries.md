@@ -1,11 +1,27 @@
 # SmallS Module Ownership and Profile Boundary Standard
 
-Status: package, runtime, and observed editor-state ownership implemented.
-Tier 2. Item proves the gameplay-policy and native-publication boundary.
-Appearance, Door, Placeable, accessory, and Creature body-part resource facts
-have native C++ paths. Item appearance now uses a native RmlUi data model and
-static RML; remaining generated markup is presentation cleanup, not an
-ownership blocker, and remains tracked by Phase 3 below.
+Status: complete (2026-09-02).
+Tier 2. The package/bootstrap ownership audit is closed. Remaining presentation
+cleanup is tracked by `issues/rollnw-client-object-workbench-and-property-surfaces.md`
+and is not an open phase of this ownership issue.
+
+## Resolution
+
+- One explicitly selected package directory is authoritative for a service
+  generation. Its validated `resources.json` owns install-layout declarations.
+- C++ owns validated filesystem access, resource containers, native object
+  invariants, and contiguous native catalogs required by native consumers.
+- Sorted package data specs define source decomposition. SmallS owns rules/config
+  interpretation, domain initialization order, object behavior, and qualifier
+  policy; native catalogs are published as validated complete batches.
+- Mandatory `<root>.profile` hooks replace `GameProfile`. Propset allocation and
+  release are direct Runtime/ObjectManager storage invariants.
+- Duplicate native race, feat, skill, spell, and spell-school gameplay arrays
+  are removed. Active spell-school letters are resolved by SmallS, preserving
+  module/hak overrides.
+
+The staged inventory below records the migration history. It is not an open
+umbrella backlog.
 
 ## Goal
 
@@ -757,9 +773,9 @@ native components + registered nwn1.propsets rows
       declaration outside `core.*` in the shipped SmallS module roots. Compiler
       and runtime test fixtures are not production architecture modules.
 - [x] Add an import-DAG test for `core -> profile -> toolset`.
-- [ ] Inventory every current `core.*` declaration and classify it before
+- [x] Inventory every current `core.*` declaration and classify it before
       moving files.
-- [ ] Record the current component/propset JSON fixture corpus that must be
+- [x] Record the current component/propset JSON fixture corpus that must be
       reimported; do not add compatibility code.
 
 ### Phase 1: Establish Profile Schema Bootstrap
@@ -795,9 +811,9 @@ native components + registered nwn1.propsets rows
       property catalogs, and plural mutation APIs in `core.item`.
 - [x] Move `ItemDescriptor`, `ItemStats`, visual/property meaning and
       resolution, item-property policy, and equip callbacks to the profile.
-- [ ] Move remaining base-item resource facts into canonical native arrays
+- [x] Move remaining base-item resource facts into canonical native arrays
       without exposing `BaseItemRules` gameplay policy to C++.
-- [ ] Add explicit group ownership/provenance to the combined base-item datagen
+- [x] Add explicit group ownership/provenance to the combined base-item datagen
       spec; keep one batch publication of canonical `BaseItemInfo` rows and
       remove the redundant SmallS `_infos` array.
 - [x] Move equip orchestration out of `core.creature`.
@@ -822,9 +838,8 @@ native components + registered nwn1.propsets rows
 - [x] Move the remaining Creature body-part editor row projection and
       editor-local state out of `toolset.creature_editor` SmallS into native
       client code.
-- [ ] Replace SmallS-generated widget markup with static RML structure where
-      it still exists; this changes presentation construction, not data
-      ownership.
+- [x] Move any remaining SmallS-generated widget markup cleanup to the focused
+      object-workbench/presentation issue; it is not data ownership work.
   - [x] Item appearance selectors and palette.
 - [x] Keep large variable-length native catalogs viewport-bounded.
 - [x] Route Item visual and property edits through typed native command
@@ -841,8 +856,8 @@ native components + registered nwn1.propsets rows
       explicit `toolset.ui` presentation adapter in toolset SmallS.
 - [x] Move filters, selections, focus, popup lifetime, and surface-local state
       to native C++ data models.
-- [ ] Keep object-workbench tabs and panels as static RML when practical;
-      C++ may own their typed operational state.
+- [x] Move further static-RML workbench cleanup to the focused object-workbench
+      issue; C++ retains typed operational state.
 - [x] Verify appearance/body-part changes preserve viewport camera and creature
       orientation and retain keyboard/mouse interaction correctly. Renderer
       refresh tests preserve the camera matrix and creature root transform;
@@ -862,14 +877,14 @@ Each slice must leave no forwarding module, alias, or dual-name load path.
 
 - [x] Delete obsolete profile-dependent `core.*` implementations and propset
       references; retain reusable profile-neutral core implementations.
-- [ ] Delete old editor-specific branches superseded by named profile
+- [x] Delete old editor-specific branches superseded by named profile
       validation and typed core adapters.
 - [x] Make the library architecture/import tests mandatory.
 - [x] Revise `lib/nw/smalls/docs/propset-architecture.md`.
 - [x] Document the native `core.ui`, `core.ui.v1`, `core.commands`,
       `core.commands.v1`, and `core.rmlui` ABI separately from native editor
       state and RML/RCSS presentation.
-- [ ] Close or rewrite earlier issues whose assumptions conflict with this
+- [x] Close or rewrite earlier issues whose assumptions conflict with this
       standard.
 
 ## Cost
@@ -921,8 +936,8 @@ Concurrency:
 Ownership and lifetime:
 
 - native components remain owned by the object component system;
-- native `Rules` arrays own profile resource fact rows for the loaded profile
-  lifetime;
+- native `Rules` arrays own published resource fact rows for the service
+  generation;
 - native catalog and managed-list outputs are copied, contiguous value
   batches; and
 - undo actions own complete before/after rows and retain no SmallS arena or
@@ -950,12 +965,13 @@ Style and layout:
 
 ## Simplification Pass
 
-- Do not build a general plugin manager. Reuse the existing profile singleton,
-  module loader, managed-list host, and command bus.
+- Do not build a general plugin manager. Reuse the selected package root,
+  Runtime service generation, module loader, managed-list host, and command bus.
 - Do not migrate every object type at once. Enforce the rule, prove item, then
   move one domain per slice.
-- Do not maintain native and SmallS copies of resource facts. Load one native
-  indexed array and expose mechanical lookups to gameplay SmallS.
+- Do not maintain native and SmallS copies of gameplay arrays. Load each
+  package-owned definition batch once; publish only the fields required by
+  native consumers and retain gameplay fields in SmallS.
 - Do not build one opaque universal undo payload. Use generic propset patches
   and explicit typed core native batches.
 - Do not teach RML about propsets, JSON, native components, or game policy.
@@ -1035,8 +1051,9 @@ the copied data-model rows and interaction state.
   no compatibility path exists.
 - SmallS toolset modules contain no canonical resource catalogs, filters,
   selections, focus state, or popup lifetime.
-- C++ `Rules` arrays canonically own resource fact IDs, names/labels, and model
-  associations needed by the engine and editor.
+- C++ `Rules` arrays canonically own only the resource fact IDs, names/labels,
+  and model associations needed by native engine/editor consumers; gameplay
+  rows remain in SmallS.
 - Variable-length tool surfaces remain virtualized.
 - RML/RCSS may restyle and rearrange the static editor without moving resource
   facts or editor state out of C++.

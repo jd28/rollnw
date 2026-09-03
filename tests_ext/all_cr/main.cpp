@@ -1,6 +1,5 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/profiles/nwn1/Profile.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
@@ -55,6 +54,7 @@ int main(int argc, char* argv[])
     nw::ConfigOptions config_options;
     config_options.profile = "nwn1";
     nw::kernel::config().initialize(std::move(config_options));
+    nw::test::register_source_nwn1_packages();
     nw::kernel::services().start();
 
     int count = 0;

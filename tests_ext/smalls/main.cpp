@@ -5,70 +5,17 @@
 #include <fmt/core.h>
 #include <nowide/cstdlib.hpp>
 
+#include <algorithm>
 #include <filesystem>
+#include <vector>
 
 #include "../../tests/test_nwn_root.hpp"
 
 namespace fs = std::filesystem;
 
-struct TestState {
-    int total = 0;
-    int passed = 0;
-    int failed = 0;
-};
-
-static TestState g_state;
-
-void native_test(const char* name, bool passed)
-{
-    g_state.total++;
-    if (passed) {
-        g_state.passed++;
-        fmt::print("  PASS: {}\n", name);
-    } else {
-        g_state.failed++;
-        fmt::print(stderr, "  FAIL: {}\n", name);
-    }
-}
-
-void native_reset()
-{
-    g_state.total = 0;
-    g_state.passed = 0;
-    g_state.failed = 0;
-}
-
-void native_summary()
-{
-    fmt::print("  Tests: {} passed, {} failed, {} total\n", g_state.passed, g_state.failed, g_state.total);
-}
-
-int32_t native_failures() { return g_state.failed; }
-int32_t native_count() { return g_state.total; }
-
-void register_test_module(nw::smalls::Runtime& rt)
-{
-    rt.module("core.test")
-        .function("test", &native_test)
-        .function("reset", &native_reset)
-        .function("summary", &native_summary)
-        .function("failures", &native_failures)
-        .function("count", &native_count)
-        .finalize();
-}
-
 int main(int argc, char* argv[])
 {
     nw::init_logger(argc, argv);
-
-    if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
-    nw::ConfigOptions config_options;
-    config_options.profile = "nwn1";
-    nw::kernel::config().initialize(std::move(config_options));
-    nw::kernel::services().start();
-
-    auto& rt = nw::kernel::runtime();
-    register_test_module(rt);
 
     fs::path scripts_dir;
     if (argc > 1) {
@@ -83,26 +30,34 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    rt.add_module_path(scripts_dir / "core");
+    if (!nw::test::configure_dedicated_server("test_data/user/")) { return 1; }
+    nw::ConfigOptions config_options;
+    config_options.profile = "nwn1";
+    nw::kernel::config().initialize(std::move(config_options));
+    nw::kernel::services().create();
+    nw::kernel::runtime().add_module_path(scripts_dir / "core");
+    nw::kernel::runtime().add_module_path(scripts_dir / "nwn1");
+    nw::kernel::services().start();
+
+    auto& rt = nw::kernel::runtime();
     rt.add_module_path(scripts_dir / "tests");
+    rt.set_script_tests_enabled(true);
 
     int total_scripts = 0;
     int successful_scripts = 0;
     int failed_scripts = 0;
     int total_failures = 0;
 
-    for (const auto& entry : fs::recursive_directory_iterator(scripts_dir)) {
+    std::vector<fs::path> test_scripts;
+    for (const auto& entry : fs::directory_iterator(scripts_dir / "tests")) {
         if (!entry.is_regular_file()) { continue; }
         if (entry.path().extension() != ".smalls") { continue; }
+        test_scripts.push_back(entry.path());
+    }
+    std::ranges::sort(test_scripts);
 
-        auto rel_path = fs::relative(entry.path(), scripts_dir);
-        std::string module_name;
-        for (const auto& part : rel_path.parent_path()) {
-            if (!module_name.empty()) { module_name += "."; }
-            module_name += part.string();
-        }
-        if (!module_name.empty()) { module_name += "."; }
-        module_name += rel_path.stem().string();
+    for (const auto& path : test_scripts) {
+        const std::string module_name = "tests." + path.stem().string();
 
         fmt::print("Running: {}\n", module_name);
         total_scripts++;
@@ -120,23 +75,26 @@ int main(int argc, char* argv[])
             continue;
         }
 
-        if (!script->exports().find("main")) {
-            fmt::print("  Skipping (no main function)\n");
-            total_scripts--;
-            continue;
-        }
-
-        native_reset();
-        auto result = rt.execute_script(script, "main");
-        if (!result.ok()) {
-            fmt::print(stderr, "  Execution failed: {}\n", result.error_message);
+        const auto tests = rt.module_tests(script);
+        if (tests.empty()) {
+            fmt::print(stderr, "  Module has no script tests\n");
             failed_scripts++;
             continue;
         }
 
-        if (g_state.failed > 0) {
+        rt.reset_test_state();
+        const auto results = rt.execute_tests(script);
+        bool executed = results.size() == tests.size();
+        for (const auto& result : results) {
+            if (!result.ok()) {
+                fmt::print(stderr, "  Execution failed: {}\n", result.error_message);
+                executed = false;
+            }
+        }
+
+        if (!executed || rt.test_failures() > 0) {
             failed_scripts++;
-            total_failures += g_state.failed;
+            total_failures += static_cast<int>(rt.test_failures());
         } else {
             successful_scripts++;
         }

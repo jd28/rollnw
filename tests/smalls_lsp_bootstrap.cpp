@@ -8,7 +8,7 @@
 
 #include <filesystem>
 
-TEST(SmallsLspBootstrap, LanguageModeDoesNotCreateOrLoadAGameProfile)
+TEST(SmallsLspBootstrap, LanguageModeDoesNotSelectOrLoadAGamePackage)
 {
     auto& services = nw::kernel::services();
     auto& config = nw::kernel::config();
@@ -28,7 +28,6 @@ TEST(SmallsLspBootstrap, LanguageModeDoesNotCreateOrLoadAGameProfile)
 
     EXPECT_NO_THROW(services.start(nw::kernel::ServiceMode::language));
     EXPECT_FALSE(config.profile().has_value());
-    EXPECT_EQ(services.profile(), nullptr);
     EXPECT_EQ(services.get<nw::EffectSystem>(), nullptr);
     EXPECT_EQ(runtime.type_id("nwn1.propsets.ItemStats", false),
         nw::smalls::invalid_type_id);

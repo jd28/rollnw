@@ -1,8 +1,8 @@
 # rollnw SmallS Conventions
 
 - **Version**: 0.1.0
-- **Last Updated**: 2026-08-01
-- **Status**: Normative target architecture
+- **Last Updated**: 2026-09-02
+- **Status**: Normative architecture
 
 ## Purpose
 
@@ -23,6 +23,8 @@ The runtime has these fixed properties:
 
 - One game profile is selected before kernel services start and remains selected
   for the service generation.
+- The selected package owns install-layout declarations in `resources.json`;
+  C++ validates those paths and owns the resulting resource containers.
 - SmallS modules are addressed by qualified logical names and resolved through
   configured package directories.
 - Qualified propset names are durable serialization protocol identifiers.
@@ -120,7 +122,9 @@ game it is `nwn1`. It is a logical namespace, not a filesystem path.
 The root establishes conventional names:
 
 ```text
+<package>/resources.json install/user container declarations (not a SmallS module)
 <root>.propsets        all persistent and transient profile propset schemas
+<root>.profile         mandatory post-resource profile hooks
 <root>.init            normal profile initialization entry point
 <root>.combat          combat policy used by the combat subsystem
 <root>.effects         effect policy used by the effect subsystem
@@ -138,6 +142,12 @@ Copied native field types remain declared under `core.*`.
 
 See [`profile-packages.md`](profile-packages.md) for resolution, bootstrap, and
 failure rules.
+
+The ownership boundary is fixed: selected-package files declare install
+layout, SmallS owns rules/config interpretation and profile behavior, and C++
+validates filesystem/resource inputs and stores native/resource data. A native
+catalog needed by the renderer or editor is published as one validated batch;
+it is not independently reconstructed from the same 2DA in C++.
 
 ## Cross-Boundary Batch Contract
 
@@ -242,7 +252,10 @@ Reimport is the migration path for authored legacy data.
 | Boundary | Invalid input behavior |
 |---|---|
 | Profile root or required package | Fail configuration/startup |
+| Missing or invalid `resources.json` | Fail startup before applying containers |
+| Missing declared install/user container | Skip that optional container |
 | Required module missing or has diagnostics | Fail the owning subsystem's initialization |
+| Required `<root>.profile` hook absent or invalid | Fail game bootstrap |
 | Invalid propset schema | Fail profile initialization before object load |
 | Required config source or column is unavailable | Publish an empty domain and continue profile startup |
 | Config row violates its declared value invariant | Diagnose that row, leave its indexed slot empty, and preserve valid rows |

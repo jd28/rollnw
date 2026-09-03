@@ -1,6 +1,5 @@
 #include "runtime.hpp"
 
-#include "../kernel/GameProfile.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../kernel/Strings.hpp"
 #include "../log.hpp"
@@ -35,6 +34,28 @@
 #include <limits>
 
 namespace nw::smalls {
+
+namespace {
+
+bool function_has_signature(const Runtime& runtime,
+    const CompiledFunction* function,
+    std::span<const TypeID> parameters,
+    TypeID result)
+{
+    if (!function || function->param_count != parameters.size()
+        || function->return_type != result) {
+        return false;
+    }
+    for (size_t index = 0; index < parameters.size(); ++index) {
+        if (runtime.get_function_param_type(function->function_type, index)
+            != parameters[index]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
 
 // == Value ===================================================================
 // ============================================================================
@@ -305,6 +326,13 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         }
         prime_propset_pools();
 
+        register_package_data_specs();
+        load_profile_hooks();
+
+        if (time == nw::kernel::ServiceInitTime::kernel_start) {
+            execute_profile_init();
+        }
+
         const auto& init_mod = kernel::config().init_module();
         if (!init_mod.empty()) {
             auto* init = load_module(init_mod);
@@ -321,7 +349,175 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
                     init_mod, result.error_message));
             }
         }
+    } else if (time == kernel::ServiceInitTime::module_post_load
+        && kernel::services().mode() == kernel::ServiceMode::game) {
+        execute_profile_init();
     }
+}
+
+void Runtime::register_package_data_specs()
+{
+    namespace fs = std::filesystem;
+    const auto& package_directory = select_package_directory(
+        *kernel::config().profile());
+    const auto spec_directory = package_directory / "data_specs";
+    std::error_code error;
+    if (!fs::is_directory(spec_directory, error) || error) {
+        throw std::runtime_error(fmt::format(
+            "runtime: package data-spec directory '{}' was not found",
+            spec_directory.string()));
+    }
+
+    Vector<fs::path> paths;
+    for (const auto& entry : fs::directory_iterator(spec_directory, error)) {
+        if (error) { break; }
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            paths.push_back(entry.path());
+        }
+    }
+    if (error) {
+        throw std::runtime_error(fmt::format(
+            "runtime: failed to enumerate package data specs '{}': {}",
+            spec_directory.string(), error.message()));
+    }
+    std::ranges::sort(paths);
+
+    for (const auto& path : paths) {
+        Vector<DataSpec> specs;
+        Vector<DataDiagnostic> diagnostics;
+        if (!parse_data_specs(
+                std::span<const fs::path>{&path, 1}, specs, diagnostics)) {
+            const auto detail = diagnostics.empty()
+                ? String{"unknown parse error"}
+                : fmt::format("{}: {} (target '{}')",
+                      diagnostics.front().source.string(),
+                      diagnostics.front().message,
+                      diagnostics.front().target);
+            LOG_F(ERROR,
+                "runtime: failed to parse structured data spec '{}'; disabling only that domain: {}",
+                path.string(), detail);
+            continue;
+        }
+
+        if (specs.size() != 1) {
+            LOG_F(ERROR,
+                "runtime: data spec '{}' produced {} domains; disabling that file",
+                path.string(), specs.size());
+            continue;
+        }
+        String diagnostic;
+        if (!register_data_spec(std::move(specs.front()), diagnostic)) {
+            LOG_F(ERROR,
+                "runtime: failed to register data spec '{}'; disabling only that domain: {}",
+                path.string(), diagnostic);
+        }
+    }
+}
+
+void Runtime::load_profile_hooks()
+{
+    const auto module_name = fmt::format(
+        "{}.profile", *kernel::config().profile());
+    auto* script = load_module(module_name);
+    if (!script || script->errors() != 0) {
+        throw std::runtime_error(fmt::format(
+            "runtime: failed to load required package profile module '{}'",
+            module_name));
+    }
+
+    auto* module = get_or_compile_module(script);
+    if (!module) {
+        throw std::runtime_error(fmt::format(
+            "runtime: failed to compile required package profile module '{}'",
+            module_name));
+    }
+
+    const auto* init = module->get_function("init");
+    const auto* object_instantiated = module->get_function("object_instantiated");
+    const auto* match_qualifier = module->get_function("match_qualifier");
+    const std::array<TypeID, 1> object_parameters{object_type()};
+    const std::array<TypeID, 5> qualifier_parameters{
+        object_type(), int_type(), int_type(), int_type(), int_type()};
+    if (!function_has_signature(*this, init,
+            std::span<const TypeID>{}, bool_type())
+        || !function_has_signature(*this, object_instantiated,
+            object_parameters, void_type())
+        || !function_has_signature(*this, match_qualifier,
+            qualifier_parameters, bool_type())) {
+        throw std::runtime_error(fmt::format(
+            "runtime: package profile module '{}' does not implement the required hook contract",
+            module_name));
+    }
+
+    profile_hook_module_ = module;
+    profile_init_hook_ = init;
+    profile_object_instantiated_hook_ = object_instantiated;
+    profile_match_qualifier_hook_ = match_qualifier;
+}
+
+void Runtime::execute_profile_init()
+{
+    if (!profile_hook_module_ || !profile_init_hook_) {
+        throw std::runtime_error(
+            "runtime: selected package profile hooks are not loaded");
+    }
+    constexpr uint64_t profile_init_gas_limit = 100'000'000;
+    auto result = execute_compiled(profile_hook_module_, profile_init_hook_, {},
+        profile_init_gas_limit);
+    if (!result.ok()) {
+        throw std::runtime_error(fmt::format(
+            "runtime: selected package profile initialization failed: {}",
+            result.error_message));
+    }
+    if (result.value.type_id != bool_type()) {
+        throw std::runtime_error(
+            "runtime: selected package profile initialization returned an invalid result");
+    }
+    if (!result.value.data.bval) {
+        LOG_F(WARNING,
+            "runtime: selected package profile initialized with degraded data domains");
+    }
+}
+
+void Runtime::profile_object_instantiated(ObjectHandle object)
+{
+    if (!profile_hook_module_ || !profile_object_instantiated_hook_) {
+        LOG_F(ERROR,
+            "runtime: selected package object-instantiated hook is unavailable");
+        return;
+    }
+    Value object_value{object_type()};
+    object_value.data.oval = object;
+    constexpr uint64_t object_hook_gas_limit = 10'000'000;
+    auto result = execute_compiled(profile_hook_module_,
+        profile_object_instantiated_hook_, {object_value}, object_hook_gas_limit);
+    if (!result.ok()) {
+        LOG_F(WARNING,
+            "runtime: selected package object-instantiated hook failed for 0x{:016x}: {}",
+            object.to_ull(), result.error_message);
+    }
+}
+
+bool Runtime::profile_match_qualifier(ObjectHandle object, int32_t type,
+    int32_t subtype, int32_t match, int32_t value)
+{
+    if (!profile_hook_module_ || !profile_match_qualifier_hook_) {
+        LOG_F(ERROR, "runtime: selected package qualifier hook is unavailable");
+        return false;
+    }
+    Value object_value{object_type()};
+    object_value.data.oval = object;
+    auto result = execute_compiled(profile_hook_module_,
+        profile_match_qualifier_hook_,
+        {object_value, Value::make_int(type), Value::make_int(subtype),
+            Value::make_int(match), Value::make_int(value)});
+    if (!result.ok() || result.value.type_id != bool_type()) {
+        LOG_F(ERROR,
+            "runtime: selected package qualifier hook failed: {}",
+            result.ok() ? "invalid return type" : result.error_message);
+        return false;
+    }
+    return result.value.data.bval;
 }
 
 void Runtime::register_internal_types()

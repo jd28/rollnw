@@ -16,6 +16,7 @@
 #include "../objects/Trigger.hpp"
 #include "../objects/Waypoint.hpp"
 #include "../resources/ResourceManager.hpp"
+#include "../smalls/runtime.hpp"
 #include "../util/profile.hpp"
 
 #include <nlohmann/json.hpp>
@@ -244,6 +245,8 @@ void ObjectManager::destroy(ObjectHandle obj)
 
     if (destroy_callback_) { destroy_callback_(o); }
 
+    kernel::runtime().free_object_propsets(obj);
+
     components_.remove(obj);
     objects_array_.destroy(obj);
 }
@@ -399,19 +402,18 @@ Module* ObjectManager::make_module()
 void ObjectManager::run_instantiate_callback(ObjectBase* obj)
 {
     if (!obj) { return; }
-    if (instantiate_callback_) {
-        instantiate_callback_(obj);
-    }
-}
-
-void ObjectManager::set_instantiate_callback(void (*callback)(ObjectBase*))
-{
-    instantiate_callback_ = callback;
+    kernel::runtime().profile_object_instantiated(obj->handle());
 }
 
 void ObjectManager::set_destroy_callback(void (*callback)(ObjectBase*))
 {
     destroy_callback_ = callback;
+}
+
+void ObjectManager::initialize_new_object(ObjectBase* object)
+{
+    if (!object) { return; }
+    kernel::runtime().init_object_propsets(object->handle());
 }
 
 nlohmann::json ObjectManager::stats() const

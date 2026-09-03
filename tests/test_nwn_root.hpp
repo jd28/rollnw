@@ -2,6 +2,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/smalls/runtime.hpp>
 
 #include <nowide/cstdlib.hpp>
 
@@ -35,6 +36,15 @@ inline bool configure_dedicated_server(std::filesystem::path user_root)
 
     nw::kernel::config().set_paths(*install_root, std::move(user_root));
     return true;
+}
+
+inline void register_source_nwn1_packages()
+{
+    const auto scripts = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR}
+        / "lib/nw/smalls/scripts";
+    nw::kernel::services().create();
+    nw::kernel::runtime().add_module_path(scripts / "core");
+    nw::kernel::runtime().add_module_path(scripts / "nwn1");
 }
 
 } // namespace nw::test
