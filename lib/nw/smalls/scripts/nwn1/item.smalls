@@ -329,6 +329,21 @@ fn _dispatch_on_unequip(creature: Creature, removed: Item, slot: base.EquipIndex
     }
 }
 
+fn initialize_equipped_item_properties(creature: Creature): int {
+    var processed = 0;
+    var slot = 0;
+    var stop = (Const.equip_index_creature_skin as int) + 1;
+    for (slot < stop) {
+        var equipped = base.get_equipped_item(creature, base.EquipIndex(slot));
+        if ((equipped as object) != O.invalid) {
+            processed += base.process_item_properties(
+                creature, equipped, base.EquipIndex(slot), false);
+        }
+        slot += 1;
+    }
+    return processed;
+}
+
 fn _dispatch_on_visual_changed(item: Item): bool {
     var ok = true;
     for (var i = 0; i < Array.len(on_visual_changed_callbacks); i += 1) {

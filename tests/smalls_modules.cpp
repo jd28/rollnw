@@ -341,6 +341,7 @@ TEST_F(SmallsModules, LoadNwn1ItemModule)
     ASSERT_NE(item_module, nullptr);
 
     EXPECT_NE(item_module->exports().find("ability_modifier"), nullptr);
+    EXPECT_NE(item_module->exports().find("initialize_equipped_item_properties"), nullptr);
     EXPECT_NE(item_module->exports().find("register_default_generators"), nullptr);
     EXPECT_EQ(item_module->exports().find("ItemEffectRow"), nullptr);
     EXPECT_EQ(item_module->exports().find("process_item_properties"), nullptr);

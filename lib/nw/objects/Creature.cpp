@@ -8,7 +8,6 @@
 #include "../profiles/nwn1/object_compat_fields.hpp"
 #include "../profiles/nwn1/object_name_preview.hpp"
 #include "../profiles/nwn1/propset_gff_object_io.hpp"
-#include "../profiles/nwn1/scriptbridge.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../serialization/component_propset_json.hpp"
@@ -75,33 +74,13 @@ bool Creature::instantiate()
     instantiated_ = (inventory_instantiated && equipment.instantiate());
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    int32_t equipment_item_count = 0;
-    int32_t item_effects_processed = 0;
-    {
-        NW_PROFILE_SCOPE_N("Creature::instantiate::item_effects");
-        size_t i = 0;
-        for (auto& equip : equipment.equips) {
-            if (auto* item = equip_item_ptr(equip)) {
-                ++equipment_item_count;
-                item_effects_processed += nwn1::process_item_properties(this, item,
-                    static_cast<EquipIndex>(i), false);
-            }
-            ++i;
-        }
-    }
+    nw::kernel::objects().run_instantiate_callback(this);
     auto t2 = std::chrono::high_resolution_clock::now();
 
-    nw::kernel::objects().run_instantiate_callback(this);
-    auto t3 = std::chrono::high_resolution_clock::now();
-
     auto inv_equip_us = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-    auto item_effects_us = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
-    auto callback_us = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+    auto callback_us = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
     NW_PROFILE_PLOT("nw.creature.instantiate.inv_equip_us", inv_equip_us);
-    NW_PROFILE_PLOT("nw.creature.instantiate.item_effects_us", item_effects_us);
     NW_PROFILE_PLOT("nw.creature.instantiate.callback_us", callback_us);
-    NW_PROFILE_PLOT("nw.creature.instantiate.equipment_items", equipment_item_count);
-    NW_PROFILE_PLOT("nw.creature.instantiate.item_effects_applied", item_effects_processed);
 
     return instantiated_;
 }
