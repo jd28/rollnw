@@ -1,7 +1,7 @@
 # Propset Architecture
 
-- **Version**: 0.3.0
-- **Last Updated**: 2026-08-01
+- **Version**: 0.4.0
+- **Last Updated**: 2026-09-02
 - **Status**: Normative target architecture
 
 ## Overview
@@ -100,6 +100,7 @@ or source table columns. The consumer and required invariant decide the owner.
 | Base-item model/icon/layout facts | Native `BaseItemInfo` facts | Native asset addressing and inventory geometry |
 | Base-item combat and requirement policy | `nwn1.item` rules/config | Moddable game behavior |
 | Creature ability scores, feats, classes, and scripts | Profile propsets | Profile-defined object schema consumed by rules |
+| Player level history | `nwn1.propsets.PlayerHistory` | Profile-defined progression history; C++ only converts legacy GFF |
 | Editor rows, filters, selected tab, and labels | Native C++ toolset | Native authoring projection and interaction state |
 
 ### Cost Of Each Choice
@@ -199,6 +200,48 @@ The required `<root>.propsets` module is loaded once by the selected profile's
 runtime bootstrap. It does not depend on the optional rules init module or an
 editor import. Missing or invalid required schemas fail runtime initialization
 before any object can be loaded.
+
+#### Object-owned value graphs
+
+A direct dynamic-array field in a propset is stored in the generic
+`ObjectValueComponent` when its complete element graph contains only `int`,
+`float`, `bool`, heap-free opaque/native values, fixed arrays, tuples, nested
+dynamic arrays, and `[[value_type]]` structs made from those values. Strings,
+maps, functions, sums, ordinary reference structs, zero-sized types, and
+recursive type graphs are rejected during type resolution. This validation is
+structural; C++ does not name or interpret profile fields.
+
+The storage contract is:
+
+- Input: one validated direct propset array and the values appended to it.
+- Output: one contiguous byte buffer per dynamic-array node. Nested arrays are
+  additional nodes addressed by 32-bit indices in the same value layout used
+  by the VM.
+- Owner and lifetime: every node records the owning `ObjectHandle`, propset
+  type, and direct field index. All nodes are released as one batch when that
+  object is destroyed. Node indices are not reused during a service generation,
+  so a stale alias cannot resolve to a different node.
+- Mutation: any nested array mutation marks the owning direct propset field
+  dirty. Direct array reassignment is rejected; callers mutate the existing
+  array through the normal array operations.
+- Error behavior: unsupported graphs fail compilation. Invalid, stale, or
+  exhausted component handles fail the operation. JSON and legacy GFF input
+  outside the declared or target-format ranges is rejected.
+
+Component indices occupy the upper half of the 32-bit array-handle domain;
+`ScriptHeap` is constrained to the lower half. Persistent component nodes are
+therefore outside the tracing heap and are not scanned by the GC. Nested tuple
+payloads are stored inline in component buffers. Temporary VM copies preserve
+nested array indices and materialize the language's ordinary tuple value only
+while that copied value is in use.
+
+The dominant Player-history transform is linear in levels plus selected feats,
+nonzero skills, and known spells. It runs on load and save, not once per rules
+query. Storage costs one node per dynamic array and retains removed nested nodes
+until object destruction so temporary script aliases remain valid. No memory or
+speed improvement is claimed. Tuple materialization adds transient VM heap work
+when a component struct containing a tuple is read; runtime statistics expose
+node count and retained array bytes for measurement.
 
 ### Native Object Components
 
@@ -308,7 +351,6 @@ type CreatureHealth {
 type CreatureLevels {
     classes: int[8];       // Class IDs per slot
     class_levels: int[8];  // Level count per slot
-    levelup_classes: array!(int);
     xp: int;
     walkrate: int;
 };
@@ -358,13 +400,40 @@ Most common rules operations touch one or two propsets. Complex combat paths may
 initializes them from defaults on load and does not write them to durable
 fixtures or saves.
 
+Player progression history is a Player-only propset. Its arrays are sparse
+where the source data is sparse or mostly zero:
+
+```smalls
+[[value_type]]
+type LevelHistoryEntry {
+    epic: bool;
+    class_id: Class;
+    ability: (Ability, int);
+    hitpoints: int;
+    skillpoints: int;
+    skill_count: int;
+    feats: array!(Feat);
+    skills: array!((Skill, int));
+    known_spells: array!((int, Spell));
+};
+
+[[propset(Player)]]
+type PlayerHistory {
+    entries: array!(LevelHistoryEntry);
+};
+```
+
+The ability tuple carries the ability ID and the one-point increase; `(-1, 0)`
+means no increase. A skill tuple stores only a nonzero rank, while `skill_count`
+preserves the dense legacy GFF width for export. A known-spell tuple stores the
+spell level required to rebuild `KnownList0` through `KnownList9`. Profile rules
+scan the entries directly for class-level queries. The legacy GFF adapter is a
+mechanical boundary transform and does not own progression policy.
+
 **Excluded from propsets (v1):**
 - Spell preparation/loadout rows — mutable runtime state owned by the native
   `ObjectAbilityLoadout` component; legacy NWN1 `SpellBook` lists exist only
   as GFF import/export compatibility.
-- `LevelHistory` detail beyond class slots — feat/skill/ability choices remain
-  player-character compatibility data. `CreatureLevels.levelup_classes` carries
-  the class-slot projection used by current script rules.
 - Equipped items and inventory ownership — native components, with Smalls hooks
   for policy and visual/effect updates.
 
@@ -591,7 +660,7 @@ Native components and script propsets are separate storage systems:
 |---|---|---|
 | Schema defined in | Smalls script | C++ struct |
 | Memory managed by | `PropsetPoolManager` | `ObjectComponentSystem` / component owner |
-| GC integration | Direct heap fields are tracked as roots; unmanaged arrays are destroyed with the object row | Component-specific C++ ownership |
+| GC integration | Direct heap fields are roots; compatible array graphs use object-lifetime nodes outside GC tracing | Component-specific C++ ownership |
 | Access from script | `get_propset!` intrinsic | Bridge functions only |
 | Runtime C++ policy access | Avoid; use Smalls or native rows | Direct C++ component API |
 | Serialization | Generic propset JSON plus legacy GFF import/export policies | Fixed component JSON/GFF sections |
@@ -601,9 +670,9 @@ Native components and script propsets are separate storage systems:
 
 ## Current Implementation
 
-- `PropsetPoolManager` — slab pool, slot management, dirty tracking, unmanaged array support
+- `PropsetPoolManager` — slab pool, slot management, dirty tracking, and object-value component ownership
 - `[[propset(ObjectType)]]` annotation — parsed and validated by `TypeResolver`
-- Propset field validation — allows supported primitives, strings, object handles, native values, value structs, fixed arrays, and unmanaged arrays
+- Propset field validation — allows supported primitives, strings, object handles, native values, fixed arrays, and recursively validated object-component array graphs
 - `get_propset!` intrinsic — declared in `core/prelude.smalls`
 - Object-type propset registration at runtime startup
 - GFF import/export through `PropsetGffImporter` and `PropsetGffExporter`
@@ -614,7 +683,7 @@ Native components and script propsets are separate storage systems:
 - Script-side rules for combat, modifiers, item property processing, spell slot/known-spell logic, creature sizing, and visual row resolution
 - Visual asset protocol from Smalls resolvers into `ObjectVisualState`
 
-All 16 persistent and transient NWN1 propsets live in the single
+All 17 persistent and transient NWN1 propsets live in the single
 `nwn1.propsets` schema module. Shared `core.*` modules contain no propsets.
 
 **Key constraint**: while a C++ mirror still has runtime consumers, remove or
@@ -687,7 +756,6 @@ A domain migration is complete when:
 - Spell preparation/loadout in propsets — slot-per-level-per-class runtime rows
   stay in the native `ObjectAbilityLoadout` component for now; NWN1 `SpellBook`
   remains only a legacy GFF list adapter.
-- Full `LevelHistory` in propsets — player-character compatibility detail; only the class-slot projection is currently in `CreatureLevels`
 - Persistent profile use of general `object` handle fields — the language
   supports immediate object values, but durable identity and stale-reference
   policy remain unresolved

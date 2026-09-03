@@ -14,6 +14,7 @@
 #include <nw/objects/Store.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/rules/combat.hpp>
+#include <nw/rules/feats.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/data_spec.hpp>
 #include <nw/smalls/runtime.hpp>

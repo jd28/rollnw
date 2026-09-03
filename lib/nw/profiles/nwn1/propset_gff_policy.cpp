@@ -333,8 +333,7 @@ PropsetGffPolicyRegistry make_nwn1_propset_policy_registry()
             // classes[8] + class_levels[8] → ClassList (struct_id=3 matches serialize)
             list_paired("classes", "class_levels", "ClassList", "Class", "ClassLevel", /*struct_id=*/3),
 
-            skip("levelup_classes"), // PC-only LvlStatList projection, not on UTC creature GFF
-            skip("xp"),              // not on Creature GFF (PC-only)
+            skip("xp"), // not on Creature GFF (PC-only)
             scalar("walkrate", "WalkRate", ST::int32),
         };
         reg.register_policy(std::move(p));

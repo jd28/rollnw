@@ -1,34 +1,35 @@
 import core.array as arr;
-import core.player as Native;
-from nwn1.propsets import { CreatureLevels };
+from core.types import { Class };
+from nwn1.propsets import { PlayerHistory };
 
-fn _class_slot(levels: CreatureLevels, class_id: int): int {
-    if (class_id < 0) {
-        return -1;
-    }
-
-    for (var i = 0; i < 8; i += 1) {
-        if (levels.classes[i] == class_id) {
-            return i;
-        }
-        if (levels.classes[i] == -1) {
-            break;
-        }
-    }
-    return -1;
+fn history_level_count(obj: Player): int {
+    return arr.len(get_propset!(PlayerHistory)(obj).entries);
 }
 
-fn sync_levelup_class_slots(obj: Player): bool {
-    var levels = get_propset!(CreatureLevels)(obj);
-    var count = Native.history_entry_count(obj);
-    if (count < 0) {
-        return false;
+fn history_known_spell_count(obj: Player, level_index: int): int {
+    var history = get_propset!(PlayerHistory)(obj);
+    if (level_index < 0 || level_index >= arr.len(history.entries)) {
+        return 0;
+    }
+    return arr.len(history.entries[level_index].known_spells);
+}
+
+fn count_class_levels(obj: Player, class_id: Class, maximum_levels: int): int {
+    if (class_id < 0 || maximum_levels <= 0) {
+        return 0;
     }
 
-    arr.clear(levels.levelup_classes);
-    arr.reserve(levels.levelup_classes, count);
-    for (var i = 0; i < count; i += 1) {
-        arr.push(levels.levelup_classes, _class_slot(levels, Native.history_entry_class(obj, i)));
+    var history = get_propset!(PlayerHistory)(obj);
+    var stop = arr.len(history.entries);
+    if (stop > maximum_levels) {
+        stop = maximum_levels;
     }
-    return true;
+
+    var result = 0;
+    for (var i = 0; i < stop; i += 1) {
+        if (history.entries[i].class_id == class_id) {
+            result += 1;
+        }
+    }
+    return result;
 }

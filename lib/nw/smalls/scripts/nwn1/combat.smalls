@@ -20,6 +20,7 @@ import nwn1.creature as NCre;
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
 import nwn1.on_hit as on_hit;
+import nwn1.player as PlayerRules;
 import nwn1.saving_throws as saving_throws;
 import nwn1.init as nwn1init;
 import nwn1.creature_size as CreatureSize;
@@ -438,18 +439,14 @@ fn compute_base_attack_bonus(obj: Creature): int {
     var result = 0;
     var class_count = Cre.get_class_count(obj);
     if (_is_pc_creature(obj)) {
-        for (var i = 0; i < class_count; i += 1) {
-            var cl = Cre.get_class_at(obj, i);
-            var class_levels = 0;
+        if (obj is Player) {
+            for (var i = 0; i < class_count; i += 1) {
+                var cl = Cre.get_class_at(obj, i);
+                var class_levels = PlayerRules.count_class_levels(obj as Player, cl, levels);
 
-            for (var j = 0; j < levels; j = j + 1) {
-                if (Cre.get_levelup_class_position(obj, j) == i) {
-                    class_levels = class_levels + 1;
+                if (class_levels > 0) {
+                    result += Classes.attack_bonus(cl, class_levels);
                 }
-            }
-
-            if (class_levels > 0) {
-                result += Classes.attack_bonus(cl, class_levels);
             }
         }
     } else {

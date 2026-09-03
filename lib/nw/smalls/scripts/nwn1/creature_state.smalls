@@ -267,18 +267,6 @@ fn get_lawful_chaotic(obj: Creature): int {
     return stats.lawful_chaotic;
 }
 
-fn get_levelup_class_position(obj: Creature, level_index: int): int {
-    if (level_index < 0) {
-        return -1;
-    }
-
-    var levels = get_propset!(CreatureLevels)(obj);
-    if (level_index >= arr.len(levels.levelup_classes)) {
-        return -1;
-    }
-    return levels.levelup_classes[level_index];
-}
-
 fn _feat_lower_bound(feats: array!(int), needle: int): int {
     var lo = 0;
     var hi = arr.len(feats);

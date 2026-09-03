@@ -505,20 +505,17 @@ TEST_F(SmallsModules, PackageOwnershipModulesExposeExpectedLayers)
     EXPECT_NE(core_area->exports().find("get_width"), nullptr);
     EXPECT_NE(core_area->exports().find("get_size"), nullptr);
 
-    auto* core_player = rt.load_module("core.player");
-    ASSERT_NE(core_player, nullptr);
-    EXPECT_NE(core_player->exports().find("history_entry_count"), nullptr);
-    EXPECT_EQ(core_player->exports().find("sync_levelup_class_slots"), nullptr);
-
     auto* profile_player = rt.load_module("nwn1.player");
     ASSERT_NE(profile_player, nullptr);
-    EXPECT_NE(profile_player->exports().find("sync_levelup_class_slots"), nullptr);
+    EXPECT_NE(profile_player->exports().find("history_level_count"), nullptr);
+    EXPECT_NE(profile_player->exports().find("count_class_levels"), nullptr);
 
     auto* propsets = rt.load_module("nwn1.propsets");
     ASSERT_NE(propsets, nullptr);
     EXPECT_NE(propsets->exports().find("CreatureStats"), nullptr);
     EXPECT_NE(propsets->exports().find("ItemStats"), nullptr);
     EXPECT_NE(propsets->exports().find("DoorState"), nullptr);
+    EXPECT_NE(propsets->exports().find("PlayerHistory"), nullptr);
 }
 
 TEST(SmallsPackageConventions, SourceRootsConform)
@@ -572,7 +569,7 @@ TEST(SmallsPackageConventions, SourceRootsConform)
         }
     }
 
-    EXPECT_EQ(propset_count, 16);
+    EXPECT_EQ(propset_count, 17);
 }
 
 TEST_F(SmallsModules, SelectiveImportFromFilesystemModule)

@@ -1,2 +1,0 @@
-[[native]] fn history_entry_count(obj: Player): int;
-[[native]] fn history_entry_class(obj: Player, index: int): int;

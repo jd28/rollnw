@@ -5,6 +5,7 @@
 #include "../../objects/Creature.hpp"
 #include "../../objects/ObjectComponentSystem.hpp"
 #include "../../objects/ObjectManager.hpp"
+#include "../../rules/Class.hpp"
 #include "../../serialization/Gff.hpp"
 #include "legacy_spellbook_gff.hpp"
 

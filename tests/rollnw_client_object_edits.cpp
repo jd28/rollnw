@@ -19,6 +19,9 @@
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
+#include <nw/rules/Class.hpp>
+#include <nw/rules/Spell.hpp>
+#include <nw/rules/feats.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/Smalls.hpp>

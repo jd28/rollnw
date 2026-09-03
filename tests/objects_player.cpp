@@ -13,12 +13,14 @@
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/serialization/gff_conversion.hpp>
+#include <nw/smalls/GarbageCollector.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/propset_json.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <nlohmann/json.hpp>
 
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -79,42 +81,35 @@ int32_t player_base_attack_bonus_from_script(nw::Player* player)
 TEST(Player, LevelHistory)
 {
     auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
-    EXPECT_TRUE(mod);
-
-    auto pl = nwk::objects().load_player("CDKEY", "testsorcpc1");
-    EXPECT_TRUE(pl);
-    EXPECT_EQ(pl->history.entries.size(), 15);
-    EXPECT_EQ(pl->history.entries[0].known_spells.size(), 6);
+    ASSERT_TRUE(mod);
 
     auto& rt = nwk::runtime();
-    auto tid = rt.type_id("nwn1.propsets.CreatureLevels", false);
+    const auto nodes_before = rt.stats().at("object_component_array_nodes").get<size_t>();
+    auto pl = nwk::objects().load_player("CDKEY", "testsorcpc1");
+    ASSERT_TRUE(pl);
+
+    auto tid = rt.type_id("nwn1.propsets.PlayerHistory", false);
     ASSERT_NE(tid, nw::smalls::invalid_type_id);
-    auto ref = rt.get_or_create_propset_ref(tid, pl->handle());
+    auto ref = rt.find_propset_ref(tid, pl->handle());
     ASSERT_EQ(ref.type_id, tid);
     auto def = rt.get_struct_def(tid);
     ASSERT_NE(def, nullptr);
 
     nw::smalls::PropsetJsonSerializer serializer{&rt};
-    auto levels = serializer.serialize(ref, def);
-    ASSERT_TRUE(levels.contains("levelup_classes"));
-    ASSERT_EQ(levels["levelup_classes"].size(), pl->history.entries.size());
-    ASSERT_TRUE(levels.contains("classes"));
+    auto history = serializer.serialize(ref, def);
+    ASSERT_TRUE(history.contains("entries"));
+    ASSERT_EQ(history["entries"].size(), 15);
+    const auto& first = history["entries"][0];
+    EXPECT_EQ(first["ability"].size(), 2);
+    EXPECT_EQ(first["known_spells"].size(), 6);
+    EXPECT_LE(first["skills"].size(), first["skill_count"].get<size_t>());
 
-    int32_t first_slot = -1;
-    for (size_t i = 0; i < levels["classes"].size(); ++i) {
-        if (levels["classes"][i].get<int32_t>() == *pl->history.entries[0].class_) {
-            first_slot = static_cast<int32_t>(i);
-            break;
-        }
-    }
-    ASSERT_NE(first_slot, -1);
-    EXPECT_EQ(levels["levelup_classes"][0].get<int32_t>(), first_slot);
+    auto* script = rt.load_module_from_source("test.player_history", R"(
+        import nwn1.player as P;
 
-    auto* script = rt.load_module_from_source("test.player_levelup_classes", R"(
-        import nwn1.creature_state as C;
-
-        fn main(obj: Creature): int {
-            return C.get_levelup_class_position(obj, 0);
+        fn main(obj: Player): int {
+            return P.history_level_count(obj) * 100
+                + P.history_known_spell_count(obj, 0);
         }
     )");
     ASSERT_NE(script, nullptr);
@@ -127,7 +122,155 @@ TEST(Player, LevelHistory)
 
     auto result = rt.execute_script(script, "main", args);
     ASSERT_TRUE(result.ok());
-    EXPECT_EQ(result.value.data.ival, static_cast<int32_t>(first_slot));
+    EXPECT_EQ(result.value.data.ival, 1506);
+
+    nw::smalls::Value entries_value = script_field(rt, ref, "entries");
+    nw::smalls::IArray* entries = rt.resolve_array(entries_value);
+    ASSERT_NE(entries, nullptr);
+    const auto* entry_definition = rt.get_struct_def(entries->element_type());
+    ASSERT_NE(entry_definition, nullptr);
+    const uint32_t ability_field = entry_definition->field_index("ability");
+    ASSERT_NE(ability_field, std::numeric_limits<uint32_t>::max());
+    const auto* ability_type = rt.get_type(entry_definition->fields[ability_field].type_id);
+    ASSERT_NE(ability_type, nullptr);
+    ASSERT_TRUE(ability_type->type_params[0].is<nw::smalls::TupleID>());
+    const auto* ability_definition = rt.type_table_.get(
+        ability_type->type_params[0].as<nw::smalls::TupleID>());
+    ASSERT_NE(ability_definition, nullptr);
+    const auto* first_data = static_cast<const uint8_t*>(entries->element_data(0));
+    ASSERT_NE(first_data, nullptr);
+    int32_t stored_ability = 0;
+    int32_t stored_ability_value = 0;
+    std::memcpy(&stored_ability,
+        first_data + entry_definition->fields[ability_field].offset
+            + ability_definition->offsets[0],
+        sizeof(stored_ability));
+    std::memcpy(&stored_ability_value,
+        first_data + entry_definition->fields[ability_field].offset
+            + ability_definition->offsets[1],
+        sizeof(stored_ability_value));
+    EXPECT_EQ(stored_ability, first["ability"][0].get<int32_t>());
+    EXPECT_EQ(stored_ability_value, first["ability"][1].get<int32_t>());
+    nw::smalls::Value first_entry;
+    ASSERT_TRUE(entries->get_value(0, first_entry, rt));
+    nw::smalls::Value known_spells = script_field(rt, first_entry, "known_spells");
+    ASSERT_NE(rt.resolve_array(known_spells), nullptr);
+
+    rt.gc()->collect_minor();
+    rt.gc()->collect_major();
+    EXPECT_EQ(serializer.serialize(ref, def), history);
+
+    nw::GffBuilder output = nw::serialize(pl);
+    output.build();
+    nw::ResourceData resource;
+    resource.bytes = output.to_byte_array();
+    nw::Gff roundtrip{std::move(resource)};
+    ASSERT_TRUE(roundtrip.valid());
+    auto first_level = roundtrip.toplevel()["LvlStatList"][0];
+    size_t known_spell_count = 0;
+    for (size_t level = 0; level < 10; ++level) {
+        known_spell_count += first_level[fmt::format("KnownList{}", level)].size();
+    }
+    EXPECT_EQ(known_spell_count, 6);
+
+    auto* restored = nwk::objects().make<nw::Player>();
+    ASSERT_NE(restored, nullptr);
+    ASSERT_TRUE(deserialize(restored, roundtrip.toplevel()));
+    auto restored_ref = rt.find_propset_ref(tid, restored->handle());
+    ASSERT_EQ(restored_ref.type_id, tid);
+    EXPECT_EQ(serializer.serialize(restored_ref, def), history);
+    nwk::objects().destroy(restored->handle());
+
+    const auto nodes_loaded = rt.stats().at("object_component_array_nodes").get<size_t>();
+    EXPECT_GT(nodes_loaded, nodes_before);
+    const nw::ObjectHandle player_handle = pl->handle();
+    nwk::objects().destroy(player_handle);
+    EXPECT_EQ(rt.resolve_array(known_spells), nullptr);
+    EXPECT_EQ(rt.stats().at("object_component_array_nodes").get<size_t>(), nodes_before);
+}
+
+TEST(Player, LevelHistoryJsonRoundTrip)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* player = nwk::objects().load_player("CDKEY", "testsorcpc1");
+    ASSERT_NE(player, nullptr);
+
+    nlohmann::json json;
+    ASSERT_TRUE(nw::serialize(player, json));
+    ASSERT_TRUE(json.contains("nwn1.propsets.PlayerHistory"));
+    ASSERT_EQ(json["nwn1.propsets.PlayerHistory"]["entries"].size(), 15);
+
+    auto* restored = nwk::objects().make<nw::Player>();
+    ASSERT_NE(restored, nullptr);
+    ASSERT_TRUE(nw::deserialize(restored, json));
+
+    nlohmann::json roundtrip;
+    ASSERT_TRUE(nw::serialize(restored, roundtrip));
+    EXPECT_EQ(roundtrip, json);
+}
+
+TEST(Player, LevelHistoryRejectsInvalidGffValues)
+{
+    auto mod = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(mod);
+
+    auto* player = nwk::objects().load_player("CDKEY", "testsorcpc1");
+    ASSERT_NE(player, nullptr);
+
+    auto& rt = nwk::runtime();
+    const auto type = rt.type_id("nwn1.propsets.PlayerHistory", false);
+    ASSERT_NE(type, nw::smalls::invalid_type_id);
+    const auto ref = rt.find_propset_ref(type, player->handle());
+    ASSERT_EQ(ref.type_id, type);
+    const auto* definition = rt.get_struct_def(type);
+    ASSERT_NE(definition, nullptr);
+
+    nw::smalls::PropsetJsonSerializer serializer{&rt};
+    const nlohmann::json valid = serializer.serialize(ref, definition);
+    ASSERT_FALSE(valid["entries"].empty());
+
+    const auto expect_rejected = [&](const char* label, const nlohmann::json& invalid) {
+        SCOPED_TRACE(label);
+        ASSERT_TRUE(serializer.deserialize(invalid, ref, definition));
+        nw::GffBuilder output{"BIC"};
+        EXPECT_FALSE(nw::serialize(player, output.top));
+        ASSERT_TRUE(serializer.deserialize(valid, ref, definition));
+        EXPECT_EQ(serializer.serialize(ref, definition), valid);
+    };
+
+    auto invalid = valid;
+    invalid["entries"][0]["ability"] = nlohmann::json::array({-1, 1});
+    expect_rejected("invalid absent ability tuple", invalid);
+
+    invalid = valid;
+    invalid["entries"][0]["skill_count"] = 2;
+    invalid["entries"][0]["skills"] = nlohmann::json::array({
+        nlohmann::json::array({0, 1}),
+        nlohmann::json::array({0, 2}),
+    });
+    expect_rejected("duplicate skill IDs", invalid);
+
+    invalid = valid;
+    invalid["entries"][0]["skill_count"] = 1;
+    invalid["entries"][0]["skills"] = nlohmann::json::array({
+        nlohmann::json::array({1, 1}),
+    });
+    expect_rejected("skill ID outside dense width", invalid);
+
+    invalid = valid;
+    invalid["entries"][0]["skill_count"] = 1;
+    invalid["entries"][0]["skills"] = nlohmann::json::array({
+        nlohmann::json::array({0, 256}),
+    });
+    expect_rejected("skill rank outside GFF byte range", invalid);
+
+    invalid = valid;
+    invalid["entries"][0]["known_spells"] = nlohmann::json::array({
+        nlohmann::json::array({10, 0}),
+    });
+    expect_rejected("spell level outside KnownList range", invalid);
 }
 
 TEST(Player, AttackBonus)

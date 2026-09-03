@@ -62,7 +62,6 @@ add_library(nw STATIC
     # Components
     objects/Equips.cpp
     objects/Inventory.cpp
-    objects/LevelHistory.cpp
     objects/LocalData.cpp
     objects/Location.cpp
 
@@ -77,7 +76,7 @@ add_library(nw STATIC
     profiles/nwn1/legacy_spellbook_gff.cpp
     profiles/nwn1/object_name_preview.cpp
     profiles/nwn1/object_compat_fields.cpp
-    profiles/nwn1/player_levelup_bridge.cpp
+    profiles/nwn1/player_history_gff.cpp
     profiles/nwn1/propset_gff_policy.cpp
     profiles/nwn1/propset_gff_importer.cpp
     profiles/nwn1/propset_gff_exporter.cpp
@@ -147,7 +146,6 @@ add_library(nw STATIC
     smalls/native/core_module.cpp
     smalls/native/core_object.cpp
     smalls/native/core_placeable.cpp
-    smalls/native/core_player.cpp
     smalls/native/core_prelude.cpp
     smalls/native/core_string.cpp
     smalls/native/core_test.cpp

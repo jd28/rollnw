@@ -19,7 +19,6 @@ void register_core_creature(Runtime& rt);
 void register_core_door(Runtime& rt);
 void register_core_placeable(Runtime& rt);
 void register_core_module(Runtime& rt);
-void register_core_player(Runtime& rt);
 void register_core_combat(Runtime& rt);
 void register_core_visual(Runtime& rt);
 

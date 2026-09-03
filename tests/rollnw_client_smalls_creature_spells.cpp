@@ -5,6 +5,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/rules/Class.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <algorithm>

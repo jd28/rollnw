@@ -278,7 +278,10 @@ nw::Player* ObjectManager::load_player(StringView cdkey, StringView resref)
 
     auto obj = make<nw::Player>();
     Gff in{std::move(data)};
-    deserialize(obj, in.toplevel());
+    if (!deserialize(obj, in.toplevel())) {
+        destroy(obj->handle());
+        return nullptr;
+    }
     obj->instantiate();
     return obj;
 }

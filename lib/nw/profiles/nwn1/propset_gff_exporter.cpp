@@ -16,6 +16,7 @@
 #include "../../objects/Trigger.hpp"
 #include "../../objects/Waypoint.hpp"
 #include "../../resources/assets.hpp"
+#include "../../rules/Class.hpp"
 #include "../../rules/RuntimeObject.hpp"
 #include "../../serialization/GffBuilder.hpp"
 #include "../../smalls/runtime.hpp"

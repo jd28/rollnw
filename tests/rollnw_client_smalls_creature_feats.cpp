@@ -6,6 +6,7 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
+#include <nw/rules/feats.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <algorithm>

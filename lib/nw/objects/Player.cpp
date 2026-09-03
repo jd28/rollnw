@@ -1,6 +1,7 @@
 #include "Player.hpp"
 
-#include "../profiles/nwn1/player_levelup_bridge.hpp"
+#include "../kernel/Kernel.hpp"
+#include "../profiles/nwn1/player_history_gff.hpp"
 #include "../serialization/Gff.hpp"
 #include "../serialization/GffBuilder.hpp"
 #include "../util/platform.hpp"
@@ -58,27 +59,14 @@ GffBuilder serialize(const Player* obj)
 
 bool serialize(const Player* obj, GffBuilderStruct& archive)
 {
-    serialize(obj->as_creature(), archive, SerializationProfile::instance);
-    auto list = archive.add_list("LvlStatList");
-    for (auto it : obj->history.entries) {
-        serialize(it, list.push_back(0));
-    }
-    return true;
+    return serialize(obj->as_creature(), archive, SerializationProfile::instance)
+        && nwn1::export_player_history_to_gff(&kernel::runtime(), obj, archive);
 }
 
 bool deserialize(Player* obj, const GffStruct& archive)
 {
-    deserialize(obj->as_creature(), archive, SerializationProfile::instance);
-
-    auto level_stats = archive["LvlStatList"];
-    obj->history.entries.resize(level_stats.size());
-
-    for (size_t i = 0; i < level_stats.size(); ++i) {
-        deserialize(obj->history.entries[i], level_stats[i]);
-    }
-
-    nwn1::pc_sync_levelup_class_slots(*obj);
-    return true;
+    return deserialize(obj->as_creature(), archive, SerializationProfile::instance)
+        && nwn1::import_player_history_from_gff(&kernel::runtime(), obj, archive);
 }
 
 // == Player - Serialization - JSON ===========================================
@@ -86,17 +74,12 @@ bool deserialize(Player* obj, const GffStruct& archive)
 
 bool deserialize(Player* obj, const nlohmann::json& archive)
 {
-    deserialize(obj->as_creature(), archive, SerializationProfile::instance);
-    archive.at("history").get_to(obj->history.entries);
-    nwn1::pc_sync_levelup_class_slots(*obj);
-    return true;
+    return deserialize(obj->as_creature(), archive, SerializationProfile::instance);
 }
 
 bool serialize(const Player* obj, nlohmann::json& archive)
 {
-    serialize(obj->as_creature(), archive, SerializationProfile::instance);
-    archive["history"] = obj->history.entries;
-    return true;
+    return serialize(obj->as_creature(), archive, SerializationProfile::instance);
 }
 
 } // namespace nw

@@ -1,10 +1,28 @@
-from core.types import { ResRef, Spell, TextRef };
+from core.types import { Ability, Class, Feat, ResRef, Skill, Spell, TextRef };
 
 [[value_type]]
 type SpecialAbility {
     spell: Spell;
     uses: int;
     level: int;
+};
+
+[[value_type]]
+type LevelHistoryEntry {
+    epic: bool;
+    class_id: Class;
+    ability: (Ability, int);
+    hitpoints: int;
+    skillpoints: int;
+    skill_count: int;
+    feats: array!(Feat);
+    skills: array!((Skill, int));
+    known_spells: array!((int, Spell));
+};
+
+[[propset(Player)]]
+type PlayerHistory {
+    entries: array!(LevelHistoryEntry);
 };
 
 [[value_type]]
@@ -130,7 +148,6 @@ type CreatureHealth {
 type CreatureLevels {
     classes: int[8];
     class_levels: int[8];
-    levelup_classes: array!(int);
     xp: int;
     walkrate: int;
 };
