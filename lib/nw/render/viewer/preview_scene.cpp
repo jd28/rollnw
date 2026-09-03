@@ -3004,10 +3004,7 @@ std::optional<EncounterPreviewSpawnBatch> encounter_preview_spawn_resrefs(
     const auto& field = propset_definition->fields[creatures_field];
     const auto array_value = runtime.read_value_field_at_offset(
         propset, field.offset, field.type_id);
-    auto* spawns = array_value.storage == nw::smalls::ValueStorage::immediate
-        ? runtime.object_pool().get_unmanaged_array(
-              nw::TypedHandle::from_ull(array_value.data.handle))
-        : nullptr;
+    auto* spawns = runtime.resolve_array(array_value);
     if (!spawns || spawns->element_type() != spawn_type) {
         return std::nullopt;
     }

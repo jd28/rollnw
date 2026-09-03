@@ -539,7 +539,7 @@ static bool write_bench_creature_stat_element(nw::smalls::Runtime& rt, nw::Objec
     uint32_t field_index = def->field_index(field_name);
     if (field_index == UINT32_MAX) { return false; }
     const nw::smalls::FieldDef& field = def->fields[field_index];
-    if (field.is_unmanaged_array) { return false; }
+    if (field.is_object_component_array) { return false; }
     constexpr uint32_t int_stride = static_cast<uint32_t>(sizeof(int32_t));
     if (index > static_cast<size_t>((UINT32_MAX - field.offset) / int_stride)) {
         return false;

@@ -2,6 +2,8 @@
 
 #include "Ast.hpp"
 
+#include <algorithm>
+
 namespace nw::smalls {
 
 namespace {
@@ -48,9 +50,22 @@ nw::ObjectType struct_decl_propset_object_type(const StructDecl* decl)
         if (name == "Encounter") { return nw::ObjectType::encounter; }
         if (name == "Store") { return nw::ObjectType::store; }
         if (name == "Sound") { return nw::ObjectType::sound; }
+        if (name == "Player") { return nw::ObjectType::player; }
         return nw::ObjectType::invalid;
     }
     return nw::ObjectType::invalid;
+}
+
+bool is_object_component_propset_array(const TypeTable& table, bool is_propset,
+    const Type* field_type)
+{
+    if (!is_propset || !field_type || field_type->type_kind != TK_array
+        || !field_type->type_params[0].is<TypeID>()) {
+        return false;
+    }
+
+    return table.is_object_component_value(
+        field_type->type_params[0].as<TypeID>());
 }
 
 int16_t find_generic_param_index(StringView type_name, const Vector<String>& type_params)
@@ -184,11 +199,12 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView /*module_pa
                 if (field_alignment == 0) { field_alignment = 1; }
             }
 
-            const bool is_unmanaged_array_field = def->is_propset && field_type && field_type->type_kind == TK_array;
-            if (is_unmanaged_array_field) {
-                // Propset array fields store TypedHandle (u64) inline, not HeapPtr.
-                field_size = sizeof(uint64_t);
-                field_alignment = alignof(uint64_t);
+            const bool is_object_component_array = is_object_component_propset_array(
+                *this, def->is_propset, field_type);
+            if (is_object_component_array) {
+                // Object-owned component arrays retain the normal 32-bit array ABI.
+                field_size = sizeof(uint32_t);
+                field_alignment = alignof(uint32_t);
             }
 
             struct_alignment = std::max(struct_alignment, field_alignment);
@@ -202,8 +218,8 @@ void TypeTable::define(TypeID id, const StructDecl* decl, StringView /*module_pa
                 ? find_generic_param_index(vd->type->str(), decl->type_params)
                 : int16_t{-1};
 
-            // Propset array fields are unmanaged (engine-managed via TypedHandle, not GC).
-            field.is_unmanaged_array = is_unmanaged_array_field;
+            // Propset array fields are object-component-owned, not GC-managed.
+            field.is_object_component_array = is_object_component_array;
 
             offset += field_size;
             idx++;
@@ -320,11 +336,11 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
             }
             // else: Type not resolved yet - use 0 size, will be fixed during resolution
 
-            const bool is_unmanaged_array_field = def->is_propset && field_type && field_type->type_kind == TK_array;
-            if (is_unmanaged_array_field) {
-                // Propset array fields store TypedHandle (u64) inline, not HeapPtr.
-                field_size = sizeof(uint64_t);
-                field_alignment = alignof(uint64_t);
+            const bool is_object_component_array = is_object_component_propset_array(
+                *this, def->is_propset, field_type);
+            if (is_object_component_array) {
+                field_size = sizeof(uint32_t);
+                field_alignment = alignof(uint32_t);
             }
 
             struct_alignment = std::max(struct_alignment, field_alignment);
@@ -338,7 +354,7 @@ TypeID TypeTable::add(const StructDecl* decl, StringView module_path)
                 ? find_generic_param_index(vd->type->str(), decl->type_params)
                 : int16_t{-1};
 
-            field.is_unmanaged_array = is_unmanaged_array_field;
+            field.is_object_component_array = is_object_component_array;
 
             offset += field_size;
             idx++;
@@ -536,6 +552,85 @@ const Type* TypeTable::get(std::string_view name) const
     auto it = name_to_index_.find(name);
     if (it == std::end(name_to_index_)) { return nullptr; }
     return &types_[it->second - 1];
+}
+
+bool TypeTable::is_object_component_value(TypeID id, TypeID* rejected_type) const
+{
+    std::vector<TypeID> active;
+    auto compatible = [&](auto&& self, TypeID current) -> bool {
+        const Type* type = get(current);
+        while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
+            if (!type->type_params[0].is<TypeID>()) {
+                if (rejected_type) { *rejected_type = current; }
+                return false;
+            }
+            current = type->type_params[0].as<TypeID>();
+            type = get(current);
+        }
+        if (!type || type->size == 0
+            || std::find(active.begin(), active.end(), current) != active.end()) {
+            if (rejected_type) { *rejected_type = current; }
+            return false;
+        }
+
+        switch (type->type_kind) {
+        case TK_primitive:
+            if (type->primitive_kind == PK_int
+                || type->primitive_kind == PK_float
+                || type->primitive_kind == PK_bool) {
+                return true;
+            }
+            break;
+        case TK_opaque:
+            if (!type->contains_heap_refs) { return true; }
+            break;
+        case TK_array:
+            if (type->type_params[0].is<TypeID>()) {
+                return self(self, type->type_params[0].as<TypeID>());
+            }
+            break;
+        case TK_fixed_array:
+            if (type->type_params[0].is<TypeID>()
+                && type->type_params[1].is<int32_t>()
+                && type->type_params[1].as<int32_t>() >= 0) {
+                return self(self, type->type_params[0].as<TypeID>());
+            }
+            break;
+        case TK_tuple: {
+            if (!type->type_params[0].is<TupleID>()) { break; }
+            const TupleDef* def = get(type->type_params[0].as<TupleID>());
+            if (!def) { break; }
+            active.push_back(current);
+            for (uint32_t i = 0; i < def->element_count; ++i) {
+                if (!self(self, def->element_types[i])) {
+                    active.pop_back();
+                    return false;
+                }
+            }
+            active.pop_back();
+            return true;
+        }
+        case TK_struct: {
+            if (!type->type_params[0].is<StructID>()) { break; }
+            const StructDef* def = get(type->type_params[0].as<StructID>());
+            if (!def || !def->is_value_type) { break; }
+            active.push_back(current);
+            for (uint32_t i = 0; i < def->field_count; ++i) {
+                if (!self(self, def->fields[i].type_id)) {
+                    active.pop_back();
+                    return false;
+                }
+            }
+            active.pop_back();
+            return true;
+        }
+        default:
+            break;
+        }
+        if (rejected_type) { *rejected_type = current; }
+        return false;
+    };
+    return compatible(compatible, id);
 }
 
 void TypeTable::define(TypeID id, const SumDecl* decl, StringView /*module_path*/)
@@ -818,8 +913,8 @@ void TypeTable::compute_heap_ref_info(StructDef* def, Type& type)
 
         if (!field_type) continue;
 
-        // Skip unmanaged array fields - they're not GC-managed
-        if (field.is_unmanaged_array) {
+        // Object component arrays share the script array ABI but are not GC-managed.
+        if (field.is_object_component_array) {
             continue;
         }
 

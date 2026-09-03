@@ -10,6 +10,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstring>
 #include <limits>
 #include <string>
 #include <utility>
@@ -87,6 +88,21 @@ nlohmann::json value_to_json(Runtime* rt, const Value& value, TypeID declared_ty
 bool value_from_json(Runtime* rt, TypeID declared_type, const nlohmann::json& jv, Value& out);
 bool struct_from_json(Runtime* rt, const nlohmann::json& j, const Value& value, const StructDef* def);
 
+struct ScopedRuntimeRoot {
+    Runtime* runtime = nullptr;
+
+    ScopedRuntimeRoot(Runtime* rt, Value value)
+        : runtime{rt}
+    {
+        runtime->push(value);
+    }
+
+    ~ScopedRuntimeRoot()
+    {
+        runtime->pop();
+    }
+};
+
 nlohmann::json array_to_json(Runtime* rt, const IArray& arr)
 {
     nlohmann::json result = nlohmann::json::array();
@@ -122,6 +138,9 @@ bool array_from_json(Runtime* rt, const nlohmann::json& jv, TypeID array_type_id
         return false;
     }
 
+    Value array_value = Value::make_heap(ptr, rt->heap_.get_header(ptr)->type_id);
+    ScopedRuntimeRoot root{rt, array_value};
+
     bool ok = true;
     arr->reserve(jv.size());
     for (const auto& elem : jv) {
@@ -133,8 +152,55 @@ bool array_from_json(Runtime* rt, const nlohmann::json& jv, TypeID array_type_id
         }
     }
 
-    out = Value::make_heap(ptr, rt->heap_.get_header(ptr)->type_id);
+    out = array_value;
     return ok;
+}
+
+nlohmann::json tuple_to_json(Runtime* rt, const Value& value, TypeID declared_type)
+{
+    nlohmann::json result = nlohmann::json::array();
+    const Type* type = storage_type(rt, declared_type);
+    if (!type || type->type_kind != TK_tuple || value.storage != ValueStorage::heap
+        || value.data.hptr.value == 0 || !type->type_params[0].is<TupleID>()) {
+        return result;
+    }
+
+    const TupleDef* def = rt->type_table_.get(type->type_params[0].as<TupleID>());
+    if (!def) { return result; }
+
+    for (uint32_t i = 0; i < def->element_count; ++i) {
+        Value element = rt->read_tuple_element_by_index(value.data.hptr, def, i);
+        result.push_back(value_to_json(rt, element, def->element_types[i]));
+    }
+    return result;
+}
+
+bool tuple_from_json(Runtime* rt, TypeID declared_type, const nlohmann::json& jv, Value& out)
+{
+    const Type* type = storage_type(rt, declared_type);
+    if (!type || type->type_kind != TK_tuple || !jv.is_array()
+        || !type->type_params[0].is<TupleID>()) {
+        return false;
+    }
+
+    const TupleDef* def = rt->type_table_.get(type->type_params[0].as<TupleID>());
+    if (!def || jv.size() != def->element_count) { return false; }
+
+    HeapPtr ptr = rt->alloc_tuple(declared_type);
+    if (ptr.value == 0) { return false; }
+
+    Value tuple_value = Value::make_heap(ptr, declared_type);
+    ScopedRuntimeRoot root{rt, tuple_value};
+    for (uint32_t i = 0; i < def->element_count; ++i) {
+        Value element;
+        if (!value_from_json(rt, def->element_types[i], jv[i], element)
+            || !rt->write_tuple_element_by_index(ptr, def, i, element)) {
+            return false;
+        }
+    }
+
+    out = tuple_value;
+    return true;
 }
 
 const Type* fixed_array_type(Runtime* rt, TypeID type_id)
@@ -294,6 +360,10 @@ bool value_from_json(Runtime* rt, TypeID declared_type, const nlohmann::json& jv
         return array_from_json(rt, jv, declared_type, out);
     }
 
+    if (type->type_kind == TK_tuple) {
+        return tuple_from_json(rt, declared_type, jv, out);
+    }
+
     if (type->type_kind == TK_struct) {
         if (!jv.is_object()) {
             return false;
@@ -305,8 +375,10 @@ bool value_from_json(Runtime* rt, TypeID declared_type, const nlohmann::json& jv
             return false;
         }
 
-        rt->initialize_zero_defaults(declared_type, data);
         Value value = Value::make_heap(ptr, declared_type);
+        ScopedRuntimeRoot root{rt, value};
+        std::memset(data, 0, type->size);
+        rt->initialize_zero_defaults(declared_type, data);
         if (!struct_from_json(rt, jv, value, rt->get_struct_def(declared_type))) {
             return false;
         }
@@ -327,7 +399,7 @@ nlohmann::json struct_to_json(Runtime* rt, const Value& value, const StructDef* 
 
     for (uint32_t i = 0; i < def->field_count; ++i) {
         const FieldDef& fd = def->fields[i];
-        if (fd.is_unmanaged_array) {
+        if (fd.is_object_component_array) {
             j[std::string{fd.name.view()}] = nullptr;
             continue;
         }
@@ -380,11 +452,12 @@ nlohmann::json value_to_json(Runtime* rt, const Value& value, TypeID declared_ty
     }
 
     if (type->type_kind == TK_array) {
-        if (value.storage != ValueStorage::heap || value.data.hptr.value == 0) {
-            return nlohmann::json::array();
-        }
-        IArray* arr = rt->get_array_typed(value.data.hptr);
+        IArray* arr = rt->resolve_array(value);
         return arr ? array_to_json(rt, *arr) : nlohmann::json::array();
+    }
+
+    if (type->type_kind == TK_tuple) {
+        return tuple_to_json(rt, value, declared_type);
     }
 
     if (type->type_kind == TK_struct) {
@@ -458,10 +531,9 @@ nlohmann::json JsonSerializer::serialize_struct(const Value& ref,
         const FieldDef& fd = def->fields[i];
         const std::string key{fd.name.view()};
 
-        if (fd.is_unmanaged_array) {
+        if (fd.is_object_component_array) {
             Value arr_val = rt_->read_value_field_at_offset(ref, fd.offset, fd.type_id);
-            TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
-            IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+            IArray* arr = rt_->resolve_array(arr_val);
             if (!arr) {
                 j[key] = nlohmann::json::array();
                 continue;
@@ -512,14 +584,13 @@ bool JsonSerializer::deserialize_struct(const nlohmann::json& j,
         const nlohmann::json& jv = j.at(key);
         if (jv.is_null()) { continue; } // skip null placeholders
 
-        if (fd.is_unmanaged_array) {
+        if (fd.is_object_component_array) {
             if (!jv.is_array()) {
                 ok = false;
                 continue;
             }
             Value arr_val = rt_->read_value_field_at_offset(ref, fd.offset, fd.type_id);
-            TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
-            IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+            IArray* arr = rt_->resolve_array(arr_val);
             if (!arr) {
                 ok = false;
                 continue;
@@ -544,8 +615,10 @@ bool JsonSerializer::deserialize_struct(const nlohmann::json& j,
                         ok = false;
                         continue;
                     }
-                    rt_->initialize_zero_defaults(element_type, data);
                     Value value = Value::make_heap(ptr, element_type);
+                    ScopedRuntimeRoot root{rt_, value};
+                    std::memset(data, 0, element_storage_type->size);
+                    rt_->initialize_zero_defaults(element_type, data);
                     if (!struct_from_json(rt_, elem, value, element_struct_def)) {
                         ok = false;
                         continue;

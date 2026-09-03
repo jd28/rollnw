@@ -68,7 +68,7 @@ bool read_assigned_feats(smalls::Runtime& runtime,
     const auto stats_type = runtime.type_id("nwn1.propsets.CreatureStats", false);
     const auto* definition = runtime.get_struct_def(stats_type);
     const uint32_t feats_field = definition ? definition->field_index("feats") : UINT32_MAX;
-    if (!definition || feats_field == UINT32_MAX || !definition->fields[feats_field].is_unmanaged_array) {
+    if (!definition || feats_field == UINT32_MAX || !definition->fields[feats_field].is_object_component_array) {
         diagnostic = "CreatureStats.feats schema unavailable";
         return false;
     }
@@ -81,8 +81,7 @@ bool read_assigned_feats(smalls::Runtime& runtime,
 
     const auto& field = definition->fields[feats_field];
     const auto value = runtime.read_value_field_at_offset(stats, field.offset, field.type_id);
-    const auto handle = TypedHandle::from_ull(value.data.handle);
-    const auto* array = runtime.object_pool().get_unmanaged_array(handle);
+    const auto* array = runtime.resolve_array(value);
     if (!array) {
         diagnostic = "CreatureStats.feats storage unavailable";
         return false;

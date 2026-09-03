@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ObjectValueComponent.hpp"
 #include "ScriptHeap.hpp"
 #include "types.hpp"
 
@@ -30,13 +31,13 @@ struct PropsetHeader {
     static constexpr uint8_t HDR_AGGREGATE_DIRTY = 0x02;
     static constexpr uint8_t HDR_HAS_LIVE_HEAP_REFS = 0x04;
     static constexpr uint8_t HDR_IS_STATIC = 0x08;
-    static constexpr uint8_t HDR_HAS_UNMANAGED_ARRAYS = 0x10;
+    static constexpr uint8_t HDR_HAS_COMPONENT_ARRAYS = 0x10;
 
     bool alive() const noexcept { return flags & HDR_ALIVE; }
     bool aggregate_dirty() const noexcept { return flags & HDR_AGGREGATE_DIRTY; }
     bool has_live_heap_refs() const noexcept { return flags & HDR_HAS_LIVE_HEAP_REFS; }
     bool is_static() const noexcept { return flags & HDR_IS_STATIC; }
-    bool has_unmanaged_arrays() const noexcept { return flags & HDR_HAS_UNMANAGED_ARRAYS; }
+    bool has_component_arrays() const noexcept { return flags & HDR_HAS_COMPONENT_ARRAYS; }
 };
 
 static_assert(sizeof(PropsetHeader) == 24, "PropsetHeader must be exactly 24 bytes");
@@ -67,6 +68,12 @@ public:
     bool mark_field_mutation(const Value& propset_ref, uint32_t field_index);
 
     void mark_heap_mutation(HeapPtr ptr);
+    void mark_component_mutation(HeapPtr ptr);
+    [[nodiscard]] IArray* component_array(HeapPtr ptr) noexcept;
+    [[nodiscard]] const IArray* component_array(HeapPtr ptr) const noexcept;
+    [[nodiscard]] const ObjectValueOwner* component_owner(HeapPtr ptr) const noexcept;
+    [[nodiscard]] size_t component_node_count() const noexcept;
+    [[nodiscard]] size_t component_retained_bytes() const noexcept;
 
 private:
     struct TypeInfo {
@@ -75,7 +82,7 @@ private:
         uint32_t schema_version = 1;
         std::vector<uint32_t> field_ids;
         absl::flat_hash_map<uint32_t, uint32_t> offset_to_field;
-        std::vector<uint32_t> unmanaged_array_offsets;
+        std::vector<uint32_t> component_array_offsets;
         ObjectType object_type = ObjectType::invalid; // invalid = unrestricted
     };
 
@@ -116,6 +123,7 @@ private:
     absl::flat_hash_map<TypeID, Pool> pools_;
     absl::flat_hash_map<uint32_t, HeapOwner> heap_owners_;
     absl::flat_hash_map<uint8_t, std::vector<TypeID>> object_type_propsets_;
+    ObjectValueComponent object_values_;
 };
 
 } // namespace nw::smalls

@@ -112,8 +112,7 @@ bool clear_creature_feats(nw::Creature* creature)
     const auto array_value = runtime.read_value_field_at_offset(
         propset, definition->fields[field_index].offset,
         definition->fields[field_index].type_id);
-    auto* feats = runtime.object_pool().get_unmanaged_array(
-        nw::TypedHandle::from_ull(array_value.data.handle));
+    auto* feats = runtime.resolve_array(array_value);
     if (!feats) { return false; }
     feats->clear();
     return true;

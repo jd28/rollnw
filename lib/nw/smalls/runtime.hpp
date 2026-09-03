@@ -47,6 +47,8 @@ struct ScriptTest;
 struct Token;
 struct VirtualMachine;
 class PropsetPoolManager;
+class ObjectValueComponent;
+struct ObjectValueOwner;
 struct Runtime;
 
 struct StringRepr {
@@ -77,7 +79,7 @@ struct Value {
         float fval;            // float primitives
         ObjectHandle oval;     // Game entity IDs (creatures, items, etc.)
         HeapPtr hptr;          // Script heap: strings, structs, arrays
-        uint64_t handle;       // Engine-managed: unmanaged arrays (TypedHandle bits)
+        uint64_t handle;       // Engine-managed arrays: TypedHandle or component bits
         uint32_t stack_offset; // Frame stack: offset into CallFrame::stack_
         uint8_t* propset_ptr;  // PropsetPool: raw pointer to PropsetHeader in chunk
     } data = {.ival = 0};
@@ -96,6 +98,7 @@ struct Value {
     static Value make_heap(HeapPtr ptr, TypeID tid);
     static Value make_stack(uint32_t offset, TypeID tid);
     static Value make_unmanaged_array(TypedHandle h, TypeID array_type_id);
+    static Value make_object_component_array(HeapPtr ptr, TypeID array_type_id);
 };
 
 // == Value Hashing/Equality ==================================================
@@ -1024,19 +1027,35 @@ public:
     bool write_value_field_at_offset(const Value& struct_val, uint32_t offset, TypeID type_id, const Value& value);
     bool write_struct_value_field(const Value& struct_val, const StructDef* def, uint32_t field_index, const Value& value);
 
-    /// Read or write an existing fixed or unmanaged integer propset array
+    /// Read or write an existing fixed or object-component integer propset array
     /// element. Writes never resize the field.
     bool read_propset_int_element(const Value& propset, uint32_t field_index,
         int32_t element_index, int32_t& output);
     bool write_propset_int_element(const Value& propset, uint32_t field_index,
         int32_t element_index, int32_t value);
 
-    /// Replaces one existing unmanaged propset array as a single mutation.
+    /// Replaces one existing object-component propset array as a single mutation.
     /// The complete input batch is validated and capacity is reserved before
     /// the live array is changed. Heap-backed values remain rooted through the
     /// copy, and a successful replacement marks the owning propset field dirty.
-    bool replace_propset_unmanaged_array(
+    bool replace_propset_component_array(
         const Value& propset, uint32_t field_index, std::span<const Value> values);
+
+    /// Resolves any dynamic array representation accepted by the VM.
+    [[nodiscard]] IArray* resolve_array(const Value& value) const;
+
+    /// Materializes one inline component element as an ordinary VM value.
+    [[nodiscard]] Value materialize_inline_value(const void* source, TypeID type_id);
+
+    /// Initializes/copies a component-compatible value. Array descendants are
+    /// object-owned component nodes rather than ScriptHeap allocations.
+    [[nodiscard]] bool initialize_object_component_value(ObjectValueComponent& component,
+        ObjectValueOwner owner, TypeID type_id, uint8_t* destination);
+    [[nodiscard]] bool copy_value_to_object_component(ObjectValueComponent& component,
+        ObjectValueOwner owner, TypeID type_id, const Value& value, uint8_t* destination);
+
+    /// Marks the owning propset field after any nested component-array mutation.
+    void mark_array_mutation(const Value& array_value);
 
     // -- Config Arrays -------------------------------------------------------
 

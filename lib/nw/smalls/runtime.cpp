@@ -12,6 +12,7 @@
 #include "BytecodeVerifier.hpp"
 #include "Context.hpp"
 #include "NullVisitor.hpp"
+#include "ObjectValueComponent.hpp"
 #include "PropsetPool.hpp"
 #include "Smalls.hpp"
 #include "Token.hpp"
@@ -117,6 +118,13 @@ Value Value::make_unmanaged_array(TypedHandle h, TypeID array_type_id)
     Value val(array_type_id);
     // Unmanaged arrays use immediate storage (GC doesn't trace them)
     val.data.handle = h.to_ull();
+    return val;
+}
+
+Value Value::make_object_component_array(HeapPtr ptr, TypeID array_type_id)
+{
+    Value val(array_type_id);
+    val.data.handle = ptr.value;
     return val;
 }
 
@@ -309,7 +317,6 @@ void Runtime::initialize(nw::kernel::ServiceInitTime time)
         register_core_door(*this);
         register_core_placeable(*this);
         register_core_module(*this);
-        register_core_player(*this);
         register_core_combat(*this);
         register_core_visual(*this);
 
@@ -686,6 +693,8 @@ nlohmann::json Runtime::stats() const
         {"source_map_cache_entries", line_offsets_.size()},
         {"compiler_arena_used_bytes", arena_.used()},
         {"compiler_arena_capacity_bytes", arena_.capacity()},
+        {"object_component_array_nodes", propsets_ ? propsets_->component_node_count() : 0},
+        {"object_component_retained_bytes", propsets_ ? propsets_->component_retained_bytes() : 0},
     };
 }
 
@@ -3559,15 +3568,25 @@ Value read_field_as_value(void* ptr, TypeID type_id, const Runtime& rt)
     }
 
     if (type_id == rt.int_type()) {
-        return Value::make_int(*static_cast<int32_t*>(ptr));
+        int32_t value = 0;
+        std::memcpy(&value, ptr, sizeof(value));
+        return Value::make_int(value);
     } else if (type_id == rt.float_type()) {
-        return Value::make_float(*static_cast<float*>(ptr));
+        float value = 0.0f;
+        std::memcpy(&value, ptr, sizeof(value));
+        return Value::make_float(value);
     } else if (type_id == rt.bool_type()) {
-        return Value::make_bool(*static_cast<bool*>(ptr));
+        bool value = false;
+        std::memcpy(&value, ptr, sizeof(value));
+        return Value::make_bool(value);
     } else if (type_id == rt.string_type()) {
-        return Value::make_string(*static_cast<HeapPtr*>(ptr));
+        HeapPtr value{};
+        std::memcpy(&value, ptr, sizeof(value));
+        return Value::make_string(value);
     } else if (rt.is_object_like_type(type_id)) {
-        Value result = Value::make_object(*static_cast<ObjectHandle*>(ptr));
+        ObjectHandle value{};
+        std::memcpy(&value, ptr, sizeof(value));
+        Value result = Value::make_object(value);
         result.type_id = type_id;
         return result;
     } else if (rt.is_native_value_type(type_id)) {
@@ -3581,7 +3600,13 @@ Value read_field_as_value(void* ptr, TypeID type_id, const Runtime& rt)
     } else {
         const Type* type = rt.get_type(type_id);
         if (type && (type->type_kind == TK_struct || type->type_kind == TK_tuple || type->type_kind == TK_array || type->type_kind == TK_map || type->type_kind == TK_sum || type->type_kind == TK_function)) {
-            return Value::make_heap(*static_cast<HeapPtr*>(ptr), type_id);
+            HeapPtr stored{};
+            std::memcpy(&stored, ptr, sizeof(stored));
+            if (type->type_kind == TK_array
+                && ObjectValueComponent::is_component_ptr(stored)) {
+                return Value::make_object_component_array(stored, type_id);
+            }
+            return Value::make_heap(stored, type_id);
         }
         return Value{};
     }
@@ -3598,15 +3623,15 @@ void write_value_to_field(void* ptr, TypeID type_id, const Value& value, const R
     }
 
     if (type_id == rt.int_type()) {
-        *static_cast<int32_t*>(ptr) = value.data.ival;
+        std::memcpy(ptr, &value.data.ival, sizeof(value.data.ival));
     } else if (type_id == rt.float_type()) {
-        *static_cast<float*>(ptr) = value.data.fval;
+        std::memcpy(ptr, &value.data.fval, sizeof(value.data.fval));
     } else if (type_id == rt.bool_type()) {
-        *static_cast<bool*>(ptr) = value.data.bval;
+        std::memcpy(ptr, &value.data.bval, sizeof(value.data.bval));
     } else if (type_id == rt.string_type()) {
-        *static_cast<HeapPtr*>(ptr) = value.data.hptr;
+        std::memcpy(ptr, &value.data.hptr, sizeof(value.data.hptr));
     } else if (rt.is_object_like_type(type_id)) {
-        *static_cast<ObjectHandle*>(ptr) = value.data.oval;
+        std::memcpy(ptr, &value.data.oval, sizeof(value.data.oval));
     } else if (rt.is_native_value_type(type_id)) {
         Runtime& mut_rt = const_cast<Runtime&>(rt);
         const Type* type = rt.get_type(type_id);
@@ -3622,7 +3647,14 @@ void write_value_to_field(void* ptr, TypeID type_id, const Value& value, const R
             LOG_F(ERROR, "Function field type mismatch: expected {}, got {}",
                 rt.type_name(type_id), rt.type_name(value.type_id));
         }
-        *static_cast<HeapPtr*>(ptr) = value.data.hptr;
+        if (type && type->type_kind == TK_array
+            && value.storage == ValueStorage::immediate
+            && value.data.handle <= std::numeric_limits<uint32_t>::max()) {
+            const HeapPtr stored{static_cast<uint32_t>(value.data.handle)};
+            std::memcpy(ptr, &stored, sizeof(stored));
+        } else {
+            std::memcpy(ptr, &value.data.hptr, sizeof(value.data.hptr));
+        }
     }
 }
 
@@ -3758,6 +3790,388 @@ void Runtime::initialize_zero_defaults(TypeID type_id, uint8_t* base)
     default:
         return;
     }
+}
+
+Value Runtime::materialize_inline_value(const void* source, TypeID type_id)
+{
+    if (!source) { return {}; }
+
+    const Type* declared = get_type(type_id);
+    const Type* storage = declared;
+    TypeID storage_type_id = type_id;
+    while (storage && (storage->type_kind == TK_newtype || storage->type_kind == TK_alias)) {
+        if (!storage->type_params[0].is<TypeID>()) { return {}; }
+        storage_type_id = storage->type_params[0].as<TypeID>();
+        storage = get_type(storage_type_id);
+    }
+    if (!storage) { return {}; }
+
+    if (storage->type_kind == TK_primitive || is_object_like_type(type_id)
+        || storage->type_kind == TK_array) {
+        Value result = read_field_as_value(
+            const_cast<void*>(source), storage_type_id, *this);
+        result.type_id = type_id;
+        return result;
+    }
+
+    HeapPtr ptr = heap_.allocate(declared->size, declared->alignment, type_id);
+    if (ptr.value == 0) { return {}; }
+    auto* destination = static_cast<uint8_t*>(heap_.get_ptr(ptr));
+    if (!destination) { return {}; }
+    std::memset(destination, 0, declared->size);
+
+    Value result = Value::make_heap(ptr, type_id);
+    ScopedRoots result_root{*this, 1};
+    result_root.add(result);
+
+    auto materialize = [&](auto&& self, TypeID current,
+                           const uint8_t* input, uint8_t* output,
+                           bool is_slot, HeapPtr parent) -> bool {
+        const Type* current_type = get_type(current);
+        while (current_type
+            && (current_type->type_kind == TK_newtype || current_type->type_kind == TK_alias)) {
+            if (!current_type->type_params[0].is<TypeID>()) { return false; }
+            current = current_type->type_params[0].as<TypeID>();
+            current_type = get_type(current);
+        }
+        if (!current_type) { return false; }
+
+        if (is_slot && current_type->type_kind == TK_tuple) {
+            HeapPtr tuple_ptr = heap_.allocate(
+                current_type->size, current_type->alignment, current);
+            if (tuple_ptr.value == 0) { return false; }
+            auto* tuple_data = static_cast<uint8_t*>(heap_.get_ptr(tuple_ptr));
+            if (!tuple_data) { return false; }
+            std::memset(tuple_data, 0, current_type->size);
+
+            ScopedRoots tuple_root{*this, 1};
+            tuple_root.add(Value::make_heap(tuple_ptr, current));
+            if (!self(self, current, input, tuple_data, false, tuple_ptr)) {
+                return false;
+            }
+
+            std::memcpy(output, &tuple_ptr, sizeof(tuple_ptr));
+            if (gc_) { gc_->write_barrier(parent, tuple_ptr); }
+            return true;
+        }
+
+        switch (current_type->type_kind) {
+        case TK_array:
+            std::memcpy(output, input, sizeof(HeapPtr));
+            return true;
+        case TK_struct: {
+            if (!current_type->type_params[0].is<StructID>()) { return false; }
+            const StructDef* def = type_table_.get(
+                current_type->type_params[0].as<StructID>());
+            if (!def || !def->is_value_type) { return false; }
+            for (uint32_t i = 0; i < def->field_count; ++i) {
+                const FieldDef& field = def->fields[i];
+                if (!self(self, field.type_id,
+                        input + field.offset, output + field.offset, true, parent)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case TK_tuple: {
+            if (!current_type->type_params[0].is<TupleID>()) { return false; }
+            const TupleDef* def = type_table_.get(
+                current_type->type_params[0].as<TupleID>());
+            if (!def) { return false; }
+            for (uint32_t i = 0; i < def->element_count; ++i) {
+                if (!self(self, def->element_types[i],
+                        input + def->offsets[i], output + def->offsets[i], true, parent)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case TK_fixed_array: {
+            if (!current_type->type_params[0].is<TypeID>()
+                || !current_type->type_params[1].is<int32_t>()) {
+                return false;
+            }
+            const TypeID element_type = current_type->type_params[0].as<TypeID>();
+            const Type* element_info = get_type(element_type);
+            const int32_t count = current_type->type_params[1].as<int32_t>();
+            if (!element_info || count < 0) { return false; }
+            for (int32_t i = 0; i < count; ++i) {
+                const size_t offset = static_cast<size_t>(i) * element_info->size;
+                if (!self(self, element_type, input + offset,
+                        output + offset, true, parent)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case TK_primitive:
+        case TK_opaque:
+            std::memcpy(output, input, current_type->size);
+            return true;
+        default:
+            return false;
+        }
+    };
+
+    if (!materialize(materialize, type_id,
+            static_cast<const uint8_t*>(source), destination, false, ptr)) {
+        return {};
+    }
+    return result;
+}
+
+bool Runtime::initialize_object_component_value(ObjectValueComponent& component,
+    ObjectValueOwner owner, TypeID type_id, uint8_t* destination)
+{
+    if (!destination) { return false; }
+
+    const Type* type = get_type(type_id);
+    while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
+        if (!type->type_params[0].is<TypeID>()) { return false; }
+        type_id = type->type_params[0].as<TypeID>();
+        type = get_type(type_id);
+    }
+    if (!type) { return false; }
+
+    switch (type->type_kind) {
+    case TK_array: {
+        if (!type->type_params[0].is<TypeID>()) { return false; }
+        HeapPtr ptr = component.create_array(
+            *this, owner, type->type_params[0].as<TypeID>(), 0);
+        if (ptr.value == 0) { return false; }
+        std::memcpy(destination, &ptr, sizeof(ptr));
+        return true;
+    }
+    case TK_struct: {
+        if (!type->type_params[0].is<StructID>()) { return false; }
+        const StructDef* def = type_table_.get(type->type_params[0].as<StructID>());
+        if (!def || !def->is_value_type) { return false; }
+        for (uint32_t i = 0; i < def->field_count; ++i) {
+            const FieldDef& field = def->fields[i];
+            if (!initialize_object_component_value(
+                    component, owner, field.type_id, destination + field.offset)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case TK_tuple: {
+        if (!type->type_params[0].is<TupleID>()) { return false; }
+        const TupleDef* def = type_table_.get(type->type_params[0].as<TupleID>());
+        if (!def) { return false; }
+        for (uint32_t i = 0; i < def->element_count; ++i) {
+            if (!initialize_object_component_value(component, owner,
+                    def->element_types[i], destination + def->offsets[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case TK_fixed_array: {
+        if (!type->type_params[0].is<TypeID>()
+            || !type->type_params[1].is<int32_t>()) {
+            return false;
+        }
+        const TypeID element_type = type->type_params[0].as<TypeID>();
+        const Type* element_info = get_type(element_type);
+        const int32_t count = type->type_params[1].as<int32_t>();
+        if (!element_info || count < 0) { return false; }
+        for (int32_t i = 0; i < count; ++i) {
+            if (!initialize_object_component_value(component, owner, element_type,
+                    destination + static_cast<size_t>(i) * element_info->size)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case TK_primitive:
+    case TK_opaque:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Runtime::copy_value_to_object_component(ObjectValueComponent& component,
+    ObjectValueOwner owner, TypeID type_id, const Value& value, uint8_t* destination)
+{
+    if (!destination || value.type_id != type_id
+        || !type_table_.is_object_component_value(type_id)) {
+        return false;
+    }
+
+    const Type* declared = get_type(type_id);
+    const Type* type = declared;
+    TypeID storage_type_id = type_id;
+    while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
+        if (!type->type_params[0].is<TypeID>()) { return false; }
+        storage_type_id = type->type_params[0].as<TypeID>();
+        type = get_type(storage_type_id);
+    }
+    if (!declared || !type) { return false; }
+
+    auto copy_array = [&](TypeID array_type, const Value& source,
+                          uint8_t* output) -> bool {
+        const Type* array_info = get_type(array_type);
+        if (!array_info || array_info->type_kind != TK_array
+            || !array_info->type_params[0].is<TypeID>()) {
+            return false;
+        }
+
+        if (source.storage == ValueStorage::immediate
+            && source.data.handle <= std::numeric_limits<uint32_t>::max()) {
+            HeapPtr source_ptr{static_cast<uint32_t>(source.data.handle)};
+            const ObjectValueOwner* source_owner = component.owner(source_ptr);
+            if (source_owner && *source_owner == owner) {
+                std::memcpy(output, &source_ptr, sizeof(source_ptr));
+                return true;
+            }
+        }
+
+        IArray* source_array = resolve_array(source);
+        if (!source_array) { return false; }
+
+        HeapPtr destination_ptr = component.create_array(*this, owner,
+            array_info->type_params[0].as<TypeID>(), source_array->size());
+        IArray* destination_array = component.get_array(destination_ptr);
+        if (!destination_array) { return false; }
+
+        ScopedRoots source_root{*this, 1};
+        source_root.add(source);
+        for (size_t i = 0; i < source_array->size(); ++i) {
+            Value element;
+            if (!source_array->get_value(i, element, *this)) { return false; }
+            ScopedRoots element_root{*this, 1};
+            element_root.add(element);
+            const size_t previous_size = destination_array->size();
+            destination_array->append_value(element, *this);
+            if (destination_array->size() != previous_size + 1) { return false; }
+        }
+
+        std::memcpy(output, &destination_ptr, sizeof(destination_ptr));
+        return true;
+    };
+
+    if (type->type_kind == TK_array) {
+        return copy_array(storage_type_id, value, destination);
+    }
+
+    if (type->type_kind == TK_primitive || is_object_like_type(type_id)) {
+        write_value_to_field(destination, type_id, value, *this);
+        return true;
+    }
+
+    const auto* source = static_cast<const uint8_t*>(get_value_data_ptr(value));
+    if (!source) { return false; }
+    std::memset(destination, 0, declared->size);
+
+    auto copy_payload = [&](auto&& self, TypeID current,
+                            const uint8_t* input, uint8_t* output,
+                            bool is_slot) -> bool {
+        const Type* current_type = get_type(current);
+        while (current_type
+            && (current_type->type_kind == TK_newtype || current_type->type_kind == TK_alias)) {
+            if (!current_type->type_params[0].is<TypeID>()) { return false; }
+            current = current_type->type_params[0].as<TypeID>();
+            current_type = get_type(current);
+        }
+        if (!current_type) { return false; }
+
+        if (is_slot && current_type->type_kind == TK_tuple) {
+            HeapPtr tuple_ptr{};
+            std::memcpy(&tuple_ptr, input, sizeof(tuple_ptr));
+            if (tuple_ptr.value == 0) {
+                return initialize_object_component_value(
+                    component, owner, current, output);
+            }
+            const auto* header = heap_.try_get_header(tuple_ptr);
+            const auto* tuple_data = static_cast<const uint8_t*>(heap_.get_ptr(tuple_ptr));
+            TypeID allocated_type = header ? header->type_id : invalid_type_id;
+            const Type* allocated_info = get_type(allocated_type);
+            while (allocated_info
+                && (allocated_info->type_kind == TK_newtype
+                    || allocated_info->type_kind == TK_alias)) {
+                if (!allocated_info->type_params[0].is<TypeID>()) { return false; }
+                allocated_type = allocated_info->type_params[0].as<TypeID>();
+                allocated_info = get_type(allocated_type);
+            }
+            if (!header || !tuple_data || allocated_type != current) {
+                return false;
+            }
+            return self(self, current, tuple_data, output, false);
+        }
+
+        switch (current_type->type_kind) {
+        case TK_array: {
+            HeapPtr encoded{};
+            std::memcpy(&encoded, input, sizeof(encoded));
+            Value array_value = ObjectValueComponent::is_component_ptr(encoded)
+                ? Value::make_object_component_array(encoded, current)
+                : Value::make_heap(encoded, current);
+            if (encoded.value == 0) {
+                HeapPtr empty = component.create_array(*this, owner,
+                    current_type->type_params[0].as<TypeID>(), 0);
+                if (empty.value == 0) { return false; }
+                std::memcpy(output, &empty, sizeof(empty));
+                return true;
+            }
+            return copy_array(current, array_value, output);
+        }
+        case TK_struct: {
+            const StructDef* def = current_type->type_params[0].is<StructID>()
+                ? type_table_.get(current_type->type_params[0].as<StructID>())
+                : nullptr;
+            if (!def || !def->is_value_type) { return false; }
+            for (uint32_t i = 0; i < def->field_count; ++i) {
+                const FieldDef& field = def->fields[i];
+                if (!self(self, field.type_id,
+                        input + field.offset, output + field.offset, true)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case TK_tuple: {
+            const TupleDef* def = current_type->type_params[0].is<TupleID>()
+                ? type_table_.get(current_type->type_params[0].as<TupleID>())
+                : nullptr;
+            if (!def) { return false; }
+            for (uint32_t i = 0; i < def->element_count; ++i) {
+                if (!self(self, def->element_types[i],
+                        input + def->offsets[i], output + def->offsets[i], true)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case TK_fixed_array: {
+            if (!current_type->type_params[0].is<TypeID>()
+                || !current_type->type_params[1].is<int32_t>()) {
+                return false;
+            }
+            const TypeID element_type = current_type->type_params[0].as<TypeID>();
+            const Type* element_info = get_type(element_type);
+            const int32_t count = current_type->type_params[1].as<int32_t>();
+            if (!element_info || count < 0) { return false; }
+            for (int32_t i = 0; i < count; ++i) {
+                const size_t offset = static_cast<size_t>(i) * element_info->size;
+                if (!self(self, element_type,
+                        input + offset, output + offset, true)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case TK_primitive:
+        case TK_opaque:
+            std::memcpy(output, input, current_type->size);
+            return true;
+        default:
+            return false;
+        }
+    };
+
+    return copy_payload(copy_payload, type_id, source, destination, false);
 }
 
 Value Runtime::read_struct_field_by_index(HeapPtr struct_ptr, const StructDef* struct_def, uint32_t field_index) const
@@ -4022,14 +4436,13 @@ bool Runtime::read_propset_int_element(const Value& propset, uint32_t field_inde
     }
 
     const FieldDef& field = definition->fields[field_index];
-    if (field.is_unmanaged_array) {
+    if (field.is_object_component_array) {
         const Value array_value = read_value_field_at_offset(
             propset, field.offset, field.type_id);
         if (array_value.storage != ValueStorage::immediate) {
             return false;
         }
-        IArray* array = object_pool().get_unmanaged_array(
-            TypedHandle::from_ull(array_value.data.handle));
+        IArray* array = resolve_array(array_value);
         Value current;
         if (!array || array->element_type() != int_type()
             || !array->get_value(static_cast<size_t>(element_index), current, *this)
@@ -4075,13 +4488,10 @@ bool Runtime::write_propset_int_element(const Value& propset, uint32_t field_ind
     const StructDef* definition = get_struct_def(propset.type_id);
     const FieldDef& field = definition->fields[field_index];
     bool written = false;
-    if (field.is_unmanaged_array) {
+    if (field.is_object_component_array) {
         const Value array_value = read_value_field_at_offset(
             propset, field.offset, field.type_id);
-        IArray* array = array_value.storage == ValueStorage::immediate
-            ? object_pool().get_unmanaged_array(
-                  TypedHandle::from_ull(array_value.data.handle))
-            : nullptr;
+        IArray* array = resolve_array(array_value);
         written = array && array->set_value(static_cast<size_t>(element_index), Value::make_int(value), *this);
     } else {
         const Type* integer_type = get_type(int_type());
@@ -4092,7 +4502,7 @@ bool Runtime::write_propset_int_element(const Value& propset, uint32_t field_ind
     return written && propsets_ && propsets_->mark_field_mutation(propset, field_index);
 }
 
-bool Runtime::replace_propset_unmanaged_array(
+bool Runtime::replace_propset_component_array(
     const Value& propset, uint32_t field_index, std::span<const Value> values)
 {
     const StructDef* definition = get_struct_def(propset.type_id);
@@ -4102,16 +4512,13 @@ bool Runtime::replace_propset_unmanaged_array(
     }
 
     const FieldDef& field = definition->fields[field_index];
-    if (!field.is_unmanaged_array) {
+    if (!field.is_object_component_array) {
         return false;
     }
 
     const Value array_value = read_value_field_at_offset(
         propset, field.offset, field.type_id);
-    IArray* array = array_value.storage == ValueStorage::immediate
-        ? object_pool().get_unmanaged_array(
-              TypedHandle::from_ull(array_value.data.handle))
-        : nullptr;
+    IArray* array = resolve_array(array_value);
     if (!array) {
         return false;
     }
@@ -4558,6 +4965,47 @@ IArray* Runtime::get_array_typed(HeapPtr array_ptr) const
     }
 
     return static_cast<IArray*>(heap_.get_ptr(array_ptr));
+}
+
+IArray* Runtime::resolve_array(const Value& value) const
+{
+    const Type* type = get_type(value.type_id);
+    while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
+        if (!type->type_params[0].is<TypeID>()) { return nullptr; }
+        type = get_type(type->type_params[0].as<TypeID>());
+    }
+    if (!type || type->type_kind != TK_array) { return nullptr; }
+
+    if (value.storage == ValueStorage::heap) {
+        return get_array_typed(value.data.hptr);
+    }
+    if (value.storage != ValueStorage::immediate) { return nullptr; }
+
+    if (value.data.handle <= std::numeric_limits<uint32_t>::max()) {
+        HeapPtr ptr{static_cast<uint32_t>(value.data.handle)};
+        if (ObjectValueComponent::is_component_ptr(ptr)) {
+            return propsets_ ? propsets_->component_array(ptr) : nullptr;
+        }
+    }
+
+    return const_cast<RuntimeObjectPool&>(object_pool_).get_unmanaged_array(TypedHandle::from_ull(value.data.handle));
+}
+
+void Runtime::mark_array_mutation(const Value& array_value)
+{
+    if (array_value.storage == ValueStorage::heap) {
+        mark_propset_heap_mutation(array_value.data.hptr);
+        return;
+    }
+    if (array_value.storage != ValueStorage::immediate
+        || array_value.data.handle > std::numeric_limits<uint32_t>::max()) {
+        return;
+    }
+
+    HeapPtr ptr{static_cast<uint32_t>(array_value.data.handle)};
+    if (ObjectValueComponent::is_component_ptr(ptr) && propsets_) {
+        propsets_->mark_component_mutation(ptr);
+    }
 }
 
 HeapPtr Runtime::alloc_map(TypeID key_type_id, TypeID value_type_id)
@@ -5188,6 +5636,7 @@ TypeID Runtime::register_tuple_type(const Vector<TypeID>& element_types)
 
     uint32_t offset = 0;
     uint32_t tuple_alignment = 1;
+    bool contains_heap_refs = false;
 
     for (size_t i = 0; i < element_types.size(); ++i) {
         const Type* elem_type = type_table_.get(element_types[i]);
@@ -5197,6 +5646,8 @@ TypeID Runtime::register_tuple_type(const Vector<TypeID>& element_types)
 
         uint32_t elem_size = elem_type->size;
         uint32_t elem_alignment = elem_type->alignment > 0 ? elem_type->alignment : 1;
+        contains_heap_refs |= type_table_.is_heap_type(element_types[i])
+            || elem_type->contains_heap_refs;
 
         tuple_alignment = std::max(tuple_alignment, elem_alignment);
         offset = (offset + elem_alignment - 1) & ~(elem_alignment - 1);
@@ -5226,6 +5677,7 @@ TypeID Runtime::register_tuple_type(const Vector<TypeID>& element_types)
         .primitive_kind = PK_unspecified,
         .size = tuple_def->size,
         .alignment = tuple_def->alignment,
+        .contains_heap_refs = contains_heap_refs,
     };
 
     return type_table_.add(tuple_type);

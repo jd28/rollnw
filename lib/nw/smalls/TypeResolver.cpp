@@ -2090,7 +2090,7 @@ void TypeResolver::visit(FunctionDefinition* decl)
 static void resolve_struct_field(TypeResolver& resolver, VarDecl* decl)
 {
     decl->env_ = resolver.ctx.env_stack_.back();
-    if (decl->type && (decl->type->name || decl->type->is_function_type)) {
+    if (decl->type) {
         decl->type->accept(&resolver);
         decl->type_id_ = decl->type->type_id_;
     }
@@ -2194,6 +2194,7 @@ void TypeResolver::visit(StructDecl* decl)
                     "Encounter",
                     "Store",
                     "Sound",
+                    "Player",
                 };
                 bool recognized = false;
                 for (auto n : valid_names) {
@@ -2236,6 +2237,7 @@ void TypeResolver::visit(StructDecl* decl)
                     if (!field_type) { continue; }
 
                     bool allowed = false;
+                    TypeID rejected_component_type = invalid_type_id;
 
                     // Helper to check if inline primitive kind is in the POD allowlist.
                     auto is_v1_primitive = [&](PrimitiveKind pk) -> bool {
@@ -2297,21 +2299,12 @@ void TypeResolver::visit(StructDecl* decl)
                         const Type* elem_type = rt.get_type(elem_tid);
                         allowed = rt.is_native_value_type(elem_tid) || is_pod_type(elem_type);
                     }
-                    // Case 5: Dynamic arrays array!(T) where T is primitive or POD struct
+                    // Case 5: Dynamic arrays whose complete element graph can be
+                    // stored in the object-owned value component.
                     else if (field_type->type_kind == TK_array && field_type->type_params[0].is<TypeID>()) {
                         TypeID elem_tid = field_type->type_params[0].as<TypeID>();
-                        const Type* elem_type = rt.get_type(elem_tid);
-                        // Unwrap newtypes for element type check
-                        while (elem_type && elem_type->type_kind == TK_newtype
-                            && elem_type->type_params[0].is<TypeID>())
-                            elem_type = rt.get_type(elem_type->type_params[0].as<TypeID>());
-                        if (rt.is_native_value_type(elem_tid)) {
-                            allowed = true;
-                        } else if (elem_type && elem_type->type_kind == TK_primitive) {
-                            allowed = is_v1_primitive(elem_type->primitive_kind);
-                        } else if (elem_type && elem_type->type_kind == TK_struct) {
-                            allowed = !elem_type->contains_heap_refs;
-                        }
+                        allowed = rt.type_table_.is_object_component_value(
+                            elem_tid, &rejected_component_type);
                     }
                     // Case 6: Object handle types (object, Creature, Item, etc.)
                     // Stored as immediate 8-byte values; no heap references, no GC needed.
@@ -2320,10 +2313,19 @@ void TypeResolver::visit(StructDecl* decl)
                     }
 
                     if (!allowed) {
-                        ctx.errorf(decl->range_,
-                            "[[propset]] '{}' field '{}' type is not allowed in v1; allowed: int, float, bool, string, object handles, [[value_type]] structs (no heap refs), fixed arrays of POD types, array!(int), array!(float), array!(bool), and array!(POD struct with no heap refs)",
-                            decl->identifier(),
-                            field.name.view());
+                        if (rejected_component_type != invalid_type_id) {
+                            const Type* rejected = rt.get_type(rejected_component_type);
+                            ctx.errorf(decl->range_,
+                                "[[propset]] '{}' field '{}' contains unsupported component type '{}' (kind {}, size {})",
+                                decl->identifier(), field.name.view(),
+                                rejected ? rejected->name.view() : StringView{"<unresolved>"},
+                                rejected ? static_cast<int>(rejected->type_kind) : -1,
+                                rejected ? rejected->size : 0);
+                        } else {
+                            ctx.errorf(decl->range_,
+                                "[[propset]] '{}' field '{}' type is not allowed in v1; arrays require an object-component-compatible primitive, opaque value, tuple, fixed array, or [[value_type]] graph",
+                                decl->identifier(), field.name.view());
+                        }
                     }
                 }
             }
@@ -2513,7 +2515,7 @@ void TypeResolver::visit(AssignExpression* expr)
             "cannot assign to const variable");
     }
 
-    // Check for assignment to propset array fields (unmanaged arrays cannot be reassigned)
+    // Component-backed propset arrays cannot be reassigned.
     if (auto* path_expr = dynamic_cast<PathExpression*>(expr->lhs)) {
         if (path_expr->parts.size() >= 2) {
             // Check if base is a propset type
@@ -2530,7 +2532,7 @@ void TypeResolver::visit(AssignExpression* expr)
                                         StringView field_name = field_ident->ident.loc.view();
                                         for (uint32_t i = 0; i < struct_def->field_count; ++i) {
                                             if (struct_def->fields[i].name.view() == field_name) {
-                                                if (struct_def->fields[i].is_unmanaged_array) {
+                                                if (struct_def->fields[i].is_object_component_array) {
                                                     ctx.errorf(expr->lhs->range_, "cannot reassign propset array field '{}' (use .push(), .clear(), etc. instead)", field_name);
                                                 }
                                                 break;

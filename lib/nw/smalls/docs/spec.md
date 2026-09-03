@@ -1367,8 +1367,9 @@ type CreatureStats {
 #### Property Sets: v1 Contract (Normative)
 
 **Contract (v1)**: `[[propset]]` storage may contain tracked direct heap fields
-and engine-owned unmanaged arrays. `PropsetPoolManager` owns their lifecycle
-for the object row. A propset must not contain an untracked heap pointer.
+and object-owned component array graphs. `PropsetPoolManager` owns their
+lifecycle for the object row. A propset must not contain an untracked heap
+pointer.
 
 **Allowed Field Forms (v1)**:
 | Field form | Allowed | Storage | Reassignable | Indexable |
@@ -1380,20 +1381,21 @@ for the object row. A propset must not contain an untracked heap pointer.
 | `int[N]`, `float[N]`, `bool[N]` (N > 0) | Yes | Inline POD bytes | Yes | Yes (variable index) |
 | `[[value_type]]` struct (no heap references) | Yes | Inline POD bytes | Yes | N/A |
 | `T[N]` where T is a supported POD/native value | Yes | Inline fixed array | Yes | Yes (variable index) |
-| `array!(T)` where T is a supported primitive, POD struct, or native value | Yes | Inline `TypedHandle` to unmanaged `IArray` | No | Yes (via IArray API) |
+| `array!(T)` where T is a component-compatible value graph | Yes | Inline 32-bit component index to `IArray` | No | Yes (via IArray API) |
 | All other forms | **No** | N/A | N/A | N/A |
 
 **Explicitly Rejected**:
-- `array!(string)` or an array element containing Smalls heap references
-- `map!(...)`, `tuple`, `sum`, `function`
+- `array!(string)` or a nested string, map, function, sum, ordinary struct, or other unsupported heap-owned value
+- Direct `map!(...)`, tuple, sum, or function fields
 - Unregistered or unsupported heap-backed handle types
 - Direct regular structs not marked `[[value_type]]`
 - Direct `[[value_type]]` structs containing heap references
 
 **Lifecycle Rules**:
-1. Propset-owned unmanaged arrays are created by engine/runtime and destroyed deterministically when the owning object is destroyed.
+1. Propset component arrays are created by the runtime and destroyed as one batch when the owning object is destroyed.
 2. Script aliases to those arrays become stale after owner destruction; operations fail with a deterministic runtime error.
 3. Direct heap fields are registered as propset-owned GC roots and released or rebound when the row changes or is destroyed.
+4. Nested arrays, fixed arrays, tuples, and `[[value_type]]` structs are allowed only when their complete graph passes structural component validation. Component indices are outside `ScriptHeap` and are not GC-scanned.
 
 **Fixed Array Semantics**:
 - Fixed arrays `T[N]` in propsets are stored inline (contiguous POD bytes) matching C struct layout.

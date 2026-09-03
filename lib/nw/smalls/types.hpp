@@ -44,7 +44,7 @@ struct FieldDef {
     TypeID type_id;
     uint32_t offset;
     int16_t generic_param_index = -1;
-    bool is_unmanaged_array = false; // True if this field is an unmanaged propset array
+    bool is_object_component_array = false;
 
     bool operator==(const FieldDef& rhs) const noexcept = default;
 };
@@ -272,7 +272,6 @@ struct Type {
     uint32_t size = 0;
     uint32_t alignment = 0;
     bool contains_heap_refs = false; // True if type contains HeapPtr fields (for GC)
-    bool is_unmanaged_array = false; // True if this is a propset array using engine pool (not GC)
 
     bool operator==(const Type& rhs) const noexcept = default;
 };
@@ -287,8 +286,7 @@ H AbslHashValue(H h, const Type& type)
         type.primitive_kind,
         type.size,
         type.alignment,
-        type.contains_heap_refs,
-        type.is_unmanaged_array);
+        type.contains_heap_refs);
 }
 
 enum class SemanticFlags : uint8_t {
@@ -330,6 +328,8 @@ struct TypeTable {
     const FunctionDef* get(FunctionID id) const noexcept;
     const Type* get(TypeID id) const;
     const Type* get(std::string_view name) const;
+    [[nodiscard]] bool is_object_component_value(TypeID id,
+        TypeID* rejected_type = nullptr) const;
 
     TupleID add_tuple(TupleDef* tuple_def);
     SumID add_sum(SumDef* sum_def);

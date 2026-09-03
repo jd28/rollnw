@@ -74,7 +74,7 @@ nw::smalls::IArray* encounter_state_array(nw::Encounter* encounter, const char* 
 
     const auto& fd = def->fields[idx];
     auto value = rt.read_value_field_at_offset(ref, fd.offset, fd.type_id);
-    return rt.object_pool().get_unmanaged_array(nw::TypedHandle::from_ull(value.data.handle));
+    return rt.resolve_array(value);
 }
 
 nw::Resref encounter_spawn_resref(nw::Encounter* encounter, size_t index)

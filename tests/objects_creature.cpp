@@ -163,8 +163,7 @@ nw::smalls::IArray* script_array_field(nw::smalls::Runtime& rt,
     nw::smalls::Value field_value = script_field(rt, value, field);
     if (field_value.type_id == nw::smalls::invalid_type_id) { return nullptr; }
 
-    nw::TypedHandle handle = nw::TypedHandle::from_ull(field_value.data.handle);
-    return rt.object_pool().get_unmanaged_array(handle);
+    return rt.resolve_array(field_value);
 }
 
 size_t script_array_size(nw::smalls::Runtime& rt,

@@ -614,8 +614,7 @@ nw::smalls::IArray* PropsetGffExporter::get_array(const nw::smalls::Value& ref,
     const nw::smalls::FieldDef& field) const
 {
     nw::smalls::Value arr_val = rt_->read_value_field_at_offset(ref, field.offset, field.type_id);
-    nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
-    return rt_->object_pool().get_unmanaged_array(h);
+    return rt_->resolve_array(arr_val);
 }
 
 void PropsetGffExporter::export_scalar(const FieldGffPolicy& fp,

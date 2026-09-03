@@ -546,6 +546,12 @@ Value VirtualMachine::read_stack_value(uint8_t* ptr, TypeID field_type,
     if (ft && (ft->type_kind == TK_struct || ft->type_kind == TK_fixed_array)) {
         return Value::make_stack(base_offset + field_offset, field_type);
     }
+    if (ft && ft->type_kind == TK_array) {
+        const HeapPtr stored = *reinterpret_cast<HeapPtr*>(ptr);
+        if (ObjectValueComponent::is_component_ptr(stored)) {
+            return Value::make_object_component_array(stored, field_type);
+        }
+    }
     return Value::make_heap(*reinterpret_cast<HeapPtr*>(ptr), field_type);
 }
 
@@ -586,6 +592,8 @@ void VirtualMachine::write_stack_value(uint8_t* ptr, TypeID field_type, const Va
         if (ft) {
             std::memcpy(ptr, stack_data + val.data.stack_offset, ft->size);
         }
+    } else if (val.storage == ValueStorage::immediate) {
+        *reinterpret_cast<HeapPtr*>(ptr) = HeapPtr{static_cast<uint32_t>(val.data.handle)};
     } else {
         *reinterpret_cast<HeapPtr*>(ptr) = val.data.hptr;
     }
@@ -1509,26 +1517,40 @@ lbl_GETARRAY: {
             DISPATCH();
         }
     } else if (arr_val.storage == ValueStorage::immediate) {
-        TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
-        IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+        IArray* arr = rt_->resolve_array(arr_val);
         if (!arr) {
-            fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
-                arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+            fail("Stale object component array reference");
             DISPATCH();
         }
         const Type* elem_type = rt_->get_type(arr->element_type());
         const void* raw = arr->element_data(index);
-        if (raw && elem_type
-            && ((elem_type->type_kind == TK_struct && !elem_type->contains_heap_refs)
+        const HeapPtr immediate_ptr{static_cast<uint32_t>(arr_val.data.handle)};
+        const bool component_array = arr_val.data.handle <= std::numeric_limits<uint32_t>::max()
+            && ObjectValueComponent::is_component_ptr(immediate_ptr);
+        if (raw && !component_array && elem_type
+            && ((elem_type->type_kind == TK_struct)
                 || rt_->is_native_value_type(arr->element_type()))) {
             uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment,
                 arr->element_type(),
-                /*tracks_heap_refs=*/false);
+                elem_type->contains_heap_refs);
             std::memcpy(frame.stack_.data() + dst_off, raw, elem_type->size);
             result = Value::make_stack(dst_off, arr->element_type());
         } else if (!arr->get_value(index, result, *rt_)) {
             fail("Array access failed (index out of bounds?)");
             DISPATCH();
+        } else if (component_array && elem_type
+            && elem_type->type_kind == TK_struct
+            && result.storage == ValueStorage::heap) {
+            const void* canonical = rt_->get_value_data_ptr(result);
+            if (!canonical) {
+                fail("Could not materialize object component array element");
+                DISPATCH();
+            }
+            uint32_t dst_off = frame.stack_alloc(elem_type->size,
+                elem_type->alignment, arr->element_type(),
+                elem_type->contains_heap_refs);
+            std::memcpy(frame.stack_.data() + dst_off, canonical, elem_type->size);
+            result = Value::make_stack(dst_off, arr->element_type());
         }
     } else {
         fail("Array access on invalid value storage");
@@ -1564,17 +1586,16 @@ lbl_SETARRAY: {
             DISPATCH();
         }
     } else if (arr_val.storage == ValueStorage::immediate) {
-        TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
-        IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+        IArray* arr = rt_->resolve_array(arr_val);
         if (!arr) {
-            fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
-                arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+            fail("Stale object component array reference");
             DISPATCH();
         }
         if (!arr->set_value(index, val, *rt_)) {
             fail("Array set failed");
             DISPATCH();
         }
+        rt_->mark_array_mutation(arr_val);
     } else {
         fail("Array set on invalid value storage");
         DISPATCH();
@@ -2819,16 +2840,41 @@ vm_exit:
                     break;
                 }
             } else if (arr_val.storage == ValueStorage::immediate) {
-                TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
-                IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+                IArray* arr = rt_->resolve_array(arr_val);
                 if (!arr) {
-                    fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
-                        arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+                    fail("Stale object component array reference");
                     break;
                 }
-                if (!arr->get_value(index, result, *rt_)) {
+                const Type* elem_type = rt_->get_type(arr->element_type());
+                const void* raw = arr->element_data(index);
+                const HeapPtr immediate_ptr{static_cast<uint32_t>(arr_val.data.handle)};
+                const bool component_array = arr_val.data.handle <= std::numeric_limits<uint32_t>::max()
+                    && ObjectValueComponent::is_component_ptr(immediate_ptr);
+                if (raw && !component_array && elem_type
+                    && (elem_type->type_kind == TK_struct
+                        || rt_->is_native_value_type(arr->element_type()))) {
+                    uint32_t dst_off = frame.stack_alloc(elem_type->size,
+                        elem_type->alignment, arr->element_type(),
+                        elem_type->contains_heap_refs);
+                    std::memcpy(frame.stack_.data() + dst_off, raw, elem_type->size);
+                    result = Value::make_stack(dst_off, arr->element_type());
+                } else if (!arr->get_value(index, result, *rt_)) {
                     fail("Array access failed (index out of bounds?)");
                     break;
+                } else if (component_array && elem_type
+                    && elem_type->type_kind == TK_struct
+                    && result.storage == ValueStorage::heap) {
+                    const void* canonical = rt_->get_value_data_ptr(result);
+                    if (!canonical) {
+                        fail("Could not materialize object component array element");
+                        break;
+                    }
+                    uint32_t dst_off = frame.stack_alloc(elem_type->size,
+                        elem_type->alignment, arr->element_type(),
+                        elem_type->contains_heap_refs);
+                    std::memcpy(frame.stack_.data() + dst_off,
+                        canonical, elem_type->size);
+                    result = Value::make_stack(dst_off, arr->element_type());
                 }
             } else {
                 fail("Array access on invalid value storage");
@@ -2865,17 +2911,16 @@ vm_exit:
                     break;
                 }
             } else if (arr_val.storage == ValueStorage::immediate) {
-                TypedHandle h = TypedHandle::from_ull(arr_val.data.handle);
-                IArray* arr = rt_->object_pool().get_unmanaged_array(h);
+                IArray* arr = rt_->resolve_array(arr_val);
                 if (!arr) {
-                    fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
-                        arr_val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
+                    fail("Stale object component array reference");
                     break;
                 }
                 if (!arr->set_value(index, val, *rt_)) {
                     fail("Array set failed");
                     break;
                 }
+                rt_->mark_array_mutation(arr_val);
             } else {
                 fail("Array set on invalid value storage");
                 break;
@@ -4178,21 +4223,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         elem_type = type->type_params[0].as<TypeID>();
 
-        if (val.storage == ValueStorage::immediate) {
-            TypedHandle h = TypedHandle::from_ull(val.data.handle);
-            out = rt_->object_pool().get_unmanaged_array(h);
-            if (!out) {
-                fail(fmt::format("Stale unmanaged array reference: type={} handle={}:{}",
-                    val.type_id.value, static_cast<uint32_t>(h.type), static_cast<uint32_t>(h.id)));
-                return false;
-            }
-        } else if (val.storage == ValueStorage::heap) {
-            out = rt_->get_array_typed(val.data.hptr);
-            if (!out) {
-                fail("Intrinsic expects dynamic array");
-                return false;
-            }
-        } else {
+        out = rt_->resolve_array(val);
+        if (!out) {
             fail("Intrinsic expects dynamic array");
             return false;
         }
@@ -4295,11 +4327,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->append_value(val, *rt_);
-        // Only mark GC mutation for heap-managed arrays.
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        if (arr_val.storage == ValueStorage::heap) {
-            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
-        }
+        rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -4321,11 +4350,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->resize(arr->size() - 1);
-        // Only mark GC mutation for heap-managed arrays.
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        if (arr_val.storage == ValueStorage::heap) {
-            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
-        }
+        rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = result;
         return;
     }
@@ -4349,11 +4375,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
         arr->clear();
-        // Only mark GC mutation for heap-managed arrays.
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        if (arr_val.storage == ValueStorage::heap) {
-            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
-        }
+        rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -4372,11 +4395,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         arr->reserve(static_cast<size_t>(count));
-        // Only mark GC mutation for heap-managed arrays.
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        if (arr_val.storage == ValueStorage::heap) {
-            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
-        }
+        rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }
@@ -4386,10 +4406,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         IArray* arr = nullptr;
-        HeapPtr arr_ptr{};
         TypeID elem_type = invalid_type_id;
         if (!read_array(static_cast<uint8_t>(dest_reg + 1), arr, elem_type)) { return; }
-        arr_ptr = reg(static_cast<uint8_t>(dest_reg + 1)).data.hptr;
         int32_t index = 0;
         if (!read_int(static_cast<uint8_t>(dest_reg + 2), index)) { return; }
         if (index < 0) {
@@ -4443,11 +4461,8 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             fail("array.set index out of bounds");
             return;
         }
-        // Only mark GC mutation for heap-managed arrays.
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
-        if (arr_val.storage == ValueStorage::heap) {
-            rt_->mark_propset_heap_mutation(arr_val.data.hptr);
-        }
+        rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = Value(rt_->void_type());
         return;
     }

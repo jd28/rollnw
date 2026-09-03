@@ -1897,6 +1897,100 @@ TEST_F(SmallsEngineIntegration, PropsetDynamicArrayFieldMutationsPersist)
     nw::kernel::objects().destroy(creature->handle());
 }
 
+TEST_F(SmallsEngineIntegration, PropsetObjectComponentStoresNestedArraysAndTuples)
+{
+    auto& rt = nw::kernel::runtime();
+    const auto nodes_before = rt.stats().at("object_component_array_nodes").get<size_t>();
+
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+
+    std::string_view source = R"(
+        import core.array as arr;
+
+        [[value_type]]
+        type HistoryEntry {
+            ability: (int, int);
+            skills: array!((int, int));
+        };
+
+        [[propset(Creature)]]
+        type History {
+            entries: array!(HistoryEntry);
+        };
+
+        fn load(target: Creature): int {
+            var skills: array!((int, int)) = { (3, 4) };
+            var history = get_propset!(History)(target);
+            arr.push(history.entries, HistoryEntry { (1, 2), skills });
+            arr.push(history.entries[0].skills, (5, 6));
+            return check(target);
+        }
+
+        fn check(target: Creature): int {
+            var history = get_propset!(History)(target);
+            var entry = history.entries[0];
+            gc_collect();
+            if (arr.len(history.entries) != 1
+                || entry.ability[0] != 1
+                || entry.ability[1] != 2
+                || arr.len(entry.skills) != 2
+                || entry.skills[0][0] != 3
+                || entry.skills[0][1] != 4
+                || entry.skills[1][0] != 5
+                || entry.skills[1][1] != 6) {
+                return 0;
+            }
+            return 1;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_object_component", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::Vector<nw::smalls::Value> args;
+    auto creature_value = nw::smalls::Value::make_object(creature->handle());
+    creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+    args.push_back(creature_value);
+
+    auto result = rt.execute_script(script, "load", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+    EXPECT_GT(rt.stats().at("object_component_array_nodes").get<size_t>(), nodes_before);
+
+    rt.gc()->collect_minor();
+    rt.gc()->collect_major();
+    result = rt.execute_script(script, "check", args);
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_EQ(result.value.data.ival, 1);
+
+    nw::kernel::objects().destroy(creature->handle());
+    EXPECT_EQ(rt.stats().at("object_component_array_nodes").get<size_t>(), nodes_before);
+}
+
+TEST_F(SmallsEngineIntegration, PropsetObjectComponentRejectsHeapOwnedElementGraphs)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[value_type]]
+        type BadEntry {
+            labels: array!(string);
+        };
+
+        [[propset(Creature)]]
+        type BadHistory {
+            entries: array!(BadEntry);
+        };
+    )";
+
+    auto* script = rt.load_module_from_source(
+        "test.propset_object_component_rejects_heap_graph", source);
+    ASSERT_NE(script, nullptr);
+    EXPECT_GT(script->errors(), 0);
+}
+
 TEST_F(SmallsEngineIntegration, PropsetArrayFieldReassignmentIsCompileError)
 {
     auto& rt = nw::kernel::runtime();
@@ -2941,6 +3035,39 @@ TEST_F(SmallsEngineIntegration, PropsetObjectTypeRestriction_CreatureAcceptsPlay
     nw::kernel::objects().destroy(player->handle());
 }
 
+TEST_F(SmallsEngineIntegration, PropsetObjectTypeRestriction_PlayerRejectsCreature)
+{
+    auto& rt = nw::kernel::runtime();
+
+    std::string_view source = R"(
+        [[propset(Player)]]
+        type PlayerOnlyPropset {
+            value: int;
+        };
+    )";
+
+    auto* script = rt.load_module_from_source("test.propset_type_player_only", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    nw::smalls::TypeID propset_tid = rt.type_id(
+        "test.propset_type_player_only.PlayerOnlyPropset", false);
+    ASSERT_NE(propset_tid, nw::smalls::invalid_type_id);
+
+    auto* player = nw::kernel::objects().make<nw::Player>();
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(player, nullptr);
+    ASSERT_NE(creature, nullptr);
+
+    EXPECT_EQ(rt.get_or_create_propset_ref(propset_tid, player->handle()).type_id,
+        propset_tid);
+    EXPECT_EQ(rt.get_or_create_propset_ref(propset_tid, creature->handle()).type_id,
+        nw::smalls::invalid_type_id);
+
+    nw::kernel::objects().destroy(creature->handle());
+    nw::kernel::objects().destroy(player->handle());
+}
+
 TEST_F(SmallsEngineIntegration, PropsetObjectTypeRestriction_MismatchedType_Fails)
 {
     auto& rt = nw::kernel::runtime();
@@ -3111,7 +3238,7 @@ static void write_propset_int_element(nw::smalls::Runtime& rt, const nw::smalls:
     uint32_t field_index = def->field_index(field_name);
     ASSERT_NE(field_index, UINT32_MAX);
     const nw::smalls::FieldDef& field = def->fields[field_index];
-    ASSERT_FALSE(field.is_unmanaged_array);
+    ASSERT_FALSE(field.is_object_component_array);
     constexpr uint32_t int_stride = static_cast<uint32_t>(sizeof(int32_t));
     ASSERT_LE(index, static_cast<size_t>((UINT32_MAX - field.offset) / int_stride));
     uint32_t offset = field.offset + static_cast<uint32_t>(index) * int_stride;
@@ -3125,11 +3252,10 @@ static void write_propset_int_array(nw::smalls::Runtime& rt, const nw::smalls::V
     uint32_t field_index = def->field_index(field_name);
     ASSERT_NE(field_index, UINT32_MAX);
     const nw::smalls::FieldDef& field = def->fields[field_index];
-    ASSERT_TRUE(field.is_unmanaged_array);
+    ASSERT_TRUE(field.is_object_component_array);
 
     nw::smalls::Value arr_val = rt.read_value_field_at_offset(ref, field.offset, field.type_id);
-    nw::TypedHandle handle = nw::TypedHandle::from_ull(arr_val.data.handle);
-    nw::smalls::IArray* arr = rt.object_pool().get_unmanaged_array(handle);
+    nw::smalls::IArray* arr = rt.resolve_array(arr_val);
     ASSERT_NE(arr, nullptr);
 
     arr->clear();

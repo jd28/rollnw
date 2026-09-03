@@ -52,6 +52,9 @@ struct IArray {
         (void)index;
         return nullptr;
     }
+
+    /// Retained bytes owned by this array, including the concrete object.
+    virtual size_t retained_bytes() const noexcept { return 0; }
 };
 
 /// Typed array with native storage for primitives and inline structs

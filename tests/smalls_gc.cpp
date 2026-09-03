@@ -1007,7 +1007,7 @@ TEST_F(SmallsGCTest, PropsetShadowArrayStorageInvariant)
         if (def->fields[i].name.view() == "nums") {
             nums_offset = def->fields[i].offset;
             nums_tid = def->fields[i].type_id;
-            EXPECT_TRUE(def->fields[i].is_unmanaged_array);
+            EXPECT_TRUE(def->fields[i].is_object_component_array);
             break;
         }
     }
@@ -1023,8 +1023,8 @@ TEST_F(SmallsGCTest, PropsetShadowArrayStorageInvariant)
     ASSERT_EQ(nums_val.type_id, nums_tid);
     ASSERT_EQ(nums_val.storage, ValueStorage::immediate);
 
-    nw::TypedHandle nums_handle = nw::TypedHandle::from_ull(nums_val.data.handle);
-    EXPECT_TRUE(runtime.object_pool().valid_unmanaged_array(nums_handle));
+    EXPECT_NE(runtime.resolve_array(nums_val), nullptr);
 
     nw::kernel::objects().destroy(creature->handle());
+    EXPECT_EQ(runtime.resolve_array(nums_val), nullptr);
 }

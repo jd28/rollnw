@@ -519,13 +519,9 @@ private:
         uint16_t depth,
         smalls::TypeID root_type)
     {
-        smalls::IArray* array = nullptr;
-        if (field.is_unmanaged_array && value.type_id != smalls::invalid_type_id) {
-            array = runtime_.object_pool().get_unmanaged_array(TypedHandle::from_ull(value.data.handle));
-        } else if (value.type_id != smalls::invalid_type_id && value.storage == smalls::ValueStorage::heap
-            && value.data.hptr.value != 0) {
-            array = runtime_.get_array_typed(value.data.hptr);
-        }
+        smalls::IArray* array = value.type_id != smalls::invalid_type_id
+            ? runtime_.resolve_array(value)
+            : nullptr;
 
         const bool expanded = expansion_.is_expanded(root_type, path_, false);
         auto flags = read_only_flags | PropertyNodeFlags::has_children;

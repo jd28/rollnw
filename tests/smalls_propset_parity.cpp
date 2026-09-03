@@ -123,10 +123,9 @@ static nw::Resref read_resref_elem(nw::smalls::Runtime& rt, const nw::smalls::Va
     uint32_t fi = def->field_index(field_name);
     if (fi == UINT32_MAX) { return {}; }
     const nw::smalls::FieldDef& fd = def->fields[fi];
-    if (!fd.is_unmanaged_array) { return {}; }
+    if (!fd.is_object_component_array) { return {}; }
     nw::smalls::Value arr_val = rt.read_value_field_at_offset(ref, fd.offset, fd.type_id);
-    nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
-    nw::smalls::IArray* arr = rt.object_pool().get_unmanaged_array(h);
+    nw::smalls::IArray* arr = rt.resolve_array(arr_val);
     if (!arr || idx >= arr->size()) { return {}; }
     nw::smalls::Value v;
     arr->get_value(idx, v, rt);
@@ -140,10 +139,9 @@ static size_t read_array_size(nw::smalls::Runtime& rt, const nw::smalls::Value& 
     uint32_t fi = def->field_index(field_name);
     if (fi == UINT32_MAX) { return 0; }
     const nw::smalls::FieldDef& fd = def->fields[fi];
-    if (!fd.is_unmanaged_array) { return 0; }
+    if (!fd.is_object_component_array) { return 0; }
     nw::smalls::Value arr_val = rt.read_value_field_at_offset(ref, fd.offset, fd.type_id);
-    nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
-    nw::smalls::IArray* arr = rt.object_pool().get_unmanaged_array(h);
+    nw::smalls::IArray* arr = rt.resolve_array(arr_val);
     return arr ? arr->size() : 0;
 }
 
@@ -153,23 +151,21 @@ static nw::smalls::IArray* read_array(nw::smalls::Runtime& rt, const nw::smalls:
     uint32_t fi = def->field_index(field_name);
     if (fi == UINT32_MAX) { return nullptr; }
     const nw::smalls::FieldDef& fd = def->fields[fi];
-    if (!fd.is_unmanaged_array) { return nullptr; }
+    if (!fd.is_object_component_array) { return nullptr; }
     nw::smalls::Value arr_val = rt.read_value_field_at_offset(ref, fd.offset, fd.type_id);
-    nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
-    return rt.object_pool().get_unmanaged_array(h);
+    return rt.resolve_array(arr_val);
 }
 
-// Read element from a fixed array (stride 4) or unmanaged dynamic array.
+// Read element from a fixed array (stride 4) or component dynamic array.
 static int32_t read_elem(nw::smalls::Runtime& rt, const nw::smalls::Value& ref,
     const nw::smalls::StructDef* def, const char* field_name, size_t idx)
 {
     uint32_t fi = def->field_index(field_name);
     if (fi == UINT32_MAX) { return INT32_MIN; }
     const nw::smalls::FieldDef& fd = def->fields[fi];
-    if (fd.is_unmanaged_array) {
+    if (fd.is_object_component_array) {
         nw::smalls::Value arr_val = rt.read_value_field_at_offset(ref, fd.offset, fd.type_id);
-        nw::TypedHandle h = nw::TypedHandle::from_ull(arr_val.data.handle);
-        nw::smalls::IArray* arr = rt.object_pool().get_unmanaged_array(h);
+        nw::smalls::IArray* arr = rt.resolve_array(arr_val);
         if (!arr || idx >= arr->size()) { return INT32_MIN; }
         nw::smalls::Value v;
         arr->get_value(idx, v, rt);

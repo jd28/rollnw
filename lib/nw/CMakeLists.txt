@@ -128,6 +128,7 @@ add_library(nw STATIC
     smalls/Bytecode.cpp
     smalls/BytecodeVerifier.cpp
     smalls/Context.cpp
+    smalls/ObjectValueComponent.cpp
     smalls/data_spec.cpp
     smalls/data_transform.cpp
     smalls/Diagnostic.cpp

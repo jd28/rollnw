@@ -167,10 +167,7 @@ std::optional<SoundResourceStorage> sound_resource_storage(
     const auto& field = definition->fields[sounds_field];
     const auto array_value = runtime.read_value_field_at_offset(
         propset, field.offset, field.type_id);
-    auto* array = array_value.storage == smalls::ValueStorage::immediate
-        ? runtime.object_pool().get_unmanaged_array(
-              TypedHandle::from_ull(array_value.data.handle))
-        : nullptr;
+    auto* array = runtime.resolve_array(array_value);
     if (!array || array->element_type() != resref_type) {
         return std::nullopt;
     }
@@ -219,10 +216,7 @@ std::optional<EncounterSpawnStorage> encounter_spawn_storage(
     const auto& field = propset_definition->fields[creatures_field];
     const auto array_value = runtime.read_value_field_at_offset(
         propset, field.offset, field.type_id);
-    auto* array = array_value.storage == smalls::ValueStorage::immediate
-        ? runtime.object_pool().get_unmanaged_array(
-              TypedHandle::from_ull(array_value.data.handle))
-        : nullptr;
+    auto* array = runtime.resolve_array(array_value);
     if (!array || array->element_type() != spawn_type) {
         return std::nullopt;
     }
@@ -961,7 +955,7 @@ ObjectEditApplyResult validate_propset_ints(
         }
 
         const auto& field = definition->fields[patch.key];
-        if (field.is_unmanaged_array || field.type_id != runtime.int_type()) {
+        if (field.is_object_component_array || field.type_id != runtime.int_type()) {
             return edit_result(ObjectEditStatus::invalid_batch, "Propset integer patch targets a non-int field");
         }
         if (patch.before == patch.after) {
@@ -1985,7 +1979,7 @@ std::optional<std::vector<ObjectEditPatch>> capture_propset_int_fields(
     result.reserve(definition->field_count);
     for (uint32_t field_index = 0; field_index < definition->field_count; ++field_index) {
         const auto& field = definition->fields[field_index];
-        if (field.is_unmanaged_array || field.type_id != runtime.int_type()) {
+        if (field.is_object_component_array || field.type_id != runtime.int_type()) {
             continue;
         }
         const auto value = runtime.read_value_field_at_offset(
@@ -3109,7 +3103,7 @@ ObjectEditApplyResult apply_encounter_spawn_edit(
             values.push_back(spawn);
         }
 
-        if (!runtime.replace_propset_unmanaged_array(
+        if (!runtime.replace_propset_component_array(
                 storage->propset, storage->creatures_field, values)) {
             return edit_result(ObjectEditStatus::failed,
                 "Encounter spawn list replacement failed");
@@ -3278,7 +3272,7 @@ ObjectEditApplyResult apply_sound_resource_edit(
             values.push_back(value);
         }
 
-        if (!runtime.replace_propset_unmanaged_array(
+        if (!runtime.replace_propset_component_array(
                 storage->propset, storage->sounds_field, values)) {
             return edit_result(ObjectEditStatus::failed,
                 "Sound resource list replacement failed");
@@ -4719,7 +4713,7 @@ ObjectEditApplyResult apply_object_appearance_edit(
                 "Object appearance field snapshot is invalid");
         }
         const auto& field = definition->fields[patch.key];
-        if (field.is_unmanaged_array || field.type_id != runtime.int_type()) {
+        if (field.is_object_component_array || field.type_id != runtime.int_type()) {
             return edit_result(ObjectEditStatus::invalid_batch,
                 "Object appearance field snapshot contains a non-int field");
         }

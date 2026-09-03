@@ -239,7 +239,7 @@ void build_details_snapshot(smalls::Runtime& runtime,
             int32_t current = 0;
             if (definition && field_index != UINT32_MAX && element_index == -1) {
                 const auto& field = definition->fields[field_index];
-                if (!field.is_unmanaged_array && field.type_id == runtime.int_type()) {
+                if (!field.is_object_component_array && field.type_id == runtime.int_type()) {
                     scalar = runtime.read_value_field_at_offset(
                         propset, field.offset, runtime.int_type());
                     if (scalar.type_id == runtime.int_type()) {
