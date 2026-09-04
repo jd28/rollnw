@@ -104,6 +104,29 @@ public:
     }
 };
 
+class DisabledInitKernelServiceScope {
+public:
+    DisabledInitKernelServiceScope()
+        : previous_init_module_{nw::kernel::config().init_module()}
+    {
+        auto& services = nw::kernel::services();
+        services.shutdown();
+        nw::kernel::config().set_init_module("");
+        services.start();
+    }
+
+    ~DisabledInitKernelServiceScope()
+    {
+        auto& services = nw::kernel::services();
+        services.shutdown();
+        nw::kernel::config().set_init_module(previous_init_module_);
+        services.start();
+    }
+
+private:
+    std::string previous_init_module_;
+};
+
 class CurrentPathScope {
 public:
     explicit CurrentPathScope(const std::filesystem::path& path)
@@ -222,9 +245,11 @@ TEST(ClientRmlSmallsDataModel, ReadsAndRefreshesModuleGlobalStructArrays)
     EXPECT_TRUE(Rml::RemoveContext("rml-smalls-data-model-test"));
 }
 
-TEST(ClientRmlSmallsDataModel, RendersCreatureSheetFromToolsetPresentationBatch)
+TEST(ClientRmlSmallsDataModel,
+    RendersCreatureSheetFromToolsetPresentationBatchWithoutStartupInit)
 {
-    KernelServiceScope kernel;
+    DisabledInitKernelServiceScope kernel;
+    ASSERT_TRUE(nw::kernel::config().init_module().empty());
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
     auto& runtime = nw::kernel::runtime();
     runtime.add_module_path("build/tests/stdlib/core");

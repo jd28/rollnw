@@ -185,7 +185,6 @@ fn _refresh_creature_sheet_state(obj: Creature) {
     combat.ability_cache_valid = false;
     combat.slot_valid_mask = 0;
     Combat.refresh_combat_weapon_cache(obj);
-    Modifier.refresh_offense_non_target_cache(obj);
 }
 
 fn get_creature_sheet_rows(obj: Creature): array!(ObjectDetailsRow) {
@@ -205,6 +204,8 @@ fn get_creature_sheet_rows(obj: Creature): array!(ObjectDetailsRow) {
     } elif (Combat.has_attack_weapon(obj, Constants.attack_type_cweapon1)) {
         primary_attack = Constants.attack_type_cweapon1;
     }
+    var primary_attack_bonus = Combat.resolve_attack_bonus(
+        obj, primary_attack, Object.invalid);
     _append_details_row(rows, "Combat", "Hit Points",
         f"{Hitpoints.get_current_hitpoints(obj)} / {Hitpoints.get_max_hitpoints(obj)}");
     _append_details_row(rows, "Combat", "Armor Class",
@@ -212,8 +213,7 @@ fn get_creature_sheet_rows(obj: Creature): array!(ObjectDetailsRow) {
     _append_details_row(rows, "Combat", "Base Attack Bonus",
         _signed_details_value(Combat.base_attack_bonus(obj)));
     _append_details_row(rows, "Combat", "Primary Attack Bonus",
-        _signed_details_value(Combat.resolve_attack_bonus(
-            obj, primary_attack, Object.invalid)));
+        _signed_details_value(primary_attack_bonus));
 
     _append_details_row(rows, "Abilities", "Strength",
         _creature_sheet_ability_value(obj, Constants.ability_strength));
