@@ -664,7 +664,7 @@ bool load_data_sources(const DataSpec& spec,
             }
         }
         std::ranges::sort(names);
-        const auto unique_end = std::ranges::unique(names).begin();
+        const auto unique_end = std::unique(names.begin(), names.end());
         names.erase(unique_end, names.end());
 
         set.resources.reserve(names.size());
