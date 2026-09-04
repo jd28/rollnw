@@ -205,6 +205,12 @@
   min-height: 0px;
   overflow-y: auto;
 }
+#item_property_option_rows .managed_list_row {
+  cursor: pointer;
+}
+#item_property_option_rows .managed_list_row:hover {
+  background: #202a32;
+}
 .item_model_dropdown {
   display: none;
   z-index: 32;
@@ -413,7 +419,8 @@
   min-height: 0px;
   overflow-y: auto;
 }
-.item_property_rows .managed_list_row {
+.item_property_rows .managed_list_row,
+#item_property_option_rows .managed_list_row {
   display: flex;
   align-items: stretch;
   width: 100%;
@@ -427,7 +434,8 @@
   height: 48px;
   flex: 0 0 48px;
 }
-.item_property_rows .managed_list_cell {
+.item_property_rows .managed_list_cell,
+#item_property_option_rows .managed_list_cell {
   display: block;
   min-width: 0px;
   height: 33px;
@@ -440,6 +448,9 @@
   box-sizing: border-box;
 }
 .item_property_pane.available .managed_list_cell.cell_0 {
+  flex: 1 1 auto;
+}
+#item_property_option_rows .managed_list_cell.cell_0 {
   flex: 1 1 auto;
 }
 .item_property_pane.applied .managed_list_cell {
@@ -463,10 +474,12 @@
 .item_property_rows .managed_list_cell.disabled {
   color: #66727d;
 }
-.item_property_rows .managed_list_row.selected {
+.item_property_rows .managed_list_row.selected,
+#item_property_option_rows .managed_list_row.selected {
   background: #26313a;
 }
-.item_property_rows .managed_list_cell.selected {
+.item_property_rows .managed_list_cell.selected,
+#item_property_option_rows .managed_list_cell.selected {
   color: #ffffff;
   background: #34434f;
 }

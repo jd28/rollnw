@@ -315,6 +315,29 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     EXPECT_GT(applied_subtype->GetAbsoluteLeft(), applied_property->GetAbsoluteLeft());
     EXPECT_GT(applied_param->GetAbsoluteLeft(), applied_subtype->GetAbsoluteLeft());
     EXPECT_GT(applied_cost->GetAbsoluteLeft(), applied_param->GetAbsoluteLeft());
+
+    auto* property_option_rows = document->GetElementById(
+        "item_property_option_rows");
+    ASSERT_NE(property_option_rows, nullptr);
+    property_option_rows->SetInnerRML(
+        "<div class='managed_list_row'><span id='first-property-option' "
+        "class='managed_list_cell cell_0'>Acid</span></div>"
+        "<div class='managed_list_row selected'><span id='second-property-option' "
+        "class='managed_list_cell cell_0 selected'>Cold</span></div>");
+    property_selector->SetClass("active", true);
+    context->Update();
+    auto* first_property_option = document->GetElementById(
+        "first-property-option");
+    auto* second_property_option = document->GetElementById(
+        "second-property-option");
+    ASSERT_NE(first_property_option, nullptr);
+    ASSERT_NE(second_property_option, nullptr);
+    EXPECT_GT(first_property_option->GetOffsetWidth(), 300.0f);
+    EXPECT_GT(first_property_option->GetOffsetHeight(), 0.0f);
+    EXPECT_GE(second_property_option->GetAbsoluteTop(),
+        first_property_option->GetAbsoluteTop()
+            + first_property_option->GetOffsetHeight());
+
     auto* warning_field = document->GetElementById("warning-field");
     auto* warning_icon = document->GetElementById("warning-icon");
     auto* warning_input = document->GetElementById("warning-input");
