@@ -313,8 +313,15 @@ Value make_item_property_array(Runtime& rt, std::span<const nw::ItemProperty> pr
     if (!array) {
         return {};
     }
+    const Value array_value = Value::make_heap(
+        array_ptr, rt.heap_.get_header(array_ptr)->type_id);
+    Runtime::ScopedRoots array_roots{rt, 1};
+    array_roots.add(array_value);
 
     for (const auto& property : properties) {
+        const Value tag = Value::make_string(rt.alloc_string(property.tag));
+        Runtime::ScopedRoots tag_roots{rt, 1};
+        tag_roots.add(tag);
         const ScriptItemProperty value{
             .prop_type = property.type,
             .subtype = property.subtype,
@@ -322,11 +329,11 @@ Value make_item_property_array(Runtime& rt, std::span<const nw::ItemProperty> pr
             .cost_value = property.cost_value,
             .param_table = property.param_table,
             .param_value = property.param_value,
-            .tag = ScriptString{rt.alloc_string(property.tag)},
+            .tag = ScriptString{tag.data.hptr},
         };
         array->append_value(detail::make_value(&rt, value), rt);
     }
-    return Value::make_heap(array_ptr, rt.heap_.get_header(array_ptr)->type_id);
+    return array_value;
 }
 
 bool read_item_property_array(
