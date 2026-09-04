@@ -2482,6 +2482,18 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     ASSERT_TRUE(property_options->visible);
     ASSERT_GT(property_options->items.size(), 1u);
     ASSERT_GE(property_options->selected_index, 0);
+
+    // A managed-list activation refreshes every .smalls_refresh element after
+    // dispatch. The Item details refresh must not immediately discard the
+    // selector opened by the activation callback.
+    ASSERT_TRUE(backend.execute_command(
+                           "toolset.item.details", {}, item_context)
+            .ok());
+    property_options = nw::toolset::ui_v1_host().window(
+        "item.properties.options", 300, 0);
+    ASSERT_TRUE(property_options);
+    ASSERT_TRUE(property_options->visible);
+
     const int replacement_property_option
         = property_options->selected_index == 0 ? 1 : 0;
     const int32_t replacement_subtype = std::stoi(
@@ -2496,6 +2508,10 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     const size_t undo_count_before_value = workspace.undo_count();
     ASSERT_TRUE(activate_managed_list(
         "item.properties.options", replacement_property_option));
+    property_options = nw::toolset::ui_v1_host().window(
+        "item.properties.options", 300, 0);
+    ASSERT_TRUE(property_options);
+    EXPECT_FALSE(property_options->visible);
     const auto properties_after_value = nw::toolset::snapshot_item_property_records(
         runtime, first_item->handle());
     ASSERT_TRUE(properties_after_value);

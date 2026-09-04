@@ -835,7 +835,8 @@ void ToolsetBackend::register_native_commands()
             auto result = execute_command(
                 "object.item.add_property", args, context);
             if (result.ok()
-                && (!refresh_item_editor()
+                && (!item_editor_.close_property_options(ui_v1_host())
+                    || !refresh_item_editor()
                     || !item_editor_.select_applied(inserted, ui_v1_host()))) {
                 return command_result(CommandStatus::failed,
                     "Item property editor refresh failed",
@@ -861,7 +862,8 @@ void ToolsetBackend::register_native_commands()
             auto result = execute_command(
                 "object.item.remove_property", {storage}, context);
             if (result.ok()) {
-                if (!refresh_item_editor()) {
+                if (!item_editor_.close_property_options(ui_v1_host())
+                    || !refresh_item_editor()) {
                     return command_result(CommandStatus::failed,
                         "Item property editor refresh failed",
                         CommandOutputChannel::error);
@@ -942,7 +944,9 @@ void ToolsetBackend::register_native_commands()
                 storage[0], storage[1], storage[2]};
             auto result = execute_command(
                 "object.item.set_property_value", args, context);
-            if (result.ok() && !refresh_item_editor()) {
+            if (result.ok()
+                && (!item_editor_.close_property_options(ui_v1_host())
+                    || !refresh_item_editor())) {
                 return command_result(CommandStatus::failed,
                     "Item property editor refresh failed",
                     CommandOutputChannel::error);

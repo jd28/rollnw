@@ -315,7 +315,10 @@ bool ItemEditor::refresh(smalls::Runtime& runtime,
     if (!ensure_lists(host)) { return false; }
     const auto snapshot = read_snapshot(runtime, object);
     if (!snapshot) { return clear(host); }
-    if (snapshot_.object != object) {
+    const bool same_object = snapshot_.object == object;
+    const int32_t open_property_index = same_object ? property_index_ : -1;
+    const int32_t open_property_field = same_object ? property_field_ : -1;
+    if (!same_object) {
         appearance_mode_ = ItemEditorAppearanceMode::main;
         model_part_ = -1;
         model_axis_ = model_axis_model;
@@ -357,10 +360,30 @@ bool ItemEditor::refresh(smalls::Runtime& runtime,
         });
     }
     if (!host.set_items(available_list, std::move(available))
-        || !host.set_items(applied_list, std::move(applied))
-        || !close_property_options(host)) {
+        || !host.set_items(applied_list, std::move(applied))) {
         return false;
     }
+
+    if (open_property_index >= 0 && open_property_field >= 0) {
+        const auto row = std::ranges::find(snapshot_.applied_properties,
+            open_property_index, &ItemEditorAppliedProperty::index);
+        if (row != snapshot_.applied_properties.end()) {
+            const int32_t row_index = static_cast<int32_t>(
+                row - snapshot_.applied_properties.begin());
+            if (open_property_options(runtime,
+                    UiListSelection{
+                        .list_id = std::string{applied_list},
+                        .key = std::to_string(open_property_index),
+                        .index = row_index,
+                        .cell = open_property_field + 1,
+                    },
+                    host)) {
+                return appearance_mode_ != ItemEditorAppearanceMode::model
+                    || refresh_model_options(runtime, host);
+            }
+        }
+    }
+    if (!close_property_options(host)) { return false; }
     return appearance_mode_ != ItemEditorAppearanceMode::model
         || refresh_model_options(runtime, host);
 }
