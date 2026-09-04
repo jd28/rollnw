@@ -904,6 +904,10 @@ void ToolsetBackend::register_native_commands()
             selection->cell = parse_i32(
                 command_arg_string(invocation.args, 3))
                                   .value_or(-1);
+            if (selection->cell == -1 || selection->cell == 0) {
+                return command_result(CommandStatus::success, {},
+                    CommandOutputChannel::none);
+            }
             const bool opened = item_editor_.open_property_options(
                 kernel::runtime(), *selection, ui_v1_host());
             return command_result(
@@ -2750,7 +2754,7 @@ void ToolsetBackend::register_native_commands()
                     },
         [this](const CommandInvocation& invocation, CommandContext& context) {
             const auto index = parse_i32(command_arg_string(invocation.args, 0));
-            const std::string_view field_name = command_arg_string(invocation.args, 1);
+            const std::string field_name = command_arg_string(invocation.args, 1);
             const auto value = parse_i32(command_arg_string(invocation.args, 2));
             int32_t field = -1;
             if (field_name == "subtype") { field = 0; }

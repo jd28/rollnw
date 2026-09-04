@@ -700,7 +700,8 @@ ObjectWorkbenchSurface default_object_workbench_surface()
     return ObjectWorkbenchSurface::details;
 }
 
-bool standalone_data_workbench(nw::ObjectType type) noexcept
+bool data_workbench_only(nw::ObjectType type,
+    ObjectWorkbenchSurface surface) noexcept
 {
     switch (type) {
     case nw::ObjectType::sound:
@@ -708,7 +709,8 @@ bool standalone_data_workbench(nw::ObjectType type) noexcept
     case nw::ObjectType::trigger:
         return true;
     default:
-        return false;
+        return type == nw::ObjectType::item
+            && surface == ObjectWorkbenchSurface::item_properties;
     }
 }
 
@@ -6342,7 +6344,8 @@ void append_workspace_document_markup(std::string& content_markup,
         content_markup += escape_html(workspace_tab_detail(active_tab));
         content_markup += "</div></div>";
         content_markup += "<div class=\"workspace_preview_body";
-        if (standalone_data_workbench(state.object_details.object.type)) {
+        if (data_workbench_only(state.object_details.object.type,
+                state.object_workbench_surface)) {
             content_markup += " data_workbench_only";
         }
         content_markup += "\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
@@ -12352,7 +12355,8 @@ int main(int argc, char* argv[])
             && viewer_tab->kind == nw::toolset::WorkspaceTabKind::preview
             && !viewer_tab->detail.empty()
             && !viewer_project_dir.empty()
-            && standalone_data_workbench(state.object_details.object.type);
+            && data_workbench_only(state.object_details.object.type,
+                state.object_workbench_surface);
         const bool viewer_requested = viewer_viewport.has_value()
             || data_workbench_preview;
         if (viewer_requested) {

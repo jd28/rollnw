@@ -124,7 +124,8 @@ nw::smalls::Value make_selection_value(nw::smalls::Runtime& rt, const UiListSele
 
     if (!rt.write_struct_field(ptr, type_id, "list_id", make_string(rt, selection.list_id))
         || !rt.write_struct_field(ptr, type_id, "key", make_string(rt, selection.key))
-        || !rt.write_struct_field(ptr, type_id, "index", nw::smalls::Value::make_int(selection.index))) {
+        || !rt.write_struct_field(ptr, type_id, "index", nw::smalls::Value::make_int(selection.index))
+        || !rt.write_struct_field(ptr, type_id, "cell", nw::smalls::Value::make_int(selection.cell))) {
         return {};
     }
     return nw::smalls::Value::make_heap(ptr, type_id);

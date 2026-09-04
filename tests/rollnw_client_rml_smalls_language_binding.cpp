@@ -198,10 +198,14 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
           "<link type=\"text/template\" href=\""
         + (ui_resource_path / "item_editor.rml").generic_string()
         + "\"/><style>body, button, input { font-family: Inter; font-weight: normal; }</style>"
-          "</head><body><template src=\"item-workbench\"></template>"
+          "</head><body><div id=\"item-preview-body\" "
+          "class=\"workspace_preview_body data_workbench_only\">"
+          "<div id=\"workspace_viewer_viewport\" "
+          "class=\"workspace_viewer_viewport\"></div>"
+          "<template src=\"item-workbench\"></template></div>"
           "<div id=\"object_variable_warning_tooltip\"></div></body></rml>";
 
-    auto* context = Rml::CreateContext("item-workbench-template-test", {800, 600});
+    auto* context = Rml::CreateContext("item-workbench-template-test", {1200, 700});
     ASSERT_NE(context, nullptr);
     nw::toolset::ItemEditorDataModel item_model;
     ASSERT_TRUE(item_model.initialize(*context,
@@ -255,6 +259,12 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     auto* property_surface = document->GetElementById("item_surface_item_properties");
     ASSERT_NE(property_surface, nullptr);
     property_surface->SetClass("active", true);
+    auto* property_catalog = document->GetElementById("item_property_catalog");
+    ASSERT_NE(property_catalog, nullptr);
+    auto* property_selector = document->GetElementById(
+        "item_property_option_selector");
+    ASSERT_NE(property_selector, nullptr);
+    EXPECT_EQ(property_selector->GetParentNode(), property_catalog);
     auto* available_rows = document->GetElementById("item_available_property_rows");
     ASSERT_NE(available_rows, nullptr);
     available_rows->SetInnerRML(
@@ -271,6 +281,19 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
         "</div>");
     document->Show();
     context->Update();
+
+    auto* preview_body = document->GetElementById("item-preview-body");
+    auto* viewport = document->GetElementById("workspace_viewer_viewport");
+    auto* workbench = document->GetElementById("object_workbench");
+    ASSERT_NE(preview_body, nullptr);
+    ASSERT_NE(viewport, nullptr);
+    ASSERT_NE(workbench, nullptr);
+    EXPECT_EQ(viewport->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(workbench->GetOffsetWidth(), 1000.0f);
+    EXPECT_GT(property_catalog->GetOffsetWidth(), 300.0f);
+    auto* applied_pane = document->QuerySelector(".item_property_pane.applied");
+    ASSERT_NE(applied_pane, nullptr);
+    EXPECT_GT(applied_pane->GetOffsetWidth(), property_catalog->GetOffsetWidth());
 
     auto* available_cell = document->GetElementById("available-property-cell");
     ASSERT_NE(available_cell, nullptr);
@@ -2398,6 +2421,97 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     ASSERT_TRUE(backend.execute_command(
                            "toolset.item.initialize", {}, item_context)
             .ok());
+
+    auto available_properties = nw::toolset::ui_v1_host().window(
+        "item.properties.available", 300, 0);
+    ASSERT_TRUE(available_properties);
+    const auto ability_bonus = std::ranges::find(
+        available_properties->items, "Ability Bonus",
+        [](const nw::toolset::UiListItem& item) -> std::string_view {
+            return item.cells[0];
+        });
+    ASSERT_NE(ability_bonus, available_properties->items.end());
+    const int ability_bonus_index = static_cast<int>(
+        ability_bonus - available_properties->items.begin());
+    ASSERT_TRUE(nw::toolset::ui_v1_host().set_selected(
+        "item.properties.available",
+        {
+            .list_id = "item.properties.available",
+            .key = ability_bonus->key,
+            .index = ability_bonus_index,
+            .cell = 0,
+        },
+        false));
+    const auto properties_before_add = nw::toolset::snapshot_item_property_records(
+        runtime, first_item->handle());
+    ASSERT_TRUE(properties_before_add);
+    ASSERT_TRUE(backend.execute_command(
+                           "toolset.item.properties.add", {}, item_context)
+            .ok());
+
+    auto applied_properties = nw::toolset::ui_v1_host().window(
+        "item.properties.applied", 300, 0);
+    ASSERT_TRUE(applied_properties);
+    ASSERT_EQ(applied_properties->items.size(),
+        properties_before_add->size() + 1);
+    const int inserted_property_index = static_cast<int>(
+        properties_before_add->size());
+    const auto& inserted_property = applied_properties->items[static_cast<size_t>(inserted_property_index)];
+    EXPECT_EQ(inserted_property.cells[0], "Ability Bonus");
+    EXPECT_EQ(inserted_property.enabled_mask & 2u, 2u);
+
+    const std::array<std::string, 4> property_name_args{
+        "item.properties.applied", inserted_property.key,
+        std::to_string(inserted_property_index), "0"};
+    const std::vector<std::string_view> property_name_views{
+        property_name_args.begin(), property_name_args.end()};
+    EXPECT_TRUE(backend.execute_command(
+                           "toolset.item.properties.applied.activate",
+                           property_name_views, item_context)
+            .ok());
+    auto property_options = nw::toolset::ui_v1_host().window(
+        "item.properties.options", 300, 0);
+    ASSERT_TRUE(property_options);
+    EXPECT_FALSE(property_options->visible);
+
+    ASSERT_TRUE(activate_managed_list(
+        "item.properties.applied", inserted_property_index, 1));
+    property_options = nw::toolset::ui_v1_host().window(
+        "item.properties.options", 300, 0);
+    ASSERT_TRUE(property_options);
+    ASSERT_TRUE(property_options->visible);
+    ASSERT_GT(property_options->items.size(), 1u);
+    ASSERT_GE(property_options->selected_index, 0);
+    const int replacement_property_option
+        = property_options->selected_index == 0 ? 1 : 0;
+    const int32_t replacement_subtype = std::stoi(
+        property_options->items[static_cast<size_t>(replacement_property_option)]
+            .key);
+    const auto properties_before_value = nw::toolset::snapshot_item_property_records(
+        runtime, first_item->handle());
+    ASSERT_TRUE(properties_before_value);
+    const int32_t original_subtype = (*properties_before_value)[static_cast<size_t>(inserted_property_index)]
+                                         .subtype;
+    ASSERT_NE(replacement_subtype, original_subtype);
+    const size_t undo_count_before_value = workspace.undo_count();
+    ASSERT_TRUE(activate_managed_list(
+        "item.properties.options", replacement_property_option));
+    const auto properties_after_value = nw::toolset::snapshot_item_property_records(
+        runtime, first_item->handle());
+    ASSERT_TRUE(properties_after_value);
+    EXPECT_EQ((*properties_after_value)[static_cast<size_t>(
+                                            inserted_property_index)]
+                  .subtype,
+        replacement_subtype);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_value + 1);
+    ASSERT_TRUE(workspace.undo(item_context).ok());
+    const auto properties_after_undo = nw::toolset::snapshot_item_property_records(
+        runtime, first_item->handle());
+    ASSERT_TRUE(properties_after_undo);
+    EXPECT_EQ((*properties_after_undo)[static_cast<size_t>(
+                                           inserted_property_index)]
+                  .subtype,
+        original_subtype);
 
     bool model_selector_open = false;
     int opened_item_part = -1;
