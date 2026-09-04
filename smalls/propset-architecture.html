@@ -48,8 +48,8 @@
       <article class="content">
 <h1 id="propset-architecture">Propset Architecture</h1>
 <ul>
-<li><strong>Version</strong>: 0.3.0</li>
-<li><strong>Last Updated</strong>: 2026-08-01</li>
+<li><strong>Version</strong>: 0.4.0</li>
+<li><strong>Last Updated</strong>: 2026-09-02</li>
 <li><strong>Status</strong>: Normative target architecture</li>
 </ul>
 <h2 id="overview">Overview</h2>
@@ -109,9 +109,9 @@ different boundaries. They are not interchangeable storage annotations.</p>
 <td>Ordinary Smalls values</td>
 </tr>
 <tr>
-<td>Toolset projection</td>
-<td>Selected toolset module</td>
-<td>Replaceable editor state, labels, filters, and rows</td>
+<td>Native toolset projection</td>
+<td>C++ client/toolset</td>
+<td>Editor state, labels, filters, and copied rows over native facts</td>
 <td>RmlUi data-model binding</td>
 </tr>
 </tbody>
@@ -148,7 +148,9 @@ memory.</p>
    to expose that value.</li>
 <li>If the datum is shared immutable rules data, partition it by consumer:
    native addressing/storage facts become native <code>Info</code> rows and script policy
-   becomes profile <code>Rules</code> rows. Join them by a stable scalar key.</li>
+   becomes profile <code>Rules</code> rows. For imported 2DAs, generate one
+   <code>Definition {id, info, rules}</code> transport row, publish <code>Info[]</code> to C++ once,
+   retain <code>Rules[]</code> in SmallS, and join them by the stable source ID.</li>
 <li>If the datum exists only to display or interact with an editor, it is a
    toolset projection, not object storage.</li>
 </ol>
@@ -210,9 +212,14 @@ or source table columns. The consumer and required invariant decide the owner.</
 <td>Profile-defined object schema consumed by rules</td>
 </tr>
 <tr>
+<td>Player level history</td>
+<td><code>nwn1.propsets.PlayerHistory</code></td>
+<td>Profile-defined progression history; C++ only converts legacy GFF</td>
+</tr>
+<tr>
 <td>Editor rows, filters, selected tab, and labels</td>
-<td>Toolset Smalls</td>
-<td>Replaceable authoring projection</td>
+<td>Native C++ toolset</td>
+<td>Native authoring projection and interaction state</td>
 </tr>
 </tbody>
 </table>
@@ -244,13 +251,13 @@ or source table columns. The consumer and required invariant decide the owner.</
 </tr>
 <tr>
 <td>Native <code>Info</code> plus profile <code>Rules</code> split</td>
-<td>One import pass per projection and a scalar-key join at use sites</td>
-<td>Each source field must have exactly one runtime owner</td>
+<td>One generated definition load, one linear split/native publication, and a scalar-key join at use sites</td>
+<td>Each source field must have exactly one runtime owner; cached definitions retain an immutable VM source copy</td>
 </tr>
 <tr>
-<td>Toolset projection</td>
+<td>Native toolset projection</td>
 <td>Rebuild on invalidation and viewport-bounded RmlUi materialization</td>
-<td>No durable object migration; workflow remains replaceable</td>
+<td>No durable object migration; interaction changes require a C++ rebuild</td>
 </tr>
 </tbody>
 </table>
@@ -326,6 +333,44 @@ compatibility bridges or conversion code, not the long-term architecture.</p>
 runtime bootstrap. It does not depend on the optional rules init module or an
 editor import. Missing or invalid required schemas fail runtime initialization
 before any object can be loaded.</p>
+<h4 id="object-owned-value-graphs">Object-owned value graphs</h4>
+<p>A direct dynamic-array field in a propset is stored in the generic
+<code>ObjectValueComponent</code> when its complete element graph contains only <code>int</code>,
+<code>float</code>, <code>bool</code>, heap-free opaque/native values, fixed arrays, tuples, nested
+dynamic arrays, and <code>[[value_type]]</code> structs made from those values. Strings,
+maps, functions, sums, ordinary reference structs, zero-sized types, and
+recursive type graphs are rejected during type resolution. This validation is
+structural; C++ does not name or interpret profile fields.</p>
+<p>The storage contract is:</p>
+<ul>
+<li>Input: one validated direct propset array and the values appended to it.</li>
+<li>Output: one contiguous byte buffer per dynamic-array node. Nested arrays are
+  additional nodes addressed by 32-bit indices in the same value layout used
+  by the VM.</li>
+<li>Owner and lifetime: every node records the owning <code>ObjectHandle</code>, propset
+  type, and direct field index. All nodes are released as one batch when that
+  object is destroyed. Node indices are not reused during a service generation,
+  so a stale alias cannot resolve to a different node.</li>
+<li>Mutation: any nested array mutation marks the owning direct propset field
+  dirty. Direct array reassignment is rejected; callers mutate the existing
+  array through the normal array operations.</li>
+<li>Error behavior: unsupported graphs fail compilation. Invalid, stale, or
+  exhausted component handles fail the operation. JSON and legacy GFF input
+  outside the declared or target-format ranges is rejected.</li>
+</ul>
+<p>Component indices occupy the upper half of the 32-bit array-handle domain;
+<code>ScriptHeap</code> is constrained to the lower half. Persistent component nodes are
+therefore outside the tracing heap and are not scanned by the GC. Nested tuple
+payloads are stored inline in component buffers. Temporary VM copies preserve
+nested array indices and materialize the language's ordinary tuple value only
+while that copied value is in use.</p>
+<p>The dominant Player-history transform is linear in levels plus selected feats,
+nonzero skills, and known spells. It runs on load and save, not once per rules
+query. Storage costs one node per dynamic array and retains removed nested nodes
+until object destruction so temporary script aliases remain valid. No memory or
+speed improvement is claimed. Tuple materialization adds transient VM heap work
+when a component struct containing a tuple is read; runtime statistics expose
+node count and retained array bytes for measurement.</p>
 <h3 id="native-object-components">Native Object Components</h3>
 <p>Engine-critical and engine-owned data — spatial state, local variables, geometry, visual rows, inventories, store inventories, item layout, vitals, and ability loadout rows — lives in <code>ObjectComponentSystem</code>. Components are C++ storage rows keyed by <code>ObjectHandle</code>. Some are contiguous vectors for common component data; inventories are lazily allocated because many objects do not carry one.</p>
 <p>Scripts have no direct memory access to native components. They communicate through native functions that preserve C++ invariants. Equipping, inventory mutation, position changes, and visual row emission are engine transactions, not propset field writes.</p>
@@ -422,7 +467,6 @@ before any object can be loaded.</p>
 <span class="k">type</span> <span class="nc">CreatureLevels</span> <span class="p">{</span>
     <span class="n">classes</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>       <span class="c1">// Class IDs per slot</span>
     <span class="n">class_levels</span><span class="p">:</span> <span class="kt">int</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>  <span class="c1">// Level count per slot</span>
-    <span class="n">levelup_classes</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
     <span class="n">xp</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
     <span class="n">walkrate</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
 <span class="p">};</span>
@@ -506,13 +550,37 @@ before any object can be loaded.</p>
 <p><code>[[transient]]</code> propsets are runtime/cache rows. Component/propset JSON
 initializes them from defaults on load and does not write them to durable
 fixtures or saves.</p>
+<p>Player progression history is a Player-only propset. Its arrays are sparse
+where the source data is sparse or mostly zero:</p>
+<div class="codehilite"><pre><span></span><code><span class="nd">[[value_type]]</span>
+<span class="k">type</span> <span class="nc">LevelHistoryEntry</span> <span class="p">{</span>
+    <span class="n">epic</span><span class="p">:</span> <span class="kt">bool</span><span class="p">;</span>
+    <span class="n">class_id</span><span class="p">:</span> <span class="nc">Class</span><span class="p">;</span>
+    <span class="n">ability</span><span class="p">:</span> <span class="p">(</span><span class="nc">Ability</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+    <span class="n">hitpoints</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">skillpoints</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">skill_count</span><span class="p">:</span> <span class="kt">int</span><span class="p">;</span>
+    <span class="n">feats</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">Feat</span><span class="p">);</span>
+    <span class="n">skills</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">((</span><span class="nc">Skill</span><span class="p">,</span> <span class="kt">int</span><span class="p">));</span>
+    <span class="n">known_spells</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">((</span><span class="kt">int</span><span class="p">,</span> <span class="nc">Spell</span><span class="p">));</span>
+<span class="p">};</span>
+
+<span class="nd">[[propset(Player)]]</span>
+<span class="k">type</span> <span class="nc">PlayerHistory</span> <span class="p">{</span>
+    <span class="n">entries</span><span class="p">:</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nc">LevelHistoryEntry</span><span class="p">);</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<p>The ability tuple carries the ability ID and the one-point increase; <code>(-1, 0)</code>
+means no increase. A skill tuple stores only a nonzero rank, while <code>skill_count</code>
+preserves the dense legacy GFF width for export. A known-spell tuple stores the
+spell level required to rebuild <code>KnownList0</code> through <code>KnownList9</code>. Profile rules
+scan the entries directly for class-level queries. The legacy GFF adapter is a
+mechanical boundary transform and does not own progression policy.</p>
 <p><strong>Excluded from propsets (v1):</strong>
 - Spell preparation/loadout rows — mutable runtime state owned by the native
   <code>ObjectAbilityLoadout</code> component; legacy NWN1 <code>SpellBook</code> lists exist only
   as GFF import/export compatibility.
-- <code>LevelHistory</code> detail beyond class slots — feat/skill/ability choices remain
-  player-character compatibility data. <code>CreatureLevels.levelup_classes</code> carries
-  the class-slot projection used by current script rules.
 - Equipped items and inventory ownership — native components, with Smalls hooks
   for policy and visual/effect updates.</p>
 <h3 id="item">Item</h3>
@@ -779,7 +847,7 @@ single object-local rules state row.</p>
 </tr>
 <tr>
 <td>GC integration</td>
-<td>Direct heap fields are tracked as roots; unmanaged arrays are destroyed with the object row</td>
+<td>Direct heap fields are roots; compatible array graphs use object-lifetime nodes outside GC tracing</td>
 <td>Component-specific C++ ownership</td>
 </tr>
 <tr>
@@ -807,9 +875,9 @@ single object-local rules state row.</p>
 <hr>
 <h2 id="current-implementation">Current Implementation</h2>
 <ul>
-<li><code>PropsetPoolManager</code> — slab pool, slot management, dirty tracking, unmanaged array support</li>
+<li><code>PropsetPoolManager</code> — slab pool, slot management, dirty tracking, and object-value component ownership</li>
 <li><code>[[propset(ObjectType)]]</code> annotation — parsed and validated by <code>TypeResolver</code></li>
-<li>Propset field validation — allows supported primitives, strings, object handles, native values, value structs, fixed arrays, and unmanaged arrays</li>
+<li>Propset field validation — allows supported primitives, strings, object handles, native values, fixed arrays, and recursively validated object-component array graphs</li>
 <li><code>get_propset!</code> intrinsic — declared in <code>core/prelude.smalls</code></li>
 <li>Object-type propset registration at runtime startup</li>
 <li>GFF import/export through <code>PropsetGffImporter</code> and <code>PropsetGffExporter</code></li>
@@ -820,7 +888,7 @@ single object-local rules state row.</p>
 <li>Script-side rules for combat, modifiers, item property processing, spell slot/known-spell logic, creature sizing, and visual row resolution</li>
 <li>Visual asset protocol from Smalls resolvers into <code>ObjectVisualState</code></li>
 </ul>
-<p>All 16 persistent and transient NWN1 propsets live in the single
+<p>All 17 persistent and transient NWN1 propsets live in the single
 <code>nwn1.propsets</code> schema module. Shared <code>core.*</code> modules contain no propsets.</p>
 <p><strong>Key constraint</strong>: while a C++ mirror still has runtime consumers, remove or
 redirect those consumers before deleting the mirror. Do not add new runtime
@@ -885,7 +953,6 @@ explicit native component or fact protocol instead.</p>
 <li>Spell preparation/loadout in propsets — slot-per-level-per-class runtime rows
   stay in the native <code>ObjectAbilityLoadout</code> component for now; NWN1 <code>SpellBook</code>
   remains only a legacy GFF list adapter.</li>
-<li>Full <code>LevelHistory</code> in propsets — player-character compatibility detail; only the class-slot projection is currently in <code>CreatureLevels</code></li>
 <li>Persistent profile use of general <code>object</code> handle fields — the language
   supports immediate object values, but durable identity and stale-reference
   policy remain unresolved</li>

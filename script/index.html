@@ -56,7 +56,9 @@ reading, analyzing, and migrating existing NWN content.</p>
 <div class="codehilite"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/kernel/Kernel.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;nw/script/Nss.hpp&gt;</span>
 
-<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">();</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">ConfigOptions</span><span class="w"> </span><span class="n">config_options</span><span class="p">;</span>
+<span class="n">config_options</span><span class="p">.</span><span class="n">profile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"nwn1"</span><span class="p">;</span>
+<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">config</span><span class="p">().</span><span class="n">initialize</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">config_options</span><span class="p">));</span>
 <span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">services</span><span class="p">().</span><span class="n">start</span><span class="p">();</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">nw</span><span class="o">::</span><span class="n">script</span><span class="o">::</span><span class="n">Context</span><span class="o">&gt;</span><span class="p">();</span>

@@ -49,13 +49,13 @@
 <h1 id="load_config">load_config</h1>
 <ul>
 <li><strong>Version</strong>: 0.2.0</li>
-<li><strong>Last Updated</strong>: 2026-07-31</li>
+<li><strong>Last Updated</strong>: 2026-09-02</li>
 <li><strong>Status</strong>: Normative data-loading contract</li>
 </ul>
 <p><code>load_config!</code> is the current path for exposing typed RPG ruleset data to
-Smalls. A table may come from Smalls struct literals or from a registered
-runtime converter; rules modules load the resulting arrays through one
-intrinsic.</p>
+Smalls. A table may come from authored Smalls struct literals or from a
+registered package data spec; rules modules load the resulting arrays through
+one intrinsic.</p>
 <p>The ownership and package rules in <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/conventions.md"><code>conventions.md</code></a> and
 <a href="https://github.com/jd28/rollnw/blob/main/lib/nw/smalls/docs/profile-packages.md"><code>profile-packages.md</code></a> apply throughout this document.</p>
 <p>This is the "manifest RPGs" direction in practical form:</p>
@@ -98,8 +98,7 @@ object-indexed pool storage; <code>load_config!</code> returns detached shared v
 <p>The <code>[[index]]</code> field is policy, not the filename. Filenames are just stable
 entry names for authors and diffs.</p>
 <h2 id="entry-files">Entry Files</h2>
-<p>Each config entry is one Smalls file containing a single struct literal. Current
-NWN1 class data lives under <code>lib/nw/smalls/scripts/nwn1/data/classes/</code>:</p>
+<p>An authored config entry is one Smalls file containing a single struct literal:</p>
 <div class="codehilite"><pre><span></span><code><span class="nc">ClassEntry</span> <span class="p">{</span>
     <span class="n">id</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
     <span class="n">name</span> <span class="o">=</span> <span class="nc">StrRef</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span>
@@ -111,13 +110,38 @@ NWN1 class data lives under <code>lib/nw/smalls/scripts/nwn1/data/classes/</code
 <span class="p">}</span>
 </code></pre></div>
 
-<p>The table path maps to the directory:</p>
+<p>For authored packages, the table path maps to the directory:</p>
 <div class="codehilite"><pre><span></span><code>nwn1.data.classes -&gt; nwn1/data/classes/
 nwn1/data/classes -&gt; nwn1/data/classes/
 </code></pre></div>
 
-<p>Both dot and slash forms are accepted. Only direct children of the table
-directory are loaded.</p>
+<p>Repository sources and data specs use the dotted form. The runtime accepts the
+slash form only at its external compatibility boundary and normalizes it to the
+same key. Only direct children of the table directory are loaded. NWN1's
+production paths are spec-backed and do not read entry files; this entry-file
+path remains available for authored configuration in other packages.</p>
+<h2 id="generated-snapshot-contract">Generated Snapshot Contract</h2>
+<p>Rows generated from an installed game's resolved resources are optional local
+review artifacts. They are not runtime inputs and are not committed. NWN1
+materializes every production <code>load_config!</code> path directly from the active
+resource set through its package data specs.</p>
+<p>Generate local snapshots under an ignored build tree with:</p>
+<div class="codehilite"><pre><span></span><code><span class="go">./build/tools/smalls-datagen/smalls-datagen --nwn &lt;nwn-dir&gt; --out build/generated-smalls --entity appearance</span>
+</code></pre></div>
+
+<p>Reproduce and compare that local snapshot through a temporary tree without
+overwriting it with:</p>
+<div class="codehilite"><pre><span></span><code><span class="go">./build/tools/smalls-datagen/smalls-datagen --nwn &lt;nwn-dir&gt; --check build/generated-smalls --entity appearance</span>
+</code></pre></div>
+
+<p>When a spec enables snapshots, each filename comes from its declared label,
+StrRef, or referenced-resource name. Datagen sanitizes it to lowercase ASCII,
+uses underscores for spaces and hyphens, and removes other punctuation. The
+numeric source row remains inside the definition as <code>id</code>; it is never encoded
+in the filename. Empty names reject generation. Collisions receive an ordinal
+suffix (<code>name_2</code>, <code>name_3</code>) so filenames remain independent of row identity.
+Specs without a meaningful stable name still materialize for verification but
+do not emit snapshots.</p>
 <h2 id="loading-from-script">Loading From Script</h2>
 <p>The intrinsic is declared in <code>core.prelude</code>:</p>
 <div class="codehilite"><pre><span></span><code><span class="nd">[[intrinsic("load_config")]]</span> <span class="k">fn</span> <span class="n">load_config</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="kt">string</span><span class="p">):</span> <span class="n">array</span><span class="o">!</span><span class="p">(</span><span class="nv">$T</span><span class="p">);</span>
@@ -180,7 +204,10 @@ empty result during initialization.</p>
 <li>normalizes dot and slash paths before lookup</li>
 <li>requires <code>T</code> to be a struct with an <code>int</code> <code>[[index]]</code> field</li>
 <li>rejects <code>T</code> when it is a propset or contains a propset field</li>
-<li>for a <code>twoda_only</code> converter, imports every row from the active 2DA directly</li>
+<li>gives a registered structured data spec authority over filesystem rows for
+  that path</li>
+<li>structurally validates a spec against the active resolved resource batch,
+  materializes valid rows, and leaves rejected source IDs as indexed holes</li>
 <li>otherwise, loads and sorts direct <code>.smalls</code> entries below the table path</li>
 <li>sizes a 2DA-backed array to the source row count</li>
 <li>sizes an entry-file array to the highest non-negative index plus one</li>
@@ -191,6 +218,11 @@ empty result during initialization.</p>
 <ul>
 <li>missing table path logs a warning and returns an empty array</li>
 <li>missing registered 2DA logs a warning and returns an empty array</li>
+<li>a structured data spec logs row-local diagnostics, drops only those rows,
+  and retains the source row extent so valid rows remain available at their
+  original IDs; every hole has <code>[[index]] == -1</code>, including source row zero</li>
+<li>a missing source or required column returns a cached typed empty array; it
+  does not fail the calling script or profile startup</li>
 <li>invalid entry type, propset-containing entry type, missing <code>[[index]]</code>, or
   non-<code>int</code> index fails the intrinsic</li>
 <li>entries that fail to load, have non-<code>int</code> indexes, or have negative indexes
@@ -199,29 +231,61 @@ empty result during initialization.</p>
 </ul>
 <p>Because sparse IDs produce array holes, rules modules should bounds-check before
 reading and should define the fallback value at the API boundary.</p>
+<h2 id="structured-data-specs">Structured Data Specs</h2>
+<p>The 17 production NWN1 paths are described by JSON files in the package's
+<code>data_specs/</code> directory. These are installed package resources: runtime,
+datagen, and the language server parse the same files. They are not embedded in
+C++ or copied into generated headers. A missing, ambiguous, or invalid required
+package spec aborts NWN1 profile startup because that is a program/package
+error, not bad game data.</p>
+<p>The private format implements the transforms observed in those tables:
+<code>row_index</code>, <code>constant</code>, <code>column</code>, <code>enum</code>, <code>reference_index</code>, <code>fixed_array</code>,
+<code>indirect_grid</code>, <code>column_array</code>, and <code>struct_array</code>. It supports row <code>reject</code>,
+typed <code>default</code>, and <code>omit_row</code> policies. It has no format version, published
+schema, plugin interface, virtual source/sink framework, or general dependency
+graph.</p>
+<p>Runtime and <code>smalls-datagen</code> accept this one package format. The former
+datagen-only <code>@...</code> transform strings and their separate JSON specs have been
+removed, so offline snapshots cannot silently use a different transform.</p>
+<p>The active primary 2DA defines the output row extent. If an entire requested
+column is absent from an old active table, the transformer reads that column
+from the installed base-game table. It does not fall back for an individual
+missing cell: the field's declared default or rejection policy applies. The
+same whole-column rule applies to referenced 2DAs.</p>
+<p>Boolean columns read zero as false and any nonzero value as true. Values outside
+<code>[0, 1]</code> are warned about unless the spec identifies the column as a legitimate
+non-boolean integer encoding. A malformed row is diagnosed and left as an
+indexed hole; it does not discard valid rows or prevent the client/module from
+loading. A structurally unusable source produces a cached typed empty array.</p>
 <h2 id="2da-bridge">2DA Bridge</h2>
-<p>Some paths can be backed by a registered 2DA converter instead of <code>.smalls</code>
-entry files. The script API is the same:</p>
+<p>NWN1's production config paths are backed by package data specs over resolved
+2DAs. The script API remains the same:</p>
 <div class="codehilite"><pre><span></span><code><span class="k">var</span> <span class="n">feats</span> <span class="o">=</span> <span class="n">load_config</span><span class="o">!</span><span class="p">(</span><span class="nc">FeatEntry</span><span class="p">)(</span><span class="s2">"nwn1.data.feats"</span><span class="p">);</span>
 </code></pre></div>
 
-<p>This keeps old NWN data sources usable while the rules-facing code moves toward
-typed Smalls manifests. A future authored RPG can use native <code>.smalls</code> entries
-directly without changing the lookup code.</p>
+<p>This keeps module/hak precedence in the resource manager while one shared
+transform defines the SmallS shape. A future authored RPG can use native
+<code>.smalls</code> entries directly without changing the lookup code.</p>
 <h2 id="relationship-to-propsets">Relationship To Propsets</h2>
 <p><code>load_config!</code> is for Smalls-owned stable ruleset data: classes, races, feats,
 spell rows, progression tables, and similar data that is loaded once and
 queried many times.</p>
-<p>NWN1 base items demonstrate a split shared-data boundary. Checked-in
-<code>BaseItemDefinition</code> struct literals are the canonical row source.
-<code>load_config!</code> loads one indexed definition batch. Profile SmallS retains the
-<code>BaseItemRules</code> policy rows and publishes a copied <code>BaseItemInfo</code> fact batch to
-native <code>core.item</code> consumers that require layout, model, icon, and inventory
-geometry. The two projections join by the same stable base-item ID; neither is a
-second authoritative source.</p>
-<p>Legacy 2DAs remain valid converter inputs for tables still using registered
-runtime converters. For canonical base-item definitions, 2DA conversion is an
-offline import path rather than a second runtime source.</p>
+<p>NWN1 base items demonstrate the split shared-data import boundary. The shared
+<code>baseitems.2da</code> spec materializes <code>BaseItemDefinition</code>, combining a
+C++-registered <code>BaseItemInfo</code> value and a SmallS <code>BaseItemRules</code> value beneath
+one stable source ID. The NWN1 initialization module publishes the complete
+positional <code>BaseItemInfo[]</code> batch into canonical C++ storage and retains
+<code>BaseItemRules[]</code> for gameplay.</p>
+<p>SmallS is the one-time import adapter, not the semantic owner of
+<code>BaseItemInfo</code>. Native runtime consumers read only the published C++ array.
+The loader must not retain a second <code>_infos</code> array or answer native fact queries.
+The current config cache still roots the immutable combined definition batch;
+that retained source copy is a measurable memory cost, not a second writer.
+Do not add a one-shot config loader without measuring that cost.</p>
+<p>Mixed tables do not retain independent native and SmallS converter lists. The
+data spec is the single rules-definition transform; native facts are published
+from the mixed definition batch or read by their native owner where no SmallS
+projection is involved.</p>
 <p>Propsets are for per-object game state: hit points, ability scores, combat
 state, class levels, inventory-facing state, and other data attached to a live
 object. A combat rule commonly joins both:</p>

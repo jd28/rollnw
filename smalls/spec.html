@@ -1517,8 +1517,9 @@ pool. The normative ownership and native-component boundary is documented in
 - <strong>Explicit native boundary</strong> — C++ runtime policy does not read propset fields directly</p>
 <h4 id="property-sets-v1-contract-normative">Property Sets: v1 Contract (Normative)</h4>
 <p><strong>Contract (v1)</strong>: <code>[[propset]]</code> storage may contain tracked direct heap fields
-and engine-owned unmanaged arrays. <code>PropsetPoolManager</code> owns their lifecycle
-for the object row. A propset must not contain an untracked heap pointer.</p>
+and object-owned component array graphs. <code>PropsetPoolManager</code> owns their
+lifecycle for the object row. A propset must not contain an untracked heap
+pointer.</p>
 <p><strong>Allowed Field Forms (v1)</strong>:
 | Field form | Allowed | Storage | Reassignable | Indexable |
 |---|---:|---|---:|---|
@@ -1529,18 +1530,19 @@ for the object row. A propset must not contain an untracked heap pointer.</p>
 | <code>int[N]</code>, <code>float[N]</code>, <code>bool[N]</code> (N &gt; 0) | Yes | Inline POD bytes | Yes | Yes (variable index) |
 | <code>[[value_type]]</code> struct (no heap references) | Yes | Inline POD bytes | Yes | N/A |
 | <code>T[N]</code> where T is a supported POD/native value | Yes | Inline fixed array | Yes | Yes (variable index) |
-| <code>array!(T)</code> where T is a supported primitive, POD struct, or native value | Yes | Inline <code>TypedHandle</code> to unmanaged <code>IArray</code> | No | Yes (via IArray API) |
+| <code>array!(T)</code> where T is a component-compatible value graph | Yes | Inline 32-bit component index to <code>IArray</code> | No | Yes (via IArray API) |
 | All other forms | <strong>No</strong> | N/A | N/A | N/A |</p>
 <p><strong>Explicitly Rejected</strong>:
-- <code>array!(string)</code> or an array element containing Smalls heap references
-- <code>map!(...)</code>, <code>tuple</code>, <code>sum</code>, <code>function</code>
+- <code>array!(string)</code> or a nested string, map, function, sum, ordinary struct, or other unsupported heap-owned value
+- Direct <code>map!(...)</code>, tuple, sum, or function fields
 - Unregistered or unsupported heap-backed handle types
 - Direct regular structs not marked <code>[[value_type]]</code>
 - Direct <code>[[value_type]]</code> structs containing heap references</p>
 <p><strong>Lifecycle Rules</strong>:
-1. Propset-owned unmanaged arrays are created by engine/runtime and destroyed deterministically when the owning object is destroyed.
+1. Propset component arrays are created by the runtime and destroyed as one batch when the owning object is destroyed.
 2. Script aliases to those arrays become stale after owner destruction; operations fail with a deterministic runtime error.
-3. Direct heap fields are registered as propset-owned GC roots and released or rebound when the row changes or is destroyed.</p>
+3. Direct heap fields are registered as propset-owned GC roots and released or rebound when the row changes or is destroyed.
+4. Nested arrays, fixed arrays, tuples, and <code>[[value_type]]</code> structs are allowed only when their complete graph passes structural component validation. Component indices are outside <code>ScriptHeap</code> and are not GC-scanned.</p>
 <p><strong>Fixed Array Semantics</strong>:
 - Fixed arrays <code>T[N]</code> in propsets are stored inline (contiguous POD bytes) matching C struct layout.
 - Full indexing supported: both constant (<code>arr[0]</code>) and variable (<code>arr[i]</code>) indices.
@@ -1931,17 +1933,21 @@ Bits 7-0:   Register C (8 bits)
 <h2 id="viii-roadmap">VIII. Roadmap</h2>
 <h3 id="migration-strategy">Migration Strategy</h3>
 <p><strong>Current Phase:</strong>
-1. C++ owns the native ABI, native object components, resource decoding, and
-   invariant-preserving operations.
+1. Selected-package files own install-layout declarations. C++ owns validated
+   filesystem access, resource containers, the native ABI, native object
+   components, resource decoding, and invariant-preserving operations.
 2. Shared <code>core.*</code> modules own reusable profile-neutral implementations and
    registries on top of that ABI; consumers opt into them by calling or
    registering with them.
-3. Selected profile modules own propset schemas, shared rules/config data, and
-   gameplay policy.
-4. Imported source tables are partitioned into native <code>Info</code> facts and profile
-   <code>Rules</code> data by actual consumer.
-5. Selected toolset modules own replaceable authoring projections consumed by
-   RML and RCSS.</p>
+3. Selected profile modules own propset schemas, shared rules/config data,
+   gameplay policy, and mandatory initialization/object/qualifier behavior.
+4. <code>smalls-datagen</code> partitions imported source fields once inside a generated
+   definition row. The selected profile loader publishes its native <code>Info[]</code>
+   group to C++ and retains its SmallS <code>Rules[]</code> group. A source table is not
+   an ownership unit.
+5. Native C++ toolset code owns replaceable authoring projections and
+   interaction state consumed by RML and RCSS. Toolset SmallS is limited to
+   gameplay-policy calls and thin event adapters.</p>
 <p><strong>Per-domain migration:</strong>
 1. Classify each datum from its readers, writers, frequency, and invariants.
 2. Choose one authoritative native component, native ABI fact/value, profile

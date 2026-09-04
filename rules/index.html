@@ -47,10 +47,10 @@
       <aside class="notice notice-transitional"><span class="notice-label">transitional</span><p>This describes the older C++ rules/modifier cross section. Active rules authoring work is moving toward Smalls.</p></aside>
       <article class="content">
 <h1 id="rules">Rules</h1>
-<p>This page preserves the useful context for the older C++ rules and modifier
-system. New rules authoring work is moving toward <a href="../smalls/index.html">Smalls</a>
-and <a href="../smalls/propset-architecture.html">propsets</a> so rule data can be
-authored, tested, and embedded without growing hardcoded C++ policy.</p>
+<p>This page records the runtime rules ownership boundary. Gameplay rule authoring
+lives in the selected package's <a href="../smalls/index.html">SmallS</a> modules and
+<a href="../smalls/propset-architecture.html">propsets</a>; C++ retains engine storage,
+native catalogs, and the narrow protocols consumed by native code.</p>
 <h2 id="original-goals">Original Goals</h2>
 <ul>
 <li>Rules should be overridable, expandable, or removable through configuration
@@ -62,81 +62,173 @@ authored, tested, and embedded without growing hardcoded C++ policy.</p>
 </ul>
 <h2 id="useful-definitions">Useful Definitions</h2>
 <p><strong>Attribute</strong>: A feature inherent to an object, such as creature ability scores.</p>
-<p><strong>Profile</strong>: A ruleset-specific layer that decouples rule values from the core
-rules service.</p>
+<p><strong>Profile package</strong>: The selected ruleset package. Its files declare resource
+layout, and its SmallS modules own schema, interpretation, and behavior; it is
+not a C++ profile object.</p>
 <p><strong>Type</strong>: A typed rule value, such as an armor class category. The rule system
 defines the type and invalid value; profiles define valid values.</p>
 <p><strong>Flag</strong>: A compact flag built from a rule type.</p>
 <h2 id="imported-table-boundary">Imported Table Boundary</h2>
-<p>An active profile may project one source table into native <code>Info</code> rows and
-Smalls <code>Rules</code> rows. The source row index is the join key. The projections are
-disjoint: a source column has one runtime owner, never a native mirror and a
-Smalls mirror.</p>
-<p><code>Info</code> contains data required by native engine storage, tool indexing, or asset
-addressing. <code>Rules</code> contains profile behavior and numeric tuning consumed by
-Smalls. The distinction is based on the consumer, not on whether a source
-column happens to look visual or mechanical.</p>
-<p>The current NWN1 partitions are:</p>
+<p>A BioWare 2DA is a legacy source container, not an ownership unit. One table
+may contain native engine/resource facts and SmallS gameplay inputs. Ownership
+is assigned per consumed field from its actual readers and invariants; the name
+of the table or column does not decide the owner.</p>
+<p>The imported-data boundary is fixed:</p>
+<ul>
+<li>The selected package's <code>resources.json</code> owns install-layout declarations.
+  C++ validates paths, constructs resource containers, and stores raw facts
+  consumed by the engine, renderer, native persistence machinery, or editor.</li>
+<li>SmallS exclusively owns gameplay legality, interpretation, formulas, and
+  composition. A source field read only by gameplay policy is a SmallS
+  gameplay input.</li>
+<li>A field has exactly one semantic owner. If both runtimes need a raw fact,
+  C++ owns it and exposes a narrow copied lookup or batch. A cold native tool
+  may call a narrow SmallS profile rule directly; hot native consumers receive
+  an already resolved flat native row.</li>
+<li>Unused source fields are explicitly ignored. They do not enter either
+  runtime speculatively.</li>
+</ul>
+<p>The package-local data spec is the decomposition authority. Runtime and
+<code>smalls-datagen</code> apply the same shared batch transform to their selected
+resolved source. The offline sink can emit one local, uncommitted review
+snapshot per valid source row; the runtime sink materializes the active batch
+directly. A mixed
+definition has an <code>info</code> group using a C++-registered native value type and a
+<code>rules</code> group using a profile SmallS value type. The source row index remains
+their stable parent key; sparse rows are not compacted.</p>
+<p>The mandatory NWN1 SmallS profile initializer is the import adapter: it loads
+combined definitions once, publishes complete <code>Info[]</code> batches to canonical
+contiguous C++ storage, and retains <code>Rules[]</code> for gameplay. Runtime C++ and
+SmallS do not maintain independent converter lists for the same source.</p>
+<p>The accepted NWN1 field partitions begin with:</p>
 <table>
 <thead>
 <tr>
 <th>Source</th>
-<th>Native <code>Info</code></th>
-<th>Smalls <code>Rules</code></th>
+<th>Native facts</th>
+<th>SmallS gameplay inputs</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>baseitems.2da</code></td>
-<td>identity, model/icon lookup, item-property column, inventory geometry, equip mask, stacking/container shape</td>
-<td>cost, requirements, armor/damage, weapon behavior, feat mappings</td>
+<td><code>appearance.2da</code></td>
+<td>identity, labels, model/assembly, attachment scales, weapon scale, arm availability, personal space</td>
+<td>size category, base movement category</td>
 </tr>
 <tr>
-<td><code>appearance.2da</code></td>
-<td>identity, model lookup, model assembly type</td>
-<td>size/movement and attachment/equipment visual policy</td>
+<td><code>wingmodel.2da</code>, <code>tailmodel.2da</code></td>
+<td>identity, label, model</td>
+<td>none</td>
 </tr>
 <tr>
 <td><code>placeables.2da</code></td>
-<td>identity and model lookup</td>
-<td>lighting and static profile policy</td>
+<td>identity, label, model, lighting/static scene facts</td>
+<td>none for current consumers</td>
+</tr>
+<tr>
+<td><code>baseitems.2da</code></td>
+<td>identity, model/icon and inventory-layout facts; remaining overlap fields require a reader/invariant audit</td>
+<td>cost, requirements, armor/damage, weapon behavior, feat mappings</td>
 </tr>
 </tbody>
 </table>
-<p>At profile initialization, C++ performs one linear import into contiguous
-native arrays. Each semantic Smalls module performs one <code>load_config!</code> import
-into a contiguous value array on first use. Both projections live until the
-next rules/runtime reload. A missing required table fails profile
-initialization; an invalid indexed lookup returns a row with <code>id == -1</code>.</p>
-<p>Native getters expose compact read-only protocol projections to Smalls. They do
-not expose complete C++ structs and they do not make policy decisions. Smalls
-joins <code>Info</code> and <code>Rules</code> by row ID, resolves behavior, and writes explicit
-object/component rows for native systems to consume.</p>
-<p>This removes three unnecessary paths:</p>
-<ul>
-<li>no combined table-row model shared by both runtimes</li>
-<li>no generated per-row Smalls modules for runtime table data</li>
-<li>no renderer or tool code reading profile table columns directly</li>
-</ul>
+<p>Materialized definitions preserve the source row extent. A malformed row-local
+value emits a diagnostic and leaves that indexed slot empty with an index of
+<code>-1</code>, while valid rows remain in the batch. A missing required source or column
+is a structural failure and produces a typed empty config array so the rest of
+the profile and module can continue loading. Native publication validates and
+atomically replaces the resulting indexed <code>Info[]</code> array, including an empty
+array that marks only that domain unavailable. Native profile arrays
+and SmallS gameplay arrays live for the selected profile lifetime and use
+explicit invalid-ID behavior at lookup boundaries.</p>
+<p>The nine NWN1 base movement rates are profile rules, not imported configuration.
+<code>nwn1.creature_speeds.get_base_moverate</code> contains the complete mapping and
+returns <code>0.0</code> outside its <code>0..8</code> input domain. During creature initialization
+and appearance changes, <code>nwn1.creature.update_movement_rate</code> resolves the
+creature and appearance policy once and pushes the resulting float into the
+native spatial row. Native preview reads that row without calling into SmallS.</p>
+<p>Creature body parts use the same ownership rule but a variable-length native
+resource protocol rather than a fixed NWN1 slot array. An assembly publishes
+only its supported part rows and each part's available model choices. Stable
+part and option IDs, anchors, labels, mirror relationships, and model
+associations are native facts. NWN1 naming and <code>0</code>/<code>255</code> sentinel conversion
+stay inside the NWN1 adapter. Profile SmallS owns persisted selection schema and
+gameplay legality. A future model may expose fewer, different, or zero parts
+without padding to NWN1's shape or teaching generic code to infer model names.</p>
+<p>The implemented private data-spec contract is documented in
+<a href="../smalls/load-config.html#structured-data-specs"><code>smalls/docs/load-config.md</code></a>.</p>
 <p>Persistence, authored overrides, and long-lived reload behavior remain separate
 work in <a href="https://github.com/jd28/rollnw/blob/main/issues/persist-native-authoring-tables.md"><code>issues/persist-native-authoring-tables.md</code></a>.</p>
-<h2 id="modifiers">Modifiers</h2>
-<p>The older modifier system is built on integer, floating-point, string, and
-function inputs stored in the global rules service. Modifier resolution calls a
-registered callback or uses helpers such as sum/max resolution for common cases.</p>
-<div class="codehilite"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">make_modifier</span><span class="p">(</span>
-<span class="w">    </span><span class="n">mod_type_hitpoints</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20</span><span class="p">,</span>
-<span class="w">    </span><span class="s">"dnd-3.0-epic-toughness"</span><span class="p">,</span>
-<span class="w">    </span><span class="n">nw</span><span class="o">::</span><span class="n">ModifierSource</span><span class="o">::</span><span class="n">feat</span><span class="p">,</span>
-<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="n">nw</span><span class="o">::</span><span class="n">qualifier_feat</span><span class="p">(</span><span class="n">nwn1</span><span class="o">::</span><span class="n">feat_epic_toughness_1</span><span class="p">)</span><span class="w"> </span><span class="p">});</span>
-
-<span class="n">nw</span><span class="o">::</span><span class="n">kernel</span><span class="o">::</span><span class="n">rules</span><span class="p">().</span><span class="n">modifiers</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">mod</span><span class="p">);</span>
-</code></pre></div>
-
-<p>This remains useful compatibility context, especially for existing NWN profile
-behavior. It should not be treated as the only rules direction for new authored
-game systems.</p>
+<h3 id="first-native-data-tranche-report-2026-09-02">First native-data tranche report (2026-09-02)</h3>
+<p>The first tranche migrated the NWN1 creature body-part catalog and the mixed
+<code>appearance.2da</code> domain. Its implementation commit changed 58 files with 4,818
+insertions and 984 deletions. The appearance transform required 16 field
+operations: two <code>row_index</code>, eleven <code>column</code>, and three <code>enum</code> operations. It
+retains 1,301,487 VM bytes for the test resource set.</p>
+<p>The current body-part popup benchmark is the start of the performance series;
+no older revision was rebuilt and no speedup is claimed. Ten repetitions over
+a representative 74-option humanoid selector measured:</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th style="text-align: right;">Wall time</th>
+<th style="text-align: right;">CPU time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mean</td>
+<td style="text-align: right;">17.966 us</td>
+<td style="text-align: right;">17.915 us</td>
+</tr>
+<tr>
+<td>Median</td>
+<td style="text-align: right;">17.952 us</td>
+<td style="text-align: right;">17.907 us</td>
+</tr>
+<tr>
+<td>Standard deviation</td>
+<td style="text-align: right;">0.288 us</td>
+<td style="text-align: right;">0.293 us</td>
+</tr>
+<tr>
+<td>Coefficient of variation</td>
+<td style="text-align: right;">1.60%</td>
+<td style="text-align: right;">1.64%</td>
+</tr>
+</tbody>
+</table>
+<p>The benchmark recorded zero <code>resource_exists</code> calls. CPU frequency scaling was
+enabled and host load was elevated, so the result is suitable as a same-machine
+baseline, not as a universal latency figure.</p>
+<p>The local appearance snapshot transform emitted 838 rows and omitted 14,262
+from 15,100 source rows. The snapshot is an ignored local review artifact, not
+runtime authority and not a committed game-data copy. The follow-up audit
+removed the existing 2,111-file, approximately 8.3 MB game-derived corpus from
+the repository. All 17 production NWN1 config paths now materialize from active
+resources through package data specs; snapshots are optional local output.</p>
+<p>After the all-config migration, the complete test binary passed 1,906 of 1,906
+tests in 395.8 seconds. Covered behavior includes sparse row publication,
+row-local failure recovery, base-game whole-column fallback, module/hak
+resource precedence, appearance and body-part mutation/undo/redo, preview
+camera and root-transform preservation across appearance refresh, and combobox
+focus, cycling, close, and scroll behavior.</p>
+<p>The reusable pieces were the package spec parser and diagnostics,
+<code>StaticTwoDA</code> row access, flat batch materializer, runtime/datagen sinks,
+canonical config binding and provenance, and native indexed publication. A
+<code>baseitems.2da</code> migration reused those pieces and added one observed five-column
+feat-requirement aggregate plus its contiguous storage and VM writer. The
+subsequent ownership review approved migration of all remaining production
+config paths. It did not make data specs the owner of native-only facts or of
+authored SmallS policy.</p>
+<h2 id="runtime-rules">Runtime Rules</h2>
+<p>Gameplay modifiers and master-feat associations live in the selected package's
+SmallS modules. C++ retains only the native catalogs and storage protocols
+required by native consumers, plus the qualifier protocol that delegates its
+interpretation to the mandatory package matcher. <code>nwn1.constants</code> is the sole
+named NWN rules-value declaration; C++ constructs typed numeric IDs only at
+native storage, traversal, and test-fixture boundaries.</p>
       </article>
     </main>
   </div>
