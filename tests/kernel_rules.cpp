@@ -79,6 +79,13 @@ TEST(KernelRules, Spells)
         {nw::smalls::Value::make_int(*nw::Spell::make(0))});
     ASSERT_TRUE(result.ok()) << result.error_message;
     EXPECT_EQ(result.value.data.ival, expected_school);
+
+    // PADDING is a real transformed row with no authored School value.
+    // Absence is valid source data and resolves to the invalid-school sentinel.
+    const auto padding = nwk::runtime().execute_script(script, "main",
+        {nw::smalls::Value::make_int(*nw::Spell::make(489))});
+    ASSERT_TRUE(padding.ok()) << padding.error_message;
+    EXPECT_EQ(padding.value.data.ival, -1);
 }
 
 TEST(KernelRules, ModuleSpellSchoolOverrideControlsSpellResolution)

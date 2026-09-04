@@ -23,22 +23,23 @@ fn _ensure_loaded() {
         var spell = Array.get(source, spell_id);
         if (spell.id == spell_id) {
             var letter = String.to_lower(spell.school_letter);
-            var match = -1;
-            var matches = 0;
-            for (var school_id = 0; school_id < SpellSchools.count(); school_id += 1) {
-                var school = SpellSchools.entry(school_id);
-                if (school.id == school_id
-                    && letter != ""
-                    && String.to_lower(school.letter) == letter) {
-                    match = school_id;
-                    matches += 1;
+            spell.school = -1;
+            if (letter != "") {
+                var match = -1;
+                var matches = 0;
+                for (var school_id = 0; school_id < SpellSchools.count(); school_id += 1) {
+                    var school = SpellSchools.entry(school_id);
+                    if (school.id == school_id
+                        && String.to_lower(school.letter) == letter) {
+                        match = school_id;
+                        matches += 1;
+                    }
                 }
-            }
-            if (matches == 1) {
-                spell.school = match;
-            } else {
-                spell.school = -1;
-                warn(f"spell {spell_id} has missing or duplicate school letter '{spell.school_letter}'");
+                if (matches == 1) {
+                    spell.school = match;
+                } else {
+                    warn(f"spell {spell_id} has unknown or duplicate school letter '{spell.school_letter}'");
+                }
             }
         }
         Array.push(resolved, spell);
