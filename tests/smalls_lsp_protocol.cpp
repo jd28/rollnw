@@ -1315,7 +1315,9 @@ TEST_F(SmallsLSP, ProtocolNamesModulesFromTheMostSpecificRoot)
     auto target = scripts / "core" / "array.smalls";
     std::string uri = smalls_lsp::native_path_to_uri(target.string());
     std::ifstream stream{target};
-    std::string source{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+    std::ostringstream buffer;
+    buffer << stream.rdbuf();
+    std::string source = std::move(buffer).str();
     ASSERT_FALSE(source.empty());
 
     auto messages = run_conversation({initialize_message(), did_open_message(uri, source)});
@@ -1628,7 +1630,9 @@ TEST_F(SmallsLSP, ProtocolCompletionDetailComesFromTheResolvedType)
 
     auto target = scripts / "nwn1" / "item.smalls";
     std::ifstream stream{target};
-    std::string source{std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}};
+    std::ostringstream buffer;
+    buffer << stream.rdbuf();
+    std::string source = std::move(buffer).str();
     ASSERT_FALSE(source.empty());
 
     // Insert a member access on a propset local, whose struct lives in another

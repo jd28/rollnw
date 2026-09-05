@@ -19,9 +19,9 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <iterator>
 #include <mutex>
 #include <optional>
+#include <sstream>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -346,7 +346,9 @@ std::optional<std::string> read_text_file(const std::filesystem::path& path)
         return std::nullopt;
     }
 
-    return std::string{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return std::move(buffer).str();
 }
 
 nw::smalls::Script* load_toolset_module(nw::smalls::Runtime& rt,

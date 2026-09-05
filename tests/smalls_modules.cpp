@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <fstream>
 #include <regex>
+#include <sstream>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -542,9 +543,9 @@ TEST(SmallsPackageConventions, SourceRootsConform)
 
             std::ifstream stream{entry.path()};
             ASSERT_TRUE(stream) << entry.path();
-            const std::string source{
-                std::istreambuf_iterator<char>{stream},
-                std::istreambuf_iterator<char>{}};
+            std::ostringstream buffer;
+            buffer << stream.rdbuf();
+            const std::string source = std::move(buffer).str();
 
             for (auto it = std::sregex_iterator{source.begin(), source.end(), propset_pattern};
                 it != std::sregex_iterator{}; ++it) {

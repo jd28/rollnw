@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <sstream>
 #include <string>
 
 using namespace std::literals;
@@ -135,7 +136,9 @@ TEST(ShaderIncludes, WaterShadersUseCommonRenderModelContracts)
     const std::filesystem::path shader_root = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "lib/nw/render/shaders";
     const auto read_shader = [&](std::string_view name) {
         std::ifstream input{shader_root / name};
-        return std::string{std::istreambuf_iterator<char>{input}, {}};
+        std::ostringstream buffer;
+        buffer << input.rdbuf();
+        return std::move(buffer).str();
     };
 
     const auto vertex = read_shader("render_water.vs.hlsl");

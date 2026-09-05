@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <sstream>
 
 namespace nw::smalls {
 
@@ -4006,6 +4007,8 @@ bool Runtime::copy_value_to_object_component(ObjectValueComponent& component,
     }
 
     const Type* declared = get_type(type_id);
+    if (!declared) { return false; }
+
     const Type* type = declared;
     TypeID storage_type_id = type_id;
     while (type && (type->type_kind == TK_newtype || type->type_kind == TK_alias)) {
@@ -4013,7 +4016,7 @@ bool Runtime::copy_value_to_object_component(ObjectValueComponent& component,
         storage_type_id = type->type_params[0].as<TypeID>();
         type = get_type(storage_type_id);
     }
-    if (!declared || !type) { return false; }
+    if (!type) { return false; }
 
     auto copy_array = [&](TypeID array_type, const Value& source,
                           uint8_t* output) -> bool {
@@ -6843,8 +6846,9 @@ Value Runtime::load_config_value(StringView path, StringView prelude_module)
         if (std::filesystem::exists(full_path)) {
             std::ifstream file(full_path);
             if (file.is_open()) {
-                std::string content((std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>());
+                std::ostringstream buffer;
+                buffer << file.rdbuf();
+                std::string content = std::move(buffer).str();
 
                 // Trim trailing whitespace from content before appending semicolon
                 while (!content.empty() && (content.back() == '\n' || content.back() == '\r' || content.back() == ' ' || content.back() == '\t')) {

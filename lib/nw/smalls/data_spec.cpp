@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <set>
+#include <sstream>
 
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
@@ -534,9 +535,9 @@ bool parse_data_specs(
             add_diagnostic(diagnostics, path, {}, "Failed to open data spec");
             return false;
         }
-        const String contents{
-            std::istreambuf_iterator<char>{input},
-            std::istreambuf_iterator<char>{}};
+        std::ostringstream buffer;
+        buffer << input.rdbuf();
+        const String contents = std::move(buffer).str();
         DataSpec spec;
         if (!parse_data_spec(contents, path.string(), spec, diagnostics)) {
             return false;
