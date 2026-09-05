@@ -17,6 +17,20 @@ TEST(Memory, Helpers)
     EXPECT_EQ(nw::GB(1), 1024ULL * 1024ULL * 1024ULL);
 }
 
+TEST(Memory, AllocatorsCompareByMemoryResource)
+{
+    nw::GlobalMemory resource;
+    nw::GlobalMemory other_resource;
+    nw::Allocator<int> first{&resource};
+    nw::Allocator<int> same{&resource};
+    nw::Allocator<float> rebound{first};
+    nw::Allocator<int> other{&other_resource};
+
+    EXPECT_EQ(first, same);
+    EXPECT_EQ(first, rebound);
+    EXPECT_NE(first, other);
+}
+
 struct TestStruct {
     TestStruct(bool* am_i_destrcuted)
         : am_i_destrcuted_{am_i_destrcuted}

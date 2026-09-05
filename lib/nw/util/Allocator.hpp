@@ -56,7 +56,7 @@ public:
 template <typename T, typename U>
 bool operator==(const Allocator<T>& a, const Allocator<U>& b) noexcept
 {
-    return &a.resource_.resource_ == &b.resource_.resource_;
+    return a.resource_.resource_ == b.resource_.resource_;
 }
 
 template <typename T, typename U>
