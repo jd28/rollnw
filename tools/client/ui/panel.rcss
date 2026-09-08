@@ -1129,6 +1129,12 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   color: #dce3ea;
   box-sizing: border-box;
 }
+/* Selection must not resize the area viewport while the pointer is held.
+ * Standalone blueprint workbenches retain their type-specific widths. */
+.workspace_preview_body.workspace_area_body .object_workbench {
+  flex-basis: 440px;
+  width: 440px;
+}
 .object_workbench_header {
   flex: 0 0 auto;
   padding: 12px 14px 10px 14px;

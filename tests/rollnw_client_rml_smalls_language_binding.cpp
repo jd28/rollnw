@@ -1063,6 +1063,67 @@ TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
     Rml::RemoveContext("creature-workbench-template-test");
 }
 
+TEST(ClientRmlTemplates, AreaSelectionKeepsViewportRectangleStableAcrossWorkbenchTypes)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace("tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    const std::string source = R"RML(
+<rml><head>
+<link type="text/css" href="tools/client/ui/panel.rcss"/>
+<link type="text/css" href="tools/client/ui/creature_editor.rcss"/>
+<link type="text/css" href="tools/client/ui/item_editor.rcss"/>
+<link type="text/css" href="tools/client/ui/door_editor.rcss"/>
+<link type="text/css" href="tools/client/ui/placeable_editor.rcss"/>
+<style>body { font-family: Inter; font-weight: normal; }</style>
+</head><body>
+<div id="area_body" class="workspace_preview_body workspace_area_body" style="width:100%; height:100%;">
+  <div id="viewport" class="workspace_viewer_viewport"></div>
+  <div id="workbench" class="object_workbench area_object_list_workbench"></div>
+</div>
+</body></rml>)RML";
+    auto* context = Rml::CreateContext("area-selection-layout-test", {1600, 900});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(source, "area_selection_layout_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    auto* viewport = document->GetElementById("viewport");
+    auto* workbench = document->GetElementById("workbench");
+    auto* body = document->GetElementById("area_body");
+    ASSERT_NE(viewport, nullptr);
+    ASSERT_NE(workbench, nullptr);
+    ASSERT_NE(body, nullptr);
+    for (const int width : {1600, 900}) {
+        context->SetDimensions({width, 900});
+        workbench->SetClassNames("object_workbench area_object_list_workbench");
+        context->Update();
+        const auto left = viewport->GetAbsoluteLeft();
+        const auto top = viewport->GetAbsoluteTop();
+        const auto viewport_width = viewport->GetClientWidth();
+        const auto viewport_height = viewport->GetClientHeight();
+        for (const auto* type : {"creature_workbench", "item_workbench", "door_workbench",
+                 "placeable_workbench", "area_object_list_workbench"}) {
+            SCOPED_TRACE(type);
+            workbench->SetClassNames(std::string{"object_workbench "} + type);
+            context->Update();
+            EXPECT_FLOAT_EQ(viewport->GetAbsoluteLeft(), left);
+            EXPECT_FLOAT_EQ(viewport->GetAbsoluteTop(), top);
+            EXPECT_FLOAT_EQ(viewport->GetClientWidth(), viewport_width);
+            EXPECT_FLOAT_EQ(viewport->GetClientHeight(), viewport_height);
+        }
+    }
+    context->SetDimensions({1600, 900});
+    body->SetClass("workspace_area_body", false);
+    workbench->SetClassNames("object_workbench item_workbench");
+    context->Update();
+    EXPECT_FLOAT_EQ(workbench->GetOffsetWidth(), 560.0f);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("area-selection-layout-test");
+}
+
 TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};

@@ -1,6 +1,7 @@
 
 #include "appearance_catalog.hpp"
 #include "area_map.hpp"
+#include "area_navigation.hpp"
 #include "dialog_view.hpp"
 #include "forward_plus_debug.hpp"
 #include "object_document.hpp"
@@ -19,6 +20,7 @@
 #include "smalls_creature_properties.hpp"
 #include "smalls_creature_spells.hpp"
 #include "toolset_backend.hpp"
+#include "viewport_pointer_drag.hpp"
 #include "virtual_combobox.hpp"
 #include "virtual_list.hpp"
 #include "workspace.hpp"
@@ -735,11 +737,16 @@ enum class AppearanceEditorField : uint8_t {
 };
 
 struct AreaObjectDragState {
+    nw::ObjectHandle area{};
     nw::ObjectSpatialState before;
     nw::ObjectSpatialState preview;
     glm::vec3 grab_offset{0.0f};
+    ClientViewportPointerDrag pointer;
     bool active = false;
     bool moved = false;
+    bool valid = false;
+    std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
+    std::string diagnostic;
 };
 
 enum class AreaObjectPlacementPhase : uint8_t {
@@ -760,6 +767,8 @@ struct AreaObjectPlacementState {
     AreaObjectPlacementPhase phase = AreaObjectPlacementPhase::idle;
     bool threshold_crossed = false;
     bool materialization_failed = false;
+    std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
+    std::string diagnostic;
 
     [[nodiscard]] bool active() const noexcept
     {
@@ -1183,6 +1192,7 @@ struct OpenModuleDialogResult {
 bool ensure_backend_ready(AppState& state);
 Rml::Element* find_ancestor_with_id(Rml::Element* element, std::string_view id);
 Rml::Vector2f to_context_point(SDL_Window* window, float x, float y);
+void cancel_area_object_drag(ClientRenderer& renderer, AppState& state);
 
 std::filesystem::path preferences_path(const char* app_name)
 {
@@ -2316,6 +2326,7 @@ bool handle_viewer_viewport_key(ClientRenderer& renderer,
 
     state.viewer_viewport_focused = true;
     const float scale = (key.mod & SDL_KMOD_SHIFT) ? 3.0f : 1.0f;
+    cancel_area_object_drag(renderer, state);
     renderer.viewer_viewport_camera_command(*command, scale, viewer_viewport->rect);
     return true;
 }
@@ -6319,7 +6330,7 @@ void append_workspace_document_markup(std::string& content_markup,
         content_markup += "</div><div class=\"workspace_area_detail\">";
         content_markup += escape_html(workspace_tab_detail(active_tab));
         content_markup += "</div></div>";
-        content_markup += "<div class=\"workspace_preview_body\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
+        content_markup += "<div class=\"workspace_preview_body workspace_area_body\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
         if (!has_resource) {
             content_markup += " empty";
         }
@@ -8174,7 +8185,8 @@ bool sync_appearance_body_preview(ClientRenderer& renderer, AppState& state)
 
 bool editable_area_object(nw::ObjectHandle object) noexcept
 {
-    return object.type == nw::ObjectType::creature || object.type == nw::ObjectType::placeable;
+    return object.type == nw::ObjectType::creature || object.type == nw::ObjectType::placeable
+        || object.type == nw::ObjectType::item;
 }
 
 std::string precise_float_text(float value)
@@ -8194,6 +8206,38 @@ void sync_area_object_after_command(
     if (editable_area_object(object)) {
         renderer.sync_viewer_area_object_spatial(object);
     }
+}
+
+bool validate_placement_preview(ClientRenderer& renderer,
+    std::unique_ptr<nw::toolset::AreaPlacementNavigation>& navigation,
+    nw::ObjectHandle area, const nw::ObjectSpatialState& spatial,
+    std::string& diagnostic)
+{
+    const std::array rows{spatial};
+    nw::toolset::AreaPlacementNavigation uncached;
+    if (spatial.owner.type == nw::ObjectType::creature && !navigation) {
+        try {
+            navigation = std::make_unique<nw::toolset::AreaPlacementNavigation>();
+        } catch (const std::bad_alloc&) {
+            diagnostic = "Creature placement navigation allocation failed";
+            return false;
+        }
+    }
+    auto& snapshot = navigation ? *navigation : uncached;
+    const auto result = nw::toolset::validate_area_placements(snapshot, area, rows);
+    diagnostic = result.diagnostic;
+    if (navigation) {
+        const bool enabled = result.status != nw::nav::NavStatus::rejected
+            && nw::toolset::collect_placement_navigation_debug(snapshot);
+        if (!renderer.update_toolset_preview_navigation_debug({
+                .triangles = snapshot.debug_triangles,
+                .revision = snapshot.revision,
+                .enabled = enabled,
+            })) {
+            LOG_F(WARNING, "Creature placement navigation overlay update failed");
+        }
+    }
+    return result.ok();
 }
 
 bool begin_area_object_drag(ClientRenderer& renderer,
@@ -8217,10 +8261,13 @@ bool begin_area_object_drag(ClientRenderer& renderer,
     }
 
     state.area_object_drag = {
+        .area = renderer.area_viewer_object(),
         .before = *spatial,
         .preview = *spatial,
         .grab_offset = spatial->position - *surface_point,
+        .pointer = {viewport.rect, {point.x, point.y}},
         .active = true,
+        .valid = true,
     };
     state.smalls.publish_active_object(object);
     state.active_object_tab_id = state.workspace.active_tab_id();
@@ -8232,21 +8279,35 @@ bool update_area_object_drag(ClientRenderer& renderer,
     Rml::Vector2f point,
     const WorkspaceViewerViewportRequest& viewport)
 {
-    if (!state.area_object_drag.active || viewport.kind != WorkspaceViewerViewportKind::area) {
+    if (!state.area_object_drag.active) {
         return false;
     }
+    if (viewport.kind != WorkspaceViewerViewportKind::area
+        || renderer.area_viewer_object() != state.area_object_drag.area) {
+        cancel_area_object_drag(renderer, state);
+        return false;
+    }
+    const auto pointer_status = update_viewport_pointer_drag(
+        state.area_object_drag.pointer, {point.x, point.y}, viewport.rect);
+    if (pointer_status == ClientViewportPointerDragStatus::cancelled) {
+        cancel_area_object_drag(renderer, state);
+        return false;
+    }
+    if (pointer_status == ClientViewportPointerDragStatus::pending) return false;
     const auto surface_point = renderer.viewer_area_surface_point(
         point.x, point.y, viewport.rect);
     if (!surface_point) {
+        state.area_object_drag.valid = false;
+        state.area_object_drag.diagnostic = "Placement ray did not hit an area surface";
         return false;
     }
 
     const glm::vec3 position = *surface_point + state.area_object_drag.grab_offset;
-    if (position == state.area_object_drag.preview.position) {
-        return true;
-    }
     state.area_object_drag.preview.position = position;
     state.area_object_drag.moved = position != state.area_object_drag.before.position;
+    auto& drag = state.area_object_drag;
+    drag.valid = validate_placement_preview(renderer, drag.navigation,
+        drag.area, drag.preview, drag.diagnostic);
     renderer.preview_viewer_area_object_spatial(state.area_object_drag.preview);
     return true;
 }
@@ -8256,7 +8317,12 @@ void cancel_area_object_drag(ClientRenderer& renderer, AppState& state)
     if (!state.area_object_drag.active) {
         return;
     }
-    renderer.sync_viewer_area_object_spatial(state.area_object_drag.before.owner);
+    if (state.area_object_drag.navigation) {
+        renderer.update_toolset_preview_navigation_debug({});
+    }
+    if (state.area_object_drag.pointer.dragging) {
+        renderer.sync_viewer_area_object_spatial(state.area_object_drag.before.owner);
+    }
     state.area_object_drag = {};
 }
 
@@ -8266,10 +8332,17 @@ void commit_area_object_drag(ClientRenderer& renderer, AppState& state)
         return;
     }
 
-    const auto drag = state.area_object_drag;
+    const auto drag = std::move(state.area_object_drag);
     state.area_object_drag = {};
+    if (drag.navigation) renderer.update_toolset_preview_navigation_debug({});
+    if (!drag.pointer.dragging) return;
     if (!drag.moved || state.smalls.active_object() != drag.before.owner) {
         renderer.sync_viewer_area_object_spatial(drag.before.owner);
+        return;
+    }
+    if (!drag.valid) {
+        renderer.sync_viewer_area_object_spatial(drag.before.owner);
+        append_output(state, "warn", drag.diagnostic);
         return;
     }
 
@@ -8293,7 +8366,8 @@ bool placement_blueprint_resource(const nw::Resource& resource) noexcept
 {
     return resource.valid()
         && (resource.type == nw::ResourceType::utc
-            || resource.type == nw::ResourceType::utp);
+            || resource.type == nw::ResourceType::utp
+            || resource.type == nw::ResourceType::uti);
 }
 
 bool area_object_placement_position_valid(nw::ObjectHandle area, glm::vec3 position)
@@ -8338,6 +8412,7 @@ void cancel_area_object_placement(ClientRenderer& renderer, AppState& state)
 
     const auto placement = std::move(state.area_object_placement);
     state.area_object_placement = {};
+    if (placement.navigation) renderer.update_toolset_preview_navigation_debug({});
     if (nw::kernel::objects().valid(placement.object)) {
         nw::kernel::objects().destroy(placement.object);
     }
@@ -8395,6 +8470,7 @@ bool update_area_object_placement(ClientRenderer& renderer,
         point.x, point.y, viewport->rect);
     if (!surface_point) {
         placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        placement.diagnostic = "Placement ray did not hit an area surface";
         return true;
     }
     const bool valid_position = area_object_placement_position_valid(area, *surface_point);
@@ -8447,7 +8523,9 @@ bool update_area_object_placement(ClientRenderer& renderer,
         cancel_area_object_placement(renderer, state);
         return true;
     }
-    placement.phase = valid_position
+    const bool admitted = validate_placement_preview(renderer, placement.navigation,
+        area, placement.preview, placement.diagnostic);
+    placement.phase = valid_position && admitted
         ? AreaObjectPlacementPhase::ghost_valid
         : AreaObjectPlacementPhase::ghost_invalid;
     return true;
@@ -8460,12 +8538,16 @@ void commit_area_object_placement(ClientRenderer& renderer, AppState& state)
     }
     if (state.area_object_placement.phase != AreaObjectPlacementPhase::ghost_valid
         || !nw::kernel::objects().valid(state.area_object_placement.object)) {
+        if (!state.area_object_placement.diagnostic.empty()) {
+            append_output(state, "warn", state.area_object_placement.diagnostic);
+        }
         cancel_area_object_placement(renderer, state);
         return;
     }
 
     const auto placement = std::move(state.area_object_placement);
     state.area_object_placement = {};
+    if (placement.navigation) renderer.update_toolset_preview_navigation_debug({});
     if (!nw::kernel::objects().components().set_position(
             placement.object, placement.preview.position)) {
         if (nw::kernel::objects().valid(placement.object)) {
@@ -10612,10 +10694,11 @@ int main(int argc, char* argv[])
                                     ? ClientAreaSelectionTarget::tile
                                     : ClientAreaSelectionTarget::object);
                             if (begin_area_object_drag(renderer, state, point, *viewer_viewport)) {
-                                system_interface.SetMouseCursor("grabbing");
+                                system_interface.SetMouseCursor("arrow");
                             }
                         }
                         if (preview_orbit_drag || event.button.button == SDL_BUTTON_RIGHT || event.button.button == SDL_BUTTON_MIDDLE) {
+                            cancel_area_object_drag(renderer, state);
                             state.viewer_viewport_dragging = true;
                             state.viewer_viewport_drag_mode = event.button.button == SDL_BUTTON_MIDDLE
                                 ? ClientViewportDragMode::pan
@@ -10694,8 +10777,7 @@ int main(int argc, char* argv[])
                                             row.relative_path, false);
                                         const bool armed = arm_project_blueprint_drag(
                                             state, resource, row.path, point);
-                                        if (!armed
-                                            && resource.type != nw::ResourceType::uti) {
+                                        if (!armed) {
                                             arm_area_object_placement(
                                                 renderer, state, resource, point);
                                         }
@@ -10786,7 +10868,9 @@ int main(int argc, char* argv[])
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(
                             doc, state, frame_width, frame_height)) {
                         update_area_object_drag(renderer, state, point, *viewer_viewport);
-                        system_interface.SetMouseCursor("grabbing");
+                        system_interface.SetMouseCursor(!state.area_object_drag.pointer.dragging ? "arrow"
+                                : state.area_object_drag.valid                                   ? "grabbing"
+                                                                                                 : "unavailable");
                     } else {
                         cancel_area_object_drag(renderer, state);
                         system_interface.SetMouseCursor("arrow");
@@ -10945,6 +11029,7 @@ int main(int argc, char* argv[])
                             && editable_area_object(object)
                             && !focused_text_input(context)
                             && !state.module_dialog_open;
+                        cancel_area_object_drag(renderer, state);
                         if (object_wheel
                             && !(modifiers & (SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
                             const bool rotate = (modifiers & SDL_KMOD_CTRL) != 0;
@@ -11046,8 +11131,14 @@ int main(int argc, char* argv[])
                     break;
                 }
                 if (state.area_object_drag.active && event.button.button == SDL_BUTTON_LEFT) {
-                    commit_area_object_drag(renderer, state);
                     const auto point = to_context_point(window, event.button.x, event.button.y);
+                    if (const auto viewport = active_workspace_viewer_viewport_request(
+                            doc, state, frame_width, frame_height)) {
+                        update_area_object_drag(renderer, state, point, *viewport);
+                        commit_area_object_drag(renderer, state);
+                    } else {
+                        cancel_area_object_drag(renderer, state);
+                    }
                     system_interface.SetMouseCursor(
                         point_within_element(doc, "workspace_tabs", point) ? "pointer" : "arrow");
                     dispatched_to_rml = true;
@@ -11985,7 +12076,7 @@ int main(int argc, char* argv[])
             const bool area_structure_changed = mutation.area_structure_epoch != state.observed_area_structure_epoch;
             state.observed_area_structure_epoch = mutation.area_structure_epoch;
             if (area_structure_changed) {
-                state.area_object_drag = {};
+                cancel_area_object_drag(renderer, state);
                 if (!renderer.rebuild_live_viewer_area(mutation.area, mutation.object)) {
                     append_output(state, "error", "Failed to rebuild the live area viewport after structural edit");
                 }

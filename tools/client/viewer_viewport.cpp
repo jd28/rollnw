@@ -742,7 +742,9 @@ struct ClientViewerViewport::Impl {
     bool update_toolset_preview_navigation_debug(
         const nw::toolset::PreviewNavigationDebugView& view)
     {
-        if (!session || transient_preview_objects.empty()) return false;
+        // Placement previews use the same area overlay without starting F9 or
+        // creating a transient simulation actor.
+        if (!session || loaded_area_resref.empty()) return false;
         if (!view.enabled) {
             session->clear_transient_debug_geometry();
             transient_debug_vertices.clear();
