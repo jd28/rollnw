@@ -211,6 +211,11 @@ public:
 
     bool load_model(std::string_view resref);
     bool load_area(std::string_view resref);
+    // The single active scene borrows this live root. Keep it alive while using
+    // the scene; after document close, clear/replace before the next tick/draw.
+    // Teardown does not access borrowed roots. Invalid or scene-owned roots
+    // reject the transition and leave the current scene unchanged.
+    bool load_live_object(nw::ObjectHandle object, std::string_view source);
     bool load_object_file(const std::filesystem::path& path);
     bool rebuild_live_area(
         nw::ObjectHandle area, nw::ObjectHandle selected_object = nw::ObjectHandle{});

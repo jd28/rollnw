@@ -645,6 +645,24 @@ bool ViewerSession::load_area(std::string_view resref)
     return true;
 }
 
+bool ViewerSession::load_live_object(nw::ObjectHandle object, std::string_view source)
+{
+    if (!preview_resources_ || !nw::kernel::objects().valid(object)
+        || (scene_ && scene_->owns_root_object && scene_->root_object == object)) {
+        return false;
+    }
+    const bool is_area = object.type == nw::ObjectType::area;
+    auto scene = is_area
+        ? build_live_area_scene(*preview_resources_, *nw::kernel::objects().get<nw::Area>(object),
+              source, preview_scene_load_options_)
+        : build_live_object_scene(*preview_resources_, object, source, preview_scene_load_options_);
+    if (!scene || !set_scene(std::move(scene), is_area ? ViewerSceneKind::area : ViewerSceneKind::object_file, std::string{source})) {
+        return false;
+    }
+    bootstrap_scene_playback(*scene_);
+    return true;
+}
+
 bool ViewerSession::rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
     if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area
@@ -689,8 +707,8 @@ bool ViewerSession::rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle se
     }
     replacement->active_object = selected_object;
 
+    replacement->owns_root_object = scene_->owns_root_object;
     scene_->owns_root_object = false;
-    replacement->owns_root_object = true;
     if (!set_scene(std::move(replacement), ViewerSceneKind::area, loaded_source_)) {
         return false;
     }
@@ -728,8 +746,8 @@ bool ViewerSession::rebuild_live_object(nw::ObjectHandle object)
     }
 
     const float saved_scene_time = scene_time_seconds_;
+    replacement->owns_root_object = scene_->owns_root_object;
     scene_->owns_root_object = false;
-    replacement->owns_root_object = true;
     if (!set_scene(std::move(replacement), ViewerSceneKind::object_file, loaded_source_)) {
         return false;
     }

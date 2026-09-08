@@ -3456,21 +3456,11 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources
     return scene;
 }
 
-static std::unique_ptr<PreviewScene> load_waypoint_scene(
-    PreviewRenderResources& resources, const std::filesystem::path& path)
+static std::unique_ptr<PreviewScene> load_live_waypoint_scene(
+    PreviewRenderResources& resources, const nw::Waypoint& waypoint, const std::filesystem::path& path)
 {
     const auto path_text = path.string();
-    ERRARE("[viewer] loading waypoint preview '{}'", std::string_view{path_text});
-
-    PreviewObjectPtr<nw::Waypoint> waypoint{
-        nw::kernel::objects().load_file<nw::Waypoint>(path)};
-    if (!waypoint) {
-        LOG_F(ERROR, "Waypoint preview '{}' failed to load", path_text);
-        log_preview_error_context();
-        return {};
-    }
-
-    const auto model = resolve_waypoint_model(*waypoint);
+    const auto model = resolve_waypoint_model(waypoint);
     std::unique_ptr<PreviewScene> scene;
     if (model.valid()) {
         scene = load_blueprint_model_scene(
@@ -3496,8 +3486,24 @@ static std::unique_ptr<PreviewScene> load_waypoint_scene(
         scene->rebuild_load_report(path_text, "waypoint");
     }
 
-    scene->root_object = waypoint->handle();
+    scene->root_object = waypoint.handle();
     scene->active_object = scene->root_object;
+    scene->owns_root_object = false;
+    return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_waypoint_scene(
+    PreviewRenderResources& resources, const std::filesystem::path& path)
+{
+    PreviewObjectPtr<nw::Waypoint> waypoint{
+        nw::kernel::objects().load_file<nw::Waypoint>(path)};
+    if (!waypoint) {
+        LOG_F(ERROR, "Waypoint preview '{}' failed to load", path.string());
+        log_preview_error_context();
+        return {};
+    }
+    auto scene = load_live_waypoint_scene(resources, *waypoint, path);
+    scene->owns_root_object = true;
     waypoint.release();
     return scene;
 }
@@ -4462,6 +4468,18 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
         if (auto* encounter = nw::kernel::objects().get<nw::Encounter>(object)) {
             scene = build_encounter_spawn_scene(
                 resources, *encounter, source, options);
+        }
+        break;
+    case nw::ObjectType::waypoint:
+        if (auto* waypoint = nw::kernel::objects().get<nw::Waypoint>(object)) {
+            scene = load_live_waypoint_scene(resources, *waypoint, std::filesystem::path{source});
+        }
+        break;
+    case nw::ObjectType::sound:
+    case nw::ObjectType::store:
+    case nw::ObjectType::trigger:
+        if (nw::kernel::objects().valid(object)) {
+            scene = std::make_unique<PreviewScene>();
         }
         break;
     default:
