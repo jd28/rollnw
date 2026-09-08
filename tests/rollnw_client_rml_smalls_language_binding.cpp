@@ -1191,6 +1191,67 @@ TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
     Rml::RemoveContext("workspace-tab-bar-template-test");
 }
 
+TEST(ClientRmlTemplates, AreaTabDirtyIndicatorIsVisibleWithoutMovingItsIcon)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    const std::string source = R"RML(
+<rml>
+<head><link type="text/css" href="tools/client/ui/panel.rcss"/></head>
+<body>
+<div id="area-tab" class="workspace_tab workspace_tab_area locked active">
+  <span class="workspace_tab_title">
+    <span id="area-icon" class="workspace_tab_graphic workspace_tab_area_graphic"></span>
+  </span>
+  <span id="dirty-indicator" class="workspace_tab_dirty" title="Unsaved changes"></span>
+</div>
+</body>
+</rml>
+)RML";
+    auto* context = Rml::CreateContext("area-tab-dirty-test", {200, 100});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(source, "area_tab_dirty_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+    auto* tab = document->GetElementById("area-tab");
+    auto* icon = document->GetElementById("area-icon");
+    auto* indicator = document->GetElementById("dirty-indicator");
+    ASSERT_NE(tab, nullptr);
+    ASSERT_NE(icon, nullptr);
+    ASSERT_NE(indicator, nullptr);
+    const auto clean_width = tab->GetOffsetWidth();
+    const auto clean_icon_offset = icon->GetAbsoluteOffset();
+    EXPECT_FALSE(indicator->IsVisible(true));
+
+    tab->SetClass("dirty", true);
+    context->Update();
+    EXPECT_TRUE(indicator->IsVisible(true));
+    EXPECT_GE(indicator->GetOffsetWidth(), 8.0f);
+    EXPECT_GE(indicator->GetOffsetHeight(), 8.0f);
+    EXPECT_EQ(tab->GetOffsetWidth(), clean_width);
+    EXPECT_EQ(icon->GetAbsoluteOffset(), clean_icon_offset);
+    const auto offset = indicator->GetAbsoluteOffset() - tab->GetAbsoluteOffset();
+    EXPECT_GE(offset.x, 0.0f);
+    EXPECT_GE(offset.y, 0.0f);
+    EXPECT_LE(offset.x + indicator->GetOffsetWidth(), tab->GetOffsetWidth());
+    EXPECT_LE(offset.y + indicator->GetOffsetHeight(), tab->GetOffsetHeight());
+
+    tab->SetClass("active", false);
+    context->Update();
+    EXPECT_TRUE(indicator->IsVisible(true));
+    EXPECT_EQ(tab->GetOffsetWidth(), clean_width);
+    tab->SetClass("dirty", false);
+    context->Update();
+    EXPECT_FALSE(indicator->IsVisible(true));
+    EXPECT_EQ(tab->GetOffsetWidth(), clean_width);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("area-tab-dirty-test");
+}
+
 TEST(ClientRmlTemplates, ObjectWorkbenchTabBarProvidesOverflowControls)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};

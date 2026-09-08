@@ -6367,6 +6367,9 @@ std::string workspace_tab_class(const nw::toolset::WorkspaceTab& tab, std::strin
     if (!tab.movable) {
         out += " locked";
     }
+    if (tab.dirty) {
+        out += " dirty";
+    }
     if (state.workspace_tab_dragging && tab.id == state.workspace_tab_drag_id) {
         out += " dragging";
     }
@@ -6706,10 +6709,13 @@ void refresh_workspace_tabs(Rml::ElementDocument* doc, AppState& state)
         } else {
             tab_markup += escape_html(tab.title);
         }
-        if (tab.dirty) {
+        if (tab.dirty && tab.kind != nw::toolset::WorkspaceTabKind::area) {
             tab_markup += " *";
         }
         tab_markup += "</span>";
+        if (tab.kind == nw::toolset::WorkspaceTabKind::area) {
+            tab_markup += "<span class=\"workspace_tab_dirty\" title=\"Unsaved changes\"></span>";
+        }
         if (tab.closable) {
             tab_markup += "<div class=\"workspace_tab_close\" data-tab=\"";
             tab_markup += escape_html(tab.id);

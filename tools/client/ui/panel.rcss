@@ -521,6 +521,24 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   font-size: 0px;
   line-height: 0px;
 }
+.workspace_tab_area {
+  position: relative;
+}
+.workspace_tab_dirty {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border: 1px #151a20;
+  border-radius: 5px;
+  background: #d5b06f;
+  pointer-events: none;
+}
+.workspace_tab.dirty .workspace_tab_dirty {
+  display: block;
+}
 .workspace_tab_graphic {
   display: block;
   position: relative;
