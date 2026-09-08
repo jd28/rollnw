@@ -42,6 +42,18 @@ target is clarity, not a produced trailer; recording and editing should fit in
 one working session. Runtime performance claims are excluded unless frame data
 is captured and reported from the demonstrated build.
 
+## Placement release checks
+
+The [placement authoring slice](rollnw-client-area-object-placement.md) is complete;
+these release checks remain open:
+
+- From a fresh process, verify blueprint drop, selection, drag/cancel, undo/redo,
+  and save/reopen; confirm navigation-overlay legibility.
+- Measure pointer-motion CPU time and begin/commit/cancel frame time in Tracy
+  on a small area and the largest routinely edited area. Record the area size
+  and demonstrated commit; small-area query timings do not establish large-area
+  responsiveness. Visible input stalls require investigation before capture.
+
 ## Done
 
 - the demonstrated commit is on `main` and identified in the description;

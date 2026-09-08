@@ -171,11 +171,26 @@ These views demonstrate the intended split: reflection handles broadly useful
 data, while workflow-heavy collections use purpose-built views and commands.
 All data-dependent row surfaces must remain viewport-virtualized.
 
-Area tabs provide precise mesh or authored-footprint selection for placed
+Area tabs provide mesh or authored-footprint selection for placed
 objects, Ctrl-click tile selection, a complete placed-object list, and camera
-focus on list selection. The validated Creature/Placeable structural slice
+focus on list selection. The validated Creature/Placeable/Item structural slice
 supports placement, transforms, duplicate, delete, undo/redo, and native CAF
 save. Blueprint preview tabs use the same focused edit commands and save path.
+
+Drag a Creature, Placeable, or Item blueprint from the project tree into an area
+to preview placement; drop commits one undoable edit and cancel discards it.
+Creature placement/transforms require walkable ground and known clearance:
+invalid targets reject rather than snap, with a navigation overlay during drag.
+Placeables and items allow free authored height within area XY bounds.
+
+Ground items align their rotated model bottoms to authored height without
+rewriting saved coordinates. Thin items have six-pixel sampled click assistance,
+respecting nearer geometry. Selecting keeps the viewport stable; moving requires
+a five-pixel drag, and viewport/camera changes cancel the gesture. Standalone
+and equipped-item poses are unchanged.
+
+Area drops create new instances from blueprints. Moving an existing inventory
+item into the world and picking up ground items are not supported yet.
 
 ## Play Preview
 
@@ -253,7 +268,7 @@ The UI subsystem and language binding are documented in:
 - The client is viewer-first. It does not yet provide new-area creation or a
   complete editor for every object aggregate.
 - Native CAF area save is implemented. Structural placement and membership
-  editing are currently limited to Creature and Placeable; other placed kinds
+  editing are currently limited to Creature, Placeable, and Item; other placed kinds
   are selectable and inspectable but do not all have structural commands.
 - Encounter spawn lists require a dedicated editor; they are not flattened into
   generic Details rows.
