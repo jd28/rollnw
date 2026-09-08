@@ -1,5 +1,7 @@
 #include "viewer_viewport.hpp"
 
+#include "object_document.hpp"
+
 #include "preview_session.hpp"
 #include "viewer_camera_state.hpp"
 
@@ -151,6 +153,7 @@ struct ClientViewerViewport::Impl {
         const std::filesystem::path& project_dir,
         uint64_t module_generation,
         std::string_view area_resource,
+        nw::toolset::ObjectDocument& document,
         ClientViewportRect viewport,
         int32_t dt_ms)
     {
@@ -176,7 +179,7 @@ struct ClientViewerViewport::Impl {
             return false;
         }
         apply_area_reload_request();
-        if (!load_area(area_resref, viewport)) {
+        if (!load_area(area_resref, document, viewport)) {
             return false;
         }
         apply_area_options_to_session();
@@ -189,6 +192,7 @@ struct ClientViewerViewport::Impl {
         const std::filesystem::path& project_dir,
         uint64_t module_generation,
         std::string_view resource_path,
+        nw::toolset::ObjectDocument& document,
         ClientViewportRect viewport,
         int32_t dt_ms)
     {
@@ -202,7 +206,7 @@ struct ClientViewerViewport::Impl {
         if (!ensure_runtime()) {
             return false;
         }
-        if (!load_preview(resource_path, viewport)) {
+        if (!load_preview(resource_path, document, viewport)) {
             return false;
         }
 
@@ -212,7 +216,8 @@ struct ClientViewerViewport::Impl {
 
     bool prepare_preview(const std::filesystem::path& project_dir,
         uint64_t module_generation,
-        std::string_view resource_path)
+        std::string_view resource_path,
+        nw::toolset::ObjectDocument& document)
     {
         if (!context || resource_path.empty()) {
             return false;
@@ -225,7 +230,7 @@ struct ClientViewerViewport::Impl {
         }
 
         constexpr ClientViewportRect load_viewport{0, 0, 8, 8};
-        return load_preview(resource_path, load_viewport);
+        return load_preview(resource_path, document, load_viewport);
     }
 
     void discard_scene()
@@ -325,9 +330,11 @@ struct ClientViewerViewport::Impl {
         return true;
     }
 
-    bool load_area(const std::string& area_resref, ClientViewportRect viewport)
+    bool load_area(const std::string& area_resref, nw::toolset::ObjectDocument& document, ClientViewportRect viewport)
     {
-        if (loaded_area_resref == area_resref && session && session->scene()) {
+        if (loaded_area_resref == area_resref && session && session->scene()
+            && session->scene()->root_object == document.object()
+            && nw::kernel::objects().valid(document.object())) {
             update_camera_viewport(viewport);
             return true;
         }
@@ -345,7 +352,11 @@ struct ClientViewerViewport::Impl {
                 area_resref);
         }
         store_loaded_camera();
-        if (!session->load_area(area_resref)) {
+        const bool retained = document.object().type != nw::ObjectType::invalid;
+        const bool loaded = retained
+            ? session->load_live_object(document.object(), area_resref)
+            : session->load_area(area_resref);
+        if (!loaded || (!retained && !adopt_loaded_document(document))) {
             failed_area_resref = area_resref;
             discard_scene();
             LOG_F(ERROR, "Client area render: failed to load area '{}'", area_resref);
@@ -363,9 +374,21 @@ struct ClientViewerViewport::Impl {
         return true;
     }
 
-    bool load_preview(std::string_view resource_path, ClientViewportRect viewport)
+    bool adopt_loaded_document(nw::toolset::ObjectDocument& document)
     {
-        if (loaded_preview_resource == resource_path && session && session->scene()) {
+        auto* scene = session->scene();
+        if (!scene || !scene->owns_root_object || !document.adopt(scene->root_object)) {
+            return false;
+        }
+        scene->owns_root_object = false;
+        return true;
+    }
+
+    bool load_preview(std::string_view resource_path, nw::toolset::ObjectDocument& document, ClientViewportRect viewport)
+    {
+        if (loaded_preview_resource == resource_path && session && session->scene()
+            && session->scene()->root_object == document.object()
+            && nw::kernel::objects().valid(document.object())) {
             update_camera_viewport(viewport);
             return true;
         }
@@ -376,10 +399,11 @@ struct ClientViewerViewport::Impl {
 
         const auto relative_path = std::filesystem::path{std::string{resource_path}};
         const auto preview_path = relative_path.is_absolute() ? relative_path : mounted_project / relative_path;
-        if (preview_load_failure_is_current(resource_path, preview_path)) {
+        const bool retained = document.object().type != nw::ObjectType::invalid;
+        if (!retained && preview_load_failure_is_current(resource_path, preview_path)) {
             return false;
         }
-        if (!std::filesystem::exists(preview_path)) {
+        if (!retained && !std::filesystem::exists(preview_path)) {
             LOG_F(ERROR, "Client preview viewport: resource file does not exist '{}'", preview_path.string());
             record_preview_load_failure(resource_path, preview_path);
             discard_scene();
@@ -387,7 +411,10 @@ struct ClientViewerViewport::Impl {
         }
 
         store_loaded_camera();
-        if (!session->load_object_file(preview_path)) {
+        const bool loaded = retained
+            ? session->load_live_object(document.object(), preview_path.string())
+            : session->load_object_file(preview_path);
+        if (!loaded || (!retained && !adopt_loaded_document(document))) {
             record_preview_load_failure(resource_path, preview_path);
             discard_scene();
             LOG_F(ERROR, "Client preview viewport: failed to load '{}'", preview_path.string());
@@ -1115,32 +1142,35 @@ bool ClientViewerViewport::render(nw::gfx::CommandList* command_list,
     const std::filesystem::path& project_dir,
     uint64_t module_generation,
     std::string_view area_resource,
+    nw::toolset::ObjectDocument& document,
     ClientViewportRect viewport,
     int32_t dt_ms)
 {
     return impl_
         && impl_->render(
-            command_list, project_dir, module_generation, area_resource, viewport, dt_ms);
+            command_list, project_dir, module_generation, area_resource, document, viewport, dt_ms);
 }
 
 bool ClientViewerViewport::render_preview(nw::gfx::CommandList* command_list,
     const std::filesystem::path& project_dir,
     uint64_t module_generation,
     std::string_view resource_path,
+    nw::toolset::ObjectDocument& document,
     ClientViewportRect viewport,
     int32_t dt_ms)
 {
     return impl_
         && impl_->render_preview(
-            command_list, project_dir, module_generation, resource_path, viewport, dt_ms);
+            command_list, project_dir, module_generation, resource_path, document, viewport, dt_ms);
 }
 
 bool ClientViewerViewport::prepare_preview(const std::filesystem::path& project_dir,
     uint64_t module_generation,
-    std::string_view resource_path)
+    std::string_view resource_path,
+    nw::toolset::ObjectDocument& document)
 {
     return impl_
-        && impl_->prepare_preview(project_dir, module_generation, resource_path);
+        && impl_->prepare_preview(project_dir, module_generation, resource_path, document);
 }
 
 void ClientViewerViewport::clear()

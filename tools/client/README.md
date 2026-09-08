@@ -89,8 +89,8 @@ The main ownership boundaries are:
 
 | Owner | Data and lifetime |
 | --- | --- |
-| `ToolsetBackend` | Command registry, project/module state, terminal dispatch, and the document-save callback. |
-| `WorkspaceState` | Ordered tabs, active tab, dirty flags, subtabs, and per-tab undo/redo stacks. |
+| `ToolsetBackend` | Command registry, project/module state, terminal dispatch, and document-save commands. |
+| `WorkspaceState` | Ordered tabs, live documents, active tab, dirty flags, subtabs, and per-tab undo/redo stacks. |
 | `ViewerSession` | The loaded preview scene and renderer-side selected object handle. |
 | `ObjectManager` | Live gameplay object storage addressed by generational `ObjectHandle` values. |
 | `RmlSmallsBridge` / `SmallsRmlUiHost` | Non-owning active-object and active-area handles used by Smalls commands. Stale handles read back as invalid. |
@@ -108,10 +108,16 @@ kind, title, resource detail, dirty flag, optional subtabs, and undo/redo
 stacks. Undo history belongs to the tab containing the edited document; global
 commands do not add entries.
 
-The workspace distinguishes home, module, project, area, blueprint preview,
-resource, and generic tabs. The permanent Home and Area tabs are not closable
-or movable. Opening another area replaces the Area tab's document state and
-clears its prior undo/redo history.
+There is one pinned Area tab, alongside Home and the blueprint tabs. Visiting
+another tab preserves the current area's edits and undo history. Selecting a
+different area reuses the Area tab; unsaved changes prompt for Save, Discard,
+or Cancel first. Home and Area cannot be moved or closed.
+
+Use **Ctrl+S** to save the active document or **Ctrl+Shift+S** / **Save All** to
+save every modified open document without switching tabs. Saving supports native
+CAF areas and JSON blueprints. If a document cannot be saved, it stays modified
+and the output identifies the failure; other documents still save. Binary
+resources are not overwritten with JSON.
 
 Dirty tabs use a complete close protocol:
 
@@ -128,6 +134,8 @@ workspace.close_tab
 
 `Ctrl+W`, palette actions, and terminal commands all dispatch this protocol.
 They do not close a dirty document directly.
+Quitting offers Save All, Discard, or Cancel. Save or discard modified documents
+before opening another project or module.
 
 ## Commands
 
@@ -272,7 +280,8 @@ The UI subsystem and language binding are documented in:
   are selectable and inspectable but do not all have structural commands.
 - Encounter spawn lists require a dedicated editor; they are not flattened into
   generic Details rows.
-- `toolset.save_all` is registered but remains a stub.
+- Save All covers open modified JSON area and blueprint documents; it is not
+  autosave or a project-wide export.
 - The Smalls list host defines list state and callback protocols, but the
   current object-workbench DOM rows are materialized by the C++
   `VirtualListController` path.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "command_bus.hpp"
+#include "object_document.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -28,6 +29,10 @@ struct WorkspaceSubTab {
 };
 
 struct WorkspaceTab {
+    WorkspaceTab() = default;
+    WorkspaceTab(WorkspaceTab&&) noexcept = default;
+    WorkspaceTab& operator=(WorkspaceTab&& other) noexcept;
+
     std::string id;
     std::string title;
     std::string detail;
@@ -37,6 +42,7 @@ struct WorkspaceTab {
     bool dirty = false;
     std::vector<WorkspaceSubTab> subtabs;
     std::optional<size_t> active_subtab_index;
+    ObjectDocument document;
     std::vector<CommandUndoAction> undo_stack;
     std::vector<CommandUndoAction> redo_stack;
 };
@@ -60,11 +66,16 @@ struct WorkspaceCloseResult {
 
 class WorkspaceState {
 public:
+    // One pinned Area tab owns the current area. Dirty replacement is rejected
+    // without releasing its document/history; callers must save or discard first.
+    WorkspaceTab& open_area_tab(std::string detail, std::string title);
     WorkspaceTab& open_tab(std::string id,
         std::string title = {},
         WorkspaceTabKind kind = WorkspaceTabKind::generic,
         bool closable = true,
         bool movable = true);
+    // A dirty tab with a different detail is not replaced; returns the unchanged
+    // tab so callers can inspect its detail. Explicit close/discard is required.
     WorkspaceTab& open_or_replace_tab(std::string id,
         std::string title,
         WorkspaceTabKind kind,
@@ -91,6 +102,10 @@ public:
     [[nodiscard]] const std::vector<WorkspaceTab>& tabs() const noexcept;
     [[nodiscard]] std::string active_tab_id() const;
     [[nodiscard]] bool has_active_tab() const noexcept;
+    [[nodiscard]] bool has_dirty_tabs() const noexcept;
+    [[nodiscard]] WorkspaceTab* find_tab(std::string_view id);
+    [[nodiscard]] const WorkspaceTab* find_tab(std::string_view id) const;
+    void clear();
 
     void push_undo(CommandUndoAction action);
     [[nodiscard]] bool can_undo() const;

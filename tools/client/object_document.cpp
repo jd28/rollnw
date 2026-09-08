@@ -1,6 +1,8 @@
 #include "object_document.hpp"
 
+#include "area_map.hpp"
 #include "resource_document.hpp"
+#include "workspace.hpp"
 
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Area.hpp>
@@ -19,10 +21,125 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+#include <array>
 #include <exception>
+#include <utility>
 
 namespace nw::toolset {
+
+ObjectDocument::~ObjectDocument() { reset(); }
+
+ObjectDocument::ObjectDocument(ObjectDocument&& other) noexcept
+    : object_(std::exchange(other.object_, ObjectHandle{}))
+{
+}
+
+ObjectDocument& ObjectDocument::operator=(ObjectDocument&& other) noexcept
+{
+    if (this != &other) {
+        reset();
+        object_ = std::exchange(other.object_, ObjectHandle{});
+    }
+    return *this;
+}
+
+bool ObjectDocument::adopt(ObjectHandle object)
+{
+    const auto* objects = kernel::services().get<ObjectManager>();
+    if (object_.type != ObjectType::invalid || !objects || !objects->valid(object)
+        || object.type == ObjectType::module) {
+        return false;
+    }
+    object_ = object;
+    return true;
+}
+
+void ObjectDocument::reset() noexcept
+{
+    const auto object = std::exchange(object_, ObjectHandle{});
+    auto* objects = kernel::services().get_mut<ObjectManager>();
+    if (!objects || !objects->valid(object)) { return; }
+    if (object.type == ObjectType::area) {
+        objects->get<Area>(object)->clear();
+    }
+    objects->destroy(object);
+}
+
 namespace {
+
+std::optional<std::filesystem::path> validated_project_file(
+    const std::filesystem::path& project_dir, std::string_view relative_text, std::string& error)
+{
+    namespace fs = std::filesystem;
+    const fs::path relative{relative_text};
+    if (project_dir.empty() || relative.empty() || relative.is_absolute()) {
+        error = "Document path is not project-relative";
+        return std::nullopt;
+    }
+    std::error_code ec;
+    const auto root = fs::weakly_canonical(project_dir, ec);
+    if (ec) {
+        error = "Failed to resolve project directory: " + ec.message();
+        return std::nullopt;
+    }
+    const auto target = fs::weakly_canonical(project_dir / relative, ec);
+    if (ec) {
+        error = "Failed to resolve document: " + ec.message();
+        return std::nullopt;
+    }
+    const auto from_root = fs::relative(target, root, ec);
+    if (ec || from_root.empty() || std::any_of(from_root.begin(), from_root.end(), [](const auto& part) { return part == ".."; })) {
+        error = "Document is outside the active project";
+        return std::nullopt;
+    }
+    return target;
+}
+
+bool save_workspace_document(WorkspaceTab& tab, const std::filesystem::path& project_dir,
+    std::string& diagnostic, bool& warning)
+{
+    if (tab.kind != WorkspaceTabKind::area && tab.kind != WorkspaceTabKind::preview) {
+        diagnostic = "Only blueprint and area documents support saving";
+        return false;
+    }
+    if (std::filesystem::path{tab.detail}.extension() != ".json") {
+        diagnostic = "Live document saving requires a JSON project resource; binary resources are not overwritten";
+        return false;
+    }
+    const auto object = tab.document.object();
+    const auto* objects = kernel::services().get<ObjectManager>();
+    if (!objects || !objects->valid(object)) {
+        diagnostic = "Live document is unavailable or stale; edits were not saved";
+        return false;
+    }
+    const auto target = validated_project_file(project_dir, tab.detail, diagnostic);
+    if (!target) { return false; }
+    const bool saved = tab.kind == WorkspaceTabKind::area
+        ? save_live_area_json_atomic(object, *target, diagnostic)
+        : save_live_blueprint_json_atomic(object, *target, diagnostic);
+    if (!saved) { return false; }
+    tab.dirty = false;
+
+    // Maps are derived data: a map failure must not turn a successful CAF save
+    // into a reported document failure or discard the authored file.
+    if (tab.kind == WorkspaceTabKind::area) {
+        try {
+            const std::array<const Area*, 1> areas{kernel::objects().get<Area>(object)};
+            const auto sources = collect_area_map_sources(areas);
+            const auto maps = write_project_area_maps(project_dir, sources);
+            warning = maps.failed > 0 || maps.degraded > 0;
+            if (warning) {
+                diagnostic = maps.failed > 0 ? "Area map unavailable: " + maps.first_error
+                                             : "Area map contains missing-tile markers: " + maps.first_warning;
+            }
+        } catch (const std::exception& ex) {
+            warning = true;
+            diagnostic = "Area saved, but map generation failed: " + std::string{ex.what()};
+        }
+    }
+    return true;
+}
 
 template <typename T>
 void append_placed_area_object_rows(
@@ -202,6 +319,60 @@ std::string live_object_display_name(ObjectHandle object)
         return std::string{live_object->resref.view()};
     }
     return std::string{placed_area_object_type_label(object.type)};
+}
+
+CommandResult save_workspace_documents(WorkspaceState& workspace,
+    const std::filesystem::path& project_dir, std::span<const std::string_view> tab_ids)
+{
+    CommandResult result;
+    if (tab_ids.empty()) {
+        result.status = CommandStatus::noop;
+        result.message = "No documents to save";
+        return result;
+    }
+    for (size_t index = 0; index < tab_ids.size(); ++index) {
+        if (tab_ids[index].empty()
+            || std::find(tab_ids.begin(), tab_ids.begin() + index, tab_ids[index]) != tab_ids.begin() + index) {
+            result.status = CommandStatus::rejected;
+            result.output_channel = CommandOutputChannel::error;
+            result.message = "Save batch contains an empty or duplicate tab ID";
+            return result;
+        }
+    }
+    size_t saved = 0;
+    bool any_warning = false;
+    std::string details;
+    for (const auto id : tab_ids) {
+        auto* tab = workspace.find_tab(id);
+        bool success = false;
+        bool warning = false;
+        std::string diagnostic;
+        try {
+            if (tab) {
+                success = save_workspace_document(*tab, project_dir, diagnostic, warning);
+            } else {
+                diagnostic = "Document tab no longer exists";
+            }
+        } catch (const std::exception& ex) {
+            diagnostic = ex.what();
+        }
+        if (success) {
+            ++saved;
+        }
+        any_warning |= warning;
+        if (!success || warning) {
+            details += "\n" + std::string{id} + ": " + diagnostic;
+        }
+    }
+    const auto failed = tab_ids.size() - saved;
+    result.status = failed ? CommandStatus::failed : CommandStatus::success;
+    result.output_channel = failed ? CommandOutputChannel::error
+        : any_warning              ? CommandOutputChannel::warn
+                                   : CommandOutputChannel::info;
+    result.message = "Saved " + std::to_string(saved) + " of " + std::to_string(tab_ids.size()) + " documents";
+    if (failed) { result.message += "; " + std::to_string(failed) + " failed and remain unsaved"; }
+    result.message += details;
+    return result;
 }
 
 bool save_live_blueprint_json_atomic(

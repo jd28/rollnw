@@ -186,6 +186,7 @@ add_executable(rollnw_test
     rollnw_client_area_navigation.cpp
     rollnw_client_commands.cpp
     rollnw_client_dialog_document.cpp
+    rollnw_client_documents.cpp
     rollnw_client_object_edits.cpp
     rollnw_client_preview.cpp
     rollnw_client_smalls_creature_feats.cpp

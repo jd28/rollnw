@@ -39,10 +39,7 @@ struct LoadedAreaEntry {
 
 class ToolsetBackend {
 public:
-    using DocumentSaveHandler = std::function<CommandResult(std::string_view tab_id)>;
-
     void bind(RmlSmallsBridge* bridge, ShellController* shell, WorkspaceState* workspace) noexcept;
-    void set_document_save_handler(DocumentSaveHandler handler);
     bool initialize();
     bool initialize_item_editor_data_model(Rml::Context& context);
     bool apply_item_editor_pending_focus(Rml::ElementDocument* document);
@@ -85,6 +82,8 @@ public:
 
 private:
     void register_native_commands();
+    CommandResult open_area_document(std::string resource, std::string title,
+        const CommandInvocation& invocation);
     bool refresh_creature_body_part_editor();
     bool refresh_item_editor();
     bool ensure_data_object_editor_lists();
@@ -96,7 +95,6 @@ private:
     WorkspaceState* workspace_ = nullptr;
     CommandBus command_bus_;
     TerminalDispatcher terminal_;
-    DocumentSaveHandler document_save_handler_;
     CreatureBodyPartEditor creature_body_part_editor_;
     ItemEditor item_editor_;
     ItemEditorDataModel item_editor_data_model_;

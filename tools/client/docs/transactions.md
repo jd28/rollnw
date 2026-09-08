@@ -104,7 +104,7 @@ and uses the first direction that keeps every clone inside the area bounds. The
 command is rejected without creating clones when no direction fits.
 
 A successful structural batch rebuilds renderer rows from the same live `Area`
-and transfers root ownership only after the replacement scene succeeds. This
+and preserves the scene's owned/borrowed root policy during replacement. This
 is a cold O(area render-record count) operation per observed structural batch. The
 monotonic structural epoch coalesces multiple commands received before a frame
 into one rebuild of the final live area state. The session logs record count and
@@ -150,27 +150,61 @@ not create a second resource mutation or diagnostic policy.
 
 ## Dirty State And Save
 
-A successful edit, undo, or redo sets the active preview tab dirty. Saving is a
-separate command:
+A successful edit, undo, or redo sets the active document tab dirty. Each open
+area or blueprint tab owns its live `ObjectManager` root through `ObjectDocument`.
+Attached children belong to that root; history owns detached children. Closing a
+tab releases history before destroying its root, including vector erasure and
+reordering. Workspace documents are cleared before object services are replaced.
+
+The viewport borrows the active tab's root. First display loads and transfers
+ownership to the tab; later displays rebuild visuals from that same live graph.
+Only one scene's render resources are retained. A scene switch, visual rebuild,
+or clear does not destroy a tab's data. One pinned `area` tab owns the current
+area; returning from another tab preserves its document and history. Selecting
+a different area replaces that document, after Save / Discard / Cancel if dirty.
+Failed saves and Cancel preserve it. Confirmations carry the expected current
+resource; stale confirmations reject instead of discarding a different area.
+Clean replacement releases the old history/root; there is no inactive-area cache.
+
+The save protocol is an ordered, borrowed span of unique, non-empty tab IDs and
+one project directory. The caller owns the strings and workspace for the entire
+synchronous call; tabs must not move during the call. Empty input is a no-op.
+An empty or duplicate ID rejects the whole batch before writes. Each other row
+resolves to a tab-owned root and an existing project-relative JSON file:
 
 ```text
-workspace.save_tab
-    -> document save callback
-    -> validate active preview tab and active_object ownership
-    -> serialize the live object through component/propset JSON
-    -> atomic file replacement
-    -> clear dirty only after success
+workspace.save_tab [id] / toolset.save_all
+    -> one requested tab / all dirty tabs in workspace order
+    -> save_workspace_documents
+        -> validate tab kind, live root, JSON format, project-contained path
+        -> serialize blueprint or CAF through existing component/propset JSON
+        -> atomic file replacement
+        -> clear that tab's dirty flag only after success
+        -> regenerate derived area map (failure is a warning)
+    -> aggregate saved/failed counts and per-document diagnostics
 ```
 
-The save callback rejects non-preview tabs, inactive preview documents, stale
-objects, and paths outside the current project. Failure leaves the dirty flag
-set. The atomic replacement writes the complete JSON document; it does not
-append mutation patches to the file.
+Missing, unsupported, stale, binary, outside-project, or unwritable documents
+fail individually without changing their dirty state. Later rows still run;
+there is no all-files rollback. Saving does not activate tabs, move cameras,
+replace live roots, or clear undo history. The output is one `CommandResult`
+with success only when every requested document saved. Atomic replacement
+writes the complete JSON document, not a log of mutation patches. Missing files
+are not recreated automatically.
 
-The save/reload tests cover direct scalar and managed feat edits for blueprints,
-plus transform and structural membership changes for native CAF areas. They
-destroy the source graph, reload through `ObjectManager`/CAF deserialization,
-and verify the replacement live objects.
+This is UI-thread event work: linear scanning to collect dirty tabs, existing
+linear ID lookup per row, and sequential serialization/file replacement. ID
+validation and lookup are quadratic in open-tab count; no tab-volume measurement
+justifies a second index here. Memory retained between switches is the sum of
+open live graphs and histories, not one GPU scene per tab. Handles are cold
+ObjectManager identities needed by existing edit/undo protocols; this adds no
+pointer-heavy frame loop. Save latency and retained-memory limits have not been
+benchmarked. No autosave, background queue, disk reload cache, or new file format
+is introduced.
+
+Tests cover ownership through tab movement/close, multi-document save/reload,
+failure isolation, inactive saves, and borrowed viewer scene switches/rebuilds.
+Existing edit tests retain scalar/feat, transform, and membership round trips.
 
 ## Save Before Close
 
@@ -184,6 +218,9 @@ returns a prompt with three explicit actions:
 
 `workspace.save_and_close_tab` propagates save rejection or failure directly.
 There is no path that reports save failure and then closes the document.
+Quitting similarly offers Save All / Discard / Cancel and stays open on save
+failure. Opening another project or module rejects unsaved tabs; the user must
+save or explicitly discard them before the runtime is replaced.
 
 ## Script Commands
 
@@ -200,8 +237,8 @@ the registering script module; it is not a durable or remote transaction ID.
 - Supported patch payloads are integer propset fields and Creature feat
   assignment. Strings, floats, localized strings, arrays, and compound managed
   operations need an observed editor workflow before extending the protocol.
-- Area tabs are read-only for object mutation and cannot save `ARE`/`GIT`/`GIC`.
-- `toolset.save_all` remains a stub.
+- Saving supports blueprint JSON and native CAF JSON, not binary `ARE`/`GIT`/`GIC`
+  or binary blueprints. Unsupported dirty tabs are reported, not silently skipped.
 - `ObjectHandle`, Smalls `TypeID`, in-process callbacks, and C++ undo closures
   are not stable cross-process identities or serialization formats.
 

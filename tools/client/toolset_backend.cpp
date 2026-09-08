@@ -390,11 +390,6 @@ void ToolsetBackend::bind(RmlSmallsBridge* bridge, ShellController* shell, Works
     register_native_commands();
 }
 
-void ToolsetBackend::set_document_save_handler(DocumentSaveHandler handler)
-{
-    document_save_handler_ = std::move(handler);
-}
-
 bool ToolsetBackend::initialize()
 {
     if (!bridge_ || !bridge_->initialize()) {
@@ -1192,15 +1187,8 @@ void ToolsetBackend::register_native_commands()
             if (id.empty()) {
                 return command_result(CommandStatus::noop, "No workspace tab to save", CommandOutputChannel::info);
             }
-            if (!document_save_handler_) {
-                return command_result(CommandStatus::failed, "Workspace document save unavailable", CommandOutputChannel::error);
-            }
-
-            auto result = document_save_handler_(id);
-            if (result.ok()) {
-                workspace_->set_tab_dirty(id, false);
-            }
-            return result;
+            const std::array<std::string_view, 1> ids{id};
+            return save_workspace_documents(*workspace_, current_project_dir_, ids);
         });
 
     register_or_log(CommandSpec{
@@ -1914,8 +1902,7 @@ void ToolsetBackend::register_native_commands()
             const std::string relative_text = relative.generic_string();
             const std::string title = project_resource_display_name(current_project_dir_, relative);
             if (project_resource_is_area(relative)) {
-                workspace_->open_or_replace_tab("area", title, WorkspaceTabKind::area, relative_text, false, false);
-                return command_result(CommandStatus::success, std::string{"Opened area: "} + relative_text);
+                return open_area_document(relative_text, title, invocation);
             }
             if (project_resource_is_preview_blueprint(relative)) {
                 workspace_->open_or_replace_tab(
@@ -1944,7 +1931,7 @@ void ToolsetBackend::register_native_commands()
                         {},
                         "toolset.select_area <resref>",
                     },
-        [this](const CommandInvocation& invocation, CommandContext&) {
+        [this](const CommandInvocation& invocation, CommandContext& context) {
             const std::string resref = command_arg_string(invocation.args, 0);
             if (resref.empty()) {
                 return command_result(CommandStatus::rejected, "Area resref required", CommandOutputChannel::warn);
@@ -1965,8 +1952,15 @@ void ToolsetBackend::register_native_commands()
             const std::string resource = area->resource.empty()
                 ? area->resref + ".are"
                 : area->resource;
-            workspace_->open_or_replace_tab("area", title, WorkspaceTabKind::area, resource, false, false);
-            return command_result(CommandStatus::success, std::string{"Opened area: "} + resref);
+            if (!current_project_dir_.empty()) {
+                // Reuse project path validation before saving/discarding the
+                // current area, including requests from the area list/cards.
+                auto request = invocation;
+                request.command_id = "toolset.open_resource";
+                request.args.front() = CommandArg::positional_string(resource);
+                return execute_command(std::move(request), context);
+            }
+            return open_area_document(resource, title, invocation);
         });
 
     register_or_log(CommandSpec{
@@ -3237,8 +3231,15 @@ void ToolsetBackend::register_native_commands()
                         "Ctrl+Shift+S",
                         "toolset.save_all",
                     },
-        [](const CommandInvocation&, CommandContext&) {
-            return command_result(CommandStatus::noop, "Command: Save All (stub)");
+        [this](const CommandInvocation&, CommandContext&) {
+            if (!workspace_) {
+                return command_result(CommandStatus::failed, "Workspace unavailable", CommandOutputChannel::error);
+            }
+            std::vector<std::string_view> ids;
+            for (const auto& tab : workspace_->tabs()) {
+                if (tab.dirty) { ids.push_back(tab.id); }
+            }
+            return save_workspace_documents(*workspace_, current_project_dir_, ids);
         });
 
     register_or_log(CommandSpec{
@@ -3509,6 +3510,56 @@ uint64_t ToolsetBackend::module_generation() const noexcept
     return module_generation_;
 }
 
+CommandResult ToolsetBackend::open_area_document(std::string resource, std::string title,
+    const CommandInvocation& invocation)
+{
+    // Both callers have validated the requested resource. One Area surface is
+    // replaced synchronously; no second document or pending switch is retained.
+    auto* current = workspace_->find_tab("area");
+    const std::string decision = command_arg_string(invocation.args, 1);
+    if (invocation.args.size() != 1) {
+        if (invocation.args.size() != 3
+            || (decision != "--save-current-area" && decision != "--discard-current-area")) {
+            return command_result(CommandStatus::rejected,
+                "Invalid area switch confirmation", CommandOutputChannel::warn);
+        }
+        if (!current || current->detail != command_arg_string(invocation.args, 2)) {
+            return command_result(CommandStatus::rejected,
+                "The current area changed; select the requested area again", CommandOutputChannel::warn);
+        }
+    }
+
+    if (current && current->detail != resource && current->dirty) {
+        if (decision.empty()) {
+            auto result = command_result(CommandStatus::rejected,
+                "Save changes before switching areas?", CommandOutputChannel::warn);
+            CommandPrompt prompt;
+            prompt.id = "workspace.switch_area.save";
+            prompt.title = "Save changes?";
+            prompt.message = "Save changes to " + current->title + " before opening " + title + "?";
+            prompt.detail = current->detail;
+            const auto requested = command_arg_string(invocation.args, 0);
+            prompt.actions = {
+                {"save", "Save", invocation.command_id, {requested, "--save-current-area", current->detail}},
+                {"discard", "Discard", invocation.command_id, {requested, "--discard-current-area", current->detail}},
+                {"cancel", "Cancel", {}, {}},
+            };
+            result.prompt = std::move(prompt);
+            return result;
+        }
+        if (decision == "--save-current-area") {
+            const std::array<std::string_view, 1> ids{"area"};
+            auto saved = save_workspace_documents(*workspace_, current_project_dir_, ids);
+            if (!saved.ok()) { return saved; }
+            workspace_->open_area_tab(std::move(resource), std::move(title));
+            return saved;
+        }
+        current->dirty = false;
+    }
+    workspace_->open_area_tab(resource, std::move(title));
+    return command_result(CommandStatus::success, "Opened area: " + resource);
+}
+
 CommandResult ToolsetBackend::open_module(std::string_view module_path)
 {
     if (!bridge_) {
@@ -3517,10 +3568,20 @@ CommandResult ToolsetBackend::open_module(std::string_view module_path)
     if (module_path.empty()) {
         return command_result(CommandStatus::rejected, "No module path provided", CommandOutputChannel::warn);
     }
+    if (workspace_ && workspace_->has_dirty_tabs()) {
+        return command_result(CommandStatus::rejected,
+            "Save or discard unsaved documents before opening another module", CommandOutputChannel::warn);
+    }
 
     try {
         const auto start = std::chrono::steady_clock::now();
         const auto path = std::filesystem::path(module_path);
+        if (!std::filesystem::exists(path)) {
+            return command_result(CommandStatus::failed, "Module path does not exist", CommandOutputChannel::error);
+        }
+        if (workspace_) { workspace_->clear(); }
+        bridge_->clear_active_object();
+        bridge_->clear_active_area();
         module_object_ = ObjectHandle{};
         current_project_dir_.clear();
         auto* module = nw::kernel::load_module(path, true);
@@ -3587,6 +3648,10 @@ CommandResult ToolsetBackend::open_project(std::string_view project_path)
     if (project_path.empty()) {
         return command_result(CommandStatus::rejected, "No project path provided", CommandOutputChannel::warn);
     }
+    if (workspace_ && workspace_->has_dirty_tabs()) {
+        return command_result(CommandStatus::rejected,
+            "Save or discard unsaved documents before opening another project", CommandOutputChannel::warn);
+    }
 
     namespace fs = std::filesystem;
     try {
@@ -3606,6 +3671,9 @@ CommandResult ToolsetBackend::open_project(std::string_view project_path)
             return command_result(CommandStatus::failed, tree.message, CommandOutputChannel::error);
         }
         const auto load_options = nw::kernel::module_load_options_for_project(project_dir);
+        if (workspace_) { workspace_->clear(); }
+        bridge_->clear_active_object();
+        bridge_->clear_active_area();
         module_object_ = ObjectHandle{};
         current_project_dir_.clear();
         auto* module = nw::kernel::load_module(project_dir, false, load_options);

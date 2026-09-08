@@ -170,6 +170,7 @@ void ClientRendererNwgfx::begin_frame()
 bool ClientRendererNwgfx::render_area_viewport(const std::filesystem::path& project_dir,
     uint64_t module_generation,
     std::string_view area_resource,
+    nw::toolset::ObjectDocument& document,
     ClientViewportRect viewport,
     int32_t dt_ms)
 {
@@ -188,12 +189,13 @@ bool ClientRendererNwgfx::render_area_viewport(const std::filesystem::path& proj
     }
     viewer_viewport_->set_area_options(area_viewer_options_);
     return viewer_viewport_->render(
-        command_list, project_dir, module_generation, area_resource, viewport, dt_ms);
+        command_list, project_dir, module_generation, area_resource, document, viewport, dt_ms);
 }
 
 bool ClientRendererNwgfx::render_preview_viewport(const std::filesystem::path& project_dir,
     uint64_t module_generation,
     std::string_view resource_path,
+    nw::toolset::ObjectDocument& document,
     ClientViewportRect viewport,
     int32_t dt_ms)
 {
@@ -212,12 +214,13 @@ bool ClientRendererNwgfx::render_preview_viewport(const std::filesystem::path& p
     }
     viewer_viewport_->set_area_options(area_viewer_options_);
     return viewer_viewport_->render_preview(
-        command_list, project_dir, module_generation, resource_path, viewport, dt_ms);
+        command_list, project_dir, module_generation, resource_path, document, viewport, dt_ms);
 }
 
 bool ClientRendererNwgfx::prepare_preview_object(const std::filesystem::path& project_dir,
     uint64_t module_generation,
-    std::string_view resource_path)
+    std::string_view resource_path,
+    nw::toolset::ObjectDocument& document)
 {
     if (!rml_ready_ || !context_ || resource_path.empty()) {
         return false;
@@ -233,7 +236,7 @@ bool ClientRendererNwgfx::prepare_preview_object(const std::filesystem::path& pr
     }
     viewer_viewport_->set_area_options(area_viewer_options_);
     return viewer_viewport_->prepare_preview(
-        project_dir, module_generation, resource_path);
+        project_dir, module_generation, resource_path, document);
 }
 
 void ClientRendererNwgfx::clear_viewer_viewport()

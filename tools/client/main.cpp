@@ -1677,53 +1677,6 @@ std::filesystem::path project_dialog_start_location()
     return module_dialog_start_location();
 }
 
-bool relative_path_escapes_root(const std::filesystem::path& relative)
-{
-    return std::any_of(relative.begin(), relative.end(), [](const auto& part) {
-        return part == "..";
-    });
-}
-
-std::optional<std::filesystem::path> validated_project_file(
-    const std::filesystem::path& project_dir, std::string_view relative_text, std::string& error)
-{
-    namespace fs = std::filesystem;
-    error.clear();
-    const fs::path relative{relative_text};
-    if (project_dir.empty() || relative.empty() || relative.is_absolute()) {
-        error = "Preview document path is not project-relative";
-        return std::nullopt;
-    }
-
-    std::error_code ec;
-    const auto root = fs::weakly_canonical(project_dir, ec);
-    if (ec) {
-        error = "Failed to resolve project directory: " + ec.message();
-        return std::nullopt;
-    }
-    const auto target = fs::weakly_canonical(project_dir / relative, ec);
-    if (ec) {
-        error = "Failed to resolve preview document: " + ec.message();
-        return std::nullopt;
-    }
-    const auto from_root = fs::relative(target, root, ec);
-    if (ec || from_root.empty() || relative_path_escapes_root(from_root)) {
-        error = "Preview document is outside the active project";
-        return std::nullopt;
-    }
-    return target;
-}
-
-nw::toolset::CommandResult document_save_result(
-    nw::toolset::CommandStatus status, std::string message, nw::toolset::CommandOutputChannel channel)
-{
-    nw::toolset::CommandResult result;
-    result.status = status;
-    result.message = std::move(message);
-    result.output_channel = channel;
-    return result;
-}
-
 void remember_recent_project(AppState& state, const std::filesystem::path& project_dir)
 {
     if (project_dir.empty()) {
@@ -9857,77 +9810,6 @@ int main(int argc, char* argv[])
         "blur", &object_variable_change_listener, true);
     renderer.set_rml_generated_textures(&state.item_icon_cache.textures);
     state.backend.bind(&state.smalls, &state.shell, &state.workspace);
-    state.backend.set_document_save_handler([&state, &renderer](std::string_view tab_id) {
-        const auto& tabs = state.workspace.tabs();
-        const auto tab = std::find_if(tabs.begin(), tabs.end(), [tab_id](const auto& candidate) {
-            return candidate.id == tab_id;
-        });
-        if (tab == tabs.end()
-            || (tab->kind != nw::toolset::WorkspaceTabKind::preview
-                && tab->kind != nw::toolset::WorkspaceTabKind::area)) {
-            return document_save_result(nw::toolset::CommandStatus::rejected,
-                "Only blueprint preview and area tabs can save live objects",
-                nw::toolset::CommandOutputChannel::warn);
-        }
-        const auto* active_tab = state.workspace.active_tab();
-        if (!active_tab || active_tab->id != tab_id) {
-            return document_save_result(nw::toolset::CommandStatus::rejected,
-                "Document tab must be active before it can be saved",
-                nw::toolset::CommandOutputChannel::warn);
-        }
-
-        const auto object = tab->kind == nw::toolset::WorkspaceTabKind::area
-            ? renderer.area_viewer_object()
-            : state.smalls.active_object();
-        if (object.type == nw::ObjectType::invalid) {
-            return document_save_result(nw::toolset::CommandStatus::failed,
-                "Live document object is unavailable",
-                nw::toolset::CommandOutputChannel::error);
-        }
-
-        std::string error;
-        const auto target = validated_project_file(state.backend.current_project_dir(), tab->detail, error);
-        if (!target) {
-            return document_save_result(nw::toolset::CommandStatus::rejected,
-                std::move(error),
-                nw::toolset::CommandOutputChannel::warn);
-        }
-        const bool saved = tab->kind == nw::toolset::WorkspaceTabKind::area
-            ? nw::toolset::save_live_area_json_atomic(object, *target, error)
-            : nw::toolset::save_live_blueprint_json_atomic(object, *target, error);
-        if (!saved) {
-            return document_save_result(nw::toolset::CommandStatus::failed,
-                std::move(error),
-                nw::toolset::CommandOutputChannel::error);
-        }
-        if (tab->kind == nw::toolset::WorkspaceTabKind::area) {
-            const auto* area = nw::kernel::objects().get<nw::Area>(object);
-            if (!area) {
-                return document_save_result(nw::toolset::CommandStatus::success,
-                    "Saved " + tab->detail + "; live area map input is unavailable",
-                    nw::toolset::CommandOutputChannel::warn);
-            }
-            const std::array<const nw::Area*, 1> area_batch{area};
-            const auto map_sources = nw::toolset::collect_area_map_sources(area_batch);
-            const auto map_result = nw::toolset::write_project_area_maps(
-                state.backend.current_project_dir(), map_sources);
-            if (map_result.failed > 0) {
-                return document_save_result(nw::toolset::CommandStatus::success,
-                    "Saved " + tab->detail + "; area map unavailable: "
-                        + map_result.first_error,
-                    nw::toolset::CommandOutputChannel::warn);
-            }
-            if (map_result.degraded > 0) {
-                return document_save_result(nw::toolset::CommandStatus::success,
-                    "Saved " + tab->detail + "; area map contains missing-tile markers: "
-                        + map_result.first_warning,
-                    nw::toolset::CommandOutputChannel::warn);
-            }
-        }
-        return document_save_result(nw::toolset::CommandStatus::success,
-            "Saved " + tab->detail,
-            nw::toolset::CommandOutputChannel::info);
-    });
     state.backend_ready = state.backend.initialize();
     if (!state.backend_ready) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to initialize rollnw client backend");
@@ -10060,9 +9942,37 @@ int main(int argc, char* argv[])
 
             bool dispatched_to_rml = false;
             switch (event.type) {
-            case SDL_EVENT_QUIT:
-                running = false;
+            case SDL_EVENT_QUIT: {
+                if (!state.workspace.has_dirty_tabs()) {
+                    running = false;
+                    break;
+                }
+                const nw::toolset::CommandPrompt prompt{
+                    .id = "workspace.quit",
+                    .title = "Unsaved documents",
+                    .message = "Save changes before quitting?",
+                    .detail = "Discard closes all documents without saving their edits.",
+                    .actions = {
+                        {"save", "Save All", "toolset.save_all", {}},
+                        {"discard", "Discard", {}, {}},
+                        {"cancel", "Cancel", {}, {}},
+                    },
+                };
+                const auto action = show_command_prompt(window, prompt);
+                if (action && action->id == "discard") {
+                    running = false;
+                } else if (action && action->id == "save") {
+                    const auto result = dispatch_command_flow(window, state,
+                        "toolset.save_all", {}, nw::toolset::CommandSource::shortcut);
+                    refresh_workspace_view(doc, state);
+                    if (result.ok() && !state.workspace.has_dirty_tabs()) {
+                        running = false;
+                    } else {
+                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Save failed", result.message.c_str(), window);
+                    }
+                }
                 break;
+            }
             case SDL_EVENT_KEY_DOWN: {
                 if (state.play_preview.session.active()
                     || state.play_preview.placement_pending()) {
@@ -10422,10 +10332,15 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
-                if (command_ctrl && event.key.key == SDLK_S) {
+                const bool save_all_shortcut = !event.key.repeat
+                    && (event.key.mod & SDL_KMOD_CTRL)
+                    && (event.key.mod & SDL_KMOD_SHIFT)
+                    && !(event.key.mod & (SDL_KMOD_ALT | SDL_KMOD_GUI));
+                if ((command_ctrl || save_all_shortcut) && event.key.key == SDLK_S) {
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(
-                            window, state, "workspace.save_tab", {}, nw::toolset::CommandSource::shortcut);
+                            window, state, save_all_shortcut ? "toolset.save_all" : "workspace.save_tab",
+                            {}, nw::toolset::CommandSource::shortcut);
                         refresh_workspace_view(doc, state);
                     }
                     dispatched_to_rml = true;
@@ -11869,11 +11784,10 @@ int main(int argc, char* argv[])
                             if (index && *index >= 0
                                 && static_cast<size_t>(*index) < state.areas.size()
                                 && ensure_backend_ready(state)) {
-                                const auto result = dispatch_command(state,
+                                const auto result = dispatch_command_flow(window, state,
                                     "toolset.select_area",
                                     {std::string_view{state.areas[static_cast<size_t>(*index)].resref}},
                                     nw::toolset::CommandSource::widget);
-                                append_command_result(state, result);
                                 if (result.ok()) {
                                     refresh_workspace_view(doc, state);
                                 }
@@ -11979,11 +11893,10 @@ int main(int argc, char* argv[])
                                                 }
                                             } else if (ensure_backend_ready(state)) {
                                                 const std::string relative_path = row.relative_path.generic_string();
-                                                const auto result = dispatch_command(state,
+                                                const auto result = dispatch_command_flow(window, state,
                                                     "toolset.open_resource",
                                                     {std::string_view{relative_path}},
                                                     nw::toolset::CommandSource::widget);
-                                                append_command_result(state, result);
                                                 if (result.ok()) {
                                                     refresh_workspace_view(doc, state);
                                                 }
@@ -11991,11 +11904,13 @@ int main(int argc, char* argv[])
                                         }
                                     } else if (state.shell.showing_areas) {
                                         if (idx < state.areas.size()) {
-                                            append_command_result(state,
-                                                dispatch_command(state,
-                                                    "toolset.select_area",
-                                                    {std::string_view{state.areas[idx].resref}},
-                                                    nw::toolset::CommandSource::widget));
+                                            const auto result = dispatch_command_flow(window, state,
+                                                "toolset.select_area",
+                                                {std::string_view{state.areas[idx].resref}},
+                                                nw::toolset::CommandSource::widget);
+                                            if (result.ok()) {
+                                                refresh_workspace_view(doc, state);
+                                            }
                                         }
                                     }
                                 }
@@ -12439,7 +12354,7 @@ int main(int argc, char* argv[])
                 }
             }
         }
-        const auto* viewer_tab = state.workspace.active_tab();
+        auto* viewer_tab = state.workspace.active_tab();
         const auto viewer_project_dir = state.backend.current_project_dir();
         const bool data_workbench_preview = !viewer_viewport
             && viewer_tab
@@ -12463,12 +12378,14 @@ int main(int argc, char* argv[])
                               viewer_viewport->project_dir,
                               viewer_viewport->module_generation,
                               viewer_viewport->resource_path,
+                              viewer_tab->document,
                               viewer_viewport->rect,
                               frame_delta_ms)
                         : renderer.render_preview_viewport(
                               viewer_viewport->project_dir,
                               viewer_viewport->module_generation,
                               viewer_viewport->resource_path,
+                              viewer_tab->document,
                               viewer_viewport->rect,
                               frame_delta_ms);
                 } else {
@@ -12482,7 +12399,7 @@ int main(int argc, char* argv[])
                         || renderer.prepare_preview_object(
                             viewer_project_dir,
                             state.backend.module_generation(),
-                            viewer_tab->detail);
+                            viewer_tab->detail, viewer_tab->document);
                 }
             }
             if (!viewer_ready) {
@@ -12645,6 +12562,7 @@ int main(int argc, char* argv[])
     Rml::RemoveContext("toolset");
     Rml::Shutdown();
     renderer.shutdown();
+    state.workspace.clear();
     nw::kernel::services().shutdown();
     SDL_DestroyWindow(window);
     SDL_Quit();

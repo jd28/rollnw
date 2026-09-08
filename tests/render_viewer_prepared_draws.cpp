@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../tools/client/object_edits.hpp"
+#include "../tools/client/workspace.hpp"
 #include "../tools/ui/smalls_creature_properties.hpp"
 
 #include <nw/formats/Image.hpp>
@@ -1024,6 +1025,78 @@ TEST(RenderViewerPreparedDraws, NonVisualDataBlueprintPreviewsPublishOwnedLiveOb
         const auto handle = scene->root_object;
         scene.reset();
         EXPECT_FALSE(nw::kernel::objects().valid(handle));
+    }
+}
+
+TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuilds)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    nw::toolset::WorkspaceState workspace;
+    auto session = device.make_session();
+    ASSERT_NE(session, nullptr);
+    ASSERT_TRUE(session->load_area("test_area"));
+    const auto area = session->scene()->root_object;
+    EXPECT_FALSE(session->load_live_object(area, "test_area"));
+    EXPECT_TRUE(session->scene()->owns_root_object);
+    ASSERT_TRUE(workspace.open_area_tab("test_area.caf.json", "Area").document.adopt(area));
+    session->scene()->owns_root_object = false;
+    auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+    ASSERT_NE(live_area, nullptr);
+    ASSERT_FALSE(live_area->creatures.empty());
+    const auto child = live_area->creatures.front()->handle();
+    live_area->creatures.front()->comment = "unsaved area edit";
+    ASSERT_TRUE(session->rebuild_live_area(area, child));
+    EXPECT_FALSE(session->scene()->owns_root_object);
+
+    const std::array paths{
+        "test_data/user/development/cloth028.uti",
+        "test_data/user/development/nw_chicken.utc",
+        "test_data/user/development/arrowcorpse001.utp",
+        "test_data/user/development/door_ttr_002.utd",
+        "test_data/user/development/boundelementallo.ute",
+        "test_data/user/development/wp_behexit001.utw",
+        "test_data/user/development/blue_bell.uts",
+        "test_data/user/development/storethief002.utm",
+        "test_data/user/development/pl_spray_sewage.utt",
+    };
+    std::vector<nw::ObjectHandle> roots;
+    for (const auto* path : paths) {
+        ASSERT_TRUE(session->load_object_file(path));
+        const auto root = session->scene()->root_object;
+        ASSERT_TRUE(workspace.open_or_replace_tab(path, path, nw::toolset::WorkspaceTabKind::preview, path)
+                .document.adopt(root));
+        session->scene()->owns_root_object = false;
+        nw::kernel::objects().get_object_base(root)->comment = "unsaved blueprint edit";
+        roots.push_back(root);
+    }
+    session->clear();
+    for (size_t i = 0; i < roots.size(); ++i) {
+        ASSERT_TRUE(nw::kernel::objects().valid(roots[i]));
+        ASSERT_TRUE(session->load_live_object(roots[i], paths[i]));
+        ASSERT_TRUE(session->rebuild_live_object(roots[i]));
+        EXPECT_FALSE(session->scene()->owns_root_object);
+        EXPECT_EQ(nw::kernel::objects().get_object_base(roots[i])->comment, "unsaved blueprint edit");
+    }
+    ASSERT_TRUE(session->load_live_object(area, "test_area"));
+    EXPECT_FALSE(session->scene()->owns_root_object);
+    EXPECT_EQ(session->scene()->root_object, area);
+    EXPECT_EQ(live_area->creatures.front()->handle(), child);
+    EXPECT_EQ(live_area->creatures.front()->comment, "unsaved area edit");
+    ASSERT_TRUE(session->rebuild_live_area(area, child));
+    EXPECT_FALSE(session->load_live_object(nw::ObjectHandle{}, "missing"));
+    EXPECT_EQ(session->scene()->root_object, area);
+    // A UI close releases documents before the next frame clears old visuals.
+    workspace.clear();
+    session->clear();
+    EXPECT_FALSE(nw::kernel::objects().valid(area));
+    EXPECT_FALSE(nw::kernel::objects().valid(child));
+    for (const auto root : roots) {
+        EXPECT_FALSE(nw::kernel::objects().valid(root));
     }
 }
 

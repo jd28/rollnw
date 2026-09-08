@@ -12,6 +12,7 @@
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
@@ -34,6 +35,7 @@
 #include <array>
 #include <cctype>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -2857,6 +2859,173 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
 
     nw::toolset::smalls_rmlui_host().clear_active_object();
     nw::toolset::script_command_host().bind(nullptr, nullptr);
+}
+
+TEST(ClientRmlSmallsBridge, SaveAllUsesRetainedTabsAndProtectsProjectReplacement)
+{
+    KernelServiceScope services;
+    const std::filesystem::path project = "tmp/client_save_all_commands";
+    std::filesystem::remove_all(project);
+    nw::toolset::ProjectImportOptions options;
+    options.format = nw::toolset::ProjectImportFormat::json;
+    const auto imported = nw::toolset::import_module_project(
+        "test_data/user/modules/DockerDemo.mod", project, options);
+    ASSERT_TRUE(imported.ok) << imported.message;
+    nw::toolset::RmlSmallsBridge bridge;
+    nw::toolset::WorkspaceState workspace;
+    nw::toolset::ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    const auto opened = backend.open_project(project.string());
+    ASSERT_TRUE(opened.ok()) << opened.message;
+    const auto original_generation = backend.module_generation();
+    auto* item = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(item, nullptr);
+    const auto item_handle = item->handle();
+    ASSERT_TRUE(item->save(project / "item.uti.json", "json"));
+    auto& tab = workspace.open_or_replace_tab("item", "Item", nw::toolset::WorkspaceTabKind::preview, "item.uti.json");
+    ASSERT_TRUE(tab.document.adopt(item_handle));
+    tab.dirty = true;
+    workspace.open_or_replace_tab("broken", "Broken", nw::toolset::WorkspaceTabKind::preview, "broken.uti.json").dirty = true;
+    workspace.set_active_tab("home");
+    EXPECT_EQ(backend.open_project(project.string()).status, nw::toolset::CommandStatus::rejected);
+    EXPECT_EQ(backend.open_module("test_data/user/modules/DockerDemo.mod").status, nw::toolset::CommandStatus::rejected);
+    EXPECT_EQ(backend.module_generation(), original_generation);
+    EXPECT_TRUE(nw::kernel::objects().valid(item_handle));
+
+    const auto saved = backend.execute_command("saveall", {}, {});
+    EXPECT_EQ(saved.status, nw::toolset::CommandStatus::failed);
+    EXPECT_NE(saved.message.find("Saved 1 of 2"), std::string::npos);
+    EXPECT_EQ(workspace.active_tab_id(), "home");
+    EXPECT_FALSE(workspace.find_tab("item")->dirty);
+    EXPECT_TRUE(workspace.find_tab("broken")->dirty);
+    EXPECT_TRUE(std::filesystem::exists(project / "item.uti.json"));
+    const auto failed_close = backend.execute_command("workspace.save_and_close_tab", {"broken"}, {});
+    EXPECT_FALSE(failed_close.ok());
+    EXPECT_NE(workspace.find_tab("broken"), nullptr);
+    EXPECT_TRUE(workspace.request_close_tab("broken", true).closed());
+    EXPECT_EQ(backend.execute_command("toolset.save_all", {}, {}).status, nw::toolset::CommandStatus::noop);
+    workspace.set_tab_dirty("item", true);
+    EXPECT_TRUE(backend.execute_command("workspace.save_and_close_tab", {"item"}, {}).ok());
+    EXPECT_EQ(workspace.find_tab("item"), nullptr);
+    EXPECT_FALSE(nw::kernel::objects().valid(item_handle));
+
+    auto* retained = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(retained, nullptr);
+    ASSERT_TRUE(workspace.open_tab("retained").document.adopt(retained->handle()));
+    const auto reopened = backend.open_project(project.string());
+    EXPECT_TRUE(reopened.ok()) << reopened.message;
+    EXPECT_EQ(workspace.find_tab("retained"), nullptr);
+    EXPECT_GT(backend.module_generation(), original_generation);
+}
+
+TEST(ClientRmlSmallsBridge, AreaOpeningReusesPinnedTabWithSaveDiscardAndCancel)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    const std::filesystem::path project = "tmp/client_single_area_commands";
+    std::filesystem::remove_all(project);
+    ProjectImportOptions options;
+    options.format = ProjectImportFormat::json;
+    const auto imported = import_module_project("test_data/user/modules/DockerDemo.mod", project, options);
+    ASSERT_TRUE(imported.ok) << imported.message;
+    const std::string first = "shared/areas/start.caf.json";
+    const std::string second = "shared/areas/second.caf.json";
+    std::filesystem::copy_file(project / first, project / second);
+
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ASSERT_TRUE(backend.open_project(project.string()).ok());
+    ASSERT_TRUE(backend.execute_command("toolset.open_resource", {first}, {}).ok());
+    EXPECT_EQ(workspace.active_tab_id(), "area");
+    auto* live = nw::kernel::objects().make_area(nw::Resref{"start"});
+    ASSERT_NE(live, nullptr);
+    auto root = live->handle();
+    ASSERT_TRUE(workspace.active_tab()->document.adopt(root));
+    live->comments = "saved before switching";
+    workspace.set_tab_dirty("area", true);
+    workspace.push_undo({"Area edit", [](CommandContext&) { return CommandResult{}; },
+        [](CommandContext&) { return CommandResult{}; }});
+    workspace.open_tab("blueprint");
+    ASSERT_TRUE(backend.execute_command("toolset.select_area", {"start"}, {}).ok());
+    EXPECT_EQ(workspace.active_tab()->document.object(), root);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    workspace.set_active_tab("home");
+
+    const auto run_action = [&backend](const CommandPromptAction& action) {
+        std::vector<std::string_view> args;
+        for (const auto& arg : action.args) {
+            args.push_back(arg);
+        }
+        return backend.execute_command(action.command_id, args, {});
+    };
+    const auto requested = backend.execute_command("toolset.select_area", {"second"}, {});
+    ASSERT_TRUE(requested.prompt);
+    const auto prompt = *requested.prompt;
+    ASSERT_EQ(prompt.actions.size(), 3u);
+    EXPECT_EQ(prompt.actions[2].id, "cancel");
+    EXPECT_TRUE(prompt.actions[2].command_id.empty());
+    // Cancel dispatches nothing: the active tab, root, dirty flag and undo stay.
+    EXPECT_EQ(workspace.active_tab_id(), "home");
+    EXPECT_EQ(workspace.find_tab("area")->detail, first);
+    EXPECT_EQ(workspace.find_tab("area")->document.object(), root);
+    EXPECT_TRUE(workspace.find_tab("area")->dirty);
+    EXPECT_EQ(workspace.find_tab("area")->undo_stack.size(), 1u);
+
+    // A missing destination is rejected before applying a discard confirmation.
+    std::filesystem::rename(project / second, project / "second.saved");
+    EXPECT_FALSE(backend.execute_command("toolset.open_resource", {second, "--discard-current-area", first}, {}).ok());
+    EXPECT_TRUE(workspace.find_tab("area")->dirty);
+    std::filesystem::rename(project / "second.saved", project / second);
+
+    // A failed Save leaves the first document untouched.
+    std::filesystem::rename(project / first, project / "first.saved");
+    EXPECT_FALSE(run_action(prompt.actions[0]).ok());
+    EXPECT_EQ(workspace.find_tab("area")->document.object(), root);
+    EXPECT_TRUE(workspace.find_tab("area")->dirty);
+    EXPECT_EQ(workspace.active_tab_id(), "home");
+    std::filesystem::rename(project / "first.saved", project / first);
+    ASSERT_TRUE(run_action(prompt.actions[0]).ok());
+    EXPECT_EQ(workspace.active_tab_id(), "area");
+    EXPECT_EQ(workspace.active_tab()->detail, second);
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+    EXPECT_EQ(workspace.undo_count(), 0u);
+    EXPECT_FALSE(nw::kernel::objects().valid(root));
+    {
+        std::ifstream saved{project / first};
+        ASSERT_TRUE(saved);
+        EXPECT_EQ(nlohmann::json::parse(saved).at("comments"), "saved before switching");
+    }
+    EXPECT_FALSE(run_action(prompt.actions[1]).ok()); // stale confirmation
+    EXPECT_EQ(workspace.active_tab()->detail, second);
+
+    live = nw::kernel::objects().make_area(nw::Resref{"start"});
+    ASSERT_NE(live, nullptr);
+    root = live->handle();
+    ASSERT_TRUE(workspace.active_tab()->document.adopt(root));
+    live->comments = "discard this edit";
+    workspace.set_tab_dirty("area", true);
+    workspace.set_active_tab("home");
+    const auto discard_request = backend.execute_command("toolset.open_resource", {first}, {});
+    ASSERT_TRUE(discard_request.prompt);
+    ASSERT_TRUE(run_action(discard_request.prompt->actions[1]).ok());
+    EXPECT_FALSE(nw::kernel::objects().valid(root));
+    EXPECT_EQ(workspace.active_tab()->detail, first);
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+    {
+        std::ifstream unchanged{project / second};
+        ASSERT_TRUE(unchanged);
+        EXPECT_NE(nlohmann::json::parse(unchanged).at("comments"), "discard this edit");
+    }
+    ASSERT_TRUE(backend.execute_command("toolset.open_resource", {second}, {}).ok());
+    EXPECT_EQ(workspace.tabs().size(), 3u); // Home, Area, blueprint
+    EXPECT_EQ(workspace.tabs()[1].id, "area");
+    EXPECT_FALSE(workspace.tabs()[1].closable);
+    EXPECT_FALSE(workspace.tabs()[1].movable);
+    EXPECT_FALSE(workspace.move_tab("area", 2));
+    EXPECT_FALSE(workspace.request_close_tab("area", true).closed());
 }
 
 TEST(ClientRmlSmallsBridge, RuntimeReplacementRecreatesListsBeforePublishingObject)

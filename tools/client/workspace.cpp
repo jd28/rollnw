@@ -19,6 +19,35 @@ CommandResult workspace_result(CommandStatus status, std::string message, Comman
 
 } // namespace
 
+WorkspaceTab& WorkspaceTab::operator=(WorkspaceTab&& other) noexcept
+{
+    if (this != &other) {
+        // History can own detached area children. Release it before the root,
+        // including when vector erasure moves another tab over this row.
+        undo_stack.clear();
+        redo_stack.clear();
+        document = std::move(other.document);
+        id = std::move(other.id);
+        title = std::move(other.title);
+        detail = std::move(other.detail);
+        kind = other.kind;
+        closable = other.closable;
+        movable = other.movable;
+        dirty = other.dirty;
+        subtabs = std::move(other.subtabs);
+        active_subtab_index = other.active_subtab_index;
+        undo_stack = std::move(other.undo_stack);
+        redo_stack = std::move(other.redo_stack);
+    }
+    return *this;
+}
+
+WorkspaceTab& WorkspaceState::open_area_tab(std::string detail, std::string title)
+{
+    return open_or_replace_tab("area", std::move(title), WorkspaceTabKind::area,
+        std::move(detail), false, false);
+}
+
 WorkspaceTab& WorkspaceState::open_tab(std::string id, std::string title, WorkspaceTabKind kind, bool closable, bool movable)
 {
     if (const auto existing = find_tab_index(id)) {
@@ -52,12 +81,19 @@ WorkspaceTab& WorkspaceState::open_or_replace_tab(
     if (const auto existing = find_tab_index(id)) {
         active_index_ = existing;
         auto& tab = tabs_[*existing];
+        // A rejected replacement returns the original tab unchanged. Callers
+        // must save or explicitly discard it before reusing its identity.
+        if (tab.detail != detail && tab.dirty) {
+            return tab;
+        }
         if (!title.empty()) {
             tab.title = std::move(title);
         }
         if (tab.detail != detail) {
             tab.undo_stack.clear();
             tab.redo_stack.clear();
+            tab.document.reset();
+            tab.dirty = false;
         }
         tab.kind = kind;
         tab.detail = std::move(detail);
@@ -312,6 +348,29 @@ std::string WorkspaceState::active_tab_id() const
 bool WorkspaceState::has_active_tab() const noexcept
 {
     return active_index_.has_value() && *active_index_ < tabs_.size();
+}
+
+bool WorkspaceState::has_dirty_tabs() const noexcept
+{
+    return std::any_of(tabs_.begin(), tabs_.end(), [](const auto& tab) { return tab.dirty; });
+}
+
+WorkspaceTab* WorkspaceState::find_tab(std::string_view id)
+{
+    const auto index = find_tab_index(id);
+    return index ? &tabs_[*index] : nullptr;
+}
+
+const WorkspaceTab* WorkspaceState::find_tab(std::string_view id) const
+{
+    const auto index = find_tab_index(id);
+    return index ? &tabs_[*index] : nullptr;
+}
+
+void WorkspaceState::clear()
+{
+    tabs_.clear();
+    active_index_.reset();
 }
 
 void WorkspaceState::push_undo(CommandUndoAction action)

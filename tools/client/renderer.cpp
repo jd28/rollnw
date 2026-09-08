@@ -105,19 +105,21 @@ void ClientRenderer::begin_frame()
 bool ClientRenderer::render_area_viewport(const std::filesystem::path& project_dir,
     uint64_t module_generation,
     std::string_view area_resource,
+    nw::toolset::ObjectDocument& document,
     ClientViewportRect viewport,
     int32_t dt_ms)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
         return nwgfx_.render_area_viewport(
-            project_dir, module_generation, area_resource, viewport, dt_ms);
+            project_dir, module_generation, area_resource, document, viewport, dt_ms);
     }
 #endif
 
     (void)project_dir;
     (void)module_generation;
     (void)area_resource;
+    (void)document;
     (void)viewport;
     (void)dt_ms;
     return false;
@@ -126,19 +128,21 @@ bool ClientRenderer::render_area_viewport(const std::filesystem::path& project_d
 bool ClientRenderer::render_preview_viewport(const std::filesystem::path& project_dir,
     uint64_t module_generation,
     std::string_view resource_path,
+    nw::toolset::ObjectDocument& document,
     ClientViewportRect viewport,
     int32_t dt_ms)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
         return nwgfx_.render_preview_viewport(
-            project_dir, module_generation, resource_path, viewport, dt_ms);
+            project_dir, module_generation, resource_path, document, viewport, dt_ms);
     }
 #endif
 
     (void)project_dir;
     (void)module_generation;
     (void)resource_path;
+    (void)document;
     (void)viewport;
     (void)dt_ms;
     return false;
@@ -146,18 +150,20 @@ bool ClientRenderer::render_preview_viewport(const std::filesystem::path& projec
 
 bool ClientRenderer::prepare_preview_object(const std::filesystem::path& project_dir,
     uint64_t module_generation,
-    std::string_view resource_path)
+    std::string_view resource_path,
+    nw::toolset::ObjectDocument& document)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
         return nwgfx_.prepare_preview_object(
-            project_dir, module_generation, resource_path);
+            project_dir, module_generation, resource_path, document);
     }
 #endif
 
     (void)project_dir;
     (void)module_generation;
     (void)resource_path;
+    (void)document;
     return false;
 }
 

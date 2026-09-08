@@ -21,6 +21,7 @@ struct ViewerFrameStats;
 }
 
 namespace nw::toolset {
+class ObjectDocument;
 enum class PreviewActorLocomotion : uint8_t;
 struct PreviewCameraState;
 struct PreviewDoorVisualState;
@@ -47,16 +48,19 @@ public:
     [[nodiscard]] bool render_area_viewport(const std::filesystem::path& project_dir,
         uint64_t module_generation,
         std::string_view area_resource,
+        nw::toolset::ObjectDocument& document,
         ClientViewportRect viewport,
         int32_t dt_ms);
     [[nodiscard]] bool render_preview_viewport(const std::filesystem::path& project_dir,
         uint64_t module_generation,
         std::string_view resource_path,
+        nw::toolset::ObjectDocument& document,
         ClientViewportRect viewport,
         int32_t dt_ms);
     [[nodiscard]] bool prepare_preview_object(const std::filesystem::path& project_dir,
         uint64_t module_generation,
-        std::string_view resource_path);
+        std::string_view resource_path,
+        nw::toolset::ObjectDocument& document);
     void clear_viewer_viewport();
     bool drag_viewer_viewport(ClientViewportDragMode mode,
         float delta_x,
