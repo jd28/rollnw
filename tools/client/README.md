@@ -31,7 +31,20 @@ objects; it does not own a second gameplay or editor object model.
 
 ## Importing A Module
 
-Import a module from the command line before opening the resulting project:
+On the Home tab, click **Import Module...**. Browse for the source `.mod` and a
+destination parent folder, review both paths, then click **Import**. An animated
+progress bar shows that import is running (it does not estimate a percentage).
+The client creates a new folder named after the module and imports it in the
+native JSON format. Existing folders are never
+overwritten by this workflow. **Open Project...** opens an already imported project.
+
+You can keep working during import. On success, the project opens automatically
+unless you have unsaved changes or switched projects; it is also added to Recent
+Projects. Wait for import to finish before quitting. If import fails, the error
+dialog identifies the output folder and `import.log`; partial output is kept
+there for inspection. Canceling either file picker writes nothing.
+
+For scripting or legacy imports, the command line remains available:
 
 ```text
 rollnw-client import (--json|--legacy) <module.mod> [project-dir]
@@ -62,9 +75,10 @@ To preserve the module's original binary GFF resources instead, use:
 ./rollnw-client import --legacy "/path/to/example.mod" ./example-legacy
 ```
 
-The destination is created when it does not exist. Importing into an existing
-project updates files in place and does not remove unrelated or stale files, so
-use a new or empty destination when a clean import is required.
+With the command line, the destination is created when it does not exist.
+Importing into an existing project updates files in place and does not remove
+unrelated or stale files, so use a new or empty destination when a clean import
+is required.
 
 ## Runtime Shape
 

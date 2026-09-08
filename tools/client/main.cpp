@@ -8,6 +8,7 @@
 #include "object_edits.hpp"
 #include "preview_session.hpp"
 #include "project.hpp"
+#include "project_import.hpp"
 #include "renderer.hpp"
 #include "resource_document.hpp"
 #include "rml_managed_list.hpp"
@@ -957,6 +958,13 @@ struct AppState {
     OutputScrollAfterLayout output_scroll_after_layout = OutputScrollAfterLayout::none;
     std::string module_dialog_command;
     std::string module_dialog_default_location;
+    std::string import_module_path;
+    std::filesystem::path import_parent_dir;
+    bool import_panel_open = false;
+    std::string import_status;
+    std::filesystem::path client_executable;
+    nw::toolset::ProjectImportJob project_import;
+    uint64_t import_module_generation = 0;
     std::string command_palette_restore_focus_id;
     std::filesystem::path preferences_path;
 
@@ -6452,6 +6460,52 @@ void append_workspace_home_markup(std::string& content_markup, const AppState& s
         content_markup += "</div>";
     }
     content_markup += "</div></div>";
+    content_markup += "<div class=\"home_project_actions\">"
+                      "<button id=\"home_import_module\"";
+    if (state.project_import.active() || state.module_dialog_open) {
+        content_markup += " disabled";
+    }
+    content_markup += ">Import Module...</button>"
+                      "<button id=\"home_open_project\">Open Project...</button></div>";
+    if (state.import_panel_open) {
+        const bool busy = state.project_import.active() || state.module_dialog_open;
+        const auto destination = state.import_parent_dir.empty() || state.import_module_path.empty()
+            ? std::string{}
+            : (state.import_parent_dir / std::filesystem::path{state.import_module_path}.stem()).string();
+        content_markup += "<div class=\"home_import_panel\"><div class=\"home_section_title\">Import Module</div>";
+        const std::array<std::array<std::string_view, 3>, 2> fields{{
+            {"Source", state.import_module_path, "home_import_source"},
+            {"Destination", destination, "home_import_destination"},
+        }};
+        for (const auto& field : fields) {
+            content_markup += "<div class=\"home_import_row\"><div class=\"home_import_label\">";
+            content_markup += field[0];
+            content_markup += "</div><div class=\"home_import_path\" title=\"";
+            content_markup += escape_html(field[1]);
+            content_markup += "\">";
+            content_markup += field[1].empty() ? "Not selected" : escape_html(field[1]);
+            content_markup += "</div><button id=\"";
+            content_markup += field[2];
+            content_markup += busy ? "\" disabled>Browse...</button></div>" : "\">Browse...</button></div>";
+        }
+        content_markup += "<div class=\"home_import_hint\">Choose a destination parent folder. "
+                          "A new folder named after the module will be created inside it; existing folders are not overwritten.</div>"
+                          "<div class=\"home_project_actions\"><button id=\"home_import_start\"";
+        if (busy || destination.empty()) { content_markup += " disabled"; }
+        content_markup += ">Import</button><button id=\"home_import_close\"";
+        if (busy) { content_markup += " disabled"; }
+        content_markup += ">Close</button></div>";
+        if (state.project_import.active()) {
+            content_markup += "<div class=\"home_import_progress\" title=\"Import in progress\">"
+                              "<div class=\"home_import_progress_fill\"></div></div>";
+        }
+        content_markup += "</div>";
+    }
+    content_markup += "<div class=\"home_import_status\">";
+    content_markup += state.import_status.empty()
+        ? "Import a .mod file into a new editable project, or open an existing project folder."
+        : escape_html(state.import_status);
+    content_markup += "</div>";
 
     if (!module_open) {
         content_markup += "<div id=\"home_project_list\">";
@@ -9285,7 +9339,7 @@ nw::toolset::CommandResult dispatch_command_flow(SDL_Window* window,
     return resolve_command_result(window, state, dispatch_command(state, command_id, std::move(args), source), source);
 }
 
-void show_open_module_dialog(SDL_Window* window, AppState& state)
+void show_open_module_dialog(SDL_Window* window, AppState& state, bool import = false)
 {
     if (state.open_module_dialog_event == 0) {
         append_output(state, "error", "Open module dialog unavailable");
@@ -9295,10 +9349,16 @@ void show_open_module_dialog(SDL_Window* window, AppState& state)
         append_output(state, "info", "Open module dialog already active");
         return;
     }
+    if (import && state.project_import.active()) {
+        return;
+    }
 
     static constexpr SDL_DialogFileFilter filters[] = {
         {"Neverwinter modules", "mod;zip"},
         {"All files", "*"},
+    };
+    static constexpr SDL_DialogFileFilter import_filters[] = {
+        {"Neverwinter Nights modules", "mod"},
     };
 
     state.module_dialog_default_location = module_dialog_start_location().string();
@@ -9306,18 +9366,21 @@ void show_open_module_dialog(SDL_Window* window, AppState& state)
         ? nullptr
         : state.module_dialog_default_location.c_str();
 
-    state.module_dialog_command = "toolset.open";
+    state.module_dialog_command = import ? "import.module" : "toolset.open";
+    if (import) {
+        state.import_status = "Choose the .mod file to import.";
+    }
     state.module_dialog_open = true;
     SDL_ShowOpenFileDialog(open_module_dialog_callback,
         new OpenModuleDialogRequest{state.open_module_dialog_event},
         window,
-        filters,
-        static_cast<int>(sizeof(filters) / sizeof(filters[0])),
+        import ? import_filters : filters,
+        import ? 1 : static_cast<int>(sizeof(filters) / sizeof(filters[0])),
         default_location,
         false);
 }
 
-void show_open_project_dialog(SDL_Window* window, AppState& state)
+void show_open_project_dialog(SDL_Window* window, AppState& state, bool import = false)
 {
     if (state.open_module_dialog_event == 0) {
         append_output(state, "error", "Open project dialog unavailable");
@@ -9327,19 +9390,29 @@ void show_open_project_dialog(SDL_Window* window, AppState& state)
         append_output(state, "info", "Open dialog already active");
         return;
     }
+    if (import && state.project_import.active()) { return; }
 
     state.module_dialog_default_location = project_dialog_start_location().string();
     const char* default_location = state.module_dialog_default_location.empty()
         ? nullptr
         : state.module_dialog_default_location.c_str();
 
-    state.module_dialog_command = "toolset.open_project";
+    state.module_dialog_command = import ? "import.destination" : "toolset.open_project";
     state.module_dialog_open = true;
-    SDL_ShowOpenFolderDialog(open_module_dialog_callback,
+    const auto props = SDL_CreateProperties();
+    SDL_SetPointerProperty(props, SDL_PROP_FILE_DIALOG_WINDOW_POINTER, window);
+    if (default_location) {
+        SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_LOCATION_STRING, default_location);
+    }
+    const std::string title = import
+        ? "Choose a parent folder for the imported project"
+        : "Open Project";
+    SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_TITLE_STRING, title.c_str());
+    SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_ACCEPT_STRING, import ? "Select Folder" : "Open Project");
+    SDL_ShowFileDialogWithProperties(SDL_FILEDIALOG_OPENFOLDER, open_module_dialog_callback,
         new OpenModuleDialogRequest{state.open_module_dialog_event},
-        window,
-        default_location,
-        false);
+        props);
+    SDL_DestroyProperties(props);
 }
 
 void execute_palette_command(SDL_Window* window,
@@ -9383,7 +9456,7 @@ void execute_palette_command(SDL_Window* window,
     toggle_command_palette(context, palette_context, doc, palette_doc, state, false);
 }
 
-void handle_open_module_dialog_result(Rml::ElementDocument* doc, AppState& state, SDL_Event& event)
+void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* doc, AppState& state, SDL_Event& event)
 {
     auto* result = static_cast<OpenModuleDialogResult*>(event.user.data1);
     state.module_dialog_open = false;
@@ -9391,6 +9464,7 @@ void handle_open_module_dialog_result(Rml::ElementDocument* doc, AppState& state
         ? "toolset.open"
         : state.module_dialog_command;
     state.module_dialog_command.clear();
+    const bool importing = command == "import.module" || command == "import.destination";
     if (!result) {
         return;
     }
@@ -9401,10 +9475,31 @@ void handle_open_module_dialog_result(Rml::ElementDocument* doc, AppState& state
     delete result;
 
     if (!error.empty()) {
-        append_output(state, "error", std::string{"Open module dialog failed: "} + error);
+        append_output(state, "error", std::string{"File dialog failed: "} + error);
+        if (importing) {
+            state.import_status = "Import dialog failed: " + error;
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Import failed", error.c_str(), window);
+            refresh_workspace_view(doc, state);
+        }
         return;
     }
     if (canceled || path.empty()) {
+        if (importing) {
+            state.import_status = "Selection canceled. No project files were written.";
+            refresh_workspace_view(doc, state);
+        }
+        return;
+    }
+    if (command == "import.module") {
+        state.import_module_path = path;
+        state.import_status = "Review the source and destination, then click Import.";
+        refresh_workspace_view(doc, state);
+        return;
+    }
+    if (command == "import.destination") {
+        state.import_parent_dir = path;
+        state.import_status = "Review the source and destination, then click Import.";
+        refresh_workspace_view(doc, state);
         return;
     }
     if (!ensure_backend_ready(state)) {
@@ -9435,6 +9530,86 @@ void handle_open_module_dialog_result(Rml::ElementDocument* doc, AppState& state
     if (command_result.ok()) {
         refresh_workspace_view(doc, state);
     }
+}
+
+class HomeProjectActionListener final : public Rml::EventListener {
+public:
+    HomeProjectActionListener(SDL_Window* window, Rml::ElementDocument* document, AppState& state)
+        : window_{window}
+        , document_{document}
+        , state_{state}
+    {
+    }
+
+    void ProcessEvent(Rml::Event& event) override
+    {
+        if (find_ancestor_with_id(event.GetTargetElement(), "home_import_module")) {
+            state_.import_panel_open = true;
+        } else if (find_ancestor_with_id(event.GetTargetElement(), "home_import_source")) {
+            show_open_module_dialog(window_, state_, true);
+        } else if (find_ancestor_with_id(event.GetTargetElement(), "home_import_destination")) {
+            show_open_project_dialog(window_, state_, true);
+        } else if (find_ancestor_with_id(event.GetTargetElement(), "home_import_close")) {
+            if (!state_.project_import.active() && !state_.module_dialog_open) {
+                state_.import_panel_open = false;
+            }
+        } else if (find_ancestor_with_id(event.GetTargetElement(), "home_import_start")) {
+            if (state_.project_import.active() || state_.module_dialog_open) { return; }
+            std::string error;
+            if (state_.project_import.start(state_.client_executable, state_.import_module_path,
+                    state_.import_parent_dir, error)) {
+                state_.import_module_generation = state_.backend.module_generation();
+                state_.import_status = "Importing... You can continue working; please wait for import to finish before quitting.";
+                append_output(state_, "info", state_.import_status);
+            } else {
+                state_.import_status = error;
+                append_output(state_, "error", error);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Import failed", error.c_str(), window_);
+            }
+        } else if (find_ancestor_with_id(event.GetTargetElement(), "home_open_project")) {
+            show_open_project_dialog(window_, state_);
+        } else {
+            return;
+        }
+        event.StopPropagation();
+        refresh_workspace_view(document_, state_);
+    }
+
+private:
+    SDL_Window* window_;
+    Rml::ElementDocument* document_;
+    AppState& state_;
+};
+
+void poll_project_import(SDL_Window* window, Rml::ElementDocument* doc, AppState& state)
+{
+    const auto result = state.project_import.poll();
+    if (!result) { return; }
+    state.import_status = result->message;
+    append_output(state, result->ok ? "info" : "error", result->message);
+    if (!result->ok) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Import failed", result->message.c_str(), window);
+    } else {
+        remember_recent_project(state, result->project_dir);
+        if (state.workspace.has_dirty_tabs()
+            || state.backend.module_generation() != state.import_module_generation
+            || state.module_dialog_open || state.play_preview.session.active()
+            || state.play_preview.placement_pending()) {
+            state.import_status += ". Open it from Open Project or Recent Projects when you are ready; your current work was kept open.";
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Import complete", state.import_status.c_str(), window);
+        } else {
+            const std::string path = result->project_dir.string();
+            const auto opened = dispatch_command_flow(window, state,
+                "toolset.open_project", {path}, nw::toolset::CommandSource::widget);
+            if (opened.ok()) { state.import_panel_open = false; }
+            if (!opened.ok()) {
+                state.import_status += ". " + opened.message;
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Could not open imported project", state.import_status.c_str(), window);
+            }
+        }
+    }
+    refresh_recent_list(doc, state);
+    refresh_workspace_view(doc, state);
 }
 
 bool ensure_backend_ready(AppState& state)
@@ -9859,6 +10034,12 @@ int main(int argc, char* argv[])
         return 1;
     }
     doc->Show();
+    HomeProjectActionListener home_project_action_listener{window, doc, state};
+    context->AddEventListener("click", &home_project_action_listener);
+    const std::filesystem::path executable_arg{argv[0]};
+    state.client_executable = executable_arg.has_parent_path()
+        ? std::filesystem::absolute(executable_arg)
+        : client_base_path() / executable_arg;
     auto* palette_doc = load_command_palette_document(*palette_context);
     if (!palette_doc) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: command_palette.rml");
@@ -9909,6 +10090,7 @@ int main(int argc, char* argv[])
 #if defined(ROLLNW_ENABLE_TRACY)
         FrameMark;
 #endif
+        poll_project_import(window, doc, state);
         synchronize_smalls_runtime(state);
         const Uint64 frame_start_counter = SDL_GetPerformanceCounter();
         const Uint64 frame_start_ms = SDL_GetTicks();
@@ -9939,7 +10121,7 @@ int main(int argc, char* argv[])
                 cancel_area_object_drag(renderer, state);
             }
             if (state.open_module_dialog_event != 0 && event.type == state.open_module_dialog_event) {
-                handle_open_module_dialog_result(doc, state, event);
+                handle_open_module_dialog_result(window, doc, state, event);
                 continue;
             }
             if (consume_terminal_toggle_text_input(state, event)) {
@@ -9949,6 +10131,11 @@ int main(int argc, char* argv[])
             bool dispatched_to_rml = false;
             switch (event.type) {
             case SDL_EVENT_QUIT: {
+                if (state.project_import.active()) {
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Import in progress",
+                        "Please wait for the module import to finish before quitting.", window);
+                    break;
+                }
                 if (!state.workspace.has_dirty_tabs()) {
                     running = false;
                     break;
@@ -12561,6 +12748,7 @@ int main(int argc, char* argv[])
         "change", &object_variable_change_listener, false);
     context->RemoveEventListener(
         "blur", &object_variable_change_listener, true);
+    context->RemoveEventListener("click", &home_project_action_listener);
     state.backend.shutdown_item_editor_data_model();
     state.rml_smalls_data_model->shutdown();
     Rml::RemoveContext("command_palette");

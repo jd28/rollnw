@@ -1191,6 +1191,66 @@ TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
     Rml::RemoveContext("workspace-tab-bar-template-test");
 }
 
+TEST(ClientRmlTemplates, ImportPanelShowsPathsActionsAndBusyBarWithinBounds)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace("tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    const std::string source = R"RML(
+<rml>
+<head>
+<link type="text/css" href="tools/client/ui/panel.rcss"/>
+<style>body, button { font-family: Inter; font-weight: normal; }</style>
+</head>
+<body>
+<div id="import-panel" class="home_import_panel">
+  <div class="home_section_title">Import Module</div>
+  <div class="home_import_row">
+    <div class="home_import_label">Source</div>
+    <div id="source" class="home_import_path">/a/very/long/path/to/Neverwinter Nights/modules/example.mod</div>
+    <button id="browse" disabled>Browse...</button>
+  </div>
+  <div class="home_import_row">
+    <div class="home_import_label">Destination</div>
+    <div id="destination" class="home_import_path">/another/long/path/to/projects/example</div>
+    <button disabled>Browse...</button>
+  </div>
+  <div class="home_project_actions"><button id="start" disabled>Import</button><button disabled>Close</button></div>
+  <div id="progress" class="home_import_progress"><div id="fill" class="home_import_progress_fill"></div></div>
+</div>
+</body>
+</rml>
+)RML";
+    auto* context = Rml::CreateContext("import-panel-test", {800, 400});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(source, "import_panel_test.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    for (const int width : {800, 460}) {
+        context->SetDimensions({width, 400});
+        context->Update();
+        auto* panel = document->GetElementById("import-panel");
+        ASSERT_NE(panel, nullptr);
+        for (const auto* id : {"source", "destination", "browse", "start", "progress", "fill"}) {
+            SCOPED_TRACE(id);
+            auto* element = document->GetElementById(id);
+            ASSERT_NE(element, nullptr);
+            EXPECT_TRUE(element->IsVisible(true));
+            EXPECT_GT(element->GetOffsetWidth(), 0.0f);
+            EXPECT_GT(element->GetOffsetHeight(), 0.0f);
+            EXPECT_LE(element->GetAbsoluteLeft() + element->GetOffsetWidth(),
+                panel->GetAbsoluteLeft() + panel->GetOffsetWidth());
+        }
+        EXPECT_EQ(document->GetElementById("progress")->GetOffsetHeight(), 8.0f);
+        EXPECT_TRUE(document->GetElementById("start")->HasAttribute("disabled"));
+    }
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("import-panel-test");
+}
+
 TEST(ClientRmlTemplates, AreaTabDirtyIndicatorIsVisibleWithoutMovingItsIcon)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};

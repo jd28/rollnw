@@ -42,6 +42,7 @@ add_executable(rollnw-client
     item_editor_data_model.cpp
     viewer_viewport.cpp
     main.cpp
+    project_import.cpp
     renderer.cpp
     toolset_backend.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_bridge.cpp

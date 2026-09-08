@@ -876,6 +876,97 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   display: block;
   width: 100%;
 }
+.home_project_actions {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.home_project_actions button, .home_import_row button {
+  height: 34px;
+  padding: 6px 14px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+  border: 1px #536371;
+  border-radius: 2px;
+  background: #202930;
+  color: #e4e9ed;
+  font-size: 14px;
+  cursor: pointer;
+}
+.home_project_actions button:hover,
+.home_project_actions button:focus,
+.home_import_row button:hover, .home_import_row button:focus {
+  border-color: #a78d62;
+  background: #28333d;
+}
+.home_project_actions button:disabled, .home_import_row button:disabled {
+  color: #85909b;
+  cursor: arrow;
+}
+.home_import_status {
+  display: block;
+  max-height: 96px;
+  overflow: auto;
+  margin-bottom: 22px;
+  color: #adb9c4;
+  font-size: 13px;
+}
+.home_import_panel {
+  display: block;
+  flex-shrink: 0;
+  min-width: 0px;
+  box-sizing: border-box;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px #303943;
+  background: #171e25;
+}
+.home_import_row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.home_import_label {
+  flex: 0 0 90px;
+  font-size: 13px;
+}
+.home_import_path {
+  flex: 1;
+  min-width: 0px;
+  margin-right: 8px;
+  padding: 6px 8px;
+  border: 1px #303943;
+  background: #0d1115;
+  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.home_import_row button { flex-shrink: 0; }
+.home_import_hint {
+  display: block;
+  margin-bottom: 12px;
+  color: #adb9c4;
+  font-size: 12px;
+}
+.home_import_progress {
+  display: block;
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  background: #0d1115;
+}
+.home_import_progress_fill {
+  position: absolute;
+  width: 30%;
+  height: 100%;
+  background: #d5b06f;
+  animation: 1.2s linear infinite alternate import_busy;
+}
+@keyframes import_busy {
+  from { left: 0%; }
+  to { left: 70%; }
+}
 .home_project_item {
   display: block;
   width: 100%;

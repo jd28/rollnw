@@ -418,6 +418,16 @@ if(CMAKE_HOST_UNIX)
     target_link_libraries(rollnw_test PRIVATE dl)
 endif()
 
+if(TARGET rollnw-client)
+    target_sources(rollnw_test PRIVATE
+        rollnw_client_project_import.cpp
+        ../tools/client/project_import.cpp)
+    target_link_libraries(rollnw_test PRIVATE SDL3::SDL3)
+    target_compile_definitions(rollnw_test PRIVATE
+        ROLLNW_TEST_CLIENT_EXECUTABLE="$<TARGET_FILE:rollnw-client>")
+    add_dependencies(rollnw_test rollnw-client)
+endif()
+
 # A test process initializes the dedicated-server resource, rules, and tileset
 # services before GoogleTest runs. Registering every case as a separate CTest
 # process repeated that fixed startup for every case. GoogleTest's stable
