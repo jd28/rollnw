@@ -32,6 +32,32 @@ namespace {
 constexpr glm::vec4 kObjectSelectionOutlineColor{0.12f, 1.0f, 0.28f, 1.0f};
 constexpr glm::vec4 kTileSelectionOutlineColor{0.12f, 0.42f, 1.0f, 1.0f};
 
+constexpr int kItemPointerRadius = 6;
+struct PointerSampleOffset {
+    int x;
+    int y;
+};
+constexpr auto kItemPointerOffsets = [] {
+    std::array<PointerSampleOffset, 112> offsets{};
+    size_t count = 0;
+    for (int y = -kItemPointerRadius; y <= kItemPointerRadius; ++y) {
+        for (int x = -kItemPointerRadius; x <= kItemPointerRadius; ++x) {
+            const int distance = x * x + y * y;
+            if (distance > 0 && distance <= kItemPointerRadius * kItemPointerRadius) {
+                offsets[count++] = {x, y};
+            }
+        }
+    }
+    std::sort(offsets.begin(), offsets.end(), [](auto a, auto b) {
+        const int a_distance = a.x * a.x + a.y * a.y;
+        const int b_distance = b.x * b.x + b.y * b.y;
+        if (a_distance != b_distance) return a_distance < b_distance;
+        if (a.y != b.y) return a.y < b.y;
+        return a.x < b.x;
+    });
+    return offsets;
+}();
+
 bool environment_flag_disabled(const char* name)
 {
     const char* value = std::getenv(name);
@@ -71,7 +97,7 @@ bool finite_vec4(const glm::vec4& value) noexcept
 }
 
 std::optional<ViewerRay> viewer_ray_from_viewport(
-    const Camera& camera, float pixel_x, float pixel_y, ViewerViewport viewport) noexcept
+    const glm::mat4& inverse_view_projection, float pixel_x, float pixel_y, ViewerViewport viewport) noexcept
 {
     if (!viewport.valid() || !std::isfinite(pixel_x) || !std::isfinite(pixel_y)) {
         return std::nullopt;
@@ -87,8 +113,6 @@ std::optional<ViewerRay> viewer_ray_from_viewport(
 
     const float ndc_x = ((pixel_x - left) / width) * 2.0f - 1.0f;
     const float ndc_y = ((pixel_y - top) / height) * 2.0f - 1.0f;
-    const glm::mat4 inverse_view_projection = glm::inverse(
-        camera.get_projection_matrix() * camera.get_view_matrix());
     glm::vec4 near_point = inverse_view_projection * glm::vec4{ndc_x, ndc_y, 0.0f, 1.0f};
     glm::vec4 far_point = inverse_view_projection * glm::vec4{ndc_x, ndc_y, 1.0f, 1.0f};
     if (!finite_vec4(near_point) || !finite_vec4(far_point)
@@ -106,6 +130,53 @@ std::optional<ViewerRay> viewer_ray_from_viewport(
         return std::nullopt;
     }
     return ViewerRay{.origin = origin, .direction = direction};
+}
+
+std::optional<ViewerRay> viewer_ray_from_viewport(
+    const Camera& camera, float pixel_x, float pixel_y, ViewerViewport viewport) noexcept
+{
+    const auto inverse = glm::inverse(camera.get_projection_matrix() * camera.get_view_matrix());
+    return viewer_ray_from_viewport(inverse,
+        pixel_x, pixel_y, viewport);
+}
+
+bool item_bounds_near_pointer(glm::vec2 pixel, const glm::mat4& view_projection,
+    ViewerViewport viewport, const AreaRenderScene& records)
+{
+    const auto bounds = records.bounds();
+    const auto flags = records.flags();
+    const auto kinds = records.kinds();
+    const auto objects = records.object_handles();
+    const glm::vec2 viewport_origin{viewport.x, viewport.y};
+    const glm::vec2 viewport_size{viewport.width, viewport.height};
+    for (size_t index = 0; index < bounds.size(); ++index) {
+        if (kinds[index] != AreaRenderRecordKind::item
+            || (flags[index] & AreaRenderScene::RecordFlag::render_enabled) == 0
+            || !nw::kernel::objects().valid(objects[index])) {
+            continue;
+        }
+        glm::vec2 minimum{std::numeric_limits<float>::infinity()};
+        glm::vec2 maximum{-std::numeric_limits<float>::infinity()};
+        for (unsigned corner = 0; corner < 8; ++corner) {
+            const glm::vec3 point{
+                (corner & 1u) ? bounds[index].max.x : bounds[index].min.x,
+                (corner & 2u) ? bounds[index].max.y : bounds[index].min.y,
+                (corner & 4u) ? bounds[index].max.z : bounds[index].min.z};
+            const glm::vec4 clip = view_projection * glm::vec4{point, 1.0f};
+            // A near-plane crossing cannot be bounded by projecting corners.
+            // Conservatively let the exact, viewport-clipped samples decide.
+            if (!finite_vec4(clip) || clip.w <= 1.0e-8f || clip.z < 0.0f) return true;
+            const auto projected = viewport_origin
+                + (glm::vec2{clip} / clip.w + 1.0f) * 0.5f * viewport_size;
+            minimum = glm::min(minimum, projected);
+            maximum = glm::max(maximum, projected);
+        }
+        if (glm::all(glm::greaterThanEqual(pixel, minimum - static_cast<float>(kItemPointerRadius)))
+            && glm::all(glm::lessThanEqual(pixel, maximum + static_cast<float>(kItemPointerRadius)))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::optional<uint32_t> debug_shape_selection_index(
@@ -450,6 +521,51 @@ void bootstrap_scene_playback(PreviewScene& scene)
 
 } // namespace
 
+void select_area_pointer_objects(
+    std::span<const glm::vec2> pixels,
+    const Camera& camera,
+    ViewerViewport viewport,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    std::span<AreaObjectSelection> selections,
+    AreaObjectSelectionOptions options)
+{
+    std::fill(selections.begin(), selections.end(), AreaObjectSelection{});
+    if (pixels.size() != selections.size() || !viewport.valid()) return;
+    const auto view_projection = camera.get_projection_matrix() * camera.get_view_matrix();
+    const auto inverse_view_projection = glm::inverse(view_projection);
+    for (size_t index = 0; index < pixels.size(); ++index) {
+        const auto pixel = pixels[index];
+        const auto ray = viewer_ray_from_viewport(inverse_view_projection, pixel.x, pixel.y, viewport);
+        if (!ray) continue;
+        auto& result = selections[index];
+        result = select_area_object(*ray, records, scene, options);
+        if (result.status == AreaObjectSelectionStatus::invalid_input
+            || options.target != AreaObjectSelectionTarget::object
+            || result.source == AreaObjectSelectionSource::area_record
+            || !item_bounds_near_pointer(pixel, view_projection, viewport, records)) {
+            continue;
+        }
+        for (const auto offset : kItemPointerOffsets) {
+            const auto sample_ray = viewer_ray_from_viewport(inverse_view_projection,
+                pixel.x + static_cast<float>(offset.x), pixel.y + static_cast<float>(offset.y), viewport);
+            if (!sample_ray) continue;
+            const auto hit = select_area_object(*sample_ray, records, scene,
+                {.triggers_enabled = false, .encounters_enabled = false});
+            if (hit.status != AreaObjectSelectionStatus::hit || hit.kind != AreaRenderRecordKind::item) {
+                continue;
+            }
+            const auto tile = select_area_object(*sample_ray, records, scene,
+                {.target = AreaObjectSelectionTarget::tile});
+            if (tile.status == AreaObjectSelectionStatus::hit && tile.distance + 1.0e-4f < hit.distance) {
+                continue;
+            }
+            result = hit;
+            break;
+        }
+    }
+}
+
 ViewerSession::ViewerSession(PreviewRenderResources& preview_resources, SceneDebugRenderer* debug_renderer)
     : preview_resources_(&preview_resources)
     , debug_renderer_(debug_renderer)
@@ -699,21 +815,22 @@ AreaObjectSelection ViewerSession::select_area_object(
     }
 
     update_viewport(viewport);
-    const auto ray = viewer_ray_from_viewport(camera_, pixel_x, pixel_y, viewport);
-    if (!ray) {
-        return {};
-    }
-
     const auto& records = *scene_->area_render_scene;
-    const AreaObjectSelection result = nw::render::viewer::select_area_object(
-        *ray,
+    const std::array pixels{glm::vec2{pixel_x, pixel_y}};
+    std::array<AreaObjectSelection, 1> selections;
+    select_area_pointer_objects(
+        pixels,
+        camera_,
+        viewport,
         records,
         *scene_,
+        selections,
         {
             .target = target,
             .triggers_enabled = area_debug_enabled_ && area_triggers_enabled_,
             .encounters_enabled = area_debug_enabled_ && area_encounters_enabled_,
         });
+    const auto& result = selections.front();
     if (result.status == AreaObjectSelectionStatus::hit) {
         active_area_selection_ = result;
         scene_->active_object = result.object;

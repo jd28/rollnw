@@ -16,6 +16,7 @@
 #include <nw/render/viewer/area_render_scene.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/scene_debug.hpp>
+#include <nw/render/viewer/session.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/smalls/runtime.hpp>
 
@@ -188,6 +189,181 @@ void destroy_selection_model_buffers(viewer::PreviewScene& scene)
     }
 }
 
+viewer::ViewerRay pointer_test_ray(const viewer::Camera& camera,
+    viewer::ViewerViewport viewport, glm::vec2 pixel)
+{
+    const auto inverse = glm::inverse(camera.get_projection_matrix() * camera.get_view_matrix());
+    const auto ndc = (pixel - glm::vec2{viewport.x, viewport.y})
+            / glm::vec2{viewport.width, viewport.height} * 2.0f
+        - 1.0f;
+    auto near = inverse * glm::vec4{ndc, 0.0f, 1.0f};
+    auto far = inverse * glm::vec4{ndc, 1.0f, 1.0f};
+    near /= near.w;
+    far /= far.w;
+    return {glm::vec3{near}, glm::vec3{far - near}};
+}
+
+std::unique_ptr<nw::render::RenderModel> make_thin_pointer_model(
+    nw::gfx::Context* context, const viewer::Camera& camera,
+    viewer::ViewerViewport viewport, glm::vec2 center, float z = 0.0f)
+{
+    const std::array pixels{center + glm::vec2{-30.0f, -0.2f},
+        center + glm::vec2{30.0f, -0.2f}, center + glm::vec2{0.0f, 0.2f}};
+    std::array<glm::vec3, 3> positions;
+    nw::render::Bounds bounds{.min = glm::vec3{std::numeric_limits<float>::infinity()},
+        .max = glm::vec3{-std::numeric_limits<float>::infinity()}};
+    for (size_t index = 0; index < pixels.size(); ++index) {
+        const auto ray = pointer_test_ray(camera, viewport, pixels[index]);
+        positions[index] = ray.origin + ray.direction * ((z - ray.origin.z) / ray.direction.z);
+        bounds.min = glm::min(bounds.min, positions[index]);
+        bounds.max = glm::max(bounds.max, positions[index]);
+    }
+    return make_selection_model(context, positions, bounds);
+}
+
+TEST(RenderViewerAreaSelection, ThinItemPointerToleranceIsBoundedInViewportPixels)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) GTEST_SKIP() << "headless graphics context unavailable";
+    LiveObjects live;
+    const auto item = live.make<nw::Item>();
+    const auto trigger = live.make<nw::Trigger>();
+    const viewer::ViewerViewport viewport{23, 31, 200, 200};
+    for (const auto mode : {viewer::Camera::ProjectionMode::perspective, viewer::Camera::ProjectionMode::orthographic}) {
+        for (float distance : {10.0f, 40.0f}) {
+            SCOPED_TRACE(static_cast<int>(mode));
+            SCOPED_TRACE(distance);
+            viewer::Camera camera;
+            camera.set_aspect_ratio(1.0f);
+            camera.set_orbit_view({0.0f, 0.0f, 0.0f}, distance, 45.0f, 60.0f, mode);
+            // Also exercise clipping of assistance samples at a viewport edge.
+            for (const glm::vec2 center : {glm::vec2{123.0f, 131.0f}, glm::vec2{24.0f, 32.0f}}) {
+                viewer::PreviewScene scene;
+                auto model = make_thin_pointer_model(gfx.context, camera, viewport, center);
+                ASSERT_TRUE(model);
+                scene.add(std::move(model));
+                scene.static_area_model_info.back() = {.kind = viewer::AreaRenderRecordKind::item, .object = item};
+                viewer::AreaRenderScene records;
+                records.rebuild(scene);
+                const std::array pixels{center, center + glm::vec2{0.0f, 4.0f},
+                    center + glm::vec2{0.0f, 6.0f}, center + glm::vec2{0.0f, 7.0f}};
+                EXPECT_EQ(viewer::select_area_object(pointer_test_ray(camera, viewport, pixels[1]), records, scene).status,
+                    viewer::AreaObjectSelectionStatus::miss);
+                std::array<viewer::AreaObjectSelection, 4> hits;
+                viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
+                for (size_t index = 0; index < 3; ++index) {
+                    EXPECT_EQ(hits[index].status, viewer::AreaObjectSelectionStatus::hit);
+                    EXPECT_EQ(hits[index].object, item);
+                    EXPECT_NEAR(hits[index].position.z, 0.0f, 1.0e-4f);
+                }
+                EXPECT_EQ(hits.back().status, viewer::AreaObjectSelectionStatus::miss);
+                viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits,
+                    {.target = viewer::AreaObjectSelectionTarget::tile});
+                for (const auto& hit : hits)
+                    EXPECT_EQ(hit.status, viewer::AreaObjectSelectionStatus::miss);
+                scene.static_model_instance(0)->visible = false;
+                records.refresh_runtime_records(scene);
+                viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
+                for (const auto& hit : hits)
+                    EXPECT_EQ(hit.status, viewer::AreaObjectSelectionStatus::miss);
+                scene.static_model_instance(0)->visible = true;
+                records.refresh_runtime_records(scene);
+
+                // Authored trigger footprints must not swallow nearby items.
+                scene.debug_shape_selection_points = {{-100.0f, -100.0f, 0.0f},
+                    {100.0f, -100.0f, 0.0f}, {100.0f, 100.0f, 0.0f}, {-100.0f, 100.0f, 0.0f}};
+                scene.debug_shape_selection_ranges.push_back({.bounds = {.min = {-100.0f, -100.0f, 0.0f}, .max = {100.0f, 100.0f, 0.0f}},
+                    .object = trigger,
+                    .point_count = 4,
+                    .category = viewer::DebugShapeCategory::trigger});
+                viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
+                EXPECT_EQ(hits[1].object, item);
+                EXPECT_EQ(hits[2].object, item);
+                EXPECT_EQ(hits.back().object, trigger);
+                viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits,
+                    {.triggers_enabled = false});
+                EXPECT_EQ(hits.back().status, viewer::AreaObjectSelectionStatus::miss);
+                destroy_selection_model_buffers(scene);
+            }
+        }
+    }
+}
+
+TEST(RenderViewerAreaSelection, ItemPointerAssistancePreservesDirectHitsAndRespectsOcclusion)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) GTEST_SKIP() << "headless graphics context unavailable";
+    LiveObjects live;
+    const auto item = live.make<nw::Item>();
+    const auto blocker = live.make<nw::Placeable>();
+    const auto near_item = live.make<nw::Item>();
+    const viewer::ViewerViewport viewport{0, 0, 200, 200};
+    viewer::Camera camera;
+    camera.set_aspect_ratio(1.0f);
+    camera.set_orbit_view({0.0f, 0.0f, 0.0f}, 10.0f, 45.0f, 60.0f);
+    const glm::vec2 center{100.0f, 100.0f};
+    for (const auto kind : {viewer::AreaRenderRecordKind::placeable, viewer::AreaRenderRecordKind::tile}) {
+        viewer::PreviewScene scene;
+        auto item_model = make_thin_pointer_model(gfx.context, camera, viewport, center);
+        auto blocker_model = make_thin_pointer_model(gfx.context, camera, viewport, center, 1.0f);
+        ASSERT_TRUE(item_model);
+        ASSERT_TRUE(blocker_model);
+        scene.add(std::move(item_model));
+        scene.static_area_model_info.back() = {.kind = viewer::AreaRenderRecordKind::item, .object = item};
+        scene.add(std::move(blocker_model));
+        scene.static_area_model_info.back() = {.kind = kind,
+            .object = kind == viewer::AreaRenderRecordKind::tile ? nw::ObjectHandle{} : blocker,
+            .tile_x = 0,
+            .tile_y = 0};
+        viewer::AreaRenderScene records;
+        records.rebuild(scene);
+        const std::array pixels{center + glm::vec2{0.0f, 4.0f}};
+        std::array<viewer::AreaObjectSelection, 1> hits;
+        viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
+        EXPECT_EQ(hits[0].status, viewer::AreaObjectSelectionStatus::miss);
+
+        // A nearer screen-space item wins over a farther offset, but never
+        // steals a direct mesh hit from the object actually under the pointer.
+        auto near_model = make_thin_pointer_model(gfx.context, camera, viewport,
+            center + glm::vec2{0.0f, 3.0f});
+        ASSERT_TRUE(near_model);
+        scene.add(std::move(near_model));
+        scene.static_area_model_info.back() = {.kind = viewer::AreaRenderRecordKind::item, .object = near_item};
+        records.rebuild(scene);
+        viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
+        EXPECT_EQ(hits[0].object, near_item);
+        if (kind == viewer::AreaRenderRecordKind::placeable) {
+            viewer::select_area_pointer_objects(std::span{&center, 1u}, camera, viewport, records, scene, hits);
+            EXPECT_EQ(hits[0].object, blocker);
+        }
+        destroy_selection_model_buffers(scene);
+    }
+}
+
+TEST(RenderViewerAreaSelection, PointerSelectionRejectsMalformedBatchesAndCoordinates)
+{
+    viewer::PreviewScene scene;
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+    viewer::Camera camera;
+    const viewer::ViewerViewport viewport{23, 31, 200, 200};
+    const std::array pixels{glm::vec2{23.0f, 31.0f}, glm::vec2{22.0f, 31.0f},
+        glm::vec2{223.0f, 31.0f}, glm::vec2{23.0f, 231.0f},
+        glm::vec2{std::numeric_limits<float>::quiet_NaN(), 31.0f}};
+    std::array<viewer::AreaObjectSelection, 5> hits;
+    viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
+    EXPECT_EQ(hits.front().status, viewer::AreaObjectSelectionStatus::miss);
+    for (size_t index = 1; index < hits.size(); ++index) {
+        EXPECT_EQ(hits[index].status, viewer::AreaObjectSelectionStatus::invalid_input);
+    }
+    viewer::select_area_pointer_objects(pixels, camera, {}, records, scene, hits);
+    for (const auto& hit : hits)
+        EXPECT_EQ(hit.status, viewer::AreaObjectSelectionStatus::invalid_input);
+    viewer::select_area_pointer_objects({}, camera, viewport, records, scene, hits);
+    for (const auto& hit : hits)
+        EXPECT_EQ(hit.status, viewer::AreaObjectSelectionStatus::invalid_input);
+}
+
 TEST(RenderViewerAreaSelection, TracesNearestRaisedAndSlopedSurfacesInBatches)
 {
     const std::array triangles{
@@ -331,6 +507,50 @@ TEST(RenderViewerAreaSelection, UpdatesAllSceneRootsForOneSpatialRow)
     const auto invalid_stats = viewer::update_area_object_spatial_states(scene, invalid_rows);
     EXPECT_EQ(invalid_stats.rejected_input_count, 1u);
     EXPECT_EQ(invalid_stats.render_model_root_count, 0u);
+}
+
+TEST(RenderViewerAreaSelection, ItemGroundPosesPreserveSharedBottomDuringSpatialUpdates)
+{
+    RecordProperty("area_render_source_bytes", sizeof(viewer::AreaRenderSourceInfo));
+    LiveObjects live;
+    viewer::PreviewScene scene;
+    const std::array rotations{0, 1, 2, 0};
+    const std::array offsets{4.0f, 4.0f, 3.0f, -2.0f};
+    const std::array expected_x{
+        glm::vec3{0.0f, 2.0f, 0.0f}, glm::vec3{0.0f, 0.0f, -4.0f},
+        glm::vec3{0.0f, 2.0f, 0.0f}, glm::vec3{0.0f, 2.0f, 0.0f}};
+    std::array<nw::ObjectSpatialState, 4> rows;
+    for (size_t i = 0; i < rows.size(); ++i) {
+        const auto object = live.make<nw::Item>();
+        rows[i] = {.owner = object, .position = {10.0f * float(i), 5.0f, 7.0f}, .orientation = {0.0f, 1.0f, 0.0f}, .scale = {2.0f, 3.0f, 4.0f}};
+        for (int part = 0; part < 2; ++part) {
+            auto model = std::make_unique<nw::render::RenderModel>();
+            model->bounds = i == 3
+                ? nw::render::Bounds{{-1.0f, -1.0f, 2.0f}, {1.0f, 1.0f, 3.0f}}
+                : part == 0
+                ? nw::render::Bounds{{-2.0f, -3.0f, -4.0f}, {1.0f, 2.0f, 3.0f}}
+                : nw::render::Bounds{{-1.0f, -1.0f, 2.0f}, {4.0f, 1.0f, 5.0f}};
+            scene.add(std::move(model));
+            scene.static_area_model_info.back() = {
+                .kind = viewer::AreaRenderRecordKind::item, .object = object, .item_ground_rotation = rotations[i], .item_ground_offset = offsets[i]};
+        }
+    }
+    for (int update = 0; update < 2; ++update) {
+        const auto stats = viewer::update_area_object_spatial_states(scene, rows);
+        EXPECT_EQ(stats.rejected_input_count, 0u);
+        EXPECT_EQ(stats.render_model_root_count, 8u);
+        for (size_t i = 0; i < rows.size(); ++i) {
+            const auto* first = scene.static_model_instance(i * 2);
+            const auto* second = scene.static_model_instance(i * 2 + 1);
+            ASSERT_NE(first, nullptr);
+            ASSERT_NE(second, nullptr);
+            EXPECT_EQ(first->root_transform, second->root_transform);
+            EXPECT_NEAR(glm::length(glm::vec3{first->root_transform[0]} - expected_x[i]), 0.0f, 1.0e-5f);
+            EXPECT_NEAR(std::min(first->current_bounds.min.z, second->current_bounds.min.z),
+                rows[i].position.z, 1.0e-5f);
+            rows[i].position += glm::vec3{2.0f, 3.0f, -10.0f};
+        }
+    }
 }
 
 TEST(RenderViewerAreaSelection, UpdatesWaypointMarkerNativePositiveYToObjectHeading)

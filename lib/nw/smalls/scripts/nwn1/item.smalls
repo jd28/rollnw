@@ -2187,6 +2187,16 @@ fn _append_default_visual(owner: object, item: Item, visual: ItemResolvedVisual)
     return _append_visual_row(owner, item, row);
 }
 
+// Ground pose is a base-item fact, independent of the equipped model parts.
+// -1 explicitly reports an invalid object or missing base-item definition.
+fn get_ground_rotation(item: Item): int {
+    if ((item as object) == O.invalid) { return -1; }
+    var stats = get_propset!(ItemStats)(item);
+    var base_item_type = base.BaseItemType(stats.base_item);
+    if (!BaseItems.exists(base_item_type)) { return -1; }
+    return BaseItems.get_info(base_item_type).rotate_on_ground;
+}
+
 fn update_standalone_visual(item: Item, use_default_fallback: bool): bool {
     if ((item as object) == O.invalid) {
         return false;

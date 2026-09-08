@@ -33,6 +33,22 @@ struct ViewerViewport {
     [[nodiscard]] bool valid() const noexcept { return width > 0 && height > 0; }
 };
 
+// Shared game/toolset pointer selection. Borrowed pixel rows produce parallel
+// selections without mutating the camera, scene, or live objects. Direct mesh
+// hits win; misses/debug footprints allow visible item hits sampled within a
+// six-pixel disk, nearest offset first. Bounds only reject candidates; accepted
+// hits come from real triangles and assistance checks tile/object occlusion.
+// Invalid batch sizes, viewport coordinates, or rays produce invalid_input.
+// Exact world-ray and candidate queries intentionally have no pointer tolerance.
+void select_area_pointer_objects(
+    std::span<const glm::vec2> pixels,
+    const Camera& camera,
+    ViewerViewport viewport,
+    const AreaRenderScene& records,
+    const PreviewScene& scene,
+    std::span<AreaObjectSelection> selections,
+    AreaObjectSelectionOptions options = {});
+
 enum class ViewerSceneKind : uint8_t {
     none,
     model,

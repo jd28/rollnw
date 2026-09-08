@@ -25,6 +25,7 @@
           { "target": "inventory_height", "value": { "kind": "column", "column": "InvSlotHeight", "type": "int", "on_missing": "default", "default": 0 } },
           { "target": "equipable_slots", "value": { "kind": "column", "column": "EquipableSlots", "type": "int", "on_missing": "default", "default": 0 } },
           { "target": "stack_size", "value": { "kind": "column", "column": "Stacking", "type": "int", "on_missing": "default", "default": 1 } },
+          { "target": "rotate_on_ground", "value": { "kind": "column", "column": "RotateOnGround", "type": "int", "on_missing": "default", "default": 0 } },
           { "target": "is_container", "value": { "kind": "column", "column": "Container", "type": "bool", "on_missing": "default", "default": false } }
         ]
       },

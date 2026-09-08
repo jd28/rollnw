@@ -4291,6 +4291,7 @@ TEST_F(SmallsEngineIntegration, CanonicalBaseItemDefinitionBuildsRuntimeProjecti
             if (rules.base_cost <= 0) { return -17; }
             if (info.stack_size <= 0) { return -18; }
             if (rules.cost_multiplier <= 0.0) { return -19; }
+            if (info.rotate_on_ground != 1) { return -20; }
             return 1;
         }
     )";
@@ -4327,6 +4328,9 @@ TEST_F(SmallsEngineIntegration, CanonicalBaseItemDefinitionBuildsRuntimeProjecti
     EXPECT_EQ(native_info->label, "shortsword");
     EXPECT_EQ(native_info->model_type, nw::ItemModelType::composite);
     EXPECT_EQ(native_info->item_property_column, 0);
+    EXPECT_EQ(native_info->rotate_on_ground, 1);
+    EXPECT_EQ(nw::kernel::rules().baseitems.get(nw::BaseItem::make(17))->rotate_on_ground, 0);
+    EXPECT_EQ(nw::kernel::rules().baseitems.get(nw::BaseItem::make(6))->rotate_on_ground, 2);
 }
 
 TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTable)
@@ -4360,7 +4364,9 @@ TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTab
             elif (invalid_field == 3) { invalid.inventory_width = 11; }
             elif (invalid_field == 4) { invalid.inventory_height = 11; }
             elif (invalid_field == 5) { invalid.equipable_slots = -1; }
-            else { invalid.stack_size = 0; }
+            elif (invalid_field == 6) { invalid.stack_size = 0; }
+            elif (invalid_field == 7) { invalid.rotate_on_ground = -1; }
+            else { invalid.rotate_on_ground = 3; }
 
             var entries: array!(BaseItemInfo) = {};
             Array.push(entries, invalid);
@@ -4373,7 +4379,7 @@ TEST_F(SmallsEngineIntegration, InvalidBaseItemInfoPublicationPreservesNativeTab
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
-    for (int32_t invalid_field = 0; invalid_field < 7; ++invalid_field) {
+    for (int32_t invalid_field = 0; invalid_field < 9; ++invalid_field) {
         auto result = rt.execute_script(script, "main",
             {nw::smalls::Value::make_int(invalid_field)});
         ASSERT_TRUE(result.ok()) << result.error_message;

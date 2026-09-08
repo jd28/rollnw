@@ -41,6 +41,10 @@ struct AreaRenderSourceInfo {
     int16_t tile_y = -1;
     uint8_t tile_orientation = 0;
     bool static_candidate = false;
+    // Cached area-item local pose. All parts share the combined-bottom offset.
+    // Zero-initialized for other source kinds and standalone item previews.
+    int32_t item_ground_rotation = 0;
+    float item_ground_offset = 0.0f;
 };
 
 struct ViewerRay {

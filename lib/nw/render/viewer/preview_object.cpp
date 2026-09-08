@@ -619,6 +619,18 @@ bool update_standalone_item_visual(nw::Item& item, bool use_default_fallback, st
     return true;
 }
 
+std::optional<int32_t> item_ground_rotation(const nw::Item& item)
+{
+    auto& rt = nw::kernel::runtime();
+    const auto result = rt.execute_script("nwn1.item", "get_ground_rotation",
+        {nw::smalls::detail::make_value(&rt, item.handle())});
+    if (!result.ok() || result.value.type_id != rt.int_type()
+        || result.value.data.ival < 0 || result.value.data.ival > 2) {
+        return std::nullopt;
+    }
+    return result.value.data.ival;
+}
+
 bool visual_row_visible_for_mode(const nw::ObjectVisualModel& row, nw::ObjectVisualRenderMode render_mode) noexcept
 {
     return nw::object_visual_model_visible_in_mode(row, render_mode);

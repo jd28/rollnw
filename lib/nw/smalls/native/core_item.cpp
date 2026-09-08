@@ -45,6 +45,7 @@ struct ScriptBaseItemInfo {
     int32_t inventory_height = 0;
     int32_t equipable_slots = 0;
     int32_t stack_size = 0;
+    int32_t rotate_on_ground = 0;
     bool is_container = false;
 };
 
@@ -89,7 +90,9 @@ bool publish_baseitem_info(Value value)
             || source.inventory_height < 1
             || source.inventory_height > nw::Inventory::max_rows
             || source.equipable_slots < 0
-            || source.stack_size < 1) {
+            || source.stack_size < 1
+            || source.rotate_on_ground < 0
+            || source.rotate_on_ground > 2) {
             return false;
         }
 
@@ -105,6 +108,7 @@ bool publish_baseitem_info(Value value)
             .inventory_height = source.inventory_height,
             .equipable_slots = source.equipable_slots,
             .stack_size = source.stack_size,
+            .rotate_on_ground = source.rotate_on_ground,
             .is_container = source.is_container,
         });
         ++valid_count;
@@ -541,6 +545,7 @@ void register_core_item(Runtime& rt)
         .field("inventory_height", &ScriptBaseItemInfo::inventory_height)
         .field("equipable_slots", &ScriptBaseItemInfo::equipable_slots)
         .field("stack_size", &ScriptBaseItemInfo::stack_size)
+        .field("rotate_on_ground", &ScriptBaseItemInfo::rotate_on_ground)
         .field("is_container", &ScriptBaseItemInfo::is_container)
         .end_struct()
         .function("publish_baseitem_info", &publish_baseitem_info)

@@ -42,6 +42,7 @@ bool load_item_from_file(const std::filesystem::path& path, nw::Item& out);
 bool load_door_from_file(const std::filesystem::path& path, nw::Door& out);
 bool load_placeable_from_file(const std::filesystem::path& path, nw::Placeable& out);
 bool update_standalone_item_visual(nw::Item& item, bool use_default_fallback, std::string_view origin);
+std::optional<int32_t> item_ground_rotation(const nw::Item& item);
 PreviewDoorModelLoad resolve_door_model_from_file(const std::filesystem::path& path);
 PreviewDoorModelLoad resolve_door_model_for_object(const nw::Door& door);
 std::string door_model_lookup_context(const PreviewDoorModelLoad& lookup);

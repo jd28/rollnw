@@ -32,6 +32,8 @@ struct BaseItemInfo {
     int32_t inventory_height = 0;
     int32_t equipable_slots = 0;
     int32_t stack_size = 1;
+    // Ground pose: 0 = unchanged, 1 = +90 degrees about Y, 2 = +90 about X.
+    int32_t rotate_on_ground = 0;
     bool is_container = false;
 
     bool valid() const noexcept

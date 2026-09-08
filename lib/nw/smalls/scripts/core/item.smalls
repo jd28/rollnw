@@ -57,6 +57,7 @@ type BaseItemInfo {
     inventory_height: int;
     equipable_slots: int;
     stack_size: int;
+    rotate_on_ground: int;
     is_container: bool;
 };
 

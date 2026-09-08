@@ -262,6 +262,21 @@ glm::mat4 object_spatial_placement(const nw::ObjectBase& object)
         spatial ? spatial->scale : glm::vec3{1.0f});
 }
 
+glm::mat4 item_ground_transform(const AreaRenderSourceInfo& info)
+{
+    glm::mat4 result{1.0f};
+    // Signed axis permutations keep quarter turns exact, including bounds.
+    if (info.item_ground_rotation == 1) {
+        result[0] = {0.0f, 0.0f, -1.0f, 0.0f};
+        result[2] = {1.0f, 0.0f, 0.0f, 0.0f};
+    } else if (info.item_ground_rotation == 2) {
+        result[1] = {0.0f, 0.0f, 1.0f, 0.0f};
+        result[2] = {0.0f, -1.0f, 0.0f, 0.0f};
+    }
+    result[3].z = info.item_ground_offset;
+    return result;
+}
+
 void append_scene_load_events(PreviewScene& scene, std::vector<PreviewLoadEvent>& events)
 {
     scene.load_report.events.insert(scene.load_report.events.end(), events.begin(), events.end());
@@ -1436,6 +1451,10 @@ AreaObjectSpatialUpdateStats update_area_object_spatial_states(
                 continue;
             }
             instance->root_transform = placement_for(spatial);
+            if (spatial.owner.type == nw::ObjectType::item) {
+                instance->root_transform *= item_ground_transform(
+                    scene.static_area_model_info[it->model_index]);
+            }
             changed_models.push_back(it->model_index);
             ++stats.render_model_root_count;
         }
@@ -2811,6 +2830,10 @@ static void set_render_scene_root_placement(PreviewScene& scene, const glm::mat4
             continue;
         }
         instance->root_transform = placement;
+        const auto& info = scene.static_area_model_info[model_index];
+        if (info.item_ground_rotation != 0 || info.item_ground_offset != 0.0f) {
+            instance->root_transform *= item_ground_transform(info);
+        }
     }
     sync_model_instance_runtime_state(scene);
 }
@@ -2913,6 +2936,11 @@ static size_t append_render_models(
             static_model_index_map[source_model_index] = target_model_index;
             if (target_model_index < target.static_area_model_info.size()) {
                 target.static_area_model_info[target_model_index] = area_info;
+                const auto& source_info = source.static_area_model_info[source_model_index];
+                target.static_area_model_info[target_model_index].item_ground_rotation
+                    = source_info.item_ground_rotation;
+                target.static_area_model_info[target_model_index].item_ground_offset
+                    = source_info.item_ground_offset;
             }
             move_render_model_runtime_state(
                 target,
@@ -3224,7 +3252,7 @@ void make_area_object_preview_translucent(PreviewScene& scene, float opacity)
     scene.render_local_lights.clear();
 }
 
-static std::unique_ptr<PreviewScene> load_area_item_scene(
+static std::unique_ptr<PreviewScene> load_live_item_models(
     PreviewRenderResources& resources,
     nw::Item& item,
     std::string_view origin)
@@ -3239,6 +3267,43 @@ static std::unique_ptr<PreviewScene> load_area_item_scene(
         return {};
     }
 
+    return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_area_item_scene(
+    PreviewRenderResources& resources,
+    nw::Item& item,
+    std::string_view origin)
+{
+    auto scene = load_live_item_models(resources, item, origin);
+    if (!scene) { return {}; }
+    const auto rotation = item_ground_rotation(item);
+    if (!rotation || scene->static_models.empty()) {
+        LOG_F(WARNING, "Area item '{}' has no valid ground pose or model", origin);
+        return {};
+    }
+
+    AreaRenderSourceInfo pose{.item_ground_rotation = *rotation};
+    const auto transform = item_ground_transform(pose);
+    float minimum_z = std::numeric_limits<float>::infinity();
+    for (const auto& model : scene->static_models) {
+        if (!model) { return {}; }
+        const auto& bounds = model->bounds;
+        const auto finite = [](glm::vec3 value) {
+            return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+        };
+        if (!finite(bounds.min) || !finite(bounds.max)
+            || glm::any(glm::greaterThan(bounds.min, bounds.max))) {
+            LOG_F(WARNING, "Area item '{}' has invalid model bounds", origin);
+            return {};
+        }
+        minimum_z = std::min(minimum_z, transform_bounds(bounds, transform).min.z);
+    }
+    // Apply one shared offset to preserve the authored alignment of all parts.
+    for (auto& info : scene->static_area_model_info) {
+        info.item_ground_rotation = *rotation;
+        info.item_ground_offset = -minimum_z;
+    }
     set_render_scene_root_placement(*scene, object_spatial_placement(item));
     return scene;
 }
@@ -4387,7 +4452,10 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
         break;
     case nw::ObjectType::item:
         if (auto* item = nw::kernel::objects().get<nw::Item>(object)) {
-            scene = load_area_item_scene(resources, *item, source);
+            scene = load_live_item_models(resources, *item, source);
+            if (scene) {
+                set_render_scene_root_placement(*scene, object_spatial_placement(*item));
+            }
         }
         break;
     case nw::ObjectType::encounter:
@@ -4619,7 +4687,8 @@ AreaObjectPreviewAppendResult append_area_object_previews(
     for (size_t i = 0; i < objects.size(); ++i) {
         const auto object = objects[i];
         const auto* spatial = nw::kernel::objects().components().find_spatial(object);
-        if ((object.type != nw::ObjectType::creature && object.type != nw::ObjectType::placeable)
+        if ((object.type != nw::ObjectType::creature && object.type != nw::ObjectType::placeable
+                && object.type != nw::ObjectType::item)
             || !nw::kernel::objects().valid(object) || !spatial
             || spatial->area != scene.root_object.id) {
             result.status = AreaObjectPreviewAppendStatus::invalid_input;
@@ -4634,13 +4703,18 @@ AreaObjectPreviewAppendResult append_area_object_previews(
             if (creature) {
                 preview = load_area_creature_scene(resources, *creature, origin, options);
             }
+        } else if (object.type == nw::ObjectType::item) {
+            auto* item = nw::kernel::objects().get<nw::Item>(object);
+            if (item) {
+                preview = load_area_item_scene(resources, *item, origin);
+            }
         } else {
             auto* placeable = nw::kernel::objects().get<nw::Placeable>(object);
             if (placeable) {
                 preview = load_area_placeable_scene(resources, *placeable, origin, options);
             }
         }
-        if (!preview) {
+        if (!preview || !scene_has_preview_model(*preview)) {
             result.status = AreaObjectPreviewAppendStatus::failed;
             result.diagnostic = "Area object preview visual construction failed";
             return result;
@@ -4658,6 +4732,8 @@ AreaObjectPreviewAppendResult append_area_object_previews(
         const auto object = objects[i];
         const auto kind = object.type == nw::ObjectType::creature
             ? AreaRenderRecordKind::creature
+            : object.type == nw::ObjectType::item
+            ? AreaRenderRecordKind::item
             : AreaRenderRecordKind::placeable;
         appended_models += append_render_models(scene,
             *previews[i],
@@ -4882,8 +4958,9 @@ ObjectVisualRefreshResult refresh_object_visuals(
         case nw::ObjectType::item: {
             auto* item = nw::kernel::objects().get<nw::Item>(object);
             if (item) {
-                replacement = load_area_item_scene(
-                    resources, *item, fmt::format("visual refresh {}", i));
+                replacement = scene.is_area
+                    ? load_area_item_scene(resources, *item, fmt::format("visual refresh {}", i))
+                    : load_live_item_models(resources, *item, fmt::format("visual refresh {}", i));
             }
             kind = AreaRenderRecordKind::item;
         } break;

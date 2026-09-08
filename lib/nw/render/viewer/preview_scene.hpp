@@ -412,14 +412,14 @@ std::unique_ptr<PreviewScene> build_live_area_scene(
     nw::Area& area,
     std::string_view source,
     PreviewSceneLoadOptions options);
-// Builds render rows from one already-instantiated Creature or Placeable without
+// Builds render rows from one already-instantiated live object without
 // taking ownership. Invalid handles and unsupported object types fail.
 std::unique_ptr<PreviewScene> build_live_object_scene(
     PreviewRenderResources& resources,
     nw::ObjectHandle object,
     std::string_view source,
     PreviewSceneLoadOptions options);
-// Appends detached live Creature/Placeable visuals as one translucent preview
+// Appends detached live Creature/Placeable/Item visuals as one translucent preview
 // batch. Inputs are validated and built before the destination scene changes.
 [[nodiscard]] AreaObjectPreviewAppendResult append_area_object_previews(
     PreviewScene& scene,

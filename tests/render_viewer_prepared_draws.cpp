@@ -1027,6 +1027,291 @@ TEST(RenderViewerPreparedDraws, NonVisualDataBlueprintPreviewsPublishOwnedLiveOb
     }
 }
 
+TEST(RenderViewerPreparedDraws, ItemPlacementPreviewsUseGroundModelsAndPreserveLiveObjects)
+{
+    namespace viewer = nw::render::viewer;
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->width = area->height = 1;
+    auto scene = std::make_unique<viewer::PreviewScene>();
+    scene->is_area = true;
+    scene->root_object = area->handle();
+    scene->area_render_scene = std::make_unique<viewer::AreaRenderScene>();
+
+    const std::array placements{
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = nw::Resource{nw::Resref{"cloth028"}, nw::ResourceType::uti},
+            .transform = {.position = {3.0f, 4.0f, 1.0f}},
+        },
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = nw::Resource{nw::Resref{"wduersc004"}, nw::ResourceType::uti},
+            .transform = {.position = {6.0f, 7.0f, 0.0f}},
+        },
+    };
+    const auto loaded = nw::toolset::load_area_object_blueprints(area->handle(), placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    ASSERT_EQ(loaded.objects.size(), 2u);
+    const auto appended = viewer::append_area_object_previews(
+        *scene, *device.preview_resources(), loaded.objects, 0.45f, {});
+    ASSERT_TRUE(appended.ok()) << appended.diagnostic;
+    EXPECT_EQ(appended.object_count, 2u);
+    EXPECT_GT(appended.model_count, 0u);
+    EXPECT_TRUE(area->items.empty());
+    ASSERT_FALSE(scene->static_models.empty());
+
+    const auto expect_pickable_items = [&loaded](const viewer::PreviewScene& target) {
+        const auto& records = *target.area_render_scene;
+        for (const auto object : loaded.objects) {
+            const auto bounds = viewer::collect_area_object_bounds(object,
+                records.bounds(), records.flags(), records.kinds(), records.object_handles());
+            ASSERT_EQ(bounds.status, viewer::AreaObjectBoundsStatus::found);
+            EXPECT_NEAR(bounds.bounds.min.z,
+                nw::kernel::objects().components().find_spatial(object)->position.z, 1.0e-5f);
+            std::vector<viewer::ViewerRay> rays;
+            for (int axis = 0; axis < 3; ++axis) {
+                for (int a = 1; a < 10; ++a) {
+                    for (int b = 1; b < 10; ++b) {
+                        glm::vec3 origin = bounds.bounds.min;
+                        origin[axis] = bounds.bounds.max[axis] + 1.0f;
+                        const auto extent = bounds.bounds.max - bounds.bounds.min;
+                        origin[(axis + 1) % 3] += extent[(axis + 1) % 3] * (static_cast<float>(a) / 10.0f);
+                        origin[(axis + 2) % 3] += extent[(axis + 2) % 3] * (static_cast<float>(b) / 10.0f);
+                        glm::vec3 direction{0.0f};
+                        direction[axis] = -1.0f;
+                        rays.push_back({origin, direction});
+                    }
+                }
+            }
+            std::vector<viewer::AreaObjectSelection> hits(rays.size());
+            viewer::select_area_objects(rays, records, target, hits);
+            EXPECT_TRUE(std::any_of(hits.begin(), hits.end(), [object](const auto& hit) {
+                return hit.status == viewer::AreaObjectSelectionStatus::hit && hit.object == object;
+            })) << "No mesh selection hits for item "
+                << nw::kernel::objects().get_object_base(object)->resref.view();
+        }
+    };
+    expect_pickable_items(*scene);
+
+    for (size_t index = 0; index < loaded.objects.size(); ++index) {
+        const auto object = loaded.objects[index];
+        auto proposed = *nw::kernel::objects().components().find_spatial(object);
+        EXPECT_EQ(proposed.position, placements[index].transform.position);
+        proposed.position.z += 2.0f;
+        const std::array rows{proposed};
+        const auto updated = viewer::update_area_object_spatial_states(*scene, rows);
+        EXPECT_EQ(updated.rejected_input_count, 0u);
+        EXPECT_GT(updated.render_model_root_count, 0u);
+        EXPECT_EQ(nw::kernel::objects().components().find_spatial(object)->position,
+            placements[index].transform.position);
+        scene->area_render_scene->refresh_runtime_records(*scene);
+        const auto& records = *scene->area_render_scene;
+        const auto bounds = viewer::collect_area_object_bounds(object,
+            records.bounds(), records.flags(), records.kinds(), records.object_handles());
+        ASSERT_EQ(bounds.status, viewer::AreaObjectBoundsStatus::found);
+        EXPECT_NEAR(bounds.bounds.min.z, proposed.position.z, 1.0e-5f);
+    }
+    for (size_t index = 0; index < scene->static_models.size(); ++index) {
+        EXPECT_EQ(scene->static_area_model_info[index].kind, viewer::AreaRenderRecordKind::item);
+        const auto* instance = scene->static_model_instance(index);
+        ASSERT_NE(instance, nullptr);
+        EXPECT_FALSE(instance->shadow.casts_shadow);
+        for (const auto& material : scene->static_models[index]->materials) {
+            EXPECT_EQ(material.alpha_mode, nw::render::MaterialMode::transparent);
+        }
+    }
+
+    auto wrong_area = loaded.objects;
+    ASSERT_TRUE(nw::kernel::objects().components().set_area(wrong_area.back(), nw::object_invalid));
+    const auto model_count = scene->static_models.size();
+    EXPECT_FALSE(viewer::append_area_object_previews(
+        *scene, *device.preview_resources(), wrong_area, 0.45f, {})
+            .ok());
+    EXPECT_EQ(scene->static_models.size(), model_count);
+
+    scene.reset();
+    for (const auto object : loaded.objects) {
+        EXPECT_TRUE(nw::kernel::objects().valid(object));
+        nw::kernel::objects().destroy(object);
+        EXPECT_FALSE(nw::kernel::objects().valid(object));
+    }
+}
+
+TEST(RenderViewerPreparedDraws, DroppedItemsRemainSelectableAfterAreaFrame)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_area("test_area"));
+    const auto area = session->scene()->root_object;
+    const std::array placements{
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = nw::Resource{nw::Resref{"cloth028"}, nw::ResourceType::uti},
+            .transform = {.position = {3.0f, 4.0f, 1.0f}},
+        },
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = nw::Resource{nw::Resref{"wduersc004"}, nw::ResourceType::uti},
+            .transform = {.position = {6.0f, 7.0f, 0.0f}},
+        },
+    };
+    const auto loaded = nw::toolset::load_area_object_blueprints(area, placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    nw::toolset::CommandContext context;
+    const auto placed = nw::toolset::place_area_objects(area, loaded.objects, "Drop items", context);
+    ASSERT_TRUE(placed.ok()) << placed.message;
+    ASSERT_TRUE(session->rebuild_live_area(area, loaded.objects.front()));
+    ASSERT_TRUE(session->refresh_live_object_visuals(loaded.objects).ok());
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    for (size_t index = 0; index < loaded.objects.size(); ++index) {
+        const auto object = loaded.objects[index];
+        SCOPED_TRACE(placements[index].resource.filename());
+        ASSERT_TRUE(session->set_area_object_selection(object));
+        ASSERT_TRUE(session->focus_area_object_selection());
+        const auto& records = *session->scene()->area_render_scene;
+        const auto bounds = viewer::collect_area_object_bounds(object,
+            records.bounds(), records.flags(), records.kinds(), records.object_handles());
+        ASSERT_EQ(bounds.status, viewer::AreaObjectBoundsStatus::found);
+        EXPECT_NEAR(bounds.bounds.min.z, placements[index].transform.position.z, 1.0e-5f);
+        // The synthetic weapon meshes are planar; avoid testing edge-on to the
+        // correctly rotated triangle in the area's default top-down camera.
+        session->camera().set_orbit_view(bounds.bounds.center(), 0.5f, 45.0f, 45.0f);
+        ASSERT_TRUE(session->clear_area_object_selection());
+        std::string failure;
+        ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure, 100)) << failure;
+        const auto view_before_selection = session->camera().get_view_matrix();
+        const auto projection_before_selection = session->camera().get_projection_matrix();
+        const auto position_before_selection = nw::kernel::objects().components().find_spatial(object)->position;
+        bool selected = false;
+        for (uint32_t y = 8; y < viewport.height && !selected; y += 8) {
+            for (uint32_t x = 8; x < viewport.width && !selected; x += 8) {
+                const auto hit = session->select_area_object(
+                    static_cast<float>(x), static_cast<float>(y), viewport);
+                selected = hit.status == viewer::AreaObjectSelectionStatus::hit && hit.object == object;
+            }
+        }
+        EXPECT_TRUE(selected);
+        EXPECT_EQ(session->active_object(), object);
+        EXPECT_EQ(session->camera().get_view_matrix(), view_before_selection);
+        EXPECT_EQ(session->camera().get_projection_matrix(), projection_before_selection);
+        EXPECT_EQ(nw::kernel::objects().components().find_spatial(object)->position, position_before_selection);
+    }
+}
+
+TEST(RenderViewerPreparedDraws, GroundItemsConsumeLiveSpatialRowsInGameAndToolsetModes)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto& resources = *device.preview_resources();
+    auto owner_scene = viewer::load_area_scene(resources, "test_area");
+    ASSERT_NE(owner_scene, nullptr);
+    auto& objects = nw::kernel::objects();
+    auto* area = objects.get<nw::Area>(owner_scene->root_object);
+    ASSERT_NE(area, nullptr);
+
+    // Seed live world state directly: no toolset commands, ghosts, or undo.
+    const std::array blueprints{nw::Resref{"cloth028"}, nw::Resref{"wduersc004"}};
+    std::array<nw::ObjectHandle, 2> items;
+    for (size_t index = 0; index < items.size(); ++index) {
+        auto* item = objects.load<nw::Item>(blueprints[index]);
+        ASSERT_NE(item, nullptr);
+        area->items.push_back(item);
+        items[index] = item->handle();
+        ASSERT_TRUE(objects.components().set_area(items[index], area->handle().id));
+    }
+
+    std::array<std::vector<glm::mat4>, 3> game_roots;
+    for (const auto mode : {nw::ObjectVisualRenderMode::game, nw::ObjectVisualRenderMode::toolset}) {
+        SCOPED_TRACE(static_cast<int>(mode));
+        std::array<nw::ObjectSpatialState, 2> rows;
+        for (size_t index = 0; index < items.size(); ++index) {
+            ASSERT_TRUE(objects.components().set_position(items[index],
+                {3.0f + 3.0f * static_cast<float>(index), 4.0f, 1.0f}));
+            ASSERT_TRUE(objects.components().set_orientation(items[index], {0.0f, 1.0f, 0.0f}));
+            ASSERT_TRUE(objects.components().set_scale(items[index], {2.0f, 3.0f, 4.0f}));
+            rows[index] = *objects.components().find_spatial(items[index]);
+        }
+        const viewer::PreviewSceneLoadOptions options{.visual_render_mode = mode};
+        auto scene = viewer::build_live_area_scene(resources, *area, "test_area", options);
+        ASSERT_NE(scene, nullptr);
+        for (size_t phase = 0; phase < game_roots.size(); ++phase) {
+            SCOPED_TRACE(phase);
+            if (phase == 1) {
+                for (auto& row : rows) {
+                    row.position.z += 2.0f;
+                    ASSERT_TRUE(objects.components().set_position(row.owner, row.position));
+                }
+                const auto updated = viewer::update_area_object_spatial_states(*scene, rows);
+                EXPECT_EQ(updated.rejected_input_count, 0u);
+                EXPECT_GT(updated.render_model_root_count, 0u);
+                scene->area_render_scene->refresh_runtime_records(*scene);
+            } else if (phase == 2) {
+                ASSERT_TRUE(viewer::refresh_object_visuals(*scene, resources, items, options).ok());
+            }
+            const auto& records = *scene->area_render_scene;
+            for (const auto& row : rows) {
+                EXPECT_EQ(objects.components().find_spatial(row.owner)->position, row.position);
+                const auto bounds = viewer::collect_area_object_bounds(row.owner,
+                    records.bounds(), records.flags(), records.kinds(), records.object_handles());
+                ASSERT_EQ(bounds.status, viewer::AreaObjectBoundsStatus::found);
+                EXPECT_NEAR(bounds.bounds.min.z, row.position.z, 1.0e-5f);
+                std::vector<viewer::ViewerRay> rays;
+                for (int axis = 0; axis < 3; ++axis) {
+                    for (int a = 1; a < 5; ++a) {
+                        for (int b = 1; b < 5; ++b) {
+                            auto origin = bounds.bounds.min;
+                            origin[axis] = bounds.bounds.max[axis] + 1.0f;
+                            const auto extent = bounds.bounds.max - bounds.bounds.min;
+                            origin[(axis + 1) % 3] += extent[(axis + 1) % 3] * (static_cast<float>(a) / 5.0f);
+                            origin[(axis + 2) % 3] += extent[(axis + 2) % 3] * (static_cast<float>(b) / 5.0f);
+                            glm::vec3 direction{0.0f};
+                            direction[axis] = -1.0f;
+                            rays.push_back({origin, direction});
+                        }
+                    }
+                }
+                std::vector<viewer::AreaObjectSelection> hits(rays.size());
+                viewer::select_area_objects(rays, records, *scene, hits);
+                EXPECT_TRUE(std::any_of(hits.begin(), hits.end(), [&row](const auto& hit) {
+                    return hit.status == viewer::AreaObjectSelectionStatus::hit && hit.object == row.owner;
+                }));
+            }
+            std::vector<glm::mat4> roots;
+            for (size_t index = 0; index < scene->static_area_model_info.size(); ++index) {
+                const auto object = scene->static_area_model_info[index].object;
+                if (std::find(items.begin(), items.end(), object) != items.end()) {
+                    roots.push_back(scene->static_model_instance(index)->root_transform);
+                }
+            }
+            if (mode == nw::ObjectVisualRenderMode::game) {
+                game_roots[phase] = std::move(roots);
+            } else {
+                EXPECT_EQ(roots, game_roots[phase]);
+            }
+        }
+    }
+}
+
 TEST(RenderViewerPreparedDraws, EncounterBlueprintPreviewsAndRebuildsSpawnGroup)
 {
     namespace viewer = nw::render::viewer;
