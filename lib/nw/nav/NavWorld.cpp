@@ -1477,6 +1477,61 @@ NavBatchStats project_nav_rays(
     return stats;
 }
 
+NavBatchStats validate_nav_positions(
+    const NavWorldState& world,
+    std::span<const glm::vec3> positions,
+    std::span<NavStatus> results)
+{
+    NavBatchStats stats;
+    stats.input_count = positions.size();
+    std::fill(results.begin(), results.end(), NavStatus::rejected);
+    if (results.size() != positions.size()
+        || !world.impl || !world.impl->query) {
+        stats.rejected_count = positions.size();
+        return stats;
+    }
+
+    // Use the build's height precision, not the broad nearest-agent search
+    // window: admission must not find another floor or cross an obstacle.
+    const float height_tolerance = world.impl->tile_config.cell_height
+        + k_clearance_epsilon;
+    const std::array<float, 3> extents{
+        k_clearance_epsilon, height_tolerance, k_clearance_epsilon};
+    for (size_t index = 0; index < positions.size(); ++index) {
+        if (!finite(positions[index])) {
+            ++stats.rejected_count;
+            continue;
+        }
+        const auto position = to_detour(positions[index]);
+        std::array<float, 3> nearest{};
+        dtPolyRef polygon = 0;
+        bool over_polygon = false;
+        const auto status = world.impl->query->findNearestPoly(
+            position.data(), extents.data(), &world.impl->filter,
+            &polygon, nearest.data(), &over_polygon);
+        if (dtStatusFailed(status)) {
+            ++stats.rejected_count;
+            continue;
+        }
+        results[index] = NavStatus::off_mesh;
+        float height = nearest[1];
+        const float dx = nearest[0] - position[0];
+        const float dy = nearest[2] - position[2];
+        if (polygon == 0 || !over_polygon
+            || dx * dx + dy * dy > k_clearance_epsilon * k_clearance_epsilon
+            || dtStatusFailed(world.impl->query->getPolyHeight(
+                polygon, position.data(), &height))
+            || !std::isfinite(height)
+            || std::abs(height - position[1]) > height_tolerance) {
+            ++stats.blocked_count;
+            continue;
+        }
+        results[index] = NavStatus::ok;
+        ++stats.output_count;
+    }
+    return stats;
+}
+
 static NavBatchStats find_nav_paths_impl(
     const NavWorldState& world,
     std::span<const NavPathRequest> requests,

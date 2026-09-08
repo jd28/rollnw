@@ -183,6 +183,7 @@ add_executable(rollnw_test
     nwn1_test_builders.cpp
 
     rollnw_client_appearance_catalog.cpp
+    rollnw_client_area_navigation.cpp
     rollnw_client_commands.cpp
     rollnw_client_dialog_document.cpp
     rollnw_client_object_edits.cpp

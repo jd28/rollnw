@@ -204,7 +204,8 @@ std::optional<ActiveTransform> active_transform(const RmlSmallsBridge* bridge)
         return std::nullopt;
     }
     const ObjectHandle object = bridge->active_object();
-    if (object.type != ObjectType::creature && object.type != ObjectType::placeable) {
+    if (object.type != ObjectType::creature && object.type != ObjectType::placeable
+        && object.type != ObjectType::item) {
         return std::nullopt;
     }
     const auto* spatial = kernel::objects().components().find_spatial(object);
@@ -2293,7 +2294,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "object.transform.set_position",
                         "Set Object Position",
-                        "Set the active Creature or Placeable position",
+                        "Set the active Creature, Placeable, or Item position",
                         "object",
                         {},
                         CommandScope::workspace,
@@ -2313,7 +2314,7 @@ void ToolsetBackend::register_native_commands()
             const auto active = active_transform(bridge_);
             if (!active) {
                 return command_result(CommandStatus::rejected,
-                    "Active object is not an editable Creature or Placeable",
+                    "Active object is not an editable Creature, Placeable, or Item",
                     CommandOutputChannel::warn);
             }
 
@@ -2329,7 +2330,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "object.transform.rotate",
                         "Rotate Object",
-                        "Rotate the active Creature or Placeable by degrees",
+                        "Rotate the active Creature, Placeable, or Item by degrees",
                         "object",
                         {},
                         CommandScope::workspace,
@@ -2347,7 +2348,7 @@ void ToolsetBackend::register_native_commands()
             const auto active = active_transform(bridge_);
             if (!active) {
                 return command_result(CommandStatus::rejected,
-                    "Active object is not an editable Creature or Placeable",
+                    "Active object is not an editable Creature, Placeable, or Item",
                     CommandOutputChannel::warn);
             }
             if (*degrees == 0.0f) {
@@ -2364,7 +2365,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "object.transform.randomize_orientation",
                         "Randomize Object Orientation",
-                        "Set a random facing for the active Creature or Placeable",
+                        "Set a random facing for the active Creature, Placeable, or Item",
                         "object",
                         {},
                         CommandScope::workspace,
@@ -2376,7 +2377,7 @@ void ToolsetBackend::register_native_commands()
             const auto active = active_transform(bridge_);
             if (!active) {
                 return command_result(CommandStatus::rejected,
-                    "Active object is not an editable Creature or Placeable",
+                    "Active object is not an editable Creature, Placeable, or Item",
                     CommandOutputChannel::warn);
             }
 
@@ -2389,7 +2390,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "object.transform.scale",
                         "Scale Object",
-                        "Multiply the active Creature or Placeable scale",
+                        "Multiply the active Creature, Placeable, or Item scale",
                         "object",
                         {},
                         CommandScope::workspace,
@@ -2407,7 +2408,7 @@ void ToolsetBackend::register_native_commands()
             const auto active = active_transform(bridge_);
             if (!active) {
                 return command_result(CommandStatus::rejected,
-                    "Active object is not an editable Creature or Placeable",
+                    "Active object is not an editable Creature, Placeable, or Item",
                     CommandOutputChannel::warn);
             }
             if (*factor == 1.0f) {
@@ -2429,7 +2430,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "area.object.duplicate",
                         "Duplicate Area Object",
-                        "Duplicate the active Creature or Placeable in the live area",
+                        "Duplicate the active Creature, Placeable, or Item in the live area",
                         "object",
                         {"duplicate"},
                         CommandScope::workspace,
@@ -2452,7 +2453,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "area.object.delete",
                         "Delete Area Object",
-                        "Delete the active Creature or Placeable from the live area",
+                        "Delete the active Creature, Placeable, or Item from the live area",
                         "object",
                         {"delete"},
                         CommandScope::workspace,
@@ -2931,7 +2932,7 @@ void ToolsetBackend::register_native_commands()
                         "object.creature.set_accessory <wings|tail> <model-row>",
                     },
         [this](const CommandInvocation& invocation, CommandContext& context) {
-            const std::string_view accessory_name = command_arg_string(invocation.args, 0);
+            const std::string accessory_name = command_arg_string(invocation.args, 0);
             uint32_t accessory = 0;
             if (accessory_name == "wings") {
                 accessory = 0;

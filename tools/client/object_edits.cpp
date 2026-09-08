@@ -1,5 +1,6 @@
 #include "object_edits.hpp"
 
+#include "area_navigation.hpp"
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
@@ -52,13 +53,14 @@ struct AreaObjectMembershipState {
     ObjectHandle area{};
     ObjectHandle attached_selection{};
     ObjectHandle detached_selection{};
-    std::array<size_t, 2> before_counts{};
+    std::array<size_t, 3> before_counts{}; // creatures, placeables, items
     std::vector<AreaObjectMembershipRow> rows;
+    bool owns_detached = true;
 
     ~AreaObjectMembershipState()
     {
         auto* objects = kernel::services().get_mut<ObjectManager>();
-        if (!objects) {
+        if (!objects || !owns_detached) {
             return;
         }
         for (const auto& row : rows) {
@@ -603,12 +605,15 @@ bool valid_live_object(ObjectHandle object)
 bool editable_area_object(ObjectHandle object) noexcept
 {
     return object.type == ObjectType::creature
-        || object.type == ObjectType::placeable;
+        || object.type == ObjectType::placeable
+        || object.type == ObjectType::item;
 }
 
 bool editable_appearance_object(ObjectHandle object) noexcept
 {
-    return editable_area_object(object) || object.type == ObjectType::door;
+    return object.type == ObjectType::creature
+        || object.type == ObjectType::placeable
+        || object.type == ObjectType::door;
 }
 
 template <typename T>
@@ -630,6 +635,8 @@ std::optional<size_t> area_object_index(const Area& area, ObjectHandle object)
         return member_index(area.creatures, object);
     case ObjectType::placeable:
         return member_index(area.placeables, object);
+    case ObjectType::item:
+        return member_index(area.items, object);
     default:
         return std::nullopt;
     }
@@ -637,10 +644,25 @@ std::optional<size_t> area_object_index(const Area& area, ObjectHandle object)
 
 size_t membership_kind_index(ObjectType type) noexcept
 {
-    return type == ObjectType::creature ? 0 : 1;
+    switch (type) {
+    case ObjectType::creature:
+        return 0;
+    case ObjectType::placeable:
+        return 1;
+    case ObjectType::item:
+        return 2;
+    default:
+        assert(false);
+        return 0;
+    }
 }
 
-std::array<size_t, 2> membership_counts(
+std::array<size_t, 3> area_membership_counts(const Area& area)
+{
+    return {area.creatures.size(), area.placeables.size(), area.items.size()};
+}
+
+std::array<size_t, 3> membership_counts(
     const AreaObjectMembershipState& state, bool attached)
 {
     auto result = state.before_counts;
@@ -673,6 +695,12 @@ void insert_area_object(Area& area, const AreaObjectMembershipRow& row)
         area.placeables.insert(area.placeables.begin() + row.index, object);
         return;
     }
+    case ObjectType::item: {
+        auto* object = kernel::objects().get<Item>(row.object);
+        assert(object && row.index <= area.items.size());
+        area.items.insert(area.items.begin() + row.index, object);
+        return;
+    }
     default:
         assert(false);
         return;
@@ -691,6 +719,11 @@ void erase_area_object(Area& area, const AreaObjectMembershipRow& row)
         assert(row.index < area.placeables.size() && area.placeables[row.index]
             && area.placeables[row.index]->handle() == row.object);
         area.placeables.erase(area.placeables.begin() + row.index);
+        return;
+    case ObjectType::item:
+        assert(row.index < area.items.size() && area.items[row.index]
+            && area.items[row.index]->handle() == row.object);
+        area.items.erase(area.items.begin() + row.index);
         return;
     default:
         assert(false);
@@ -728,8 +761,7 @@ ObjectEditApplyResult validate_membership_state(
     }
 
     const auto expected_counts = membership_counts(state, expected_attached);
-    if (area->creatures.size() != expected_counts[0]
-        || area->placeables.size() != expected_counts[1]) {
+    if (area_membership_counts(*area) != expected_counts) {
         return edit_result(ObjectEditStatus::stale_value, "Area object membership counts changed before the edit was applied");
     }
     for (const auto& row : state.rows) {
@@ -758,19 +790,41 @@ ObjectEditApplyResult apply_membership_state(
         ? !state.rows.front().before_attached
         : state.rows.front().before_attached;
     if (target_attached) {
-        size_t creature_additions = 0;
-        size_t placeable_additions = 0;
-        for (const auto& row : state.rows) {
-            creature_additions += row.object.type == ObjectType::creature ? 1 : 0;
-            placeable_additions += row.object.type == ObjectType::placeable ? 1 : 0;
+        if (direction == ObjectEditDirection::forward) {
+            try {
+                Vector<ObjectSpatialState> placements;
+                placements.reserve(state.rows.size());
+                for (const auto& row : state.rows) {
+                    const auto* spatial = kernel::objects().components().find_spatial(row.object);
+                    if (!spatial) {
+                        return edit_result(ObjectEditStatus::invalid_batch, "Placed object has no spatial state");
+                    }
+                    placements.push_back(*spatial);
+                }
+                AreaPlacementNavigation navigation;
+                const auto admission = validate_area_placements(navigation, state.area, placements);
+                if (!admission.ok()) {
+                    return edit_result(ObjectEditStatus::invalid_batch, admission.diagnostic);
+                }
+            } catch (const std::bad_alloc&) {
+                return edit_result(ObjectEditStatus::failed, "Placement input allocation failed");
+            } catch (const std::length_error&) {
+                return edit_result(ObjectEditStatus::failed, "Placement input exceeds container capacity");
+            }
         }
-        if (creature_additions > area->creatures.max_size() - area->creatures.size()
-            || placeable_additions > area->placeables.max_size() - area->placeables.size()) {
+        std::array<size_t, 3> additions{};
+        for (const auto& row : state.rows) {
+            ++additions[membership_kind_index(row.object.type)];
+        }
+        if (additions[0] > area->creatures.max_size() - area->creatures.size()
+            || additions[1] > area->placeables.max_size() - area->placeables.size()
+            || additions[2] > area->items.max_size() - area->items.size()) {
             return edit_result(ObjectEditStatus::failed, "Area object membership exceeds container capacity");
         }
         try {
-            area->creatures.reserve(area->creatures.size() + creature_additions);
-            area->placeables.reserve(area->placeables.size() + placeable_additions);
+            area->creatures.reserve(area->creatures.size() + additions[0]);
+            area->placeables.reserve(area->placeables.size() + additions[1]);
+            area->items.reserve(area->items.size() + additions[2]);
         } catch (const std::bad_alloc&) {
             return edit_result(ObjectEditStatus::failed, "Area object membership allocation failed");
         } catch (const std::length_error&) {
@@ -781,6 +835,7 @@ ObjectEditApplyResult apply_membership_state(
             insert_area_object(*area, row);
             row.attached = true;
         }
+        state.owns_detached = true;
     } else {
         for (auto it = state.rows.rbegin(); it != state.rows.rend(); ++it) {
             erase_area_object(*area, *it);
@@ -866,8 +921,11 @@ ObjectBase* clone_area_object(
     case ObjectType::placeable:
         clone = kernel::objects().load_instance<Placeable>(archive);
         break;
+    case ObjectType::item:
+        clone = kernel::objects().load_instance<Item>(archive);
+        break;
     default:
-        diagnostic = "Only Creature and Placeable area objects can be duplicated";
+        diagnostic = "Only Creature, Placeable, and Item area objects can be duplicated";
         return nullptr;
     }
     if (!clone) {
@@ -2229,7 +2287,7 @@ CommandResult validate_area_object_command(
         if (!editable_area_object(object) || !valid_live_object(object)
             || !area_object_index(*live_area, object)) {
             return command_edit_result(CommandStatus::rejected,
-                "Selected object is not a live Creature or Placeable member of the active area",
+                "Selected object is not a live Creature, Placeable, or Item member of the active area",
                 CommandOutputChannel::warn);
         }
     }
@@ -2286,7 +2344,7 @@ CommandResult validate_detached_area_object_command(
             || spatial->position.x < 0.0f || spatial->position.x > area_max_x
             || spatial->position.y < 0.0f || spatial->position.y > area_max_y) {
             return command_edit_result(CommandStatus::rejected,
-                "Placed object is not a valid detached Creature or Placeable in the active area",
+                "Placed object is not a valid detached Creature, Placeable, or Item in the active area",
                 CommandOutputChannel::warn);
         }
     }
@@ -2300,7 +2358,7 @@ std::shared_ptr<AreaObjectMembershipState> make_delete_membership_state(
     state->area = area;
     state->attached_selection = objects.front();
     const auto* live_area = kernel::objects().get<Area>(area);
-    state->before_counts = {live_area->creatures.size(), live_area->placeables.size()};
+    state->before_counts = area_membership_counts(*live_area);
     state->rows.reserve(objects.size());
     for (const auto object : objects) {
         state->rows.push_back({object, *area_object_index(*live_area, object), true, true});
@@ -2319,11 +2377,8 @@ std::shared_ptr<AreaObjectMembershipState> make_duplicate_membership_state(
     state->area = area;
     state->detached_selection = objects.front();
     auto* live_area = kernel::objects().get<Area>(area);
-    state->before_counts = {live_area->creatures.size(), live_area->placeables.size()};
-    std::array<size_t, 2> next_indices{
-        live_area->creatures.size(),
-        live_area->placeables.size(),
-    };
+    state->before_counts = area_membership_counts(*live_area);
+    auto next_indices = state->before_counts;
     state->rows.reserve(objects.size());
     for (const auto source : objects) {
         auto* clone = clone_area_object(source, *live_area, offset, diagnostic);
@@ -2333,7 +2388,7 @@ std::shared_ptr<AreaObjectMembershipState> make_duplicate_membership_state(
         if (state->attached_selection.type == ObjectType::invalid) {
             state->attached_selection = clone->handle();
         }
-        const size_t kind_index = clone->handle().type == ObjectType::creature ? 0 : 1;
+        const size_t kind_index = membership_kind_index(clone->handle().type);
         state->rows.push_back({clone->handle(), next_indices[kind_index]++, false, false});
     }
     std::sort(state->rows.begin(), state->rows.end(), membership_row_less);
@@ -2344,14 +2399,13 @@ std::shared_ptr<AreaObjectMembershipState> make_place_membership_state(
     ObjectHandle area, std::span<const ObjectHandle> objects)
 {
     auto state = std::make_shared<AreaObjectMembershipState>();
+    // Rejected admission must not consume the caller's detached objects.
+    state->owns_detached = false;
     state->area = area;
     state->attached_selection = objects.front();
     auto* live_area = kernel::objects().get<Area>(area);
-    state->before_counts = {live_area->creatures.size(), live_area->placeables.size()};
-    std::array<size_t, 2> next_indices{
-        live_area->creatures.size(),
-        live_area->placeables.size(),
-    };
+    state->before_counts = area_membership_counts(*live_area);
+    auto next_indices = state->before_counts;
     state->rows.reserve(objects.size());
     for (const auto object : objects) {
         const size_t kind_index = membership_kind_index(object.type);
@@ -5007,7 +5061,7 @@ CommandResult commit_item_property_edits(
 ObjectEditApplyResult apply_object_transform_edit(
     const ObjectTransformEdit& edit, ObjectEditDirection direction)
 {
-    if ((edit.object.type != ObjectType::creature && edit.object.type != ObjectType::placeable)
+    if (!editable_area_object(edit.object)
         || !valid_live_object(edit.object)
         || !valid_transform_state(edit.before)
         || !valid_transform_state(edit.after)
@@ -5027,6 +5081,18 @@ ObjectEditApplyResult apply_object_transform_edit(
     }
 
     const auto& replacement = transform_values(edit, direction, true);
+    if (direction == ObjectEditDirection::forward && spatial->area != object_invalid) {
+        auto proposed = *spatial;
+        proposed.position = replacement.position;
+        proposed.orientation = replacement.orientation;
+        proposed.scale = replacement.scale;
+        const std::array rows{proposed};
+        AreaPlacementNavigation navigation;
+        const auto admission = validate_area_placements(navigation, edit.area, rows);
+        if (!admission.ok()) {
+            return edit_result(ObjectEditStatus::invalid_batch, admission.diagnostic);
+        }
+    }
     if (!components.set_position(edit.object, replacement.position)
         || !components.set_orientation(edit.object, replacement.orientation)
         || !components.set_scale(edit.object, replacement.scale)) {
@@ -5046,6 +5112,9 @@ ObjectEditApplyResult apply_object_transform_edit(
 CommandResult commit_object_transform_edit(
     ObjectTransformEdit edit, std::string label, CommandContext& context)
 {
+    if (edit.area.type == ObjectType::invalid) {
+        edit.area = context.area_object;
+    }
     if (context.workspace) {
         const auto* active_tab = context.workspace->active_tab();
         if (!active_tab || active_tab->kind != WorkspaceTabKind::area) {
@@ -5149,7 +5218,8 @@ AreaObjectBlueprintLoadResult load_area_object_blueprints(
     const float area_max_y = static_cast<float>(live_area->height) * k_tile_size;
     for (const auto& placement : placements) {
         if ((placement.resource.type != ResourceType::utc
-                && placement.resource.type != ResourceType::utp)
+                && placement.resource.type != ResourceType::utp
+                && placement.resource.type != ResourceType::uti)
             || !placement.resource.valid()
             || !valid_transform_state(placement.transform)
             || placement.transform.position.x < 0.0f
@@ -5194,6 +5264,8 @@ AreaObjectBlueprintLoadResult load_area_object_blueprints(
         ObjectBase* object = nullptr;
         if (placement.resource.type == ResourceType::utc) {
             object = kernel::objects().load<Creature>(placement.resource.resref);
+        } else if (placement.resource.type == ResourceType::uti) {
+            object = kernel::objects().load<Item>(placement.resource.resref);
         } else {
             object = kernel::objects().load<Placeable>(placement.resource.resref);
         }

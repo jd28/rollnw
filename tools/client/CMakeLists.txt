@@ -1,5 +1,6 @@
 add_library(rollnw_client_core STATIC
     area_map.cpp
+    area_navigation.cpp
     appearance_catalog.cpp
     command_bus.cpp
     dialog_document.cpp

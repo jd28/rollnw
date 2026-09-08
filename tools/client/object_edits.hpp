@@ -82,6 +82,9 @@ struct ObjectTransformEdit {
     ObjectHandle object{};
     ObjectTransformState before;
     ObjectTransformState after;
+    // Required for placed objects; captured with undo history so redo validates
+    // the original generation, not whichever area happens to be active later.
+    ObjectHandle area{};
 };
 
 struct ObjectAppearanceSelectors {
@@ -562,7 +565,9 @@ struct AreaObjectBlueprintLoadResult {
 
 // Structural placement receives detached live objects as one batch. Invalid,
 // stale, duplicate, already-attached, or wrong-area handles reject the complete
-// batch before insertion.
+// batch before insertion. Creature positions require current radius-class
+// navigation admission; placeables/items retain authored Z/non-walkable positioning.
+// Rejection leaves detached input ownership with the caller.
 [[nodiscard]] CommandResult place_area_objects(
     ObjectHandle area,
     std::span<const ObjectHandle> objects,

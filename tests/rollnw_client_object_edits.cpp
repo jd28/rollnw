@@ -2497,6 +2497,7 @@ TEST(ClientObjectEdits, AreaObjectMembershipDuplicatesDeletesAndReplaysStableHan
     auto* area = nwk::objects().make<nw::Area>();
     ASSERT_NE(area, nullptr);
     ASSERT_TRUE(nw::deserialize(area, are.toplevel(), git.toplevel(), gic.toplevel()));
+    ASSERT_TRUE(area->instantiate());
     ASSERT_FALSE(area->creatures.empty());
     ASSERT_FALSE(area->placeables.empty());
     auto* source = area->creatures.front();
@@ -2551,7 +2552,7 @@ TEST(ClientObjectEdits, AreaObjectMembershipDuplicatesDeletesAndReplaysStableHan
         auto clone_after = clone_before;
         clone_after.position.y += 0.25f;
         const nw::toolset::ObjectTransformEdit clone_edit{
-            clone_handle, clone_before, clone_after};
+            clone_handle, clone_before, clone_after, area->handle()};
         ASSERT_TRUE(nw::toolset::apply_object_transform_edit(
             clone_edit, nw::toolset::ObjectEditDirection::forward)
                 .ok());
@@ -2618,8 +2619,11 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
     auto* area = nwk::objects().make<nw::Area>();
     ASSERT_NE(area, nullptr);
     ASSERT_TRUE(nw::deserialize(area, are.toplevel(), git.toplevel(), gic.toplevel()));
+    ASSERT_TRUE(area->instantiate());
+    ASSERT_FALSE(area->creatures.empty());
     const size_t original_count = area->creatures.size();
     const size_t original_placeable_count = area->placeables.size();
+    const size_t original_item_count = area->items.size();
 
     auto* tag_probe = nwk::objects().load<nw::Creature>("test_creature");
     ASSERT_NE(tag_probe, nullptr);
@@ -2639,7 +2643,7 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         nw::toolset::AreaObjectBlueprintPlacement{
             .resource = nw::Resource{nw::Resref{"test_creature"}, nw::ResourceType::utc},
             .transform = {
-                .position = {2.0f, 3.0f, 0.0f},
+                .position = read_transform(area->creatures.front()->handle()).position,
                 .orientation = {1.0f, 0.0f, 0.0f},
                 .scale = {1.0f, 1.0f, 1.0f},
             },
@@ -2648,6 +2652,14 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
             .resource = nw::Resource{nw::Resref{"arrowcorpse001"}, nw::ResourceType::utp},
             .transform = {
                 .position = {4.0f, 5.0f, 0.0f},
+                .orientation = {1.0f, 0.0f, 0.0f},
+                .scale = {1.0f, 1.0f, 1.0f},
+            },
+        },
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = nw::Resource{nw::Resref{"cloth028"}, nw::ResourceType::uti},
+            .transform = {
+                .position = {6.0f, 7.0f, 1.0f},
                 .orientation = {1.0f, 0.0f, 0.0f},
                 .scale = {1.0f, 1.0f, 1.0f},
             },
@@ -2668,13 +2680,17 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
 
     auto loaded = nw::toolset::load_area_object_blueprints(area->handle(), placements);
     ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
-    ASSERT_EQ(loaded.objects.size(), 2);
+    ASSERT_EQ(loaded.objects.size(), 3);
     const nw::ObjectHandle placed_handle = loaded.objects.front();
-    const nw::ObjectHandle placed_placeable_handle = loaded.objects.back();
+    const nw::ObjectHandle placed_placeable_handle = loaded.objects[1];
+    const nw::ObjectHandle placed_item_handle = loaded.objects[2];
     ASSERT_TRUE(nwk::objects().valid(placed_handle));
     ASSERT_TRUE(nwk::objects().valid(placed_placeable_handle));
     ASSERT_EQ(area->creatures.size(), original_count);
     ASSERT_EQ(area->placeables.size(), original_placeable_count);
+    ASSERT_EQ(area->items.size(), original_item_count);
+    EXPECT_EQ(placed_item_handle.type, nw::ObjectType::item);
+    EXPECT_EQ(read_transform(placed_item_handle).position, placements[2].transform.position);
     const auto* spatial = nwk::objects().components().find_spatial(placed_handle);
     ASSERT_NE(spatial, nullptr);
     EXPECT_EQ(spatial->area, area->handle().id);
@@ -2689,7 +2705,7 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         context.workspace = &workspace;
         context.active_tab_id = workspace.active_tab_id();
         context.area_object = area->handle();
-        const std::array objects{placed_handle, placed_placeable_handle};
+        const std::array objects{placed_handle, placed_placeable_handle, placed_item_handle};
 
         ASSERT_TRUE(nwk::objects().components().set_area(placed_handle, nw::object_invalid));
         auto rejected = nw::toolset::place_area_objects(
@@ -2697,6 +2713,7 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         EXPECT_EQ(rejected.status, nw::toolset::CommandStatus::rejected);
         EXPECT_EQ(area->creatures.size(), original_count);
         EXPECT_EQ(area->placeables.size(), original_placeable_count);
+        EXPECT_EQ(area->items.size(), original_item_count);
         ASSERT_TRUE(nwk::objects().components().set_area(placed_handle, area->handle().id));
 
         auto committed = nw::toolset::place_area_objects(
@@ -2705,8 +2722,10 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         ASSERT_TRUE(committed.undo_action);
         ASSERT_EQ(area->creatures.size(), original_count + 1);
         ASSERT_EQ(area->placeables.size(), original_placeable_count + 1);
+        ASSERT_EQ(area->items.size(), original_item_count + 1);
         EXPECT_EQ(area->creatures.back()->handle(), placed_handle);
         EXPECT_EQ(area->placeables.back()->handle(), placed_placeable_handle);
+        EXPECT_EQ(area->items.back()->handle(), placed_item_handle);
         EXPECT_EQ(nw::toolset::object_mutation_state().object, placed_handle);
 
         workspace.push_undo(*committed.undo_action);
@@ -2714,6 +2733,8 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         ASSERT_TRUE(undone.ok()) << undone.message;
         EXPECT_EQ(area->creatures.size(), original_count);
         EXPECT_EQ(area->placeables.size(), original_placeable_count);
+        EXPECT_EQ(area->items.size(), original_item_count);
+        EXPECT_TRUE(nwk::objects().valid(placed_item_handle));
         EXPECT_TRUE(nwk::objects().valid(placed_handle));
         EXPECT_TRUE(nwk::objects().valid(placed_placeable_handle));
 
@@ -2721,18 +2742,21 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         ASSERT_TRUE(redone.ok()) << redone.message;
         ASSERT_EQ(area->creatures.size(), original_count + 1);
         ASSERT_EQ(area->placeables.size(), original_placeable_count + 1);
+        ASSERT_EQ(area->items.size(), original_item_count + 1);
         EXPECT_EQ(area->creatures.back()->handle(), placed_handle);
         EXPECT_EQ(area->placeables.back()->handle(), placed_placeable_handle);
+        EXPECT_EQ(area->items.back()->handle(), placed_item_handle);
 
         undone = workspace.undo(context);
         ASSERT_TRUE(undone.ok()) << undone.message;
         EXPECT_EQ(area->creatures.size(), original_count);
         EXPECT_EQ(area->placeables.size(), original_placeable_count);
+        EXPECT_EQ(area->items.size(), original_item_count);
         EXPECT_TRUE(nwk::objects().valid(placed_handle));
         EXPECT_TRUE(nwk::objects().valid(placed_placeable_handle));
 
         const nw::toolset::AreaObjectBlueprintPlacement unsupported{
-            .resource = nw::Resource{nw::Resref{"cloth028"}, nw::ResourceType::uti},
+            .resource = nw::Resource{nw::Resref{"door_ttr_002"}, nw::ResourceType::utd},
             .transform = placements.front().transform,
         };
         const std::array unsupported_rows{unsupported};
@@ -2748,6 +2772,7 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
 
     EXPECT_FALSE(nwk::objects().valid(rejected_handle));
     EXPECT_FALSE(nwk::objects().valid(rejected_placeable_handle));
+    EXPECT_FALSE(nwk::objects().valid(placed_item_handle));
     area->clear();
     nwk::objects().destroy(area->handle());
 }
@@ -2866,6 +2891,7 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveAreaJsonAtomically)
     auto* area = nwk::objects().make<nw::Area>();
     ASSERT_NE(area, nullptr);
     ASSERT_TRUE(nw::deserialize(area, are.toplevel(), git.toplevel(), gic.toplevel()));
+    ASSERT_TRUE(area->instantiate());
     ASSERT_FALSE(area->creatures.empty());
     auto* creature = area->creatures.front();
     ASSERT_NE(creature, nullptr);
@@ -2885,7 +2911,7 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveAreaJsonAtomically)
     saved_transform.position += glm::vec3{1.0f, 2.0f, 0.0f};
     saved_transform.scale = {1.5f, 1.5f, 1.5f};
     const auto transform_edit = nw::toolset::apply_object_transform_edit(
-        {creature->handle(), original_transform, saved_transform},
+        {creature->handle(), original_transform, saved_transform, area->handle()},
         nw::toolset::ObjectEditDirection::forward);
     ASSERT_TRUE(transform_edit.ok()) << transform_edit.diagnostic;
 
@@ -2896,6 +2922,26 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveAreaJsonAtomically)
     ASSERT_TRUE(duplicated.ok()) << duplicated.message;
     ASSERT_EQ(area->creatures.size(), original_creature_count + 1);
     const auto duplicated_transform = read_transform(area->creatures.back()->handle());
+
+    ASSERT_FALSE(area->placeables.empty());
+    const auto placeable = area->placeables.front()->handle();
+    const auto original_placeable_transform = read_transform(placeable);
+    auto raised_placeable_transform = original_placeable_transform;
+    raised_placeable_transform.position.z += 4.0f;
+    const auto placeable_edit = nw::toolset::apply_object_transform_edit(
+        {placeable, original_placeable_transform, raised_placeable_transform, area->handle()},
+        nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(placeable_edit.ok()) << placeable_edit.diagnostic;
+
+    const size_t original_item_count = area->items.size();
+    const std::array item_placements{nw::toolset::AreaObjectBlueprintPlacement{
+        .resource = nw::Resource{nw::Resref{"cloth028"}, nw::ResourceType::uti},
+        .transform = {.position = {6.0f, 7.0f, 2.0f}},
+    }};
+    auto loaded_items = nw::toolset::load_area_object_blueprints(area->handle(), item_placements);
+    ASSERT_TRUE(loaded_items.ok()) << loaded_items.diagnostic;
+    auto dropped = nw::toolset::place_area_objects(area->handle(), loaded_items.objects, "Drop item", context);
+    ASSERT_TRUE(dropped.ok()) << dropped.message;
 
     const auto target = root / "test_area.caf.json";
     {
@@ -2925,6 +2971,11 @@ TEST(ClientObjectEdits, SavesAndReloadsEditedLiveAreaJsonAtomically)
     EXPECT_EQ(read_transform(reloaded->creatures.front()->handle()).scale, saved_transform.scale);
     EXPECT_EQ(read_plot(reloaded->creatures.back()), edited_plot);
     EXPECT_EQ(read_transform(reloaded->creatures.back()->handle()).position, duplicated_transform.position);
+    ASSERT_FALSE(reloaded->placeables.empty());
+    EXPECT_EQ(read_transform(reloaded->placeables.front()->handle()).position, raised_placeable_transform.position);
+    ASSERT_EQ(reloaded->items.size(), original_item_count + 1);
+    EXPECT_EQ(reloaded->items.back()->resref, "cloth028");
+    EXPECT_EQ(read_transform(reloaded->items.back()->handle()).position, item_placements[0].transform.position);
     reloaded->clear();
     nwk::objects().destroy(reloaded->handle());
 }

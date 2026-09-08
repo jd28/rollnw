@@ -158,6 +158,17 @@ NavBatchStats project_nav_rays(
     std::span<const NavRayProjectionInput> inputs,
     std::span<NavRayProjectionResult> results);
 
+/// Strict admission on the world's already-eroded walkable surface. Positions
+/// are not snapped or registered as agents. Horizontal displacement is limited
+/// to the navigation epsilon; height may differ by at most one build cell.
+/// Off-mesh/blocked positions return off_mesh, invalid rows return rejected.
+/// Results must match inputs in size; a mismatch rejects the whole batch and
+/// resets every supplied result. This query does not allocate.
+NavBatchStats validate_nav_positions(
+    const NavWorldState& world,
+    std::span<const glm::vec3> positions,
+    std::span<NavStatus> results);
+
 /// Clears corner_arena on entry. Results index the resulting shared arena;
 /// callers intentionally cannot accumulate path batches across calls.
 NavBatchStats find_nav_paths(

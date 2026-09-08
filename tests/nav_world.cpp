@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 
 namespace {
 
@@ -231,6 +232,73 @@ TEST(NavWorld, ProjectsRayToNearestStackedGeneratedSurface)
     ASSERT_EQ(nw::nav::project_nav_rays(world, rays, result).output_count, 1u);
     EXPECT_EQ(result[0].status, nw::nav::NavStatus::ok);
     EXPECT_NEAR(result[0].position.z, 3.0f, 0.11f);
+
+    const std::array positions{
+        glm::vec3{5.0f, 5.0f, 0.0f},
+        glm::vec3{5.0f, 5.0f, 3.0f},
+        glm::vec3{5.0f, 5.0f, 1.5f},
+        glm::vec3{5.0f, 5.0f, -2.0f},
+    };
+    std::array<nw::nav::NavStatus, 4> admitted{};
+    EXPECT_EQ(nw::nav::validate_nav_positions(world, positions, admitted).output_count, 2u);
+    EXPECT_EQ(admitted[0], nw::nav::NavStatus::ok);
+    EXPECT_EQ(admitted[1], nw::nav::NavStatus::ok);
+    EXPECT_EQ(admitted[2], nw::nav::NavStatus::off_mesh);
+    EXPECT_EQ(admitted[3], nw::nav::NavStatus::off_mesh);
+}
+
+TEST(NavWorld, StrictPositionAdmissionDoesNotClampAcrossObstaclesOrAreaEdges)
+{
+    auto source = make_floor(1, 1);
+    append_wall(source, 5.0f, 0.0f, 10.0f, 0);
+    const std::array<uint8_t, 1> active{1};
+    nw::nav::NavWorldState world;
+    nw::nav::NavTiledWorldBuildStats build;
+    ASSERT_EQ(build_world(source, active, world, build, 4), nw::nav::NavStatus::ok);
+    const std::array positions{
+        glm::vec3{2.0f, 5.0f, 0.0f},
+        glm::vec3{5.0f, 5.0f, 0.0f},
+        glm::vec3{4.9f, 5.0f, 0.0f},
+        glm::vec3{-0.01f, 5.0f, 0.0f},
+        glm::vec3{2.0f, 5.0f, 0.5f},
+        glm::vec3{2.0f, 5.0f, std::numeric_limits<float>::quiet_NaN()},
+    };
+    std::array<nw::nav::NavStatus, 6> result{};
+    const auto stats = nw::nav::validate_nav_positions(world, positions, result);
+    EXPECT_EQ(stats.output_count, 1u);
+    EXPECT_EQ(stats.blocked_count, 4u);
+    EXPECT_EQ(stats.rejected_count, 1u);
+    EXPECT_EQ(result[0], nw::nav::NavStatus::ok);
+    for (size_t index = 1; index < 5; ++index) {
+        EXPECT_EQ(result[index], nw::nav::NavStatus::off_mesh);
+    }
+    EXPECT_EQ(result[5], nw::nav::NavStatus::rejected);
+
+    std::array<nw::nav::NavStatus, 1> short_output{nw::nav::NavStatus::ok};
+    EXPECT_EQ(nw::nav::validate_nav_positions(world, positions, short_output).rejected_count,
+        positions.size());
+    EXPECT_EQ(short_output[0], nw::nav::NavStatus::rejected);
+    nw::nav::NavWorldState absent;
+    EXPECT_EQ(nw::nav::validate_nav_positions(absent, positions, result).rejected_count,
+        positions.size());
+    EXPECT_TRUE(std::all_of(result.begin(), result.end(), [](auto status) {
+        return status == nw::nav::NavStatus::rejected;
+    }));
+}
+
+TEST(NavWorld, StrictPositionAdmissionFollowsSlopeHeight)
+{
+    auto source = make_floor(1, 1);
+    for (auto& vertex : source.surface_vertices)
+        vertex.z = vertex.x * 0.2f;
+    nw::nav::NavWorldState world;
+    nw::nav::NavTiledWorldBuildStats build;
+    ASSERT_EQ(build_world(source, {}, world, build), nw::nav::NavStatus::ok);
+    const std::array positions{glm::vec3{5.0f, 5.0f, 1.0f}, glm::vec3{5.0f, 5.0f, 0.0f}};
+    std::array<nw::nav::NavStatus, 2> result{};
+    nw::nav::validate_nav_positions(world, positions, result);
+    EXPECT_EQ(result[0], nw::nav::NavStatus::ok);
+    EXPECT_EQ(result[1], nw::nav::NavStatus::off_mesh);
 }
 
 TEST(NavWorld, DebugBatchReportsAndRemovesActiveObstacleGeometry)

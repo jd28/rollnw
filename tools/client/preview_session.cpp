@@ -1,5 +1,6 @@
 #include "preview_session.hpp"
 
+#include "area_navigation.hpp"
 #include "object_edits.hpp"
 
 #include <nw/formats/StaticTwoDA.hpp>
@@ -28,7 +29,6 @@ constexpr double fixed_step_seconds = 1.0 / 60.0;
 constexpr double maximum_frame_seconds = 0.1;
 constexpr size_t maximum_catchup_ticks = 6;
 constexpr float fallback_walk_rate = 2.0f;
-constexpr float preview_clearance_padding = 0.1f;
 constexpr float route_corner_epsilon = 0.05f;
 constexpr float movement_axis_epsilon = 1.0e-5f;
 constexpr size_t maximum_route_motion_attempts = 2;
@@ -100,18 +100,6 @@ float resolve_walk_rate(ObjectHandle actor, bool& fallback, bool& disabled)
 
     fallback = true;
     return fallback_walk_rate;
-}
-
-float resolve_actor_clearance(ObjectHandle actor)
-{
-    const auto* visual = kernel::objects().components().find_visual(actor);
-    if (!visual) { return -1.0f; }
-    const auto* appearance = kernel::rules().appearances.get(
-        Appearance::make(visual->appearance));
-    if (!appearance || appearance->personal_space < 0.0f) {
-        return -1.0f;
-    }
-    return appearance->personal_space + preview_clearance_padding;
 }
 
 glm::vec2 clamped_movement_axis(glm::vec2 axis)
@@ -299,9 +287,7 @@ struct ToolsetPreviewSession::Impl {
     // The F9 v1 contract has exactly one locally controlled test actor. Keep
     // that true singleton scalar; navigation and renderer boundaries retain
     // their batch paths for the many-agent systems that actually own arrays.
-    nav::NavAreaBuildSource nav_source;
-    Vector<uint8_t> nav_obstacle_active;
-    Vector<nav::NavDoorObstacleRow> nav_doors;
+    AreaNavigationSource navigation;
     Vector<ObjectHandle> door_handles;
     Vector<PreviewDoorVisualState> door_visual_states;
     nav::NavWorldState nav_world;
@@ -357,9 +343,7 @@ struct ToolsetPreviewSession::Impl {
         route_corners.clear();
         navigation_debug_triangles.clear();
         nav_world = nav::NavWorldState{};
-        nav_source = nav::NavAreaBuildSource{};
-        nav_obstacle_active.clear();
-        nav_doors.clear();
+        navigation = {};
         door_handles.clear();
         door_visual_states.clear();
         route_arena.clear();
@@ -548,7 +532,7 @@ PreviewSessionStartResult start_toolset_preview(
     auto& state = *session.impl_;
     state.area = input.area;
     state.actor = loaded.objects[0];
-    state.clearance = resolve_actor_clearance(state.actor);
+    state.clearance = creature_navigation_clearance(state.actor, placement.transform.scale);
     if (state.clearance < 0.0f) {
         stop_toolset_preview(session);
         result.status = PreviewStatus::actor_failed;
@@ -557,66 +541,23 @@ PreviewSessionStartResult start_toolset_preview(
     }
     result.stats.actor_clearance = state.clearance;
 
-    nav::NavGeometry base_geometry;
-    const auto tile_stats = nav::build_area_tile_nav_geometry(
-        *area, kernel::resman(), base_geometry);
-    result.stats.tile_count = tile_stats.tile_count;
+    if (!build_area_navigation_source(*area, state.navigation, result.diagnostic)) {
+        stop_toolset_preview(session);
+        result.status = PreviewStatus::navigation_failed;
+        return result;
+    }
+    result.stats.tile_count = state.navigation.tiles.tile_count;
     result.stats.authored_surface_triangle_count
-        = base_geometry.triangle_count();
-    if (!base_geometry.valid() || base_geometry.triangle_count() == 0) {
-        stop_toolset_preview(session);
-        result.status = PreviewStatus::navigation_failed;
-        result.diagnostic = "Area has no usable NWN tile walkmesh geometry";
-        return result;
-    }
-
-    const auto* surfaces = kernel::twodas().get("surfacemat");
-    Vector<uint8_t> walkable;
-    if (!surfaces
-        || nav::build_nav_surface_walkability(*surfaces, walkable)
-                .walkable_count
-            == 0) {
-        stop_toolset_preview(session);
-        result.status = PreviewStatus::navigation_failed;
-        result.diagnostic = "NWN surface walkability data is unavailable";
-        return result;
-    }
-
-    nav::NavObjectObstacleSnapshot obstacles;
-    nav::build_area_object_nav_obstacles(
-        *area, kernel::resman(), obstacles);
+        = state.navigation.geometry.surface_indices.size() / 3;
     result.stats.obstacle_triangle_count
-        = obstacles.geometry.triangle_count();
-    if (!obstacles.geometry.valid()) {
-        stop_toolset_preview(session);
-        result.status = PreviewStatus::navigation_failed;
-        result.diagnostic = "Area obstacle geometry construction failed";
-        return result;
-    }
-
-    state.nav_source.surface_vertices = std::move(base_geometry.vertices);
-    state.nav_source.surface_indices = std::move(base_geometry.indices);
-    state.nav_source.surface_ids = std::move(base_geometry.surface);
-    state.nav_source.surface_walkable = std::move(walkable);
-    state.nav_source.obstacle_vertices
-        = std::move(obstacles.geometry.vertices);
-    state.nav_source.obstacle_indices
-        = std::move(obstacles.geometry.indices);
-    state.nav_source.obstacle_surface_ids
-        = std::move(obstacles.geometry.surface);
-    state.nav_source.obstacle_owner
-        = std::move(obstacles.geometry.owner);
-    state.nav_source.width = static_cast<uint32_t>(area->width);
-    state.nav_source.height = static_cast<uint32_t>(area->height);
+        = state.navigation.geometry.obstacle_indices.size() / 3;
     state.rebuilt_tile_keys.resize(
         static_cast<size_t>(area->width) * static_cast<size_t>(area->height));
-    state.nav_obstacle_active = std::move(obstacles.active);
-    state.nav_doors = std::move(obstacles.doors);
     state.door_handles.clear();
-    state.door_handles.reserve(state.nav_doors.size());
+    state.door_handles.reserve(state.navigation.doors.size());
     state.door_visual_states.clear();
-    state.door_visual_states.reserve(state.nav_doors.size());
-    for (const auto& door : state.nav_doors) {
+    state.door_visual_states.reserve(state.navigation.doors.size());
+    for (const auto& door : state.navigation.doors) {
         state.door_handles.push_back(door.door);
         state.door_visual_states.push_back({
             .door = door.door,
@@ -627,15 +568,6 @@ PreviewSessionStartResult start_toolset_preview(
                 : PreviewDoorState::closed,
         });
     }
-    if (state.nav_obstacle_active.size() > UINT32_MAX) {
-        stop_toolset_preview(session);
-        result.status = PreviewStatus::navigation_failed;
-        result.diagnostic = "Area obstacle state catalog is too large";
-        return result;
-    }
-    state.nav_source.obstacle_state_count
-        = static_cast<uint32_t>(state.nav_obstacle_active.size());
-
     nav::NavTileBuildConfig nav_config;
     const double erosion_cells = std::ceil(
         static_cast<double>(state.clearance)
@@ -651,16 +583,16 @@ PreviewSessionStartResult start_toolset_preview(
     nav_config.erosion_cells = static_cast<uint16_t>(erosion_cells);
     state.radius_class = static_cast<float>(nav_config.erosion_cells)
         * nav_config.cell_size;
-    if (!build_projected_door_links(state.nav_source, state.nav_doors,
-            state.nav_obstacle_active, nav_config)) {
+    if (!build_projected_door_links(state.navigation.geometry, state.navigation.doors,
+            state.navigation.obstacle_active, nav_config)) {
         stop_toolset_preview(session);
         result.status = PreviewStatus::navigation_failed;
         result.diagnostic = "Door approach projection failed";
         return result;
     }
     nav::NavTiledWorldBuildStats nav_stats;
-    if (nav::build_tiled_nav_world(state.nav_source,
-            state.nav_obstacle_active, nav_config, state.nav_world, nav_stats)
+    if (nav::build_tiled_nav_world(state.navigation.geometry,
+            state.navigation.obstacle_active, nav_config, state.nav_world, nav_stats)
         != nav::NavStatus::ok) {
         stop_toolset_preview(session);
         result.status = PreviewStatus::navigation_failed;
@@ -849,7 +781,7 @@ PreviewTickStats tick_toolset_preview(
             || ((sample.flags & preview_input_click_target) != 0
                 && !finite(sample.click_target))
             || ((sample.flags & preview_input_click_door) != 0
-                && (sample.door_index >= state.nav_doors.size()
+                && (sample.door_index >= state.navigation.doors.size()
                     || !finite(sample.door_bounds_min)
                     || !finite(sample.door_bounds_max)
                     || glm::any(glm::greaterThan(
@@ -946,7 +878,7 @@ PreviewTickStats tick_toolset_preview(
         }
         if ((sample.flags & preview_input_click_door) != 0) {
             clear_route();
-            const auto& door = state.nav_doors[sample.door_index];
+            const auto& door = state.navigation.doors[sample.door_index];
             std::array<uint8_t, 2> side_order{0, 1};
             if (horizontal_distance_squared(state.spatial.position,
                     door.approach_positions[1])
@@ -1085,11 +1017,11 @@ PreviewTickStats tick_toolset_preview(
         const auto transition_door = [&](uint32_t door_index,
                                          nav::NavDoorState target,
                                          uint8_t side) {
-            if (door_index >= state.nav_doors.size()
+            if (door_index >= state.navigation.doors.size()
                 || door_index >= state.door_visual_states.size()) {
                 return false;
             }
-            auto& door = state.nav_doors[door_index];
+            auto& door = state.navigation.doors[door_index];
             const std::array changes{
                 nav::NavObstacleStateChange{
                     .obstacle_state = door.closed_obstacle_state,
@@ -1108,13 +1040,13 @@ PreviewTickStats tick_toolset_preview(
                 },
             };
             nav::NavTileRebuildStats rebuild;
-            if (nav::rebuild_nav_tiles(state.nav_world, state.nav_source,
+            if (nav::rebuild_nav_tiles(state.nav_world, state.navigation.geometry,
                     changes, state.rebuilt_tile_keys, rebuild)
                 != nav::NavStatus::ok) {
                 return false;
             }
             for (const auto& change : changes) {
-                state.nav_obstacle_active[change.obstacle_state]
+                state.navigation.obstacle_active[change.obstacle_state]
                     = change.active;
             }
 
@@ -1158,11 +1090,11 @@ PreviewTickStats tick_toolset_preview(
                 }
             } else if (state.route_action_door != UINT32_MAX) {
                 const uint32_t door_index = state.route_action_door;
-                if (door_index >= state.nav_doors.size()) {
+                if (door_index >= state.navigation.doors.size()) {
                     clear_route();
                     ++stats.path_failure_count;
                 } else {
-                    const auto current = state.nav_doors[door_index].state;
+                    const auto current = state.navigation.doors[door_index].state;
                     if (current != nav::NavDoorState::closed
                         && overlaps_expanded_bounds_xy(
                             state.spatial.position,

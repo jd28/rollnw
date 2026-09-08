@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace nw::smalls {
-class Runtime;
+struct Runtime;
 }
 
 namespace nw::toolset {
