@@ -6,6 +6,8 @@ workspace tabs, renders areas and blueprints through the shared viewer, and
 exposes the selected live object to focused Details surfaces, Smalls scripts,
 the terminal, and the command palette.
 
+[Watch the rollnw-client demo on YouTube](https://youtu.be/1zftndVT2Is).
+
 The integration target is a trustworthy viewer with bounded, explicit editing
 paths. It is not a complete replacement for every NWToolset workflow. New
 editors are added when their input, mutation, undo, persistence, and preview

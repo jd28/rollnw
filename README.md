@@ -44,7 +44,7 @@ release process and metadata contract.
 
 ## Tools
 
-- [`rollnw | client`](tools/client/README.md), the local module viewer and authoring workbench, installed as `rollnw-client`. It imports modules into editable projects, browses areas and resources, renders areas and blueprints, inspects placed objects, and provides focused editors for the object data paths implemented today. It is intentionally viewer-first rather than a claim of complete NWToolset parity.
+- [`rollnw | client`](tools/client/README.md), the local module viewer and authoring workbench, installed as `rollnw-client`. It imports modules into editable projects, browses areas and resources, renders areas and blueprints, inspects placed objects, and provides focused editors for the object data paths implemented today. It is intentionally viewer-first rather than a claim of complete NWToolset parity. [Watch the demo](https://youtu.be/1zftndVT2Is).
 - [`mudl`](https://jd28.github.io/rollnw/mudl/), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes live under the [renderer docs](https://jd28.github.io/rollnw/render/), including the [particle system overview](https://jd28.github.io/rollnw/render/particle_system.html).
 
 ### Legacy
