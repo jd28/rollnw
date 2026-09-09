@@ -2,7 +2,7 @@
 
 rollnw's library lives at HEAD. A Git revision identifies library source; a
 `YYYY.MM.DD[.N]` tag identifies a distribution snapshot; each executable's numeric
-`tools/*/VERSION` identifies its next tool release. The existing CMake project
+`tools/*/VERSION.txt` identifies its next tool release. The existing CMake project
 number is legacy metadata, not another compatibility promise. Snapshots are not
 LTS branches: fixes land on `main`, and users update to a newer revision.
 
@@ -22,7 +22,8 @@ library and bundled scripts. During `0.x`, call out incompatible changes in the
 release notes; a number alone is not sufficient migration guidance.
 Before post-release development, advance affected tools to their next planned
 numeric versions. The build supplies the development suffix; do not put it back
-in the VERSION files.
+in the VERSION.txt files. Keep the `.txt` extension: extensionless `VERSION`
+shadows the C++ `<version>` header on case-insensitive filesystems.
 
 For example, to approve just mudl and the client in a dated snapshot:
 
@@ -33,7 +34,7 @@ cmake -DROLLNW_RELEASE_TAG=2026.09.08 \
 ```
 
 This writes `release.json`; it does not commit, tag, push, or publish. Review and
-commit the manifest, VERSION changes, and release notes. Tag that exact commit.
+commit the manifest, VERSION.txt changes, and release notes. Tag that exact commit.
 Do not move published tags or replace their assets. A correction uses a new date
 tag (or `.2`, `.3`, etc.) and new versions for newly approved tools.
 
@@ -87,7 +88,7 @@ The other tools do not become releases as a side effect of an extension tag.
 
 ## Identity data contract
 
-`cmake/BuildIdentity.cmake` transforms the fixed batch of five numeric VERSION
+`cmake/BuildIdentity.cmake` transforms the fixed batch of five numeric VERSION.txt
 files, one checkout identity, the extension package version, and an optional
 release approval into build-owned headers, Windows resources, and
 `tool_versions/build-identity.json`. `release.json` contains exactly `schema`

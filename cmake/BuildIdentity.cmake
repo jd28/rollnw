@@ -1,5 +1,5 @@
 # Shared by configuration, the build-time refresh, and release preparation.
-# Contract: five numeric VERSION files + one checkout + one optional approval
+# Contract: five numeric VERSION.txt files + one checkout + one optional approval
 # manifest -> build-owned, immutable tool identities. No runtime Git dependency.
 if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
     cmake_minimum_required(VERSION 3.21)
@@ -23,7 +23,7 @@ function(rollnw_read_tool_versions)
     foreach(index RANGE 0 4)
         list(GET ROLLNW_VERSIONED_TOOLS ${index} tool)
         list(GET ROLLNW_TOOL_DIRECTORIES ${index} directory)
-        file(READ "${ROLLNW_SOURCE_DIR}/tools/${directory}/VERSION" version)
+        file(READ "${ROLLNW_SOURCE_DIR}/tools/${directory}/VERSION.txt" version)
         string(STRIP "${version}" version)
         rollnw_check_numeric_version("${version}")
         set("ROLLNW_VERSION_${tool}" "${version}" PARENT_SCOPE)
@@ -97,7 +97,7 @@ function(rollnw_read_release_approvals output)
             string(JSON type TYPE "${approvals}" "${tool}")
             if(NOT tool IN_LIST ROLLNW_VERSIONED_TOOLS OR NOT type STREQUAL "STRING"
                 OR NOT version STREQUAL "${ROLLNW_VERSION_${tool}}")
-                message(FATAL_ERROR "release.json: unknown tool or VERSION mismatch for '${tool}'")
+                message(FATAL_ERROR "release.json: unknown tool or VERSION.txt mismatch for '${tool}'")
             endif()
         endforeach()
     endif()

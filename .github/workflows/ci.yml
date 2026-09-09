@@ -171,9 +171,12 @@ jobs:
         run: |
           cmake --preset ci-linux
 
-      - name: all - build & test
+      - name: all - build
         run: |
           cmake --build --preset default
+
+      - name: all - test
+        run: |
           ctest --preset default --parallel 2
 
       - name: ccache stats

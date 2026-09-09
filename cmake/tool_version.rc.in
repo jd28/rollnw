@@ -1,4 +1,4 @@
-// Generated from VERSION, source identity, and explicit release approval.
+// Generated from VERSION.txt, source identity, and explicit release approval.
 1 VERSIONINFO
 FILEVERSION @version_major@,@version_minor@,@version_patch@,0
 PRODUCTVERSION @version_major@,@version_minor@,@version_patch@,0

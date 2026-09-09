@@ -11,8 +11,17 @@ file(MAKE_DIRECTORY "${fixture}")
 set(ROLLNW_SOURCE_DIR "${fixture}")
 include("${SOURCE_DIR}/cmake/BuildIdentity.cmake")
 foreach(directory IN LISTS ROLLNW_TOOL_DIRECTORIES)
+    # Check the real source names even on Linux, where the compiler itself
+    # cannot expose a case-insensitive <version>/VERSION collision.
+    file(GLOB entries RELATIVE "${SOURCE_DIR}/tools/${directory}" "${SOURCE_DIR}/tools/${directory}/*")
+    foreach(entry IN LISTS entries)
+        string(TOLOWER "${entry}" folded_name)
+        if(folded_name STREQUAL "version")
+            message(FATAL_ERROR "tools/${directory}/${entry} shadows the standard <version> header")
+        endif()
+    endforeach()
     file(MAKE_DIRECTORY "${fixture}/tools/${directory}")
-    file(WRITE "${fixture}/tools/${directory}/VERSION" "0.1.0\n")
+    file(WRITE "${fixture}/tools/${directory}/VERSION.txt" "0.1.0\n")
 endforeach()
 file(MAKE_DIRECTORY "${fixture}/tools/vscode-smalls")
 file(WRITE "${fixture}/tools/vscode-smalls/package.json" "{\"version\":\"0.0.2\"}\n")
@@ -21,6 +30,7 @@ file(WRITE "${fixture}/probe.cpp" [=[
 #include "rollnw_tool_version.hpp"
 #include <cstdio>
 #include <cstring>
+#include <version>
 int main(int argc, char** argv) {
     if (argc == 2 && std::strcmp(argv[1], "--build-info") == 0) {
         std::puts(ROLLNW_TOOL_BUILD_INFO);
@@ -32,11 +42,16 @@ int main(int argc, char** argv) {
 set(probe_cmake [=[
 cmake_minimum_required(VERSION 3.21)
 project(identity_probes LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
 set(ROLLNW_BUILD_TOOLS ON)
 include("@SOURCE_DIR@/cmake/ToolVersions.cmake")
 foreach(tool IN LISTS ROLLNW_VERSIONED_TOOLS)
     add_executable(${tool} probe.cpp)
     rollnw_use_tool_version(${tool})
+    # Match the tools' source include paths, not just the generated header path.
+    foreach(directory IN LISTS ROLLNW_TOOL_DIRECTORIES)
+        target_include_directories(${tool} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tools/${directory}")
+    endforeach()
     install(TARGETS ${tool} RUNTIME DESTINATION bin)
 endforeach()
 ]=])
@@ -98,12 +113,12 @@ expect_field(unknown revision)
 expect_field("0.1.0-dev+unknown" tools mudl version)
 generate("2026.09.08" "clean Git checkout")
 foreach(invalid "0.1.0-dev" "01.1.0" "1.2" "1.2.3.4" "65536.0.0" "999999999999999999999.0.0")
-    file(WRITE "${fixture}/tools/mudl/VERSION" "${invalid}\n")
+    file(WRITE "${fixture}/tools/mudl/VERSION.txt" "${invalid}\n")
     generate("" "numeric MAJOR.MINOR.PATCH|Version components")
 endforeach()
-file(WRITE "${fixture}/tools/mudl/VERSION" "65535.65535.65535\n")
+file(WRITE "${fixture}/tools/mudl/VERSION.txt" "65535.65535.65535\n")
 generate("" "")
-file(WRITE "${fixture}/tools/mudl/VERSION" "0.1.0\n")
+file(WRITE "${fixture}/tools/mudl/VERSION.txt" "0.1.0\n")
 
 run_ok("${GIT_EXECUTABLE}" -C "${fixture}" init -q -b main)
 run_ok("${GIT_EXECUTABLE}" -C "${fixture}" config user.name "Build identity tests")
@@ -197,7 +212,7 @@ generate("" "") # Merely being at a release tag never promotes tools.
 expect_field(development tools mudl channel)
 prepare("2026.09.08" "mudl" "already exists")
 prepare("2026.09.09" "mudl" "must exceed")
-file(WRITE "${fixture}/tools/mudl/VERSION" "0.1.1\n")
+file(WRITE "${fixture}/tools/mudl/VERSION.txt" "0.1.1\n")
 generate("2026.09.08" "clean Git checkout")
 commit_fixture(next_version)
 generate("2026.09.08" "must point at")
@@ -215,7 +230,7 @@ foreach(manifest IN LISTS bad_manifests)
     file(WRITE "${fixture}/release.json" "${manifest}\n")
     commit_fixture(bad_manifest)
     run_ok("${GIT_EXECUTABLE}" -C "${fixture}" tag "${tag}")
-    generate("${tag}" "expected schema 1|unknown tool or VERSION mismatch")
+    generate("${tag}" "expected schema 1|unknown tool or VERSION.txt mismatch")
 endforeach()
 prepare("vscode-smalls/0.0.2" "smalls-lsp" "")
 commit_fixture(extension)
