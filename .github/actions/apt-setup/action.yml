@@ -1,7 +1,7 @@
 name: apt-setup
 description: >-
-  Install Debian packages on a Linux runner with the flaky Azure Ubuntu mirror
-  removed, bounded network timeouts, and retries.
+  Install Debian packages on a Linux runner with unused vendor sources and the
+  flaky Azure Ubuntu mirror removed, bounded network timeouts, and retries.
 
 inputs:
   packages:
@@ -20,12 +20,13 @@ runs:
       run: |
         set -euo pipefail
 
-        # Pre-seeded Microsoft/Azure CLI sources are unused here and routinely
-        # break `apt-get update` when their keys rotate.
+        # No caller installs Chrome or Microsoft/Azure CLI packages. Their
+        # pre-seeded sources can block `apt-get update` with key or index errors.
         sudo rm -f /etc/apt/sources.list.d/azure-cli.list \
                    /etc/apt/sources.list.d/azure-cli.sources \
                    /etc/apt/sources.list.d/microsoft-prod.list \
-                   /etc/apt/sources.list.d/microsoft-prod.sources
+                   /etc/apt/sources.list.d/microsoft-prod.sources \
+                   /etc/apt/sources.list.d/google-chrome.list
 
         # The runner image points apt at azure.archive.ubuntu.com with
         # priority:1. When that mirror is down apt burns its full timeout on
