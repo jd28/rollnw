@@ -151,5 +151,9 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/core/ DESTINATION bi
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/smalls/scripts/nwn1/ DESTINATION bin/stdlib/nwn1)
 
 if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
-    install(FILES $<TARGET_FILE:SDL3::SDL3-shared> DESTINATION bin)
+    # Install the runtime SONAME link as well as the versioned library.
+    install(TARGETS SDL3-shared
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION bin NAMELINK_SKIP
+    )
 endif()
