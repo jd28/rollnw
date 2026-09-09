@@ -15,6 +15,7 @@
 #include "rml_smalls_bridge.hpp"
 #include "rml_smalls_data_model.hpp"
 #include "rml_smalls_language_binding.hpp"
+#include "rollnw_tool_version.hpp"
 #include "shell_controller.hpp"
 #include "smalls_creature_feats.hpp"
 #include "smalls_creature_inventory.hpp"
@@ -78,9 +79,6 @@
 #include <utility>
 #include <vector>
 
-#ifndef ROLLNW_CLIENT_APP_VERSION
-#define ROLLNW_CLIENT_APP_VERSION "0.0.0"
-#endif
 
 #ifndef ROLLNW_CLIENT_APP_ID
 #define ROLLNW_CLIENT_APP_ID "org.rollnw.client"
@@ -6411,6 +6409,7 @@ void append_workspace_home_markup(std::string& content_markup, AppState& state)
         content_markup += "</div>";
     }
     content_markup += "</div></div>";
+    content_markup += "<div class=\"home_app_version\">" ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "</div>";
     content_markup += "<div class=\"home_project_actions\">"
                       "<button id=\"home_import_module\"";
     if (state.project_import.active() || state.module_dialog_open) {
@@ -9607,6 +9606,8 @@ void clear_inactive_object(AppState& state)
 void print_cli_usage(std::ostream& out)
 {
     out << "Usage:\n"
+        << "  rollnw-client --version\n"
+        << "  rollnw-client --build-info\n"
         << "  rollnw-client init <project-dir>\n"
         << "  rollnw-client import (--json|--legacy) <module.mod> [project-dir]\n";
 }
@@ -9732,12 +9733,21 @@ int run_project_cli_if_requested(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    if (argc == 2 && std::string_view{argv[1]} == "--version") {
+        std::cout << ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "\n";
+        return 0;
+    }
+    if (argc == 2 && std::string_view{argv[1]} == "--build-info") {
+        std::cout << ROLLNW_TOOL_BUILD_INFO "\n";
+        return 0;
+    }
     loguru::g_stderr_verbosity = loguru::Verbosity_WARNING;
     nw::init_logger(argc, argv);
     if (const int cli_result = run_project_cli_if_requested(argc, argv); cli_result >= 0) {
         return cli_result;
     }
     LoguruOutputCapture log_capture;
+    LOG_F(INFO, "{} {}", ROLLNW_TOOL_NAME, ROLLNW_TOOL_VERSION);
 
     const auto install = nw::probe_nwn_install(nw::GameVersion::vEE);
     if (install.install.empty()) {
@@ -9755,7 +9765,7 @@ int main(int argc, char* argv[])
     nw::kernel::services().start();
 
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
-    if (!SDL_SetAppMetadata("rollnw | client", ROLLNW_CLIENT_APP_VERSION, ROLLNW_CLIENT_APP_ID)) {
+    if (!SDL_SetAppMetadata("rollnw | client", ROLLNW_TOOL_VERSION, ROLLNW_CLIENT_APP_ID)) {
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_SetAppMetadata failed: %s", SDL_GetError());
     }
     SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "application");

@@ -6,6 +6,7 @@
 #include "mudl_cli.hpp"
 #include "mudl_commands.hpp"
 #include "particle_tools.hpp"
+#include "rollnw_tool_version.hpp"
 #include "viewer_runtime.hpp"
 #include "visual_corpus.hpp"
 
@@ -269,6 +270,14 @@ int main(int argc, char* argv[])
 {
     using namespace mudl;
 
+    if (argc == 2 && std::string_view{argv[1]} == "--version") {
+        std::cout << ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "\n";
+        return 0;
+    }
+    if (argc == 2 && std::string_view{argv[1]} == "--build-info") {
+        std::cout << ROLLNW_TOOL_BUILD_INFO "\n";
+        return 0;
+    }
     nw::init_logger(argc, argv);
 
     ParsedArgs args;
@@ -276,7 +285,10 @@ int main(int argc, char* argv[])
         return *exit_code;
     }
 
-    LOG_F(INFO, "mudl starting...");
+    LOG_F(INFO, "{} {} starting...", ROLLNW_TOOL_NAME, ROLLNW_TOOL_VERSION);
+    if (!SDL_SetAppMetadata("mudl", ROLLNW_TOOL_VERSION, "org.rollnw.mudl")) {
+        LOG_F(WARNING, "Failed to set application metadata: {}", SDL_GetError());
+    }
 
     if (args.command == "report") {
         return run_kernel_command(args.module_path, args.user_path, [&] {

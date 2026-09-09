@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
-# C++ API version. Repository snapshot releases use YYYY.MM.DD tags and do not
-# change this value.
+# Legacy CMake project metadata, not an API/ABI compatibility promise. The
+# library lives at HEAD; distribution snapshots use YYYY.MM.DD[.N] tags.
 project(rollnw VERSION 0.45.0 LANGUAGES CXX C)
 set (CMAKE_CXX_STANDARD 20)
 include(cmake/Cache.cmake)
@@ -24,6 +24,10 @@ option(ROLLNW_ENABLE_TRACY "Enable Tracy profiling" OFF)
 option(ROLLNW_TRACY_ON_DEMAND "Enable Tracy on-demand profiling" ON)
 
 option(ROLLNW_USE_SYSTEM_SDL "Prefer an installed shared SDL3 package for renderer builds" OFF)
+
+if(ROLLNW_BUILD_TOOLS OR ROLLNW_BUILD_RENDERER OR ROLLNW_BUILD_TESTS)
+include(cmake/ToolVersions.cmake)
+endif()
 
 if(ROLLNW_BUILD_PYTHON AND ROLLNW_BUILD_WITH_MIMALLOC)
 message(FATAL_ERROR "Python bindings cannot be built with mimalloc")
@@ -288,6 +292,10 @@ add_subdirectory(tools/smalls)
 add_subdirectory(tools/smalls-lsp)
 add_subdirectory(tools/smalls-datagen)
 add_subdirectory(tools/vscode-smalls)
+endif()
+
+if(ROLLNW_BUILD_TESTS)
+rollnw_add_tool_version_tests()
 endif()
 
 if(PROJECT_IS_TOP_LEVEL)

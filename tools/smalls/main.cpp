@@ -1,3 +1,5 @@
+#include "rollnw_tool_version.hpp"
+
 #include <nw/kernel/Kernel.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -7,6 +9,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -20,6 +23,8 @@ void print_usage(const char* program)
     fmt::print("Arguments:\n");
     fmt::print("  <module>             Module name (e.g., arithmetic)\n\n");
     fmt::print("Options:\n");
+    fmt::print("  --version            Print tool version and exit\n");
+    fmt::print("  --build-info         Print JSON build identity and exit\n");
     fmt::print("  --scripts <dir>      Add all subdirectories of <dir> to module path\n");
     fmt::print("  -I, --module-path <dir>  Add <dir> to module path (repeatable)\n");
     fmt::print("  --gas <n>            Set gas limit for execution (default: 100000)\n");
@@ -28,6 +33,14 @@ void print_usage(const char* program)
 int main(int argc, char* argv[])
 {
     nowide::args _(argc, argv);
+    if (argc == 2 && std::string_view{argv[1]} == "--version") {
+        fmt::print(ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "\n");
+        return 0;
+    }
+    if (argc == 2 && std::string_view{argv[1]} == "--build-info") {
+        fmt::print("{}\n", ROLLNW_TOOL_BUILD_INFO);
+        return 0;
+    }
     nw::init_logger(argc, argv);
 
     if (argc < 2) {

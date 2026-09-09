@@ -8,6 +8,7 @@ add_executable(smalls-lsp
     server.cpp
 )
 
+rollnw_use_tool_version(smalls-lsp)
 target_include_directories(smalls-lsp PRIVATE ../../lib)
 
 target_link_libraries(smalls-lsp PRIVATE nw Threads::Threads)

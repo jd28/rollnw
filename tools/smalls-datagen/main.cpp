@@ -1,3 +1,5 @@
+#include "rollnw_tool_version.hpp"
+
 #include <nw/formats/StaticTwoDA.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
@@ -14,6 +16,7 @@
 #include <fstream>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -467,6 +470,8 @@ static void print_usage(const char* prog)
     fmt::print("  --out <dir>      Snapshot root (e.g. lib/nw/smalls/scripts)\n");
     fmt::print("  --check <dir>    Generate in a temporary tree and report snapshot diff\n\n");
     fmt::print("Optional:\n");
+    fmt::print("  --version        Print tool version and exit\n");
+    fmt::print("  --build-info     Print JSON build identity and exit\n");
     fmt::print("  --data-specs <dir> Structured specs (default: packaged nwn1/data_specs)\n");
     fmt::print("  --entity <name>  Only process this spec (e.g. feats)\n");
     fmt::print("  --no-overwrite   Skip existing files (default: overwrite)\n");
@@ -475,6 +480,14 @@ static void print_usage(const char* prog)
 int main(int argc, char* argv[])
 {
     nowide::args _(argc, argv);
+    if (argc == 2 && std::string_view{argv[1]} == "--version") {
+        fmt::print(ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "\n");
+        return 0;
+    }
+    if (argc == 2 && std::string_view{argv[1]} == "--build-info") {
+        fmt::print("{}\n", ROLLNW_TOOL_BUILD_INFO);
+        return 0;
+    }
     nw::init_logger(argc, argv);
 
     std::string nwn_path, out_path, check_path, data_specs_path,

@@ -178,6 +178,8 @@ void print_usage()
 {
     std::cout << "mudl - Model Viewer & Asset Pipeline Tool\n\n"
               << "Usage:\n"
+              << "  mudl --version\n"
+              << "  mudl --build-info\n"
               << "  mudl [view] <resref> [--module <path>] [--animation <name>] [--pbr-environment <ktx>] [--no-pbr-ibl] [--debug] [--validate]\n"
               << "  mudl spell <spells.2da rowid> [--module <path>] [--animation <name>] [--debug] [--validate]\n"
               << "  mudl spell-export <spells.2da rowid> <path> [--module <path>]\n"

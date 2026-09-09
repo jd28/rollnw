@@ -1,10 +1,13 @@
 #include "server.hpp"
 
+#include "rollnw_tool_version.hpp"
+
 #include <nw/kernel/Kernel.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <iostream>
 #include <string>
+#include <string_view>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -49,6 +52,14 @@ namespace lsp = nw::smalls;
 
 int main(int argc, char* argv[])
 {
+    if (argc == 2 && std::string_view{argv[1]} == "--version") {
+        std::cout << ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "\n";
+        return 0;
+    }
+    if (argc == 2 && std::string_view{argv[1]} == "--build-info") {
+        std::cout << ROLLNW_TOOL_BUILD_INFO "\n";
+        return 0;
+    }
     loguru::g_stderr_verbosity = loguru::Verbosity_INFO;
     nw::init_logger(argc, argv);
 

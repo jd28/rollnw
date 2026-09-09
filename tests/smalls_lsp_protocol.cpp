@@ -2,6 +2,7 @@
 
 #include "../tools/smalls-lsp/lsp_uri.hpp"
 #include "../tools/smalls-lsp/server.hpp"
+#include "rollnw_tool_version.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -166,6 +167,8 @@ fn main() {
 
     const json* initialize = response_with_id(messages, 1);
     ASSERT_NE(initialize, nullptr);
+    EXPECT_EQ((*initialize)["result"]["serverInfo"]["name"], ROLLNW_TOOL_NAME);
+    EXPECT_EQ((*initialize)["result"]["serverInfo"]["version"], ROLLNW_TOOL_VERSION);
     EXPECT_TRUE((*initialize)["result"]["capabilities"]["inlayHintProvider"]["resolveProvider"]);
     EXPECT_EQ((*initialize)["result"]["capabilities"]["textDocumentSync"]["change"], 2);
     EXPECT_TRUE((*initialize)["result"]["capabilities"]["documentSymbolProvider"]);

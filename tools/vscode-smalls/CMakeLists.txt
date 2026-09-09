@@ -5,6 +5,9 @@ add_custom_target(vscode-smalls-vsix
     # Copy the LSP binary (Local dev fallback)
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/bin
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:smalls-lsp> ${CMAKE_CURRENT_SOURCE_DIR}/bin/$<TARGET_FILE_NAME:smalls-lsp>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${ROLLNW_TOOL_VERSION_DIR}/build-identity.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/bin/$<TARGET_FILE_NAME:smalls-lsp>.json
 
     # Copy the stdlib
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_SOURCE_DIR}/stdlib

@@ -1,0 +1,6 @@
+#pragma once
+
+// Generated from VERSION, source identity, and explicit release approval.
+#define ROLLNW_TOOL_NAME "@tool_name@"
+#define ROLLNW_TOOL_VERSION "@tool_version@"
+#define ROLLNW_TOOL_BUILD_INFO R"rollnw(@tool_build_info@)rollnw"

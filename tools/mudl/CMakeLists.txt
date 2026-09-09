@@ -47,6 +47,8 @@ add_executable(mudl
     viewer_runtime.cpp
 )
 
+rollnw_use_tool_version(mudl)
+
 target_include_directories(mudl PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/lib

@@ -3,6 +3,7 @@
 #include "ast_providers.hpp"
 #include "lsp_text.hpp"
 #include "lsp_uri.hpp"
+#include "rollnw_tool_version.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/smalls/AstLocator.hpp>
@@ -865,7 +866,7 @@ struct LspServer {
         };
 
         initialized_ = true;
-        send_response(id, {{"serverInfo", {{"name", "smalls-lsp"}, {"version", "0.1.0"}}}, {"capabilities", std::move(capabilities)}});
+        send_response(id, {{"serverInfo", {{"name", ROLLNW_TOOL_NAME}, {"version", ROLLNW_TOOL_VERSION}}}, {"capabilities", std::move(capabilities)}});
     }
 
     // -- Configuration -------------------------------------------------------

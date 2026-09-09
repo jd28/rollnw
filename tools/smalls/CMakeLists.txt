@@ -2,6 +2,7 @@ include(GNUInstallDirs)
 find_package(Threads)
 
 add_executable(smalls main.cpp)
+rollnw_use_tool_version(smalls)
 
 target_include_directories(smalls PRIVATE ../../lib)
 

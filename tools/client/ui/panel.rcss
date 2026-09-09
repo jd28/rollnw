@@ -893,6 +893,12 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   font-size: 14px;
   cursor: pointer;
 }
+.home_app_version {
+  display: block;
+  margin-bottom: 12px;
+  color: #96a0aa;
+  font-size: 12px;
+}
 .home_project_actions button:hover,
 .home_project_actions button:focus,
 .home_project_remove:hover,

@@ -367,7 +367,9 @@ if(TARGET nw-render-viewer)
         nw-render-viewer)
 endif()
 
+add_dependencies(rollnw_test rollnw-tool-versions)
 target_include_directories(rollnw_test PRIVATE
+    "${ROLLNW_TOOL_VERSION_DIR}/smalls-lsp"
     ../lib
     ../lib/nw
     ../tools/mudl

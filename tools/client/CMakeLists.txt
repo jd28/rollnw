@@ -67,6 +67,8 @@ add_executable(rollnw-client
     ${RMLUI_BACKENDS_DIR}/RmlUi_Platform_SDL.cpp
 )
 
+rollnw_use_tool_version(rollnw-client)
+
 target_include_directories(rollnw-client PRIVATE
     ${CMAKE_SOURCE_DIR}/tools/mudl
     ${CMAKE_SOURCE_DIR}/tools/ui
@@ -82,7 +84,6 @@ target_include_directories(rollnw-client SYSTEM PRIVATE
 
 target_compile_definitions(rollnw-client PRIVATE
     RMLUI_SDL_VERSION_MAJOR=3
-    ROLLNW_CLIENT_APP_VERSION="${PROJECT_VERSION}"
     ROLLNW_CLIENT_APP_ID="org.rollnw.client"
 )
 

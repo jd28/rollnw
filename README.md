@@ -9,6 +9,23 @@ rollnw is an homage to Neverwinter Nights (NWN) in C++. It started as reusable N
 
 **Transition warning:** rollnw is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.
 
+## Versions and compatibility
+
+The library **lives at HEAD**: development happens on `main`, and consumers are
+encouraged to update frequently while recording an exact Git revision for each
+build. Dated distributions (`YYYY.MM.DD[.N]`) are tested snapshots, not an LTS
+or cross-revision compatibility guarantee. We aim to keep source updates
+manageable and document necessary migrations. There is no cross-revision C++
+ABI guarantee; rebuild the library and its consumers together when updating.
+
+Tools have independent versions. Ordinary builds report `-dev` plus their source
+revision (and `.dirty` for local changes); only explicitly approved release
+builds report a plain release version. Use `--version` for the tool version or
+`--build-info` for its JSON source/release identity when reporting a problem.
+The VS Code extension has its own package version and records the identity of
+its bundled language server. See the [release guide](docs/releases.md) for the
+release process and metadata contract.
+
 ## Goals
 
 - aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN, with current effort on the practical pieces (rules, content formats, renderer validation, authoring workflows) a playable toolset/game will need.
