@@ -210,10 +210,11 @@ TEST(ClientDocuments, BatchContinuesAfterFailuresAndRejectsInvalidProtocolBefore
     std::filesystem::remove_all(project);
     std::filesystem::create_directories(project / "blocked.uti.json");
     {
-        std::ofstream original{project / "good.uti.json"};
+        std::ofstream original{project / "good.uti.json", std::ios::binary};
         ASSERT_TRUE(original);
         original << "{}\n";
     }
+    ASSERT_EQ(std::filesystem::file_size(project / "good.uti.json"), 3u);
     WorkspaceState workspace;
     const std::array<std::string_view, 3> ids{"good", "blocked", "escape"};
     const std::array paths{"good.uti.json", "blocked.uti.json", "../escape.uti.json"};
