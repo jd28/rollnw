@@ -53,6 +53,20 @@
 <h1 id="rollnw">rollnw</h1>
 <p>rollnw is an homage to Neverwinter Nights (NWN) in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the <a href="https://jd28.github.io/rollnw/">docs</a> and <a href="https://github.com/jd28/rollnw/tree/main/tests">tests</a> for more info. Opening an IDE is going to get the most current view.</p>
 <p><strong>Transition warning:</strong> rollnw is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.</p>
+<h2 id="versions-and-compatibility">Versions and compatibility</h2>
+<p>The library <strong>lives at HEAD</strong>: development happens on <code>main</code>, and consumers are
+encouraged to update frequently while recording an exact Git revision for each
+build. Dated distributions (<code>YYYY.MM.DD[.N]</code>) are tested snapshots, not an LTS
+or cross-revision compatibility guarantee. We aim to keep source updates
+manageable and document necessary migrations. There is no cross-revision C++
+ABI guarantee; rebuild the library and its consumers together when updating.</p>
+<p>Tools have independent versions. Ordinary builds report <code>-dev</code> plus their source
+revision (and <code>.dirty</code> for local changes); only explicitly approved release
+builds report a plain release version. Use <code>--version</code> for the tool version or
+<code>--build-info</code> for its JSON source/release identity when reporting a problem.
+The VS Code extension has its own package version and records the identity of
+its bundled language server. See the <a href="https://github.com/jd28/rollnw/blob/main/docs/releases.md">release guide</a> for the
+release process and metadata contract.</p>
 <h2 id="goals">Goals</h2>
 <ul>
 <li>aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN, with current effort on the practical pieces (rules, content formats, renderer validation, authoring workflows) a playable toolset/game will need.</li>

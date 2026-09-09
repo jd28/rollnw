@@ -67,7 +67,18 @@ objects; it does not own a second gameplay or editor object model.</p>
 <p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/creature_view_2026_08_12.png"><img alt="Creature blueprint preview showing the rendered creature and Details workbench" src="../assets/tools/client/screenshots/creature_view_2026_08_12.png"></a></p>
 <p><em>Creature blueprint preview with shared Details and focused editor tabs.</em></p>
 <h2 id="importing-a-module">Importing A Module</h2>
-<p>Import a module from the command line before opening the resulting project:</p>
+<p>On the Home tab, click <strong>Import Module...</strong>. Browse for the source <code>.mod</code> and a
+destination parent folder, review both paths, then click <strong>Import</strong>. An animated
+progress bar shows that import is running (it does not estimate a percentage).
+The client creates a new folder named after the module and imports it in the
+native JSON format. Existing folders are never
+overwritten by this workflow. <strong>Open Project...</strong> opens an already imported project.</p>
+<p>You can keep working during import. On success, the project opens automatically
+unless you have unsaved changes or switched projects; it is also added to Recent
+Projects. Wait for import to finish before quitting. If import fails, the error
+dialog identifies the output folder and <code>import.log</code>; partial output is kept
+there for inspection. Canceling either file picker writes nothing.</p>
+<p>For scripting or legacy imports, the command line remains available:</p>
 <div class="codehilite"><pre><span></span><code>rollnw-client import (--json|--legacy) &lt;module.mod&gt; [project-dir]
 </code></pre></div>
 
@@ -90,9 +101,10 @@ and user directories. Import fails when a declared hak cannot be loaded.</p>
 <div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-legacy
 </code></pre></div>
 
-<p>The destination is created when it does not exist. Importing into an existing
-project updates files in place and does not remove unrelated or stale files, so
-use a new or empty destination when a clean import is required.</p>
+<p>With the command line, the destination is created when it does not exist.
+Importing into an existing project updates files in place and does not remove
+unrelated or stale files, so use a new or empty destination when a clean import
+is required.</p>
 <h2 id="runtime-shape">Runtime Shape</h2>
 <p>The common data flow is:</p>
 <div class="codehilite"><pre><span></span><code>project/module resource
@@ -119,11 +131,11 @@ command source does not get a separate mutation path.</p>
 <tbody>
 <tr>
 <td><code>ToolsetBackend</code></td>
-<td>Command registry, project/module state, terminal dispatch, and the document-save callback.</td>
+<td>Command registry, project/module state, terminal dispatch, and document-save commands.</td>
 </tr>
 <tr>
 <td><code>WorkspaceState</code></td>
-<td>Ordered tabs, active tab, dirty flags, subtabs, and per-tab undo/redo stacks.</td>
+<td>Ordered tabs, live documents, active tab, dirty flags, subtabs, and per-tab undo/redo stacks.</td>
 </tr>
 <tr>
 <td><code>ViewerSession</code></td>
@@ -152,10 +164,15 @@ tabs, clearing selection, reloading, or closing a scene clears or replaces them.
 kind, title, resource detail, dirty flag, optional subtabs, and undo/redo
 stacks. Undo history belongs to the tab containing the edited document; global
 commands do not add entries.</p>
-<p>The workspace distinguishes home, module, project, area, blueprint preview,
-resource, and generic tabs. The permanent Home and Area tabs are not closable
-or movable. Opening another area replaces the Area tab's document state and
-clears its prior undo/redo history.</p>
+<p>There is one pinned Area tab, alongside Home and the blueprint tabs. Visiting
+another tab preserves the current area's edits and undo history. Selecting a
+different area reuses the Area tab; unsaved changes prompt for Save, Discard,
+or Cancel first. Home and Area cannot be moved or closed.</p>
+<p>Use <strong>Ctrl+S</strong> to save the active document or <strong>Ctrl+Shift+S</strong> / <strong>Save All</strong> to
+save every modified open document without switching tabs. Saving supports native
+CAF areas and JSON blueprints. If a document cannot be saved, it stays modified
+and the output identifies the failure; other documents still save. Binary
+resources are not overwritten with JSON.</p>
 <p>Dirty tabs use a complete close protocol:</p>
 <div class="codehilite"><pre><span></span><code>workspace.close_tab
     -&gt; clean: close
@@ -168,7 +185,9 @@ clears its prior undo/redo history.</p>
 </code></pre></div>
 
 <p><code>Ctrl+W</code>, palette actions, and terminal commands all dispatch this protocol.
-They do not close a dirty document directly.</p>
+They do not close a dirty document directly.
+Quitting offers Save All, Discard, or Cancel. Save or discard modified documents
+before opening another project or module.</p>
 <h2 id="commands">Commands</h2>
 <p><code>CommandBus</code> is the application action boundary. <code>CommandSpec</code> supplies stable
 IDs, aliases, scope, flags, default bindings, and usage text. The palette and
@@ -204,11 +223,23 @@ object types; workflow-heavy data opens a focused surface:</p>
 <p>These views demonstrate the intended split: reflection handles broadly useful
 data, while workflow-heavy collections use purpose-built views and commands.
 All data-dependent row surfaces must remain viewport-virtualized.</p>
-<p>Area tabs provide precise mesh or authored-footprint selection for placed
+<p>Area tabs provide mesh or authored-footprint selection for placed
 objects, Ctrl-click tile selection, a complete placed-object list, and camera
-focus on list selection. The validated Creature/Placeable structural slice
+focus on list selection. The validated Creature/Placeable/Item structural slice
 supports placement, transforms, duplicate, delete, undo/redo, and native CAF
 save. Blueprint preview tabs use the same focused edit commands and save path.</p>
+<p>Drag a Creature, Placeable, or Item blueprint from the project tree into an area
+to preview placement; drop commits one undoable edit and cancel discards it.
+Creature placement/transforms require walkable ground and known clearance:
+invalid targets reject rather than snap, with a navigation overlay during drag.
+Placeables and items allow free authored height within area XY bounds.</p>
+<p>Ground items align their rotated model bottoms to authored height without
+rewriting saved coordinates. Thin items have six-pixel sampled click assistance,
+respecting nearer geometry. Selecting keeps the viewport stable; moving requires
+a five-pixel drag, and viewport/camera changes cancel the gesture. Standalone
+and equipped-item poses are unchanged.</p>
+<p>Area drops create new instances from blueprints. Moving an existing inventory
+item into the world and picking up ground items are not supported yet.</p>
 <h2 id="play-preview">Play Preview</h2>
 <p>Press F9 in an active area tab to enter the transient play preview. The first
 use opens the project tree to choose a Creature blueprint; the project-relative
@@ -274,11 +305,12 @@ must go through <code>core.commands.v1</code>, not through RmlUi element operati
 <li>The client is viewer-first. It does not yet provide new-area creation or a
   complete editor for every object aggregate.</li>
 <li>Native CAF area save is implemented. Structural placement and membership
-  editing are currently limited to Creature and Placeable; other placed kinds
+  editing are currently limited to Creature, Placeable, and Item; other placed kinds
   are selectable and inspectable but do not all have structural commands.</li>
 <li>Encounter spawn lists require a dedicated editor; they are not flattened into
   generic Details rows.</li>
-<li><code>toolset.save_all</code> is registered but remains a stub.</li>
+<li>Save All covers open modified JSON area and blueprint documents; it is not
+  autosave or a project-wide export.</li>
 <li>The Smalls list host defines list state and callback protocols, but the
   current object-workbench DOM rows are materialized by the C++
   <code>VirtualListController</code> path.</li>
