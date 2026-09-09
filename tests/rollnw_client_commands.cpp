@@ -23,6 +23,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -53,6 +54,19 @@ CommandContext test_context(WorkspaceState* workspace = nullptr)
         context.active_tab_id = workspace->active_tab_id();
     }
     return context;
+}
+
+const ProjectTreeNode* find_node(const ProjectTreeNode& node, std::string_view relative_path)
+{
+    if (node.relative_path.generic_string() == relative_path) {
+        return &node;
+    }
+    for (const auto& child : node.children) {
+        if (const auto* found = find_node(child, relative_path)) {
+            return found;
+        }
+    }
+    return nullptr;
 }
 
 CommandSpec spec(std::string id, std::vector<std::string> aliases = {})
@@ -400,6 +414,118 @@ TEST(ClientProject, InitializesProjectSkeleton)
     const auto second_init = initialize_project(root, "Ignored");
     EXPECT_TRUE(second_init.ok);
     EXPECT_FALSE(second_init.initialized);
+}
+
+TEST(ClientProject, RecentProjectsReportMissingPathsWithoutPruningHistory)
+{
+    const std::filesystem::path root = "tmp/client_recent_projects";
+    std::filesystem::remove_all(root);
+    ASSERT_TRUE(initialize_project(root / "available", "Available").ok);
+    std::filesystem::create_directories(root / "invalid");
+    {
+        std::ofstream manifest{root / "invalid" / "rollnw.json"};
+        manifest << R"({"format":42,"version":"invalid","name":false})";
+    }
+    std::vector<RecentProjectEntry> projects{
+        {"Available", (root / "available").string()},
+        {"Removed", (root / "removed").string()},
+        {"File", (root / "available" / "rollnw.json").string()},
+        {"Invalid", (root / "invalid").string()},
+    };
+    refresh_recent_projects(projects);
+    ASSERT_EQ(projects.size(), 4u);
+    EXPECT_TRUE(projects[0].error.empty());
+    EXPECT_EQ(projects[1].error, "Project folder not found");
+    EXPECT_EQ(projects[2].error, "Project path is not a folder");
+    EXPECT_FALSE(projects[3].error.empty());
+    EXPECT_EQ(project_display_name(root / "invalid"), "invalid");
+
+    std::filesystem::rename(root / "available", root / "removed");
+    refresh_recent_projects(projects);
+    EXPECT_EQ(projects[0].error, "Project folder not found");
+    EXPECT_TRUE(projects[1].error.empty());
+
+    const auto prefs_path = root / "preferences.json";
+    {
+        std::ofstream output{prefs_path};
+        output << "{}";
+    }
+    const std::array invalid_indices{size_t{0}, projects.size()};
+    EXPECT_FALSE(forget_recent_projects(projects, invalid_indices));
+    EXPECT_EQ(projects.size(), 4u);
+    const std::array removed_indices{size_t{3}, size_t{0}, size_t{3}};
+    ASSERT_TRUE(forget_recent_projects(projects, removed_indices));
+    ASSERT_EQ(projects.size(), 2u);
+    EXPECT_EQ(projects[0].name, "Removed");
+    nlohmann::json prefs{{"ui", {{"keep", true}}}};
+    write_recent_project_preferences(prefs, projects);
+    EXPECT_FALSE(prefs["projects"]["recent"][0].contains("error"));
+    std::string error;
+    ASSERT_TRUE(save_json_resource_document_atomic(prefs_path, prefs, error)) << error;
+    {
+        std::ifstream input{prefs_path};
+        input >> prefs;
+    }
+    std::vector<RecentProjectEntry> reloaded;
+    load_recent_project_preferences(prefs, reloaded);
+    ASSERT_EQ(reloaded.size(), 2u);
+    EXPECT_EQ(reloaded[0].path, projects[0].path);
+    EXPECT_EQ(reloaded[1].path, projects[1].path);
+    EXPECT_TRUE(prefs["ui"]["keep"].get<bool>());
+    const std::array remaining_indices{size_t{0}, size_t{1}};
+    ASSERT_TRUE(forget_recent_projects(projects, remaining_indices));
+    EXPECT_TRUE(projects.empty());
+    EXPECT_TRUE(is_project_directory(root / "removed"));
+    EXPECT_TRUE(std::filesystem::exists(root / "invalid" / "rollnw.json"));
+}
+
+TEST(ClientProject, RecentPreferencesSkipMalformedRowsAndBoundHistory)
+{
+    auto recent = nlohmann::json::array({nullptr, 1, {{"path", ""}}, {{"path", 7}},
+        {{"name", "First"}, {"path", "first"}}, {{"name", "Duplicate"}, {"path", "first"}}});
+    for (size_t i = 0; i < kMaxRecentProjects + 2; ++i) {
+        recent.push_back({{"name", "Project"}, {"path", "project-" + std::to_string(i)}});
+    }
+    const nlohmann::json prefs{{"projects", {{"recent", recent}}}};
+    std::vector<RecentProjectEntry> projects;
+    load_recent_project_preferences(prefs, projects);
+    ASSERT_EQ(projects.size(), kMaxRecentProjects);
+    EXPECT_EQ(projects[0].name, "First");
+    EXPECT_EQ(projects[1].path, "project-0");
+    load_recent_project_preferences(nlohmann::json{{"projects", false}}, projects);
+    EXPECT_TRUE(projects.empty());
+}
+
+TEST(ClientProject, BrowserOmitsGitDirectoriesAndWorktreeFiles)
+{
+    const std::filesystem::path root = "tmp/client_project_hidden_git";
+    std::filesystem::remove_all(root);
+    ASSERT_TRUE(initialize_project(root, "Hidden Git").ok);
+    std::filesystem::create_directories(root / ".git" / "objects");
+    std::filesystem::create_directories(root / "shared" / "nested");
+    {
+        std::ofstream output{root / ".git" / "config"};
+        output << "git metadata";
+    }
+    {
+        std::ofstream output{root / "shared" / "nested" / ".git"};
+        output << "gitdir: elsewhere";
+    }
+    {
+        std::ofstream output{root / ".gitignore"};
+        output << "ignored";
+    }
+    const auto tree = load_project_tree(root);
+    ASSERT_TRUE(tree.ok) << tree.message;
+    EXPECT_EQ(find_node(tree.root, ".git"), nullptr);
+    EXPECT_EQ(find_node(tree.root, "shared/nested/.git"), nullptr);
+    EXPECT_NE(find_node(tree.root, ".gitignore"), nullptr);
+    const auto filtered = load_project_tree(root, "git");
+    ASSERT_TRUE(filtered.ok) << filtered.message;
+    EXPECT_EQ(find_node(filtered.root, ".git"), nullptr);
+    EXPECT_EQ(find_node(filtered.root, "shared/nested/.git"), nullptr);
+    EXPECT_TRUE(std::filesystem::exists(root / ".git" / "config"));
+    EXPECT_TRUE(std::filesystem::exists(root / "shared" / "nested" / ".git"));
 }
 
 TEST(ClientProject, PersistsValidatedPreviewTestActorWithoutChangingManifestVersion)
@@ -900,21 +1026,6 @@ TEST(ClientProject, BuildsResourceAwareProjectTree)
     ASSERT_TRUE(tree.ok) << tree.message;
     EXPECT_GT(tree.node_count, 0);
     EXPECT_EQ(tree.root.label, "DockerDemo");
-
-    const auto find_node = [](const ProjectTreeNode& root_node, std::string_view relative_path) -> const ProjectTreeNode* {
-        const auto visit = [&](auto&& self, const ProjectTreeNode& node) -> const ProjectTreeNode* {
-            if (node.relative_path.generic_string() == relative_path) {
-                return &node;
-            }
-            for (const auto& child : node.children) {
-                if (const auto* found = self(self, child)) {
-                    return found;
-                }
-            }
-            return nullptr;
-        };
-        return visit(visit, root_node);
-    };
 
     const auto* module = find_node(tree.root, "shared/module.ifo.json");
     ASSERT_TRUE(module);

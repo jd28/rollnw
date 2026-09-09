@@ -10,6 +10,7 @@
 #include "toolset_backend.hpp"
 #include "virtual_list.hpp"
 #include "workspace.hpp"
+#include "workspace_view.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
@@ -3037,6 +3038,138 @@ TEST(ClientRmlSmallsBridge, SaveAllUsesRetainedTabsAndProtectsProjectReplacement
     EXPECT_TRUE(reopened.ok()) << reopened.message;
     EXPECT_EQ(workspace.find_tab("retained"), nullptr);
     EXPECT_GT(backend.module_generation(), original_generation);
+}
+
+TEST(ClientWorkspaceView, AreaRowsKeepTheirIdentityAcrossIndependentFilters)
+{
+    using namespace nw::toolset;
+    NullRenderInterface renderer;
+    RmlScope rml(renderer);
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("area-row-identities", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(
+        "<rml><body><div id=\"sidebar\"></div><div id=\"home\"></div></body></rml>");
+    ASSERT_NE(document, nullptr);
+    auto* sidebar = document->GetElementById("sidebar");
+    auto* home = document->GetElementById("home");
+    ASSERT_NE(sidebar, nullptr);
+    ASSERT_NE(home, nullptr);
+    const std::array areas{
+        LoadedAreaEntry{.name = "Start & Arrival", .resref = "start"},
+        LoadedAreaEntry{.name = "Second", .resref = "second"},
+    };
+    sidebar->SetInnerRML(area_rows_markup(areas));
+    home->SetInnerRML(area_rows_markup(std::span{areas}.subspan(1)));
+
+    const auto row_resref = [](Rml::Element* list, int index) {
+        return list->GetChild(index)->GetChild(0)->GetAttribute<Rml::String>("data-resref", "");
+    };
+    ASSERT_EQ(sidebar->GetNumChildren(), 2);
+    ASSERT_EQ(home->GetNumChildren(), 1);
+    EXPECT_EQ(row_resref(sidebar, 0), "start");
+    EXPECT_EQ(row_resref(home, 0), "second");
+    home->SetInnerRML(area_rows_markup({}));
+    EXPECT_EQ(row_resref(sidebar, 1), "second");
+
+    // Quotes and markup in authored names/identities must stay data.
+    const std::array escaped{LoadedAreaEntry{.name = "<b>Area</b>", .resref = "a\"&b"}};
+    home->SetInnerRML(area_rows_markup(escaped));
+    ASSERT_EQ(home->GetNumChildren(), 1);
+    EXPECT_EQ(row_resref(home, 0), escaped[0].resref);
+    EXPECT_EQ(home->GetChild(0)->GetChild(0)->GetChild(0)->GetNumChildren(), 1);
+}
+
+TEST(ClientWorkspaceView, RecentProjectErrorsAndRemovalHaveSeparateHitTargets)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml(renderer);
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace("tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    auto* context = Rml::CreateContext("recent-project-actions", {800, 600});
+    ASSERT_NE(context, nullptr);
+    const std::array projects{
+        RecentProjectEntry{"Available", "/example/available", {}},
+        RecentProjectEntry{"Removed <project>", "/example/removed", "Project folder not found"},
+    };
+    const auto source = std::string{
+                            "<rml><head><link type=\"text/css\" href=\"tools/client/ui/panel.rcss\"/>"
+                            "<style>body, button { font-family: Inter; }"
+                            "#recent_fixture { display: block; width: 600px; }</style></head>"
+                            "<body><div id=\"recent_fixture\">"}
+        + recent_projects_markup(projects) + "</div></body></rml>";
+    auto* document = context->LoadDocumentFromMemory(source);
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+    auto* list = document->GetElementById("recent_fixture");
+    ASSERT_NE(list, nullptr);
+    ASSERT_EQ(list->GetNumChildren(), 2);
+    for (int i = 0; i < list->GetNumChildren(); ++i) {
+        auto* row = list->GetChild(i);
+        ASSERT_EQ(row->GetNumChildren(), 2);
+        auto* open = row->GetChild(0);
+        auto* remove = row->GetChild(1);
+        EXPECT_TRUE(open->IsClassSet("home_project_item"));
+        EXPECT_TRUE(remove->IsClassSet("home_project_remove"));
+        EXPECT_EQ(open->IsClassSet("unavailable"), i == 1);
+        EXPECT_EQ(remove->GetAttribute<Rml::String>("data-key", ""), std::to_string(i));
+        EXPECT_GT(open->GetOffsetWidth(), 0.0f);
+        EXPECT_GT(remove->GetOffsetWidth(), 0.0f);
+        EXPECT_GE(remove->GetAbsoluteLeft(), open->GetAbsoluteLeft() + open->GetOffsetWidth());
+        const Rml::Vector2f point{
+            remove->GetAbsoluteLeft() + remove->GetOffsetWidth() / 2.0f,
+            remove->GetAbsoluteTop() + remove->GetOffsetHeight() / 2.0f};
+        auto* hit = context->GetElementAtPoint(point);
+        while (hit && hit != remove)
+            hit = hit->GetParentNode();
+        EXPECT_EQ(hit, remove);
+    }
+    auto* error = list->GetChild(1)->GetChild(0)->GetChild(2);
+    ASSERT_NE(error, nullptr);
+    EXPECT_TRUE(error->IsClassSet("home_project_error"));
+    EXPECT_GT(error->GetOffsetHeight(), 0.0f);
+    EXPECT_NE(error->GetInnerRML().find("Project folder not found"), std::string::npos);
+    list->SetInnerRML(recent_projects_markup({}));
+    ASSERT_EQ(list->GetNumChildren(), 1);
+    EXPECT_TRUE(list->GetChild(0)->IsClassSet("home_empty"));
+}
+
+TEST(ClientWorkspaceView, OnlyOpeningAnAreaRequestsViewportFocus)
+{
+    using namespace nw::toolset;
+    NullRenderInterface renderer;
+    RmlScope rml(renderer);
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("area-focus-transitions", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory("<rml><body></body></rml>");
+    ASSERT_NE(document, nullptr);
+    WorkspaceState workspace;
+    workspace.ensure_default_tabs();
+    EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
+    workspace.set_active_tab("area");
+    EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
+
+    workspace.open_area_tab("shared/areas/start.caf.json", "Start");
+    EXPECT_TRUE(area_viewport_changed(document, workspace.active_tab()));
+    document->SetInnerRML(
+        "<div id=\"workspace_viewer_viewport\" data-resource=\"shared/areas/start.caf.json\"></div>");
+    EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
+    workspace.set_tab_dirty("area", true);
+    EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
+    // A rejected dirty replacement keeps the same document and focus target.
+    workspace.open_area_tab("shared/areas/second.caf.json", "Second");
+    EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
+    workspace.set_tab_dirty("area", false);
+    workspace.open_area_tab("shared/areas/second.caf.json", "Second");
+    EXPECT_TRUE(area_viewport_changed(document, workspace.active_tab()));
+    workspace.open_tab("preview", "Creature", WorkspaceTabKind::preview);
+    EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
+    EXPECT_FALSE(area_viewport_changed(document, nullptr));
+    EXPECT_FALSE(area_viewport_changed(nullptr, workspace.find_tab("area")));
 }
 
 TEST(ClientRmlSmallsBridge, AreaOpeningReusesPinnedTabWithSaveDiscardAndCancel)

@@ -25,6 +25,7 @@
 #include "virtual_combobox.hpp"
 #include "virtual_list.hpp"
 #include "workspace.hpp"
+#include "workspace_view.hpp"
 
 #include "nw/log.hpp"
 #include <nw/kernel/Kernel.hpp>
@@ -672,15 +673,9 @@ struct VirtualRowWindow {
 };
 
 constexpr size_t kInvalidVirtualIndex = std::numeric_limits<size_t>::max();
-constexpr size_t kMaxRecentProjects = 12;
 constexpr int kPltPaletteColumns = 16;
 constexpr int kPltPaletteRows = 11;
 constexpr int kPltPaletteCellPx = 24;
-
-struct RecentProjectEntry {
-    std::string name;
-    std::string path;
-};
 
 enum class ObjectWorkbenchSurface : uint8_t {
     details,
@@ -873,6 +868,7 @@ struct PlayPreviewState {
     uint64_t module_generation = 0;
     std::string tab_id;
     std::string placement_diagnostic;
+    std::string picker_previous_query;
     SDL_Gamepad* gamepad = nullptr;
     float mouse_look_x = 0.0f;
     float mouse_look_y = 0.0f;
@@ -1162,8 +1158,8 @@ struct AppState {
     bool command_palette_restore_viewport_focus = false;
     Rml::Vector2f workspace_hover_refresh_point;
 
-    std::vector<RecentProjectEntry> recent_projects;
-    std::vector<nw::toolset::LoadedAreaEntry> areas;
+    std::vector<nw::toolset::RecentProjectEntry> recent_projects;
+    std::vector<nw::toolset::LoadedAreaEntry> home_areas;
     nw::toolset::VirtualListController home_area_list;
     uint64_t home_area_generation = std::numeric_limits<uint64_t>::max();
     nw::toolset::VirtualListRange rendered_home_area_range{};
@@ -1273,68 +1269,6 @@ void write_dock_preferences(nlohmann::json& prefs, const nw::toolset::DockLayout
     }
 }
 
-void load_recent_project_preferences(const nlohmann::json& prefs, std::vector<RecentProjectEntry>& recent_projects)
-{
-    recent_projects.clear();
-
-    const auto projects = prefs.find("projects");
-    if (projects == prefs.end() || !projects->is_object()) {
-        return;
-    }
-    const auto recent = projects->find("recent");
-    if (recent == projects->end() || !recent->is_array()) {
-        return;
-    }
-
-    std::unordered_set<std::string> seen_paths;
-    for (const auto& item : *recent) {
-        if (!item.is_object()) {
-            continue;
-        }
-        const auto path_it = item.find("path");
-        if (path_it == item.end() || !path_it->is_string()) {
-            continue;
-        }
-
-        std::string path = path_it->get<std::string>();
-        if (path.empty() || !seen_paths.insert(path).second) {
-            continue;
-        }
-
-        std::string name;
-        if (const auto name_it = item.find("name"); name_it != item.end() && name_it->is_string()) {
-            name = name_it->get<std::string>();
-        }
-        if (name.empty()) {
-            name = nw::toolset::project_display_name(path);
-        }
-
-        recent_projects.push_back({std::move(name), std::move(path)});
-        if (recent_projects.size() >= kMaxRecentProjects) {
-            break;
-        }
-    }
-}
-
-void write_recent_project_preferences(nlohmann::json& prefs, const std::vector<RecentProjectEntry>& recent_projects)
-{
-    auto& projects = prefs["projects"];
-    if (!projects.is_object()) {
-        projects = nlohmann::json::object();
-    }
-
-    auto recent = nlohmann::json::array();
-    for (const auto& project : recent_projects) {
-        if (project.path.empty()) {
-            continue;
-        }
-        recent.push_back({
-            {"name", project.name},
-            {"path", project.path},
-        });
-    }
-    projects["recent"] = std::move(recent);
-}
 
 void load_ui_preferences(AppState& state)
 {
@@ -1356,16 +1290,16 @@ void load_ui_preferences(AppState& state)
             return;
         }
         load_dock_preferences(prefs, state.shell.docks);
-        load_recent_project_preferences(prefs, state.recent_projects);
+        nw::toolset::load_recent_project_preferences(prefs, state.recent_projects);
     } catch (const std::exception& e) {
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to read rollnw client preferences: %s", e.what());
     }
 }
 
-void save_ui_preferences(const AppState& state)
+bool save_ui_preferences(const AppState& state)
 {
     if (state.preferences_path.empty()) {
-        return;
+        return false;
     }
 
     nlohmann::json prefs = nlohmann::json::object();
@@ -1381,7 +1315,7 @@ void save_ui_preferences(const AppState& state)
     }
 
     write_dock_preferences(prefs, state.shell.docks);
-    write_recent_project_preferences(prefs, state.recent_projects);
+    nw::toolset::write_recent_project_preferences(prefs, state.recent_projects);
     prefs.erase("left_dock_width_px");
     prefs.erase("bottom_dock_height_px");
     prefs.erase("terminal_height_px");
@@ -1391,17 +1325,32 @@ void save_ui_preferences(const AppState& state)
         std::filesystem::create_directories(parent, ec);
         if (ec) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to create rollnw client preferences directory: %s", ec.message().c_str());
-            return;
+            return false;
         }
     }
 
+    // Existing preferences use the same atomic replacement as document saves.
+    if (std::filesystem::exists(state.preferences_path, ec)) {
+        std::string error;
+        if (!nw::toolset::save_json_resource_document_atomic(state.preferences_path, prefs, error)) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to save rollnw client preferences: %s", error.c_str());
+            return false;
+        }
+        return true;
+    }
     std::ofstream output{state.preferences_path};
     if (!output) {
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open rollnw client preferences for writing");
-        return;
+        return false;
     }
 
     output << prefs.dump(2) << '\n';
+    output.flush();
+    if (!output) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to write rollnw client preferences");
+        return false;
+    }
+    return true;
 }
 
 int bottom_dock_available_height_px(SDL_Window* window)
@@ -1700,17 +1649,17 @@ void remember_recent_project(AppState& state, const std::filesystem::path& proje
         return;
     }
 
-    state.recent_projects.erase(std::remove_if(state.recent_projects.begin(), state.recent_projects.end(), [&path](const RecentProjectEntry& entry) {
+    state.recent_projects.erase(std::remove_if(state.recent_projects.begin(), state.recent_projects.end(), [&path](const nw::toolset::RecentProjectEntry& entry) {
         return entry.path == path;
     }),
         state.recent_projects.end());
 
-    state.recent_projects.insert(state.recent_projects.begin(), RecentProjectEntry{
+    state.recent_projects.insert(state.recent_projects.begin(), nw::toolset::RecentProjectEntry{
                                                                     nw::toolset::project_display_name(normalized),
                                                                     path,
                                                                 });
-    if (state.recent_projects.size() > kMaxRecentProjects) {
-        state.recent_projects.resize(kMaxRecentProjects);
+    if (state.recent_projects.size() > nw::toolset::kMaxRecentProjects) {
+        state.recent_projects.resize(nw::toolset::kMaxRecentProjects);
     }
     save_ui_preferences(state);
 }
@@ -2088,6 +2037,16 @@ void clear_rml_focus(Rml::Context* context)
 {
     if (auto* focus = context ? context->GetFocusElement() : nullptr) {
         focus->Blur();
+    }
+}
+
+void focus_workspace_viewport(Rml::ElementDocument* doc, AppState& state)
+{
+    clear_rml_focus(doc ? doc->GetContext() : nullptr);
+    state.viewer_viewport_focused = true;
+    if (state.command_palette_restore_captured) {
+        state.command_palette_restore_focus_id.clear();
+        state.command_palette_restore_viewport_focus = true;
     }
 }
 
@@ -3175,6 +3134,7 @@ void refresh_recent_list(Rml::ElementDocument* doc, AppState& state)
     }
 
     const std::string query = get_input_value(doc, "recent_search");
+    state.last_recent_query = query;
     std::string markup;
 
     state.project_rows.clear();
@@ -3198,16 +3158,7 @@ void refresh_recent_list(Rml::ElementDocument* doc, AppState& state)
         }
     } else if (state.shell.showing_areas) {
         reset_project_tree_render_state(state);
-        state.areas = state.backend.list_areas(query);
-        for (size_t i = 0; i < state.areas.size(); ++i) {
-            const auto& area = state.areas[i];
-            const std::string title = area.name.empty() ? area.resref : area.name;
-            markup += "<div class=\"recent_row\"><div class=\"recent_item\" data-key=\"";
-            markup += std::to_string(i);
-            markup += "\"><div class=\"recent_title_plain\">" + escape_html(title) + "</div>";
-            const std::string area_resref = area.resref.empty() ? std::string("(no resref)") : area.resref;
-            markup += "<div class=\"recent_path\">" + escape_html(area_resref) + "</div></div></div>";
-        }
+        markup = nw::toolset::area_rows_markup(state.backend.list_areas(query));
     } else {
         reset_project_tree_render_state(state);
     }
@@ -6436,7 +6387,7 @@ bool remove_workspace_tab_element(Rml::ElementDocument* doc, AppState& state, st
     return false;
 }
 
-void append_workspace_home_markup(std::string& content_markup, const AppState& state)
+void append_workspace_home_markup(std::string& content_markup, AppState& state)
 {
     const auto project_dir = state.backend.current_project_dir();
     const nw::ObjectHandle module_object = state.backend.module_object();
@@ -6508,28 +6459,16 @@ void append_workspace_home_markup(std::string& content_markup, const AppState& s
     content_markup += "</div>";
 
     if (!module_open) {
+        nw::toolset::refresh_recent_projects(state.recent_projects);
         content_markup += "<div id=\"home_project_list\">";
-        if (state.recent_projects.empty()) {
-            content_markup += "<div class=\"home_empty\">No recent projects.</div>";
-        } else {
-            for (size_t i = 0; i < state.recent_projects.size(); ++i) {
-                const auto& project = state.recent_projects[i];
-                content_markup += "<div class=\"home_project_item\" data-key=\"";
-                content_markup += std::to_string(i);
-                content_markup += "\"><div class=\"home_project_name\">";
-                content_markup += escape_html(project.name);
-                content_markup += "</div><div class=\"home_project_path\">";
-                content_markup += escape_html(project.path);
-                content_markup += "</div></div>";
-            }
-        }
+        content_markup += nw::toolset::recent_projects_markup(state.recent_projects);
         content_markup += "</div>";
     }
     if (module_open) {
         content_markup += "<div id=\"home_area_browser\"><div class=\"home_area_browser_header\">";
         content_markup += "<div class=\"home_section_title\">Areas</div>";
         content_markup += "<div id=\"home_area_count\" class=\"home_area_count\">";
-        content_markup += std::to_string(state.areas.size());
+        content_markup += std::to_string(state.home_areas.size());
         content_markup += "</div></div>";
         content_markup += "<input id=\"home_area_search\" class=\"home_area_search\" type=\"text\" placeholder=\"Filter areas...\" value=\"";
         content_markup += escape_html(state.home_area_query);
@@ -6560,7 +6499,7 @@ void refresh_home_area_catalog(AppState& state, bool force)
         state.home_area_query.clear();
     }
 
-    state.areas = state.backend.list_areas(state.home_area_query);
+    state.home_areas = state.backend.list_areas(state.home_area_query);
     state.home_area_generation = generation;
     state.home_area_list.set_row_height(kHomeAreaRowHeightPx);
     state.home_area_list.set_overscan(kHomeAreaOverscanRows);
@@ -6616,7 +6555,7 @@ bool sync_home_area_window(Rml::ElementDocument* doc, AppState& state, bool forc
             / (kHomeAreaMinimumCardWidthPx + kHomeAreaCardGapPx),
         1,
         kHomeAreaMaximumColumns);
-    const int logical_rows = static_cast<int>((state.areas.size()
+    const int logical_rows = static_cast<int>((state.home_areas.size()
                                                   + static_cast<size_t>(columns) - 1)
         / static_cast<size_t>(columns));
     state.home_area_list.set_total_rows(logical_rows);
@@ -6626,7 +6565,7 @@ bool sync_home_area_window(Rml::ElementDocument* doc, AppState& state, bool forc
         static_cast<int>(std::lround(list->GetScrollTop()))));
     const auto range = state.home_area_list.compute_range();
     if (!force
-        && state.rendered_home_area_count == state.areas.size()
+        && state.rendered_home_area_count == state.home_areas.size()
         && state.rendered_home_area_columns == columns
         && state.rendered_home_area_range.start == range.start
         && state.rendered_home_area_range.end == range.end) {
@@ -6635,7 +6574,7 @@ bool sync_home_area_window(Rml::ElementDocument* doc, AppState& state, bool forc
 
     const float scroll_top = list->GetScrollTop();
     std::string markup;
-    if (state.areas.empty()) {
+    if (state.home_areas.empty()) {
         markup = "<div class=\"home_empty\">No matching areas.</div>";
     } else {
         if (range.top_spacer_px > 0) {
@@ -6647,8 +6586,8 @@ bool sync_home_area_window(Rml::ElementDocument* doc, AppState& state, bool forc
             markup += "<div class=\"home_area_grid_row\">";
             for (int column = 0; column < columns; ++column) {
                 const size_t index = static_cast<size_t>(row * columns + column);
-                if (index < state.areas.size()) {
-                    append_home_area_card_markup(state.areas[index], index, markup);
+                if (index < state.home_areas.size()) {
+                    append_home_area_card_markup(state.home_areas[index], index, markup);
                 } else {
                     markup += "<div class=\"home_area_card home_area_card_filler\"></div>";
                 }
@@ -6665,10 +6604,10 @@ bool sync_home_area_window(Rml::ElementDocument* doc, AppState& state, bool forc
     list->SetInnerRML(markup);
     list->SetScrollTop(scroll_top);
     if (auto* count = find_el(doc, "home_area_count")) {
-        count->SetInnerRML(std::to_string(state.areas.size()));
+        count->SetInnerRML(std::to_string(state.home_areas.size()));
     }
     state.rendered_home_area_range = range;
-    state.rendered_home_area_count = state.areas.size();
+    state.rendered_home_area_count = state.home_areas.size();
     state.rendered_home_area_columns = columns;
     return true;
 }
@@ -6693,6 +6632,7 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
     sync_active_module_object(state);
     refresh_home_area_catalog(state, false);
     const auto* active_tab = state.workspace.active_tab();
+    const bool focus_area = nw::toolset::area_viewport_changed(doc, active_tab);
     std::string content_markup;
     if (!active_tab || active_tab->kind == nw::toolset::WorkspaceTabKind::home) {
         append_workspace_home_markup(content_markup, state);
@@ -6722,6 +6662,7 @@ void refresh_workspace_content(Rml::ElementDocument* doc, AppState& state)
         doc, nw::toolset::ui_v1_host(), state.managed_lists, true);
     sync_creature_inventory_window(doc, state, true);
     nw::toolset::sync_dialog_view(doc, state.dialog_view, true);
+    if (focus_area) focus_workspace_viewport(doc, state);
 }
 
 void refresh_workspace_tabs(Rml::ElementDocument* doc, AppState& state)
@@ -6798,6 +6739,7 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
     sync_active_module_object(state);
     refresh_home_area_catalog(state, false);
     const auto* active_tab = state.workspace.active_tab();
+    const bool focus_area = nw::toolset::area_viewport_changed(doc, active_tab);
     std::string content_markup;
     if (!active_tab || active_tab->kind == nw::toolset::WorkspaceTabKind::home) {
         append_workspace_home_markup(content_markup, state);
@@ -6822,6 +6764,7 @@ void refresh_workspace_view(Rml::ElementDocument* doc, AppState& state)
         doc, nw::toolset::ui_v1_host(), state.managed_lists, true);
     sync_creature_inventory_window(doc, state, true);
     nw::toolset::sync_dialog_view(doc, state.dialog_view, true);
+    if (focus_area) focus_workspace_viewport(doc, state);
 }
 
 std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_request(
@@ -6899,7 +6842,10 @@ void restore_play_preview_picker_shell(Rml::ElementDocument* doc, AppState& stat
     } else {
         state.shell.set_showing_project_tree(false);
     }
+    set_input_value(doc, "recent_search", state.play_preview.picker_previous_query);
+    state.play_preview.picker_previous_query.clear();
     refresh_recent_list(doc, state);
+    focus_workspace_viewport(doc, state);
 }
 
 void stop_play_preview(ClientRenderer& renderer,
@@ -6934,9 +6880,12 @@ void request_play_preview_actor(Rml::ElementDocument* doc, AppState& state,
         state.play_preview.picker_was_showing_project_tree
             = state.shell.showing_project_tree;
         state.play_preview.picker_was_showing_areas = state.shell.showing_areas;
+        state.play_preview.picker_previous_query = get_input_value(doc, "recent_search");
+        set_input_value(doc, "recent_search", "");
         state.shell.set_showing_project_tree(true);
     }
     refresh_recent_list(doc, state);
+    state.viewer_viewport_focused = false;
     if (auto* search = find_el(doc, "recent_search")) search->Focus();
 }
 
@@ -7004,25 +6953,31 @@ bool prepare_play_preview(ClientRenderer& renderer,
     SystemInterface_SDL& system_interface,
     Rml::ElementDocument* doc,
     AppState& state,
-    int frame_width,
-    int frame_height,
     const std::filesystem::path& selected_actor = {})
 {
     if (state.play_preview.session.active()
         || state.play_preview.placement_pending()) {
         return true;
     }
-    const auto viewport = active_workspace_viewer_viewport_request(
-        doc, state, frame_width, frame_height);
-    if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area) {
-        append_output(state, "warn", "F9 play preview requires an active area tab");
+    const auto warn = [&](std::string_view message) {
+        append_output(state, "warn", message);
+        state.shell.set_output_panel_visible(true);
+        refresh_bottom_dock_view(doc, state);
+    };
+    // Startup needs the active document, not a laid-out viewport rectangle.
+    // The DOM may have just been rebuilt; geometry is only needed on placement.
+    const auto* tab = state.workspace.active_tab();
+    const auto project_dir = state.backend.current_project_dir();
+    if (!tab || tab->kind != nw::toolset::WorkspaceTabKind::area
+        || tab->detail.empty() || project_dir.empty()) {
+        warn("F9 play preview requires an open project area");
         return false;
     }
 
     std::filesystem::path actor_path = selected_actor;
     if (actor_path.empty()) {
         const auto settings = nw::toolset::load_project_preview_settings(
-            viewport->project_dir);
+            project_dir);
         if (!settings.ok || settings.test_actor.empty()) {
             request_play_preview_actor(doc, state,
                 settings.message.empty()
@@ -7039,24 +6994,24 @@ bool prepare_play_preview(ClientRenderer& renderer,
             "Play-preview test actor must be a Creature blueprint");
         return false;
     }
-    if (!renderer.area_viewer_matches_resource(viewport->resource_path)) {
-        append_output(state, "warn",
-            "Area viewport is still loading; press F9 again when it is visible");
+    if (!renderer.area_viewer_matches_resource(tab->detail)) {
+        warn("Area viewport is still loading; press F9 again when it is visible");
         return false;
     }
     const nw::ObjectHandle area = renderer.area_viewer_object();
     if (area.type != nw::ObjectType::area) {
-        append_output(state, "warn", "Area viewport is not ready for play preview");
+        warn("Area viewport is not ready for play preview");
         return false;
     }
 
     state.play_preview.pending_actor = actor;
     state.play_preview.area = area;
-    state.play_preview.module_generation = viewport->module_generation;
+    state.play_preview.module_generation = state.backend.module_generation();
     state.play_preview.tab_id = state.workspace.active_tab_id();
     state.play_preview.placement_diagnostic.clear();
     reset_play_preview_input(state.play_preview);
     restore_play_preview_picker_shell(doc, state);
+    focus_workspace_viewport(doc, state);
     apply_shell_layout(doc, state);
     system_interface.SetMouseCursor("cross");
     append_output(state, "info", "Click a walkable area surface to start play preview");
@@ -7755,7 +7710,8 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
 
     const bool visible = viewer_viewport && viewer_viewport->rect.valid()
         && (state.play_preview.session.active()
-            || state.play_preview.placement_pending());
+            || state.play_preview.placement_pending()
+            || state.play_preview.selecting_actor);
     if (!visible) {
         overlay->SetProperty("display", "none");
         return;
@@ -7770,7 +7726,10 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
     const bool placement_failed = state.play_preview.placement_pending()
         && !state.play_preview.placement_diagnostic.empty();
     overlay->SetInnerRML(
-        state.play_preview.placement_pending()
+        state.play_preview.selecting_actor
+            ? "<div class=\"play_preview_viewport_title\">Area Preview — Choose Creature</div>"
+              "<div class=\"play_preview_viewport_help\">Select a Creature blueprint in the left panel | F9 or Escape to cancel</div>"
+            : state.play_preview.placement_pending()
             ? placement_failed
                 ? fmt::format(
                       "<div class=\"play_preview_viewport_title\">Area Preview</div>"
@@ -7785,8 +7744,8 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
             : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
               "<div class=\"play_preview_viewport_help\">F9 or Escape to return | F8 navigation debug</div>");
     overlay->SetProperty("display", "block");
-    overlay->SetProperty("width", placement_failed ? "500px" : "320px");
-    overlay->SetProperty("height", placement_failed ? "66px" : "50px");
+    overlay->SetProperty("width", placement_failed || state.play_preview.selecting_actor ? "500px" : "320px");
+    overlay->SetProperty("height", placement_failed || state.play_preview.selecting_actor ? "66px" : "50px");
     overlay->SetProperty("left", std::to_string(rect.x + kOverlayMargin) + "px");
     overlay->SetProperty("top", std::to_string(rect.y + kOverlayMargin) + "px");
 }
@@ -9814,7 +9773,7 @@ int main(int argc, char* argv[])
     SDL_Window* window = SDL_CreateWindow(
         "rollnw | client",
         width, height,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN);
     if (!window) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateWindow failed: %s", SDL_GetError());
         return 1;
@@ -10198,7 +10157,7 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
-                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                if (!event.key.repeat && (event.key.key == SDLK_ESCAPE || event.key.key == SDLK_F9)
                     && state.play_preview.selecting_actor) {
                     restore_play_preview_picker_shell(doc, state);
                     dispatched_to_rml = true;
@@ -10206,7 +10165,7 @@ int main(int argc, char* argv[])
                 }
                 if (!event.key.repeat && event.key.key == SDLK_F9) {
                     (void)prepare_play_preview(renderer, system_interface,
-                        doc, state, frame_width, frame_height);
+                        doc, state);
                     dispatched_to_rml = true;
                     break;
                 }
@@ -11975,36 +11934,66 @@ int main(int argc, char* argv[])
                             const auto index = parse_decimal_int32(
                                 area_card->GetAttribute<Rml::String>("data-key", ""));
                             if (index && *index >= 0
-                                && static_cast<size_t>(*index) < state.areas.size()
+                                && static_cast<size_t>(*index) < state.home_areas.size()
                                 && ensure_backend_ready(state)) {
+                                const std::string resref = state.home_areas[static_cast<size_t>(*index)].resref;
+                                release_workspace_mouse_up();
                                 const auto result = dispatch_command_flow(window, state,
                                     "toolset.select_area",
-                                    {std::string_view{state.areas[static_cast<size_t>(*index)].resref}},
+                                    {std::string_view{resref}},
                                     nw::toolset::CommandSource::widget);
                                 if (result.ok()) {
                                     refresh_workspace_view(doc, state);
+                                    if (result.status == nw::toolset::CommandStatus::success) {
+                                        focus_workspace_viewport(doc, state);
+                                    }
                                 }
                             }
                             handled = true;
-                        } else if (auto* project_item = find_ancestor_with_class(hit, "home_project_item")) {
-                            const std::string index_text = project_item->GetAttribute<Rml::String>("data-key", "");
-                            const int clicked_index = index_text.empty() ? -1 : static_cast<int>(std::strtol(index_text.c_str(), nullptr, 10));
-                            if (clicked_index >= 0 && static_cast<size_t>(clicked_index) < state.recent_projects.size()
-                                && ensure_backend_ready(state)) {
-                                const auto& project = state.recent_projects[static_cast<size_t>(clicked_index)];
-                                const auto result = dispatch_command(state,
-                                    "toolset.open_project",
-                                    {std::string_view{project.path}},
-                                    nw::toolset::CommandSource::widget);
-                                append_command_result(state, result);
-                                if (result.ok()) {
-                                    remember_recent_project(state, state.backend.current_project_dir());
-                                    sync_shell_visibility(context, palette_context, doc, palette_doc, state);
-                                    state.selected_recent_index = -1;
-                                    set_input_value(doc, "recent_search", "");
-                                    refresh_recent_list(doc, state);
-                                    refresh_workspace_view(doc, state);
+                        } else if (auto* remove = find_ancestor_with_class(hit, "home_project_remove")) {
+                            const auto index = parse_decimal_int32(remove->GetAttribute<Rml::String>("data-key", ""));
+                            if (index && *index >= 0 && static_cast<size_t>(*index) < state.recent_projects.size()) {
+                                release_workspace_mouse_up();
+                                auto previous = state.recent_projects;
+                                const std::array indices{static_cast<size_t>(*index)};
+                                if (nw::toolset::forget_recent_projects(state.recent_projects, indices)
+                                    && !save_ui_preferences(state)) {
+                                    state.recent_projects = std::move(previous);
+                                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to remove recent project",
+                                        "Could not save preferences. The project was kept in the recent list.", window);
                                 }
+                                refresh_workspace_content(doc, state);
+                            }
+                            handled = true;
+                        } else if (auto* project_item = find_ancestor_with_class(hit, "home_project_item")) {
+                            const auto index = parse_decimal_int32(project_item->GetAttribute<Rml::String>("data-key", ""));
+                            if (index && *index >= 0 && static_cast<size_t>(*index) < state.recent_projects.size()) {
+                                nw::toolset::refresh_recent_projects(state.recent_projects);
+                                const auto project = state.recent_projects[static_cast<size_t>(*index)];
+                                release_workspace_mouse_up();
+                                if (!project.error.empty()) {
+                                    const auto message = project.error + ":\n" + project.path;
+                                    append_output(state, "error", message);
+                                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", message.c_str(), window);
+                                } else if (ensure_backend_ready(state)) {
+                                    const auto result = dispatch_command(state,
+                                        "toolset.open_project",
+                                        {std::string_view{project.path}},
+                                        nw::toolset::CommandSource::widget);
+                                    append_command_result(state, result);
+                                    if (result.ok()) {
+                                        remember_recent_project(state, state.backend.current_project_dir());
+                                        sync_shell_visibility(context, palette_context, doc, palette_doc, state);
+                                        state.selected_recent_index = -1;
+                                        set_input_value(doc, "recent_search", "");
+                                        refresh_recent_list(doc, state);
+                                    } else {
+                                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", result.message.c_str(), window);
+                                    }
+                                } else {
+                                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", "Backend initialization failed.", window);
+                                }
+                                refresh_workspace_view(doc, state);
                             }
                             handled = true;
                         } else if (auto* dock_tab = find_ancestor_with_class(hit, "dock_tab")) {
@@ -12078,31 +12067,46 @@ int main(int argc, char* argv[])
                                                         saved.ok ? "info" : "error",
                                                         saved.message);
                                                     if (saved.ok) {
+                                                        const auto actor_path = row.relative_path;
+                                                        release_workspace_mouse_up();
                                                         (void)prepare_play_preview(renderer,
-                                                            system_interface, doc, state, frame_width,
-                                                            frame_height,
-                                                            row.relative_path);
+                                                            system_interface, doc, state,
+                                                            actor_path);
+                                                    } else {
+                                                        state.shell.set_output_panel_visible(true);
+                                                        refresh_bottom_dock_view(doc, state);
                                                     }
                                                 }
                                             } else if (ensure_backend_ready(state)) {
                                                 const std::string relative_path = row.relative_path.generic_string();
+                                                release_workspace_mouse_up();
                                                 const auto result = dispatch_command_flow(window, state,
                                                     "toolset.open_resource",
                                                     {std::string_view{relative_path}},
                                                     nw::toolset::CommandSource::widget);
                                                 if (result.ok()) {
                                                     refresh_workspace_view(doc, state);
+                                                    const auto* tab = state.workspace.active_tab();
+                                                    if (result.status == nw::toolset::CommandStatus::success
+                                                        && tab && tab->kind == nw::toolset::WorkspaceTabKind::area) {
+                                                        focus_workspace_viewport(doc, state);
+                                                    }
                                                 }
                                             }
                                         }
                                     } else if (state.shell.showing_areas) {
-                                        if (idx < state.areas.size()) {
+                                        const std::string resref = recent_item->GetAttribute<Rml::String>("data-resref", "");
+                                        if (!resref.empty()) {
+                                            release_workspace_mouse_up();
                                             const auto result = dispatch_command_flow(window, state,
                                                 "toolset.select_area",
-                                                {std::string_view{state.areas[idx].resref}},
+                                                {std::string_view{resref}},
                                                 nw::toolset::CommandSource::widget);
                                             if (result.ok()) {
                                                 refresh_workspace_view(doc, state);
+                                                if (result.status == nw::toolset::CommandStatus::success) {
+                                                    focus_workspace_viewport(doc, state);
+                                                }
                                             }
                                         }
                                     }
@@ -12366,7 +12370,6 @@ int main(int argc, char* argv[])
 
         const std::string recent_query = get_input_value(doc, "recent_search");
         if (recent_query != state.last_recent_query) {
-            state.last_recent_query = recent_query;
             refresh_recent_list(doc, state);
         } else if (state.shell.showing_project_tree) {
             render_project_tree_window(doc, state, false);

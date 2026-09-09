@@ -881,7 +881,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.home_project_actions button, .home_import_row button {
+.home_project_actions button, .home_import_row button, .home_project_remove {
   height: 34px;
   padding: 6px 14px;
   margin-right: 8px;
@@ -895,6 +895,8 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 .home_project_actions button:hover,
 .home_project_actions button:focus,
+.home_project_remove:hover,
+.home_project_remove:focus,
 .home_import_row button:hover, .home_import_row button:focus {
   border-color: #a78d62;
   background: #28333d;
@@ -967,12 +969,17 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   from { left: 0%; }
   to { left: 70%; }
 }
+.home_project_row {
+  display: flex;
+  width: 100%;
+  margin-bottom: 6px;
+  align-items: center;
+}
 .home_project_item {
   display: block;
-  width: 100%;
+  flex: 1;
   min-width: 0px;
   padding: 8px 10px;
-  margin-bottom: 6px;
   border: 1px #303943;
   background: #151b21;
   cursor: pointer;
@@ -981,7 +988,22 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   background: #1d252d;
   border-color: #667989;
 }
+.home_project_item.unavailable { border-color: #995b5b; }
+.home_project_error {
+  display: block;
+  margin-top: 4px;
+  color: #efa0a0;
+  font-size: 12px;
+  line-height: 16px;
+  pointer-events: none;
+}
+.home_project_remove {
+  flex-shrink: 0;
+  margin-left: 8px;
+  padding: 5px 8px;
+}
 .home_project_name {
+  display: block;
   color: #f0f3f5;
   font-size: 14px;
   font-weight: 600;
@@ -992,6 +1014,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   pointer-events: none;
 }
 .home_project_path {
+  display: block;
   margin-top: 2px;
   color: #9faab5;
   font-size: 12px;

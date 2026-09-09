@@ -41,6 +41,7 @@ add_executable(rollnw-client
     item_editor.cpp
     item_editor_data_model.cpp
     viewer_viewport.cpp
+    workspace_view.cpp
     main.cpp
     project_import.cpp
     renderer.cpp

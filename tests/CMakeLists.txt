@@ -399,6 +399,7 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/item_editor.cpp
         ../tools/client/item_editor_data_model.cpp
         ../tools/client/toolset_backend.cpp
+        ../tools/client/workspace_view.cpp
         ../tools/ui/rml_smalls_data_model.cpp
         ../tools/ui/rml_smalls_expression_binding.cpp
         ../tools/ui/rml_smalls_language_binding.cpp

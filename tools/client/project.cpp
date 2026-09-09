@@ -1117,6 +1117,10 @@ bool scan_project_tree_directory(const fs::path& project_dir,
         }
 
         const fs::path relative_path = relative_directory / entry.path().filename();
+        // Git metadata can be a directory or a worktree pointer file.
+        if (relative_path.filename() == ".git") {
+            continue;
+        }
         std::error_code entry_ec;
         if (entry.is_directory(entry_ec) && is_hidden_project_directory(relative_path)) {
             continue;
@@ -1268,6 +1272,110 @@ ProjectModuleSummary load_legacy_module_summary(const fs::path& module_path)
 
 } // namespace
 
+void load_recent_project_preferences(const nlohmann::json& prefs, std::vector<RecentProjectEntry>& recent_projects)
+{
+    recent_projects.clear();
+
+    const auto projects = prefs.find("projects");
+    if (projects == prefs.end() || !projects->is_object()) {
+        return;
+    }
+    const auto recent = projects->find("recent");
+    if (recent == projects->end() || !recent->is_array()) {
+        return;
+    }
+
+    std::unordered_set<std::string> seen_paths;
+    for (const auto& item : *recent) {
+        if (!item.is_object()) {
+            continue;
+        }
+        const auto path_it = item.find("path");
+        if (path_it == item.end() || !path_it->is_string()) {
+            continue;
+        }
+
+        std::string path = path_it->get<std::string>();
+        if (path.empty() || path.find('\0') != std::string::npos || !seen_paths.insert(path).second) {
+            continue;
+        }
+
+        std::string name;
+        if (const auto name_it = item.find("name"); name_it != item.end() && name_it->is_string()) {
+            name = name_it->get<std::string>();
+        }
+        if (name.empty()) {
+            name = nw::toolset::project_display_name(path);
+        }
+
+        recent_projects.push_back({std::move(name), std::move(path)});
+        if (recent_projects.size() >= kMaxRecentProjects) {
+            break;
+        }
+    }
+}
+
+void write_recent_project_preferences(nlohmann::json& prefs, std::span<const RecentProjectEntry> recent_projects)
+{
+    auto& projects = prefs["projects"];
+    if (!projects.is_object()) {
+        projects = nlohmann::json::object();
+    }
+
+    auto recent = nlohmann::json::array();
+    for (const auto& project : recent_projects) {
+        if (project.path.empty()) {
+            continue;
+        }
+        recent.push_back({
+            {"name", project.name},
+            {"path", project.path},
+        });
+    }
+    projects["recent"] = std::move(recent);
+}
+
+void refresh_recent_projects(std::span<RecentProjectEntry> projects)
+{
+    for (auto& project : projects) {
+        project.error.clear();
+        if (project.path.empty() || project.path.find('\0') != std::string::npos) {
+            project.error = "Project path is empty or invalid";
+            continue;
+        }
+        std::error_code ec;
+        const auto status = fs::status(project.path, ec);
+        if (status.type() == fs::file_type::not_found) {
+            project.error = "Project folder not found";
+        } else if (ec) {
+            project.error = "Cannot access project folder: " + ec.message();
+        } else if (!fs::is_directory(status)) {
+            project.error = "Project path is not a folder";
+        } else {
+            try {
+                if (!is_project_directory(project.path)) {
+                    project.error = "Missing or invalid project manifest (rollnw.json)";
+                }
+            } catch (const std::exception&) {
+                project.error = "Invalid project manifest (rollnw.json)";
+            }
+        }
+    }
+}
+
+bool forget_recent_projects(std::vector<RecentProjectEntry>& projects, std::span<const size_t> indices)
+{
+    if (std::ranges::any_of(indices, [&](size_t index) { return index >= projects.size(); })) {
+        return false;
+    }
+    for (size_t i = projects.size(); i > 0; --i) {
+        if (std::ranges::find(indices, i - 1) != indices.end()) {
+            projects.erase(projects.begin() + static_cast<std::ptrdiff_t>(i - 1));
+        }
+    }
+    return true;
+}
+
 bool is_project_directory(const fs::path& path)
 {
     return load_valid_manifest(path);
@@ -1277,8 +1385,9 @@ std::string project_display_name(const fs::path& project_dir)
 {
     const nlohmann::json manifest = load_manifest_json(project_dir);
     if (manifest.is_object()) {
-        if (const auto name = manifest.value("name", std::string{}); !name.empty()) {
-            return name;
+        const auto name = manifest.find("name");
+        if (name != manifest.end() && name->is_string() && !name->get_ref<const std::string&>().empty()) {
+            return name->get<std::string>();
         }
     }
 

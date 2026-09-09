@@ -1,13 +1,30 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace nw::toolset {
+
+inline constexpr size_t kMaxRecentProjects = 12;
+
+struct RecentProjectEntry {
+    std::string name;
+    std::string path;
+    std::string error; // Refreshed from the filesystem; never persisted.
+};
+
+void load_recent_project_preferences(const nlohmann::json& prefs, std::vector<RecentProjectEntry>& projects);
+void write_recent_project_preferences(nlohmann::json& prefs, std::span<const RecentProjectEntry> projects);
+void refresh_recent_projects(std::span<RecentProjectEntry> projects);
+// Removes history only, preserving order. Invalid indices reject the whole batch.
+bool forget_recent_projects(std::vector<RecentProjectEntry>& projects, std::span<const size_t> indices);
 
 struct ProjectResult {
     bool ok = false;
