@@ -48,7 +48,7 @@ std::string recent_projects_markup(std::span<const RecentProjectEntry> projects)
             markup += "</div>";
         }
         markup += "</div><button class=\"home_project_remove\" data-key=\"" + index;
-        markup += "\" title=\"Remove from recent projects. Project files are not deleted.\">Remove from list</button></div>";
+        markup += "\" title=\"Remove from recent projects. Project files are not deleted.\">&#215;</button></div>";
     }
     return markup;
 }

@@ -3116,8 +3116,14 @@ TEST(ClientWorkspaceView, RecentProjectErrorsAndRemovalHaveSeparateHitTargets)
         EXPECT_TRUE(remove->IsClassSet("home_project_remove"));
         EXPECT_EQ(open->IsClassSet("unavailable"), i == 1);
         EXPECT_EQ(remove->GetAttribute<Rml::String>("data-key", ""), std::to_string(i));
+        EXPECT_EQ(remove->GetInnerRML(), "×");
+        EXPECT_NE(remove->GetAttribute<Rml::String>("title", "").find("Project files are not deleted"), std::string::npos);
+        const auto color = remove->GetProperty<Rml::Colourb>("color");
+        EXPECT_GT(color.red, color.green);
+        EXPECT_GT(color.red, color.blue);
         EXPECT_GT(open->GetOffsetWidth(), 0.0f);
-        EXPECT_GT(remove->GetOffsetWidth(), 0.0f);
+        EXPECT_FLOAT_EQ(remove->GetOffsetWidth(), 28.0f);
+        EXPECT_FLOAT_EQ(remove->GetOffsetHeight(), 28.0f);
         EXPECT_GE(remove->GetAbsoluteLeft(), open->GetAbsoluteLeft() + open->GetOffsetWidth());
         const Rml::Vector2f point{
             remove->GetAbsoluteLeft() + remove->GetOffsetWidth() / 2.0f,

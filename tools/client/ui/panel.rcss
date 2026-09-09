@@ -881,7 +881,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.home_project_actions button, .home_import_row button, .home_project_remove {
+.home_project_actions button, .home_import_row button {
   height: 34px;
   padding: 6px 14px;
   margin-right: 8px;
@@ -901,8 +901,6 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 .home_project_actions button:hover,
 .home_project_actions button:focus,
-.home_project_remove:hover,
-.home_project_remove:focus,
 .home_import_row button:hover, .home_import_row button:focus {
   border-color: #a78d62;
   background: #28333d;
@@ -1004,9 +1002,26 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   pointer-events: none;
 }
 .home_project_remove {
-  flex-shrink: 0;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
   margin-left: 8px;
-  padding: 5px 8px;
+  padding: 0px;
+  border: 1px transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #e07979;
+  font-size: 20px;
+  line-height: 26px;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.home_project_remove:hover,
+.home_project_remove:focus {
+  color: #f0a0a0;
+  border-color: #744545;
+  background: #2a1b1b;
 }
 .home_project_name {
   display: block;
