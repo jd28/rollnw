@@ -22,6 +22,7 @@ env:
   buildDir: "${{ github.workspace }}/build/"
   NWN_ROOT: "${{ github.workspace }}/nwn/"
   CI_GITHUB_ACTIONS: "1"
+  ROLLNW_RELEASE_TAG: ${{ github.event_name == 'release' && github.ref_name || '' }}
 
 jobs:
   build:
@@ -441,6 +442,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
+          fetch-depth: 0
 
       - uses: lukka/get-cmake@latest
         with:
@@ -479,7 +481,7 @@ jobs:
 
       - name: linux - configure tools package
         run: |
-          cmake --preset ci-linux-tools-package
+          cmake --preset ci-linux-tools-package "-DROLLNW_RELEASE_TAG=$ROLLNW_RELEASE_TAG"
 
       - name: linux - build tools package
         run: |
@@ -506,6 +508,9 @@ jobs:
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
+          cmake "-DPACKAGE_ROOT=$ARTIFACT_DIR/$PACKAGE_ROOT" \
+            '-DTOOLS=rollnw-client;mudl;smalls;smalls-lsp;smalls-datagen' \
+            -P scripts/ci/validate_tool_packages.cmake
           printf '%s\n' "$PACKAGE_ROOT" > "$ARTIFACT_DIR/package-root.txt"
           echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
@@ -540,6 +545,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
+          fetch-depth: 0
 
       - uses: lukka/get-cmake@latest
         with:
@@ -569,7 +575,7 @@ jobs:
 
       - name: windows - configure tools package
         run: |
-          cmake --preset ci-windows-tools-package
+          cmake --preset ci-windows-tools-package "-DROLLNW_RELEASE_TAG=$env:ROLLNW_RELEASE_TAG"
 
       - name: windows - build tools package
         run: |
@@ -597,6 +603,10 @@ jobs:
           $artifactDir = Join-Path "${{ github.workspace }}" "tmp/artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
           Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
+          cmake "-DPACKAGE_ROOT=$artifactDir/$packageRoot" `
+            '-DTOOLS=rollnw-client;mudl;smalls;smalls-lsp;smalls-datagen' `
+            -P scripts/ci/validate_tool_packages.cmake
+          if ($LASTEXITCODE -ne 0) { throw "Packaged tool identity validation failed." }
           Set-Content -Path (Join-Path $artifactDir "package-root.txt") -Value $packageRoot -NoNewline
           "PACKAGE_ARTIFACT=$artifactDir" | Out-File -FilePath $env:GITHUB_ENV -Append
 
@@ -636,6 +646,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
+          fetch-depth: 0
 
       - uses: lukka/get-cmake@latest
         with:
@@ -662,7 +673,7 @@ jobs:
 
       - name: macOS - configure tools package
         run: |
-          cmake --preset ci-macos-tools-package
+          cmake --preset ci-macos-tools-package "-DROLLNW_RELEASE_TAG=$ROLLNW_RELEASE_TAG"
 
       - name: macOS - build tools package
         run: |
@@ -689,6 +700,9 @@ jobs:
           ARTIFACT_DIR="${{ github.workspace }}/tmp/artifacts"
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
+          cmake "-DPACKAGE_ROOT=$ARTIFACT_DIR/$PACKAGE_ROOT" \
+            '-DTOOLS=smalls;smalls-lsp;smalls-datagen' \
+            -P scripts/ci/validate_tool_packages.cmake
           printf '%s\n' "$PACKAGE_ROOT" > "$ARTIFACT_DIR/package-root.txt"
           echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
@@ -704,7 +718,7 @@ jobs:
           ccache -s
 
   release-packages:
-    needs: [linux-tools-package, windows-tools-package, macos-tools-package]
+    needs: [linux-tools-package, windows-tools-package, macos-tools-package, linux-renderer-headless]
     if: github.event_name == 'release'
     runs-on: ubuntu-22.04
     timeout-minutes: 30
@@ -752,6 +766,10 @@ jobs:
           tar -C tmp/release/linux -czf "tmp/release/assets/${LINUX_PACKAGE}.tar.gz" "$LINUX_PACKAGE"
           (cd tmp/release/windows && zip -qr "${{ github.workspace }}/tmp/release/assets/${WINDOWS_PACKAGE}.zip" "$WINDOWS_PACKAGE")
           tar -C tmp/release/macos -czf "tmp/release/assets/${MACOS_PACKAGE}.tar.gz" "$MACOS_PACKAGE"
+
+      - name: checksum release assets
+        working-directory: tmp/release/assets
+        run: sha256sum *.tar.gz *.zip > SHA256SUMS
 
       - name: attach consolidated release assets
         uses: softprops/action-gh-release@v3
