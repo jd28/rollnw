@@ -358,6 +358,34 @@ TEST(RenderModelLoader, PrefersSelectedHumanoidBodyPartPaletteOverSharedBitmap)
     EXPECT_EQ(result.asset->texture_sources[source_index].resource, palette_resource);
 }
 
+TEST(RenderModelLoader, PrefersExactHumanoidPartPltOverCanonicalPltAndTga)
+{
+    namespace nwn = nw::render::nwn;
+
+    const nw::Resource exact_palette{"pmd0_testexact"sv, nw::ResourceType::plt};
+    const nw::Resource canonical_palette{"pmh0_testexact"sv, nw::ResourceType::plt};
+    const nw::Resource colliding_tga{"pmd0_testexact"sv, nw::ResourceType::tga};
+    ASSERT_GT(nw::kernel::resman().demand(exact_palette).bytes.size(), 0u);
+    ASSERT_GT(nw::kernel::resman().demand(canonical_palette).bytes.size(), 0u);
+    ASSERT_GT(nw::kernel::resman().demand(colliding_tga).bytes.size(), 0u);
+
+    EXPECT_EQ(
+        nwn::resolve_nwn_model_albedo_resref("pmd0_testexact", "pmd0_testexact"),
+        "pmd0_testexact");
+
+    nw::model::Mdl mdl{"test_data/user/development/pmd0_testexact.mdl"};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->materials.size(), 1u);
+    ASSERT_EQ(result.asset->material_texture_sources.size(), 1u);
+    const auto source_index = result.asset->material_texture_sources.front().albedo;
+    ASSERT_LT(source_index, result.asset->texture_sources.size());
+    EXPECT_TRUE(result.asset->materials.front().albedo_uses_plt);
+    EXPECT_EQ(result.asset->texture_sources[source_index].resource, exact_palette);
+}
+
 TEST(RenderModelLoader, TileGradedAlphaWithoutExplicitHintStaysOpaque)
 {
     namespace nwn = nw::render::nwn;

@@ -1526,8 +1526,8 @@ void initialize_mesh_material(NwnMeshImportData& mesh, const nwm::TrimeshNode* n
 
     mesh.bitmap_name = resolve_nwn_model_albedo_resref(model_resref, resolve_bitmap_name(node));
     const auto humanoid_palette = nwn_humanoid_palette_resref(model_resref);
-    mesh.albedo_prefers_plt = mesh.bitmap_name == humanoid_palette
-        && source_resource_exists(humanoid_palette, nw::ResourceType::plt);
+    mesh.albedo_prefers_plt = !humanoid_palette.empty()
+        && source_resource_exists(mesh.bitmap_name, nw::ResourceType::plt);
     mesh.renderhint = std::string(node->renderhint);
     mesh.materialname = std::string(node->materialname);
     mesh.transparencyhint = node->transparencyhint;
@@ -2820,8 +2820,12 @@ std::string nwn_humanoid_palette_resref(std::string_view model_resref)
 std::string resolve_nwn_model_albedo_resref(
     std::string_view model_resref, std::string_view albedo_resref)
 {
-    // A selected humanoid body-part model identifies its PLT. Its MDL bitmap
-    // may name shared geometry data from another part and is only the fallback.
+    // A race-specific body part can provide its own PLT, as dwarf heads do.
+    // Use the canonical human PLT only when the selected part has no palette.
+    if (texture_resource_is_plt(model_resref)) {
+        return std::string(model_resref);
+    }
+
     auto palette_resref = nwn_humanoid_palette_resref(model_resref);
     if (texture_resource_is_plt(palette_resref)) {
         return palette_resref;

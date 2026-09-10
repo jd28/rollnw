@@ -12,6 +12,7 @@ set(ROLLNW_TEST_HUMANOID_PART_MODELS
     pfh0_chest001
     pfh0_head001
     pfh0_pelvis001
+    pmd0_testexact
     pma0_belt007
     pma0_bicepl001
     pma0_bicepl004
@@ -50,6 +51,7 @@ set(ROLLNW_TEST_HUMANOID_PART_PALETTES
     pfh0_chest001
     pfh0_head001
     pfh0_pelvis001
+    pmd0_testexact
     pmh0_belt007
     pmh0_bicepl001
     pmh0_bicepl004
@@ -105,6 +107,17 @@ foreach(ROLLNW_TEST_HUMANOID_PART_INDEX RANGE ${ROLLNW_TEST_HUMANOID_PART_LAST})
         ${ROLLNW_TEST_GENERATED_DATA_DIR}/${ROLLNW_TEST_PALETTE_NAME}.plt
         COPYONLY)
 endforeach()
+
+# Exercise a race-specific PLT that shares its resref with a TGA while a
+# canonical human PLT also exists. The exact PLT must win both collisions.
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data/user/development/pmh0_testplt.plt
+    ${ROLLNW_TEST_GENERATED_DATA_DIR}/pmh0_testexact.plt
+    COPYONLY)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/nwn_dump_user/development/tga/black.tga
+    ${ROLLNW_TEST_GENERATED_DATA_DIR}/pmd0_testexact.tga
+    COPYONLY)
 
 set(ROLLNW_TEST_GENERIC_MODEL_FIXTURES
     c_a_chicken
