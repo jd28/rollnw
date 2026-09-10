@@ -443,3 +443,33 @@ LABEL MODELTYPE MOVERATE HASARMS
         EXPECT_EQ(std::get<bool>(has_arms->value), expected[index]);
     }
 }
+
+TEST(SmallsDataTransform, PlaceablesSpecAcceptsStaticTwoAsTrueWithoutWarning)
+{
+    const auto spec_path = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR}
+        / "lib/nw/smalls/scripts/nwn1/data_specs/placeables.json";
+    const std::array spec_paths{spec_path};
+    nw::Vector<nw::smalls::DataSpec> specs;
+    nw::Vector<nw::smalls::DataDiagnostic> diagnostics;
+    ASSERT_TRUE(nw::smalls::parse_data_specs(
+        spec_paths, specs, diagnostics));
+    ASSERT_EQ(specs.size(), 1);
+
+    nw::StaticTwoDA table{std::string_view{R"2da(2DA V2.0
+
+Label StrRef ModelName LightColor LightOffsetX LightOffsetY LightOffsetZ Static
+0 vfx   ****   vfx_model ****       ****         ****         ****         2
+)2da"}};
+    ASSERT_TRUE(table.is_valid());
+
+    nw::smalls::MaterializedDataBatch batch;
+    ASSERT_TRUE(nw::smalls::materialize_data_rows(
+        specs.front(), table, batch, diagnostics));
+    ASSERT_EQ(batch.rows.size(), 1);
+    EXPECT_TRUE(diagnostics.empty());
+
+    const auto* is_static = find_value(
+        batch, batch.rows.front(), "rules.static");
+    ASSERT_NE(is_static, nullptr);
+    EXPECT_TRUE(std::get<bool>(is_static->value));
+}

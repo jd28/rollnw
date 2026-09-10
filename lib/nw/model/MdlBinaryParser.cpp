@@ -193,15 +193,18 @@ bool BinaryParser::parse_anim(const detail::MdlBinaryAnimationHeader& data)
 
 bool BinaryParser::parse_geometry(Geometry* geometry, const detail::MdlBinaryGeometryHeader& data)
 {
-    const size_t max_file_nodes = (bytes_.size() / detail::MdlBinaryNodeHeader::s_sizeof) + 1;
-    const size_t max_nodes = std::max<size_t>(1, data.node_count);
-    if (max_nodes > detail::max_binary_mdl_nodes || max_nodes > max_file_nodes) {
-        LOG_F(ERROR, "invalid binary mdl: node count outside file bounds");
+    const size_t declared_nodes = std::max<size_t>(1, data.node_count);
+    if (declared_nodes > detail::max_binary_mdl_nodes) {
+        LOG_F(ERROR, "invalid binary mdl: node count exceeds parser limit");
         return false;
     }
 
-    geometry->nodes.reserve(max_nodes);
-    if (!parse_node(data.root_node_offset, geometry, nullptr, max_nodes, 0)) {
+    // Some supermodel rigs include inherited nodes in node_count. Limit local
+    // traversal and allocation by both that declaration and the file payload.
+    const size_t file_nodes = (bytes_.size() / detail::MdlBinaryNodeHeader::s_sizeof) + 1;
+    const size_t local_node_limit = std::min(declared_nodes, file_nodes);
+    geometry->nodes.reserve(local_node_limit);
+    if (!parse_node(data.root_node_offset, geometry, nullptr, local_node_limit, 0)) {
         return false;
     }
     return true;
@@ -261,7 +264,7 @@ thread_local detail::GeomCxt s_ctx;
 bool BinaryParser::parse_node(uint32_t offset, Geometry* geometry, Node* parent, size_t max_nodes, size_t depth)
 {
     if (depth >= max_nodes || geometry->nodes.size() >= max_nodes) {
-        LOG_F(ERROR, "invalid binary mdl: node recursion exceeds declared node count");
+        LOG_F(ERROR, "invalid binary mdl: node recursion exceeds model bounds");
         return false;
     }
 

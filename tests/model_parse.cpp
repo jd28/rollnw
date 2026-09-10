@@ -172,6 +172,29 @@ TEST(Mdl, BinaryRejectsTruncatedHeader)
     EXPECT_FALSE(mdl.valid());
 }
 
+TEST(Mdl, BinaryAcceptsInheritedNodeCountLargerThanLocalStorage)
+{
+    nw::model::detail::MdlBinaryNodeHeader node{};
+    node.type = nw::model::NodeType::dummy;
+
+    auto data = make_binary_mdl_with_node(node, 195);
+    nw::model::Mdl mdl{std::move(data)};
+
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 1u);
+}
+
+TEST(Mdl, BinaryRejectsNodeCountBeyondParserLimit)
+{
+    nw::model::detail::MdlBinaryNodeHeader node{};
+    node.type = nw::model::NodeType::dummy;
+
+    auto data = make_binary_mdl_with_node(node, 65537);
+    nw::model::Mdl mdl{std::move(data)};
+
+    EXPECT_FALSE(mdl.valid());
+}
+
 TEST(Mdl, BinaryRejectsRecursiveChildPointer)
 {
     nw::model::detail::MdlBinaryNodeHeader node{};

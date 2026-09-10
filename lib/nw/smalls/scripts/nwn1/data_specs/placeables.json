@@ -24,7 +24,7 @@
           { "target": "light_offset_x", "value": { "kind": "column", "column": "LightOffsetX", "type": "float", "on_missing": "default", "default": 0.0 } },
           { "target": "light_offset_y", "value": { "kind": "column", "column": "LightOffsetY", "type": "float", "on_missing": "default", "default": 0.0 } },
           { "target": "light_offset_z", "value": { "kind": "column", "column": "LightOffsetZ", "type": "float", "on_missing": "default", "default": 0.0 } },
-          { "target": "static", "value": { "kind": "column", "column": "Static", "type": "bool", "on_missing": "default", "default": false } }
+          { "target": "static", "value": { "kind": "column", "column": "Static", "type": "bool", "warn_on_coerce": false, "on_missing": "default", "default": false } }
         ]
       }
     ]
