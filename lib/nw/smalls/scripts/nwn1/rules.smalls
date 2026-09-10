@@ -104,6 +104,7 @@ type ClassEntry {
     arcane_spellgain_mod: int;
     divine_spellgain_mod: int;
     caster_ability: int;    // 0=STR 1=DEX 2=CON 3=INT 4=WIS 5=CHA, -1=none
+    toolset_abilities: int[6]; // STR, DEX, CON, INT, WIS, CHA
 };
 
 // Shared save progression table. Each entry holds one progression
@@ -327,6 +328,8 @@ type RaceEntry {
     abilities:   int[6];
     cr_modifier: float;
     player_race: bool;
+    appearance: int;
+    toolset_default_class: int;
 };
 
 [[value_type]]

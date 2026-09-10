@@ -1,5 +1,8 @@
 #pragma once
 
+#include "blueprint_edits.hpp"
+#include "blueprint_operations.hpp"
+#include "blueprint_update_job.hpp"
 #include "command_bus.hpp"
 #include "creature_body_part_editor.hpp"
 #include "item_editor.hpp"
@@ -54,6 +57,12 @@ public:
     [[nodiscard]] std::filesystem::path current_project_dir() const;
     [[nodiscard]] ObjectHandle module_object() const noexcept;
     [[nodiscard]] uint64_t module_generation() const noexcept;
+    [[nodiscard]] bool blueprint_operation_active() const noexcept { return !blueprint_operation_.empty() || blueprint_live_updates_.has_value(); }
+    [[nodiscard]] bool blueprint_worker_active() const noexcept { return blueprint_job_.active(); }
+    [[nodiscard]] bool blueprint_publication_pending() const noexcept;
+    [[nodiscard]] const BlueprintOperationProgress& blueprint_progress() const noexcept { return blueprint_progress_; }
+    [[nodiscard]] const std::vector<std::filesystem::path>& blueprint_updated_documents() const noexcept { return blueprint_updated_documents_; }
+    std::optional<CommandResult> poll_blueprint_updates(const std::filesystem::path& executable);
 
     CommandResult open_module(std::string_view module_path);
     CommandResult open_project(std::string_view project_path);
@@ -81,7 +90,34 @@ public:
     CommandResult console_execute(std::string_view line, CommandContext context);
 
 private:
+    enum class BlueprintReferenceScope : uint8_t {
+        none,
+        current_area,
+        module,
+    };
+
+    enum class BlueprintUpdatePhase : uint8_t {
+        none,
+        prepare_live,
+        prepare,
+        commit,
+        restore,
+        finalize,
+    };
+
+    [[nodiscard]] static std::string_view worker_phase_name(
+        BlueprintUpdatePhase phase) noexcept;
     void register_native_commands();
+    void register_blueprint_commands();
+    void register_blueprint_reference_commands();
+    void register_blueprint_command(std::string id, std::string title,
+        CommandBus::Handler handler, CommandFlags flags);
+    CommandResult scan_blueprint_references(BlueprintReferenceScope scope);
+    CommandResult finalize_blueprint_updates();
+    bool reload_blueprint_documents(std::span<const std::string> tab_ids, std::string& error);
+    CommandResult show_blueprint_form(BlueprintWriteKind kind, ResourceType::type type);
+    CommandResult submit_blueprint_form(const CommandInvocation& invocation, CommandContext& context);
+    CommandResult commit_blueprint_writes();
     CommandResult open_area_document(std::string resource, std::string title,
         const CommandInvocation& invocation);
     bool refresh_creature_body_part_editor();
@@ -103,6 +139,29 @@ private:
     std::filesystem::path current_project_dir_;
     ObjectHandle module_object_{};
     uint64_t module_generation_ = 0;
+
+    struct BlueprintForm {
+        BlueprintWriteKind kind;
+        ResourceType::type type;
+        ObjectHandle source;
+        uint64_t module_generation;
+        CommandPrompt prompt;
+    };
+    std::optional<BlueprintForm> blueprint_form_;
+    std::optional<PreparedBlueprintWrites> blueprint_writes_;
+    std::vector<BlueprintWriteResult> blueprint_write_results_;
+    Resource blueprint_reference_source_;
+    std::filesystem::path blueprint_reference_area_;
+    BlueprintReferenceScope blueprint_reference_scope_ = BlueprintReferenceScope::none;
+    std::vector<std::string> blueprint_dirty_tabs_;
+    BlueprintUpdateJob blueprint_job_;
+    std::optional<LiveBlueprintUpdates> blueprint_live_updates_;
+    std::filesystem::path blueprint_operation_;
+    BlueprintUpdatePhase blueprint_pending_phase_ = BlueprintUpdatePhase::none;
+    BlueprintUpdatePhase blueprint_running_phase_ = BlueprintUpdatePhase::none;
+    BlueprintOperationProgress blueprint_progress_;
+    std::vector<std::filesystem::path> blueprint_updated_documents_;
+    uint64_t blueprint_progress_poll_time_ = 0;
 };
 
 } // namespace nw::toolset

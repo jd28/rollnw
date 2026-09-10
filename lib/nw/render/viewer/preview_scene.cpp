@@ -4489,6 +4489,10 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
         return {};
     }
 
+    // A standalone object preview has preview-local placement. Ignore any
+    // instance spatial state so retained and file-loaded documents share the
+    // same neutral pose; area scenes apply authored placement separately.
+    set_render_scene_root_placement(*scene, glm::mat4{1.0f});
     append_scene_authored_model_lights(*scene);
     scene->rebuild_load_report(source, "live_object");
     scene->root_object = object;

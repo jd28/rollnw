@@ -22,7 +22,8 @@
       { "target": "arcane", "value": { "kind": "column", "column": "Arcane", "type": "bool", "on_missing": "default", "default": false } },
       { "target": "arcane_spellgain_mod", "value": { "kind": "column", "column": "ArcSpellLvlMod", "type": "int", "on_missing": "default", "default": 0 } },
       { "target": "divine_spellgain_mod", "value": { "kind": "column", "column": "DivSpellLvlMod", "type": "int", "on_missing": "default", "default": 0 } },
-      { "target": "caster_ability", "value": { "kind": "enum", "column": "SpellcastingAbil", "values": { "str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5 }, "on_missing": "default", "default": -1 } }
+      { "target": "caster_ability", "value": { "kind": "enum", "column": "SpellcastingAbil", "values": { "str": 0, "dex": 1, "con": 2, "int": 3, "wis": 4, "cha": 5 }, "on_missing": "default", "default": -1 } },
+      { "target": "toolset_abilities", "value": { "kind": "fixed_array", "columns": ["Str", "Dex", "Con", "Int", "Wis", "Cha"], "on_missing": "default", "default": 10 } }
     ]
   }
 }

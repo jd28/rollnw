@@ -1028,6 +1028,40 @@ TEST(RenderViewerPreparedDraws, NonVisualDataBlueprintPreviewsPublishOwnedLiveOb
     }
 }
 
+TEST(RenderViewerPreparedDraws, LiveObjectPreviewIgnoresWorldPlacement)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto& resources = *device.preview_resources();
+
+    constexpr std::string_view path = "test_data/user/development/pl_agent_001.utc";
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(path);
+    ASSERT_NE(creature, nullptr);
+    nw::toolset::ObjectDocument owner;
+    ASSERT_TRUE(owner.adopt(creature->handle()));
+
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_position(creature->handle(), {11.0f, 12.0f, 13.0f}));
+    ASSERT_TRUE(components.set_orientation(creature->handle(), {1.0f, 0.0f, 0.0f}));
+    ASSERT_TRUE(components.set_scale(creature->handle(), {2.0f, 3.0f, 4.0f}));
+    auto live_scene = viewer::build_live_object_scene(
+        resources, creature->handle(), path, {});
+    ASSERT_NE(live_scene, nullptr);
+    const auto* live_instance = live_scene->static_model_instance(0);
+    ASSERT_NE(live_instance, nullptr);
+    const glm::mat4 neutral_placement{1.0f};
+    for (int column = 0; column < 4; ++column) {
+        for (int row = 0; row < 4; ++row) {
+            EXPECT_FLOAT_EQ(live_instance->root_transform[column][row],
+                neutral_placement[column][row]);
+        }
+    }
+}
+
 TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuilds)
 {
     namespace viewer = nw::render::viewer;

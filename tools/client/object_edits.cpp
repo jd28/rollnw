@@ -5423,4 +5423,14 @@ ObjectMutationState object_mutation_state() noexcept
     return g_mutation_state;
 }
 
+void publish_area_structure_changes(ObjectHandle area, ObjectHandle selection) noexcept
+{
+    ++g_mutation_state.epoch;
+    ++g_mutation_state.area_structure_epoch;
+    g_mutation_state.kind = ObjectMutationKind::structure;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.area = area;
+    g_mutation_state.object = selection;
+}
+
 } // namespace nw::toolset

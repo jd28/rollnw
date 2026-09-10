@@ -471,8 +471,7 @@ fn ac_modifier_epic_armor_skin(obj: Creature, _vs: object, subtype: int): int {
 }
 
 fn ac_modifier_tumble_dodge(obj: Creature, _vs: object, subtype: int): int {
-    var stats = get_propset!(CreatureStats)(obj);
-    return stats.skills[Const.skill_tumble as int] / 5;
+    return NCre.get_skill_rank(obj, Const.skill_tumble) / 5;
 }
 
 fn ac_modifier_combat_mode_dodge(obj: Creature, _vs: object, subtype: int): int {

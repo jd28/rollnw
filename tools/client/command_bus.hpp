@@ -112,6 +112,7 @@ struct CommandContext {
     CommandSource source = CommandSource::palette;
     WorkspaceState* workspace = nullptr;
     bool record_undo = true;
+    bool play_preview_active = false;
 };
 
 struct CommandInvocation {
@@ -128,12 +129,29 @@ struct CommandPromptAction {
     std::vector<std::string> args;
 };
 
+struct CommandPromptChoice {
+    std::string value;
+    std::string label;
+};
+
+struct CommandPromptField {
+    std::string label;
+    std::string value;
+    std::vector<CommandPromptChoice> choices;
+    bool directory = false;
+};
+
 struct CommandPrompt {
     std::string id;
     std::string title;
     std::string message;
     std::string detail;
     std::vector<CommandPromptAction> actions;
+    // Optional authored inputs, appended to the selected action's arguments in
+    // field order. The prompt owns values/choices until submit or cancellation.
+    std::vector<CommandPromptField> fields;
+    // Blueprint destination forms use fields 0/1 as ResRef/directory.
+    std::string file_suffix;
 };
 
 struct CommandResult {

@@ -447,14 +447,22 @@ void Runtime::load_profile_hooks()
 
     const auto* init = module->get_function("init");
     const auto* object_instantiated = module->get_function("object_instantiated");
+    const auto* initialize_blueprints = module->get_function("initialize_blueprints");
     const auto* match_qualifier = module->get_function("match_qualifier");
     const std::array<TypeID, 1> object_parameters{object_type()};
+    const auto object_array_type = type_id("array!(object)", false);
+    const auto int_array_type = type_id("array!(int)", false);
+    const std::array<TypeID, 4> blueprint_parameters{
+        object_array_type, int_array_type, int_array_type, int_array_type};
     const std::array<TypeID, 5> qualifier_parameters{
         object_type(), int_type(), int_type(), int_type(), int_type()};
     if (!function_has_signature(*this, init,
             std::span<const TypeID>{}, bool_type())
         || !function_has_signature(*this, object_instantiated,
             object_parameters, void_type())
+        || (initialize_blueprints
+            && !function_has_signature(*this, initialize_blueprints,
+                blueprint_parameters, bool_type()))
         || !function_has_signature(*this, match_qualifier,
             qualifier_parameters, bool_type())) {
         throw std::runtime_error(fmt::format(
@@ -465,6 +473,7 @@ void Runtime::load_profile_hooks()
     profile_hook_module_ = module;
     profile_init_hook_ = init;
     profile_object_instantiated_hook_ = object_instantiated;
+    profile_initialize_blueprints_hook_ = initialize_blueprints;
     profile_match_qualifier_hook_ = match_qualifier;
 }
 
@@ -509,6 +518,89 @@ void Runtime::profile_object_instantiated(ObjectHandle object)
             "runtime: selected package object-instantiated hook failed for 0x{:016x}: {}",
             object.to_ull(), result.error_message);
     }
+}
+
+bool Runtime::profile_initialize_blueprints(
+    std::span<const ProfileBlueprintInitialization> rows,
+    String& diagnostic)
+{
+    diagnostic.clear();
+    if (!profile_hook_module_ || !profile_initialize_blueprints_hook_) {
+        diagnostic = "selected package does not provide blueprint initialization";
+        return false;
+    }
+
+    const auto object_array_type = type_id("array!(object)", false);
+    const auto int_array_type = type_id("array!(int)", false);
+    if (object_array_type == invalid_type_id || int_array_type == invalid_type_id) {
+        diagnostic = "blueprint initializer array types are unavailable";
+        return false;
+    }
+
+    ScopedRoots roots{*this, 4};
+    const auto make_object_array = [&]() -> Value {
+        const auto pointer = create_array_typed(object_type(), rows.size());
+        auto* array = get_array_typed(pointer);
+        if (!array) { return {}; }
+        for (const auto& row : rows) {
+            array->append_value(Value::make_object(row.object), *this);
+        }
+        return Value::make_heap(pointer, object_array_type);
+    };
+    const auto make_int_array = [&](int32_t ProfileBlueprintInitialization::* member) -> Value {
+        const auto pointer = create_array_typed(int_type(), rows.size());
+        auto* array = get_array_typed(pointer);
+        if (!array) { return {}; }
+        for (const auto& row : rows) {
+            array->append_value(Value::make_int(row.*member), *this);
+        }
+        return Value::make_heap(pointer, int_array_type);
+    };
+
+    const Value object_values = make_object_array();
+    if (object_values.type_id == invalid_type_id) {
+        diagnostic = "could not allocate blueprint object input";
+        return false;
+    }
+    roots.add(object_values);
+    const Value race_values = make_int_array(&ProfileBlueprintInitialization::race);
+    if (race_values.type_id == invalid_type_id) {
+        diagnostic = "could not allocate blueprint race input";
+        return false;
+    }
+    roots.add(race_values);
+    const Value class_values = make_int_array(&ProfileBlueprintInitialization::class_id);
+    if (class_values.type_id == invalid_type_id) {
+        diagnostic = "could not allocate blueprint class input";
+        return false;
+    }
+    roots.add(class_values);
+    const Value base_item_values = make_int_array(&ProfileBlueprintInitialization::base_item);
+    if (base_item_values.type_id == invalid_type_id) {
+        diagnostic = "could not allocate blueprint base-item input";
+        return false;
+    }
+    roots.add(base_item_values);
+
+    Vector<Value> arguments;
+    arguments.reserve(4);
+    arguments.push_back(object_values);
+    arguments.push_back(race_values);
+    arguments.push_back(class_values);
+    arguments.push_back(base_item_values);
+    constexpr uint64_t blueprint_hook_gas_limit = 10'000'000;
+    auto result = execute_compiled(profile_hook_module_,
+        profile_initialize_blueprints_hook_, arguments,
+        blueprint_hook_gas_limit);
+    if (!result.ok()) {
+        diagnostic = result.error_message;
+        return false;
+    }
+    if (result.value.type_id != bool_type() || !result.value.data.bval) {
+        diagnostic = "selected package rejected blueprint initialization";
+        return false;
+    }
+    return true;
 }
 
 bool Runtime::profile_match_qualifier(ObjectHandle object, int32_t type,

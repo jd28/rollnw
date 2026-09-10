@@ -530,6 +530,8 @@ void ToolsetBackend::register_native_commands()
         return;
     }
 
+    register_blueprint_commands();
+
     auto register_or_log = [this](CommandSpec spec, CommandBus::Handler handler) {
         std::string error;
         if (!command_bus_.register_command(std::move(spec), std::move(handler), &error) && shell_) {
@@ -3562,6 +3564,13 @@ CommandResult ToolsetBackend::open_area_document(std::string resource, std::stri
 
 CommandResult ToolsetBackend::open_module(std::string_view module_path)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) { return command_result(CommandStatus::rejected, "Finish the blueprint operation before opening another project", CommandOutputChannel::warn); }
+    blueprint_reference_source_ = {};
+    blueprint_reference_area_.clear();
+    blueprint_dirty_tabs_.clear();
+    blueprint_form_.reset();
+    blueprint_writes_.reset();
+    blueprint_write_results_.clear();
     if (!bridge_) {
         return command_result(CommandStatus::failed, "Backend unavailable", CommandOutputChannel::error);
     }
@@ -3642,6 +3651,13 @@ CommandResult ToolsetBackend::open_module(std::string_view module_path)
 
 CommandResult ToolsetBackend::open_project(std::string_view project_path)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) { return command_result(CommandStatus::rejected, "Finish the blueprint operation before opening another project", CommandOutputChannel::warn); }
+    blueprint_reference_source_ = {};
+    blueprint_reference_area_.clear();
+    blueprint_dirty_tabs_.clear();
+    blueprint_form_.reset();
+    blueprint_writes_.reset();
+    blueprint_write_results_.clear();
     if (!bridge_) {
         return command_result(CommandStatus::failed, "Backend unavailable", CommandOutputChannel::error);
     }
@@ -3696,6 +3712,14 @@ CommandResult ToolsetBackend::open_project(std::string_view project_path)
         if (workspace_) {
             workspace_->ensure_default_tabs(project_display_name(current_project_dir_), true);
         }
+        const auto unfinished = find_unfinished_blueprint_operations(current_project_dir_);
+        if (!unfinished.empty()) {
+            blueprint_operation_ = unfinished.front();
+            blueprint_updated_documents_ = blueprint_operation_documents(blueprint_operation_);
+            blueprint_progress_ = {};
+            blueprint_progress_.stage = "recovery";
+            blueprint_progress_.detail = "An interrupted blueprint update needs recovery. Restore its original files before editing.";
+        }
         return command_result(CommandStatus::success,
             "Opened project: " + current_project_dir_.string()
                 + " (" + std::to_string(tree.node_count) + " entries)");
@@ -3713,11 +3737,19 @@ CommandResult ToolsetBackend::execute_command(std::string_view command_id, const
     for (std::string_view arg : args) {
         command_args.push_back(CommandArg::positional_string(std::string(arg)));
     }
-    return command_bus_.execute(command_id, std::move(command_args), context_with_backend_defaults(std::move(context), workspace_));
+    return execute_command(CommandInvocation{std::string{command_id}, std::move(command_args)}, std::move(context));
 }
 
 CommandResult ToolsetBackend::execute_command(CommandInvocation invocation, CommandContext context)
 {
+    if (blueprint_operation_active() && !invocation.command_id.starts_with("blueprint.references.")) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint reference operation before editing", CommandOutputChannel::warn);
+    }
+    if (std::any_of(blueprint_write_results_.begin(), blueprint_write_results_.end(),
+            [](const auto& row) { return row.saved && !row.published; })
+        && invocation.command_id != "blueprint.refresh") {
+        return commit_blueprint_writes();
+    }
     return command_bus_.execute(std::move(invocation), context_with_backend_defaults(std::move(context), workspace_));
 }
 
@@ -3726,6 +3758,9 @@ CommandResult ToolsetBackend::place_area_objects(
     std::span<const ObjectHandle> objects,
     CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::place_area_objects(
         area, objects, "Place area object", context);
@@ -3740,6 +3775,9 @@ CommandResult ToolsetBackend::place_creature_items(
     std::span<const ItemPlacement> placements,
     CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::place_creature_items(
         creature, placements, "Place Creature item", context);
@@ -3754,6 +3792,9 @@ CommandResult ToolsetBackend::place_items(
     std::span<const ItemPlacement> placements,
     CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::place_items(
         owner, placements, "Place item", context);
@@ -3768,6 +3809,9 @@ CommandResult ToolsetBackend::place_store_items(
     std::span<const StoreItemPlacement> placements,
     CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::place_store_items(
         store, placements, "Place Store item", context);
@@ -3780,6 +3824,9 @@ CommandResult ToolsetBackend::place_store_items(
 CommandResult ToolsetBackend::replace_encounter_spawns(
     EncounterSpawnEdit edit, CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::commit_encounter_spawn_edit(
         std::move(edit), "Add encounter spawn", context);
@@ -3792,6 +3839,9 @@ CommandResult ToolsetBackend::replace_encounter_spawns(
 CommandResult ToolsetBackend::replace_sound_resources(
     SoundResourceEdit edit, CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::commit_sound_resource_edit(
         std::move(edit), "Add sound resource", context);
@@ -3826,6 +3876,9 @@ bool ToolsetBackend::is_open_project_dialog_invocation(std::string_view line) co
 
 CommandResult ToolsetBackend::console_execute(std::string_view line, CommandContext context)
 {
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
     return terminal_.execute(command_bus_, line, context_with_backend_defaults(std::move(context), workspace_));
 }
 

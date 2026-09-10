@@ -30,7 +30,12 @@
 
 namespace nw::smalls {
 
-struct BytecodeModule;
+struct ProfileBlueprintInitialization {
+    ObjectHandle object{};
+    int32_t race = -1;
+    int32_t class_id = -1;
+    int32_t base_item = -1;
+};
 
 // Forward declarations
 struct BraceInitLiteral;
@@ -397,6 +402,13 @@ struct Runtime : public nw::kernel::Service {
 
     /// Executes the selected package's validated object-instantiation hook.
     void profile_object_instantiated(ObjectHandle object);
+
+    /// Initializes a detached batch of new blueprints through the selected
+    /// package. The runtime transposes these flat rows into the Smalls hook's
+    /// parallel arrays at the language boundary.
+    [[nodiscard]] bool profile_initialize_blueprints(
+        std::span<const ProfileBlueprintInitialization> rows,
+        String& diagnostic);
 
     /// Executes the selected package's validated qualifier matcher.
     bool profile_match_qualifier(ObjectHandle object, int32_t type,
@@ -1402,6 +1414,7 @@ private:
     BytecodeModule* profile_hook_module_ = nullptr;
     const CompiledFunction* profile_init_hook_ = nullptr;
     const CompiledFunction* profile_object_instantiated_hook_ = nullptr;
+    const CompiledFunction* profile_initialize_blueprints_hook_ = nullptr;
     const CompiledFunction* profile_match_qualifier_hook_ = nullptr;
 
     // Memory and resource management for scripts

@@ -438,6 +438,50 @@ TEST(StaticDirectory, AuthoredJsonKeepsResourceType)
     EXPECT_EQ(data.bytes.string_view(), R"({"$type":"UTC"})");
 }
 
+TEST(ResourceManager, RefreshNativeModulePreservesPrecedenceAndGenerationOnFailure)
+{
+    const fs::path root{"tmp/refresh_native_module"};
+    fs::remove_all(root);
+    fs::create_directories(root / "module" / "blueprints");
+    fs::create_directories(root / "override");
+    std::ofstream{root / "module" / "module.ifo.json"} << "{}";
+    std::ofstream{root / "module" / "blueprints" / "existing.utc.json"} << "module";
+    std::ofstream{root / "override" / "existing.utc.json"} << "override";
+    StaticDirectory overrides{root / "override"};
+    ResourceManager resources{kernel::global_allocator()};
+    ASSERT_TRUE(resources.add_custom_container(&overrides, false));
+    ASSERT_TRUE(resources.load_module(root / "module"));
+    resources.build_registry();
+    const auto generation = resources.generation();
+    const Resource existing{"existing"sv, ResourceType::utc};
+    const Resource created{"created"sv, ResourceType::utc};
+    EXPECT_EQ(resources.resource_container(existing), &overrides);
+    EXPECT_FALSE(resources.module_can_override(existing));
+    EXPECT_TRUE(resources.module_can_override(created));
+    std::ofstream{root / "module" / "blueprints" / "created.utc.json"} << "created";
+    EXPECT_FALSE(resources.contains(created));
+
+    String error;
+    ASSERT_TRUE(resources.refresh_module_resources(error)) << error;
+    EXPECT_GT(resources.generation(), generation);
+    EXPECT_TRUE(resources.is_frozen());
+    EXPECT_EQ(resources.demand(existing).bytes.string_view(), "override");
+    EXPECT_EQ(resources.resource_container(existing), &overrides);
+    EXPECT_EQ(resources.demand(created).bytes.string_view(), "created");
+    EXPECT_EQ(resources.resource_container(created), resources.module_container());
+
+    const auto published = resources.generation();
+    const auto* module = resources.module_container();
+    fs::rename(root / "module", root / "moved");
+    EXPECT_FALSE(resources.refresh_module_resources(error));
+    EXPECT_FALSE(error.empty());
+    EXPECT_EQ(resources.generation(), published);
+    EXPECT_EQ(resources.module_container(), module);
+    EXPECT_EQ(resources.demand(existing).bytes.string_view(), "override");
+    fs::rename(root / "moved", root / "module");
+    EXPECT_EQ(resources.demand(created).bytes.string_view(), "created");
+}
+
 // == StaticErf ===============================================================
 // ============================================================================
 

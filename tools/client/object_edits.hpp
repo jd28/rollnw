@@ -623,4 +623,7 @@ creature_body_part_editor_snapshot(
 
 [[nodiscard]] ObjectMutationState object_mutation_state() noexcept;
 
+// Publishes structural changes in the singleton live editor area after a batch.
+void publish_area_structure_changes(ObjectHandle area, ObjectHandle selection) noexcept;
+
 } // namespace nw::toolset

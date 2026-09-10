@@ -201,6 +201,33 @@ focus on list selection. The validated Creature/Placeable/Item structural slice
 supports placement, transforms, duplicate, delete, undo/redo, and native CAF
 save. Blueprint preview tabs use the same focused edit commands and save path.
 
+New Blueprint creates a Creature, Placeable, or Item and opens its saved editor
+document. New Creatures prompt for race and class; NWN1 Smalls derives appearance,
+ability scores, level-one class data, skills, and body parts from those selections.
+Its form asks for a ResRef and directory;
+Items also require a base-item type. Base Item Type is currently read-only in the
+workbench. Further authoring uses the existing object editor.
+
+Blueprint forms and progress dialogs share the command overlay drawn after the
+native viewport, with modal focus and input routed to that overlay.
+
+Save as New Blueprint prompts for a ResRef and directory, copies the selected
+Creature, Placeable, or Item, assigns a fresh blueprint UUID, and saves it. The
+temporary copy is destroyed and the project tree refreshes; the source selection,
+tab, and dirty state remain unchanged. Names share the module's typed resource
+namespace across directories. Ctrl+Z deletes the created file; Ctrl+Y restores the
+same saved bytes. Undo rejects a subsequently changed file, and redo rejects a
+resource-name collision. Close an open copy's editor tab before undoing creation.
+
+Update Blueprint References offers Current Area or Whole Module. Matching live
+instances are instantiated from the saved blueprint, attached in their existing
+area/inventory/equipment slots, and the old instances are destroyed. Placement,
+UUID, container positions and unrelated edits survive. Preparation advances one
+live instance per frame with progress and cancellation. Applying clears the area's
+old handle-based history and leaves the area dirty; it does not write its file.
+Whole Module also updates unopened documents through the isolated file worker.
+Restore Original Files covers that worker's writes, excluding the live area.
+
 Drag a Creature, Placeable, or Item blueprint from the project tree into an area
 to preview placement; drop commits one undoable edit and cancel discards it.
 Creature placement/transforms require walkable ground and known clearance:

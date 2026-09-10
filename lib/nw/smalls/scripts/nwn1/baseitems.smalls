@@ -97,7 +97,7 @@ fn get_rules(base_item: BaseItemType): BaseItemRules {
 }
 
 fn requirements_met(creature: Creature, base_item: BaseItemType): bool {
-    if ((creature as object) == O.invalid) {
+    if (creature == O.invalid) {
         return false;
     }
 

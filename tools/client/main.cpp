@@ -56,6 +56,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <absl/container/flat_hash_set.h>
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -78,7 +80,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
 
 #ifndef ROLLNW_CLIENT_APP_ID
 #define ROLLNW_CLIENT_APP_ID "org.rollnw.client"
@@ -889,6 +890,16 @@ struct AppState {
     nw::toolset::ShellController shell;
     PlayPreviewState play_preview;
     nw::toolset::WorkspaceState workspace;
+    std::optional<nw::toolset::CommandPrompt> command_form;
+    Rml::ElementDocument* command_overlay_document = nullptr; // Borrowed from the command context.
+    uint64_t command_form_generation = 0;
+    uint64_t rendered_command_form_generation = 0;
+    uint64_t command_form_browse_generation = 0;
+    nw::toolset::VirtualComboBox command_form_combobox;
+    std::optional<size_t> command_form_combobox_field;
+    std::optional<nw::toolset::VirtualComboBoxPopupPlacement> command_form_combobox_placement;
+    size_t blueprint_review_page = 0;
+    std::string blueprint_operation_markup;
     nw::toolset::DialogViewState dialog_view;
     nw::toolset::ObjectDetailsSnapshot object_details;
     nw::toolset::VirtualListController details_list;
@@ -944,6 +955,7 @@ struct AppState {
     Uint32 open_module_dialog_event = 0;
 
     std::string last_recent_query;
+    uint64_t project_resource_generation = 0;
     std::string home_area_query;
     std::string last_command_query;
     std::string last_output_filter;
@@ -1266,7 +1278,6 @@ void write_dock_preferences(nlohmann::json& prefs, const nw::toolset::DockLayout
         dock["active_widget"] = pane.active_widget;
     }
 }
-
 
 void load_ui_preferences(AppState& state)
 {
@@ -3133,6 +3144,7 @@ void refresh_recent_list(Rml::ElementDocument* doc, AppState& state)
 
     const std::string query = get_input_value(doc, "recent_search");
     state.last_recent_query = query;
+    state.project_resource_generation = state.backend_ready ? nw::kernel::resman().generation() : 0;
     std::string markup;
 
     state.project_rows.clear();
@@ -7804,6 +7816,7 @@ nw::toolset::CommandContext command_context(AppState& state, nw::toolset::Comman
     context.workspace = &state.workspace;
     context.active_tab_id = state.workspace.active_tab_id();
     context.area_object = state.smalls.active_area();
+    context.play_preview_active = state.play_preview.session.active();
     return context;
 }
 
@@ -9208,6 +9221,382 @@ bool handle_area_object_key(ClientRenderer& renderer,
     return true;
 }
 
+void sync_command_overlay_visibility(AppState& state)
+{
+    auto* doc = state.command_overlay_document;
+    if (!doc) { return; }
+    const bool active = state.command_form || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending();
+    if (active && !doc->IsVisible()) {
+        doc->Show(Rml::ModalFlag::Modal);
+    } else if (!active && doc->IsVisible()) {
+        doc->Hide();
+    }
+}
+
+void close_command_form_combobox(AppState& state)
+{
+    if (state.command_form_combobox_field) {
+        const auto id = "command_form_field_"
+            + std::to_string(*state.command_form_combobox_field);
+        if (auto* field = find_el(
+                state.command_overlay_document, id.c_str())) {
+            field->SetClass("open", false);
+        }
+    }
+    state.command_form_combobox.close();
+    state.command_form_combobox_field.reset();
+    state.command_form_combobox_placement.reset();
+    if (auto* popup = find_el(state.command_overlay_document,
+            "command_form_combobox_popup")) {
+        popup->SetClass("active", false);
+        popup->SetInnerRML("");
+    }
+}
+
+bool open_command_form_combobox(AppState& state, size_t field_index)
+{
+    if (!state.command_form
+        || field_index >= state.command_form->fields.size()) {
+        return false;
+    }
+    const auto& field = state.command_form->fields[field_index];
+    if (field.choices.empty()
+        || field.choices.size()
+            > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        return false;
+    }
+    if (state.command_form_combobox_field == field_index
+        && state.command_form_combobox.is_active()) {
+        if (state.command_form_combobox.popup_visible()) {
+            state.command_form_combobox.hide_popup();
+        } else {
+            (void)state.command_form_combobox.show_popup();
+        }
+        state.command_form_combobox_placement.reset();
+        return true;
+    }
+
+    absl::flat_hash_set<std::string_view> values;
+    values.reserve(field.choices.size());
+    std::vector<nw::toolset::VirtualComboBoxItem> options;
+    options.reserve(field.choices.size());
+    int32_t selected = -1;
+    for (size_t index = 0; index < field.choices.size(); ++index) {
+        const auto& choice = field.choices[index];
+        if (choice.value.empty() || !values.insert(choice.value).second) {
+            return false;
+        }
+        const auto key = static_cast<int32_t>(index);
+        options.push_back({key, choice.label, {}});
+        if (choice.value == field.value) { selected = key; }
+    }
+    if (selected < 0) { return false; }
+
+    close_command_form_combobox(state);
+    if (!state.command_form_combobox.open(
+            std::move(options), selected)) {
+        return false;
+    }
+    state.command_form_combobox_field = field_index;
+    state.command_form_combobox_placement.reset();
+    return true;
+}
+
+void sync_command_form_combobox(AppState& state, bool force = false)
+{
+    auto* doc = state.command_overlay_document;
+    auto* popup = find_el(doc, "command_form_combobox_popup");
+    if (!popup || !state.command_form
+        || !state.command_form_combobox_field
+        || !state.command_form_combobox.is_active()) {
+        return;
+    }
+    const auto field_index = *state.command_form_combobox_field;
+    if (field_index >= state.command_form->fields.size()) {
+        close_command_form_combobox(state);
+        return;
+    }
+    const auto field_id = "command_form_field_"
+        + std::to_string(field_index);
+    auto* field = find_el(doc, field_id.c_str());
+    auto* bounds = find_el(doc, "command_form_overlay");
+    if (!field || !bounds) {
+        close_command_form_combobox(state);
+        return;
+    }
+
+    const bool visible = state.command_form_combobox.popup_visible();
+    field->SetClass("open", visible);
+    popup->SetClass("active", visible);
+    if (!visible) { return; }
+
+    const nw::toolset::VirtualComboBoxRect anchor{
+        .x = static_cast<int>(std::lround(
+            field->GetAbsoluteLeft() - bounds->GetAbsoluteLeft())),
+        .y = static_cast<int>(std::lround(
+            field->GetAbsoluteTop() - bounds->GetAbsoluteTop())),
+        .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
+        .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
+    };
+    const nw::toolset::VirtualComboBoxRect bounds_rect{
+        .width = static_cast<int>(std::lround(std::max(
+            bounds->GetClientWidth(), bounds->GetOffsetWidth()))),
+        .height = static_cast<int>(std::lround(std::max(
+            bounds->GetClientHeight(), bounds->GetOffsetHeight()))),
+    };
+    const auto placement = state.command_form_combobox.place_popup(
+        anchor, bounds_rect);
+    if (placement.width <= 0 || placement.height <= 0) { return; }
+    if (!state.command_form_combobox_placement
+        || *state.command_form_combobox_placement != placement) {
+        popup->SetProperty("left", std::to_string(placement.left) + "px");
+        popup->SetProperty("top", std::to_string(placement.top) + "px");
+        popup->SetProperty("width", std::to_string(placement.width) + "px");
+        popup->SetProperty("height", std::to_string(placement.height) + "px");
+        state.command_form_combobox_placement = placement;
+    }
+
+    const int observed_scroll_top = std::max(0,
+        static_cast<int>(std::lround(popup->GetScrollTop())));
+    auto update = state.command_form_combobox.update(
+        placement.height, observed_scroll_top, force);
+    if (update.replace_markup) {
+        popup->SetInnerRML(update.markup);
+    }
+    if (update.set_scroll) {
+        popup->SetScrollTop(static_cast<float>(update.scroll_top));
+    }
+}
+
+void sync_command_form(AppState& state, bool force = false)
+{
+    sync_command_overlay_visibility(state);
+    auto* doc = state.command_overlay_document;
+    auto* host = find_el(doc, "command_form_overlay");
+    if (!host) { return; }
+    const bool rendered = state.rendered_command_form_generation != state.command_form_generation;
+    if (rendered) {
+        close_command_form_combobox(state);
+        state.rendered_command_form_generation = state.command_form_generation;
+        host->SetClass("active", bool(state.command_form));
+        if (!state.command_form) {
+            host->SetInnerRML("");
+            return;
+        }
+        const auto& form = *state.command_form;
+        std::string markup = "<div class=\"command_form\"><div class=\"command_form_title\">" + escape_html(form.title)
+            + "</div><div class=\"command_form_message\">" + escape_html(form.message) + "</div>";
+        for (size_t index = 0; index < form.fields.size(); ++index) {
+            const auto& field = form.fields[index];
+            const auto id = "command_form_field_" + std::to_string(index);
+            markup += "<div class=\"command_form_row\"><label for=\"" + id + "\">" + escape_html(field.label) + "</label>";
+            if (field.choices.empty()) {
+                markup += "<input type=\"text\" id=\"" + id + "\" value=\"" + escape_html(field.value) + "\"/>";
+            } else {
+                const auto selected = std::ranges::find(
+                    field.choices, field.value,
+                    &nw::toolset::CommandPromptChoice::value);
+                markup += "<button type=\"button\" id=\"" + id
+                    + "\" class=\"combobox_field command_form_choice_field\" data-field=\""
+                    + std::to_string(index)
+                    + "\"><span class=\"combobox_value\">";
+                if (selected != field.choices.end()) {
+                    markup += escape_html(selected->label);
+                }
+                markup += "</span><span class=\"combobox_arrow\"><span class=\"combobox_arrow_indicator\"></span></span></button>";
+            }
+            if (field.directory) { markup += "<button class=\"command_form_browse\">Browse...</button>"; }
+            markup += "</div>";
+        }
+        const bool has_feedback = !form.fields.empty() || !form.detail.empty() || !form.file_suffix.empty();
+        if (has_feedback) {
+            markup += "<div class=\"command_form_feedback\"><div id=\"command_form_filename\"></div><div id=\"command_form_detail\">"
+                + escape_html(form.detail) + "</div><div id=\"command_form_error\"></div></div>";
+        }
+        markup += "<div class=\"command_form_actions\">";
+        for (size_t index = 0; index < form.actions.size(); ++index) {
+            markup += "<button class=\"command_form_action "
+                + std::string{index == 0 ? "command_form_action_primary" : "command_form_action_secondary"}
+                + "\" id=\"command_form_action_" + std::to_string(index)
+                + "\" data-index=\"" + std::to_string(index) + "\">" + escape_html(form.actions[index].label) + "</button>";
+        }
+        markup += "</div></div><div id=\"command_form_combobox_popup\" class=\"combobox_options combobox_popup command_form_combobox_popup\"></div>";
+        host->SetInnerRML(markup);
+        if (auto* input = find_el(doc, "command_form_field_0")) { input->Focus(); }
+    }
+    if (!state.command_form) { return; }
+    auto& form = *state.command_form;
+    bool changed = false;
+    bool complete = true;
+    for (size_t index = 0; index < form.fields.size(); ++index) {
+        auto& field = form.fields[index];
+        if (field.choices.empty()) {
+            const auto id = "command_form_field_" + std::to_string(index);
+            const auto value = get_input_value(doc, id.c_str());
+            changed |= field.value != value;
+            field.value = value;
+        }
+        const auto selected = std::ranges::find(
+            field.choices, field.value,
+            &nw::toolset::CommandPromptChoice::value);
+        complete &= !field.value.empty()
+            && (field.choices.empty() || selected != field.choices.end());
+    }
+    if (!changed && !rendered && !force) {
+        sync_command_form_combobox(state);
+        return;
+    }
+    if (changed) { form.detail.clear(); }
+    std::string diagnostic;
+    std::string filename;
+    if (!form.file_suffix.empty() && form.fields.size() >= 2) {
+        std::string normalized;
+        if (nw::toolset::validate_blueprint_resref(form.fields[0].value, normalized, diagnostic)) {
+            const std::array destinations{nw::toolset::BlueprintDestination{
+                nw::Resource::from_filename(normalized + form.file_suffix), form.fields[1].value}};
+            const auto result = nw::toolset::validate_blueprint_destinations(state.backend.current_project_dir(), destinations);
+            diagnostic = result[0].error;
+            if (!result[0].target.empty()) { filename = result[0].target.lexically_relative(state.backend.current_project_dir()).generic_string(); }
+        }
+    }
+    if (auto* target = find_el(doc, "command_form_filename")) { target->SetInnerRML(escape_html(filename)); }
+    if (auto* detail = find_el(doc, "command_form_detail")) { detail->SetInnerRML(escape_html(form.detail)); }
+    if (auto* error = find_el(doc, "command_form_error")) { error->SetInnerRML(escape_html(diagnostic)); }
+    if (auto* button = find_el(doc, "command_form_action_0")) {
+        const bool enabled = complete && diagnostic.empty();
+        button->SetClass("disabled", !enabled);
+        if (enabled) {
+            button->RemoveAttribute("disabled");
+        } else {
+            button->SetAttribute("disabled", true);
+        }
+    }
+    sync_command_form_combobox(state, force);
+}
+
+bool commit_command_form_combobox(AppState& state, int32_t choice_index)
+{
+    if (!state.command_form || !state.command_form_combobox_field
+        || choice_index < 0) {
+        return false;
+    }
+    const auto field_index = *state.command_form_combobox_field;
+    if (field_index >= state.command_form->fields.size()) { return false; }
+    auto& field = state.command_form->fields[field_index];
+    const auto index = static_cast<size_t>(choice_index);
+    if (index >= field.choices.size()
+        || !state.command_form_combobox.select_key(choice_index)) {
+        return false;
+    }
+
+    field.value = field.choices[index].value;
+    state.command_form->detail.clear();
+    const auto field_id = "command_form_field_" + std::to_string(field_index);
+    auto* field_element = find_el(
+        state.command_overlay_document, field_id.c_str());
+    if (field_element) {
+        if (auto* value = find_ancestor_with_class(
+                field_element->GetChild(0), "combobox_value")) {
+            value->SetInnerRML(escape_html(field.choices[index].label));
+        }
+    }
+    close_command_form_combobox(state);
+    sync_command_form(state, true);
+    if (field_element) { field_element->Focus(); }
+    return true;
+}
+
+void sync_blueprint_operation(AppState& state)
+{
+    sync_command_overlay_visibility(state);
+    auto* doc = state.command_overlay_document;
+    auto* host = find_el(doc, "blueprint_operation_overlay");
+    if (!host) { return; }
+    host->SetClass("active", (state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()));
+    if (!(state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending())) {
+        if (!state.blueprint_operation_markup.empty()) {
+            host->SetInnerRML("");
+            state.blueprint_operation_markup.clear();
+        }
+        state.blueprint_review_page = 0;
+        return;
+    }
+    const nw::toolset::BlueprintOperationProgress publication{.stage = "finalizing", .detail = "Blueprint saved; retry resource and document publication before editing.", .error = "Publication is pending"};
+    const auto& progress = state.backend.blueprint_publication_pending() ? publication : state.backend.blueprint_progress();
+    const auto& documents = state.backend.blueprint_updated_documents();
+    const bool ready = progress.stage == "ready" && !state.backend.blueprint_worker_active();
+    const bool restore = progress.stage == "restore_ready" || progress.stage == "recovery";
+    const bool complete = progress.stage == "complete" || progress.stage == "failed";
+    std::string label = progress.stage;
+    const std::array<std::pair<const char*, const char*>, 16> labels{{std::pair{"starting", "Starting"}, {"resolving", "Resolving blueprint dependencies"},
+        {"preparing_live", "Preparing live instances"},
+        {"discovering", "Finding documents"}, {"scanning", "Scanning documents"}, {"preparing", "Preparing replacements"},
+        {"ready", "Review replacements"}, {"checking", "Checking for changes"}, {"saving", "Saving documents"},
+        {"saved", "Finalizing"}, {"finalizing", "Finalizing"}, {"restore_ready", "Review restoration"},
+        {"restoring", "Restoring original files"}, {"recovery", "Recovery required"}, {"failed", "Update stopped"}, {"complete", "Complete"}}};
+    for (const auto& [stage, title] : labels) {
+        if (progress.stage == stage) {
+            label = title;
+            break;
+        }
+    }
+    std::string markup = "<div class=\"command_form\"><div class=\"command_form_title\">Update Blueprint References</div><div class=\"blueprint_operation_stage\">"
+        + escape_html(label) + "</div>";
+    if (!ready && !restore && !complete) {
+        markup += "<div class=\"home_import_progress\"><div class=\"";
+        if (progress.total) {
+            const auto percent = 100.0 * static_cast<double>(progress.completed) / static_cast<double>(progress.total);
+            markup += "blueprint_progress_fill\" style=\"width:" + std::to_string(std::clamp(percent, 0.0, 100.0)) + "%\"></div></div>";
+            markup += "<div class=\"blueprint_operation_progress_text\">" + std::to_string(progress.completed) + " / " + std::to_string(progress.total) + " " + escape_html(progress.unit) + "</div>";
+        } else {
+            markup += "home_import_progress_fill\"></div></div>";
+        }
+    }
+    markup += "<div class=\"blueprint_operation_detail\">" + escape_html(progress.detail) + "</div>";
+    if (ready || complete) {
+        markup += "<div class=\"blueprint_operation_summary\">" + std::to_string(progress.instances) + " instances, " + std::to_string(documents.size()) + " changed documents";
+        if (progress.covered) { markup += "; " + std::to_string(progress.covered) + " nested matches covered by a parent replacement"; }
+        if (progress.reference_uses) { markup += "; " + std::to_string(progress.reference_uses) + " blueprint reference uses already point to this blueprint"; }
+        markup += "</div>";
+    }
+    if (ready || restore) {
+        constexpr size_t page_size = 20;
+        const auto pages = std::max(size_t{1}, (documents.size() + page_size - 1) / page_size);
+        state.blueprint_review_page = std::min(state.blueprint_review_page, pages - 1);
+        const auto start = state.blueprint_review_page * page_size;
+        markup += "<div class=\"blueprint_review_documents\">";
+        for (size_t index = start; index < std::min(documents.size(), start + page_size); ++index) {
+            markup += "<div>" + escape_html(documents[index].lexically_relative(state.backend.current_project_dir()).generic_string()) + "</div>";
+        }
+        markup += "</div>";
+        if (pages > 1) {
+            markup += "<div class=\"blueprint_operation_page_actions\"><button class=\"blueprint_operation_page\" data-delta=\"-1\">Previous</button><span>"
+                + std::to_string(state.blueprint_review_page + 1) + " / " + std::to_string(pages)
+                + "</span><button class=\"blueprint_operation_page\" data-delta=\"1\">Next</button></div>";
+        }
+    }
+    if (!progress.error.empty()) { markup += "<div class=\"blueprint_operation_error\">" + escape_html(progress.error) + "</div>"; }
+    const auto button = [&](const char* command, const char* title, bool primary) {
+        markup += std::string{"<button class=\"blueprint_authoring_action command_form_action "}
+            + (primary ? "command_form_action_primary" : "command_form_action_secondary")
+            + "\" data-command=\"" + command + "\">" + title + "</button>";
+    };
+    markup += "<div class=\"command_form_actions\">";
+    if (ready && !documents.empty()) { button("blueprint.references.apply", "Update Instances", true); }
+    if (restore) { button("blueprint.references.restore_apply", "Restore Original Files", true); }
+    if (progress.stage == "finalizing" && !progress.error.empty()) { button(state.backend.blueprint_publication_pending() ? "blueprint.refresh" : "blueprint.references.retry", "Retry Publication", true); }
+    if (progress.stage == "finalizing" && !progress.error.empty() && !state.backend.blueprint_publication_pending()) { button("blueprint.references.restore_apply", "Restore Original Files", false); }
+    if (progress.stage != "recovery" && progress.stage != "finalizing" && progress.stage != "restoring") {
+        button("blueprint.references.cancel", complete || (ready && documents.empty()) ? "Close" : "Cancel", false);
+    }
+    markup += "</div></div>";
+    if (markup != state.blueprint_operation_markup) {
+        state.blueprint_operation_markup = markup;
+        host->SetInnerRML(markup);
+        host->Focus();
+    }
+}
+
 std::optional<nw::toolset::CommandPromptAction> show_command_prompt(
     SDL_Window* window, const nw::toolset::CommandPrompt& prompt)
 {
@@ -9261,6 +9650,15 @@ nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
     bool prompted = false;
     while (result.prompt) {
         prompted = true;
+        if (!result.prompt->fields.empty()
+            || result.prompt->id.starts_with("blueprint.")) {
+            state.command_form = std::move(*result.prompt);
+            ++state.command_form_generation;
+            result.prompt.reset();
+            result.status = nw::toolset::CommandStatus::noop;
+            result.output_channel = nw::toolset::CommandOutputChannel::none;
+            break;
+        }
         const auto action = show_command_prompt(window, *result.prompt);
         if (!action || action->command_id.empty()) {
             result = {};
@@ -9432,6 +9830,19 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
     const bool canceled = result->canceled;
     delete result;
 
+    if (command == "blueprint.directory") {
+        if (state.command_form && state.command_form_browse_generation == state.command_form_generation) {
+            if (!error.empty()) {
+                state.command_form->detail = error;
+            } else if (!canceled && state.command_form->fields.size() >= 2) {
+                state.command_form->fields[1].value = path;
+            }
+            ++state.command_form_generation;
+            sync_command_form(state);
+        }
+        return;
+    }
+
     if (!error.empty()) {
         append_output(state, "error", std::string{"File dialog failed: "} + error);
         if (importing) {
@@ -9489,6 +9900,110 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
         refresh_workspace_view(doc, state);
     }
 }
+
+void run_command_form_action(SDL_Window* window, Rml::ElementDocument* doc, AppState& state, size_t index)
+{
+    if (!state.command_form || index >= state.command_form->actions.size() || state.module_dialog_open) { return; }
+    sync_command_form(state, true);
+    const auto button_id = "command_form_action_" + std::to_string(index);
+    if (auto* button = find_el(state.command_overlay_document, button_id.c_str()); button && button->HasAttribute("disabled")) { return; }
+    auto action = state.command_form->actions[index];
+    if (action.id != "cancel") {
+        for (size_t field = 0; field < state.command_form->fields.size(); ++field) {
+            const auto& prompt_field = state.command_form->fields[field];
+            if (prompt_field.choices.empty()) {
+                const auto id = "command_form_field_" + std::to_string(field);
+                action.args.push_back(get_input_value(
+                    state.command_overlay_document, id.c_str()));
+            } else {
+                action.args.push_back(prompt_field.value);
+            }
+        }
+    }
+    close_command_form_combobox(state);
+    state.command_form.reset();
+    ++state.command_form_generation;
+    std::vector<std::string_view> args;
+    for (const auto& argument : action.args) {
+        args.push_back(argument);
+    }
+    (void)dispatch_command_flow(window, state, action.command_id, std::move(args), nw::toolset::CommandSource::widget);
+    refresh_recent_list(doc, state);
+    refresh_workspace_view(doc, state);
+    sync_command_form(state);
+}
+
+class BlueprintActionListener final : public Rml::EventListener {
+public:
+    BlueprintActionListener(SDL_Window* window, Rml::ElementDocument* document, AppState& state)
+        : window_{window}
+        , document_{document}
+        , state_{state}
+    {
+    }
+
+    void ProcessEvent(Rml::Event& event) override
+    {
+        if (auto* page_button = find_ancestor_with_class(event.GetTargetElement(), "blueprint_operation_page")) {
+            const auto delta = parse_decimal_int32(page_button->GetAttribute<Rml::String>("data-delta", ""));
+            if (delta && *delta < 0 && state_.blueprint_review_page) {
+                --state_.blueprint_review_page;
+            } else if (delta && *delta > 0) {
+                ++state_.blueprint_review_page;
+            }
+            sync_blueprint_operation(state_);
+        } else if (auto* option = find_ancestor_with_class(
+                       event.GetTargetElement(), "combobox_option")) {
+            const auto key = parse_decimal_int32(
+                option->GetAttribute<Rml::String>("data-key", ""));
+            if (key) { (void)commit_command_form_combobox(state_, *key); }
+        } else if (auto* field = find_ancestor_with_class(
+                       event.GetTargetElement(), "command_form_choice_field")) {
+            const auto index = parse_decimal_int32(
+                field->GetAttribute<Rml::String>("data-field", ""));
+            if (index && *index >= 0
+                && open_command_form_combobox(
+                    state_, static_cast<size_t>(*index))) {
+                sync_command_form_combobox(state_, true);
+                field->Focus();
+            }
+        } else if (auto* button = find_ancestor_with_class(event.GetTargetElement(), "blueprint_authoring_action")) {
+            const auto command = button->GetAttribute<Rml::String>("data-command", "");
+            (void)dispatch_command_flow(window_, state_, command, {}, nw::toolset::CommandSource::widget);
+            refresh_recent_list(document_, state_);
+            refresh_workspace_view(document_, state_);
+            sync_command_form(state_);
+            sync_blueprint_operation(state_);
+        } else if (auto* action = find_ancestor_with_class(event.GetTargetElement(), "command_form_action")) {
+            const auto index = parse_decimal_int32(action->GetAttribute<Rml::String>("data-index", ""));
+            if (index && *index >= 0) { run_command_form_action(window_, document_, state_, static_cast<size_t>(*index)); }
+        } else if (find_ancestor_with_class(event.GetTargetElement(), "command_form_browse")) {
+            if (!state_.command_form || state_.module_dialog_open || state_.open_module_dialog_event == 0) { return; }
+            close_command_form_combobox(state_);
+            sync_command_form(state_);
+            const auto chosen = std::filesystem::path{state_.command_form->fields[1].value};
+            state_.module_dialog_default_location = (chosen.is_absolute() ? chosen : state_.backend.current_project_dir() / chosen).string();
+            state_.module_dialog_command = "blueprint.directory";
+            state_.command_form_browse_generation = state_.command_form_generation;
+            state_.module_dialog_open = true;
+            SDL_ShowOpenFolderDialog(open_module_dialog_callback,
+                new OpenModuleDialogRequest{state_.open_module_dialog_event}, window_,
+                state_.module_dialog_default_location.c_str(), false);
+        } else if (state_.command_form_combobox.is_active()
+            && !nw::toolset::combobox_contains_element(
+                event.GetTargetElement())) {
+            close_command_form_combobox(state_);
+        } else {
+            return;
+        }
+        event.StopPropagation();
+    }
+
+private:
+    SDL_Window* window_;
+    Rml::ElementDocument* document_;
+    AppState& state_;
+};
 
 class HomeProjectActionListener final : public Rml::EventListener {
 public:
@@ -9632,6 +10147,19 @@ int run_project_init_cli(int argc, char* argv[])
     return result.ok ? 0 : 1;
 }
 
+void start_client_kernel(const std::filesystem::path& install, const std::filesystem::path& user)
+{
+    nw::kernel::config().set_paths(install, user);
+    nw::ConfigOptions options;
+    options.profile = "nwn1";
+    options.init_module = "";
+    nw::kernel::config().initialize(std::move(options));
+    nw::kernel::config().set_init_module("");
+    nw::kernel::services().create();
+    register_smalls_packages();
+    nw::kernel::services().start();
+}
+
 bool ensure_project_import_kernel(nw::toolset::ProjectImportFormat format, std::ostream& err)
 {
     if (format != nw::toolset::ProjectImportFormat::json) {
@@ -9649,15 +10177,7 @@ bool ensure_project_import_kernel(nw::toolset::ProjectImportFormat format, std::
     }
 
     try {
-        nw::kernel::config().set_paths(install.install, install.user);
-        nw::ConfigOptions config_options;
-        config_options.profile = "nwn1";
-        config_options.init_module = "";
-        nw::kernel::config().initialize(std::move(config_options));
-        nw::kernel::config().set_init_module("");
-        nw::kernel::services().create();
-        register_smalls_packages();
-        nw::kernel::services().start();
+        start_client_kernel(install.install, install.user);
     } catch (const std::exception& e) {
         err << "rollnw-client: failed to initialize import services: " << e.what() << '\n';
         return false;
@@ -9714,6 +10234,37 @@ int run_project_cli_if_requested(int argc, char* argv[])
     }
 
     const std::string_view command{argv[1]};
+    if (command == "blueprint-update") {
+        if (argc != 4) { return 2; }
+        try {
+            const std::filesystem::path operation{argv[2]};
+            const std::string_view phase{argv[3]};
+            if (phase != "restore") {
+                std::ifstream input{operation / "request.json"};
+                const auto request = nlohmann::json::parse(input);
+                if (request.at("version") != 1 || request.at("profile") != "nwn1") {
+                    std::cerr << "Unsupported blueprint worker configuration\n";
+                    return 1;
+                }
+                start_client_kernel(request.at("install").get<std::string>(), request.at("user").get<std::string>());
+                const std::filesystem::path project{request.at("project").get<std::string>()};
+                const auto options = nw::kernel::module_load_options_for_project(project);
+                if (!nw::kernel::load_module(project, false, options)) {
+                    std::cerr << "Cannot load blueprint operation project\n";
+                    return 1;
+                }
+            }
+            std::string error;
+            if (!nw::toolset::run_blueprint_update_operation(operation, phase, error)) {
+                std::cerr << error << '\n';
+                return 1;
+            }
+            return 0;
+        } catch (const std::exception& ex) {
+            std::cerr << ex.what() << '\n';
+            return 1;
+        }
+    }
     if (command == "init") {
         return run_project_init_cli(argc, argv);
     }
@@ -9754,15 +10305,7 @@ int main(int argc, char* argv[])
         LOG_F(ERROR, "rollnw-client: failed to find NWN install; set NWN_ROOT and NWN_HOME");
         return 1;
     }
-    nw::kernel::config().set_paths(install.install, install.user);
-    nw::ConfigOptions config_options;
-    config_options.profile = "nwn1";
-    config_options.init_module = "";
-    nw::kernel::config().initialize(std::move(config_options));
-    nw::kernel::config().set_init_module("");
-    nw::kernel::services().create();
-    register_smalls_packages();
-    nw::kernel::services().start();
+    start_client_kernel(install.install, install.user);
 
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
     if (!SDL_SetAppMetadata("rollnw | client", ROLLNW_TOOL_VERSION, ROLLNW_CLIENT_APP_ID)) {
@@ -9847,7 +10390,8 @@ int main(int argc, char* argv[])
     ui_resources.build_registry();
     const nw::Resource panel_rml{nw::Resref{"ui/panel"}, nw::ResourceType::rml};
     const nw::Resource panel_rcss{nw::Resref{"ui/panel"}, nw::ResourceType::rcss};
-    if (!ui_resources.contains(panel_rml) || !ui_resources.contains(panel_rcss)) {
+    const nw::Resource command_modals_rml{nw::Resref{"ui/command_modals"}, nw::ResourceType::rml};
+    if (!ui_resources.contains(panel_rml) || !ui_resources.contains(panel_rcss) || !ui_resources.contains(command_modals_rml)) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "rollnw client UI resource package is incomplete: %s", ui_dir.string().c_str());
         return 1;
     }
@@ -10005,6 +10549,8 @@ int main(int argc, char* argv[])
     doc->Show();
     HomeProjectActionListener home_project_action_listener{window, doc, state};
     context->AddEventListener("click", &home_project_action_listener);
+    BlueprintActionListener blueprint_action_listener{window, doc, state};
+    palette_context->AddEventListener("click", &blueprint_action_listener);
     const std::filesystem::path executable_arg{argv[0]};
     state.client_executable = executable_arg.has_parent_path()
         ? std::filesystem::absolute(executable_arg)
@@ -10015,6 +10561,13 @@ int main(int argc, char* argv[])
         return 1;
     }
     palette_doc->Show();
+    // The command context renders after the native viewport. Modal UI belongs
+    // here; z-index in the main document cannot cover a later native draw.
+    state.command_overlay_document = load_rml_document_from_resource(*palette_context, ui_resources, command_modals_rml);
+    if (!state.command_overlay_document) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: ui/command_modals.rml");
+        return 1;
+    }
     auto* fps_doc = load_viewer_fps_document(*fps_context);
     if (!fps_doc) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: viewer_fps_overlay.rml");
@@ -10059,7 +10612,13 @@ int main(int argc, char* argv[])
 #if defined(ROLLNW_ENABLE_TRACY)
         FrameMark;
 #endif
+        if (const auto result = state.backend.poll_blueprint_updates(state.client_executable)) {
+            if (!result->message.empty()) { append_output(state, result->ok() ? "info" : "error", result->message); }
+            refresh_workspace_view(doc, state);
+        }
+        sync_blueprint_operation(state);
         poll_project_import(window, doc, state);
+        sync_command_form(state);
         synchronize_smalls_runtime(state);
         const Uint64 frame_start_counter = SDL_GetPerformanceCounter();
         const Uint64 frame_start_ms = SDL_GetTicks();
@@ -10095,6 +10654,108 @@ int main(int argc, char* argv[])
             }
             if (consume_terminal_toggle_text_input(state, event)) {
                 continue;
+            }
+
+            if ((state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending())) {
+                if (event.type == SDL_EVENT_QUIT) {
+                    if (state.backend.blueprint_progress().stage == "recovery" && !state.backend.blueprint_worker_active()
+                        && !state.workspace.has_dirty_tabs()) {
+                        running = false;
+                        continue;
+                    }
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Blueprint update in progress",
+                        "Finish or cancel the blueprint operation before quitting.", window);
+                    continue;
+                }
+                if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP
+                    || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING
+                    || event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN
+                    || event.type == SDL_EVENT_MOUSE_BUTTON_UP || event.type == SDL_EVENT_MOUSE_WHEEL) {
+                    RmlSDL::InputEventHandler(palette_context, window, event);
+                    continue;
+                }
+            }
+            if (state.command_form) {
+                if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) {
+                    auto* focused_choice = find_ancestor_with_class(
+                        palette_context->GetFocusElement(),
+                        "command_form_choice_field");
+                    const bool choice_key = focused_choice
+                        && !(event.key.mod
+                            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+                    const auto focused_field = choice_key
+                        ? parse_decimal_int32(
+                              focused_choice->GetAttribute<Rml::String>(
+                                  "data-field", ""))
+                        : std::nullopt;
+                    if (event.key.key == SDLK_ESCAPE
+                        && state.command_form_combobox.is_active()) {
+                        close_command_form_combobox(state);
+                        continue;
+                    }
+                    if (event.key.key == SDLK_TAB
+                        && state.command_form_combobox.is_active()) {
+                        close_command_form_combobox(state);
+                    }
+                    if (focused_field && *focused_field >= 0
+                        && (event.key.key == SDLK_UP
+                            || event.key.key == SDLK_DOWN)) {
+                        const auto field_index = static_cast<size_t>(*focused_field);
+                        if (state.command_form_combobox_field != field_index
+                            || !state.command_form_combobox.is_active()) {
+                            (void)open_command_form_combobox(
+                                state, field_index);
+                        } else if (!state.command_form_combobox.popup_visible()) {
+                            (void)state.command_form_combobox.show_popup();
+                        }
+                        (void)state.command_form_combobox.move_selection(
+                            event.key.key == SDLK_UP ? -1 : 1);
+                        sync_command_form_combobox(state, true);
+                        continue;
+                    }
+                    if (focused_field && *focused_field >= 0
+                        && (event.key.key == SDLK_RETURN
+                            || event.key.key == SDLK_KP_ENTER)) {
+                        const auto field_index = static_cast<size_t>(*focused_field);
+                        if (state.command_form_combobox_field != field_index
+                            || !state.command_form_combobox.is_active()) {
+                            if (open_command_form_combobox(
+                                    state, field_index)) {
+                                sync_command_form_combobox(state, true);
+                            }
+                        } else if (!state.command_form_combobox.popup_visible()) {
+                            (void)state.command_form_combobox.show_popup();
+                            sync_command_form_combobox(state, true);
+                        } else if (const auto selected
+                            = state.command_form_combobox.selected_key()) {
+                            (void)commit_command_form_combobox(
+                                state, *selected);
+                        }
+                        continue;
+                    }
+                    std::optional<size_t> action_index;
+                    if (event.key.key == SDLK_ESCAPE) {
+                        const auto cancel = std::find_if(state.command_form->actions.begin(), state.command_form->actions.end(), [](const auto& action) { return action.id == "cancel"; });
+                        if (cancel != state.command_form->actions.end()) {
+                            action_index = static_cast<size_t>(std::distance(state.command_form->actions.begin(), cancel));
+                        }
+                    } else if (event.key.key == SDLK_RETURN
+                        && !state.command_form->actions.empty()) {
+                        action_index = 0;
+                    }
+                    if (action_index) {
+                        run_command_form_action(window, doc, state, *action_index);
+                        continue;
+                    }
+                    if (event.key.key == SDLK_ESCAPE) { continue; }
+                }
+                if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP
+                    || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING
+                    || event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN
+                    || event.type == SDL_EVENT_MOUSE_BUTTON_UP || event.type == SDL_EVENT_MOUSE_WHEEL) {
+                    RmlSDL::InputEventHandler(palette_context, window, event);
+                    continue;
+                }
             }
 
             bool dispatched_to_rml = false;
@@ -12197,7 +12858,10 @@ int main(int argc, char* argv[])
             refresh_workspace_tabs(doc, state);
             const bool area_structure_changed = mutation.area_structure_epoch != state.observed_area_structure_epoch;
             state.observed_area_structure_epoch = mutation.area_structure_epoch;
-            if (area_structure_changed) {
+            const auto* displayed_tab = state.workspace.active_tab();
+            const bool changed_area_visible = displayed_tab && displayed_tab->kind == nw::toolset::WorkspaceTabKind::area
+                && displayed_tab->document.object() == mutation.area;
+            if (area_structure_changed && changed_area_visible) {
                 cancel_area_object_drag(renderer, state);
                 if (!renderer.rebuild_live_viewer_area(mutation.area, mutation.object)) {
                     append_output(state, "error", "Failed to rebuild the live area viewport after structural edit");
@@ -12379,7 +13043,9 @@ int main(int argc, char* argv[])
         }
 
         const std::string recent_query = get_input_value(doc, "recent_search");
-        if (recent_query != state.last_recent_query) {
+        sync_command_form(state);
+        if (recent_query != state.last_recent_query
+            || (state.backend_ready && state.project_resource_generation != nw::kernel::resman().generation())) {
             refresh_recent_list(doc, state);
         } else if (state.shell.showing_project_tree) {
             render_project_tree_window(doc, state, false);
@@ -12716,7 +13382,8 @@ int main(int argc, char* argv[])
         }
         const Uint64 overlay_end_counter = SDL_GetPerformanceCounter();
         Uint64 palette_end_counter = overlay_end_counter;
-        if (state.shell.command_palette_visible) {
+        if (state.shell.command_palette_visible || state.command_form
+            || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()) {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerPalette};
             palette_context->Update();
             palette_context->Render();
@@ -12762,6 +13429,7 @@ int main(int argc, char* argv[])
     context->RemoveEventListener(
         "blur", &object_variable_change_listener, true);
     context->RemoveEventListener("click", &home_project_action_listener);
+    palette_context->RemoveEventListener("click", &blueprint_action_listener);
     state.backend.shutdown_item_editor_data_model();
     state.rml_smalls_data_model->shutdown();
     Rml::RemoveContext("command_palette");

@@ -63,6 +63,13 @@ type CreatureResolvedModel {
     error:             string;
 };
 
+[[value_type]]
+type BlueprintChoice {
+    value: int;
+    label: string;
+    selected: bool;
+};
+
 type CreatureBodyPartEditorSnapshot {
     assembly: int;
     values: array!(int);
@@ -607,6 +614,39 @@ fn count_appearances(): int {
     return Appearances.count();
 }
 
+fn get_blueprint_race_choices(): array!(BlueprintChoice) {
+    var result: array!(BlueprintChoice) = {};
+    for (var race = 0; race < races.count(); race += 1) {
+        if (races.exists(race)) {
+            arr.push(result, BlueprintChoice {
+                value = race,
+                label = _localized_editor_name(
+                    races.name_strref(race) as int, f"Race {race}"),
+                selected = race == Const.racial_type_human as int,
+            });
+        }
+    }
+    return result;
+}
+
+fn get_blueprint_class_choices(): array!(BlueprintChoice) {
+    var result: array!(BlueprintChoice) = {};
+    var default_class = races.toolset_default_class(
+        Const.racial_type_human as int);
+    for (var class_id = 0; class_id < Classes.count(); class_id += 1) {
+        var cls = Class(class_id);
+        if (Classes.exists(cls)) {
+            arr.push(result, BlueprintChoice {
+                value = class_id,
+                label = _localized_editor_name(
+                    Classes.name_strref(cls) as int, f"Class {class_id}"),
+                selected = class_id == default_class,
+            });
+        }
+    }
+    return result;
+}
+
 fn _hand_item_reason(info: NativeCreature.AppearanceInfo): int {
     if (!info.has_arms) {
         return appearance_hand_item_hidden_no_arms;
@@ -726,7 +766,7 @@ fn _set_creature_base_plt_colors(creature: Creature, equipment_visible: bool): b
 
     if (equipment_visible) {
         var chest_item = Item.get_equipped_item(creature, Const.equip_index_chest);
-        if ((chest_item as object) != O.invalid
+        if (chest_item != O.invalid
             && NwnItem.get_baseitem_type(chest_item) == Const.base_item_armor) {
             mask = bit.or(mask, Visual.visual_plt_mask_material);
             metal1 = NwnItem.get_visual_model_color(chest_item, NwnItem.item_color_metal1);
@@ -875,7 +915,7 @@ fn update_humanoid_visual_parts(
         head_item = Item.get_equipped_item(creature, Const.equip_index_head);
         chest_item = Item.get_equipped_item(creature, Const.equip_index_chest);
     }
-    var chest_is_armor = (chest_item as object) != O.invalid
+    var chest_is_armor = chest_item != O.invalid
         && NwnItem.get_baseitem_type(chest_item) == Const.base_item_armor;
     var equipped_robe_part = 0;
     if (chest_is_armor) {
@@ -896,7 +936,7 @@ fn update_humanoid_visual_parts(
         if (bit.and(flags, NativeCreature.body_part_info_flag_robe) != 0) {
             continue;
         }
-        if ((head_item as object) != O.invalid && part == Cre.body_part_head) {
+        if (head_item != O.invalid && part == Cre.body_part_head) {
             continue;
         }
         if (_robe_hides_body_part(robe_part, part)) {
@@ -1528,6 +1568,44 @@ fn set_appearance(creature: Creature, appearance: int): bool {
     update_visual(creature);
     NwnItem.update_creature_visual_equipment(creature);
     return false;
+}
+
+fn initialize_blueprint(creature: Creature, race: int, class_id: int): bool {
+    var cls = Class(class_id);
+    var appearance = races.appearance(race);
+    if (creature == O.invalid
+        || !races.exists(race)
+        || !Classes.exists(cls)
+        || !appearance_exists(appearance)) {
+        return false;
+    }
+
+    var stats = get_propset!(CreatureStats)(creature);
+    var levels = get_propset!(CreatureLevels)(creature);
+    var visual = get_propset!(CreatureAppearance)(creature);
+    stats.race = race;
+    for (var ability = 0; ability < 6; ability += 1) {
+        stats.abilities[ability] = Classes.toolset_ability(cls, ability);
+    }
+    var skill_count = Skills.count();
+    arr.clear(stats.skills);
+    arr.reserve(stats.skills, skill_count);
+    for (var skill = 0; skill < skill_count; skill += 1) {
+        arr.push(stats.skills, 0);
+    }
+    for (var slot = 0; slot < 8; slot += 1) {
+        levels.classes[slot] = -1;
+        levels.class_levels[slot] = 0;
+    }
+    levels.classes[0] = class_id;
+    levels.class_levels[0] = 1;
+    visual.appearance = appearance;
+    for (var part = 0; part < Cre.body_part_count; part += 1) {
+        if (!Cre.set_body_part(creature, part, _default_body_part(part))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // == Const.Ability scores ==========================================================
@@ -2303,7 +2381,11 @@ fn get_saving_throw(obj: Creature, save_type: Const.Save): int {
 // Const.Skill rank from propset
 fn get_skill_rank(obj: Creature, skill: Const.Skill): int {
     var stats = get_propset!(CreatureStats)(obj);
-    return stats.skills[skill as int];
+    var index = skill as int;
+    if (index < 0 || index >= arr.len(stats.skills)) {
+        return 0;
+    }
+    return stats.skills[index];
 }
 
 // Full skill rank: rank + ability modifier (if trained or skill is untrained-accessible)

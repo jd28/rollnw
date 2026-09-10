@@ -35,10 +35,12 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -1190,6 +1192,198 @@ TEST(ClientRmlTemplates, WorkspaceTabBarProvidesOverflowControls)
     document->Close();
     context->Update();
     Rml::RemoveContext("workspace-tab-bar-template-test");
+}
+
+TEST(ClientRmlTemplates, DropdownMarkupUsesSharedComboboxInfrastructure)
+{
+    const auto source_root = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR};
+    const std::array roots{
+        source_root / "tools/client",
+        source_root / "tools/ui",
+    };
+    for (const auto& root : roots) {
+        for (const auto& entry :
+            std::filesystem::recursive_directory_iterator{root}) {
+            if (!entry.is_regular_file()) { continue; }
+            const auto extension = entry.path().extension();
+            if (extension != ".cpp" && extension != ".hpp"
+                && extension != ".rml" && extension != ".smalls") {
+                continue;
+            }
+            SCOPED_TRACE(entry.path().string());
+            std::ifstream input{entry.path(), std::ios::binary};
+            ASSERT_TRUE(input);
+            std::string contents{
+                std::istreambuf_iterator<char>{input}, {}};
+            std::ranges::transform(contents, contents.begin(),
+                [](unsigned char ch) {
+                    return static_cast<char>(std::tolower(ch));
+                });
+            EXPECT_EQ(contents.find("<select"), std::string::npos)
+                << "Native select controls bypass VirtualComboBox";
+        }
+    }
+}
+
+TEST(ClientRmlTemplates, BlueprintModalsKeepVisibleControlsInsideTheCommandOverlay)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    std::ifstream font_file{"tools/client/assets/fonts/inter/Inter-Medium.ttf", std::ios::binary};
+    const std::vector<Rml::byte> font{std::istreambuf_iterator<char>{font_file}, {}};
+    ASSERT_FALSE(font.empty());
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace({font.data(), font.size()}, "RollnwSans", Rml::Style::FontStyle::Normal,
+        static_cast<Rml::Style::FontWeight>(500)));
+    auto* context = Rml::CreateContext("blueprint-command-overlay", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/command_modals.rml");
+    ASSERT_NE(document, nullptr);
+    auto* form = document->GetElementById("command_form_overlay");
+    auto* progress = document->GetElementById("blueprint_operation_overlay");
+    ASSERT_NE(form, nullptr);
+    ASSERT_NE(progress, nullptr);
+    form->SetInnerRML(R"RML(
+<div id="dialog" class="command_form">
+  <div id="title" class="command_form_title">New Creature Blueprint</div>
+  <div id="message" class="command_form_message">ResRefs must be unique for this resource type across the module. Folders organize the files.</div>
+  <div id="resref-row" class="command_form_row"><label for="resref">ResRef</label><input id="resref" type="text" value="pl_agent_001"/></div>
+  <div id="directory-row" class="command_form_row"><label for="directory">Directory</label><input id="directory" type="text" value="shared/blueprints/creatures"/><button id="browse" class="command_form_browse">Browse...</button></div>
+  <div id="race-row" class="command_form_row"><label for="race">Race</label><button type="button" id="race" class="combobox_field command_form_choice_field"><span class="combobox_value">Human</span><span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span></button></div>
+  <div id="class-row" class="command_form_row"><label for="class">Base Class</label><button type="button" id="class" class="combobox_field command_form_choice_field"><span class="combobox_value">Fighter</span><span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span></button></div>
+  <div id="feedback" class="command_form_feedback">
+    <div id="command_form_filename">shared/blueprints/creatures/pl_agent_001.utc.json</div>
+    <div id="command_form_detail"></div>
+    <div id="command_form_error">ResRef already exists: pl_agent_001.utc in /home/josh/projects/the_awakening/shared</div>
+  </div>
+  <div id="actions" class="command_form_actions"><button id="create" class="command_form_action command_form_action_primary disabled" disabled>Create</button><button id="cancel" class="command_form_action command_form_action_secondary">Cancel</button></div>
+</div>)RML");
+    form->SetClass("active", true);
+    document->Show(Rml::ModalFlag::Modal);
+    for (const int width : {900, 460}) {
+        SCOPED_TRACE(width);
+        context->SetDimensions({width, 600});
+        context->Update();
+        auto* dialog = document->GetElementById("dialog");
+        ASSERT_NE(dialog, nullptr);
+        EXPECT_GT(dialog->GetAbsoluteLeft(), 0.0f);
+        EXPECT_LE(dialog->GetAbsoluteLeft() + dialog->GetOffsetWidth(), float(width));
+        auto* title = document->GetElementById("title");
+        auto* message = document->GetElementById("message");
+        auto* resref_row = document->GetElementById("resref-row");
+        auto* directory_row = document->GetElementById("directory-row");
+        auto* race_row = document->GetElementById("race-row");
+        auto* class_row = document->GetElementById("class-row");
+        auto* feedback = document->GetElementById("feedback");
+        auto* filename = document->GetElementById("command_form_filename");
+        auto* detail = document->GetElementById("command_form_detail");
+        auto* error = document->GetElementById("command_form_error");
+        auto* actions = document->GetElementById("actions");
+        ASSERT_NE(title, nullptr);
+        ASSERT_NE(message, nullptr);
+        ASSERT_NE(resref_row, nullptr);
+        ASSERT_NE(directory_row, nullptr);
+        ASSERT_NE(race_row, nullptr);
+        ASSERT_NE(class_row, nullptr);
+        ASSERT_NE(feedback, nullptr);
+        ASSERT_NE(filename, nullptr);
+        ASSERT_NE(detail, nullptr);
+        ASSERT_NE(error, nullptr);
+        ASSERT_NE(actions, nullptr);
+        EXPECT_GE(message->GetAbsoluteTop(), title->GetAbsoluteTop() + title->GetOffsetHeight());
+        EXPECT_GE(resref_row->GetAbsoluteTop(), message->GetAbsoluteTop() + message->GetOffsetHeight());
+        EXPECT_GE(directory_row->GetAbsoluteTop(), resref_row->GetAbsoluteTop() + resref_row->GetOffsetHeight());
+        EXPECT_GE(race_row->GetAbsoluteTop(), directory_row->GetAbsoluteTop() + directory_row->GetOffsetHeight());
+        EXPECT_GE(class_row->GetAbsoluteTop(), race_row->GetAbsoluteTop() + race_row->GetOffsetHeight());
+        EXPECT_GE(feedback->GetAbsoluteTop(), class_row->GetAbsoluteTop() + class_row->GetOffsetHeight());
+        EXPECT_GE(detail->GetAbsoluteTop(), filename->GetAbsoluteTop() + filename->GetOffsetHeight());
+        EXPECT_GE(error->GetAbsoluteTop(), detail->GetAbsoluteTop() + detail->GetOffsetHeight());
+        EXPECT_GE(actions->GetAbsoluteTop(), error->GetAbsoluteTop() + error->GetOffsetHeight());
+        for (const auto* id : {"resref", "directory", "race", "class", "browse", "create", "cancel"}) {
+            SCOPED_TRACE(id);
+            auto* control = document->GetElementById(id);
+            ASSERT_NE(control, nullptr);
+            EXPECT_TRUE(control->IsVisible(true));
+            EXPECT_GT(control->GetOffsetWidth(), 0.0f);
+            EXPECT_GE(control->GetOffsetHeight(), 30.0f);
+            EXPECT_GE(control->GetProperty<float>("border-left-width"), 1.0f);
+            EXPECT_GT(control->GetProperty<Rml::Colourb>("background-color").alpha, 0);
+            EXPECT_LE(control->GetAbsoluteLeft() + control->GetOffsetWidth(), dialog->GetAbsoluteLeft() + dialog->GetOffsetWidth());
+        }
+        auto* create = document->GetElementById("create");
+        auto* cancel = document->GetElementById("cancel");
+        ASSERT_NE(create, nullptr);
+        ASSERT_NE(cancel, nullptr);
+        EXPECT_TRUE(create->IsClassSet("command_form_action_primary"));
+        EXPECT_TRUE(cancel->IsClassSet("command_form_action_secondary"));
+        create->SetClass("disabled", true);
+        create->SetAttribute("disabled", true);
+        context->Update();
+        const auto disabled_red = create->GetProperty<Rml::Colourb>("background-color").red;
+        create->SetClass("disabled", false);
+        create->RemoveAttribute("disabled");
+        context->Update();
+        const auto primary_red = create->GetProperty<Rml::Colourb>("background-color").red;
+        const auto secondary_red = cancel->GetProperty<Rml::Colourb>("background-color").red;
+        EXPECT_NE(primary_red, disabled_red);
+        EXPECT_NE(primary_red, secondary_red);
+        EXPECT_TRUE(cancel->Focus());
+        context->Update();
+        EXPECT_EQ(context->GetFocusElement(), cancel);
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(document->GetElementById("resref"));
+        ASSERT_NE(input, nullptr);
+        input->SetValue("");
+        EXPECT_TRUE(input->Focus());
+        EXPECT_EQ(context->GetFocusElement(), input);
+        (void)context->ProcessTextInput(Rml::String{"auth_human"});
+        EXPECT_EQ(input->GetValue(), "auth_human");
+        auto* hit = context->GetElementAtPoint({cancel->GetAbsoluteLeft() + cancel->GetOffsetWidth() / 2,
+            cancel->GetAbsoluteTop() + cancel->GetOffsetHeight() / 2});
+        while (hit && hit != cancel) {
+            hit = hit->GetParentNode();
+        }
+        EXPECT_EQ(hit, cancel);
+        EXPECT_EQ(context->GetElementAtPoint({1, 1}), form);
+    }
+    form->SetClass("active", false);
+    progress->SetClass("active", true);
+    progress->SetInnerRML(R"RML(
+<div id="operation-dialog" class="command_form">
+  <div id="operation-title" class="command_form_title">Update Blueprint References</div>
+  <div id="operation-stage" class="blueprint_operation_stage">Scanning documents</div>
+  <div id="operation-progress" class="home_import_progress"><div id="fill" class="blueprint_progress_fill" style="width:50%"></div></div>
+  <div id="operation-count" class="blueprint_operation_progress_text">5 / 10 documents</div>
+  <div id="operation-detail" class="blueprint_operation_detail">Preparing replacements in the current area</div>
+  <div id="operation-actions" class="command_form_actions"><button class="blueprint_authoring_action command_form_action command_form_action_secondary">Cancel</button></div>
+</div>)RML");
+    context->Update();
+    EXPECT_EQ(context->GetElementAtPoint({1, 1}), progress);
+    auto* operation_title = document->GetElementById("operation-title");
+    auto* operation_stage = document->GetElementById("operation-stage");
+    auto* operation_progress = document->GetElementById("operation-progress");
+    auto* operation_count = document->GetElementById("operation-count");
+    auto* operation_detail = document->GetElementById("operation-detail");
+    auto* operation_actions = document->GetElementById("operation-actions");
+    ASSERT_NE(operation_title, nullptr);
+    ASSERT_NE(operation_stage, nullptr);
+    ASSERT_NE(operation_progress, nullptr);
+    ASSERT_NE(operation_count, nullptr);
+    ASSERT_NE(operation_detail, nullptr);
+    ASSERT_NE(operation_actions, nullptr);
+    EXPECT_GE(operation_stage->GetAbsoluteTop(), operation_title->GetAbsoluteTop() + operation_title->GetOffsetHeight());
+    EXPECT_GE(operation_progress->GetAbsoluteTop(), operation_stage->GetAbsoluteTop() + operation_stage->GetOffsetHeight());
+    EXPECT_GE(operation_count->GetAbsoluteTop(), operation_progress->GetAbsoluteTop() + operation_progress->GetOffsetHeight());
+    EXPECT_GE(operation_detail->GetAbsoluteTop(), operation_count->GetAbsoluteTop() + operation_count->GetOffsetHeight());
+    EXPECT_GE(operation_actions->GetAbsoluteTop(), operation_detail->GetAbsoluteTop() + operation_detail->GetOffsetHeight());
+    auto* fill = document->GetElementById("fill");
+    ASSERT_NE(fill, nullptr);
+    EXPECT_GT(fill->GetOffsetWidth(), 0.0f);
+    EXPECT_FLOAT_EQ(fill->GetOffsetHeight(), 8.0f);
+    document->Hide();
+    context->Update();
+    EXPECT_FALSE(form->IsVisible(true));
+    EXPECT_FALSE(progress->IsVisible(true));
 }
 
 TEST(ClientRmlTemplates, ImportPanelShowsPathsActionsAndBusyBarWithinBounds)
@@ -3176,6 +3370,234 @@ TEST(ClientWorkspaceView, OnlyOpeningAnAreaRequestsViewportFocus)
     EXPECT_FALSE(area_viewport_changed(document, workspace.active_tab()));
     EXPECT_FALSE(area_viewport_changed(document, nullptr));
     EXPECT_FALSE(area_viewport_changed(nullptr, workspace.find_tab("area")));
+}
+
+TEST(ClientRmlSmallsBridge, BlueprintFormsCreateAndCopyThroughTheCommandBus)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    const std::filesystem::path project = "tmp/client_blueprint_commands";
+    std::filesystem::remove_all(project);
+    ProjectImportOptions options;
+    options.format = ProjectImportFormat::json;
+    const auto imported = import_module_project("test_data/user/modules/DockerDemo.mod", project, options);
+    ASSERT_TRUE(imported.ok) << imported.message;
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ASSERT_TRUE(backend.open_project(project.string()).ok());
+    EXPECT_EQ(workspace.active_tab_id(), "home");
+
+    for (const auto type : {"utc", "utp", "uti"}) {
+        const auto result = backend.execute_command("blueprint.new", {type}, {});
+        ASSERT_TRUE(result.prompt) << result.message;
+        EXPECT_EQ(result.prompt->fields[0].label, "ResRef");
+        EXPECT_TRUE(result.prompt->fields[1].directory);
+        const auto field_count = std::string_view{type} == "uti" ? 3u
+            : std::string_view{type} == "utc"                    ? 4u
+                                                                 : 2u;
+        EXPECT_EQ(result.prompt->fields.size(), field_count);
+        if (std::string_view{type} == "utc") {
+            EXPECT_EQ(result.prompt->fields[2].label, "Race");
+            EXPECT_EQ(result.prompt->fields[2].value, "6");
+            EXPECT_FALSE(result.prompt->fields[2].choices.empty());
+            EXPECT_EQ(result.prompt->fields[3].label, "Base Class");
+            EXPECT_EQ(result.prompt->fields[3].value, "4");
+            EXPECT_FALSE(result.prompt->fields[3].choices.empty());
+        }
+        EXPECT_EQ(result.prompt->file_suffix, "." + std::string{type} + ".json");
+        ASSERT_TRUE(backend.execute_command("blueprint.cancel", {}, {}).ok());
+    }
+    auto creature_prompt = backend.execute_command("blueprint.new", {"utc"}, {});
+    ASSERT_TRUE(creature_prompt.prompt);
+    const auto creature_created = backend.execute_command("blueprint.submit",
+        {"auth_cmd_creature", "shared/blueprints/creatures", "0", "1"}, {});
+    ASSERT_TRUE(creature_created.ok()) << creature_created.message;
+    EXPECT_TRUE(std::filesystem::is_regular_file(
+        project / "shared/blueprints/creatures/auth_cmd_creature.utc.json"));
+    auto prompt = backend.execute_command("blueprint.new", {"uti"}, {});
+    ASSERT_TRUE(prompt.prompt);
+    ASSERT_EQ(prompt.prompt->fields.size(), 3u);
+    EXPECT_EQ(prompt.prompt->fields[2].label, "Base item type");
+    EXPECT_FALSE(prompt.prompt->fields[2].choices.empty());
+    EXPECT_EQ(prompt.prompt->fields[2].value,
+        prompt.prompt->fields[2].choices.front().value);
+    EXPECT_FALSE(backend.execute_command("blueprint.submit", {"auth_cmd_item", "shared/blueprints/items", "invalid"}, {}).ok());
+    const std::vector<std::string_view> values{"auth_cmd_item", "shared/blueprints/items", "0"};
+    const auto created = backend.execute_command("blueprint.submit", values, {});
+    ASSERT_TRUE(created.ok()) << created.message;
+    EXPECT_FALSE(created.prompt);
+    EXPECT_TRUE(std::filesystem::is_regular_file(project / "shared/blueprints/items/auth_cmd_item.uti.json"));
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_EQ(workspace.active_tab()->kind, WorkspaceTabKind::preview);
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+    EXPECT_EQ(live_object_display_name(workspace.active_tab()->document.object()), "auth_cmd_item");
+    const auto source_handle = workspace.active_tab()->document.object();
+    bridge.publish_active_object(source_handle);
+    workspace.active_tab()->dirty = true;
+    const auto source_tab = workspace.active_tab_id();
+    const auto tab_count = workspace.tabs().size();
+    const auto object_count = nw::kernel::objects().object_count();
+    const auto copied_path = project / "shared/blueprints/items/auth_cmd_copy.uti.json";
+    const nw::Resource copied_resource{nw::Resref{"auth_cmd_copy"}, nw::ResourceType::uti};
+    const auto tree_contains_copy = [&] {
+        const auto tree = backend.list_project_tree("");
+        EXPECT_TRUE(tree.ok) << tree.message;
+        std::vector<const ProjectTreeNode*> pending{&tree.root};
+        for (size_t index = 0; index < pending.size(); ++index) {
+            if (pending[index]->relative_path.filename() == copied_path.filename()) { return true; }
+            for (const auto& child : pending[index]->children) {
+                pending.push_back(&child);
+            }
+        }
+        return false;
+    };
+    ASSERT_TRUE(backend.execute_command("blueprint.save_as", {}, {}).prompt);
+    const auto copied = backend.execute_command("blueprint.submit", {"auth_cmd_copy", "shared/blueprints/items"}, {});
+    ASSERT_TRUE(copied.ok()) << copied.message;
+    EXPECT_EQ(workspace.active_tab_id(), source_tab);
+    EXPECT_EQ(workspace.tabs().size(), tab_count);
+    EXPECT_EQ(workspace.active_tab()->document.object(), source_handle);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    EXPECT_EQ(nw::kernel::objects().object_count(), object_count);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_TRUE(tree_contains_copy());
+    const auto copied_data = nw::kernel::resman().demand(copied_resource);
+    const std::string copied_bytes{copied_data.bytes.string_view()};
+    ASSERT_FALSE(copied_bytes.empty());
+    ASSERT_TRUE(backend.execute_command("command.undo", {}, {}).ok());
+    EXPECT_FALSE(std::filesystem::exists(copied_path));
+    EXPECT_FALSE(nw::kernel::resman().contains(copied_resource));
+    EXPECT_FALSE(tree_contains_copy());
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    EXPECT_EQ(workspace.redo_count(), 1u);
+
+    // A replacement resource in another folder still occupies the same key.
+    const auto conflict_path = project / "shared/auth_cmd_copy.uti.json";
+    std::ofstream{conflict_path} << copied_bytes;
+    EXPECT_FALSE(backend.execute_command("command.redo", {}, {}).ok());
+    EXPECT_EQ(workspace.redo_count(), 1u);
+    EXPECT_FALSE(std::filesystem::exists(copied_path));
+    std::filesystem::remove(conflict_path);
+    ASSERT_TRUE(backend.execute_command("command.redo", {}, {}).ok());
+    EXPECT_EQ(nw::kernel::resman().demand(copied_resource).bytes.string_view(), copied_bytes);
+    EXPECT_TRUE(tree_contains_copy());
+
+    std::ofstream{copied_path} << copied_bytes << "\n";
+    EXPECT_FALSE(backend.execute_command("command.undo", {}, {}).ok());
+    EXPECT_TRUE(std::filesystem::exists(copied_path));
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    std::ofstream{copied_path} << copied_bytes;
+    ASSERT_TRUE(backend.execute_command("command.undo", {}, {}).ok());
+    EXPECT_FALSE(tree_contains_copy());
+    EXPECT_EQ(bridge.active_object(), source_handle);
+    EXPECT_EQ(nw::kernel::objects().object_count(), object_count);
+    workspace.active_tab()->dirty = false;
+#ifdef ROLLNW_TEST_CLIENT_EXECUTABLE
+    const auto blueprint_handle = workspace.active_tab()->document.object();
+    auto* area = nw::kernel::objects().make_area(nw::Resref{"start"});
+    ASSERT_NE(area, nullptr);
+    auto& area_tab = workspace.open_area_tab("shared/areas/start.caf.json", "Start");
+    ASSERT_TRUE(area_tab.document.adopt(area->handle()));
+    const auto previous_area = area->handle();
+    auto* placed = nw::kernel::objects().load<nw::Item>(nw::Resref{"auth_cmd_item"});
+    ASSERT_NE(placed, nullptr);
+    placed->comment = "Placed override";
+    const auto previous_item = placed->handle();
+    auto* spatial = nw::kernel::objects().components().get_or_create_spatial(placed->handle());
+    spatial->position = {5, 5, 0.5f};
+    spatial->orientation = {0, 1, 0};
+    spatial->area = previous_area.id;
+    area->items.push_back(placed);
+    std::string error;
+    ASSERT_TRUE(save_live_area_json_atomic(previous_area, project / area_tab.detail, error)) << error;
+    const auto read_area_bytes = [](const auto& path) {
+        std::ifstream input{path};
+        return std::string{std::istreambuf_iterator<char>{input}, {}};
+    };
+    const auto live_path = project / area_tab.detail;
+    const auto saved_live_bytes = read_area_bytes(live_path);
+    const auto closed_path = project / "shared/areas/auth_closed.caf.json";
+    std::ofstream{closed_path} << saved_live_bytes;
+    ASSERT_TRUE(nw::kernel::resman().refresh_module_resources(error)) << error;
+    area->comment = "Keep this unsaved area edit";
+    area_tab.dirty = true;
+    bridge.publish_active_object(placed->handle());
+    bridge.publish_active_area(area->handle());
+    auto scope = backend.execute_command("blueprint.references", {}, {});
+    ASSERT_TRUE(scope.prompt) << scope.message;
+    ASSERT_EQ(scope.prompt->fields.size(), 1u);
+    EXPECT_EQ(scope.prompt->fields[0].value, "area");
+    EXPECT_EQ(scope.prompt->fields[0].choices.size(), 2u);
+    const auto scanned = backend.execute_command("blueprint.references.scan", {"area"}, {});
+    ASSERT_TRUE(scanned.ok()) << scanned.message;
+    EXPECT_FALSE(scanned.prompt);
+    EXPECT_FALSE(backend.execute_command("toolset.save_all", {}, {}).ok());
+    const auto wait_for_stage = [&](std::string_view stage) {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{60};
+        while (std::chrono::steady_clock::now() < deadline) {
+            const auto result = backend.poll_blueprint_updates(ROLLNW_TEST_CLIENT_EXECUTABLE);
+            if (result && !result->ok()) {
+                ADD_FAILURE() << result->message;
+                return false;
+            }
+            if (backend.blueprint_progress().stage == stage && !backend.blueprint_worker_active()) { return true; }
+            std::this_thread::sleep_for(std::chrono::milliseconds{10});
+        }
+        ADD_FAILURE() << "Timed out waiting for " << stage;
+        return false;
+    };
+    ASSERT_TRUE(wait_for_stage("ready"));
+    EXPECT_EQ(backend.blueprint_updated_documents().size(), 1u);
+    ASSERT_TRUE(backend.execute_command("blueprint.references.apply", {}, {}).ok());
+    ASSERT_TRUE(wait_for_stage("complete"));
+    EXPECT_TRUE(nw::kernel::objects().valid(previous_area));
+    EXPECT_FALSE(nw::kernel::objects().valid(previous_item));
+    EXPECT_TRUE(nw::kernel::objects().valid(blueprint_handle));
+    ASSERT_TRUE(nw::kernel::objects().valid(bridge.active_object()));
+    EXPECT_TRUE(nw::kernel::objects().get_object_base(bridge.active_object())->comment.empty());
+    EXPECT_TRUE(workspace.find_tab("area")->dirty);
+    EXPECT_EQ(workspace.find_tab("area")->document.object(), previous_area);
+    EXPECT_EQ(area->comment, "Keep this unsaved area edit");
+    EXPECT_EQ(read_area_bytes(live_path), saved_live_bytes);
+    EXPECT_EQ(read_area_bytes(closed_path), saved_live_bytes);
+    EXPECT_TRUE(latest_blueprint_operation(project).empty());
+    ASSERT_TRUE(backend.execute_command("blueprint.references.cancel", {}, {}).ok());
+
+    // Whole Module updates unopened files and replaces the live instances without
+    // saving/reloading the dirty area. File restoration excludes the live area.
+    const auto current_item = bridge.active_object();
+    nw::kernel::objects().get_object_base(current_item)->comment = "Another live override";
+    ASSERT_TRUE(backend.execute_command("blueprint.references", {}, {}).prompt);
+    const auto module_scan = backend.execute_command("blueprint.references.scan", {"module"}, {});
+    ASSERT_TRUE(module_scan.ok()) << module_scan.message;
+    EXPECT_FALSE(module_scan.prompt);
+    ASSERT_TRUE(wait_for_stage("ready"));
+    EXPECT_EQ(backend.blueprint_updated_documents().size(), 2u);
+    ASSERT_TRUE(backend.execute_command("blueprint.references.apply", {}, {}).ok());
+    ASSERT_TRUE(wait_for_stage("complete"));
+    EXPECT_TRUE(nw::kernel::objects().valid(previous_area));
+    EXPECT_FALSE(nw::kernel::objects().valid(current_item));
+    EXPECT_TRUE(workspace.find_tab("area")->dirty);
+    EXPECT_EQ(area->comment, "Keep this unsaved area edit");
+    EXPECT_EQ(read_area_bytes(live_path), saved_live_bytes);
+    EXPECT_NE(read_area_bytes(closed_path), saved_live_bytes);
+    const auto module_item = bridge.active_object();
+    ASSERT_TRUE(backend.execute_command("blueprint.references.cancel", {}, {}).ok());
+    ASSERT_TRUE(backend.execute_command("blueprint.references.restore", {}, {}).ok());
+    ASSERT_TRUE(backend.execute_command("blueprint.references.restore_apply", {}, {}).ok());
+    ASSERT_TRUE(wait_for_stage("complete"));
+    EXPECT_EQ(bridge.active_object(), module_item);
+    EXPECT_EQ(workspace.find_tab("area")->document.object(), previous_area);
+    EXPECT_TRUE(workspace.find_tab("area")->dirty);
+    EXPECT_EQ(read_area_bytes(live_path), saved_live_bytes);
+    EXPECT_EQ(read_area_bytes(closed_path), saved_live_bytes);
+    ASSERT_TRUE(backend.execute_command("blueprint.references.cancel", {}, {}).ok());
+#endif
+    CommandContext preview;
+    preview.play_preview_active = true;
+    EXPECT_FALSE(backend.execute_command("blueprint.new", {"uti"}, preview).ok());
 }
 
 TEST(ClientRmlSmallsBridge, AreaOpeningReusesPinnedTabWithSaveDiscardAndCancel)

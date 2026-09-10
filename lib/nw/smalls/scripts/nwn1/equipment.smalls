@@ -12,7 +12,7 @@ fn is_shield(base_item: int): bool {
 }
 
 fn calculate_item_ac(obj: Item): int {
-    if ((obj as object) == O.invalid) {
+    if (obj == O.invalid) {
         return 0;
     }
 
@@ -31,7 +31,7 @@ fn calculate_item_ac(obj: Item): int {
 }
 
 fn sync_equipment_armor_class(creature: Creature): bool {
-    if ((creature as object) == O.invalid) {
+    if (creature == O.invalid) {
         return false;
     }
 
@@ -40,12 +40,12 @@ fn sync_equipment_armor_class(creature: Creature): bool {
     combat.ac_shield_base = 0;
 
     var chest = ItemBase.get_equipped_item(creature, Const.equip_index_chest);
-    if ((chest as object) != O.invalid) {
+    if (chest != O.invalid) {
         combat.ac_armor_base = calculate_item_ac(chest);
     }
 
     var offhand = ItemBase.get_equipped_item(creature, Const.equip_index_lefthand);
-    if ((offhand as object) != O.invalid) {
+    if (offhand != O.invalid) {
         var stats = get_propset!(ItemStats)(offhand);
         if (is_shield(stats.base_item)) {
             combat.ac_shield_base = calculate_item_ac(offhand);

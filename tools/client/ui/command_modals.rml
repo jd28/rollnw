@@ -1,0 +1,12 @@
+<rml>
+<head>
+  <link type="text/rcss" href="panel.rcss" />
+  <style>
+    body { background: transparent; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="command_form_overlay"></div>
+  <div id="blueprint_operation_overlay"></div>
+</body>
+</rml>

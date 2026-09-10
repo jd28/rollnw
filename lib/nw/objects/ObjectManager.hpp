@@ -309,7 +309,6 @@ template <typename T>
 T* ObjectManager::load(Resref resref)
 {
     ERRARE("[kernel/objects] loading object of type {} from blueprint '{}'", int(T::object_type), resref.view());
-    T* obj = make<T>();
     ObjectType type;
     bool good = false;
 
@@ -319,6 +318,8 @@ T* ObjectManager::load(Resref resref)
         LOG_F(WARNING, "[kernel/objects] failed to load blueprint from resman");
         return nullptr;
     }
+
+    T* obj = make<T>();
 
     if (string::startswith(data.bytes.string_view(), T::serial_id)) {
         ERRARE("[kernel/objects] deserializing object from GFF");
@@ -351,6 +352,10 @@ T* ObjectManager::load(Resref resref)
         destroy(obj->handle());
         return nullptr;
     }
+
+    // Loading by blueprint reference creates an instance. Its persistent
+    // identity must not be copied from the blueprint document.
+    obj->uuid = {};
 
     if (auto tag = obj->tag) {
         object_tag_map_.insert({tag, obj->handle()});

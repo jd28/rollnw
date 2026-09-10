@@ -129,9 +129,31 @@ from that shape.
 Replay validates expected live values again. Undo therefore fails instead of
 silently overwriting state changed outside the action sequence.
 
-Undo and redo mark the tab dirty and publish a new mutation epoch. Dirty state
+Object-edit undo and redo mark the tab dirty and publish a new mutation epoch. Dirty state
 is a boolean, not a comparison against a saved revision; undoing back to a
 previously saved value still leaves the tab dirty until it is saved again.
+
+Save as New Blueprint records a file action in the existing active-tab history.
+Its action owns the new resource's path and exact saved bytes, including UUID;
+it retains no live object. Undo verifies those bytes and deletes the file. Redo
+uses exclusive creation to restore them. Both refresh module resources, and the
+resource generation change refreshes the project tree. Source dirty state and
+selection are unchanged. Changed files, occupied resource keys, and open
+destination tabs reject replay and leave the action on its original stack.
+An I/O or resource-refresh failure attempts to restore the prior file state and
+reports any rollback failure explicitly. This history is process-local and does
+not provide crash recovery for file creation/deletion.
+
+Update Blueprint References prepares detached replacement instances for the live
+area on the kernel thread, then replaces native owner slots and destroys the old
+instances. Inventory grids are validated as a batch; equipment replacement refreshes
+effects and visuals without routing outgoing equipment through an inventory slot.
+The area root and unrelated instance handles/edits survive; the area becomes dirty.
+Its existing handle-based undo/redo history is cleared before destroying instances.
+This operation currently has no live-area undo. Cancel before Apply releases only
+detached replacements. Whole Module excludes the live CAF from its worker's file
+batch; durable restoration therefore applies only to unopened documents actually
+written by that worker. A live-area update is persisted by the ordinary Save path.
 
 ## Diagnostics
 

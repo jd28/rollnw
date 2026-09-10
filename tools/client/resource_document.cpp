@@ -7,13 +7,19 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
+#include <chrono>
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string_view>
 #include <utility>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace fs = std::filesystem;
 
@@ -377,6 +383,125 @@ ResourceDocumentKind classify_resource_document(bool is_directory,
 }
 
 } // namespace
+
+std::vector<ResourceFileWriteResult> write_resource_files_atomic(
+    std::span<const ResourceFileWrite> writes)
+{
+    std::vector<ResourceFileWriteResult> results(writes.size());
+    std::vector<fs::path> targets;
+    targets.reserve(writes.size());
+    std::string error;
+    for (const auto& write : writes) {
+        std::error_code ec;
+        if (write.target.empty() || write.target.filename().empty()
+            || (write.mode != ResourceFileWriteMode::create && write.mode != ResourceFileWriteMode::replace)
+            || (write.mode == ResourceFileWriteMode::replace && !write.expected_bytes)) {
+            error = "Invalid resource file write request";
+            break;
+        }
+        auto target = fs::weakly_canonical(write.target, ec);
+        if (ec || std::find(targets.begin(), targets.end(), target) != targets.end()) {
+            error = ec ? "Failed to resolve resource path: " + ec.message()
+                       : "Duplicate resource file destination";
+            break;
+        }
+        targets.push_back(std::move(target));
+    }
+    if (!error.empty()) {
+        for (auto& result : results) {
+            result.error = error;
+        }
+        return results;
+    }
+
+    struct TemporaryFile {
+        fs::path directory;
+        fs::path file;
+        ~TemporaryFile()
+        {
+            std::error_code ignored;
+            if (!file.empty()) { fs::remove(file, ignored); }
+            if (!directory.empty()) { fs::remove(directory, ignored); }
+        }
+    };
+    static std::atomic<uint64_t> sequence{0};
+    for (size_t index = 0; index < writes.size(); ++index) {
+        const auto& write = writes[index];
+        auto& result = results[index];
+        const auto& target = targets[index];
+        TemporaryFile temporary;
+        std::error_code ec;
+        try {
+            if (fs::is_symlink(write.target, ec)) {
+                result.error = "Resource file destination is a symbolic link";
+                continue;
+            }
+            ec.clear();
+            for (size_t attempt = 0; attempt < 32; ++attempt) {
+                const auto tick = std::chrono::steady_clock::now().time_since_epoch().count();
+                const auto candidate = target.parent_path()
+                    / (".rollnw-write-" + std::to_string(tick) + "-" + std::to_string(sequence.fetch_add(1)));
+                if (fs::create_directory(candidate, ec)) {
+                    temporary.directory = candidate;
+                    temporary.file = candidate / "payload";
+                    break;
+                }
+                if (ec) { break; }
+            }
+            if (temporary.directory.empty()) {
+                result.error = "Failed to reserve temporary resource storage: " + ec.message();
+                continue;
+            }
+            {
+                std::ofstream output{temporary.file, std::ios::binary | std::ios::trunc};
+                output << write.bytes;
+                output.close();
+                if (!output) {
+                    result.error = "Failed to write complete temporary resource file";
+                    continue;
+                }
+            }
+            if (write.mode == ResourceFileWriteMode::create) {
+                // Same-filesystem hard-link publication is exclusive: an existing
+                // destination cannot be replaced, even after preflight raced.
+                fs::create_hard_link(temporary.file, target, ec);
+            } else {
+                if (!fs::is_regular_file(target, ec)) {
+                    result.error = "Resource file to replace is missing or not a regular file";
+                    continue;
+                }
+                std::ifstream input{target, std::ios::binary};
+                const std::string current{std::istreambuf_iterator<char>{input}, {}};
+                if (!input.is_open() || input.bad() || current != *write.expected_bytes) {
+                    result.error = "Resource file changed since preparation";
+                    continue;
+                }
+                input.close();
+                const auto permissions = fs::status(target, ec).permissions();
+                if (!ec) { fs::permissions(temporary.file, permissions, ec); }
+                if (ec) {
+                    result.error = "Failed to preserve resource permissions: " + ec.message();
+                    continue;
+                }
+#ifdef _WIN32
+                if (!MoveFileExW(temporary.file.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+                    ec = std::error_code(static_cast<int>(GetLastError()), std::system_category());
+                }
+#else
+                fs::rename(temporary.file, target, ec);
+#endif
+            }
+            if (ec) {
+                result.error = "Failed to publish resource file " + target.string() + ": " + ec.message();
+                continue;
+            }
+            result.written = true;
+        } catch (const std::exception& ex) {
+            result.error = "Failed to publish resource file: " + std::string{ex.what()};
+        }
+    }
+    return results;
+}
 
 bool save_json_resource_document_atomic(const fs::path& target,
     const nlohmann::json& value,

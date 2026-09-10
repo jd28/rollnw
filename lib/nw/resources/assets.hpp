@@ -667,6 +667,7 @@ public:
     void clear();
     bool contains(Resource uri) const noexcept;
     ResourceData demand(Resource uri) const;
+    const Container* source(Resource uri) const noexcept;
     void insert(Resource uri, Container* container, const ContainerKey* key);
     void reserve(size_t size);
 

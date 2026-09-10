@@ -14,7 +14,12 @@ fn _ensure_loaded() {
     _loaded = true;
 }
 
-fn _exists(race_id: int): bool {
+fn count(): int {
+    _ensure_loaded();
+    return Array.len(_races);
+}
+
+fn exists(race_id: int): bool {
     _ensure_loaded();
     return race_id >= 0
         && race_id < Array.len(_races)
@@ -22,7 +27,7 @@ fn _exists(race_id: int): bool {
 }
 
 fn size(race_id: int): int {
-    if (!_exists(race_id)) {
+    if (!exists(race_id)) {
         return Const.creature_size_medium;
     }
     var entry = _races[race_id];
@@ -34,14 +39,14 @@ fn size(race_id: int): int {
 }
 
 fn name_strref(race_id: int): StrRef {
-    if (!_exists(race_id)) {
+    if (!exists(race_id)) {
         return StrRef(-1);
     }
     return Array.get(_races, race_id).name;
 }
 
 fn ability_modifier(race_id: int, ability: int): int {
-    if (ability < 0 || ability >= 6 || !_exists(race_id)) {
+    if (ability < 0 || ability >= 6 || !exists(race_id)) {
         return 0;
     }
     var entry = _races[race_id];
@@ -50,9 +55,23 @@ fn ability_modifier(race_id: int, ability: int): int {
 }
 
 fn cr_modifier(race_id: int): float {
-    if (!_exists(race_id)) {
+    if (!exists(race_id)) {
         return 0.0;
     }
     var entry = _races[race_id];
     return entry.cr_modifier;
+}
+
+fn appearance(race_id: int): int {
+    if (!exists(race_id)) {
+        return -1;
+    }
+    return Array.get(_races, race_id).appearance;
+}
+
+fn toolset_default_class(race_id: int): int {
+    if (!exists(race_id)) {
+        return -1;
+    }
+    return Array.get(_races, race_id).toolset_default_class;
 }

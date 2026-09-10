@@ -184,6 +184,7 @@ add_executable(rollnw_test
 
     rollnw_client_appearance_catalog.cpp
     rollnw_client_area_navigation.cpp
+    rollnw_client_blueprints.cpp
     rollnw_client_commands.cpp
     rollnw_client_dialog_document.cpp
     rollnw_client_documents.cpp
@@ -401,6 +402,9 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/item_editor.cpp
         ../tools/client/item_editor_data_model.cpp
         ../tools/client/toolset_backend.cpp
+        ../tools/client/blueprint_commands.cpp
+        ../tools/client/blueprint_reference_commands.cpp
+        ../tools/client/blueprint_update_job.cpp
         ../tools/client/workspace_view.cpp
         ../tools/ui/rml_smalls_data_model.cpp
         ../tools/ui/rml_smalls_expression_binding.cpp
@@ -414,7 +418,7 @@ if(TARGET RmlUi::RmlUi)
     target_include_directories(rollnw_test PRIVATE
         ../external/RmlUi-6.2/Include
     )
-    target_link_libraries(rollnw_test PRIVATE RmlUi::RmlUi)
+    target_link_libraries(rollnw_test PRIVATE RmlUi::RmlUi SDL3::SDL3)
 endif()
 
 if(CMAKE_HOST_UNIX)
@@ -424,6 +428,7 @@ endif()
 if(TARGET rollnw-client)
     target_sources(rollnw_test PRIVATE
         rollnw_client_project_import.cpp
+        rollnw_client_blueprint_jobs.cpp
         ../tools/client/project_import.cpp)
     target_link_libraries(rollnw_test PRIVATE SDL3::SDL3)
     target_compile_definitions(rollnw_test PRIVATE

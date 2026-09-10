@@ -81,6 +81,16 @@ struct ResourceManager final : public kernel::Service {
     /// Loads container resources for a module
     bool load_module(std::filesystem::path path);
 
+    /// Rebuild the active native module snapshot without unloading live objects
+    /// or other containers. Failure preserves the published registry/generation.
+    [[nodiscard]] bool refresh_module_resources(String& error);
+
+    /// Winning source under the current lookup precedence; borrowed until refresh.
+    [[nodiscard]] const Container* resource_container(Resource uri) const noexcept;
+
+    /// Whether publishing this key in the module can win at existing precedence.
+    [[nodiscard]] bool module_can_override(Resource uri) const noexcept;
+
     /// Loads module haks from the configured user hak directory.
     size_t load_module_haks(const Vector<String>& haks);
 

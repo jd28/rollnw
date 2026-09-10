@@ -39,6 +39,13 @@ fn name_strref(class_id: Class): StrRef {
     return Array.get(_classes, class_id as int).name;
 }
 
+fn toolset_ability(class_id: Class, ability: int): int {
+    if (!exists(class_id) || ability < 0 || ability >= 6) {
+        return 0;
+    }
+    return Array.get(_classes, class_id as int).toolset_abilities[ability];
+}
+
 fn hit_die(class_id: Class): int {
     if (!exists(class_id)) {
         return 0;

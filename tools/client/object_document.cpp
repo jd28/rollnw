@@ -55,6 +55,11 @@ bool ObjectDocument::adopt(ObjectHandle object)
     return true;
 }
 
+ObjectHandle ObjectDocument::release() noexcept
+{
+    return std::exchange(object_, ObjectHandle{});
+}
+
 void ObjectDocument::reset() noexcept
 {
     const auto object = std::exchange(object_, ObjectHandle{});

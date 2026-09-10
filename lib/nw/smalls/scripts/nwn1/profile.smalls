@@ -16,6 +16,7 @@ import nwn1.spells as Spells;
 import nwn1.spellschools as SpellSchools;
 import nwn1.tail_models as TailModels;
 import nwn1.wing_models as WingModels;
+import core.array as Array;
 
 fn init(): bool {
     var result = true;
@@ -47,6 +48,36 @@ fn object_instantiated(obj: object) {
         CreatureRules.update_visual(creature);
         Item.update_creature_visual_equipment(creature);
     }
+}
+
+fn initialize_blueprints(objects: array!(object), races: array!(int),
+    classes: array!(int), base_items: array!(int)): bool {
+    var count = Array.len(objects);
+    if (Array.len(races) != count
+        || Array.len(classes) != count
+        || Array.len(base_items) != count) {
+        return false;
+    }
+    for (var index = 0; index < count; index += 1) {
+        var obj = objects[index];
+        if (obj is Creature) {
+            if (!CreatureRules.initialize_blueprint(
+                obj, races[index], classes[index])) {
+                return false;
+            }
+        } elif (obj is Placeable) {
+            if (!Placeables.initialize_blueprint(obj)) {
+                return false;
+            }
+        } elif (obj is Item) {
+            if (!Item.initialize_blueprint(obj, base_items[index])) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn match_qualifier(obj: object, req_type: int, subtype: int, match: int, value: int): bool {

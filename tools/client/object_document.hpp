@@ -33,6 +33,8 @@ public:
     // Transfers a live, independently owned root into an empty document.
     // Rejection leaves ownership with the caller. A viewport load is singular.
     [[nodiscard]] bool adopt(ObjectHandle object);
+    // Transfers this root to a native area/container owner without destroying it.
+    [[nodiscard]] ObjectHandle release() noexcept;
     void reset() noexcept;
 
 private:

@@ -176,7 +176,7 @@ type ItemEditorInventoryRow {
 };
 
 fn has_property(item_obj: Item, prop_type: int, subtype: int): bool {
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return false;
     }
 
@@ -190,7 +190,7 @@ fn has_property(item_obj: Item, prop_type: int, subtype: int): bool {
 }
 
 fn can_equip_item(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
-    if ((creature as object) == O.invalid || (item_obj as object) == O.invalid) {
+    if (creature == O.invalid || item_obj == O.invalid) {
         return false;
     }
 
@@ -335,7 +335,7 @@ fn initialize_equipped_item_properties(creature: Creature): int {
     var stop = (Const.equip_index_creature_skin as int) + 1;
     for (slot < stop) {
         var equipped = base.get_equipped_item(creature, base.EquipIndex(slot));
-        if ((equipped as object) != O.invalid) {
+        if (equipped != O.invalid) {
             processed += base.process_item_properties(
                 creature, equipped, base.EquipIndex(slot), false);
         }
@@ -356,14 +356,14 @@ fn _dispatch_on_visual_changed(item: Item): bool {
 }
 
 fn _equip_item_unchecked(creature: Creature, equipped: Item, slot: base.EquipIndex): bool {
-    if ((creature as object) == O.invalid || (equipped as object) == O.invalid) {
+    if (creature == O.invalid || equipped == O.invalid) {
         return false;
     }
 
     var current = base.get_equipped_item(creature, slot);
-    if ((current as object) != O.invalid) {
+    if (current != O.invalid) {
         var removed = unequip_item(creature, slot);
-        if ((removed as object) == O.invalid) {
+        if (removed == O.invalid) {
             return false;
         }
     }
@@ -386,7 +386,7 @@ fn equip_item(creature: Creature, equipped: Item, slot: base.EquipIndex): bool {
 
 fn unequip_item(creature: Creature, slot: base.EquipIndex): Item {
     var removed = base.unequip_item_in_slot(creature, slot);
-    if ((removed as object) == O.invalid) {
+    if (removed == O.invalid) {
         return O.invalid as Item;
     }
 
@@ -548,7 +548,7 @@ fn set_visual_part_color(item: Item, part: int, color: int, value: int): bool {
 }
 
 fn get_baseitem_type(item: Item): base.BaseItemType {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return base.BaseItemType(-1);
     }
     return base.BaseItemType(get_propset!(ItemStats)(item).base_item);
@@ -720,7 +720,7 @@ fn _baseitem_slot_can_equip(
 }
 
 fn sync_native_layout(item_obj: Item): bool {
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return false;
     }
     if (!base.clear_item_layout(item_obj)) {
@@ -738,8 +738,50 @@ fn sync_native_layout(item_obj: Item): bool {
         item_obj, info.inventory_width, info.inventory_height);
 }
 
+fn initialize_blueprint(item_obj: Item, base_item: int): bool {
+    var base_item_type = base.BaseItemType(base_item);
+    if (item_obj == O.invalid || !BaseItems.exists(base_item_type)) {
+        return false;
+    }
+
+    var stats = get_propset!(ItemStats)(item_obj);
+    stats.base_item = base_item;
+    if (!sync_native_layout(item_obj)) {
+        return false;
+    }
+
+    var parts: array!(int) = {};
+    var values: array!(int) = {};
+    var model_type = BaseItems.get_info(base_item_type).model_type;
+    if (model_type == Rules.item_model_type_simple
+        || model_type == Rules.item_model_type_layered) {
+        Array.push(parts, item_model_part_model1);
+        Array.push(values, 1);
+    } elif (model_type == Rules.item_model_type_composite) {
+        for (var part = 0; part < 3; part += 1) {
+            Array.push(parts, part);
+            Array.push(values, 1);
+        }
+    } elif (model_type == Rules.item_model_type_armor) {
+        for (var part = 0; part < item_model_part_count; part += 1) {
+            Array.push(parts, part);
+            if (part == item_model_part_armor_belt
+                || part == item_model_part_armor_lshoul
+                || part == item_model_part_armor_robe
+                || part == item_model_part_armor_rshoul) {
+                Array.push(values, 0);
+            } else {
+                Array.push(values, 1);
+            }
+        }
+    } else {
+        return false;
+    }
+    return base.set_visual_model_parts_raw(item_obj, parts, values);
+}
+
 fn get_model_type(item_obj: Item): int {
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return 0;
     }
 
@@ -830,7 +872,7 @@ fn _append_item_editor_part(
 
 fn get_item_editor_parts(item_obj: Item): array!(ItemEditorPartRow) {
     var rows: array!(ItemEditorPartRow) = {};
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return rows;
     }
     var stats = get_propset!(ItemStats)(item_obj);
@@ -1021,7 +1063,7 @@ fn _get_composite_variation_options(
 fn get_item_model_editor_options(
     item_obj: Item, part: int, axis: int): array!(ItemEditorModelOptionRow) {
     var rows: array!(ItemEditorModelOptionRow) = {};
-    if ((item_obj as object) == O.invalid || !valid_visual_part_index(part)) {
+    if (item_obj == O.invalid || !valid_visual_part_index(part)) {
         return rows;
     }
     var stats = get_propset!(ItemStats)(item_obj);
@@ -1079,7 +1121,7 @@ fn _item_editor_color_palette(color: int): int {
 
 fn get_item_color_editor_rows(item_obj: Item, part: int): array!(ItemEditorColorRow) {
     var rows: array!(ItemEditorColorRow) = {};
-    if ((item_obj as object) == O.invalid
+    if (item_obj == O.invalid
         || (part != -1 && !valid_visual_part_index(part))) {
         return rows;
     }
@@ -1111,7 +1153,7 @@ fn get_item_color_editor_rows(item_obj: Item, part: int): array!(ItemEditorColor
 
 fn get_item_editor_color_rows(item_obj: Item): array!(ItemEditorColorRow) {
     var rows: array!(ItemEditorColorRow) = {};
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return rows;
     }
     var stats = get_propset!(ItemStats)(item_obj);
@@ -1142,7 +1184,7 @@ fn get_item_editor_color_rows(item_obj: Item): array!(ItemEditorColorRow) {
 }
 
 fn _valid_item_editor_model_parts(item_obj: Item, parts: array!(int)): bool {
-    if ((item_obj as object) == O.invalid
+    if (item_obj == O.invalid
         || Array.len(parts) <= 0
         || Array.len(parts) > item_model_part_count) {
         return false;
@@ -1214,7 +1256,7 @@ fn get_item_model_values(item_obj: Item, parts: array!(int)): array!(int) {
 
 fn _valid_item_editor_colors(
     item_obj: Item, parts: array!(int), colors: array!(int)): bool {
-    if ((item_obj as object) == O.invalid
+    if (item_obj == O.invalid
         || Array.len(parts) <= 0
         || Array.len(parts) != Array.len(colors)
         || Array.len(parts) > item_part_color_count) {
@@ -1487,7 +1529,7 @@ fn _valid_item_property_option(prop_type: int, field: int, value: int): bool {
 }
 
 fn _item_property_type_allowed(item_obj: Item, prop_type: int): bool {
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return false;
     }
     var stats = get_propset!(ItemStats)(item_obj);
@@ -1501,7 +1543,7 @@ fn _item_property_type_allowed(item_obj: Item, prop_type: int): bool {
 
 fn get_available_item_property_rows(item_obj: Item): array!(ItemEditorPropertyDefinitionRow) {
     var rows: array!(ItemEditorPropertyDefinitionRow) = {};
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return rows;
     }
     var count = base.ip_definition_count();
@@ -1542,7 +1584,7 @@ fn _item_property_value_display(prop_type: int, field: int, value: int): string 
 
 fn get_applied_item_property_rows(item_obj: Item): array!(ItemEditorPropertyRow) {
     var rows: array!(ItemEditorPropertyRow) = {};
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return rows;
     }
     var properties = base.item_properties(item_obj);
@@ -1597,7 +1639,7 @@ fn get_item_editor_snapshot(item_obj: Item): ItemEditorSnapshot {
 fn get_item_property_option_rows(
     item_obj: Item, index: int, field: int): array!(ItemEditorPropertyOptionRow) {
     var rows: array!(ItemEditorPropertyOptionRow) = {};
-    if ((item_obj as object) == O.invalid
+    if (item_obj == O.invalid
         || field < item_property_field_subtype
         || field > item_property_field_cost) {
         return rows;
@@ -1628,7 +1670,7 @@ fn _insert_item_properties(item_obj: Item, indices: array!(int), prop_types: arr
     param_tables: array!(int), param_values: array!(int), tags: array!(string),
     validate_profile: bool): bool {
     var count = Array.len(indices);
-    if ((item_obj as object) == O.invalid
+    if (item_obj == O.invalid
         || count <= 0
         || count != Array.len(prop_types)
         || count != Array.len(subtypes)
@@ -1710,7 +1752,7 @@ fn restore_item_properties(item_obj: Item, indices: array!(int), prop_types: arr
 }
 
 fn remove_item_properties(item_obj: Item, indices: array!(int)): bool {
-    if ((item_obj as object) == O.invalid || Array.len(indices) <= 0) {
+    if (item_obj == O.invalid || Array.len(indices) <= 0) {
         return false;
     }
     var properties = base.item_properties(item_obj);
@@ -1743,7 +1785,7 @@ fn remove_item_properties(item_obj: Item, indices: array!(int)): bool {
 fn set_item_property_values(item_obj: Item, indices: array!(int),
     fields: array!(int), values: array!(int)): bool {
     var count = Array.len(indices);
-    if ((item_obj as object) == O.invalid
+    if (item_obj == O.invalid
         || count <= 0 || count != Array.len(fields) || count != Array.len(values)) {
         return false;
     }
@@ -1786,7 +1828,7 @@ fn set_item_property_values(item_obj: Item, indices: array!(int),
 }
 
 fn _baseitem_requirements_met(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
-    if ((creature as object) == O.invalid || (item_obj as object) == O.invalid) {
+    if (creature == O.invalid || item_obj == O.invalid) {
         return false;
     }
 
@@ -1804,7 +1846,7 @@ fn _baseitem_requirements_met(creature: Creature, item_obj: Item, slot: base.Equ
 }
 
 fn can_equip_item_for_authoring(item_obj: Item, slot: base.EquipIndex): bool {
-    if ((item_obj as object) == O.invalid) {
+    if (item_obj == O.invalid) {
         return false;
     }
 
@@ -1813,15 +1855,15 @@ fn can_equip_item_for_authoring(item_obj: Item, slot: base.EquipIndex): bool {
 }
 
 fn equip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
-    if ((creature as object) == O.invalid || !can_equip_item_for_authoring(item_obj, slot)) {
+    if (creature == O.invalid || !can_equip_item_for_authoring(item_obj, slot)) {
         return false;
     }
     return _equip_item_unchecked(creature, item_obj, slot);
 }
 
 fn unequip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
-    if ((creature as object) == O.invalid
-        || (item_obj as object) == O.invalid
+    if (creature == O.invalid
+        || item_obj == O.invalid
         || (base.get_equipped_item(creature, slot) as object) != (item_obj as object)) {
         return false;
     }
@@ -1911,7 +1953,7 @@ fn resolve_visual_by_state(base_item: int, model_part0: int, model_part1: int, m
 }
 
 fn resolve_visual(item: Item): ItemResolvedVisual {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return _empty_visual();
     }
 
@@ -2071,7 +2113,7 @@ fn resolve_visual_row_by_state(
 }
 
 fn resolve_visual_row(item: Item, index: int): VisualModelRow {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return _empty_visual_row();
     }
 
@@ -2091,7 +2133,7 @@ fn resolve_visual_row_for_slot(
     index: int,
     target_slot: base.EquipIndex,
     socket: T.ResRef): VisualModelRow {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return _empty_visual_row();
     }
 
@@ -2125,7 +2167,7 @@ fn _item_plt_color(item: Item, part: int, color: int): int {
 }
 
 fn set_visual_plt_colors_for_row(obj: object, item: Item, slot: int, kind: int, part: int): bool {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return false;
     }
 
@@ -2190,7 +2232,7 @@ fn _append_default_visual(owner: object, item: Item, visual: ItemResolvedVisual)
 // Ground pose is a base-item fact, independent of the equipped model parts.
 // -1 explicitly reports an invalid object or missing base-item definition.
 fn get_ground_rotation(item: Item): int {
-    if ((item as object) == O.invalid) { return -1; }
+    if (item == O.invalid) { return -1; }
     var stats = get_propset!(ItemStats)(item);
     var base_item_type = base.BaseItemType(stats.base_item);
     if (!BaseItems.exists(base_item_type)) { return -1; }
@@ -2198,7 +2240,7 @@ fn get_ground_rotation(item: Item): int {
 }
 
 fn update_standalone_visual(item: Item, use_default_fallback: bool): bool {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return false;
     }
 
@@ -2242,7 +2284,7 @@ fn update_visual_for_slot(creature: Creature, item: Item, slot: base.EquipIndex)
         return false;
     }
 
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return true;
     }
 
@@ -2404,7 +2446,7 @@ fn resolve_icon_by_state(base_item: int, part: int, model_number: int, female: b
 }
 
 fn resolve_icon(item: Item, part: int, female: bool): ItemResolvedIcon {
-    if ((item as object) == O.invalid) {
+    if (item == O.invalid) {
         return _empty_icon(part);
     }
 
@@ -2531,7 +2573,7 @@ fn _publish_icon_variant(item: Item, variant: int, female: bool): bool {
 }
 
 fn update_item_icons(item: Item): bool {
-    if ((item as object) == O.invalid || !Visual.clear_item_icons(item)) {
+    if (item == O.invalid || !Visual.clear_item_icons(item)) {
         return false;
     }
     return _publish_icon_variant(item, Visual.item_icon_variant_default, false)
@@ -2739,7 +2781,7 @@ fn _item_property_value(ip: base.ItemProperty): float {
 }
 
 fn calculate_value(obj: Item): int {
-    if ((obj as object) == O.invalid) {
+    if (obj == O.invalid) {
         return 0;
     }
 

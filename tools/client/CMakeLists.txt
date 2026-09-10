@@ -2,6 +2,9 @@ add_library(rollnw_client_core STATIC
     area_map.cpp
     area_navigation.cpp
     appearance_catalog.cpp
+    blueprint_edits.cpp
+    blueprint_references.cpp
+    blueprint_operations.cpp
     command_bus.cpp
     dialog_document.cpp
     dock_layout.cpp
@@ -36,6 +39,9 @@ set(RMLUI_BACKENDS_DIR "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Backends")
 set(RMLUI_INCLUDE_DIR  "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Include")
 
 add_executable(rollnw-client
+    blueprint_commands.cpp
+    blueprint_reference_commands.cpp
+    blueprint_update_job.cpp
     creature_body_part_editor.cpp
     dialog_view.cpp
     item_editor.cpp

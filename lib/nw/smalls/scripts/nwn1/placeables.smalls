@@ -1,6 +1,7 @@
 import core.types as T;
 import core.visual as Visual;
 import core.array as Array;
+import core.object as O;
 import core.placeable as NativePlaceable;
 import nwn1.rules as Rules;
 from nwn1.propsets import { PlaceableState };
@@ -270,4 +271,13 @@ fn set_appearance(placeable: Placeable, appearance: int): bool {
     state.appearance = previous;
     update_visual(placeable);
     return false;
+}
+
+fn initialize_blueprint(placeable: Placeable): bool {
+    if (placeable == O.invalid || !appearance_exists(0)) {
+        return false;
+    }
+    var state = get_propset!(PlaceableState)(placeable);
+    state.appearance = 0;
+    return true;
 }

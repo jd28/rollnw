@@ -186,6 +186,12 @@ ResourceData ResourceRegistry::demand(Resource uri) const
     return entry->container->demand(entry->key);
 }
 
+const Container* ResourceRegistry::source(Resource uri) const noexcept
+{
+    auto entry = lookup(uri);
+    return entry ? entry->container : nullptr;
+}
+
 void ResourceRegistry::insert(Resource uri, Container* container, const ContainerKey* key)
 {
     entries_.insert({uri, {container, key}});

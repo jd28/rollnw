@@ -224,6 +224,83 @@ bool ResourceManager::load_module(std::filesystem::path path)
     return true;
 }
 
+bool ResourceManager::refresh_module_resources(String& error)
+{
+    error.clear();
+    if (!frozen_ || !module_ || module_format_ != ModuleResourceFormat::native_json) {
+        error = "Resource refresh requires a loaded native module and a frozen registry";
+        return false;
+    }
+
+    try {
+        auto* memory = allocator()->allocate(sizeof(StaticDirectory), alignof(StaticDirectory));
+        unique_container next_module{nullptr, ContainerDeleter{allocator()}};
+        try {
+            next_module = make_unique_container(new (memory) StaticDirectory(module_->path(), allocator()));
+        } catch (...) {
+            allocator()->deallocate(memory);
+            throw;
+        }
+        if (!next_module->valid()) {
+            error = "Failed to enumerate the native module directory";
+            return false;
+        }
+
+        ResourceRegistry next_registry;
+        size_t size = 0;
+        for (const auto& entry : search_) {
+            const auto* container = get_container(entry.container);
+            const auto count = container == module_.get() ? next_module->size() : container->size();
+            if (count > std::numeric_limits<size_t>::max() - size) {
+                error = "Resource registry size exceeds the platform range";
+                return false;
+            }
+            size += count;
+        }
+        next_registry.reserve(size);
+        for (const auto& entry : search_) {
+            auto* container = get_container(entry.container);
+            if (container == module_.get()) { container = next_module.get(); }
+            container->visit([&](Resource resource, const ContainerKey* key) {
+                next_registry.insert(resource, container, key);
+            });
+        }
+
+        // All allocating work precedes publication. Search entries only borrow
+        // containers; unchanged base/override/hak keys retain their lifetime.
+        for (auto& entry : search_) {
+            if (get_container(entry.container) == module_.get()) {
+                entry.container = next_module.get();
+            }
+        }
+        registry_ = std::move(next_registry);
+        module_ = std::move(next_module);
+        advance_generation();
+        return true;
+    } catch (const std::exception& ex) {
+        error = fmt::format("Failed to refresh module resources: {}", ex.what());
+        return false;
+    }
+}
+
+const Container* ResourceManager::resource_container(Resource uri) const noexcept
+{
+    const auto* source = registry_.source(uri);
+    return source || !parent_ ? source : parent_->resource_container(uri);
+}
+
+bool ResourceManager::module_can_override(Resource uri) const noexcept
+{
+    if (!module_) { return false; }
+    const auto* winner = resource_container(uri);
+    for (const auto& entry : search_) {
+        const auto* container = get_container(entry.container);
+        if (container == module_.get()) { return true; }
+        if (container == winner) { return false; }
+    }
+    return false;
+}
+
 size_t ResourceManager::load_module_haks(const Vector<String>& haks)
 {
     Vector<fs::path> roots;

@@ -1,4 +1,5 @@
 #include "object_document.hpp"
+#include "resource_document.hpp"
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
@@ -18,6 +19,48 @@
 
 namespace nw::toolset {
 namespace {
+
+TEST(ClientDocuments, ExclusiveResourceWritesAndExpectedReplacement)
+{
+    const std::filesystem::path root = "tmp/client_resource_publication";
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root);
+    const auto target = root / "new.uti.json";
+    const std::array create{ResourceFileWrite{target, "original", ResourceFileWriteMode::create, {}}};
+    auto results = write_resource_files_atomic(create);
+    ASSERT_EQ(results.size(), 1u);
+    ASSERT_TRUE(results[0].written) << results[0].error;
+
+    results = write_resource_files_atomic(create);
+    EXPECT_FALSE(results[0].written);
+    const std::array stale{ResourceFileWrite{target, "replacement", ResourceFileWriteMode::replace, "stale"}};
+    results = write_resource_files_atomic(stale);
+    EXPECT_FALSE(results[0].written);
+    const std::array replace{ResourceFileWrite{target, "replacement", ResourceFileWriteMode::replace, "original"}};
+    results = write_resource_files_atomic(replace);
+    ASSERT_TRUE(results[0].written) << results[0].error;
+    std::ifstream input{target};
+    EXPECT_EQ(std::string(std::istreambuf_iterator<char>{input}, {}), "replacement");
+    EXPECT_EQ(std::distance(std::filesystem::directory_iterator{root}, std::filesystem::directory_iterator{}), 1);
+}
+
+TEST(ClientDocuments, InvalidResourceWriteBatchPublishesNothing)
+{
+    const std::filesystem::path root = "tmp/client_resource_publication_rejection";
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root);
+    const auto target = root / "new.uti.json";
+    const std::array duplicate{
+        ResourceFileWrite{target, "first", ResourceFileWriteMode::create, {}},
+        ResourceFileWrite{root / "." / "new.uti.json", "second", ResourceFileWriteMode::create, {}},
+    };
+    const auto results = write_resource_files_atomic(duplicate);
+    ASSERT_EQ(results.size(), 2u);
+    EXPECT_FALSE(results[0].written);
+    EXPECT_FALSE(results[1].written);
+    EXPECT_FALSE(std::filesystem::exists(target));
+    EXPECT_TRUE(write_resource_files_atomic({}).empty());
+}
 
 struct HistoryLifetimeProbe {
     ObjectHandle root;
