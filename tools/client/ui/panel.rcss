@@ -858,7 +858,6 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 #workspace_home_header {
   display: flex;
-  margin-bottom: 22px;
 }
 #workspace_home_title {
   display: block;
