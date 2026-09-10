@@ -967,7 +967,8 @@ TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
     appearance_surface->SetClass("active", true);
     editor->SetClass("active", true);
     rows->SetInnerRML(
-        "<div class='managed_list_row selected'>"
+        "<div class='managed_list_row selected' "
+        "data-list-id='creature.appearance.body_parts' data-index='0'>"
         "<span id='body-part-label' class='managed_list_cell cell_0'>Head</span>"
         "<span id='body-part-model' class='managed_list_cell cell_1'>119</span>"
         "</div>");
@@ -1026,24 +1027,36 @@ TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
 
     popup->SetClass("active", true);
     option_rows->SetInnerRML(
-        "<div class='managed_list_row selected'>"
-        "<span id='body-part-option-number' class='managed_list_cell cell_0'>119</span>"
-        "<span id='body-part-option-detail' class='managed_list_cell cell_1'>Current</span>"
+        "<div class='managed_list_row' "
+        "data-list-id='creature.appearance.body_part_options' data-index='2'>"
+        "<span id='body-part-option-number' class='managed_list_cell cell_0' "
+        "data-cell='0'>2</span>"
         "</div>");
     context->Update();
     auto* option_number = document->GetElementById(
         "body-part-option-number");
-    auto* option_detail = document->GetElementById(
-        "body-part-option-detail");
     ASSERT_NE(option_number, nullptr);
-    ASSERT_NE(option_detail, nullptr);
     EXPECT_GE(option_number->GetOffsetWidth(), 30.0f);
-    EXPECT_GE(option_detail->GetOffsetWidth(), 50.0f);
     auto* option_number_text = rmlui_dynamic_cast<Rml::ElementText*>(
         option_number->GetFirstChild());
     ASSERT_NE(option_number_text, nullptr);
     ASSERT_FALSE(option_number_text->GetLines().empty());
-    EXPECT_EQ(option_number_text->GetLines().front().text, "119");
+    EXPECT_EQ(option_number_text->GetLines().front().text, "2");
+    ASSERT_TRUE(nw::toolset::position_managed_list_popups(document));
+    context->Update();
+    const Rml::Vector2f option_point{
+        option_number->GetAbsoluteLeft() + option_number->GetOffsetWidth() * 0.5f,
+        option_number->GetAbsoluteTop() + option_number->GetOffsetHeight() * 0.5f,
+    };
+    auto* option_hit = context->GetElementAtPoint(option_point);
+    ASSERT_NE(option_hit, nullptr);
+    EXPECT_TRUE(nw::toolset::combobox_popup_contains_element(option_hit));
+    EXPECT_TRUE(nw::toolset::activate_managed_list_element(
+        option_hit, cycle_host));
+    const auto clicked = cycle_host.get_selected(
+        "creature.appearance.body_part_options");
+    ASSERT_TRUE(clicked);
+    EXPECT_EQ(clicked->index, 2);
 
     auto* secondary = document->GetElementById(
         "creature_appearance_secondary_dynamic");
