@@ -1570,10 +1570,12 @@ fn set_appearance(creature: Creature, appearance: int): bool {
     return false;
 }
 
-fn initialize_blueprint(creature: Creature, race: int, class_id: int): bool {
+fn initialize_blueprint(creature: Creature, first_name: string, last_name: string,
+    race: int, class_id: int): bool {
     var cls = Class(class_id);
     var appearance = races.appearance(race);
     if (creature == O.invalid
+        || first_name == ""
         || !races.exists(race)
         || !Classes.exists(cls)
         || !appearance_exists(appearance)) {
@@ -1583,6 +1585,9 @@ fn initialize_blueprint(creature: Creature, race: int, class_id: int): bool {
     var stats = get_propset!(CreatureStats)(creature);
     var levels = get_propset!(CreatureLevels)(creature);
     var visual = get_propset!(CreatureAppearance)(creature);
+    var descriptor = get_propset!(CreatureDescriptor)(creature);
+    descriptor.name_first = T.make_inline_text_ref(first_name, 0);
+    descriptor.name_last = T.make_inline_text_ref(last_name, 0);
     stats.race = race;
     for (var ability = 0; ability < 6; ability += 1) {
         stats.abilities[ability] = Classes.toolset_ability(cls, ability);

@@ -22,6 +22,24 @@ bool finite(glm::vec3 value)
     return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
 }
 
+bool authored_area_object(ObjectType type)
+{
+    switch (type) {
+    case ObjectType::creature:
+    case ObjectType::door:
+    case ObjectType::encounter:
+    case ObjectType::item:
+    case ObjectType::placeable:
+    case ObjectType::sound:
+    case ObjectType::store:
+    case ObjectType::trigger:
+    case ObjectType::waypoint:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool complete_geometry(const AreaNavigationSource& source)
 {
     const auto& tiles = source.tiles;
@@ -125,8 +143,7 @@ AreaPlacementResult validate_area_placements(
         for (size_t index = 0; index < rows.size(); ++index) {
             const auto& row = rows[index];
             const auto* live = kernel::objects().components().find_spatial(row.owner);
-            if ((row.owner.type != ObjectType::creature && row.owner.type != ObjectType::placeable
-                    && row.owner.type != ObjectType::item)
+            if (!authored_area_object(row.owner.type)
                 || !kernel::objects().valid(row.owner) || !live
                 || row.area != area.id || live->area != area.id
                 || !finite(row.position) || !finite(row.orientation) || !finite(row.scale)

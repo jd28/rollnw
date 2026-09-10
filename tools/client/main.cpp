@@ -9384,8 +9384,32 @@ void sync_command_form(AppState& state, bool force = false)
             return;
         }
         const auto& form = *state.command_form;
-        std::string markup = "<div class=\"command_form\"><div class=\"command_form_title\">" + escape_html(form.title)
-            + "</div><div class=\"command_form_message\">" + escape_html(form.message) + "</div>";
+        std::optional<size_t> close_action;
+        if (form.action_list) {
+            const auto cancel = std::ranges::find(
+                form.actions, std::string{"cancel"},
+                &nw::toolset::CommandPromptAction::id);
+            if (cancel != form.actions.end()) {
+                close_action = static_cast<size_t>(
+                    std::distance(form.actions.begin(), cancel));
+            }
+        }
+        std::string markup = "<div class=\"command_form";
+        if (form.action_list) { markup += " command_form_action_picker"; }
+        markup += "\">";
+        if (close_action) {
+            markup += "<div class=\"command_form_title_row\"><div class=\"command_form_title\">"
+                + escape_html(form.title)
+                + "</div><button type=\"button\" class=\"command_form_action command_form_close\" title=\"Close\" id=\"command_form_action_"
+                + std::to_string(*close_action) + "\" data-index=\""
+                + std::to_string(*close_action)
+                + "\"><span class=\"command_form_close_glyph\">&#215;</span></button></div>";
+        } else {
+            markup += "<div class=\"command_form_title\">"
+                + escape_html(form.title) + "</div>";
+        }
+        markup += "<div class=\"command_form_message\">"
+            + escape_html(form.message) + "</div>";
         for (size_t index = 0; index < form.fields.size(); ++index) {
             const auto& field = form.fields[index];
             const auto id = "command_form_field_" + std::to_string(index);
@@ -9413,8 +9437,11 @@ void sync_command_form(AppState& state, bool force = false)
             markup += "<div class=\"command_form_feedback\"><div id=\"command_form_filename\"></div><div id=\"command_form_detail\">"
                 + escape_html(form.detail) + "</div><div id=\"command_form_error\"></div></div>";
         }
-        markup += "<div class=\"command_form_actions\">";
+        markup += "<div class=\"command_form_actions";
+        if (form.action_list) { markup += " command_form_action_list"; }
+        markup += "\">";
         for (size_t index = 0; index < form.actions.size(); ++index) {
+            if (close_action && *close_action == index) { continue; }
             markup += "<button class=\"command_form_action "
                 + std::string{index == 0 ? "command_form_action_primary" : "command_form_action_secondary"}
                 + "\" id=\"command_form_action_" + std::to_string(index)
@@ -9439,7 +9466,7 @@ void sync_command_form(AppState& state, bool force = false)
         const auto selected = std::ranges::find(
             field.choices, field.value,
             &nw::toolset::CommandPromptChoice::value);
-        complete &= !field.value.empty()
+        complete &= (!field.required || !field.value.empty())
             && (field.choices.empty() || selected != field.choices.end());
     }
     if (!changed && !rendered && !force) {

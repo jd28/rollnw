@@ -28,44 +28,14 @@ namespace nw::toolset {
 namespace {
 using Json = nlohmann::json;
 
-struct Category {
-    const char* name;
-    ObjectType type;
-};
-constexpr std::array<Category, 9> categories{{Category{"creatures", ObjectType::creature}, {"doors", ObjectType::door},
-    {"encounters", ObjectType::encounter}, {"items", ObjectType::item},
-    {"placeables", ObjectType::placeable}, {"sounds", ObjectType::sound},
-    {"stores", ObjectType::store}, {"triggers", ObjectType::trigger}, {"waypoints", ObjectType::waypoint}}};
 constexpr std::array store_sections{"armor", "miscellaneous", "potions", "rings", "weapons"};
 
 } // namespace
 
 ObjectType blueprint_document_object_type(ResourceType::type type) noexcept
 {
-    switch (type) {
-    case ResourceType::caf:
-        return ObjectType::area;
-    case ResourceType::utc:
-        return ObjectType::creature;
-    case ResourceType::utd:
-        return ObjectType::door;
-    case ResourceType::ute:
-        return ObjectType::encounter;
-    case ResourceType::uti:
-        return ObjectType::item;
-    case ResourceType::utp:
-        return ObjectType::placeable;
-    case ResourceType::uts:
-        return ObjectType::sound;
-    case ResourceType::utm:
-        return ObjectType::store;
-    case ResourceType::utt:
-        return ObjectType::trigger;
-    case ResourceType::utw:
-        return ObjectType::waypoint;
-    default:
-        return ObjectType::invalid;
-    }
+    return type == ResourceType::caf ? ObjectType::area
+                                     : blueprint_object_type(type);
 }
 
 namespace {
@@ -160,12 +130,14 @@ std::vector<Node> roots(const Json& document, ResourceType::type type)
         if (document.at("$type") != "CAF" || document.at("$version") != Area::json_archive_version) {
             throw std::runtime_error("Unsupported area document version");
         }
-        for (const auto category : categories) {
-            const auto& members = document.at(category.name);
+        for (const auto& definition : blueprint_types()) {
+            const auto& members = document.at(definition.area_category);
             if (!members.is_array()) { throw std::runtime_error("Invalid area member array"); }
             for (size_t index = 0; index < members.size(); ++index) {
-                auto path = std::string{"/"} + category.name + "/" + std::to_string(index);
-                result.push_back({path, path, category.type, category.type, true, false, false});
+                auto path = std::string{"/"} + std::string{definition.area_category}
+                    + "/" + std::to_string(index);
+                result.push_back({path, path, definition.object_type,
+                    definition.object_type, true, false, false});
             }
         }
     } else {
@@ -385,10 +357,22 @@ ObjectHandle live_member(const BlueprintInstanceRow& row)
         switch (row.object.type) {
         case ObjectType::creature:
             return member(area->creatures);
+        case ObjectType::door:
+            return member(area->doors);
+        case ObjectType::encounter:
+            return member(area->encounters);
         case ObjectType::placeable:
             return member(area->placeables);
         case ObjectType::item:
             return member(area->items);
+        case ObjectType::sound:
+            return member(area->sounds);
+        case ObjectType::store:
+            return member(area->stores);
+        case ObjectType::trigger:
+            return member(area->triggers);
+        case ObjectType::waypoint:
+            return member(area->waypoints);
         default:
             return ObjectHandle{};
         }
@@ -550,11 +534,29 @@ bool prepare_live_blueprint_updates(LiveBlueprintUpdates& updates, size_t count,
             case ObjectType::creature:
                 loaded = kernel::objects().load<Creature>(updates.source.resref);
                 break;
+            case ObjectType::door:
+                loaded = kernel::objects().load<Door>(updates.source.resref);
+                break;
+            case ObjectType::encounter:
+                loaded = kernel::objects().load<Encounter>(updates.source.resref);
+                break;
             case ObjectType::placeable:
                 loaded = kernel::objects().load<Placeable>(updates.source.resref);
                 break;
             case ObjectType::item:
                 loaded = kernel::objects().load<Item>(updates.source.resref);
+                break;
+            case ObjectType::sound:
+                loaded = kernel::objects().load<Sound>(updates.source.resref);
+                break;
+            case ObjectType::store:
+                loaded = kernel::objects().load<Store>(updates.source.resref);
+                break;
+            case ObjectType::trigger:
+                loaded = kernel::objects().load<Trigger>(updates.source.resref);
+                break;
+            case ObjectType::waypoint:
+                loaded = kernel::objects().load<Waypoint>(updates.source.resref);
                 break;
             default:
                 break;
@@ -662,14 +664,32 @@ bool publish_live_blueprint_updates(LiveBlueprintUpdates& updates, ObjectHandle&
                 case ObjectType::creature:
                     area->creatures[row.index] = kernel::objects().get<Creature>(replacement);
                     break;
+                case ObjectType::door:
+                    area->doors[row.index] = kernel::objects().get<Door>(replacement);
+                    break;
+                case ObjectType::encounter:
+                    area->encounters[row.index] = kernel::objects().get<Encounter>(replacement);
+                    break;
                 case ObjectType::placeable:
                     area->placeables[row.index] = kernel::objects().get<Placeable>(replacement);
                     break;
                 case ObjectType::item:
                     area->items[row.index] = kernel::objects().get<Item>(replacement);
                     break;
-                default:
+                case ObjectType::sound:
+                    area->sounds[row.index] = kernel::objects().get<Sound>(replacement);
                     break;
+                case ObjectType::store:
+                    area->stores[row.index] = kernel::objects().get<Store>(replacement);
+                    break;
+                case ObjectType::trigger:
+                    area->triggers[row.index] = kernel::objects().get<Trigger>(replacement);
+                    break;
+                case ObjectType::waypoint:
+                    area->waypoints[row.index] = kernel::objects().get<Waypoint>(replacement);
+                    break;
+                default:
+                    throw std::runtime_error("Unsupported live area blueprint type");
                 }
             } else if (row.attachment != BlueprintInstanceOwner::equipment) {
                 live_inventory(row.owner, row.attachment)->items[row.index].item = replacement;
@@ -739,8 +759,11 @@ bool load_blueprint_update_documents(std::span<const BlueprintUpdateDocument> do
                 for (const auto& root : roots(row.value, row.type)) {
                     check_children(row.value.at(Json::json_pointer{root.path}), loaded.at(Json::json_pointer{root.path}));
                 }
-                for (const auto category : categories) {
-                    if (row.value.at(category.name).size() != loaded.at(category.name).size()) { throw std::runtime_error("Area loading dropped authored objects"); }
+                for (const auto& definition : blueprint_types()) {
+                    if (row.value.at(definition.area_category).size()
+                        != loaded.at(definition.area_category).size()) {
+                        throw std::runtime_error("Area loading dropped authored objects");
+                    }
                 }
             } else {
                 const auto result = object_to_component_propset_json(kernel::objects().get_object_base(owner.object()), loaded, &kernel::runtime(), SerializationProfile::blueprint);
@@ -815,8 +838,14 @@ bool prepare_blueprint_updates(std::span<BlueprintUpdateDocument> documents, Res
                     }
                 };
                 append(area->creatures, "creatures");
-                append(area->placeables, "placeables");
+                append(area->doors, "doors");
+                append(area->encounters, "encounters");
                 append(area->items, "items");
+                append(area->placeables, "placeables");
+                append(area->sounds, "sounds");
+                append(area->stores, "stores");
+                append(area->triggers, "triggers");
+                append(area->waypoints, "waypoints");
                 AreaPlacementNavigation navigation;
                 const auto admitted = validate_area_placements(navigation, area->handle(), placements);
                 if (!admitted.ok()) { throw std::runtime_error(admitted.diagnostic); }

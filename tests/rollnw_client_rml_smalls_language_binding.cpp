@@ -1,6 +1,7 @@
 #include "appearance_catalog.hpp"
 #include "item_editor_data_model.hpp"
 #include "object_edits.hpp"
+#include "project.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "rml_smalls_language_binding.hpp"
@@ -1346,6 +1347,44 @@ TEST(ClientRmlTemplates, BlueprintModalsKeepVisibleControlsInsideTheCommandOverl
         EXPECT_EQ(hit, cancel);
         EXPECT_EQ(context->GetElementAtPoint({1, 1}), form);
     }
+    form->SetInnerRML(R"RML(
+<div id="type-dialog" class="command_form command_form_action_picker">
+  <div class="command_form_title_row"><div id="type-title" class="command_form_title">New Blueprint</div><button id="type-close" class="command_form_action command_form_close"><span class="command_form_close_glyph">&#215;</span></button></div>
+  <div class="command_form_message">Choose the blueprint type.</div>
+  <div id="type-actions" class="command_form_actions command_form_action_list">
+    <button id="type-creature" class="command_form_action command_form_action_primary">Creature</button>
+    <button class="command_form_action command_form_action_secondary">Door</button>
+    <button class="command_form_action command_form_action_secondary">Encounter</button>
+    <button class="command_form_action command_form_action_secondary">Item</button>
+    <button class="command_form_action command_form_action_secondary">Placeable</button>
+    <button class="command_form_action command_form_action_secondary">Sound</button>
+    <button class="command_form_action command_form_action_secondary">Store</button>
+    <button class="command_form_action command_form_action_secondary">Trigger</button>
+    <button class="command_form_action command_form_action_secondary">Waypoint</button>
+  </div>
+</div>)RML");
+    context->SetDimensions({460, 460});
+    context->Update();
+    auto* type_dialog = document->GetElementById("type-dialog");
+    auto* type_actions = document->GetElementById("type-actions");
+    auto* type_creature = document->GetElementById("type-creature");
+    auto* type_title = document->GetElementById("type-title");
+    auto* type_close = document->GetElementById("type-close");
+    ASSERT_NE(type_dialog, nullptr);
+    ASSERT_NE(type_actions, nullptr);
+    ASSERT_NE(type_creature, nullptr);
+    ASSERT_NE(type_title, nullptr);
+    ASSERT_NE(type_close, nullptr);
+    EXPECT_LE(type_dialog->GetAbsoluteTop() + type_dialog->GetOffsetHeight(),
+        460.0f);
+    EXPECT_LE(type_dialog->GetOffsetWidth(), 420.0f);
+    EXPECT_EQ(type_actions->GetNumChildren(), 9u);
+    EXPECT_GE(type_close->GetAbsoluteLeft(),
+        type_title->GetAbsoluteLeft() + type_title->GetOffsetWidth());
+    EXPECT_LT(type_close->GetAbsoluteTop(),
+        type_title->GetAbsoluteTop() + type_title->GetOffsetHeight());
+    EXPECT_EQ(type_close->GetOffsetWidth(), 24.0f);
+    EXPECT_EQ(type_creature->GetProperty<float>("border-top-width"), 0.0f);
     form->SetClass("active", false);
     progress->SetClass("active", true);
     progress->SetInnerRML(R"RML(
@@ -3389,50 +3428,77 @@ TEST(ClientRmlSmallsBridge, BlueprintFormsCreateAndCopyThroughTheCommandBus)
     ASSERT_TRUE(backend.open_project(project.string()).ok());
     EXPECT_EQ(workspace.active_tab_id(), "home");
 
-    for (const auto type : {"utc", "utp", "uti"}) {
+    const auto chooser = backend.execute_command("blueprint.new", {}, {});
+    ASSERT_TRUE(chooser.prompt) << chooser.message;
+    EXPECT_TRUE(chooser.prompt->action_list);
+    ASSERT_EQ(chooser.prompt->actions.size(), blueprint_types().size() + 1);
+    for (size_t index = 0; index < blueprint_types().size(); ++index) {
+        const auto& definition = blueprint_types()[index];
+        EXPECT_EQ(chooser.prompt->actions[index].label, definition.label);
+        EXPECT_EQ(chooser.prompt->actions[index].args,
+            std::vector<std::string>{std::string{nw::ResourceType::to_string(
+                definition.resource_type)}});
+    }
+    EXPECT_EQ(chooser.prompt->actions.back().id, "cancel");
+
+    for (const auto& definition : blueprint_types()) {
+        const auto type = nw::ResourceType::to_string(definition.resource_type);
         const auto result = backend.execute_command("blueprint.new", {type}, {});
         ASSERT_TRUE(result.prompt) << result.message;
         EXPECT_EQ(result.prompt->fields[0].label, "ResRef");
         EXPECT_TRUE(result.prompt->fields[1].directory);
-        const auto field_count = std::string_view{type} == "uti" ? 3u
-            : std::string_view{type} == "utc"                    ? 4u
-                                                                 : 2u;
+        const auto field_count = type == "uti" ? 4u
+            : type == "utc"                    ? 6u
+                                               : 3u;
         EXPECT_EQ(result.prompt->fields.size(), field_count);
-        if (std::string_view{type} == "utc") {
-            EXPECT_EQ(result.prompt->fields[2].label, "Race");
-            EXPECT_EQ(result.prompt->fields[2].value, "6");
-            EXPECT_FALSE(result.prompt->fields[2].choices.empty());
-            EXPECT_EQ(result.prompt->fields[3].label, "Base Class");
-            EXPECT_EQ(result.prompt->fields[3].value, "4");
-            EXPECT_FALSE(result.prompt->fields[3].choices.empty());
+        if (type == "utc") {
+            EXPECT_EQ(result.prompt->fields[2].label, "First Name");
+            EXPECT_TRUE(result.prompt->fields[2].required);
+            EXPECT_EQ(result.prompt->fields[3].label, "Last Name");
+            EXPECT_FALSE(result.prompt->fields[3].required);
+            EXPECT_EQ(result.prompt->fields[4].label, "Race");
+            EXPECT_EQ(result.prompt->fields[4].value, "6");
+            EXPECT_FALSE(result.prompt->fields[4].choices.empty());
+            EXPECT_EQ(result.prompt->fields[5].label, "Base Class");
+            EXPECT_EQ(result.prompt->fields[5].value, "4");
+            EXPECT_FALSE(result.prompt->fields[5].choices.empty());
+        } else {
+            EXPECT_EQ(result.prompt->fields[2].label, "Name");
         }
-        EXPECT_EQ(result.prompt->file_suffix, "." + std::string{type} + ".json");
+        EXPECT_EQ(result.prompt->file_suffix,
+            "." + std::string{type} + ".json");
         ASSERT_TRUE(backend.execute_command("blueprint.cancel", {}, {}).ok());
     }
     auto creature_prompt = backend.execute_command("blueprint.new", {"utc"}, {});
     ASSERT_TRUE(creature_prompt.prompt);
     const auto creature_created = backend.execute_command("blueprint.submit",
-        {"auth_cmd_creature", "shared/blueprints/creatures", "0", "1"}, {});
+        {"auth_cmd_creature", "shared/blueprints/creatures", "Command", "Creature", "0", "1"}, {});
     ASSERT_TRUE(creature_created.ok()) << creature_created.message;
-    EXPECT_TRUE(std::filesystem::is_regular_file(
-        project / "shared/blueprints/creatures/auth_cmd_creature.utc.json"));
+    const std::filesystem::path creature_path
+        = "shared/blueprints/creatures/auth_cmd_creature.utc.json";
+    EXPECT_TRUE(std::filesystem::is_regular_file(project / creature_path));
+    EXPECT_EQ(project_resource_display_name(project, creature_path),
+        "Command Creature");
     auto prompt = backend.execute_command("blueprint.new", {"uti"}, {});
     ASSERT_TRUE(prompt.prompt);
-    ASSERT_EQ(prompt.prompt->fields.size(), 3u);
-    EXPECT_EQ(prompt.prompt->fields[2].label, "Base item type");
-    EXPECT_FALSE(prompt.prompt->fields[2].choices.empty());
-    EXPECT_EQ(prompt.prompt->fields[2].value,
-        prompt.prompt->fields[2].choices.front().value);
-    EXPECT_FALSE(backend.execute_command("blueprint.submit", {"auth_cmd_item", "shared/blueprints/items", "invalid"}, {}).ok());
-    const std::vector<std::string_view> values{"auth_cmd_item", "shared/blueprints/items", "0"};
+    ASSERT_EQ(prompt.prompt->fields.size(), 4u);
+    EXPECT_EQ(prompt.prompt->fields[3].label, "Base item type");
+    EXPECT_FALSE(prompt.prompt->fields[3].choices.empty());
+    EXPECT_EQ(prompt.prompt->fields[3].value,
+        prompt.prompt->fields[3].choices.front().value);
+    EXPECT_FALSE(backend.execute_command("blueprint.submit", {"auth_cmd_item", "shared/blueprints/items", "Command Item", "invalid"}, {}).ok());
+    const std::vector<std::string_view> values{"auth_cmd_item", "shared/blueprints/items", "Command Item", "0"};
     const auto created = backend.execute_command("blueprint.submit", values, {});
     ASSERT_TRUE(created.ok()) << created.message;
     EXPECT_FALSE(created.prompt);
     EXPECT_TRUE(std::filesystem::is_regular_file(project / "shared/blueprints/items/auth_cmd_item.uti.json"));
+    EXPECT_EQ(project_resource_display_name(project,
+                  "shared/blueprints/items/auth_cmd_item.uti.json"),
+        "Command Item");
     ASSERT_NE(workspace.active_tab(), nullptr);
     EXPECT_EQ(workspace.active_tab()->kind, WorkspaceTabKind::preview);
     EXPECT_FALSE(workspace.active_tab()->dirty);
-    EXPECT_EQ(live_object_display_name(workspace.active_tab()->document.object()), "auth_cmd_item");
+    EXPECT_EQ(live_object_display_name(workspace.active_tab()->document.object()), "Command Item");
     const auto source_handle = workspace.active_tab()->document.object();
     bridge.publish_active_object(source_handle);
     workspace.active_tab()->dirty = true;

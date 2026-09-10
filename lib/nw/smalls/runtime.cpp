@@ -451,9 +451,11 @@ void Runtime::load_profile_hooks()
     const auto* match_qualifier = module->get_function("match_qualifier");
     const std::array<TypeID, 1> object_parameters{object_type()};
     const auto object_array_type = type_id("array!(object)", false);
+    const auto string_array_type = type_id("array!(string)", false);
     const auto int_array_type = type_id("array!(int)", false);
-    const std::array<TypeID, 4> blueprint_parameters{
-        object_array_type, int_array_type, int_array_type, int_array_type};
+    const std::array<TypeID, 6> blueprint_parameters{
+        object_array_type, string_array_type, string_array_type,
+        int_array_type, int_array_type, int_array_type};
     const std::array<TypeID, 5> qualifier_parameters{
         object_type(), int_type(), int_type(), int_type(), int_type()};
     if (!function_has_signature(*this, init,
@@ -531,13 +533,16 @@ bool Runtime::profile_initialize_blueprints(
     }
 
     const auto object_array_type = type_id("array!(object)", false);
+    const auto string_array_type = type_id("array!(string)", false);
     const auto int_array_type = type_id("array!(int)", false);
-    if (object_array_type == invalid_type_id || int_array_type == invalid_type_id) {
+    if (object_array_type == invalid_type_id
+        || string_array_type == invalid_type_id
+        || int_array_type == invalid_type_id) {
         diagnostic = "blueprint initializer array types are unavailable";
         return false;
     }
 
-    ScopedRoots roots{*this, 4};
+    ScopedRoots roots{*this, 6};
     const auto make_object_array = [&]() -> Value {
         const auto pointer = create_array_typed(object_type(), rows.size());
         auto* array = get_array_typed(pointer);
@@ -556,6 +561,16 @@ bool Runtime::profile_initialize_blueprints(
         }
         return Value::make_heap(pointer, int_array_type);
     };
+    const auto make_string_array = [&](std::string_view ProfileBlueprintInitialization::* member) -> Value {
+        const auto pointer = create_array_typed(string_type(), rows.size());
+        auto* array = get_array_typed(pointer);
+        if (!array) { return {}; }
+        for (const auto& row : rows) {
+            array->append_value(
+                Value::make_string(alloc_string(row.*member)), *this);
+        }
+        return Value::make_heap(pointer, string_array_type);
+    };
 
     const Value object_values = make_object_array();
     if (object_values.type_id == invalid_type_id) {
@@ -563,6 +578,20 @@ bool Runtime::profile_initialize_blueprints(
         return false;
     }
     roots.add(object_values);
+    const Value name_values = make_string_array(
+        &ProfileBlueprintInitialization::name);
+    if (name_values.type_id == invalid_type_id) {
+        diagnostic = "could not allocate blueprint name input";
+        return false;
+    }
+    roots.add(name_values);
+    const Value last_name_values = make_string_array(
+        &ProfileBlueprintInitialization::last_name);
+    if (last_name_values.type_id == invalid_type_id) {
+        diagnostic = "could not allocate blueprint last-name input";
+        return false;
+    }
+    roots.add(last_name_values);
     const Value race_values = make_int_array(&ProfileBlueprintInitialization::race);
     if (race_values.type_id == invalid_type_id) {
         diagnostic = "could not allocate blueprint race input";
@@ -583,8 +612,10 @@ bool Runtime::profile_initialize_blueprints(
     roots.add(base_item_values);
 
     Vector<Value> arguments;
-    arguments.reserve(4);
+    arguments.reserve(6);
     arguments.push_back(object_values);
+    arguments.push_back(name_values);
+    arguments.push_back(last_name_values);
     arguments.push_back(race_values);
     arguments.push_back(class_values);
     arguments.push_back(base_item_values);

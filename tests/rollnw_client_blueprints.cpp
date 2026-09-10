@@ -1,5 +1,6 @@
 #include "blueprint_edits.hpp"
 #include "blueprint_operations.hpp"
+#include "project.hpp"
 #include "smalls_creature_properties.hpp"
 #include "workspace.hpp"
 
@@ -7,9 +8,15 @@
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
+#include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
+#include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/serialization/component_propset_json.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -43,8 +50,9 @@ protected:
             serialize(area, sample_area);
         }
         std::filesystem::remove_all(project);
-        for (const auto type : {ResourceType::utc, ResourceType::utp, ResourceType::uti}) {
-            std::filesystem::create_directories(project / "shared" / default_blueprint_directory(type));
+        for (const auto& definition : blueprint_types()) {
+            std::filesystem::create_directories(project / "shared"
+                / default_blueprint_directory(definition.resource_type));
         }
         std::ofstream{project / "shared/module.ifo.json"} << "{}";
         auto& resources = kernel::resman();
@@ -112,6 +120,173 @@ TEST_F(ClientBlueprints, CreationFailureReleasesTheDetachedBatch)
     EXPECT_FALSE(kernel::resman().contains(creation[0].destination));
 }
 
+TEST_F(ClientBlueprints, AllAuthoredTypesPublishReloadAndExposeTheirNames)
+{
+    std::vector<BlueprintCreationRequest> creation;
+    creation.reserve(blueprint_types().size());
+    for (const auto& definition : blueprint_types()) {
+        const auto extension = ResourceType::to_string(definition.resource_type);
+        BlueprintCreationRequest row{Resource{
+            "auth_all_" + std::string{extension}, definition.resource_type}};
+        row.name = "Named " + std::string{definition.label};
+        if (definition.object_type == ObjectType::creature) {
+            row.last_name = "Blueprint";
+            row.race = 6;
+            row.class_id = 4;
+        } else if (definition.object_type == ObjectType::item) {
+            row.base_item = 0;
+        }
+        creation.push_back(std::move(row));
+    }
+
+    auto initialized = initialize_blueprints(creation);
+    ASSERT_TRUE(initialized.ok()) << initialized.error;
+    ASSERT_EQ(initialized.roots.size(), blueprint_types().size());
+    std::vector<BlueprintWriteRequest> requests;
+    requests.reserve(creation.size());
+    for (size_t index = 0; index < creation.size(); ++index) {
+        EXPECT_EQ(initialized.roots[index].object().type,
+            blueprint_object_type(creation[index].destination.type));
+        requests.push_back({BlueprintWriteKind::create,
+            initialized.roots[index].object(), creation[index].destination,
+            std::filesystem::path{"shared"}
+                / default_blueprint_directory(creation[index].destination.type)});
+    }
+    auto prepared = prepare_blueprint_writes(project, workspace, requests);
+    ASSERT_TRUE(prepared.ok()) << prepared.error;
+    const auto results = publish_blueprint_writes(workspace, prepared);
+    ASSERT_EQ(results.size(), creation.size());
+    for (size_t index = 0; index < results.size(); ++index) {
+        ASSERT_TRUE(results[index].published) << results[index].error;
+        auto expected_name = creation[index].name;
+        if (!creation[index].last_name.empty()) {
+            expected_name += " " + creation[index].last_name;
+        }
+        EXPECT_EQ(project_resource_display_name(project,
+                      results[index].relative_path),
+            expected_name);
+    }
+
+    std::vector<Resource> resources;
+    resources.reserve(creation.size());
+    for (const auto& row : creation) {
+        resources.push_back(row.destination);
+    }
+    absl::flat_hash_map<Resource, nlohmann::json> snapshots;
+    std::string error;
+    ASSERT_TRUE(snapshot_blueprints(resources, snapshots, error)) << error;
+    EXPECT_EQ(snapshots.size(), resources.size());
+    const auto& door_state = snapshots.at(Resource{"auth_all_utd"sv, ResourceType::utd})
+                                 .at("nwn1.propsets.DoorState");
+    EXPECT_EQ(door_state.at("appearance"), 0);
+    EXPECT_EQ(door_state.at("generic_type"), 0);
+    for (const auto& [resource, snapshot] : snapshots) {
+        SCOPED_TRACE(resource.filename());
+        EXPECT_FALSE(snapshot.at("object").contains("uuid"));
+    }
+
+    ObjectDocument area_owner;
+    auto* area = kernel::objects().make<Area>();
+    ASSERT_TRUE(area_owner.adopt(area->handle()));
+    ASSERT_TRUE(deserialize(area, sample_area));
+    for (size_t index = 0; index < initialized.roots.size(); ++index) {
+        const auto handle = initialized.roots[index].release();
+        auto* object = kernel::objects().get_object_base(handle);
+        ASSERT_NE(object, nullptr);
+        object->comment = "Instance override";
+        auto* spatial = kernel::objects().components().get_or_create_spatial(handle);
+        spatial->area = area->handle().id;
+        spatial->position = {5.0f, 5.0f, 0.0f};
+        spatial->orientation = {0, 1, 0};
+        spatial->scale = {1.1f, 1.2f, 1.3f};
+        switch (handle.type) {
+        case ObjectType::creature:
+            area->creatures.push_back(kernel::objects().get<Creature>(handle));
+            break;
+        case ObjectType::door:
+            area->doors.push_back(kernel::objects().get<Door>(handle));
+            break;
+        case ObjectType::encounter:
+            area->encounters.push_back(kernel::objects().get<Encounter>(handle));
+            break;
+        case ObjectType::item:
+            area->items.push_back(kernel::objects().get<Item>(handle));
+            break;
+        case ObjectType::placeable:
+            area->placeables.push_back(kernel::objects().get<Placeable>(handle));
+            break;
+        case ObjectType::sound:
+            area->sounds.push_back(kernel::objects().get<Sound>(handle));
+            break;
+        case ObjectType::store:
+            area->stores.push_back(kernel::objects().get<Store>(handle));
+            break;
+        case ObjectType::trigger:
+            area->triggers.push_back(kernel::objects().get<Trigger>(handle));
+            break;
+        case ObjectType::waypoint:
+            area->waypoints.push_back(kernel::objects().get<Waypoint>(handle));
+            break;
+        default:
+            FAIL() << "Unexpected authored object type";
+        }
+    }
+    for (size_t index = 0; index < resources.size(); ++index) {
+        LiveBlueprintUpdates updates;
+        ASSERT_TRUE(collect_live_blueprint_references(
+            area->handle(), resources[index], updates, error))
+            << error;
+        ASSERT_EQ(updates.rows.size(), 1u);
+        const auto previous = updates.rows[0].object;
+        const auto placement = *kernel::objects().components().find_spatial(previous);
+        ASSERT_TRUE(prepare_live_blueprint_updates(updates, 1, error)) << error;
+        auto selection = previous;
+        ASSERT_TRUE(publish_live_blueprint_updates(updates, selection, error)) << error;
+        EXPECT_FALSE(kernel::objects().valid(previous));
+        ASSERT_TRUE(kernel::objects().valid(selection));
+        EXPECT_EQ(selection.type, blueprint_types()[index].object_type);
+        EXPECT_TRUE(kernel::objects().get_object_base(selection)->comment.empty());
+        const auto* replacement = kernel::objects().components().find_spatial(selection);
+        ASSERT_NE(replacement, nullptr);
+        EXPECT_EQ(replacement->area, placement.area);
+        EXPECT_EQ(replacement->position, placement.position);
+        EXPECT_EQ(replacement->orientation, placement.orientation);
+        EXPECT_EQ(replacement->scale, placement.scale);
+    }
+
+    for (const auto resource : resources) {
+        LiveBlueprintUpdates located;
+        ASSERT_TRUE(collect_live_blueprint_references(
+            area->handle(), resource, located, error))
+            << error;
+        ASSERT_EQ(located.rows.size(), 1u);
+        kernel::objects().get_object_base(located.rows[0].object)->comment
+            = "Closed document override";
+    }
+    nlohmann::json original_area;
+    serialize(area, original_area);
+    for (const auto resource : resources) {
+        // Creature navigation admission has its own walkmesh fixtures; this
+        // batch verifies every newly enabled CAF member category here.
+        if (resource.type == ResourceType::utc) { continue; }
+        BlueprintUpdateDocument document{ResourceType::caf, original_area,
+            collect_blueprint_references(
+                original_area, ResourceType::caf, resource)};
+        ASSERT_TRUE(document.references.error.empty())
+            << document.references.error;
+        ASSERT_EQ(document.references.rows.size(), 1u);
+        const auto path = nlohmann::json::json_pointer{
+            document.references.rows[0].path};
+        const auto location = document.value.at(path).at("components").at("location");
+        ASSERT_TRUE(prepare_blueprint_updates(
+            std::span{&document, 1}, resource, snapshots, error))
+            << error;
+        EXPECT_TRUE(document.value.at(path).at("object").at("comment").get<std::string>().empty());
+        EXPECT_EQ(document.value.at(path).at("components").at("location"),
+            location);
+    }
+}
+
 TEST_F(ClientBlueprints, InvalidCreatureSelectionsReleaseTheDetachedBatch)
 {
     const auto count = kernel::objects().object_count();
@@ -119,6 +294,27 @@ TEST_F(ClientBlueprints, InvalidCreatureSelectionsReleaseTheDetachedBatch)
     const auto initialized = initialize_blueprints(creation);
     EXPECT_FALSE(initialized.ok());
     EXPECT_TRUE(initialized.roots.empty());
+    EXPECT_EQ(kernel::objects().object_count(), count);
+}
+
+TEST_F(ClientBlueprints, WhitespaceNameRejectsTheDetachedBatch)
+{
+    const auto count = kernel::objects().object_count();
+    auto request = item("auth_blank_name");
+    request.name = " \t";
+    const std::array creation{request};
+    const auto initialized = initialize_blueprints(creation);
+    EXPECT_FALSE(initialized.ok());
+    EXPECT_TRUE(initialized.roots.empty());
+    EXPECT_EQ(kernel::objects().object_count(), count);
+
+    auto creature_request = creature("auth_blank_last_name");
+    creature_request.name = "Named";
+    creature_request.last_name = " \t";
+    const std::array creature_creation{creature_request};
+    const auto creature_initialized = initialize_blueprints(creature_creation);
+    EXPECT_FALSE(creature_initialized.ok());
+    EXPECT_TRUE(creature_initialized.roots.empty());
     EXPECT_EQ(kernel::objects().object_count(), count);
 }
 
@@ -475,7 +671,10 @@ TEST_F(ClientBlueprints, ReferenceTraversalCoversMatchingDescendantsAndRejectsUn
 
 TEST_F(ClientBlueprints, FreshCreatureAndPlaceableUseProfileDefaultsAndReload)
 {
-    const std::array creation{creature("auth_creature"), BlueprintCreationRequest{Resource{"auth_placeable"sv, ResourceType::utp}}};
+    std::array creation{creature("auth_creature"), BlueprintCreationRequest{Resource{"auth_placeable"sv, ResourceType::utp}}};
+    creation[0].name = "Named";
+    creation[0].last_name = "Creature";
+    creation[1].name = "Named Placeable";
     auto initialized = initialize_blueprints(creation);
     ASSERT_TRUE(initialized.ok()) << initialized.error;
     ASSERT_EQ(initialized.roots.size(), 2u);
@@ -490,6 +689,10 @@ TEST_F(ClientBlueprints, FreshCreatureAndPlaceableUseProfileDefaultsAndReload)
     ASSERT_EQ(results.size(), 2u);
     EXPECT_TRUE(results[0].published) << results[0].error;
     EXPECT_TRUE(results[1].published) << results[1].error;
+    EXPECT_EQ(project_resource_display_name(project, results[0].relative_path),
+        "Named Creature");
+    EXPECT_EQ(project_resource_display_name(project, results[1].relative_path),
+        "Named Placeable");
     auto* fresh = kernel::objects().load<Creature>(creation[0].destination.resref);
     ASSERT_NE(fresh, nullptr);
     ObjectDocument owner;
@@ -501,9 +704,14 @@ TEST_F(ClientBlueprints, FreshCreatureAndPlaceableUseProfileDefaultsAndReload)
     nlohmann::json saved;
     ASSERT_TRUE(object_to_component_propset_json(fresh, saved, &kernel::runtime(), SerializationProfile::blueprint));
     const auto& appearance = saved.at("nwn1.propsets.CreatureAppearance");
+    const auto& descriptor = saved.at("nwn1.propsets.CreatureDescriptor");
     const auto& stats = saved.at("nwn1.propsets.CreatureStats");
     const auto& levels = saved.at("nwn1.propsets.CreatureLevels");
     EXPECT_EQ(appearance.at("appearance"), 6);
+    EXPECT_EQ(descriptor.at("name_first").at("strings").at(0).at("string"),
+        "Named");
+    EXPECT_EQ(descriptor.at("name_last").at("strings").at(0).at("string"),
+        "Creature");
     EXPECT_EQ(stats.at("race"), 6);
     EXPECT_EQ(stats.at("abilities"), (nlohmann::json::array({16, 13, 16, 10, 10, 9})));
     ASSERT_EQ(stats.at("skills").size(), kernel::rules().skill_count());
@@ -539,7 +747,12 @@ TEST_F(ClientBlueprints, FreshCreatureAndPlaceableUseProfileDefaultsAndReload)
     legacy_empty_skills->clear();
     build_creature_sheet(kernel::runtime(), fresh->handle(), sheet);
     EXPECT_EQ(sheet.status, ObjectDetailsStatus::ready) << sheet.diagnostic;
-    EXPECT_EQ(live_object_display_name(fresh->handle()), "auth_creature");
+    EXPECT_EQ(live_object_display_name(fresh->handle()), "Named Creature");
+    auto* fresh_placeable = kernel::objects().load<Placeable>(creation[1].destination.resref);
+    ASSERT_NE(fresh_placeable, nullptr);
+    ObjectDocument placeable_owner;
+    ASSERT_TRUE(placeable_owner.adopt(fresh_placeable->handle()));
+    EXPECT_EQ(live_object_display_name(fresh_placeable->handle()), "Named Placeable");
     const auto* placeable_visual = kernel::objects().components().find_visual(initialized.roots[1].object());
     ASSERT_NE(placeable_visual, nullptr);
     EXPECT_FALSE(placeable_visual->models.empty());
@@ -603,9 +816,7 @@ TEST_F(ClientBlueprints, SaveAsPreservesSourceAndRejectsFolderLocalCollisions)
     ASSERT_NE(copy, nullptr);
     EXPECT_NE(copy_handle, source);
     EXPECT_EQ(copy->resref, destination.resref);
-    EXPECT_FALSE(copy->uuid.is_nil());
-    EXPECT_NE(copy->uuid, original->uuid);
-    const auto copy_uuid = copy->uuid;
+    EXPECT_TRUE(copy->uuid.is_nil());
     const auto results = publish_blueprint_writes(workspace, prepared);
     ASSERT_TRUE(results[0].published) << results[0].error;
     EXPECT_FALSE(kernel::objects().valid(copy_handle));
@@ -618,7 +829,7 @@ TEST_F(ClientBlueprints, SaveAsPreservesSourceAndRejectsFolderLocalCollisions)
     ASSERT_TRUE(object_to_component_propset_json(original, after, &kernel::runtime(), SerializationProfile::instance));
     EXPECT_EQ(before, after);
     const auto saved = nlohmann::json::parse(kernel::resman().demand(destination).bytes.string_view());
-    EXPECT_EQ(saved.at("object").at("uuid"), uuids::to_string(copy_uuid));
+    EXPECT_FALSE(saved.at("object").contains("uuid"));
     EXPECT_EQ(saved.at("object").at("resref"), destination.resref.string());
     EXPECT_EQ(saved.at("object").at("comment"), original->comment);
     {
@@ -677,8 +888,8 @@ TEST_F(ClientBlueprints, SaveAsCopiesAuthoredCreatureStateWithoutActivatingTheCo
     ASSERT_TRUE(publish_blueprint_writes(workspace, prepared)[0].published);
     auto saved = nlohmann::json::parse(kernel::resman().demand(destination).bytes.string_view());
     EXPECT_EQ(saved.at("nwn1.propsets.CreatureHealth").at("hp_current"), 17);
+    EXPECT_FALSE(saved.at("object").contains("uuid"));
     before.at("object").erase("uuid");
-    saved.at("object").erase("uuid");
     before.at("object").erase("resref");
     saved.at("object").erase("resref");
     EXPECT_EQ(saved, before);

@@ -201,18 +201,21 @@ focus on list selection. The validated Creature/Placeable/Item structural slice
 supports placement, transforms, duplicate, delete, undo/redo, and native CAF
 save. Blueprint preview tabs use the same focused edit commands and save path.
 
-New Blueprint creates a Creature, Placeable, or Item and opens its saved editor
-document. New Creatures prompt for race and class; NWN1 Smalls derives appearance,
-ability scores, level-one class data, skills, and body parts from those selections.
-Its form asks for a ResRef and directory;
-Items also require a base-item type. Base Item Type is currently read-only in the
-workbench. Further authoring uses the existing object editor.
+New Blueprint presents a compact action list for Creature, Door, Encounter, Item,
+Placeable, Sound, Store, Trigger, and Waypoint blueprints, then opens the saved
+editor document. Every creation form asks for a ResRef, directory, and display
+name. New Creatures use separate required first-name and optional last-name
+fields and also prompt for race and class; NWN1 Smalls derives
+appearance, ability scores, level-one class data, skills, and body parts from
+those selections. Items require a base-item type. Base Item Type is currently
+read-only in the workbench. Further authoring uses the existing object editor.
 
 Blueprint forms and progress dialogs share the command overlay drawn after the
 native viewport, with modal focus and input routed to that overlay.
 
 Save as New Blueprint prompts for a ResRef and directory, copies the selected
-Creature, Placeable, or Item, assigns a fresh blueprint UUID, and saves it. The
+authored object, changes its ResRef, and saves it. Blueprint files and their
+temporary editor copies do not retain an instance UUID. The
 temporary copy is destroyed and the project tree refreshes; the source selection,
 tab, and dirty state remain unchanged. Names share the module's typed resource
 namespace across directories. Ctrl+Z deletes the created file; Ctrl+Y restores the
@@ -220,7 +223,8 @@ same saved bytes. Undo rejects a subsequently changed file, and redo rejects a
 resource-name collision. Close an open copy's editor tab before undoing creation.
 
 Update Blueprint References offers Current Area or Whole Module. Matching live
-instances are instantiated from the saved blueprint, attached in their existing
+instances of all nine authored object types are instantiated from the saved
+blueprint, attached in their existing
 area/inventory/equipment slots, and the old instances are destroyed. Placement,
 UUID, container positions and unrelated edits survive. Preparation advances one
 live instance per frame with progress and cancellation. Applying clears the area's

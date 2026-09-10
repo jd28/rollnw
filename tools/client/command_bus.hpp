@@ -139,6 +139,7 @@ struct CommandPromptField {
     std::string value;
     std::vector<CommandPromptChoice> choices;
     bool directory = false;
+    bool required = true;
 };
 
 struct CommandPrompt {
@@ -147,6 +148,9 @@ struct CommandPrompt {
     std::string message;
     std::string detail;
     std::vector<CommandPromptAction> actions;
+    // Action-only choosers use the compact command-list presentation;
+    // confirmation forms retain the standard horizontal button row.
+    bool action_list = false;
     // Optional authored inputs, appended to the selected action's arguments in
     // field order. The prompt owns values/choices until submit or cancellation.
     std::vector<CommandPromptField> fields;

@@ -271,24 +271,25 @@ void ToolsetBackend::register_blueprint_commands()
         const auto kind = command_arg_string(invocation.args, 0);
         if (kind.empty()) {
             CommandResult result;
-            result.prompt = CommandPrompt{
-                .id = "blueprint.type",
-                .title = "New Blueprint",
-                .message = "Choose the blueprint type.",
-                .actions = {
-                    {"creature", "Creature", "blueprint.new", {"utc"}},
-                    {"placeable", "Placeable", "blueprint.new", {"utp"}},
-                    {"item", "Item", "blueprint.new", {"uti"}},
-                    {"cancel", "Cancel", "blueprint.cancel", {}},
-                },
-            };
+            CommandPrompt prompt;
+            prompt.id = "blueprint.type";
+            prompt.title = "New Blueprint";
+            prompt.message = "Choose the blueprint type.";
+            prompt.action_list = true;
+            prompt.actions.reserve(blueprint_types().size() + 1);
+            for (const auto& definition : blueprint_types()) {
+                const auto extension = std::string{ResourceType::to_string(
+                    definition.resource_type)};
+                prompt.actions.push_back({extension, std::string{definition.label},
+                    "blueprint.new", {extension}});
+            }
+            prompt.actions.push_back(
+                {"cancel", "Cancel", "blueprint.cancel", {}});
+            result.prompt = std::move(prompt);
             return result;
         }
-        const auto type = kind == "creature" ? ResourceType::utc
-            : kind == "placeable"            ? ResourceType::utp
-            : kind == "item"                 ? ResourceType::uti
-                                             : ResourceType::from_extension(kind);
-        return show_blueprint_form(BlueprintWriteKind::create, type);
+        return show_blueprint_form(BlueprintWriteKind::create,
+            ResourceType::from_extension(kind));
     });
     add("blueprint.save_as", "Save as New Blueprint...", [this](const CommandInvocation&, CommandContext&) {
         const auto source = bridge_ ? bridge_->active_object() : ObjectHandle{};
@@ -298,7 +299,9 @@ void ToolsetBackend::register_blueprint_commands()
         if (!workspace_ || !bridge_ || current_project_dir_.empty()) { return failure("Open a native project and select an authored object"); }
         const auto source = bridge_->active_object();
         const auto* object = kernel::objects().get_object_base(source);
-        if (!object || blueprint_resource_type(source.type) == ResourceType::invalid) { return failure("Select a Creature, Placeable, or Item"); }
+        if (!object || blueprint_resource_type(source.type) == ResourceType::invalid) {
+            return failure("Select a supported blueprint object");
+        }
         if (auto* tab = workspace_->active_tab(); tab && tab->kind == WorkspaceTabKind::preview && tab->document.object() == source) {
             const std::array<std::string_view, 1> ids{tab->id};
             return save_workspace_documents(*workspace_, current_project_dir_, ids);
@@ -337,8 +340,13 @@ CommandResult ToolsetBackend::show_blueprint_form(BlueprintWriteKind kind, Resou
         || kernel::resman().module_format() != ModuleResourceFormat::native_json) {
         return failure("Open a native project before creating a blueprint");
     }
+    const auto definitions = blueprint_types();
     const auto object_type = blueprint_object_type(type);
-    if (object_type == ObjectType::invalid) { return failure("Choose Creature, Placeable, or Item"); }
+    const auto definition = std::ranges::find(definitions, type,
+        &BlueprintTypeDefinition::resource_type);
+    if (object_type == ObjectType::invalid || definition == definitions.end()) {
+        return failure("Choose a supported blueprint type");
+    }
     BlueprintForm form{kind, type, {}, module_generation_, {}};
     auto directory = std::filesystem::path{kernel::resman().module_container()->path()} / default_blueprint_directory(type);
     std::string suggested;
@@ -353,9 +361,19 @@ CommandResult ToolsetBackend::show_blueprint_form(BlueprintWriteKind kind, Resou
     }
     auto& prompt = form.prompt;
     prompt.id = "blueprint.destination";
-    prompt.title = kind == BlueprintWriteKind::create ? "New " + std::string{placed_area_object_type_label(object_type)} + " Blueprint" : "Save as New Blueprint";
+    prompt.title = kind == BlueprintWriteKind::create
+        ? "New " + std::string{definition->label} + " Blueprint"
+        : "Save as New Blueprint";
     prompt.message = "ResRefs must be unique for this resource type across the module. Folders organize the saved files.";
     prompt.fields = {{"ResRef", suggested, {}, false}, {"Directory", directory.lexically_relative(current_project_dir_).generic_string(), {}, true}};
+    if (kind == BlueprintWriteKind::create) {
+        if (type == ResourceType::utc) {
+            prompt.fields.push_back({"First Name", {}, {}, false});
+            prompt.fields.push_back({"Last Name", {}, {}, false, false});
+        } else {
+            prompt.fields.push_back({"Name", {}, {}, false});
+        }
+    }
     prompt.actions = {{"create", "Create", "blueprint.submit", {}}, {"cancel", "Cancel", "blueprint.cancel", {}}};
     prompt.file_suffix = "." + std::string{ResourceType::to_string(type)} + ".json";
     if (kind == BlueprintWriteKind::create && type == ResourceType::utc) {
@@ -419,20 +437,25 @@ CommandResult ToolsetBackend::submit_blueprint_form(const CommandInvocation& inv
                 : std::string{message};
         };
         if (form.type == ResourceType::utc) {
-            if (auto message = parse_selection(2, request.race,
+            request.name = form.prompt.fields[2].value;
+            request.last_name = form.prompt.fields[3].value;
+            if (auto message = parse_selection(4, request.race,
                     "Choose a race");
                 !message.empty()) {
                 return reject(std::move(message));
             }
-            if (auto message = parse_selection(3, request.class_id,
+            if (auto message = parse_selection(5, request.class_id,
                     "Choose a class");
                 !message.empty()) {
                 return reject(std::move(message));
             }
         } else if (form.type == ResourceType::uti) {
-            const auto& text = form.prompt.fields[2].value;
+            request.name = form.prompt.fields[2].value;
+            const auto& text = form.prompt.fields[3].value;
             const auto parsed = std::from_chars(text.data(), text.data() + text.size(), request.base_item);
             if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size()) { return reject("Choose a base-item type"); }
+        } else {
+            request.name = form.prompt.fields[2].value;
         }
         initialized = initialize_blueprints(std::span{&request, 1});
         if (!initialized.ok()) { return reject(initialized.error); }

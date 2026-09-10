@@ -25,6 +25,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <type_traits>
 #include <typeindex>
 
@@ -32,6 +33,8 @@ namespace nw::smalls {
 
 struct ProfileBlueprintInitialization {
     ObjectHandle object{};
+    std::string_view name;
+    std::string_view last_name;
     int32_t race = -1;
     int32_t class_id = -1;
     int32_t base_item = -1;

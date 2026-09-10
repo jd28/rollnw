@@ -50,7 +50,9 @@ void ToolsetBackend::register_blueprint_reference_commands()
         if (blueprint_operation_active()) { return failure("Finish the current blueprint operation first"); }
         const auto source = bridge_->active_object();
         const auto* object = kernel::objects().get_object_base(source);
-        if (!object || blueprint_resource_type(source.type) == ResourceType::invalid) { return failure("Select a Creature, Placeable, or Item"); }
+        if (!object || blueprint_resource_type(source.type) == ResourceType::invalid) {
+            return failure("Select a supported blueprint object");
+        }
         blueprint_reference_source_ = Resource{object->resref, blueprint_resource_type(source.type)};
         if (!kernel::resman().contains(blueprint_reference_source_)) { return failure("Save this object as a blueprint first"); }
         blueprint_reference_area_.clear();

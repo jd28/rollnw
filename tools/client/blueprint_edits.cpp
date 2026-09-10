@@ -5,9 +5,15 @@
 
 #include <nw/kernel/Strings.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
+#include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
+#include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/item_materialization.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/serialization/Gff.hpp>
@@ -19,13 +25,24 @@
 #include <array>
 #include <cctype>
 #include <fstream>
-#include <random>
 #include <stdexcept>
 
 namespace fs = std::filesystem;
 
 namespace nw::toolset {
 namespace {
+
+constexpr std::array blueprint_type_catalog{
+    BlueprintTypeDefinition{ObjectType::creature, ResourceType::utc, "Creature", "blueprints/creatures", "creatures"},
+    BlueprintTypeDefinition{ObjectType::door, ResourceType::utd, "Door", "blueprints/doors", "doors"},
+    BlueprintTypeDefinition{ObjectType::encounter, ResourceType::ute, "Encounter", "blueprints/encounters", "encounters"},
+    BlueprintTypeDefinition{ObjectType::item, ResourceType::uti, "Item", "blueprints/items", "items"},
+    BlueprintTypeDefinition{ObjectType::placeable, ResourceType::utp, "Placeable", "blueprints/placeables", "placeables"},
+    BlueprintTypeDefinition{ObjectType::sound, ResourceType::uts, "Sound", "blueprints/sounds", "sounds"},
+    BlueprintTypeDefinition{ObjectType::store, ResourceType::utm, "Store", "blueprints/stores", "stores"},
+    BlueprintTypeDefinition{ObjectType::trigger, ResourceType::utt, "Trigger", "blueprints/triggers", "triggers"},
+    BlueprintTypeDefinition{ObjectType::waypoint, ResourceType::utw, "Waypoint", "blueprints/waypoints", "waypoints"},
+};
 
 bool inside(const fs::path& root, const fs::path& target)
 {
@@ -236,11 +253,29 @@ bool load_blueprint_copy(ObjectType type, const nlohmann::json& value,
     case ObjectType::creature:
         object = kernel::objects().make<Creature>();
         break;
+    case ObjectType::door:
+        object = kernel::objects().make<Door>();
+        break;
+    case ObjectType::encounter:
+        object = kernel::objects().make<Encounter>();
+        break;
     case ObjectType::placeable:
         object = kernel::objects().make<Placeable>();
         break;
     case ObjectType::item:
         object = kernel::objects().make<Item>();
+        break;
+    case ObjectType::sound:
+        object = kernel::objects().make<Sound>();
+        break;
+    case ObjectType::store:
+        object = kernel::objects().make<Store>();
+        break;
+    case ObjectType::trigger:
+        object = kernel::objects().make<Trigger>();
+        break;
+    case ObjectType::waypoint:
+        object = kernel::objects().make<Waypoint>();
         break;
     default:
         break;
@@ -270,11 +305,29 @@ bool snapshot_blueprints(std::span<const Resource> resources,
             case ResourceType::utc:
                 loaded = load_resource<Creature>(resource, owner, error);
                 break;
+            case ResourceType::utd:
+                loaded = load_resource<Door>(resource, owner, error);
+                break;
+            case ResourceType::ute:
+                loaded = load_resource<Encounter>(resource, owner, error);
+                break;
             case ResourceType::utp:
                 loaded = load_resource<Placeable>(resource, owner, error);
                 break;
             case ResourceType::uti:
                 loaded = load_resource<Item>(resource, owner, error);
+                break;
+            case ResourceType::uts:
+                loaded = load_resource<Sound>(resource, owner, error);
+                break;
+            case ResourceType::utm:
+                loaded = load_resource<Store>(resource, owner, error);
+                break;
+            case ResourceType::utt:
+                loaded = load_resource<Trigger>(resource, owner, error);
+                break;
+            case ResourceType::utw:
+                loaded = load_resource<Waypoint>(resource, owner, error);
                 break;
             default:
                 error = "Unsupported blueprint type";
@@ -307,6 +360,20 @@ InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationReq
         for (const auto& row : rows) {
             std::string normalized;
             if (!validate_blueprint_resref(row.destination.resref.view(), normalized, result.error)) { break; }
+            if (!row.name.empty()
+                && std::ranges::all_of(row.name, [](const unsigned char ch) {
+                       return std::isspace(ch);
+                   })) {
+                result.error = "Blueprint Name must contain non-whitespace text";
+                break;
+            }
+            if (!row.last_name.empty()
+                && std::ranges::all_of(row.last_name, [](const unsigned char ch) {
+                       return std::isspace(ch);
+                   })) {
+                result.error = "Creature Last Name must contain non-whitespace text or be empty";
+                break;
+            }
             if (!destinations.insert(row.destination).second || kernel::resman().contains(row.destination)) {
                 result.error = "Blueprint ResRef already exists: " + row.destination.filename();
                 break;
@@ -317,8 +384,9 @@ InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationReq
                 break;
             }
             if (object_type != ObjectType::creature
-                && (row.race != -1 || row.class_id != -1)) {
-                result.error = "Only Creature blueprints accept race and class selections";
+                && (row.race != -1 || row.class_id != -1
+                    || !row.last_name.empty())) {
+                result.error = "Only Creature blueprints accept a last name, race, and class selections";
                 break;
             }
             if (object_type == ObjectType::creature
@@ -331,11 +399,29 @@ InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationReq
             case ObjectType::creature:
                 object = kernel::objects().make<Creature>();
                 break;
+            case ObjectType::door:
+                object = kernel::objects().make<Door>();
+                break;
+            case ObjectType::encounter:
+                object = kernel::objects().make<Encounter>();
+                break;
             case ObjectType::placeable:
                 object = kernel::objects().make<Placeable>();
                 break;
             case ObjectType::item:
                 object = kernel::objects().make<Item>();
+                break;
+            case ObjectType::sound:
+                object = kernel::objects().make<Sound>();
+                break;
+            case ObjectType::store:
+                object = kernel::objects().make<Store>();
+                break;
+            case ObjectType::trigger:
+                object = kernel::objects().make<Trigger>();
+                break;
+            case ObjectType::waypoint:
+                object = kernel::objects().make<Waypoint>();
                 break;
             default:
                 break;
@@ -352,7 +438,11 @@ InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationReq
             std::vector<smalls::ProfileBlueprintInitialization> initializations;
             initializations.reserve(rows.size());
             for (size_t index = 0; index < rows.size(); ++index) {
-                initializations.push_back({result.roots[index].object(),
+                const std::string_view name = rows[index].name.empty()
+                    ? rows[index].destination.resref.view()
+                    : std::string_view{rows[index].name};
+                initializations.push_back({result.roots[index].object(), name,
+                    rows[index].last_name,
                     rows[index].race, rows[index].class_id,
                     rows[index].base_item});
             }
@@ -367,10 +457,16 @@ InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationReq
         if (result.error.empty()) {
             for (size_t index = 0; index < rows.size(); ++index) {
                 auto* object = kernel::objects().get_object_base(result.roots[index].object());
+                const auto name = rows[index].name.empty()
+                    ? rows[index].destination.resref.view()
+                    : std::string_view{rows[index].name};
+                if (object->handle().type != ObjectType::creature
+                    && !object->name.add(LanguageID::english, name)) {
+                    result.error = "Blueprint name initialization failed";
+                    break;
+                }
                 object->resref = rows[index].destination.resref;
                 object->tag = kernel::strings().intern(object->resref.view());
-                std::random_device generator;
-                object->uuid = uuids::basic_uuid_random_generator<std::random_device>{generator}();
                 if (!object->instantiate()) {
                     result.error = "Blueprint initialization failed";
                     break;
@@ -384,46 +480,36 @@ InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationReq
     return result;
 }
 
+std::span<const BlueprintTypeDefinition> blueprint_types() noexcept
+{
+    return blueprint_type_catalog;
+}
+
 ResourceType::type blueprint_resource_type(ObjectType type) noexcept
 {
-    switch (type) {
-    case ObjectType::creature:
-        return ResourceType::utc;
-    case ObjectType::placeable:
-        return ResourceType::utp;
-    case ObjectType::item:
-        return ResourceType::uti;
-    default:
-        return ResourceType::invalid;
-    }
+    const auto found = std::ranges::find(blueprint_type_catalog, type,
+        &BlueprintTypeDefinition::object_type);
+    return found == blueprint_type_catalog.end()
+        ? ResourceType::invalid
+        : found->resource_type;
 }
 
 ObjectType blueprint_object_type(ResourceType::type type) noexcept
 {
-    switch (type) {
-    case ResourceType::utc:
-        return ObjectType::creature;
-    case ResourceType::utp:
-        return ObjectType::placeable;
-    case ResourceType::uti:
-        return ObjectType::item;
-    default:
-        return ObjectType::invalid;
-    }
+    const auto found = std::ranges::find(blueprint_type_catalog, type,
+        &BlueprintTypeDefinition::resource_type);
+    return found == blueprint_type_catalog.end()
+        ? ObjectType::invalid
+        : found->object_type;
 }
 
 fs::path default_blueprint_directory(ResourceType::type type)
 {
-    switch (type) {
-    case ResourceType::utc:
-        return "blueprints/creatures";
-    case ResourceType::utp:
-        return "blueprints/placeables";
-    case ResourceType::uti:
-        return "blueprints/items";
-    default:
-        return {};
-    }
+    const auto found = std::ranges::find(blueprint_type_catalog, type,
+        &BlueprintTypeDefinition::resource_type);
+    return found == blueprint_type_catalog.end()
+        ? fs::path{}
+        : fs::path{found->directory};
 }
 
 bool validate_blueprint_resref(std::string_view text, std::string& normalized, std::string& error)
@@ -567,22 +653,7 @@ PreparedBlueprintWrites prepare_blueprint_writes(const fs::path& project,
             if (!load_blueprint_copy(type, row.source_snapshot, row.document, result.error)) { break; }
             auto* copy = kernel::objects().get_object_base(row.document.object());
             copy->resref = request.destination.resref;
-            if (request.kind != BlueprintWriteKind::create) { copy->uuid = {}; }
-            if (request.kind == BlueprintWriteKind::save_as) {
-                std::random_device generator;
-                copy->uuid = uuids::basic_uuid_random_generator<std::random_device>{generator}();
-            }
-            if (row.previous_source_bytes) {
-                const auto original = nlohmann::json::parse(*row.previous_source_bytes, nullptr, false);
-                if (!original.is_discarded() && original.contains("object") && original.at("object").contains("uuid")) {
-                    const auto uuid = uuids::uuid::from_string(original.at("object").at("uuid").get<std::string>());
-                    if (!uuid) {
-                        result.error = "Destination blueprint has an invalid UUID";
-                        break;
-                    }
-                    copy->uuid = *uuid;
-                }
-            }
+            copy->uuid = {};
             if (request.kind == BlueprintWriteKind::update && fs::exists(row.target)) {
                 row.expected_bytes.emplace();
                 if (!read_file(row.target, *row.expected_bytes, result.error)) { break; }
@@ -593,6 +664,7 @@ PreparedBlueprintWrites prepare_blueprint_writes(const fs::path& project,
                 }
             }
             if (!snapshot(copy->handle(), SerializationProfile::blueprint, value, result.error)) { break; }
+            strip_blueprint_identity(value);
             row.bytes = value.dump(2) + "\n";
             // A save-only copy needs no runtime activation. Activation can reset
             // authored values (for example Creature current HP), so serialize

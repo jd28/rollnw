@@ -1,4 +1,5 @@
 import core.door as NativeDoor;
+import core.object as O;
 import core.string as String;
 import core.types as T;
 import core.visual as Visual;
@@ -168,6 +169,16 @@ fn resolve_door_model(door: Door): DoorResolvedModel {
 
 fn appearance_exists(appearance: int, generic_type: int): bool {
     return resolve_door_model_by_state(appearance, generic_type).valid;
+}
+
+fn initialize_blueprint(door: Door): bool {
+    if (door == O.invalid) {
+        return false;
+    }
+    var state = get_propset!(DoorState)(door);
+    state.appearance = 0;
+    state.generic_type = 0;
+    return true;
 }
 
 fn update_visual(door: Door): bool {

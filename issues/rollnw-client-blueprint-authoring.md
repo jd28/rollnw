@@ -1,5 +1,61 @@
 # Blueprint authoring and reference updates
 
+## All authored object types and named creation (2026-09-09)
+
+Tier 2. The fixed input catalog is the nine NWN object blueprint formats:
+Creature/UTC, Door/UTD, Encounter/UTE, Item/UTI, Placeable/UTP, Sound/UTS,
+Store/UTM, Trigger/UTT, and Waypoint/UTW. Each creation row contains a typed
+resource, display name, and the existing type-specific selections. The output is
+one native blueprint per row whose name is visible in the project tree and which
+can be loaded for Save as New, Update Blueprint, and Update References.
+
+- Real platform and data: the desktop client owns live objects and Smalls
+  propsets on the kernel thread. The project already creates directories and
+  reads labels for all nine formats, and CAF files already store nine separate
+  member arrays. Creature names live in the profile-owned descriptor propset;
+  the other eight label readers use `ObjectBase::name`. Creature creation needs
+  race/class, Item needs a base-item row, Door uses zero appearance/generic type,
+  and the remaining default-zero propsets need no extra selection. Unknown
+  resource kinds, blank names, invalid catalog selections, failed allocation,
+  and failed profile initialization reject the complete batch.
+- Cost: creation and reference updates are cold desktop authoring operations.
+  File reads/writes, profile serialization, and object instantiation dominate.
+  The type catalog is nine contiguous constant rows; mapping scans at most nine
+  rows. No performance result is claimed because this path has no latency
+  requirement or dedicated benchmark.
+- Batch transform contract: `BlueprintCreationRequest[]` is borrowed for one
+  call; `InitializedBlueprints.roots[]` owns equally ordered detached native
+  roots until publication or failure. C++ allocates and supplies plain first/last names and
+  catalog indices; the profile initializes its propsets in one array call. Live
+  replacement consumes ordered owner-slot rows, prepares detached roots, copies
+  UUID and spatial placement, revalidates ownership, swaps every applicable CAF
+  array, then destroys old roots. Closed CAF replacement preserves the stored
+  UUID, location, and scale in complete JSON documents owned by the worker.
+- Architecture decision and data flow: one `BlueprintTypeDefinition[9]` table
+  drives chooser order, labels, resource/object mappings, default folders, and
+  CAF member-array names.
+  The chooser carries an explicit action-list bit; confirmation dialogs keep
+  their shared horizontal button row. Concrete allocation, typed load, and CAF
+  vector replacement remain switches because those operations require distinct
+  C++ types. Creation flows from prompt fields to one batch request, profile
+  defaults, native identity/name assignment, ordinary blueprint serialization,
+  resource refresh, and project-tree adoption.
+- Simplification pass: the small lookup-table option removes repeated UI and
+  mapping allowlists. No cache is added because nine comparisons occur only on
+  user commands. No new type hierarchy, factory ownership layer, alternate
+  serializer, or parallel creation path is added. The existing batch API already
+  covers multiple creations, while one interactive creation remains count one.
+- Build sequence and done criteria: add the catalog and vertical prompt metadata;
+  extend allocation/load/snapshot/live-swap cases; pass names through the profile
+  boundary; then verify all nine types in one batch through create, publish,
+  project-label lookup, reload/snapshot, and live replacement. Verify the six
+  newly enabled types through closed CAF replacement; existing coverage retains
+  the prior Item path and Creature navigation has separate admission fixtures.
+  Build the client and test targets, run the focused blueprint/Rml/
+  resource suite, run `git diff --check`, and confirm no `std::map` was added.
+  Any type that fails round-trip, loses placement/name, or cannot be replaced
+  disproves completion. There are no unresolved design questions in this slice.
+
 ## Broad simplification audit (2026-09-09)
 
 Tier 1. The review covers the implemented New Blueprint, Save as New
@@ -29,7 +85,7 @@ duplicate representations and fewer invalid in-process states.
   wall time, process startup time, peak memory, and UI frame latency for worker
   counts 1, 2, and 4 on a representative module.
 - Transform and ownership contract: C++ owns a contiguous batch of
-  `{handle,race,class,base-item}` initialization rows and transposes it only at
+  `{handle,name,last-name,race,class,base-item}` initialization rows and transposes it only at
   the existing Smalls array-call boundary. One resource-type mapping selects
   the native document kind for both discovery and replacement. Typed enums hold
   transient scope and worker phase; strings remain only in the versioned JSON
@@ -493,12 +549,13 @@ prepared source. Keep batch interfaces; measure three ordinary loads against one
 load plus three copies before claiming or introducing a placement optimization.
 Current archive-based copying still performs per-instance allocation and wiring.
 
-USER DIRECTION: clone the selected object, change its ResRef/UUID, save the new
-blueprint, destroy the temporary clone, and refresh the project sidebar. Undo
-deletes the created file and refreshes the tree. Save as New opens no editor tab.
-This supersedes the earlier new-blueprint UUID omission policy for Save as New.
+SUPERSEDED USER DIRECTION: clone the selected object, change its ResRef/UUID, save
+the new blueprint, destroy the temporary clone, and refresh the project sidebar.
+The later decision makes UUID instance-only: temporary blueprint copies clear it,
+and blueprint JSON omits it. Undo deletes the created file and refreshes the tree.
+Save as New opens no editor tab.
 
-- Frame/data: the input is the selected Creature, Placeable, or Item and a validated
+- Frame/data: the input is any selected authored blueprint object and a validated
   destination; the output is one new file in the flat typed module namespace. The
   UI supplies a batch of one. Existing nested-item reference export rules apply.
 - Platform/cost: the owning desktop thread uses the existing full-object archive
@@ -506,8 +563,8 @@ This supersedes the earlier new-blueprint UUID omission policy for Save as New.
   and saving traverse the source payload; temporary memory is the source archive,
   one detached object graph, and saved bytes. No latency target or measured speedup
   is claimed. Resource refresh rebuilds the module's existing directory snapshot.
-- Transform: validate destinations -> copy source -> assign native ResRef and fresh
-  UUID -> serialize blueprint -> exclusive save -> release copies -> refresh.
+- Transform: validate destinations -> copy source -> assign native ResRef and clear
+  UUID -> serialize blueprint without instance identity -> exclusive save -> release copies -> refresh.
   Prepared batches own copies until saving; history owns only paths and bytes.
   Invalid names, collisions, stale sources, or lossy item exports reject before writing.
 - Simplification: revalidate source/destination facts without constructing a second
@@ -515,11 +572,11 @@ This supersedes the earlier new-blueprint UUID omission policy for Save as New.
   serialized object snapshot. Undo/redo reuse the existing command history and
   retain the saved bytes, never a live clone or source-object mutation.
 - Undo/redo: undo verifies expected bytes before deleting; redo exclusively restores
-  the same bytes and UUID. Changed files or dirty destination tabs reject without
+  the same bytes. Changed files or dirty destination tabs reject without
   changing history. Resource refresh follows either file change; the command UI
   refreshes the project tree. Existing document history stays tab-local.
-- Done: verify a real object survives unchanged, the new UUID differs, no extra
-  live object/tab remains, the resource appears, undo removes it, redo restores
+- Done: verify a real object survives unchanged, the saved blueprint has no UUID,
+  no extra live object/tab remains, the resource appears, undo removes it, redo restores
   identical bytes, and collisions/edited-file undo are rejected. An open destination
   tab rejects replay to avoid removing a document while it is being edited. Desktop rendering
   remains a separate manual check.
@@ -542,10 +599,8 @@ applies blueprint changes to existing content. Ordinary Save on an open blueprin
 remains the operation for saving that document. Updating a blueprint does not
 implicitly propagate it.
 
-The first release covers Creature, Placeable, and Item creation from scratch,
-Save as New Blueprint, and Update Blueprint. Propagation
-follows as a separate deliverable, initially for those same types. Other blueprint
-kinds require their own instance-data audit before enabling the operation. Area
+The implemented release covers all nine NWN object blueprint types for creation,
+Save as New Blueprint, Update Blueprint, and propagation. Area
 duplication, new terrain, runtime actors, binary project mutation, and language or
 VM development are outside this plan. Existing profile APIs and serializers remain
 dependencies; this work does not move their rules into the client.
@@ -741,10 +796,10 @@ Placeable and Item use their profile initializers. C++ resumes with identity,
 instantiation, serialization and publication only. Cost is one profile call and
 one detached graph plus serialized round trip per created blueprint.
 
-Expose New Blueprint from the project resource browser, Home, and command palette.
+Expose New Blueprint from the project resource browser and command palette.
 A typed blueprint-category action may preselect its actual resource kind; the
 general command asks for it. Selection in an area is not a prerequisite. Initial
-kinds are Creature, Placeable, and Item, matching the existing focused editors.
+kinds are the nine authored NWN object types in the fixed catalog.
 
 Use a small creation dialog: type, ResRef, destination directory, and only the
 type-specific choices required to obtain a valid editable blueprint. Item base
@@ -764,7 +819,7 @@ such a profile fails with a concrete diagnostic.
 New objects get the requested resource identity and display name through the
 appropriate existing native operation.
 Default a new object's tag to its requested resource reference; the editor can
-change it later. Its UUID follows the plan's new-blueprint identity policy. Begin
+change it later. Keep its UUID empty because this is a blueprint, not an instance. Begin
 with empty inventory, equipment, local variables, and scripts unless the audited
 profile initializer explicitly requires authored values. There is no inherited
 instance placement or arbitrary selected object's state.
@@ -812,7 +867,7 @@ design authority here, not a claim of byte-for-byte NWToolset compatibility.
 | Data | Instance to blueprint | Blueprint to matching instance |
 | --- | --- | --- |
 | Typed resource identity | New requested reference, or the exact update destination | Retain matching reference and type |
-| Live handle, UUID, ownership, membership/order | Never copy instance identity; assign a fresh UUID on Save as New; preserve destination UUID on update | Fresh live object; keep destination top-level persistent UUID and parent membership position; never duplicate a blueprint UUID into instances |
+| Live handle, UUID, ownership, membership/order | Never serialize instance identity; blueprint JSON and temporary blueprint copies have no UUID | Fresh live object; keep destination top-level persistent UUID and parent membership position |
 | Position, orientation, scale | Omit through blueprint profile | Preserve exactly |
 | Tag, local variables, name, description, comments, palette, authored appearance/statistics/scripts | Export using existing owning serializers | Replace from blueprint |
 | Inventory/equipment/store composition | Export validated resource references and slot/layout data | Instantiate fresh contents from blueprint references; old contents and customizations are replaced |
@@ -821,11 +876,10 @@ design authority here, not a claim of byte-for-byte NWToolset compatibility.
 | Geometry and other spatial authoring absent from the blueprint | Respect the existing blueprint profile | Audit as placement data before enabling Trigger/Encounter and other additional types; no arbitrary gameplay-field preservation |
 | Transient/runtime/renderer state | Exclude | Exclude |
 
-Retaining the destination root UUID is an identity-bookkeeping choice, not retention
-of old authored state. New descendants follow the existing new-instance identity
-policy and never inherit a source blueprint UUID or unrelated old child UUID. If
-the current loader copies blueprint UUIDs, remove them from the detached source
-snapshot before construction; do not change the saved blueprint to achieve this.
+Retaining a placed destination root UUID is an identity-bookkeeping choice, not
+retention of old authored state. New descendants follow the existing new-instance
+identity policy and never inherit unrelated old child UUIDs. Blueprint documents
+omit UUIDs at their serialization boundary.
 
 A new appearance may invalidate creature clearance at its unchanged position; an
 Item update may change equipment legality or inventory footprint in an unaffected

@@ -10,6 +10,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace nw::toolset {
@@ -44,10 +45,14 @@ struct BlueprintCreationRequest {
     // Required for Creatures; other types leave these unset.
     int32_t race = -1;
     int32_t class_id = -1;
+    // Empty programmatic input falls back to the ResRef.
+    std::string name;
+    // Creature-only; an empty last name is valid.
+    std::string last_name;
 };
 
 // Typed resource keys plus plain profile selections -> independent roots with
-// fresh identity. The selected profile owns all propset/default initialization.
+// transient handles. The selected profile owns all propset/default initialization.
 // Uses normal object wiring. Empty is a no-op; invalid keys, types, selections,
 // or profile initialization release the entire batch.
 [[nodiscard]] InitializedBlueprints initialize_blueprints(std::span<const BlueprintCreationRequest> rows);
@@ -89,6 +94,16 @@ struct BlueprintWriteResult {
     std::string error;
 };
 
+struct BlueprintTypeDefinition {
+    ObjectType object_type = ObjectType::invalid;
+    ResourceType::type resource_type = ResourceType::invalid;
+    std::string_view label;
+    std::string_view directory;
+    std::string_view area_category;
+};
+
+// The fixed set of NWN object blueprint types, in chooser order.
+[[nodiscard]] std::span<const BlueprintTypeDefinition> blueprint_types() noexcept;
 [[nodiscard]] ResourceType::type blueprint_resource_type(ObjectType type) noexcept;
 [[nodiscard]] ObjectType blueprint_object_type(ResourceType::type type) noexcept;
 [[nodiscard]] std::filesystem::path default_blueprint_directory(ResourceType::type type);

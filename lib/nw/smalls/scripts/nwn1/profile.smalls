@@ -50,10 +50,13 @@ fn object_instantiated(obj: object) {
     }
 }
 
-fn initialize_blueprints(objects: array!(object), races: array!(int),
-    classes: array!(int), base_items: array!(int)): bool {
+fn initialize_blueprints(objects: array!(object), names: array!(string),
+    last_names: array!(string), races: array!(int), classes: array!(int),
+    base_items: array!(int)): bool {
     var count = Array.len(objects);
-    if (Array.len(races) != count
+    if (Array.len(names) != count
+        || Array.len(last_names) != count
+        || Array.len(races) != count
         || Array.len(classes) != count
         || Array.len(base_items) != count) {
         return false;
@@ -62,7 +65,7 @@ fn initialize_blueprints(objects: array!(object), races: array!(int),
         var obj = objects[index];
         if (obj is Creature) {
             if (!CreatureRules.initialize_blueprint(
-                obj, races[index], classes[index])) {
+                obj, names[index], last_names[index], races[index], classes[index])) {
                 return false;
             }
         } elif (obj is Placeable) {
@@ -73,6 +76,13 @@ fn initialize_blueprints(objects: array!(object), races: array!(int),
             if (!Item.initialize_blueprint(obj, base_items[index])) {
                 return false;
             }
+        } elif (obj is Door) {
+            if (!Doors.initialize_blueprint(obj)) {
+                return false;
+            }
+        } elif (obj is Encounter || obj is Sound || obj is Store
+            || obj is Trigger || obj is Waypoint) {
+            // Their empty NWN propsets are their authored defaults.
         } else {
             return false;
         }
