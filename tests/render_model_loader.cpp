@@ -240,6 +240,74 @@ TEST(RenderModelLoader, ImportsNwnModelAssetSkinMeshes)
     EXPECT_EQ(instance.animation.skin_matrices[first_skin].size(), asset.skins[first_skin].joints.size());
 }
 
+TEST(RenderModelLoader, ImportsTextSkinWithForwardReferencedBones)
+{
+    constexpr auto model_text = R"mdl(#MAXMODEL ASCII
+newmodel forward_skin
+setsupermodel forward_skin NULL
+classification Character
+beginmodelgeom forward_skin
+node dummy forward_skin
+  parent NULL
+endnode
+node skin body
+  parent forward_skin
+  render 1
+  bitmap NULL
+  verts 3
+    0 0 0
+    1 0 0
+    0 1 0
+  faces 1
+    0 1 2 0 0 1 2 0
+  tverts 3
+    0 0 0
+    1 0 0
+    0 1 0
+  weights 3
+    bone 1
+    bone 1
+    bone 1
+endnode
+node dummy bone
+  parent forward_skin
+endnode
+endmodelgeom forward_skin
+newanim idle forward_skin
+  length 1
+  transtime 0
+  animroot forward_skin
+node dummy forward_skin
+  parent NULL
+endnode
+doneanim idle forward_skin
+donemodel forward_skin
+)mdl"sv;
+
+    nw::ResourceData data;
+    data.bytes.append(model_text.data(), model_text.size());
+    nw::model::Mdl mdl{std::move(data)};
+
+    ASSERT_TRUE(mdl.valid());
+    ASSERT_EQ(mdl.model.nodes.size(), 3u);
+    const auto* skin = dynamic_cast<const nw::model::SkinNode*>(mdl.model.nodes[1].get());
+    ASSERT_NE(skin, nullptr);
+    ASSERT_FALSE(skin->vertices.empty());
+    EXPECT_EQ(skin->bone_nodes[0], 2);
+    for (const auto& vertex : skin->vertices) {
+        EXPECT_EQ(vertex.bones[0], 0);
+    }
+
+    auto result = nw::render::nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    EXPECT_EQ(result.stats.skipped_skin_mesh_count, 0u);
+    ASSERT_EQ(result.asset->primitives.size(), 1u);
+    EXPECT_TRUE(result.asset->primitives.front().skinned);
+    ASSERT_EQ(result.asset->skins.size(), 1u);
+    ASSERT_EQ(result.asset->skins.front().joints.size(), 1u);
+    EXPECT_EQ(result.asset->skins.front().joints.front(), 2);
+}
+
 TEST(RenderModelLoader, ImportsNwnIdentitySkinBoneRows)
 {
     namespace nwn = nw::render::nwn;

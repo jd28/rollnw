@@ -271,8 +271,9 @@ bool parse_tokens(Tokenizer& tokens, StringView name, Vector<T>& out)
 }
 
 template <typename T, typename VertType>
-bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx,
-    Vector<uint32_t>* out_face_materials = nullptr)
+bool cleanup_geometry(T* n, const GeomCxt& geomctx,
+    Vector<uint32_t>* out_face_materials = nullptr,
+    std::array<String, 64>* out_skin_bone_names = nullptr)
 {
     if (geomctx.verts.empty()) {
         return true;
@@ -345,6 +346,11 @@ bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx,
             LOG_F(ERROR, "invalid text mdl: skin vertex, weight, and bone counts differ");
             return false;
         }
+        if (!out_skin_bone_names) {
+            LOG_F(ERROR, "invalid text mdl: skin bone output is missing");
+            return false;
+        }
+        out_skin_bone_names->fill({});
         for (size_t vertex_index = 0; vertex_index < source_vertex_count; ++vertex_index) {
             auto& vertex = source_vertices[vertex_index];
             vertex.weights = geomctx.weights[vertex_index];
@@ -354,23 +360,29 @@ bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx,
                 if (bones[lane].empty()) {
                     break;
                 }
-                for (size_t node_index = 0; node_index < model->nodes.size(); ++node_index) {
-                    if (!string::icmp(model->nodes[node_index]->name, bones[lane])) {
-                        continue;
-                    }
-                    for (size_t bone_index = 0; bone_index < n->bone_nodes.size(); ++bone_index) {
-                        if (n->bone_nodes[bone_index] == static_cast<int16_t>(node_index)) {
-                            vertex.bones[static_cast<glm::length_t>(lane)] = static_cast<int>(bone_index);
-                            break;
-                        }
-                        if (n->bone_nodes[bone_index] == -1) {
-                            vertex.bones[static_cast<glm::length_t>(lane)] = static_cast<int>(bone_index);
-                            n->bone_nodes[bone_index] = static_cast<int16_t>(node_index);
-                            break;
-                        }
-                    }
-                    break;
+                if (vertex.weights[static_cast<glm::length_t>(lane)] <= 0.0f) {
+                    continue;
                 }
+
+                size_t bone_slot = out_skin_bone_names->size();
+                for (size_t slot = 0; slot < out_skin_bone_names->size(); ++slot) {
+                    const auto& name = (*out_skin_bone_names)[slot];
+                    if (name.empty()) {
+                        bone_slot = slot;
+                        break;
+                    } else if (string::icmp(name, bones[lane])) {
+                        bone_slot = slot;
+                        break;
+                    }
+                }
+                if (bone_slot == out_skin_bone_names->size()) {
+                    LOG_F(ERROR, "invalid text mdl: skin uses more than 64 bones");
+                    return false;
+                }
+                if ((*out_skin_bone_names)[bone_slot].empty()) {
+                    (*out_skin_bone_names)[bone_slot] = bones[lane];
+                }
+                vertex.bones[static_cast<glm::length_t>(lane)] = static_cast<int>(bone_slot);
             }
         }
     }
@@ -500,6 +512,41 @@ bool cleanup_geometry(Model* model, T* n, const GeomCxt& geomctx,
         }
     }
 
+    return true;
+}
+
+bool resolve_skin_bones(Model& model, SkinNode& skin,
+    const std::array<String, 64>& bone_names)
+{
+    for (size_t slot = 0; slot < bone_names.size(); ++slot) {
+        const auto& bone_name = bone_names[slot];
+        if (bone_name.empty()) {
+            continue;
+        }
+
+        size_t node_index = 0;
+        for (; node_index < model.nodes.size(); ++node_index) {
+            if (string::icmp(model.nodes[node_index]->name, bone_name)) {
+                break;
+            }
+        }
+        if (node_index < model.nodes.size()) {
+            if (node_index > static_cast<size_t>(std::numeric_limits<int16_t>::max())) {
+                LOG_F(ERROR, "invalid text mdl: skin bone index exceeds 16-bit range");
+                return false;
+            }
+            skin.bone_nodes[slot] = static_cast<int16_t>(node_index);
+            continue;
+        }
+
+        for (auto& vertex : skin.vertices) {
+            for (glm::length_t lane = 0; lane < 4; ++lane) {
+                if (vertex.bones[lane] == static_cast<int>(slot)) {
+                    vertex.bones[lane] = -1;
+                }
+            }
+        }
+    }
     return true;
 }
 
@@ -1075,6 +1122,7 @@ bool TextParser::parse_node(Geometry* geometry)
 
     // Cleanup geometry data
     Vector<uint32_t> face_materials;
+    std::array<String, 64> skin_bone_names;
     const bool preserve_face_materials = geometry == &mdl_->model
         && (resource_type_ == ResourceType::wok
             || resource_type_ == ResourceType::pwk
@@ -1083,13 +1131,13 @@ bool TextParser::parse_node(Geometry* geometry)
     auto* face_material_output = preserve_face_materials ? &face_materials : nullptr;
     if (node->type & NodeFlags::skin) {
         SkinNode* n = static_cast<SkinNode*>(node.get());
-        if (!cleanup_geometry<SkinNode, SkinVertex>(&mdl_->model, n, geomctx,
-                face_material_output)) {
+        if (!cleanup_geometry<SkinNode, SkinVertex>(n, geomctx,
+                face_material_output, &skin_bone_names)) {
             return false;
         }
     } else if (node->type & NodeFlags::mesh) {
         TrimeshNode* n = static_cast<TrimeshNode*>(node.get());
-        if (!cleanup_geometry<TrimeshNode, Vertex>(&mdl_->model, n, geomctx,
+        if (!cleanup_geometry<TrimeshNode, Vertex>(n, geomctx,
                 face_material_output)) {
             return false;
         }
@@ -1111,9 +1159,39 @@ bool TextParser::parse_node(Geometry* geometry)
         mdl_->model.face_materials.insert(mdl_->model.face_materials.end(),
             face_materials.begin(), face_materials.end());
     }
+    const bool is_skin = node->type & NodeFlags::skin;
+    const size_t node_index = geometry->nodes.size();
     geometry->nodes.push_back(std::move(node));
+    if (is_skin) {
+        if (geometry == &mdl_->model) {
+            pending_skin_bones_.push_back({
+                node_index,
+                std::move(skin_bone_names),
+            });
+        } else if (!resolve_skin_bones(mdl_->model,
+                       *static_cast<SkinNode*>(geometry->nodes.back().get()),
+                       skin_bone_names)) {
+            return false;
+        }
+    }
 
     return tk == "endnode";
+}
+
+bool TextParser::resolve_model_skin_bones()
+{
+    for (const auto& pending : pending_skin_bones_) {
+        if (pending.node_index >= mdl_->model.nodes.size()) {
+            LOG_F(ERROR, "invalid text mdl: skin node index is outside model bounds");
+            return false;
+        }
+        auto* skin = static_cast<SkinNode*>(mdl_->model.nodes[pending.node_index].get());
+        if (!resolve_skin_bones(mdl_->model, *skin, pending.names)) {
+            return false;
+        }
+    }
+    pending_skin_bones_.clear();
+    return true;
 }
 
 bool TextParser::parse_geometry()
@@ -1302,7 +1380,7 @@ bool TextParser::parse()
         }
     }
 
-    return result;
+    return result && resolve_model_skin_bones();
 }
 
 } // namespace nw::model

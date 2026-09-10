@@ -2429,8 +2429,12 @@ static bool add_dynamic_creature_scene_models(
             log_preview_error_context();
             return false;
         }
-        base_rig_instance->visible = false;
-        base_rig_instance->shadow = {};
+        if (scene.static_models.front()->primitives.empty()) {
+            base_rig_instance->visible = false;
+            base_rig_instance->shadow = {};
+        } else {
+            apply_render_model_plt_material_overrides(scene, 0u, plt_colors);
+        }
 
         if (!add_render_model_humanoid_body_rows(
                 scene,
