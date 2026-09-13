@@ -21,6 +21,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -155,6 +156,7 @@ struct AreaObjectSpatialUpdateStats {
     uint32_t input_count = 0;
     uint32_t rejected_input_count = 0;
     uint32_t render_model_root_count = 0;
+    uint32_t debug_shape_vertex_count = 0;
 };
 
 struct AreaObjectModelIndexEntry {
@@ -229,6 +231,9 @@ enum class DebugShapeCategory : uint8_t {
     general,
     trigger,
     encounter,
+    sound,
+    store,
+    waypoint,
 };
 
 struct DebugShapeRange {
@@ -243,8 +248,29 @@ struct DebugShapeSelectionRange {
     uint32_t debug_shape_range_index = kInvalidAreaRenderRecordIndex;
     uint32_t first_point = 0;
     uint32_t point_count = 0;
+    uint32_t subindex = UINT32_MAX;
     float plane_z = 0.0f;
     DebugShapeCategory category = DebugShapeCategory::general;
+};
+
+// CPU/GPU protocol for the sound-range dot draw. Rows are contiguous and
+// consumed by one instanced draw; center_radius.w is strictly positive.
+struct SoundDebugDotInstance {
+    glm::vec4 center_radius{0.0f};
+    glm::vec4 normal{0.0f};
+    glm::vec4 color{0.0f};
+};
+
+static_assert(std::is_standard_layout_v<SoundDebugDotInstance>);
+static_assert(sizeof(SoundDebugDotInstance) == 48);
+
+struct DebugShapeObjectRange {
+    nw::ObjectHandle object{};
+    glm::vec3 root_position{0.0f};
+    uint32_t first_vertex = 0;
+    uint32_t vertex_count = 0;
+    uint32_t first_sound_dot = 0;
+    uint32_t sound_dot_count = 0;
 };
 
 struct SceneTileLightSlots {
@@ -324,8 +350,10 @@ struct PreviewScene {
     std::vector<DebugShapeVertex> debug_shape_vertices;
     std::vector<uint32_t> debug_shape_indices;
     std::vector<DebugShapeRange> debug_shape_ranges;
+    std::vector<SoundDebugDotInstance> sound_debug_dot_instances;
     std::vector<glm::vec3> debug_shape_selection_points;
     std::vector<DebugShapeSelectionRange> debug_shape_selection_ranges;
+    std::vector<DebugShapeObjectRange> debug_shape_object_ranges;
     std::vector<SceneLocalLight> local_lights;
     std::vector<nw::render::LocalLight> render_local_lights;
     std::string hold_animation;

@@ -45,6 +45,8 @@ struct ObjectVitalsState {
 struct ObjectSpawnPoint {
     glm::vec3 position{0.0f};
     float orientation = 0.0f;
+
+    bool operator==(const ObjectSpawnPoint&) const = default;
 };
 
 struct ObjectGeometryState {

@@ -557,10 +557,127 @@ TEST_F(ClientSmallsPropertyTree, PreparesExplicitBooleanDetailsForEverySupported
     verify_object(nw::kernel::objects().make<nw::Encounter>(), 3, "Encounter");
     verify_object(nw::kernel::objects().make<nw::Item>(), 1, "Item");
     verify_object(nw::kernel::objects().make<nw::Placeable>(), 7, "Placeable");
-    verify_object(nw::kernel::objects().make<nw::Sound>(), 5, "Sound");
+    verify_object(nw::kernel::objects().make<nw::Sound>(), 4, "Sound");
     verify_object(nw::kernel::objects().make<nw::Store>(), 1, "Store");
     verify_object(nw::kernel::objects().make<nw::Trigger>(), 1, "Trigger");
     verify_object(nw::kernel::objects().make<nw::Waypoint>(), 2, "Waypoint");
+}
+
+TEST_F(ClientSmallsPropertyTree, SoundDetailsUseOneExclusivePlacementMode)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* sound = nw::kernel::objects().make<nw::Sound>();
+    ASSERT_NE(sound, nullptr);
+    runtime.init_object_propsets(sound->handle());
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, sound->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+
+    const auto* playback = find_details_value(snapshot, "Random Playback");
+    const auto* placement = find_details_value(snapshot, "Placement");
+    ASSERT_NE(playback, nullptr);
+    ASSERT_NE(placement, nullptr);
+    EXPECT_EQ(playback->editor,
+        nw::toolset::ObjectDetailsEditorKind::boolean);
+    EXPECT_EQ(placement->editor,
+        nw::toolset::ObjectDetailsEditorKind::sound_position);
+    EXPECT_EQ(snapshot.text_view(placement->value), "Everywhere");
+    EXPECT_EQ(placement->edit_value, 0);
+    EXPECT_EQ(placement->edit_min, 0);
+    EXPECT_EQ(placement->edit_max, 2);
+
+    const auto propset_type = runtime.type_id(
+        "nwn1.propsets.SoundState", false);
+    const auto propset = runtime.find_propset_ref(
+        propset_type, sound->handle());
+    ASSERT_TRUE(write_fixed_int_field(
+        runtime, propset, "positional", 0, 1));
+    ASSERT_TRUE(write_fixed_int_field(
+        runtime, propset, "random_position", 0, 0));
+    nw::toolset::build_object_details(
+        runtime, sound->handle(), snapshot);
+    placement = find_details_value(snapshot, "Placement");
+    ASSERT_NE(placement, nullptr);
+    EXPECT_EQ(snapshot.text_view(placement->value), "Positional");
+    EXPECT_EQ(placement->edit_value, 1);
+
+    ASSERT_TRUE(write_fixed_int_field(
+        runtime, propset, "random_position", 0, 1));
+    nw::toolset::build_object_details(
+        runtime, sound->handle(), snapshot);
+    placement = find_details_value(snapshot, "Placement");
+    ASSERT_NE(placement, nullptr);
+    EXPECT_EQ(snapshot.text_view(placement->value), "Random Position");
+    EXPECT_EQ(placement->edit_value, 2);
+
+    std::string diagnostic;
+    const auto edit
+        = nw::toolset::prepare_object_details_sound_position_edit(
+            runtime,
+            sound->handle(),
+            static_cast<uint32_t>(placement - snapshot.rows.data()),
+            2,
+            0,
+            diagnostic);
+    ASSERT_TRUE(edit) << diagnostic;
+    EXPECT_EQ(edit->positional_before, 1);
+    EXPECT_EQ(edit->positional_after, 0);
+    EXPECT_EQ(edit->random_position_before, 1);
+    EXPECT_EQ(edit->random_position_after, 0);
+
+    nw::kernel::objects().destroy(sound->handle());
+}
+
+TEST_F(ClientSmallsPropertyTree, SoundVolumeUsesProjectedSliderScale)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* sound = nw::kernel::objects().make<nw::Sound>();
+    ASSERT_NE(sound, nullptr);
+    runtime.init_object_propsets(sound->handle());
+
+    const auto propset_type = runtime.type_id(
+        "nwn1.propsets.SoundState", false);
+    const auto propset = runtime.find_propset_ref(
+        propset_type, sound->handle());
+    ASSERT_TRUE(write_fixed_int_field(
+        runtime, propset, "volume", 0, 63));
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, sound->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto* volume = find_details_value(snapshot, "Volume");
+    ASSERT_NE(volume, nullptr);
+    EXPECT_EQ(volume->editor,
+        nw::toolset::ObjectDetailsEditorKind::sound_volume);
+    EXPECT_EQ(volume->edit_value, 63);
+    EXPECT_EQ(volume->edit_min, 0);
+    EXPECT_EQ(volume->edit_max, 127);
+
+    EXPECT_EQ(nw::toolset::sound_volume_editor_value(0), 0);
+    EXPECT_EQ(nw::toolset::sound_volume_editor_value(63), 5);
+    EXPECT_EQ(nw::toolset::sound_volume_editor_value(127), 10);
+    EXPECT_FALSE(nw::toolset::sound_volume_editor_value(128));
+    EXPECT_EQ(nw::toolset::sound_volume_storage_value(0), 0);
+    EXPECT_EQ(nw::toolset::sound_volume_storage_value(5), 64);
+    EXPECT_EQ(nw::toolset::sound_volume_storage_value(10), 127);
+    EXPECT_FALSE(nw::toolset::sound_volume_storage_value(11));
+
+    std::string diagnostic;
+    const auto edit = nw::toolset::prepare_object_details_integer_edit(
+        runtime,
+        sound->handle(),
+        static_cast<uint32_t>(volume - snapshot.rows.data()),
+        volume->edit_value,
+        *nw::toolset::sound_volume_storage_value(7),
+        diagnostic);
+    ASSERT_TRUE(edit) << diagnostic;
+    EXPECT_EQ(edit->before, 63);
+    EXPECT_EQ(edit->after, 89);
+
+    nw::kernel::objects().destroy(sound->handle());
 }
 
 TEST_F(ClientSmallsPropertyTree, PreparesExplicitRangedIntegerDetails)
@@ -652,7 +769,7 @@ TEST_F(ClientSmallsPropertyTree, PreparesExplicitRangedIntegerDetails)
 
     verify_object(nw::kernel::objects().make<nw::Door>(), {{0, 250, 7}}, "Door");
     verify_object(nw::kernel::objects().make<nw::Placeable>(), {{0, 250, 7}}, "Placeable");
-    verify_object(nw::kernel::objects().make<nw::Sound>(), {{0, 127, 1}}, "Sound");
+    verify_object(nw::kernel::objects().make<nw::Sound>(), {}, "Sound");
     verify_object(nw::kernel::objects().make<nw::Trigger>(), {{0, 250, 2}}, "Trigger");
     verify_object(make_creature(), {{0, 255, 6}, {-32768, 32767, 3}}, "Creature");
     verify_object(

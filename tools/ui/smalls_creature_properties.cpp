@@ -228,9 +228,14 @@ void build_details_snapshot(smalls::Runtime& runtime,
                 active_object, presentation, " row must be read-only", output);
             return;
         }
+        const bool sound_position_editor
+            = editor == static_cast<int32_t>(ObjectDetailsEditorKind::sound_position);
+        const bool sound_volume_editor
+            = editor == static_cast<int32_t>(ObjectDetailsEditorKind::sound_volume);
         if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
             || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)
-            || editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)) {
+            || editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)
+            || sound_position_editor || sound_volume_editor) {
             propset_type = runtime.type_id(propset_name, false);
             const auto* definition = runtime.get_struct_def(propset_type);
             field_index = definition ? definition->field_index(field_name) : UINT32_MAX;
@@ -247,10 +252,46 @@ void build_details_snapshot(smalls::Runtime& runtime,
                     }
                 }
             }
-            const bool valid_target = element_index == -1
+            bool valid_target = element_index == -1
                 ? scalar.type_id == runtime.int_type()
                 : runtime.read_propset_int_element(
                       propset, field_index, element_index, current);
+            if (sound_position_editor) {
+                const auto sound_state_type = runtime.type_id(
+                    "nwn1.propsets.SoundState", false);
+                const uint32_t positional_field = definition
+                    ? definition->field_index("positional")
+                    : UINT32_MAX;
+                const uint32_t random_position_field = definition
+                    ? definition->field_index("random_position")
+                    : UINT32_MAX;
+                smalls::Value random_position;
+                if (definition
+                    && random_position_field != UINT32_MAX) {
+                    const auto& field
+                        = definition->fields[random_position_field];
+                    if (!field.is_object_component_array
+                        && field.type_id == runtime.int_type()) {
+                        random_position = runtime.read_value_field_at_offset(
+                            propset, field.offset, runtime.int_type());
+                    }
+                }
+                valid_target = valid_target
+                    && active_object.type == ObjectType::sound
+                    && propset_type == sound_state_type
+                    && field_index == positional_field
+                    && element_index == -1
+                    && (current == 0 || current == 1)
+                    && random_position.type_id == runtime.int_type()
+                    && (random_position.data.ival == 0
+                        || random_position.data.ival == 1);
+                if (valid_target) {
+                    current = current == 0
+                        ? 0
+                        : random_position.data.ival == 0 ? 1
+                                                         : 2;
+                }
+            }
             if (!definition || !definition->is_propset || field_index == UINT32_MAX
                 || propset.type_id == smalls::invalid_type_id
                 || element_index < -1
@@ -262,7 +303,16 @@ void build_details_snapshot(smalls::Runtime& runtime,
                 || (editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)
                     && (active_object.type != ObjectType::door
                         || element_index != -1 || edit_min != 0
-                        || edit_max != 2))) {
+                        || edit_max != 2))
+                || (sound_position_editor
+                    && (element_index != -1 || edit_min != 0
+                        || edit_max != 2))
+                || (sound_volume_editor
+                    && (active_object.type != ObjectType::sound
+                        || propset_type != runtime.type_id("nwn1.propsets.SoundState", false)
+                        || field_index != definition->field_index("volume")
+                        || element_index != -1 || edit_min != 0
+                        || edit_max != 127))) {
                 invalidate_details_snapshot(
                     active_object, presentation, " integer editor is invalid", output);
                 return;
@@ -433,7 +483,8 @@ std::optional<ObjectDetailsValueEdit> prepare_object_details_integer_edit(
     const auto& row = snapshot.rows[row_index];
     if (row.kind != ObjectDetailsRowKind::value
         || (row.editor != ObjectDetailsEditorKind::integer
-            && row.editor != ObjectDetailsEditorKind::door_state)
+            && row.editor != ObjectDetailsEditorKind::door_state
+            && row.editor != ObjectDetailsEditorKind::sound_volume)
         || row.propset_type == smalls::invalid_type_id
         || row.field_index == UINT32_MAX) {
         diagnostic = "Object Details row is not an editable integer";
@@ -463,6 +514,117 @@ std::optional<ObjectDetailsValueEdit> prepare_object_details_integer_edit(
     };
     result.label.append(snapshot.text_view(row.label));
     return result;
+}
+
+std::optional<int32_t> sound_volume_editor_value(
+    int32_t stored_value) noexcept
+{
+    constexpr int32_t stored_maximum = 127;
+    constexpr int32_t editor_maximum = 10;
+    if (stored_value < 0 || stored_value > stored_maximum) {
+        return std::nullopt;
+    }
+    return (stored_value * editor_maximum + stored_maximum / 2)
+        / stored_maximum;
+}
+
+std::optional<uint8_t> sound_volume_storage_value(
+    int32_t editor_value) noexcept
+{
+    constexpr int32_t stored_maximum = 127;
+    constexpr int32_t editor_maximum = 10;
+    if (editor_value < 0 || editor_value > editor_maximum) {
+        return std::nullopt;
+    }
+    return static_cast<uint8_t>(
+        (editor_value * stored_maximum + editor_maximum / 2)
+        / editor_maximum);
+}
+
+std::optional<ObjectDetailsSoundPositionEdit>
+prepare_object_details_sound_position_edit(
+    smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    int32_t expected,
+    int32_t desired,
+    std::string& diagnostic)
+{
+    diagnostic.clear();
+    if (object.type != ObjectType::sound
+        || !kernel::objects().valid(object)
+        || expected < 0 || expected > 2
+        || desired < 0 || desired > 2) {
+        diagnostic = "Sound placement edit has invalid input";
+        return std::nullopt;
+    }
+
+    ObjectDetailsSnapshot snapshot;
+    build_object_details(runtime, object, snapshot);
+    if (snapshot.status != ObjectDetailsStatus::ready) {
+        diagnostic = snapshot.diagnostic.empty()
+            ? "Object Details are unavailable"
+            : std::move(snapshot.diagnostic);
+        return std::nullopt;
+    }
+    if (row_index >= snapshot.rows.size()) {
+        diagnostic = "Object Details row is no longer available";
+        return std::nullopt;
+    }
+
+    const auto& row = snapshot.rows[row_index];
+    if (row.kind != ObjectDetailsRowKind::value
+        || row.editor != ObjectDetailsEditorKind::sound_position
+        || row.propset_type == smalls::invalid_type_id
+        || row.field_index == UINT32_MAX) {
+        diagnostic = "Object Details row is not a Sound placement editor";
+        return std::nullopt;
+    }
+    if (row.edit_value != expected) {
+        diagnostic = "Sound placement changed before the edit was prepared";
+        return std::nullopt;
+    }
+    if (desired == expected) {
+        diagnostic = "Sound placement is already set";
+        return std::nullopt;
+    }
+
+    const auto* definition = runtime.get_struct_def(row.propset_type);
+    const uint32_t random_position_field = definition
+        ? definition->field_index("random_position")
+        : UINT32_MAX;
+    const auto propset = runtime.find_propset_ref(row.propset_type, object);
+    if (!definition || random_position_field == UINT32_MAX
+        || propset.type_id == smalls::invalid_type_id) {
+        diagnostic = "Sound placement fields are unavailable";
+        return std::nullopt;
+    }
+    const auto positional = runtime.read_value_field_at_offset(
+        propset, definition->fields[row.field_index].offset,
+        runtime.int_type());
+    const auto random_position = runtime.read_value_field_at_offset(
+        propset, definition->fields[random_position_field].offset,
+        runtime.int_type());
+    if (positional.type_id != runtime.int_type()
+        || random_position.type_id != runtime.int_type()
+        || (positional.data.ival != 0 && positional.data.ival != 1)
+        || (random_position.data.ival != 0
+            && random_position.data.ival != 1)) {
+        diagnostic = "Sound placement fields contain invalid values";
+        return std::nullopt;
+    }
+
+    return ObjectDetailsSoundPositionEdit{
+        .object = object,
+        .propset_type = row.propset_type,
+        .positional_field_index = row.field_index,
+        .random_position_field_index = random_position_field,
+        .positional_before = positional.data.ival,
+        .positional_after = desired == 0 ? 0 : 1,
+        .random_position_before = random_position.data.ival,
+        .random_position_after = desired == 2 ? 1 : 0,
+        .label = "Set Sound placement",
+    };
 }
 
 void build_creature_class_presentation(smalls::Runtime& runtime,

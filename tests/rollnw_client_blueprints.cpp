@@ -122,6 +122,20 @@ TEST_F(ClientBlueprints, CreationFailureReleasesTheDetachedBatch)
 
 TEST_F(ClientBlueprints, AllAuthoredTypesPublishReloadAndExposeTheirNames)
 {
+    const std::array region_points{
+        glm::vec3{0.0f, 0.0f, 0.0f},
+        glm::vec3{1.0f, 0.0f, 0.0f},
+        glm::vec3{0.0f, 1.0f, 0.0f},
+    };
+    const std::array legacy_encounter_points{
+        glm::vec3{0.0f, 0.0f, 0.0f},
+    };
+    const std::array encounter_spawn_points{
+        ObjectSpawnPoint{
+            .position = {5.5f, 5.5f, 0.0f},
+            .orientation = 0.25f,
+        },
+    };
     std::vector<BlueprintCreationRequest> creation;
     creation.reserve(blueprint_types().size());
     for (const auto& definition : blueprint_types()) {
@@ -199,6 +213,16 @@ TEST_F(ClientBlueprints, AllAuthoredTypesPublishReloadAndExposeTheirNames)
         spatial->position = {5.0f, 5.0f, 0.0f};
         spatial->orientation = {0, 1, 0};
         spatial->scale = {1.1f, 1.2f, 1.3f};
+        if (handle.type == ObjectType::trigger) {
+            ASSERT_TRUE(kernel::objects().components().set_geometry(
+                handle, region_points));
+        }
+        if (handle.type == ObjectType::encounter) {
+            ASSERT_TRUE(kernel::objects().components().set_geometry(
+                handle, legacy_encounter_points));
+            ASSERT_TRUE(kernel::objects().components().set_spawn_points(
+                handle, encounter_spawn_points));
+        }
         switch (handle.type) {
         case ObjectType::creature:
             area->creatures.push_back(kernel::objects().get<Creature>(handle));
@@ -239,6 +263,13 @@ TEST_F(ClientBlueprints, AllAuthoredTypesPublishReloadAndExposeTheirNames)
         ASSERT_EQ(updates.rows.size(), 1u);
         const auto previous = updates.rows[0].object;
         const auto placement = *kernel::objects().components().find_spatial(previous);
+        Vector<glm::vec3> previous_points;
+        Vector<ObjectSpawnPoint> previous_spawn_points;
+        if (const auto* geometry
+            = kernel::objects().components().find_geometry(previous)) {
+            previous_points = geometry->points;
+            previous_spawn_points = geometry->spawn_points;
+        }
         ASSERT_TRUE(prepare_live_blueprint_updates(updates, 1, error)) << error;
         auto selection = previous;
         ASSERT_TRUE(publish_live_blueprint_updates(updates, selection, error)) << error;
@@ -252,6 +283,14 @@ TEST_F(ClientBlueprints, AllAuthoredTypesPublishReloadAndExposeTheirNames)
         EXPECT_EQ(replacement->position, placement.position);
         EXPECT_EQ(replacement->orientation, placement.orientation);
         EXPECT_EQ(replacement->scale, placement.scale);
+        if (selection.type == ObjectType::trigger
+            || selection.type == ObjectType::encounter) {
+            const auto* geometry
+                = kernel::objects().components().find_geometry(selection);
+            ASSERT_NE(geometry, nullptr);
+            EXPECT_EQ(geometry->points, previous_points);
+            EXPECT_EQ(geometry->spawn_points, previous_spawn_points);
+        }
     }
 
     for (const auto resource : resources) {
@@ -278,12 +317,20 @@ TEST_F(ClientBlueprints, AllAuthoredTypesPublishReloadAndExposeTheirNames)
         const auto path = nlohmann::json::json_pointer{
             document.references.rows[0].path};
         const auto location = document.value.at(path).at("components").at("location");
+        const auto geometry
+            = document.value.at(path).at("components").value("geometry", nlohmann::json{});
+        const auto spawn_points
+            = document.value.at(path).at("components").value("spawn_points", nlohmann::json{});
         ASSERT_TRUE(prepare_blueprint_updates(
             std::span{&document, 1}, resource, snapshots, error))
             << error;
         EXPECT_TRUE(document.value.at(path).at("object").at("comment").get<std::string>().empty());
         EXPECT_EQ(document.value.at(path).at("components").at("location"),
             location);
+        EXPECT_EQ(document.value.at(path).at("components").value("geometry", nlohmann::json{}),
+            geometry);
+        EXPECT_EQ(document.value.at(path).at("components").value("spawn_points", nlohmann::json{}),
+            spawn_points);
     }
 }
 

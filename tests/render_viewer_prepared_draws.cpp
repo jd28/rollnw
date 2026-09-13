@@ -27,6 +27,8 @@
 #include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/assets.hpp>
+#include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <algorithm>
@@ -133,6 +135,35 @@ testing::AssertionResult resource_payloads_available(std::span<const nw::Resourc
         }
     }
     return testing::AssertionSuccess();
+}
+
+nw::Sound* make_toolset_sound(bool positional, bool random_position)
+{
+    nw::GffBuilder builder{nw::Sound::serial_id};
+    builder.top.add_field("TemplateResRef", nw::Resref{"test_sound"});
+    builder.top.add_field("MinDistance", 1.0f);
+    builder.top.add_field("MaxDistance", 12.0f);
+    builder.top.add_field("Elevation", 0.0f);
+    builder.top.add_field("Positional", static_cast<uint8_t>(positional));
+    builder.top.add_field(
+        "RandomPosition", static_cast<uint8_t>(random_position));
+    builder.build();
+    nw::ResourceData resource;
+    resource.bytes = builder.to_byte_array();
+    nw::Gff gff{std::move(resource)};
+    if (!gff.valid()) {
+        return nullptr;
+    }
+    auto* sound = nw::kernel::objects().make<nw::Sound>();
+    if (!sound
+        || !nw::deserialize(
+            sound, gff.toplevel(), nw::SerializationProfile::blueprint)) {
+        if (sound) {
+            nw::kernel::objects().destroy(sound->handle());
+        }
+        return nullptr;
+    }
+    return sound;
 }
 
 TEST(RenderViewerPreparedDraws, AreaStaticModelCacheDoesNotExtendModelLifetime)
@@ -1005,8 +1036,6 @@ TEST(RenderViewerPreparedDraws, NonVisualDataBlueprintPreviewsPublishOwnedLiveOb
     constexpr std::array cases{
         BlueprintCase{"test_data/user/development/blue_bell.uts"sv,
             nw::ObjectType::sound},
-        BlueprintCase{"test_data/user/development/storethief002.utm"sv,
-            nw::ObjectType::store},
         BlueprintCase{"test_data/user/development/pl_spray_sewage.utt"sv,
             nw::ObjectType::trigger},
     };
@@ -1038,8 +1067,9 @@ TEST(RenderViewerPreparedDraws, LiveObjectPreviewIgnoresWorldPlacement)
     ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
     auto& resources = *device.preview_resources();
 
-    constexpr std::string_view path = "test_data/user/development/pl_agent_001.utc";
-    auto* creature = nw::kernel::objects().load_file<nw::Creature>(path);
+    constexpr std::string_view path = "nw_chicken.utc";
+    auto* creature = nw::kernel::objects().load<nw::Creature>(
+        nw::Resref{"nw_chicken"sv});
     ASSERT_NE(creature, nullptr);
     nw::toolset::ObjectDocument owner;
     ASSERT_TRUE(owner.adopt(creature->handle()));
@@ -1060,6 +1090,99 @@ TEST(RenderViewerPreparedDraws, LiveObjectPreviewIgnoresWorldPlacement)
                 neutral_placement[column][row]);
         }
     }
+}
+
+TEST(RenderViewerPreparedDraws, SoundToolsetMarkersFollowPlacementFlags)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module(
+                  "test_data/user/modules/DockerDemo.mod", false),
+        nullptr);
+    const std::array marker_models{
+        nw::Resource{"gi_sound_area"sv, nw::ResourceType::mdl},
+        nw::Resource{"gi_sound_pos"sv, nw::ResourceType::mdl},
+        nw::Resource{"gi_sound_rndm"sv, nw::ResourceType::mdl},
+    };
+    if (!resource_payloads_available(marker_models)) {
+        GTEST_SKIP() << "Aurora sound marker models unavailable";
+    }
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(
+        viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto& resources = *device.preview_resources();
+
+    struct Case {
+        bool positional;
+        bool random_position;
+        std::string_view model;
+        glm::vec4 accent_color;
+        bool has_dotted_geometry;
+    };
+    constexpr std::array cases{
+        Case{false, false, "gi_sound_area", {1.0f, 0.0f, 0.0f, 1.0f}, false},
+        Case{true, false, "gi_sound_pos", {1.0f, 0.0f, 0.0f, 1.0f}, true},
+        Case{true, true, "gi_sound_rndm", {1.0f, 1.0f, 1.0f, 1.0f}, true},
+    };
+    for (const auto& expected : cases) {
+        auto* sound = make_toolset_sound(
+            expected.positional, expected.random_position);
+        ASSERT_NE(sound, nullptr);
+        auto scene = viewer::build_live_object_scene(
+            resources, sound->handle(), "sound marker test", {});
+        ASSERT_NE(scene, nullptr);
+        ASSERT_EQ(scene->static_models.size(), 1u);
+        EXPECT_EQ(scene->static_models[0]->name, expected.model);
+        EXPECT_EQ(!scene->sound_debug_dot_instances.empty(),
+            expected.has_dotted_geometry);
+        const auto* instance = scene->static_model_instance(0);
+        ASSERT_NE(instance, nullptr);
+        EXPECT_TRUE(instance->material_override_handles.empty());
+        const auto has_color = [&scene](const glm::vec4& color) {
+            return std::any_of(scene->static_models[0]->materials.begin(),
+                scene->static_models[0]->materials.end(),
+                [&color](const auto& material) {
+                    return glm::length(material.albedo - color) < 1.0e-5f;
+                });
+        };
+        EXPECT_TRUE(has_color({0.0f, 0.0f, 0.0f, 1.0f}));
+        EXPECT_TRUE(has_color(expected.accent_color));
+        EXPECT_FLOAT_EQ(instance->root_transform[0][0], 0.25f);
+        EXPECT_FLOAT_EQ(instance->root_transform[1][1], 0.25f);
+        EXPECT_FLOAT_EQ(instance->root_transform[2][2], 0.25f);
+        scene.reset();
+        nw::kernel::objects().destroy(sound->handle());
+    }
+}
+
+TEST(RenderViewerPreparedDraws, StoreBlueprintUsesAuroraToolsetMarker)
+{
+    namespace viewer = nw::render::viewer;
+    const std::array marker_models{
+        nw::Resource{"gi_store"sv, nw::ResourceType::mdl},
+    };
+    if (!resource_payloads_available(marker_models)) {
+        GTEST_SKIP() << "Aurora store marker model unavailable";
+    }
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(
+        viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto& resources = *device.preview_resources();
+
+    auto scene = viewer::load_preview_scene(
+        resources, "test_data/user/development/storethief002.utm");
+    ASSERT_NE(scene, nullptr);
+    ASSERT_EQ(scene->static_models.size(), 1u);
+    EXPECT_EQ(scene->static_models[0]->name, "gi_store");
+    EXPECT_EQ(scene->root_object.type, nw::ObjectType::store);
+    EXPECT_EQ(scene->root_object, scene->active_object);
 }
 
 TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuilds)
@@ -1226,7 +1349,7 @@ TEST(RenderViewerPreparedDraws, ItemPlacementPreviewsUseGroundModelsAndPreserveL
         EXPECT_NEAR(bounds.bounds.min.z, proposed.position.z, 1.0e-5f);
     }
     for (size_t index = 0; index < scene->static_models.size(); ++index) {
-        EXPECT_EQ(scene->static_area_model_info[index].kind, viewer::AreaRenderRecordKind::item);
+        EXPECT_EQ(scene->static_area_model_info[index].kind, nw::ObjectType::item);
         const auto* instance = scene->static_model_instance(index);
         ASSERT_NE(instance, nullptr);
         EXPECT_FALSE(instance->shadow.casts_shadow);
@@ -1317,6 +1440,151 @@ TEST(RenderViewerPreparedDraws, DroppedItemsRemainSelectableAfterAreaFrame)
         EXPECT_EQ(session->camera().get_projection_matrix(), projection_before_selection);
         EXPECT_EQ(nw::kernel::objects().components().find_spatial(object)->position, position_before_selection);
     }
+}
+
+TEST(RenderViewerPreparedDraws, EditableAreaDoorsKeepSelectionGeometryAtLiveTransform)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(
+        viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    session->set_preview_scene_load_options({.area_object_editing = true});
+    ASSERT_TRUE(session->load_area("test_area"));
+
+    const auto area = session->scene()->root_object;
+    const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+    ASSERT_NE(live_area, nullptr);
+    ASSERT_FALSE(live_area->doors.empty());
+    const auto door = live_area->doors.front()->handle();
+
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_NE(scene->area_render_scene, nullptr);
+    bool found_door_model = false;
+    for (size_t model_index = 0;
+        model_index < scene->static_area_model_info.size();
+        ++model_index) {
+        const auto& info = scene->static_area_model_info[model_index];
+        if (info.object != door) {
+            continue;
+        }
+        found_door_model = true;
+        EXPECT_FALSE(info.static_candidate);
+        auto* instance = scene->static_model_instance(model_index);
+        ASSERT_NE(instance, nullptr);
+    }
+    ASSERT_TRUE(found_door_model);
+
+    const auto& records = *scene->area_render_scene;
+    const auto before = viewer::collect_area_object_bounds(
+        door, records.bounds(), records.flags(), records.kinds(), records.object_handles());
+    ASSERT_EQ(before.status, viewer::AreaObjectBoundsStatus::found);
+
+    auto spatial = *nw::kernel::objects().components().find_spatial(door);
+    spatial.position.x += 20.0f;
+    const std::array spatial_rows{spatial};
+    const auto updated = session->update_area_object_spatial_states(spatial_rows);
+    EXPECT_EQ(updated.rejected_input_count, 0u);
+    EXPECT_GT(updated.render_model_root_count, 0u);
+    scene->area_render_scene->refresh_runtime_records(*scene);
+
+    const auto after = viewer::collect_area_object_bounds(
+        door, records.bounds(), records.flags(), records.kinds(), records.object_handles());
+    ASSERT_EQ(after.status, viewer::AreaObjectBoundsStatus::found);
+    EXPECT_NEAR(after.bounds.center().x, before.bounds.center().x + 20.0f, 1.0e-5f);
+
+    bool candidate_hit = false;
+    const std::array candidates{door};
+    for (int axis = 0; axis < 3 && !candidate_hit; ++axis) {
+        for (int a = 1; a < 8 && !candidate_hit; ++a) {
+            for (int b = 1; b < 8 && !candidate_hit; ++b) {
+                glm::vec3 origin = after.bounds.min;
+                origin[axis] = after.bounds.max[axis] + 1.0f;
+                const auto extent = after.bounds.max - after.bounds.min;
+                origin[(axis + 1) % 3]
+                    += extent[(axis + 1) % 3] * (static_cast<float>(a) / 8.0f);
+                origin[(axis + 2) % 3]
+                    += extent[(axis + 2) % 3] * (static_cast<float>(b) / 8.0f);
+                glm::vec3 direction{0.0f};
+                direction[axis] = -1.0f;
+                const auto hit = viewer::select_area_object_candidate(
+                    {.origin = origin, .direction = direction}, candidates, records, *scene);
+                candidate_hit = hit.status == viewer::AreaObjectSelectionStatus::hit
+                    && hit.object == door;
+            }
+        }
+    }
+    EXPECT_TRUE(candidate_hit);
+
+    const auto* door_spatial
+        = nw::kernel::objects().components().find_spatial(door);
+    ASSERT_NE(door_spatial, nullptr);
+    const nw::ObjectSpatialState replacement_spatial = *door_spatial;
+    nw::toolset::CommandContext command_context;
+    const std::array removed{door};
+    const auto deleted = nw::toolset::delete_area_objects(
+        area, removed, "Delete door", command_context);
+    ASSERT_TRUE(deleted.ok()) << deleted.message;
+
+    const std::array placements{nw::toolset::AreaObjectBlueprintPlacement{
+        .resource = {nw::Resref{"door_ttr_002"}, nw::ResourceType::utd},
+        .transform = {
+            .position = replacement_spatial.position,
+            .orientation = replacement_spatial.orientation,
+            .scale = replacement_spatial.scale,
+        },
+    }};
+    const auto loaded = nw::toolset::load_area_object_blueprints(
+        area, placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    ASSERT_EQ(loaded.objects.size(), 1u);
+    const auto replacement = loaded.objects.front();
+    const auto placed = nw::toolset::place_area_objects(
+        area, loaded.objects, "Place door", command_context);
+    ASSERT_TRUE(placed.ok()) << placed.message;
+
+    const std::array animation_inputs{viewer::AreaDoorAnimationInput{
+        .owner = replacement,
+        .state = viewer::AreaDoorAnimationState::closed,
+        .phase = viewer::AreaDoorAnimationPhase::hold,
+    }};
+    viewer::AreaDoorAnimationLease stale_lease;
+    const auto stale_animation = session->begin_area_door_animation_lease(
+        animation_inputs, stale_lease);
+    EXPECT_EQ(stale_animation.rejected_input_count, 0u);
+    EXPECT_EQ(stale_animation.matched_model_count, 0u);
+    EXPECT_TRUE(session->restore_area_door_animation_lease(stale_lease));
+
+    ASSERT_TRUE(session->rebuild_live_area(area, replacement));
+    scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_NE(scene->area_render_scene, nullptr);
+    EXPECT_TRUE(std::any_of(scene->static_area_model_info.begin(),
+        scene->static_area_model_info.end(),
+        [replacement](const auto& info) {
+            return info.kind == nw::ObjectType::door
+                && info.object == replacement;
+        }));
+    EXPECT_FALSE(std::any_of(scene->static_area_model_info.begin(),
+        scene->static_area_model_info.end(),
+        [door](const auto& info) {
+            return info.kind == nw::ObjectType::door
+                && info.object == door;
+        }));
+
+    viewer::AreaDoorAnimationLease lease;
+    const auto animation = session->begin_area_door_animation_lease(
+        animation_inputs, lease);
+    EXPECT_EQ(animation.rejected_input_count, 0u);
+    EXPECT_GT(animation.matched_model_count, 0u);
+    EXPECT_TRUE(session->restore_area_door_animation_lease(lease));
 }
 
 TEST(RenderViewerPreparedDraws, GroundItemsConsumeLiveSpatialRowsInGameAndToolsetModes)
@@ -2640,7 +2908,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     const auto area_record_objects = scene->area_render_scene->object_handles();
     ASSERT_EQ(area_record_kinds.size(), area_record_objects.size());
     for (size_t record_index = 0; record_index < area_record_kinds.size(); ++record_index) {
-        if (area_record_kinds[record_index] == viewer::AreaRenderRecordKind::waypoint
+        if (area_record_kinds[record_index] == nw::ObjectType::waypoint
             && area_record_objects[record_index] == area_waypoint->handle()) {
             found_area_waypoint = true;
             ASSERT_LT(record_index, scene->area_render_scene->root_transforms().size());
@@ -2663,7 +2931,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     size_t tile_record_count = 0;
     std::unordered_set<const nw::render::RenderModel*> unique_tile_models;
     for (size_t record_index = 0; record_index < record_kinds.size(); ++record_index) {
-        if (record_kinds[record_index] != viewer::AreaRenderRecordKind::tile) {
+        if (record_kinds[record_index] != nw::ObjectType::tile) {
             continue;
         }
 
@@ -2708,11 +2976,11 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     bool found_non_humanoid_creature = false;
     for (size_t record_index = 0; record_index < objects.size(); ++record_index) {
         const auto object = objects[record_index];
-        if (kinds[record_index] == viewer::AreaRenderRecordKind::tile) {
+        if (kinds[record_index] == nw::ObjectType::tile) {
             EXPECT_EQ(object.type, nw::ObjectType::invalid);
             continue;
         }
-        if (kinds[record_index] == viewer::AreaRenderRecordKind::unknown) {
+        if (kinds[record_index] == nw::ObjectType::invalid) {
             continue;
         }
         if ((flags[record_index] & viewer::AreaRenderScene::RecordFlag::render_enabled) != 0u) {
@@ -2725,7 +2993,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
             });
         };
         switch (kinds[record_index]) {
-        case viewer::AreaRenderRecordKind::creature:
+        case nw::ObjectType::creature:
             EXPECT_EQ(object.type, nw::ObjectType::creature);
             EXPECT_TRUE(contains_object(live_area->creatures));
             if (const auto* visual = nw::kernel::objects().components().find_visual(object);
@@ -2736,25 +3004,28 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
                     || (appearance && appearance->model_type != nw::AppearanceModelType::parts);
             }
             break;
-        case viewer::AreaRenderRecordKind::door:
+        case nw::ObjectType::door:
             EXPECT_EQ(object.type, nw::ObjectType::door);
             EXPECT_TRUE(contains_object(live_area->doors));
             break;
-        case viewer::AreaRenderRecordKind::item:
+        case nw::ObjectType::item:
             EXPECT_EQ(object.type, nw::ObjectType::item);
             EXPECT_TRUE(contains_object(live_area->items));
             break;
-        case viewer::AreaRenderRecordKind::placeable:
+        case nw::ObjectType::placeable:
             EXPECT_EQ(object.type, nw::ObjectType::placeable);
             EXPECT_TRUE(contains_object(live_area->placeables));
             break;
-        case viewer::AreaRenderRecordKind::waypoint:
+        case nw::ObjectType::waypoint:
             EXPECT_EQ(object.type, nw::ObjectType::waypoint);
             EXPECT_TRUE(contains_object(live_area->waypoints));
             break;
-        case viewer::AreaRenderRecordKind::tile:
-        case viewer::AreaRenderRecordKind::unknown:
+        case nw::ObjectType::tile:
+        case nw::ObjectType::invalid:
             FAIL() << "non-selectable render record reached object validation";
+            break;
+        default:
+            FAIL() << "unsupported object type reached object validation";
             break;
         }
     }
@@ -2795,7 +3066,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
         *scene,
         {.target = viewer::AreaObjectSelectionTarget::tile});
     ASSERT_EQ(tile_selection.status, viewer::AreaObjectSelectionStatus::hit);
-    EXPECT_EQ(tile_selection.kind, viewer::AreaRenderRecordKind::tile);
+    EXPECT_EQ(tile_selection.kind, nw::ObjectType::tile);
     EXPECT_EQ(tile_selection.source, viewer::AreaObjectSelectionSource::area_record);
     EXPECT_EQ(tile_selection.object.type, nw::ObjectType::invalid);
     EXPECT_EQ(session->active_object().type, nw::ObjectType::invalid);

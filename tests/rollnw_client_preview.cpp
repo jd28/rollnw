@@ -2,10 +2,12 @@
 
 #include <glm/geometric.hpp>
 
+#include "../tools/client/object_edits.hpp"
 #include "../tools/client/preview_session.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
 
@@ -304,6 +306,92 @@ TEST(ClientPreview, StartsAndTargetsFromNavigationRays)
     EXPECT_EQ(results[1].status, nw::nav::NavStatus::off_mesh);
     EXPECT_NEAR(results[0].position.x, module->entry_position.x, 0.01f);
     EXPECT_NEAR(results[0].position.y, module->entry_position.y, 0.01f);
+}
+
+TEST(ClientPreview, OpensReplacementDoorInFreshPreviewSnapshot)
+{
+    auto* module = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    ASSERT_EQ(area->doors.size(), 1u);
+
+    const auto removed_door = area->doors.front()->handle();
+    const auto* removed_spatial
+        = nw::kernel::objects().components().find_spatial(removed_door);
+    ASSERT_NE(removed_spatial, nullptr);
+    const nw::ObjectSpatialState replacement_spatial = *removed_spatial;
+
+    nw::toolset::CommandContext context;
+    const std::array removed{removed_door};
+    auto deleted = nw::toolset::delete_area_objects(
+        area->handle(), removed, "Delete Door", context);
+    ASSERT_TRUE(deleted.ok()) << deleted.message;
+    ASSERT_TRUE(area->doors.empty());
+
+    const std::array placements{nw::toolset::AreaObjectBlueprintPlacement{
+        .resource = {nw::Resref{"door_ttr_002"}, nw::ResourceType::utd},
+        .transform = {
+            .position = replacement_spatial.position,
+            .orientation = replacement_spatial.orientation,
+            .scale = replacement_spatial.scale,
+        },
+    }};
+    const auto loaded = nw::toolset::load_area_object_blueprints(
+        area->handle(), placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    ASSERT_EQ(loaded.objects.size(), 1u);
+    const auto replacement_door = loaded.objects.front();
+    ASSERT_NE(replacement_door, removed_door);
+
+    auto placed = nw::toolset::place_area_objects(
+        area->handle(), loaded.objects, "Place Door", context);
+    ASSERT_TRUE(placed.ok()) << placed.message;
+    ASSERT_EQ(area->doors.size(), 1u);
+    ASSERT_EQ(area->doors.front()->handle(), replacement_door);
+
+    nw::toolset::ToolsetPreviewSession session;
+    const nw::toolset::PreviewSessionStartInput start{
+        .area = area->handle(),
+        .actor = {nw::Resref{"test_creature"}, nw::ResourceType::utc},
+        .spawn_position = module->entry_position,
+        .camera = {.focus = module->entry_position},
+    };
+    const auto started = nw::toolset::start_toolset_preview(session, start);
+    ASSERT_TRUE(started.ok()) << started.diagnostic;
+
+    const auto handles = nw::toolset::toolset_preview_door_handles(session);
+    ASSERT_EQ(handles.size(), 1u);
+    EXPECT_EQ(handles.front(), replacement_door);
+    EXPECT_NE(handles.front(), removed_door);
+    const auto visual_states
+        = nw::toolset::toolset_preview_door_visual_states(session);
+    ASSERT_EQ(visual_states.size(), 1u);
+    EXPECT_EQ(visual_states.front().door, replacement_door);
+    EXPECT_TRUE(nw::toolset::preview_door_requires_interaction(
+        visual_states, 0));
+
+    nw::toolset::PreviewInputSample sample;
+    ASSERT_TRUE(nw::toolset::set_preview_click_door(
+        sample,
+        0,
+        replacement_spatial.position - glm::vec3{1.0f},
+        replacement_spatial.position + glm::vec3{1.0f}));
+    std::array<nw::ObjectSpatialState, 1> spatial_output;
+    std::array<nw::toolset::PreviewActorLocomotion, 1> locomotion_output;
+    bool opened = false;
+    for (size_t tick = 0; tick < 10'000 && !opened; ++tick) {
+        const auto advanced = nw::toolset::tick_toolset_preview(
+            session,
+            std::span<const nw::toolset::PreviewInputSample>{&sample, 1},
+            spatial_output,
+            locomotion_output);
+        ASSERT_EQ(advanced.status, nw::toolset::PreviewStatus::ok);
+        sample = {};
+        opened = nw::toolset::toolset_preview_door_visual_states(session)[0].state
+            != nw::toolset::PreviewDoorState::closed;
+    }
+    EXPECT_TRUE(opened);
 }
 
 TEST(ClientPreview, RestartsAfterRejectedPlacementRay)

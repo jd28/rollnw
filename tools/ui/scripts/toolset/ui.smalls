@@ -55,6 +55,8 @@ const details_editor_read_only = 0;
 const details_editor_boolean = 1;
 const details_editor_integer = 2;
 const details_editor_door_state = 3;
+const details_editor_sound_position = 4;
+const details_editor_sound_volume = 5;
 
 fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
     return {
@@ -122,6 +124,43 @@ fn _door_state_details_row(value: int): ObjectDetailsRow {
         edit_value = value,
         edit_min = 0,
         edit_max = 2,
+    };
+}
+
+fn _sound_position_details_row(positional: int,
+    random_position: int): ObjectDetailsRow {
+    var mode = 0;
+    var value = "Everywhere";
+    if (positional != 0) {
+        mode = random_position != 0 ? 2 : 1;
+        value = random_position != 0 ? "Random Position" : "Positional";
+    }
+    return {
+        group = "Position",
+        label = "Placement",
+        value = value,
+        editor = details_editor_sound_position,
+        propset = "nwn1.propsets.SoundState",
+        field = "positional",
+        element = -1,
+        edit_value = mode,
+        edit_min = 0,
+        edit_max = 2,
+    };
+}
+
+fn _sound_volume_details_row(value: int): ObjectDetailsRow {
+    return {
+        group = "Playback",
+        label = "Volume",
+        value = f"{value}",
+        editor = details_editor_sound_volume,
+        propset = "nwn1.propsets.SoundState",
+        field = "volume",
+        element = -1,
+        edit_value = value,
+        edit_min = 0,
+        edit_max = 127,
     };
 }
 
@@ -489,16 +528,15 @@ fn _append_sound_details(rows: array!(ObjectDetailsRow), obj: Sound) {
     _append_boolean_details_row(rows, "Basic", "Active",
         "nwn1.propsets.SoundState", "active", state.active);
     _append_details_row(rows, "Basic", "Sounds", f"{Array.len(state.sounds)}");
-    _append_integer_details_row(rows, "Playback", "Volume",
-        "nwn1.propsets.SoundState", "volume", state.volume, 0, 127);
+    Array.push(rows, _sound_volume_details_row(state.volume));
     _append_details_row(rows, "Playback", "Priority", f"{state.priority}");
     _append_boolean_details_row(rows, "Playback", "Continuous",
         "nwn1.propsets.SoundState", "continuous", state.continuous);
     _append_boolean_details_row(rows, "Playback", "Looping",
         "nwn1.propsets.SoundState", "looping", state.looping);
-    _append_boolean_details_row(rows, "Playback", "Positional",
-        "nwn1.propsets.SoundState", "positional", state.positional);
-    _append_boolean_details_row(rows, "Playback", "Random",
+    Array.push(rows, _sound_position_details_row(
+        state.positional, state.random_position));
+    _append_boolean_details_row(rows, "Playback", "Random Playback",
         "nwn1.propsets.SoundState", "random", state.random);
     _append_details_row(rows, "Range", "Minimum Distance", f"{state.distance_min}");
     _append_details_row(rows, "Range", "Maximum Distance", f"{state.distance_max}");

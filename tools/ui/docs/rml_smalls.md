@@ -77,10 +77,11 @@ Smalls source rows
     -> RML-owned row structure
 ```
 
-Smalls owns the complete filtered and sorted row batch until it is replaced.
-The native host owns scroll geometry, clamps the visible range, and exposes
-only the viewport plus bounded overscan to RmlUi. Stable scalar keys identify
-selection; source indices do not identify objects or resources.
+Smalls owns the source batch. The native host owns its complete filtered and
+sorted `ListItem` projection until that projection is replaced, plus the scroll
+geometry. It clamps the visible range and exposes only the viewport plus bounded
+overscan to RmlUi. Stable scalar keys identify selection; source indices do not
+identify objects or resources.
 
 The common path performs no Smalls call per frame, per row, or per scroll
 position. Smalls runs on input or source invalidation, and publishes rows as
@@ -88,6 +89,16 @@ one batch. Missing or stale active objects produce an empty view and no
 mutation. Duplicate keys reject the complete row publication. Invalid source
 ranges are clamped by the virtual host; invalid object values are rejected by
 the owning profile or native operation rather than clamped by the UI.
+
+A single-column list becomes reorderable when its owner registers a
+`list_on_reorder` callback. The source may be any ordered array that can be
+projected to `array!(ListItem)`; the list does not retain or interpret the
+source element type. Dragging emits one `ListReorder { list_id, source_index,
+destination_index }`. The owner applies that index move to its source through
+the normal mutation and undo path, then republishes the complete row batch.
+The host rejects stale revisions, missing callbacks, grids, invalid indices,
+and no-op moves. Pointer motion scans only the materialized viewport and
+overscan rows; it does not scan or copy the complete source batch.
 
 Variable-height views are a different data problem and are not covered by this
 protocol.

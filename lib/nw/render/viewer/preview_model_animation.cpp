@@ -439,7 +439,7 @@ AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
 
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
         if (model_index >= scene.static_area_model_info.size()
-            || scene.static_area_model_info[model_index].kind != AreaRenderRecordKind::creature) {
+            || scene.static_area_model_info[model_index].kind != nw::ObjectType::creature) {
             continue;
         }
 
@@ -550,7 +550,7 @@ AreaDoorAnimationStats update_area_door_animations(
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
         if (model_index >= scene.static_area_model_info.size()) continue;
         const auto& info = scene.static_area_model_info[model_index];
-        if (info.kind != AreaRenderRecordKind::door) continue;
+        if (info.kind != nw::ObjectType::door) continue;
 
         const auto* input = find_door_animation_input(inputs, info.object);
         if (!input) continue;
@@ -655,7 +655,7 @@ AreaDoorAnimationStats begin_area_door_animation_lease(
     for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
         if (model_index >= scene.static_area_model_info.size()) continue;
         const auto& info = scene.static_area_model_info[model_index];
-        if (info.kind != AreaRenderRecordKind::door
+        if (info.kind != nw::ObjectType::door
             || !find_door_animation_input(inputs, info.object)) {
             continue;
         }

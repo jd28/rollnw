@@ -41,24 +41,11 @@ bool finite_ordered_bounds(const nw::render::Bounds& bounds) noexcept
         && bounds.min.z <= bounds.max.z;
 }
 
-bool object_matches_record_kind(AreaRenderRecordKind kind, nw::ObjectHandle object) noexcept
+bool object_matches_record_kind(nw::ObjectType kind, nw::ObjectHandle object) noexcept
 {
-    switch (kind) {
-    case AreaRenderRecordKind::creature:
-        return object.type == nw::ObjectType::creature;
-    case AreaRenderRecordKind::door:
-        return object.type == nw::ObjectType::door;
-    case AreaRenderRecordKind::item:
-        return object.type == nw::ObjectType::item;
-    case AreaRenderRecordKind::placeable:
-        return object.type == nw::ObjectType::placeable;
-    case AreaRenderRecordKind::waypoint:
-        return object.type == nw::ObjectType::waypoint;
-    case AreaRenderRecordKind::tile:
-    case AreaRenderRecordKind::unknown:
-        return false;
-    }
-    return false;
+    return kind == object.type
+        && kind != nw::ObjectType::invalid
+        && kind != nw::ObjectType::tile;
 }
 
 std::optional<float> ray_bounds_intersection(
@@ -569,28 +556,31 @@ void expand_bounds(Bounds& target, const Bounds& source, bool& initialized) noex
     target.max = glm::max(target.max, source.max);
 }
 
-void count_kind(AreaRenderSceneStats& stats, AreaRenderRecordKind kind) noexcept
+void count_kind(AreaRenderSceneStats& stats, nw::ObjectType kind) noexcept
 {
     switch (kind) {
-    case AreaRenderRecordKind::tile:
+    case nw::ObjectType::tile:
         ++stats.tile_record_count;
         break;
-    case AreaRenderRecordKind::creature:
+    case nw::ObjectType::creature:
         ++stats.creature_record_count;
         break;
-    case AreaRenderRecordKind::door:
+    case nw::ObjectType::door:
         ++stats.door_record_count;
         break;
-    case AreaRenderRecordKind::item:
+    case nw::ObjectType::item:
         ++stats.item_record_count;
         break;
-    case AreaRenderRecordKind::placeable:
+    case nw::ObjectType::placeable:
         ++stats.placeable_record_count;
         break;
-    case AreaRenderRecordKind::waypoint:
+    case nw::ObjectType::waypoint:
         ++stats.waypoint_record_count;
         break;
-    case AreaRenderRecordKind::unknown:
+    case nw::ObjectType::invalid:
+        ++stats.unknown_record_count;
+        break;
+    default:
         ++stats.unknown_record_count;
         break;
     }
@@ -854,6 +844,12 @@ bool debug_selection_category_enabled(
         return options.triggers_enabled && range.object.type == nw::ObjectType::trigger;
     case DebugShapeCategory::encounter:
         return options.encounters_enabled && range.object.type == nw::ObjectType::encounter;
+    case DebugShapeCategory::sound:
+        return range.object.type == nw::ObjectType::sound;
+    case DebugShapeCategory::store:
+        return range.object.type == nw::ObjectType::store;
+    case DebugShapeCategory::waypoint:
+        return range.object.type == nw::ObjectType::waypoint;
     case DebugShapeCategory::general:
         return false;
     }
@@ -989,7 +985,7 @@ AreaObjectSelection select_area_object_geometry(
         if ((flags[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u) {
             continue;
         }
-        const bool tile_record = kinds[record_index] == AreaRenderRecordKind::tile
+        const bool tile_record = kinds[record_index] == nw::ObjectType::tile
             && tile_xs[record_index] >= 0
             && tile_ys[record_index] >= 0;
         const bool object_record = object_matches_record_kind(kinds[record_index], objects[record_index])
@@ -1008,12 +1004,16 @@ AreaObjectSelection select_area_object_geometry(
         }
 
         float record_distance = nearest_distance;
-        trace_render_model_record(
-            *normalized_ray,
-            model_indices[record_index],
-            instance_handles[record_index],
-            scene,
-            record_distance);
+        if (kinds[record_index] == nw::ObjectType::sound) {
+            record_distance = *bounds_distance;
+        } else {
+            trace_render_model_record(
+                *normalized_ray,
+                model_indices[record_index],
+                instance_handles[record_index],
+                scene,
+                record_distance);
+        }
         if (record_distance >= nearest_distance) {
             continue;
         }
@@ -1190,7 +1190,7 @@ std::optional<nw::render::Bounds> area_tile_selection_bounds(
 {
     if (selection.status != AreaObjectSelectionStatus::hit
         || selection.source != AreaObjectSelectionSource::area_record
-        || selection.kind != AreaRenderRecordKind::tile
+        || selection.kind != nw::ObjectType::tile
         || selection.object.type != nw::ObjectType::invalid
         || selection.tile_x < 0
         || selection.tile_y < 0
@@ -1200,7 +1200,7 @@ std::optional<nw::render::Bounds> area_tile_selection_bounds(
 
     const size_t record_index = selection.record_index;
     if (record_index >= records.bounds().size()
-        || records.kinds()[record_index] != AreaRenderRecordKind::tile
+        || records.kinds()[record_index] != nw::ObjectType::tile
         || records.tile_xs()[record_index] != selection.tile_x
         || records.tile_ys()[record_index] != selection.tile_y
         || (records.flags()[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u) {
@@ -1228,7 +1228,7 @@ AreaObjectBounds collect_area_object_bounds(
     nw::ObjectHandle object,
     std::span<const nw::render::Bounds> bounds,
     std::span<const uint8_t> flags,
-    std::span<const AreaRenderRecordKind> kinds,
+    std::span<const nw::ObjectType> kinds,
     std::span<const nw::ObjectHandle> objects) noexcept
 {
     AreaObjectBounds result;
@@ -1507,7 +1507,7 @@ void AreaRenderScene::rebuild(const PreviewScene& scene)
         tile_ys_.push_back(info.tile_y);
 
         if (surface_cache_valid
-            && info.kind == AreaRenderRecordKind::tile
+            && info.kind == nw::ObjectType::tile
             && (flags & RecordFlag::render_enabled) != 0u) {
             surface_cache_valid = append_tile_surface_range(
                 model,
@@ -2229,25 +2229,26 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
     frame.stats_.shadow_caster_record_count = saturating_count(frame.shadow_caster_record_indices_.size());
 }
 
-std::string_view area_render_record_kind_label(AreaRenderRecordKind kind) noexcept
+std::string_view area_render_record_kind_label(nw::ObjectType kind) noexcept
 {
     switch (kind) {
-    case AreaRenderRecordKind::tile:
+    case nw::ObjectType::tile:
         return "tile";
-    case AreaRenderRecordKind::creature:
+    case nw::ObjectType::creature:
         return "creature";
-    case AreaRenderRecordKind::door:
+    case nw::ObjectType::door:
         return "door";
-    case AreaRenderRecordKind::item:
+    case nw::ObjectType::item:
         return "item";
-    case AreaRenderRecordKind::placeable:
+    case nw::ObjectType::placeable:
         return "placeable";
-    case AreaRenderRecordKind::waypoint:
+    case nw::ObjectType::waypoint:
         return "waypoint";
-    case AreaRenderRecordKind::unknown:
+    case nw::ObjectType::invalid:
+        return "unknown";
+    default:
         return "unknown";
     }
-    return "unknown";
 }
 
 } // namespace nw::render::viewer

@@ -1,11 +1,13 @@
 #include "area_navigation.hpp"
 
+#include "area_regions.hpp"
 #include "object_edits.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TwoDACache.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/AreaTransforms.hpp>
 #include <nw/objects/ObjectManager.hpp>
 
 #include <algorithm>
@@ -54,6 +56,67 @@ bool complete_geometry(const AreaNavigationSource& source)
         && objects.append.rejected_input_count == 0
         && objects.append.rejected_mesh_count == 0
         && objects.append.dropped_triangle_count == 0;
+}
+
+void reset_navigation_if_stale(
+    AreaPlacementNavigation& navigation, ObjectHandle area)
+{
+    const auto epoch = object_mutation_state().epoch;
+    if (navigation.area == area && navigation.epoch == epoch) {
+        return;
+    }
+    navigation.world = {};
+    navigation.source = {};
+    navigation.candidates.clear();
+    navigation.region_points.clear();
+    navigation.debug_triangles.clear();
+    navigation.area = area;
+    navigation.epoch = epoch;
+    navigation.source_attempted = false;
+    navigation.erosion_cells = 0;
+    navigation.world_ready = false;
+    navigation.diagnostic.clear();
+    ++navigation.revision;
+}
+
+bool ensure_navigation_source(
+    AreaPlacementNavigation& navigation, const Area& area)
+{
+    if (!navigation.source_attempted) {
+        navigation.source_attempted = true;
+        if (build_area_navigation_source(
+                area, navigation.source, navigation.diagnostic)
+            && !complete_geometry(navigation.source)) {
+            navigation.diagnostic
+                = "Area navigation geometry is incomplete";
+        }
+    }
+    return navigation.diagnostic.empty();
+}
+
+bool ensure_navigation_world(
+    AreaPlacementNavigation& navigation, uint16_t erosion_cells)
+{
+    if (navigation.world_ready
+        && navigation.erosion_cells == erosion_cells) {
+        return true;
+    }
+    navigation.world = {};
+    navigation.debug_triangles.clear();
+    navigation.erosion_cells = erosion_cells;
+    nav::NavTileBuildConfig config{
+        .erosion_cells = erosion_cells,
+    };
+    nav::NavTiledWorldBuildStats stats;
+    navigation.world_ready = nav::build_tiled_nav_world(
+                                 navigation.source.geometry,
+                                 navigation.source.obstacle_active,
+                                 config,
+                                 navigation.world,
+                                 stats)
+        == nav::NavStatus::ok;
+    ++navigation.revision;
+    return navigation.world_ready;
 }
 
 } // namespace
@@ -124,19 +187,7 @@ AreaPlacementResult validate_area_placements(
     }
     const float max_x = static_cast<float>(live_area->width) * nav::nav_tile_size;
     const float max_y = static_cast<float>(live_area->height) * nav::nav_tile_size;
-    const auto epoch = object_mutation_state().epoch;
-    if (navigation.area != area || navigation.epoch != epoch) {
-        navigation.world = {};
-        navigation.source = {};
-        navigation.debug_triangles.clear();
-        navigation.area = area;
-        navigation.epoch = epoch;
-        navigation.source_attempted = false;
-        navigation.erosion_cells = 0;
-        navigation.world_ready = false;
-        navigation.diagnostic.clear();
-        ++navigation.revision;
-    }
+    reset_navigation_if_stale(navigation, area);
     navigation.candidates.clear();
     nav::NavTileBuildConfig config;
     try {
@@ -159,6 +210,52 @@ AreaPlacementResult validate_area_placements(
                         "Placement batch contains duplicate objects"};
                 }
             }
+            if (row.owner.type == ObjectType::trigger
+                || row.owner.type == ObjectType::encounter) {
+                const auto* geometry = kernel::objects().components().find_geometry(
+                    row.owner);
+                glm::mat4 transform{1.0f};
+                if (!geometry || geometry->points.size() < 3
+                    || !build_area_object_world_transform(
+                        {
+                            .position = row.position,
+                            .orientation = row.orientation,
+                            .scale = row.scale,
+                        },
+                        transform)) {
+                    return {nav::NavStatus::rejected,
+                        static_cast<uint32_t>(index),
+                        "Region object has no valid footprint transform"};
+                }
+                navigation.region_points.clear();
+                navigation.region_points.reserve(geometry->points.size());
+                for (const glm::vec3 point : geometry->points) {
+                    navigation.region_points.push_back(
+                        glm::vec3{transform * glm::vec4{point, 1.0f}});
+                }
+                std::string region_diagnostic;
+                if (!validate_area_region_path(live_area->width,
+                        live_area->height, navigation.region_points, true,
+                        region_diagnostic)) {
+                    return {nav::NavStatus::rejected,
+                        static_cast<uint32_t>(index),
+                        std::move(region_diagnostic)};
+                }
+                if (row.owner.type == ObjectType::encounter) {
+                    const glm::vec3 delta = row.position - live->position;
+                    for (const auto& spawn : geometry->spawn_points) {
+                        const glm::vec3 position = spawn.position + delta;
+                        if (!finite(position)
+                            || !std::isfinite(spawn.orientation)
+                            || position.x < 0.0f || position.x > max_x
+                            || position.y < 0.0f || position.y > max_y) {
+                            return {nav::NavStatus::rejected,
+                                static_cast<uint32_t>(index),
+                                "Encounter spawn point is invalid or outside the Area"};
+                        }
+                    }
+                }
+            }
             if (row.owner.type != ObjectType::creature) continue;
             const float clearance = creature_navigation_clearance(row.owner, row.scale);
             const double cells = std::ceil(static_cast<double>(clearance) / static_cast<double>(config.cell_size));
@@ -170,32 +267,15 @@ AreaPlacementResult validate_area_placements(
         }
         if (navigation.candidates.empty()) return {nav::NavStatus::ok, UINT32_MAX, {}};
 
-        if (!navigation.source_attempted) {
-            navigation.source_attempted = true;
-            if (build_area_navigation_source(*live_area, navigation.source, navigation.diagnostic)
-                && !complete_geometry(navigation.source)) {
-                navigation.diagnostic = "Area navigation geometry is incomplete; creature placement cannot be verified";
-            }
-        }
-        if (!navigation.diagnostic.empty()) {
+        if (!ensure_navigation_source(navigation, *live_area)) {
             return {nav::NavStatus::rejected, navigation.candidates.front().input_index, navigation.diagnostic};
         }
         std::sort(navigation.candidates.begin(), navigation.candidates.end(), [](const auto& left, const auto& right) {
             return left.erosion_cells < right.erosion_cells;
         });
         for (const auto candidate : navigation.candidates) {
-            if (navigation.erosion_cells != candidate.erosion_cells) {
-                navigation.world = {};
-                navigation.debug_triangles.clear();
-                navigation.erosion_cells = candidate.erosion_cells;
-                config.erosion_cells = candidate.erosion_cells;
-                nav::NavTiledWorldBuildStats stats;
-                navigation.world_ready = nav::build_tiled_nav_world(navigation.source.geometry,
-                                             navigation.source.obstacle_active, config, navigation.world, stats)
-                    == nav::NavStatus::ok;
-                ++navigation.revision;
-            }
-            if (!navigation.world_ready) {
+            if (!ensure_navigation_world(
+                    navigation, candidate.erosion_cells)) {
                 return {nav::NavStatus::rejected, candidate.input_index, "Creature navigation build failed"};
             }
             const std::array positions{rows[candidate.input_index].position};
@@ -230,6 +310,62 @@ bool collect_placement_navigation_debug(AreaPlacementNavigation& navigation)
     }
     navigation.debug_triangles.clear();
     return false;
+}
+
+nav::NavBatchStats project_area_navigation_rays(
+    AreaPlacementNavigation& navigation,
+    ObjectHandle area,
+    std::span<const nav::NavRayProjectionInput> inputs,
+    std::span<nav::NavRayProjectionResult> results,
+    std::string& diagnostic)
+{
+    nav::NavBatchStats stats{
+        .input_count = inputs.size(),
+    };
+    diagnostic.clear();
+    for (auto& result : results) {
+        result = {};
+    }
+    const auto* live_area = area.type == ObjectType::area
+        ? kernel::objects().get<Area>(area)
+        : nullptr;
+    if (!live_area || live_area->width <= 0 || live_area->height <= 0
+        || inputs.size() != results.size()
+        || inputs.size() > UINT32_MAX) {
+        stats.rejected_count = inputs.size();
+        diagnostic = "Region projection area or ray batch is invalid";
+        return stats;
+    }
+
+    reset_navigation_if_stale(navigation, area);
+    try {
+        if (!ensure_navigation_source(navigation, *live_area)) {
+            stats.rejected_count = inputs.size();
+            diagnostic = navigation.diagnostic;
+            return stats;
+        }
+        // Recast cannot emit Detour tile data with a zero walkable radius.
+        // One cell is the narrowest valid surface used by the toolset.
+        if (!ensure_navigation_world(navigation, 1)) {
+            stats.rejected_count = inputs.size();
+            diagnostic = "Area navigation build failed";
+            return stats;
+        }
+        stats = nav::project_nav_rays(
+            navigation.world, inputs, results);
+        if (stats.output_count != inputs.size()) {
+            diagnostic = "Region ray did not hit walkable navigation geometry";
+        }
+        return stats;
+    } catch (const std::bad_alloc&) {
+        navigation.world_ready = false;
+        diagnostic = "Area navigation projection allocation failed";
+    } catch (const std::length_error&) {
+        navigation.world_ready = false;
+        diagnostic = "Area navigation projection exceeds container capacity";
+    }
+    stats.rejected_count = inputs.size();
+    return stats;
 }
 
 } // namespace nw::toolset

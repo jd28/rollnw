@@ -167,6 +167,19 @@ fn resolve_door_model(door: Door): DoorResolvedModel {
     return resolve_door_model_by_state(state.appearance, state.generic_type);
 }
 
+// SET door hooks identify tileset doors by the DoorState appearance row.
+// Generic Door models accept any SET hook because they have no exact hook type.
+fn toolset_hook_type(door: Door): int {
+    if (door == O.invalid) {
+        return -2;
+    }
+    var state = get_propset!(DoorState)(door);
+    if (state.appearance == 0) {
+        return -1;
+    }
+    return state.appearance;
+}
+
 fn appearance_exists(appearance: int, generic_type: int): bool {
     return resolve_door_model_by_state(appearance, generic_type).valid;
 }

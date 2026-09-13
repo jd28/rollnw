@@ -10,14 +10,19 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/render/model_asset.hpp>
 #include <nw/render/viewer/area_render_scene.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/scene_debug.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -189,6 +194,35 @@ void destroy_selection_model_buffers(viewer::PreviewScene& scene)
     }
 }
 
+nw::Sound* make_test_sound(
+    bool positional,
+    bool random_position = false,
+    float distance_min = 3.0f,
+    float distance_max = 12.0f)
+{
+    nw::GffBuilder builder{nw::Sound::serial_id};
+    builder.top.add_field("TemplateResRef", nw::Resref{"test_sound"});
+    builder.top.add_field("MinDistance", distance_min);
+    builder.top.add_field("MaxDistance", distance_max);
+    builder.top.add_field("Elevation", 1.0f);
+    builder.top.add_field("Positional", uint8_t{positional});
+    builder.top.add_field("RandomPosition", uint8_t{random_position});
+    builder.build();
+    nw::ResourceData resource;
+    resource.bytes = builder.to_byte_array();
+    nw::Gff gff{std::move(resource)};
+    if (!gff.valid()) { return nullptr; }
+
+    auto* sound = nw::kernel::objects().make<nw::Sound>();
+    if (!sound || !nw::deserialize(sound, gff.toplevel(), nw::SerializationProfile::blueprint)) {
+        if (sound) {
+            nw::kernel::objects().destroy(sound->handle());
+        }
+        return nullptr;
+    }
+    return sound;
+}
+
 viewer::ViewerRay pointer_test_ray(const viewer::Camera& camera,
     viewer::ViewerViewport viewport, glm::vec2 pixel)
 {
@@ -242,7 +276,7 @@ TEST(RenderViewerAreaSelection, ThinItemPointerToleranceIsBoundedInViewportPixel
                 auto model = make_thin_pointer_model(gfx.context, camera, viewport, center);
                 ASSERT_TRUE(model);
                 scene.add(std::move(model));
-                scene.static_area_model_info.back() = {.kind = viewer::AreaRenderRecordKind::item, .object = item};
+                scene.static_area_model_info.back() = {.kind = nw::ObjectType::item, .object = item};
                 viewer::AreaRenderScene records;
                 records.rebuild(scene);
                 const std::array pixels{center, center + glm::vec2{0.0f, 4.0f},
@@ -302,17 +336,17 @@ TEST(RenderViewerAreaSelection, ItemPointerAssistancePreservesDirectHitsAndRespe
     camera.set_aspect_ratio(1.0f);
     camera.set_orbit_view({0.0f, 0.0f, 0.0f}, 10.0f, 45.0f, 60.0f);
     const glm::vec2 center{100.0f, 100.0f};
-    for (const auto kind : {viewer::AreaRenderRecordKind::placeable, viewer::AreaRenderRecordKind::tile}) {
+    for (const auto kind : {nw::ObjectType::placeable, nw::ObjectType::tile}) {
         viewer::PreviewScene scene;
         auto item_model = make_thin_pointer_model(gfx.context, camera, viewport, center);
         auto blocker_model = make_thin_pointer_model(gfx.context, camera, viewport, center, 1.0f);
         ASSERT_TRUE(item_model);
         ASSERT_TRUE(blocker_model);
         scene.add(std::move(item_model));
-        scene.static_area_model_info.back() = {.kind = viewer::AreaRenderRecordKind::item, .object = item};
+        scene.static_area_model_info.back() = {.kind = nw::ObjectType::item, .object = item};
         scene.add(std::move(blocker_model));
         scene.static_area_model_info.back() = {.kind = kind,
-            .object = kind == viewer::AreaRenderRecordKind::tile ? nw::ObjectHandle{} : blocker,
+            .object = kind == nw::ObjectType::tile ? nw::ObjectHandle{} : blocker,
             .tile_x = 0,
             .tile_y = 0};
         viewer::AreaRenderScene records;
@@ -328,11 +362,11 @@ TEST(RenderViewerAreaSelection, ItemPointerAssistancePreservesDirectHitsAndRespe
             center + glm::vec2{0.0f, 3.0f});
         ASSERT_TRUE(near_model);
         scene.add(std::move(near_model));
-        scene.static_area_model_info.back() = {.kind = viewer::AreaRenderRecordKind::item, .object = near_item};
+        scene.static_area_model_info.back() = {.kind = nw::ObjectType::item, .object = near_item};
         records.rebuild(scene);
         viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
         EXPECT_EQ(hits[0].object, near_item);
-        if (kind == viewer::AreaRenderRecordKind::placeable) {
+        if (kind == nw::ObjectType::placeable) {
             viewer::select_area_pointer_objects(std::span{&center, 1u}, camera, viewport, records, scene, hits);
             EXPECT_EQ(hits[0].object, blocker);
         }
@@ -532,7 +566,7 @@ TEST(RenderViewerAreaSelection, ItemGroundPosesPreserveSharedBottomDuringSpatial
                 : nw::render::Bounds{{-1.0f, -1.0f, 2.0f}, {4.0f, 1.0f, 5.0f}};
             scene.add(std::move(model));
             scene.static_area_model_info.back() = {
-                .kind = viewer::AreaRenderRecordKind::item, .object = object, .item_ground_rotation = rotations[i], .item_ground_offset = offsets[i]};
+                .kind = nw::ObjectType::item, .object = object, .item_ground_rotation = rotations[i], .item_ground_offset = offsets[i]};
         }
     }
     for (int update = 0; update < 2; ++update) {
@@ -614,10 +648,10 @@ TEST(RenderViewerAreaSelection, RejectsBoundsOnlyHitsAndSelectsNearestTriangle)
     ASSERT_TRUE(far_model);
 
     scene.add(std::move(near_model));
-    scene.static_area_model_info.back().kind = viewer::AreaRenderRecordKind::creature;
+    scene.static_area_model_info.back().kind = nw::ObjectType::creature;
     scene.static_area_model_info.back().object = objects[0];
     scene.add(std::move(far_model));
-    scene.static_area_model_info.back().kind = viewer::AreaRenderRecordKind::creature;
+    scene.static_area_model_info.back().kind = nw::ObjectType::creature;
     scene.static_area_model_info.back().object = objects[1];
 
     viewer::AreaRenderScene records;
@@ -698,7 +732,7 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
 
     constexpr float tile_elevation = 6.0f;
     scene.add(std::move(tile_model));
-    scene.static_area_model_info.back().kind = viewer::AreaRenderRecordKind::tile;
+    scene.static_area_model_info.back().kind = nw::ObjectType::tile;
     scene.static_area_model_info.back().tile_x = 4;
     scene.static_area_model_info.back().tile_y = 7;
     auto* tile_instance = scene.static_model_instance(0);
@@ -708,7 +742,7 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     tile_instance->current_bounds.min.z += tile_elevation;
     tile_instance->current_bounds.max.z += tile_elevation;
     scene.add(std::move(object_model));
-    scene.static_area_model_info.back().kind = viewer::AreaRenderRecordKind::creature;
+    scene.static_area_model_info.back().kind = nw::ObjectType::creature;
     scene.static_area_model_info.back().object = object;
 
     viewer::AreaRenderScene records;
@@ -724,7 +758,7 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     const auto object_hit = viewer::select_area_object(object_ray, records, scene);
     ASSERT_EQ(object_hit.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(object_hit.record_index, 1u);
-    EXPECT_EQ(object_hit.kind, viewer::AreaRenderRecordKind::creature);
+    EXPECT_EQ(object_hit.kind, nw::ObjectType::creature);
     EXPECT_EQ(object_hit.object, object);
     EXPECT_EQ(object_hit.source, viewer::AreaObjectSelectionSource::area_record);
     EXPECT_NEAR(object_hit.position.x, 3.0f, 1.0e-5f);
@@ -739,7 +773,7 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
         {.target = viewer::AreaObjectSelectionTarget::tile});
     ASSERT_EQ(tile_hit.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(tile_hit.record_index, 0u);
-    EXPECT_EQ(tile_hit.kind, viewer::AreaRenderRecordKind::tile);
+    EXPECT_EQ(tile_hit.kind, nw::ObjectType::tile);
     EXPECT_EQ(tile_hit.tile_x, 4);
     EXPECT_EQ(tile_hit.tile_y, 7);
     EXPECT_EQ(tile_hit.object.type, nw::ObjectType::invalid);
@@ -775,14 +809,14 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
         {.min = {1.0f, 0.0f, 0.0f}, .max = {2.0f, 1.0f, 1.0f}});
     ASSERT_TRUE(equal_depth_object_model);
     scene.add(std::move(equal_depth_object_model));
-    scene.static_area_model_info.back().kind = viewer::AreaRenderRecordKind::creature;
+    scene.static_area_model_info.back().kind = nw::ObjectType::creature;
     scene.static_area_model_info.back().object = object;
     records.rebuild(scene);
 
     const auto equal_depth_hit = viewer::select_area_object(object_ray, records, scene);
     ASSERT_EQ(equal_depth_hit.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(equal_depth_hit.record_index, 2u);
-    EXPECT_EQ(equal_depth_hit.kind, viewer::AreaRenderRecordKind::creature);
+    EXPECT_EQ(equal_depth_hit.kind, nw::ObjectType::creature);
     EXPECT_EQ(equal_depth_hit.object, object);
     EXPECT_NEAR(equal_depth_hit.distance, 1.0f, 1.0e-5f);
 
@@ -793,7 +827,7 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
         {.target = viewer::AreaObjectSelectionTarget::tile});
     ASSERT_EQ(equal_depth_tile_hit.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(equal_depth_tile_hit.record_index, 0u);
-    EXPECT_EQ(equal_depth_tile_hit.kind, viewer::AreaRenderRecordKind::tile);
+    EXPECT_EQ(equal_depth_tile_hit.kind, nw::ObjectType::tile);
     EXPECT_EQ(equal_depth_tile_hit.object.type, nw::ObjectType::invalid);
     destroy_selection_model_buffers(scene);
 }
@@ -836,7 +870,7 @@ TEST(RenderViewerAreaSelection, SelectsTriggerAndEncounterFootprints)
         {.min = {0.0f, 0.0f, 0.0f}, .max = {6.0f, 6.0f, 0.0f}});
     ASSERT_TRUE(tile_model);
     scene.add(std::move(tile_model));
-    scene.static_area_model_info.back().kind = viewer::AreaRenderRecordKind::tile;
+    scene.static_area_model_info.back().kind = nw::ObjectType::tile;
     scene.static_area_model_info.back().tile_x = 0;
     scene.static_area_model_info.back().tile_y = 0;
     ASSERT_TRUE(viewer::append_trigger_debug_geometry(scene, *trigger));
@@ -891,13 +925,13 @@ TEST(RenderViewerAreaSelection, SelectsTriggerAndEncounterFootprints)
         {.target = viewer::AreaObjectSelectionTarget::tile});
     ASSERT_EQ(underlying_tile.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(underlying_tile.source, viewer::AreaObjectSelectionSource::area_record);
-    EXPECT_EQ(underlying_tile.kind, viewer::AreaRenderRecordKind::tile);
+    EXPECT_EQ(underlying_tile.kind, nw::ObjectType::tile);
     EXPECT_EQ(underlying_tile.object.type, nw::ObjectType::invalid);
     EXPECT_NEAR(underlying_tile.distance, 5.0f, 1.0e-5f);
     destroy_selection_model_buffers(scene);
 }
 
-TEST(RenderViewerAreaSelection, SelectsNonPlanarEncounterFootprintWithoutSpawnMarkers)
+TEST(RenderViewerAreaSelection, SelectsEncounterFootprintAndSpawnMarkersSeparately)
 {
     LiveObjects live;
     const auto encounter_handle = live.make<nw::Encounter>();
@@ -919,11 +953,13 @@ TEST(RenderViewerAreaSelection, SelectsNonPlanarEncounterFootprintWithoutSpawnMa
 
     viewer::PreviewScene scene;
     ASSERT_TRUE(viewer::append_encounter_debug_geometry(scene, *encounter));
-    ASSERT_EQ(scene.debug_shape_selection_ranges.size(), 1u);
+    ASSERT_EQ(scene.debug_shape_selection_ranges.size(), 2u);
     ASSERT_EQ(scene.debug_shape_ranges.size(), 2u);
     EXPECT_EQ(scene.debug_shape_selection_ranges[0].point_count, footprint_points.size());
     EXPECT_LT(scene.debug_shape_selection_ranges[0].bounds.max.x, spawn_points[0].position.x);
     EXPECT_LT(scene.debug_shape_selection_ranges[0].bounds.max.y, spawn_points[0].position.y);
+    EXPECT_EQ(scene.debug_shape_selection_ranges[0].subindex, UINT32_MAX);
+    EXPECT_EQ(scene.debug_shape_selection_ranges[1].subindex, 0u);
     viewer::AreaRenderScene records;
     records.rebuild(scene);
 
@@ -938,15 +974,204 @@ TEST(RenderViewerAreaSelection, SelectsNonPlanarEncounterFootprintWithoutSpawnMa
     EXPECT_EQ(footprint_hit.source, viewer::AreaObjectSelectionSource::debug_shape);
     EXPECT_EQ(footprint_hit.object, encounter_handle);
     EXPECT_NEAR(footprint_hit.distance, 3.88f, 1.0e-5f);
-
-    const auto spawn_marker_miss = viewer::select_area_object(
+    const auto spawn_hit = viewer::select_area_object(
         {
             .origin = {20.0f, 30.0f, 5.0f},
             .direction = {0.0f, 0.0f, -1.0f},
         },
         records,
         scene);
+    ASSERT_EQ(spawn_hit.status, viewer::AreaObjectSelectionStatus::hit);
+    EXPECT_EQ(spawn_hit.record_index, 1u);
+    EXPECT_EQ(spawn_hit.object, encounter_handle);
+
+    const auto spawn_marker_miss = viewer::select_area_object(
+        {
+            .origin = {21.0f, 30.0f, 5.0f},
+            .direction = {0.0f, 0.0f, -1.0f},
+        },
+        records,
+        scene);
     EXPECT_EQ(spawn_marker_miss.status, viewer::AreaObjectSelectionStatus::miss);
+}
+
+TEST(RenderViewerAreaSelection, SelectsStoreAndWaypointDebugMarkers)
+{
+    LiveObjects live;
+    const auto store_handle = live.make<nw::Store>();
+    const auto waypoint_handle = live.make<nw::Waypoint>();
+    auto* store = nw::kernel::objects().get<nw::Store>(store_handle);
+    auto* waypoint = nw::kernel::objects().get<nw::Waypoint>(waypoint_handle);
+    ASSERT_NE(store, nullptr);
+    ASSERT_NE(waypoint, nullptr);
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(
+        store_handle, {2.0f, 3.0f, 0.0f}));
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(
+        waypoint_handle, {8.0f, 9.0f, 0.0f}));
+
+    viewer::PreviewScene scene;
+    ASSERT_TRUE(viewer::append_store_debug_geometry(scene, *store));
+    ASSERT_TRUE(viewer::append_waypoint_debug_geometry(scene, *waypoint));
+    ASSERT_EQ(scene.debug_shape_selection_ranges.size(), 2u);
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+
+    const auto store_hit = viewer::select_area_object(
+        {
+            .origin = {2.0f, 3.0f, 5.0f},
+            .direction = {0.0f, 0.0f, -1.0f},
+        },
+        records,
+        scene);
+    ASSERT_EQ(store_hit.status, viewer::AreaObjectSelectionStatus::hit);
+    EXPECT_EQ(store_hit.object, store_handle);
+    const auto waypoint_hit = viewer::select_area_object(
+        {
+            .origin = {8.0f, 9.0f, 5.0f},
+            .direction = {0.0f, 0.0f, -1.0f},
+        },
+        records,
+        scene);
+    ASSERT_EQ(waypoint_hit.status, viewer::AreaObjectSelectionStatus::hit);
+    EXPECT_EQ(waypoint_hit.object, waypoint_handle);
+}
+
+TEST(RenderViewerAreaSelection, PositionalSoundUsesConcentricDottedRangeSpheres)
+{
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr);
+    auto* sound = make_test_sound(true);
+    ASSERT_NE(sound, nullptr);
+    const auto visual = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(visual);
+    ASSERT_TRUE(visual->positional);
+    ASSERT_GT(visual->distance_max, visual->distance_min);
+    const glm::vec3 position{10.0f, 20.0f, 3.0f};
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(
+        sound->handle(), position));
+
+    viewer::PreviewScene scene;
+    ASSERT_TRUE(viewer::append_sound_debug_geometry(
+        scene, *sound, &*visual, true));
+    constexpr size_t k_inner_dot_count = 182;
+    constexpr size_t k_maximum_dot_count = 762;
+    ASSERT_EQ(scene.sound_debug_dot_instances.size(),
+        k_inner_dot_count + k_maximum_dot_count);
+    EXPECT_TRUE(scene.debug_shape_vertices.empty());
+    EXPECT_TRUE(scene.debug_shape_indices.empty());
+    EXPECT_TRUE(scene.debug_shape_ranges.empty());
+
+    const auto& first_dot = scene.sound_debug_dot_instances.front();
+    const glm::vec3 first_dot_center{first_dot.center_radius};
+    EXPECT_NEAR(glm::distance(first_dot_center, position),
+        visual->distance_min,
+        1.0e-5f);
+    EXPECT_GT(first_dot.center_radius.w, 0.0f);
+    EXPECT_NEAR(glm::length(glm::vec3{first_dot.normal}), 1.0f, 1.0e-5f);
+
+    const float center_z = position.z;
+    float min_z = std::numeric_limits<float>::max();
+    float max_z = std::numeric_limits<float>::lowest();
+    for (size_t index = k_inner_dot_count;
+        index < scene.sound_debug_dot_instances.size(); ++index) {
+        const float z = scene.sound_debug_dot_instances[index].center_radius.z;
+        min_z = std::min(min_z, z);
+        max_z = std::max(max_z, z);
+    }
+    EXPECT_LT(min_z,
+        center_z - visual->distance_max * 0.9f);
+    EXPECT_GT(max_z,
+        center_z + visual->distance_max * 0.9f);
+    nw::kernel::objects().destroy(sound->handle());
+}
+
+TEST(RenderViewerAreaSelection, ZeroMinimumSoundOmitsInnerSurface)
+{
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr);
+    auto* sound = make_test_sound(true, false, 0.0f, 12.0f);
+    ASSERT_NE(sound, nullptr);
+    const auto visual = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(visual);
+
+    viewer::PreviewScene scene;
+    ASSERT_TRUE(viewer::append_sound_debug_geometry(
+        scene, *sound, &*visual, true));
+    constexpr size_t k_maximum_dot_count = 762;
+    EXPECT_EQ(scene.sound_debug_dot_instances.size(), k_maximum_dot_count);
+    EXPECT_TRUE(scene.debug_shape_vertices.empty());
+    EXPECT_TRUE(scene.debug_shape_indices.empty());
+    EXPECT_TRUE(scene.debug_shape_ranges.empty());
+    nw::kernel::objects().destroy(sound->handle());
+}
+
+TEST(RenderViewerAreaSelection, SoundMarkerBoundsProvideAUsableHitTarget)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) GTEST_SKIP() << "headless graphics context unavailable";
+    LiveObjects live;
+    const auto sound = live.make<nw::Sound>();
+    viewer::PreviewScene scene;
+    auto model = make_selection_model(gfx.context,
+        {{{0.75f, 0.75f, 0.0f}, {1.0f, 0.75f, 0.0f}, {0.75f, 1.0f, 0.0f}}},
+        {.min = {-1.0f, -1.0f, 0.0f}, .max = {1.0f, 1.0f, 2.0f}});
+    ASSERT_TRUE(model);
+    scene.add(std::move(model));
+    scene.static_area_model_info.back() = {
+        .kind = nw::ObjectType::sound,
+        .object = sound,
+    };
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+
+    const auto hit = viewer::select_area_object(
+        {
+            .origin = {0.0f, 0.0f, 5.0f},
+            .direction = {0.0f, 0.0f, -1.0f},
+        },
+        records,
+        scene);
+    ASSERT_EQ(hit.status, viewer::AreaObjectSelectionStatus::hit);
+    EXPECT_EQ(hit.object, sound);
+    EXPECT_NEAR(hit.distance, 3.0f, 1.0e-5f);
+    destroy_selection_model_buffers(scene);
+}
+
+TEST(RenderViewerAreaSelection, AreaWideSoundWithMarkerModelAddsNoDebugSphere)
+{
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr);
+    auto* sound = make_test_sound(false);
+    ASSERT_NE(sound, nullptr);
+    const auto visual = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(visual);
+    ASSERT_FALSE(visual->positional);
+
+    viewer::PreviewScene scene;
+    EXPECT_TRUE(viewer::append_sound_debug_geometry(
+        scene, *sound, &*visual, true));
+    EXPECT_TRUE(scene.debug_shape_vertices.empty());
+    EXPECT_TRUE(scene.debug_shape_indices.empty());
+    EXPECT_TRUE(scene.debug_shape_ranges.empty());
+    EXPECT_TRUE(scene.sound_debug_dot_instances.empty());
+    nw::kernel::objects().destroy(sound->handle());
+}
+
+TEST(RenderViewerAreaSelection, RandomPositionSoundStateSurvivesTypedProjection)
+{
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr);
+    auto* sound = make_test_sound(true, true);
+    ASSERT_NE(sound, nullptr);
+    const auto visual = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(visual);
+    EXPECT_TRUE(visual->positional);
+    EXPECT_TRUE(visual->random_position);
+    nw::kernel::objects().destroy(sound->handle());
 }
 
 TEST(RenderViewerAreaSelection, ReducesRepeatedObjectRecordsToOneBound)
@@ -963,10 +1188,10 @@ TEST(RenderViewerAreaSelection, ReducesRepeatedObjectRecordsToOneBound)
     };
     const std::array<uint8_t, 4> flags{kRenderEnabled, kRenderEnabled, kRenderEnabled, 0};
     const std::array kinds{
-        viewer::AreaRenderRecordKind::creature,
-        viewer::AreaRenderRecordKind::creature,
-        viewer::AreaRenderRecordKind::creature,
-        viewer::AreaRenderRecordKind::creature,
+        nw::ObjectType::creature,
+        nw::ObjectType::creature,
+        nw::ObjectType::creature,
+        nw::ObjectType::creature,
     };
 
     auto result = viewer::collect_area_object_bounds(selected_object, bounds, flags, kinds, objects);
@@ -1015,11 +1240,11 @@ TEST(RenderViewerAreaSelection, CandidateSelectionRejectsDoorBoundsWithoutGeomet
 
     scene.add(std::move(near_model));
     scene.static_area_model_info.back().kind
-        = viewer::AreaRenderRecordKind::door;
+        = nw::ObjectType::door;
     scene.static_area_model_info.back().object = near_door;
     scene.add(std::move(far_model));
     scene.static_area_model_info.back().kind
-        = viewer::AreaRenderRecordKind::door;
+        = nw::ObjectType::door;
     scene.static_area_model_info.back().object = far_door;
 
     viewer::AreaRenderScene records;
@@ -1052,7 +1277,7 @@ TEST(RenderViewerAreaSelection, CandidateSelectionRejectsDoorBoundsWithoutGeomet
 
 struct AreaSelectionCandidate {
     nw::ObjectHandle object;
-    viewer::AreaRenderRecordKind kind = viewer::AreaRenderRecordKind::unknown;
+    nw::ObjectType kind = nw::ObjectType::invalid;
 };
 
 TEST(RenderViewerAreaSelection, AreaFixtureObjectsProduceDistinctWorkbenchSnapshots)
@@ -1071,15 +1296,15 @@ TEST(RenderViewerAreaSelection, AreaFixtureObjectsProduceDistinctWorkbenchSnapsh
     const auto area_handle = area->handle();
 
     std::vector<AreaSelectionCandidate> candidates;
-    const auto append_first = [&candidates](const auto& objects, viewer::AreaRenderRecordKind kind) {
+    const auto append_first = [&candidates](const auto& objects, nw::ObjectType kind) {
         if (!objects.empty() && objects.front()) {
             candidates.push_back({objects.front()->handle(), kind});
         }
     };
-    append_first(area->creatures, viewer::AreaRenderRecordKind::creature);
-    append_first(area->doors, viewer::AreaRenderRecordKind::door);
-    append_first(area->items, viewer::AreaRenderRecordKind::item);
-    append_first(area->placeables, viewer::AreaRenderRecordKind::placeable);
+    append_first(area->creatures, nw::ObjectType::creature);
+    append_first(area->doors, nw::ObjectType::door);
+    append_first(area->items, nw::ObjectType::item);
+    append_first(area->placeables, nw::ObjectType::placeable);
     if (candidates.size() < 2) {
         area->clear();
         nw::kernel::objects().destroy(area_handle);

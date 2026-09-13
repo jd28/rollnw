@@ -27,6 +27,7 @@ inline constexpr std::string_view event_hover = "hover";
 inline constexpr std::string_view event_select = "select";
 inline constexpr std::string_view event_activate = "activate";
 inline constexpr std::string_view event_scroll = "scroll";
+inline constexpr std::string_view event_reorder = "reorder";
 } // namespace list_v1
 
 } // namespace nw::toolset::ui_contract

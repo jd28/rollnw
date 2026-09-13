@@ -87,6 +87,27 @@ TEST(Area, GffDeserialize)
     const auto* encounter_spatial = nw::kernel::objects().components().find_spatial(ent->encounters[0]->handle());
     ASSERT_NE(encounter_spatial, nullptr);
     EXPECT_EQ(encounter_spatial->position, encounter_anchor);
+
+    ASSERT_TRUE(ent->instantiate());
+    const auto expect_area_members = [ent](const auto& objects) {
+        for (const auto* object : objects) {
+            ASSERT_NE(object, nullptr);
+            const auto* spatial
+                = nw::kernel::objects().components().find_spatial(
+                    object->handle());
+            ASSERT_NE(spatial, nullptr);
+            EXPECT_EQ(spatial->area, ent->handle().id);
+        }
+    };
+    expect_area_members(ent->creatures);
+    expect_area_members(ent->doors);
+    expect_area_members(ent->encounters);
+    expect_area_members(ent->items);
+    expect_area_members(ent->placeables);
+    expect_area_members(ent->sounds);
+    expect_area_members(ent->stores);
+    expect_area_members(ent->triggers);
+    expect_area_members(ent->waypoints);
 }
 
 TEST(Area, JsonSerializesSubobjectsAsPropsetsComponents)

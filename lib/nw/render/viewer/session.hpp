@@ -240,6 +240,8 @@ public:
         ViewerViewport viewport,
         std::span<const nw::ObjectHandle> candidates);
     bool set_area_object_selection(nw::ObjectHandle object) noexcept;
+    [[nodiscard]] uint32_t active_area_debug_subindex(
+        nw::ObjectHandle object) const noexcept;
     // One viewport owns one active selection and one camera, so this event-level
     // transform is genuinely singular. Missing or non-finite focus data returns
     // false and leaves the camera unchanged.

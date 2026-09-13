@@ -26,6 +26,11 @@ bool ensure_nwn1_smalls_initialized();
 
 nw::smalls::Value make_object_arg(nw::ObjectHandle handle);
 
+std::optional<nw::smalls::Value> call_nwn1_module_value(
+    nw::StringView module,
+    nw::StringView fn,
+    const nw::Vector<nw::smalls::Value>& args);
+
 std::optional<int32_t> call_nwn1_module_int(nw::StringView module, nw::StringView fn,
     const nw::Vector<nw::smalls::Value>& args);
 

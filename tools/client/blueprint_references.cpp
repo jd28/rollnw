@@ -585,6 +585,22 @@ bool prepare_live_blueprint_updates(LiveBlueprintUpdates& updates, size_t count,
                 target->orientation = placement.orientation;
                 target->scale = placement.scale;
             }
+            if (row.object.type == ObjectType::trigger
+                || row.object.type == ObjectType::encounter) {
+                const auto* geometry = components.find_geometry(row.object);
+                const Vector<glm::vec3> points = geometry
+                    ? geometry->points
+                    : Vector<glm::vec3>{};
+                const Vector<ObjectSpawnPoint> spawn_points = geometry
+                    ? geometry->spawn_points
+                    : Vector<ObjectSpawnPoint>{};
+                if (!components.set_geometry(replacement.object(), points)
+                    || !components.set_spawn_points(
+                        replacement.object(), spawn_points)) {
+                    throw std::runtime_error(
+                        "Cannot preserve live instance geometry");
+                }
+            }
             updates.replacements.push_back(std::move(replacement));
         }
         return true;
@@ -615,6 +631,27 @@ bool validate_live_blueprint_updates(const LiveBlueprintUpdates& updates, std::s
             const auto* before = kernel::objects().components().find_spatial(row.object);
             const auto* after = kernel::objects().components().find_spatial(replacement);
             if (before && (!after || before->position != after->position || before->orientation != after->orientation || before->scale != after->scale || before->area != after->area)) { throw std::runtime_error("Live instance placement changed during preparation"); }
+            if (row.object.type == ObjectType::trigger
+                || row.object.type == ObjectType::encounter) {
+                const auto* before_geometry
+                    = kernel::objects().components().find_geometry(row.object);
+                const auto* after_geometry
+                    = kernel::objects().components().find_geometry(replacement);
+                const bool before_empty = !before_geometry
+                    || (before_geometry->points.empty()
+                        && before_geometry->spawn_points.empty());
+                const bool after_empty = !after_geometry
+                    || (after_geometry->points.empty()
+                        && after_geometry->spawn_points.empty());
+                if (before_empty != after_empty
+                    || (!before_empty
+                        && (before_geometry->points != after_geometry->points
+                            || before_geometry->spawn_points
+                                != after_geometry->spawn_points))) {
+                    throw std::runtime_error(
+                        "Live instance geometry changed during preparation");
+                }
+            }
             const auto finite = [](glm::vec3 value) { return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z); };
             if (row.attachment == BlueprintInstanceOwner::area && (!before || before->area != updates.area.id || !finite(before->position) || !finite(before->orientation) || !finite(before->scale) || before->scale.x <= 0 || before->scale.y <= 0 || before->scale.z <= 0)) { throw std::runtime_error("Invalid live instance placement"); }
             if (row.attachment == BlueprintInstanceOwner::equipment && !can_place_creature_item_in_slot(replacement, static_cast<EquipIndex>(row.index))) { throw std::runtime_error("Replacement item is not valid in its equipment slot"); }
@@ -802,7 +839,8 @@ bool prepare_blueprint_updates(std::span<BlueprintUpdateDocument> documents, Res
                 auto& target = document.value.at(Json::json_pointer{row.path});
                 Json replacement = fresh;
                 if (target.at("object").contains("uuid")) { replacement["object"]["uuid"] = target["object"]["uuid"]; }
-                for (const auto* field : {"location", "scale"}) {
+                for (const auto* field : {
+                         "location", "scale", "geometry", "spawn_points"}) {
                     if (target.at("components").contains(field)) {
                         replacement["components"][field] = target["components"][field];
                     } else {
@@ -830,7 +868,9 @@ bool prepare_blueprint_updates(std::span<BlueprintUpdateDocument> documents, Res
                     for (size_t index = 0; index < members.size(); ++index) {
                         const auto path = std::string{"/"} + category + "/" + std::to_string(index);
                         const bool changed = std::any_of(document.references.rows.begin(), document.references.rows.end(), [&](const auto& row) { return row.placed && !row.covered && row.path == path; });
-                        if (changed) {
+                        const auto type = members[index]->handle().type;
+                        if (changed && type != ObjectType::trigger
+                            && type != ObjectType::encounter) {
                             const auto* spatial = kernel::objects().components().find_spatial(members[index]->handle());
                             if (!spatial) { throw std::runtime_error("Missing replacement placement"); }
                             placements.push_back(*spatial);

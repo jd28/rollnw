@@ -16,10 +16,18 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include <vector>
 
 using namespace std::literals;
 
 namespace {
+
+void capture_module_load_progress(
+    void* user_data, nw::kernel::ModuleLoadProgressStage stage)
+{
+    static_cast<std::vector<nw::kernel::ModuleLoadProgressStage>*>(user_data)
+        ->push_back(stage);
+}
 
 void expect_creature_hp_max(nw::Creature* creature, int32_t expected)
 {
@@ -117,6 +125,30 @@ TEST(Kernel, LoadModuleErf)
     EXPECT_TRUE(area);
     EXPECT_TRUE(area->resref == "start");
     mod->clear(); // Make sure nothing crashes, not called on unload..
+}
+
+TEST(Kernel, LoadModuleReportsSynchronousProgressStages)
+{
+    using Stage = nw::kernel::ModuleLoadProgressStage;
+    std::vector<Stage> stages;
+    nw::kernel::ModuleLoadOptions options;
+    options.progress = {
+        .callback = capture_module_load_progress,
+        .user_data = &stages,
+    };
+
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod", false, options);
+    ASSERT_NE(module, nullptr);
+    ASSERT_FALSE(stages.empty());
+    EXPECT_EQ(stages.front(), Stage::reset_services);
+    EXPECT_NE(std::ranges::find(stages, Stage::load_module_resource),
+        stages.end());
+    EXPECT_NE(std::ranges::find(stages, Stage::initialize_services),
+        stages.end());
+    EXPECT_EQ(std::ranges::find(stages, Stage::instantiate_module),
+        stages.end());
+    EXPECT_EQ(stages.back(), Stage::complete);
 }
 
 TEST(Kernel, LoadModuleDirectory)

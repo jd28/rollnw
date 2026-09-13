@@ -195,11 +195,22 @@ These views demonstrate the intended split: reflection handles broadly useful
 data, while workflow-heavy collections use purpose-built views and commands.
 All data-dependent row surfaces must remain viewport-virtualized.
 
-Area tabs provide mesh or authored-footprint selection for placed
-objects, Ctrl-click tile selection, a complete placed-object list, and camera
-focus on list selection. The validated Creature/Placeable/Item structural slice
-supports placement, transforms, duplicate, delete, undo/redo, and native CAF
-save. Blueprint preview tabs use the same focused edit commands and save path.
+Area tabs provide mesh or authored-footprint selection for placed objects,
+Ctrl-click tile selection, a complete placed-object list, and camera focus on
+list selection. Creature, Door, Encounter, Item, Placeable, Sound, Store,
+Trigger, and Waypoint instances support placement, movement, duplication,
+deletion, undo/redo, and native CAF save. Blueprint preview tabs use the same
+focused edit commands and save path.
+
+Doors snap to unoccupied SET hooks. Tileset Door appearances require an exact
+hook type; generic Door models accept any hook. New Trigger and Encounter
+vertices project to the Area navigation surface before commit. Polygon
+validation rejects points outside the Area, adjacent duplicates,
+self-intersections, zero-area shapes, and paths above the bounded authoring
+limit. Encounter spawn markers support add, move, and delete.
+Sound objects render a selectable debug radius; the mouse wheel resizes the
+selected Sound's maximum radius. Stores use point markers and Waypoints use
+their model with a marker fallback.
 
 New Blueprint presents a compact action list for Creature, Door, Encounter, Item,
 Placeable, Sound, Store, Trigger, and Waypoint blueprints, then opens the saved
@@ -322,11 +333,8 @@ The UI subsystem and language binding are documented in:
 
 - The client is viewer-first. It does not yet provide new-area creation or a
   complete editor for every object aggregate.
-- Native CAF area save is implemented. Structural placement and membership
-  editing are currently limited to Creature, Placeable, and Item; other placed kinds
-  are selectable and inspectable but do not all have structural commands.
-- Encounter spawn lists require a dedicated editor; they are not flattened into
-  generic Details rows.
+- Encounter creature-list editing remains a dedicated editor concern; placed
+  spawn-point markers are edited directly in the Area viewport.
 - Save All covers open modified JSON area and blueprint documents; it is not
   autosave or a project-wide export.
 - The Smalls list host defines list state and callback protocols, but the

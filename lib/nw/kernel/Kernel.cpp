@@ -39,6 +39,14 @@ const char* service_name(const ServiceEntry& entry)
     return "unknown";
 }
 
+void report_module_load_progress(
+    const ModuleLoadOptions& options, ModuleLoadProgressStage stage)
+{
+    if (options.progress.callback) {
+        options.progress.callback(options.progress.user_data, stage);
+    }
+}
+
 void profile_service_init(ServiceEntry& entry, ServiceInitTime time)
 {
     NW_PROFILE_SCOPE_N("kernel.service.initialize");
@@ -328,6 +336,8 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
     auto load_path = path.string();
     NW_PROFILE_TEXT(load_path.data(), load_path.size());
 
+    report_module_load_progress(
+        options, ModuleLoadProgressStage::reset_services);
     if (services().serices_started_) {
         NW_PROFILE_SCOPE_N("kernel.load_module.pre_start_shutdown");
         services().shutdown();
@@ -346,12 +356,16 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
         NW_PROFILE_SCOPE_N("kernel.load_module.init.module_pre_load");
         for (auto& s : services().services_) {
             if (!s.service) { break; }
+            report_module_load_progress(
+                options, ModuleLoadProgressStage::initialize_services);
             profile_service_init(s, ServiceInitTime::module_pre_load);
         }
     }
 
     {
         NW_PROFILE_SCOPE_N("kernel.load_module.resman_load_module");
+        report_module_load_progress(
+            options, ModuleLoadProgressStage::load_module_resource);
         if (!resman().load_module(path)) {
             services().module_loading_ = false;
             services().module_loaded_ = false;
@@ -370,12 +384,16 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
 
     if (mod->haks.size()) {
         NW_PROFILE_SCOPE_N("kernel.load_module.load_haks");
+        report_module_load_progress(
+            options, ModuleLoadProgressStage::load_dependencies);
         const auto hak_roots = dependency_roots_or_default(options.hak_roots, "hak");
         nw::kernel::resman().load_module_haks(mod->haks, hak_roots);
     }
 
     if (mod->tlk.size()) {
         NW_PROFILE_SCOPE_N("kernel.load_module.load_custom_tlk");
+        report_module_load_progress(
+            options, ModuleLoadProgressStage::load_dependencies);
         const auto tlk_roots = dependency_roots_or_default(options.tlk_roots, "tlk");
         const auto tlk_path = resolve_custom_tlk_path(mod->tlk, tlk_roots);
         if (!tlk_path.empty()) {
@@ -390,12 +408,16 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
         NW_PROFILE_SCOPE_N("kernel.load_module.init.module_post_load");
         for (auto& s : services().services_) {
             if (!s.service) { break; }
+            report_module_load_progress(
+                options, ModuleLoadProgressStage::initialize_services);
             profile_service_init(s, ServiceInitTime::module_post_load);
         }
     }
 
     if (instantiate) {
         NW_PROFILE_SCOPE_N("kernel.load_module.instantiate");
+        report_module_load_progress(
+            options, ModuleLoadProgressStage::instantiate_module);
         if (mod && !mod->instantiate()) {
             services().module_loading_ = false;
             services().module_loaded_ = false;
@@ -408,6 +430,8 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
             NW_PROFILE_SCOPE_N("kernel.load_module.init.module_post_instantiation");
             for (auto& s : services().services_) {
                 if (!s.service) { break; }
+                report_module_load_progress(
+                    options, ModuleLoadProgressStage::initialize_services);
                 profile_service_init(s, ServiceInitTime::module_post_instantiation);
             }
         }
@@ -415,6 +439,8 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
 
     services().module_loaded_ = true;
     services().module_loading_ = false;
+    report_module_load_progress(
+        options, ModuleLoadProgressStage::complete);
 
     auto elapsed = std::chrono::high_resolution_clock::now() - start;
     auto count = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();

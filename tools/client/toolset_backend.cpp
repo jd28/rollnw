@@ -578,6 +578,33 @@ void ToolsetBackend::register_native_commands()
                 {}, CommandOutputChannel::none);
         });
     register_hidden_editor_command(
+        "toolset.sound.resources.reorder",
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto source = parse_u32(
+                command_arg_string(invocation.args, 0));
+            const auto destination = parse_u32(
+                command_arg_string(invocation.args, 1));
+            if (!source || !destination) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: toolset.sound.resources.reorder <source-index> <destination-index>",
+                    CommandOutputChannel::warn);
+            }
+            if (!bridge_) {
+                return command_result(CommandStatus::failed,
+                    "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+
+            auto edit = make_reordered_sound_resources(kernel::runtime(),
+                bridge_->active_object(), *source, *destination);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    "The Sound resource reorder is invalid or stale",
+                    CommandOutputChannel::warn);
+            }
+            return replace_sound_resources(std::move(*edit),
+                "Reorder sound resources", context);
+        });
+    register_hidden_editor_command(
         "toolset.creature.body_parts.refresh",
         [this](const CommandInvocation&, CommandContext&) {
             return command_result(
@@ -2012,6 +2039,74 @@ void ToolsetBackend::register_native_commands()
         });
 
     register_or_log(CommandSpec{
+                        "object.details.set_sound_position",
+                        "Set Sound Placement",
+                        "Set the active Sound's mutually exclusive placement mode",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.details.set_sound_position <row-index> <expected-0..2> <desired-0..2>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto row_index = parse_u32(
+                command_arg_string(invocation.args, 0));
+            const auto expected = parse_i32(
+                command_arg_string(invocation.args, 1));
+            const auto desired = parse_i32(
+                command_arg_string(invocation.args, 2));
+            if (!row_index || !expected || !desired) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.details.set_sound_position <row-index> <expected-0..2> <desired-0..2>",
+                    CommandOutputChannel::warn);
+            }
+            if (!bridge_) {
+                return command_result(CommandStatus::failed,
+                    "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+
+            std::string diagnostic;
+            const auto edit = prepare_object_details_sound_position_edit(
+                kernel::runtime(), bridge_->active_object(), *row_index,
+                *expected, *desired, diagnostic);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic.empty()
+                        ? "Sound placement edit was rejected"
+                        : std::move(diagnostic),
+                    CommandOutputChannel::warn);
+            }
+
+            ObjectEditBatch batch;
+            if (edit->positional_before != edit->positional_after) {
+                batch.patches.push_back({
+                    edit->object,
+                    edit->propset_type,
+                    edit->positional_field_index,
+                    edit->positional_before,
+                    edit->positional_after,
+                });
+            }
+            if (edit->random_position_before
+                != edit->random_position_after) {
+                batch.patches.push_back({
+                    edit->object,
+                    edit->propset_type,
+                    edit->random_position_field_index,
+                    edit->random_position_before,
+                    edit->random_position_after,
+                });
+            }
+            std::sort(batch.patches.begin(), batch.patches.end(),
+                [](const auto& lhs, const auto& rhs) {
+                    return lhs.key < rhs.key;
+                });
+            return commit_object_edits(
+                std::move(batch), std::move(edit->label), context);
+        });
+
+    register_or_log(CommandSpec{
                         "object.details.set_integer",
                         "Set Object Details Integer",
                         "Set one explicitly ranged integer in the active object's Details",
@@ -2426,7 +2521,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "area.object.duplicate",
                         "Duplicate Area Object",
-                        "Duplicate the active Creature, Placeable, or Item in the live area",
+                        "Duplicate the active object in the live area",
                         "object",
                         {"duplicate"},
                         CommandScope::workspace,
@@ -2449,7 +2544,7 @@ void ToolsetBackend::register_native_commands()
     register_or_log(CommandSpec{
                         "area.object.delete",
                         "Delete Area Object",
-                        "Delete the active Creature, Placeable, or Item from the live area",
+                        "Delete the active object from the live area",
                         "object",
                         {"delete"},
                         CommandScope::workspace,
@@ -3649,7 +3744,8 @@ CommandResult ToolsetBackend::open_module(std::string_view module_path)
     }
 }
 
-CommandResult ToolsetBackend::open_project(std::string_view project_path)
+CommandResult ToolsetBackend::open_project(std::string_view project_path,
+    kernel::ModuleLoadProgressSink progress)
 {
     if (blueprint_operation_active() || blueprint_publication_pending()) { return command_result(CommandStatus::rejected, "Finish the blueprint operation before opening another project", CommandOutputChannel::warn); }
     blueprint_reference_source_ = {};
@@ -3686,7 +3782,8 @@ CommandResult ToolsetBackend::open_project(std::string_view project_path)
         if (!tree.ok) {
             return command_result(CommandStatus::failed, tree.message, CommandOutputChannel::error);
         }
-        const auto load_options = nw::kernel::module_load_options_for_project(project_dir);
+        auto load_options = nw::kernel::module_load_options_for_project(project_dir);
+        load_options.progress = progress;
         if (workspace_) { workspace_->clear(); }
         bridge_->clear_active_object();
         bridge_->clear_active_area();
@@ -3770,6 +3867,24 @@ CommandResult ToolsetBackend::place_area_objects(
     return result;
 }
 
+CommandResult ToolsetBackend::transform_area_object(
+    ObjectTransformEdit edit, CommandContext context)
+{
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected,
+            "Finish the blueprint operation before editing",
+            CommandOutputChannel::warn);
+    }
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    CommandResult result = commit_object_transform_edit(
+        std::move(edit), "Move object", context);
+    if (result.ok() && result.undo_action && context.record_undo
+        && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
 CommandResult ToolsetBackend::place_creature_items(
     ObjectHandle creature,
     std::span<const ItemPlacement> placements,
@@ -3837,15 +3952,52 @@ CommandResult ToolsetBackend::replace_encounter_spawns(
 }
 
 CommandResult ToolsetBackend::replace_sound_resources(
-    SoundResourceEdit edit, CommandContext context)
+    SoundResourceEdit edit, std::string label, CommandContext context)
 {
     if (blueprint_operation_active() || blueprint_publication_pending()) {
         return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
     }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::commit_sound_resource_edit(
-        std::move(edit), "Add sound resource", context);
+        std::move(edit), std::move(label), context);
     if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
+CommandResult ToolsetBackend::resize_sound_radius(
+    SoundRadiusEdit edit, CommandContext context)
+{
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected,
+            "Finish the blueprint operation before editing",
+            CommandOutputChannel::warn);
+    }
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    CommandResult result = commit_sound_radius_edit(
+        std::move(edit), "Resize Sound radius", context);
+    if (result.ok() && result.undo_action && context.record_undo
+        && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
+CommandResult ToolsetBackend::replace_encounter_spawn_points(
+    EncounterSpawnPointBatchEdit edit, CommandContext context)
+{
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected,
+            "Finish the blueprint operation before editing",
+            CommandOutputChannel::warn);
+    }
+    context = context_with_backend_defaults(
+        std::move(context), workspace_);
+    CommandResult result = commit_encounter_spawn_point_edit(
+        std::move(edit), "Edit Encounter spawn points", context);
+    if (result.ok() && result.undo_action && context.record_undo
+        && context.workspace) {
         context.workspace->push_undo(*result.undo_action);
     }
     return result;

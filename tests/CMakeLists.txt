@@ -208,6 +208,7 @@ add_executable(rollnw_test
     rollnw_client_smalls_item_editor.cpp
     rollnw_client_smalls_creature_spells.cpp
     rollnw_client_smalls_property_tree.cpp
+    rollnw_client_sound_catalog.cpp
     rollnw_client_virtual_list.cpp
     formats_dialog.cpp
     formats_faction.cpp

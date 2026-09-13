@@ -44,7 +44,7 @@ void add_grid_area_tiles(nw::render::viewer::PreviewScene& scene, int width, int
             tile->primitives.front().bounds = tile->bounds;
             scene.add(std::move(tile));
             scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-                .kind = viewer::AreaRenderRecordKind::tile,
+                .kind = nw::ObjectType::tile,
                 .tile_x = static_cast<int16_t>(x),
                 .tile_y = static_cast<int16_t>(y),
                 .static_candidate = true,
@@ -118,7 +118,7 @@ void add_static_area_mesh_model(
     ASSERT_NE(instance, nullptr);
     instance->visible = render_enabled;
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = static_cast<int16_t>(
             std::min<uint32_t>(tile_x, static_cast<uint32_t>(std::numeric_limits<int16_t>::max()))),
         .tile_y = 0,
@@ -673,7 +673,7 @@ TEST(RenderViewerLighting, FilteredAreaFrameKeepsModelBoundDynamicLights)
     first->primitives.front().bounds = first->bounds;
     scene.add(std::move(first));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 0,
         .tile_y = 0,
         .static_candidate = true,
@@ -684,7 +684,7 @@ TEST(RenderViewerLighting, FilteredAreaFrameKeepsModelBoundDynamicLights)
     second->primitives.front().bounds = second->bounds;
     scene.add(std::move(second));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 1,
         .tile_y = 0,
         .static_candidate = true,
@@ -974,7 +974,7 @@ TEST(RenderAreaVisibility, DynamicRecordRefreshUsesCommonInstanceRuntimeState)
     model->primitives.front().bounds = model->bounds;
     scene.add(std::move(model));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
     };
 
     viewer::AreaRenderScene area_scene;
@@ -1022,7 +1022,7 @@ TEST(RenderAreaVisibility, RenderModelAreaRecordUsesCommonInstanceState)
 
     scene.add(make_shadow_render_model());
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .tile_x = 1,
         .tile_y = 0,
     };
@@ -1086,13 +1086,13 @@ TEST(RenderAreaVisibility, VisibleRenderModelHandlesUseAreaFrameRecords)
     add_static_area_mesh_model(scene, nw::render::MaterialMode::opaque, 0u);
     scene.add(make_shadow_render_model());
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .tile_x = 0,
         .tile_y = 0,
     };
     scene.add(make_shadow_render_model());
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .tile_x = 1,
         .tile_y = 0,
     };
@@ -1141,7 +1141,7 @@ TEST(RenderAreaVisibility, AreaStaticRecordsExposeCommonPreparedDraws)
     ASSERT_NE(instance, nullptr);
     instance->root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{5.0f, 6.0f, 0.0f});
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 0,
         .tile_y = 0,
         .static_candidate = true,
@@ -1294,7 +1294,7 @@ TEST(RenderAreaVisibility, NonCachedAreaVisibleMaterialListsUseCommonRecords)
 
     scene.add(make_area_mesh_model(nw::render::MaterialMode::cutout));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 0,
         .tile_y = 0,
         .static_candidate = true,
@@ -1306,7 +1306,7 @@ TEST(RenderAreaVisibility, NonCachedAreaVisibleMaterialListsUseCommonRecords)
     ASSERT_NE(disabled_instance, nullptr);
     disabled_instance->visible = false;
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 1,
         .tile_y = 0,
         .static_candidate = true,
@@ -1340,7 +1340,7 @@ TEST(RenderAreaVisibility, AreaPreparedSurfacesUseCommonShadowSummary)
 
     scene.add(make_area_mesh_model(nw::render::MaterialMode::opaque));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 0,
         .tile_y = 0,
         .static_candidate = true,
@@ -1351,7 +1351,7 @@ TEST(RenderAreaVisibility, AreaPreparedSurfacesUseCommonShadowSummary)
     caster->shadow = nw::render::summarize_render_model_shadows(*caster);
     scene.add(std::move(caster));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 1,
         .tile_y = 0,
         .static_candidate = true,
@@ -1391,7 +1391,7 @@ TEST(RenderAreaVisibility, AreaDynamicRecordsHaveEmptyCommonPreparedDrawSpans)
     ASSERT_NE(instance, nullptr);
     instance->scene_animation_enabled = true;
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .static_candidate = true,
     };
 
@@ -1414,7 +1414,7 @@ TEST(RenderAreaVisibility, NonCachedAreaVisibleMaterialListsDropStaleCommonRecor
 
     scene.add(make_area_mesh_model(nw::render::MaterialMode::cutout));
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 0,
         .tile_y = 0,
         .static_candidate = true,
@@ -1428,7 +1428,7 @@ TEST(RenderAreaVisibility, NonCachedAreaVisibleMaterialListsDropStaleCommonRecor
     ASSERT_NE(disabled_instance, nullptr);
     disabled_instance->visible = false;
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .tile_x = 1,
         .tile_y = 0,
         .static_candidate = true,
@@ -1460,7 +1460,7 @@ TEST(RenderAreaVisibility, AreaCommonPreparedDrawsDropStaleHandles)
 
     scene.add(make_area_mesh_model());
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::tile,
+        .kind = nw::ObjectType::tile,
         .static_candidate = true,
     };
     ASSERT_EQ(scene.static_model_instance_handles.size(), 1u);
@@ -1569,7 +1569,7 @@ TEST(RenderAreaVisibility, RenderModelParticleOwnerUsesRenderModelAreaRecord)
     add_static_area_mesh_model(scene, nw::render::MaterialMode::opaque, 0u);
     scene.add(make_shadow_render_model());
     scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .tile_x = 1,
         .tile_y = 0,
     };

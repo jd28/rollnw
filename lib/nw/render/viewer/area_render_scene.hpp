@@ -24,18 +24,8 @@ class AreaRenderScene;
 inline constexpr uint32_t kInvalidAreaRenderRecordIndex = std::numeric_limits<uint32_t>::max();
 inline constexpr float kAreaRenderTileSize = 10.0f;
 
-enum class AreaRenderRecordKind : uint8_t {
-    unknown,
-    tile,
-    creature,
-    door,
-    item,
-    placeable,
-    waypoint,
-};
-
 struct AreaRenderSourceInfo {
-    AreaRenderRecordKind kind = AreaRenderRecordKind::unknown;
+    nw::ObjectType kind = nw::ObjectType::invalid;
     nw::ObjectHandle object{};
     int16_t tile_x = -1;
     int16_t tile_y = -1;
@@ -124,7 +114,7 @@ struct AreaObjectSelection {
     float distance = 0.0f;
     int16_t tile_x = -1;
     int16_t tile_y = -1;
-    AreaRenderRecordKind kind = AreaRenderRecordKind::unknown;
+    nw::ObjectType kind = nw::ObjectType::invalid;
     AreaObjectSelectionSource source = AreaObjectSelectionSource::none;
     AreaObjectSelectionStatus status = AreaObjectSelectionStatus::invalid_input;
 };
@@ -183,7 +173,7 @@ void select_area_objects(
     nw::ObjectHandle object,
     std::span<const nw::render::Bounds> bounds,
     std::span<const uint8_t> flags,
-    std::span<const AreaRenderRecordKind> kinds,
+    std::span<const nw::ObjectType> kinds,
     std::span<const nw::ObjectHandle> objects) noexcept;
 
 // Traces each normalized pointer ray against the current rendered triangles
@@ -319,7 +309,7 @@ public:
     [[nodiscard]] std::span<const uint8_t> pass_masks() const noexcept { return pass_masks_; }
     [[nodiscard]] std::span<const uint8_t> flags() const noexcept { return flags_; }
     [[nodiscard]] std::span<const uint32_t> chunk_ids() const noexcept { return chunk_ids_; }
-    [[nodiscard]] std::span<const AreaRenderRecordKind> kinds() const noexcept { return kinds_; }
+    [[nodiscard]] std::span<const nw::ObjectType> kinds() const noexcept { return kinds_; }
     [[nodiscard]] std::span<const nw::ObjectHandle> object_handles() const noexcept { return object_handles_; }
     [[nodiscard]] std::span<const int16_t> tile_xs() const noexcept { return tile_xs_; }
     [[nodiscard]] std::span<const int16_t> tile_ys() const noexcept { return tile_ys_; }
@@ -376,7 +366,7 @@ private:
     std::vector<uint8_t> pass_masks_;
     std::vector<uint8_t> flags_;
     std::vector<uint32_t> chunk_ids_;
-    std::vector<AreaRenderRecordKind> kinds_;
+    std::vector<nw::ObjectType> kinds_;
     std::vector<nw::ObjectHandle> object_handles_;
     std::vector<int16_t> tile_xs_;
     std::vector<int16_t> tile_ys_;
@@ -490,7 +480,7 @@ private:
     bool filtered_light_indices_valid_ = false;
 };
 
-[[nodiscard]] std::string_view area_render_record_kind_label(AreaRenderRecordKind kind) noexcept;
+[[nodiscard]] std::string_view area_render_record_kind_label(nw::ObjectType kind) noexcept;
 [[nodiscard]] bool should_use_sorted_area_static_surface_lists(
     uint32_t visible_prepared_surface_count,
     uint32_t total_prepared_surface_count) noexcept;

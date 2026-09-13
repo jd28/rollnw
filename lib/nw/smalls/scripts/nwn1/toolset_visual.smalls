@@ -1,0 +1,48 @@
+import core.object as O;
+from nwn1.propsets import { SoundState };
+
+// Flat profile projection consumed by the toolset renderer. The renderer owns
+// no knowledge of SoundState layout or mutation policy.
+type SoundVisualState {
+    distance_min: float;
+    distance_max: float;
+    elevation:    float;
+    positional:   bool;
+    random_position: bool;
+    valid:        bool;
+};
+
+fn sound_visual_state(sound: Sound): SoundVisualState {
+    if (sound == O.invalid) {
+        return SoundVisualState {
+            distance_min = 0.0,
+            distance_max = 0.0,
+            elevation = 0.0,
+            positional = false,
+            random_position = false,
+            valid = false,
+        };
+    }
+    var state = get_propset!(SoundState)(sound);
+    return SoundVisualState {
+        distance_min = state.distance_min,
+        distance_max = state.distance_max,
+        elevation = state.elevation,
+        positional = state.positional != 0,
+        random_position = state.random_position != 0,
+        valid = true,
+    };
+}
+
+fn replace_sound_distance_max(
+    sound: Sound, expected: float, replacement: float): bool {
+    if (sound == O.invalid) {
+        return false;
+    }
+    var state = get_propset!(SoundState)(sound);
+    if (state.distance_max != expected || replacement < state.distance_min) {
+        return false;
+    }
+    state.distance_max = replacement;
+    return true;
+}

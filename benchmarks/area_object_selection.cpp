@@ -178,8 +178,8 @@ struct AreaObjectSelectionBenchmarkData {
             scene.add(std::move(model));
             auto& source = scene.static_area_model_info.back();
             source.kind = selectable
-                ? viewer::AreaRenderRecordKind::creature
-                : viewer::AreaRenderRecordKind::tile;
+                ? nw::ObjectType::creature
+                : nw::ObjectType::tile;
             source.object = selectable ? object : nw::ObjectHandle{};
             if (!selectable) {
                 source.tile_x = static_cast<int16_t>(index);

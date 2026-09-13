@@ -13,3 +13,4 @@ from core.ui import { ListConfig, ListItem, ListSelection };
 [[native]] fn list_on_select(list_id: string, function_name: string): bool;
 [[native]] fn list_on_activate(list_id: string, function_name: string): bool;
 [[native]] fn list_on_scroll(list_id: string, function_name: string): bool;
+[[native]] fn list_on_reorder(list_id: string, function_name: string): bool;

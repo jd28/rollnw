@@ -7,11 +7,16 @@
 #include <nw/log.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/render/render_context.hpp>
 #include <nw/render/shader_provider.hpp>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include <algorithm>
 #include <array>
@@ -30,9 +35,46 @@ struct DebugGridVertex {
     glm::vec3 position{0.0f};
 };
 
+struct SoundDebugDotVertex {
+    glm::vec2 position{0.0f};
+};
+
+constexpr std::array<SoundDebugDotVertex, 6> kSoundDebugDotVertices{{
+    {{1.0f, 0.0f}},
+    {{0.5f, 0.8660254f}},
+    {{-0.5f, 0.8660254f}},
+    {{-1.0f, 0.0f}},
+    {{-0.5f, -0.8660254f}},
+    {{0.5f, -0.8660254f}},
+}};
+
+constexpr std::array<uint16_t, 12> kSoundDebugDotIndices{
+    0,
+    1,
+    2,
+    0,
+    2,
+    3,
+    0,
+    3,
+    4,
+    0,
+    4,
+    5,
+};
+
 nw::Location object_spatial_location(const nw::ObjectBase& object)
 {
     return nw::kernel::objects().components().location(object.handle());
+}
+
+glm::mat4 object_spatial_transform(const nw::ObjectBase& object)
+{
+    const auto* spatial = nw::kernel::objects().components().find_spatial(
+        object.handle());
+    return area_object_placement_transform(
+        object_spatial_location(object),
+        spatial ? spatial->scale : glm::vec3{1.0f});
 }
 
 } // namespace
@@ -44,6 +86,9 @@ SceneDebugRenderer::SceneDebugRenderer(nw::gfx::Context* ctx) noexcept
 
 SceneDebugRenderer::~SceneDebugRenderer()
 {
+    if (sound_debug_dot_instances_.valid()) nw::gfx::destroy_buffer(sound_debug_dot_instances_);
+    if (sound_debug_dot_indices_.valid()) nw::gfx::destroy_buffer(sound_debug_dot_indices_);
+    if (sound_debug_dot_vertices_.valid()) nw::gfx::destroy_buffer(sound_debug_dot_vertices_);
     if (selection_bounds_indices_.valid()) nw::gfx::destroy_buffer(selection_bounds_indices_);
     if (selection_bounds_vertices_.valid()) nw::gfx::destroy_buffer(selection_bounds_vertices_);
     if (debug_shape_indices_.valid()) nw::gfx::destroy_buffer(debug_shape_indices_);
@@ -52,6 +97,8 @@ SceneDebugRenderer::~SceneDebugRenderer()
     if (transient_debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(transient_debug_shape_vertices_);
     if (debug_grid_indices_.valid()) nw::gfx::destroy_buffer(debug_grid_indices_);
     if (debug_grid_vertices_.valid()) nw::gfx::destroy_buffer(debug_grid_vertices_);
+    if (sound_debug_dot_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, sound_debug_dot_pipeline_);
+    if (selection_bounds_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, selection_bounds_pipeline_);
     if (debug_shape_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_shape_pipeline_);
     if (debug_grid_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_grid_pipeline_);
 }
@@ -101,6 +148,62 @@ bool SceneDebugRenderer::initialize(nw::render::ShaderProvider& shader_provider)
         debug_shape_pipeline_ = nw::gfx::create_pipeline(ctx_, debug_shape_desc);
         if (!debug_shape_pipeline_.valid()) {
             LOG_F(WARNING, "Failed to create debug shape pipeline");
+        }
+        debug_shape_desc.depth_test = false;
+        selection_bounds_pipeline_ = nw::gfx::create_pipeline(ctx_, debug_shape_desc);
+        if (!selection_bounds_pipeline_.valid()) {
+            LOG_F(WARNING, "Failed to create selection bounds pipeline");
+        }
+    }
+
+    auto vs_sound_debug_dot = shader_provider.get_shader("render_sound_debug_dot.vs.hlsl");
+    if (vs_sound_debug_dot.valid() && ps_debug_shape.valid()) {
+        nw::gfx::BufferDesc vertex_desc{};
+        vertex_desc.size = sizeof(kSoundDebugDotVertices);
+        vertex_desc.usage = nw::gfx::BufferUsage::Vertex;
+        vertex_desc.cpu_visible = true;
+        sound_debug_dot_vertices_ = nw::gfx::create_buffer(ctx_, vertex_desc);
+
+        nw::gfx::BufferDesc index_desc{};
+        index_desc.size = sizeof(kSoundDebugDotIndices);
+        index_desc.usage = nw::gfx::BufferUsage::Index;
+        index_desc.cpu_visible = true;
+        sound_debug_dot_indices_ = nw::gfx::create_buffer(ctx_, index_desc);
+
+        if (!sound_debug_dot_vertices_.valid()
+            || !sound_debug_dot_indices_.valid()) {
+            LOG_F(WARNING, "Failed to create sound debug dot geometry buffers");
+            return true;
+        }
+        auto* vertices = nw::gfx::map_buffer(sound_debug_dot_vertices_);
+        auto* indices = nw::gfx::map_buffer(sound_debug_dot_indices_);
+        if (!vertices || !indices) {
+            if (vertices) nw::gfx::unmap_buffer(sound_debug_dot_vertices_);
+            if (indices) nw::gfx::unmap_buffer(sound_debug_dot_indices_);
+            LOG_F(WARNING, "Failed to map sound debug dot geometry");
+        } else {
+            std::memcpy(vertices, kSoundDebugDotVertices.data(), sizeof(kSoundDebugDotVertices));
+            std::memcpy(indices, kSoundDebugDotIndices.data(), sizeof(kSoundDebugDotIndices));
+            nw::gfx::unmap_buffer(sound_debug_dot_vertices_);
+            nw::gfx::unmap_buffer(sound_debug_dot_indices_);
+
+            nw::gfx::PipelineDesc sound_dot_desc{};
+            sound_dot_desc.vs = vs_sound_debug_dot;
+            sound_dot_desc.fs = ps_debug_shape;
+            sound_dot_desc.uses_storage_buffer = true;
+            sound_dot_desc.storage_buffer_count = 1;
+            sound_dot_desc.uses_single_texture = false;
+            sound_dot_desc.depth_test = true;
+            sound_dot_desc.depth_write = false;
+            sound_dot_desc.blend_mode = nw::gfx::BlendMode::premultiplied_alpha;
+            sound_dot_desc.vertex_stride = sizeof(SoundDebugDotVertex);
+            sound_dot_desc.vertex_attributes = {
+                {0, offsetof(SoundDebugDotVertex, position), nw::gfx::VertexFormat::Float2},
+            };
+            sound_debug_dot_pipeline_ = nw::gfx::create_pipeline(ctx_, sound_dot_desc);
+            if (!sound_debug_dot_pipeline_.valid()) {
+                LOG_F(WARNING, "Failed to create sound debug dot pipeline");
+            }
         }
     }
 
@@ -334,6 +437,10 @@ bool debug_shape_category_enabled(DebugShapeCategory category, DebugShapeOptions
         return options.triggers;
     case DebugShapeCategory::encounter:
         return options.encounters;
+    case DebugShapeCategory::sound:
+    case DebugShapeCategory::store:
+    case DebugShapeCategory::waypoint:
+        return true;
     }
     return true;
 }
@@ -384,7 +491,8 @@ bool append_debug_shape_selection_range(
     DebugShapeCategory category,
     nw::ObjectHandle object,
     uint32_t debug_shape_range_index,
-    std::span<const glm::vec3> polygon)
+    std::span<const glm::vec3> polygon,
+    uint32_t subindex = UINT32_MAX)
 {
     if (!nw::kernel::objects().valid(object)
         || debug_shape_range_index >= scene.debug_shape_ranges.size()
@@ -449,6 +557,7 @@ bool append_debug_shape_selection_range(
         .debug_shape_range_index = debug_shape_range_index,
         .first_point = first_point,
         .point_count = polygon_selection ? static_cast<uint32_t>(polygon.size()) : 0u,
+        .subindex = subindex,
         .plane_z = plane_z,
         .category = category,
     });
@@ -472,6 +581,108 @@ void append_debug_spawn_marker(PreviewScene& scene, const nw::ObjectSpawnPoint& 
         origin + forward * 0.5f + right * 0.2f,
         origin + forward * 0.5f - right * 0.2f,
         color);
+}
+
+bool append_debug_object_range(
+    PreviewScene& scene,
+    nw::ObjectHandle object,
+    glm::vec3 root_position,
+    size_t first_vertex,
+    size_t first_sound_dot)
+{
+    const size_t vertex_count = scene.debug_shape_vertices.size() - first_vertex;
+    const size_t sound_dot_count
+        = scene.sound_debug_dot_instances.size() - first_sound_dot;
+    if ((vertex_count == 0 && sound_dot_count == 0)
+        || first_vertex > std::numeric_limits<uint32_t>::max()
+        || vertex_count > std::numeric_limits<uint32_t>::max()
+        || first_sound_dot > std::numeric_limits<uint32_t>::max()
+        || sound_dot_count > std::numeric_limits<uint32_t>::max()) {
+        return false;
+    }
+    scene.debug_shape_object_ranges.push_back({
+        .object = object,
+        .root_position = root_position,
+        .first_vertex = static_cast<uint32_t>(first_vertex),
+        .vertex_count = static_cast<uint32_t>(vertex_count),
+        .first_sound_dot = static_cast<uint32_t>(first_sound_dot),
+        .sound_dot_count = static_cast<uint32_t>(sound_dot_count),
+    });
+    return true;
+}
+
+void append_point_marker(
+    PreviewScene& scene, glm::vec3 origin, const glm::vec4& color)
+{
+    constexpr float k_half_width = 0.28f;
+    constexpr float k_height = 0.7f;
+    constexpr float k_line_width = 0.07f;
+    origin.z += 0.08f;
+    const std::array base{
+        origin + glm::vec3{k_half_width, 0.0f, 0.0f},
+        origin + glm::vec3{0.0f, k_half_width, 0.0f},
+        origin + glm::vec3{-k_half_width, 0.0f, 0.0f},
+        origin + glm::vec3{0.0f, -k_half_width, 0.0f},
+    };
+    const glm::vec3 top = origin + glm::vec3{0.0f, 0.0f, k_height};
+    for (size_t index = 0; index < base.size(); ++index) {
+        append_debug_segment(scene, base[index], base[(index + 1) % base.size()],
+            color, k_line_width);
+        append_debug_segment(scene, base[index], top, color, k_line_width);
+    }
+}
+
+void append_sound_dotted_surface(
+    PreviewScene& scene,
+    glm::vec3 center,
+    float radius,
+    float minimum_elevation,
+    float maximum_elevation,
+    uint32_t azimuth_samples,
+    uint32_t elevation_samples,
+    const glm::vec4& color)
+{
+    const bool finite_center = std::isfinite(center.x)
+        && std::isfinite(center.y)
+        && std::isfinite(center.z);
+    if (!finite_center || !std::isfinite(radius) || radius <= 0.0f
+        || !std::isfinite(minimum_elevation)
+        || !std::isfinite(maximum_elevation)
+        || minimum_elevation > maximum_elevation
+        || azimuth_samples < 3 || elevation_samples == 0) {
+        return;
+    }
+    const float dot_radius = std::clamp(radius * 0.006f, 0.025f, 0.09f);
+    for (uint32_t elevation_index = 0;
+        elevation_index <= elevation_samples;
+        ++elevation_index) {
+        const float elevation = minimum_elevation
+            + (maximum_elevation - minimum_elevation)
+                * static_cast<float>(elevation_index)
+                / static_cast<float>(elevation_samples);
+        const float ring_radius = std::cos(elevation);
+        const float z = std::sin(elevation);
+        const bool pole = std::abs(ring_radius) < 1.0e-5f;
+        const uint32_t samples = pole ? 1u : azimuth_samples;
+        for (uint32_t azimuth_index = 0;
+            azimuth_index < samples;
+            ++azimuth_index) {
+            const float azimuth = glm::two_pi<float>()
+                * static_cast<float>(azimuth_index)
+                / static_cast<float>(azimuth_samples);
+            const glm::vec3 normal{
+                std::cos(azimuth) * ring_radius,
+                std::sin(azimuth) * ring_radius,
+                z,
+            };
+            scene.sound_debug_dot_instances.push_back({
+                .center_radius = glm::vec4{
+                    center + normal * radius, dot_radius},
+                .normal = glm::vec4{normal, 0.0f},
+                .color = color,
+            });
+        }
+    }
 }
 
 } // namespace
@@ -548,11 +759,13 @@ bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigg
         return false;
     }
 
+    const size_t first_object_vertex = scene.debug_shape_vertices.size();
+    const size_t first_sound_dot = scene.sound_debug_dot_instances.size();
     const size_t first_debug_index = scene.debug_shape_indices.size();
     constexpr float k_floor_z_offset = 0.08f;
     constexpr float k_outline_width = 0.07f;
     const glm::vec4 outline_color{0.12f, 0.92f, 1.0f, 0.9f};
-    const glm::mat4 placement = area_object_placement_transform(object_spatial_location(trigger));
+    const glm::mat4 placement = object_spatial_transform(trigger);
     const auto floor_points = normalize_debug_polygon_points(geometry->points, placement, k_floor_z_offset);
     append_debug_polygon_outline(scene, floor_points, outline_color, k_outline_width);
 
@@ -566,13 +779,18 @@ bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigg
     }
     const uint32_t debug_range_index = append_debug_shape_range(
         scene, DebugShapeCategory::trigger, first_debug_index);
-    append_debug_shape_selection_range(
+    const bool selectable = append_debug_shape_selection_range(
         scene, DebugShapeCategory::trigger, trigger.handle(), debug_range_index, floor_points);
-    return scene.debug_shape_indices.size() > first_debug_index;
+    return selectable
+        && append_debug_object_range(scene,
+            trigger.handle(), object_spatial_location(trigger).position,
+            first_object_vertex, first_sound_dot);
 }
 
 bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter)
 {
+    const size_t first_object_vertex = scene.debug_shape_vertices.size();
+    const size_t first_sound_dot = scene.sound_debug_dot_instances.size();
     const size_t first_debug_index = scene.debug_shape_indices.size();
     const auto* geometry = nw::kernel::objects().components().find_geometry(encounter.handle());
     std::vector<glm::vec3> floor_points;
@@ -581,7 +799,7 @@ bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& e
         constexpr float k_outline_width = 0.07f;
         floor_points = normalize_debug_polygon_points(
             geometry->points,
-            area_object_placement_transform(object_spatial_location(encounter)),
+            object_spatial_transform(encounter),
             k_floor_z_offset);
         append_debug_polygon_outline(
             scene, floor_points, {1.0f, 0.18f, 0.72f, 0.9f}, k_outline_width);
@@ -599,62 +817,252 @@ bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& e
             floor_points);
     }
 
-    const size_t first_spawn_index = scene.debug_shape_indices.size();
     if (geometry) {
-        for (const auto& spawn_point : geometry->spawn_points) {
+        for (size_t spawn_index = 0;
+            spawn_index < geometry->spawn_points.size(); ++spawn_index) {
+            const size_t first_spawn_index
+                = scene.debug_shape_indices.size();
+            const auto& spawn_point = geometry->spawn_points[spawn_index];
             append_debug_spawn_marker(scene, spawn_point);
+            const uint32_t spawn_range_index = append_debug_shape_range(
+                scene, DebugShapeCategory::encounter, first_spawn_index);
+            if (spawn_range_index != kInvalidAreaRenderRecordIndex
+                && spawn_index <= UINT32_MAX) {
+                append_debug_shape_selection_range(scene,
+                    DebugShapeCategory::encounter,
+                    encounter.handle(),
+                    spawn_range_index,
+                    {},
+                    static_cast<uint32_t>(spawn_index));
+            }
         }
     }
-    append_debug_shape_range(
-        scene, DebugShapeCategory::encounter, first_spawn_index);
-    return scene.debug_shape_indices.size() > first_debug_index;
+    return scene.debug_shape_indices.size() > first_debug_index
+        && append_debug_object_range(scene,
+            encounter.handle(), object_spatial_location(encounter).position,
+            first_object_vertex, first_sound_dot);
+}
+
+bool append_sound_debug_geometry(
+    PreviewScene& scene,
+    const nw::Sound& sound,
+    const nwn1::SoundToolsetVisualState* visual,
+    bool marker_model_loaded)
+{
+    const nw::Location location = object_spatial_location(sound);
+    const size_t first_object_vertex = scene.debug_shape_vertices.size();
+    const size_t first_sound_dot = scene.sound_debug_dot_instances.size();
+
+    if (!visual || !visual->positional) {
+        if (marker_model_loaded) {
+            return true;
+        }
+        const size_t first_marker_index = scene.debug_shape_indices.size();
+        append_point_marker(
+            scene, location.position, {1.0f, 0.18f, 0.14f, 0.95f});
+        const uint32_t marker_range = append_debug_shape_range(
+            scene, DebugShapeCategory::sound, first_marker_index);
+        return marker_range != kInvalidAreaRenderRecordIndex
+            && append_debug_shape_selection_range(scene,
+                DebugShapeCategory::sound,
+                sound.handle(),
+                marker_range,
+                {})
+            && append_debug_object_range(
+                scene, sound.handle(), location.position,
+                first_object_vertex, first_sound_dot);
+    }
+
+    if (!marker_model_loaded) {
+        const size_t first_marker_index = scene.debug_shape_indices.size();
+        append_point_marker(
+            scene, location.position, {1.0f, 0.18f, 0.14f, 0.95f});
+        const uint32_t marker_range = append_debug_shape_range(
+            scene, DebugShapeCategory::sound, first_marker_index);
+        if (marker_range == kInvalidAreaRenderRecordIndex
+            || !append_debug_shape_selection_range(scene,
+                DebugShapeCategory::sound,
+                sound.handle(),
+                marker_range,
+                {})) {
+            return false;
+        }
+    }
+
+    if (visual->distance_min > 0.0f) {
+        append_sound_dotted_surface(
+            scene,
+            location.position,
+            visual->distance_min,
+            -glm::half_pi<float>(),
+            glm::half_pi<float>(),
+            20,
+            10,
+            {0.34f, 0.72f, 1.0f, 0.92f});
+    }
+
+    if (visual->distance_max > visual->distance_min) {
+        append_sound_dotted_surface(
+            scene,
+            location.position,
+            visual->distance_max,
+            -glm::half_pi<float>(),
+            glm::half_pi<float>(),
+            40,
+            20,
+            {0.36f, 0.70f, 1.0f, 0.58f});
+    }
+    if (scene.debug_shape_vertices.size() == first_object_vertex
+        && scene.sound_debug_dot_instances.size() == first_sound_dot) {
+        return marker_model_loaded;
+    }
+    return append_debug_object_range(
+        scene, sound.handle(), location.position,
+        first_object_vertex, first_sound_dot);
+}
+
+bool append_store_debug_geometry(PreviewScene& scene, const nw::Store& store)
+{
+    const nw::Location location = object_spatial_location(store);
+    const size_t first_object_vertex = scene.debug_shape_vertices.size();
+    const size_t first_sound_dot = scene.sound_debug_dot_instances.size();
+    const size_t first_marker_index = scene.debug_shape_indices.size();
+    append_point_marker(
+        scene, location.position, {0.94f, 0.70f, 0.18f, 0.95f});
+    const uint32_t marker_range = append_debug_shape_range(
+        scene, DebugShapeCategory::store, first_marker_index);
+    return marker_range != kInvalidAreaRenderRecordIndex
+        && append_debug_shape_selection_range(scene,
+            DebugShapeCategory::store,
+            store.handle(),
+            marker_range,
+            {})
+        && append_debug_object_range(
+            scene, store.handle(), location.position,
+            first_object_vertex, first_sound_dot);
 }
 
 void SceneDebugRenderer::render_debug_shapes(
     nw::gfx::CommandList* cmd, const PreviewScene& scene, const nw::render::RenderContext& ctx, DebugShapeOptions options)
 {
-    if (!options.enabled || !cmd || !debug_shape_pipeline_.valid()
-        || scene.debug_shape_vertices.empty() || scene.debug_shape_indices.empty()) {
+    if (!options.enabled || !cmd) {
         return;
     }
 
-    const uint32_t* index_data = scene.debug_shape_indices.data();
-    size_t index_count = scene.debug_shape_indices.size();
-    std::vector<uint32_t> filtered_indices;
-    const bool filter_by_category = (!options.triggers || !options.encounters) && !scene.debug_shape_ranges.empty();
-    if (filter_by_category) {
-        filtered_indices.reserve(scene.debug_shape_indices.size());
-        for (const auto& range : scene.debug_shape_ranges) {
-            if (!debug_shape_category_enabled(range.category, options)) {
-                continue;
-            }
+    if (debug_shape_pipeline_.valid()
+        && !scene.debug_shape_vertices.empty()
+        && !scene.debug_shape_indices.empty()) {
+        const uint32_t* index_data = scene.debug_shape_indices.data();
+        size_t index_count = scene.debug_shape_indices.size();
+        std::vector<uint32_t> filtered_indices;
+        const bool filter_by_category = (!options.triggers || !options.encounters)
+            && !scene.debug_shape_ranges.empty();
+        if (filter_by_category) {
+            filtered_indices.reserve(scene.debug_shape_indices.size());
+            for (const auto& range : scene.debug_shape_ranges) {
+                if (!debug_shape_category_enabled(range.category, options)) {
+                    continue;
+                }
 
-            const size_t first = range.first_index;
-            if (first >= scene.debug_shape_indices.size()) {
-                continue;
+                const size_t first = range.first_index;
+                if (first >= scene.debug_shape_indices.size()) {
+                    continue;
+                }
+                const size_t count = std::min<size_t>(
+                    range.index_count, scene.debug_shape_indices.size() - first);
+                filtered_indices.insert(
+                    filtered_indices.end(),
+                    scene.debug_shape_indices.begin()
+                        + static_cast<std::ptrdiff_t>(first),
+                    scene.debug_shape_indices.begin()
+                        + static_cast<std::ptrdiff_t>(first + count));
             }
-            const size_t count = std::min<size_t>(range.index_count, scene.debug_shape_indices.size() - first);
-            filtered_indices.insert(
-                filtered_indices.end(),
-                scene.debug_shape_indices.begin() + static_cast<std::ptrdiff_t>(first),
-                scene.debug_shape_indices.begin() + static_cast<std::ptrdiff_t>(first + count));
+            if (!filtered_indices.empty()) {
+                index_data = filtered_indices.data();
+                index_count = filtered_indices.size();
+            } else {
+                index_count = 0;
+            }
         }
-        if (filtered_indices.empty()) {
-            return;
+        if (index_count > 0) {
+            render_debug_shape_batch(
+                cmd,
+                scene.debug_shape_vertices,
+                {index_data, index_count},
+                ctx,
+                debug_shape_vertices_,
+                debug_shape_vertex_capacity_,
+                debug_shape_indices_,
+                debug_shape_index_capacity_);
         }
-        index_data = filtered_indices.data();
-        index_count = filtered_indices.size();
     }
 
-    render_debug_shape_batch(
-        cmd,
-        scene.debug_shape_vertices,
-        {index_data, index_count},
-        ctx,
-        debug_shape_vertices_,
-        debug_shape_vertex_capacity_,
-        debug_shape_indices_,
-        debug_shape_index_capacity_);
+    render_sound_debug_dots(cmd, scene.sound_debug_dot_instances, ctx);
+}
+
+void SceneDebugRenderer::render_sound_debug_dots(
+    nw::gfx::CommandList* cmd,
+    std::span<const SoundDebugDotInstance> instances,
+    const nw::render::RenderContext& ctx)
+{
+    const size_t instance_bytes = instances.size_bytes();
+    if (!cmd || !sound_debug_dot_pipeline_.valid()
+        || !sound_debug_dot_vertices_.valid()
+        || !sound_debug_dot_indices_.valid()
+        || instances.empty()
+        || instances.size() > std::numeric_limits<uint32_t>::max()
+        || instance_bytes > std::numeric_limits<uint32_t>::max()) {
+        return;
+    }
+
+    if (!sound_debug_dot_instances_.valid()
+        || sound_debug_dot_instance_capacity_ < instances.size()) {
+        if (sound_debug_dot_instances_.valid()) {
+            nw::gfx::destroy_buffer(sound_debug_dot_instances_);
+        }
+        sound_debug_dot_instances_ = nw::gfx::create_buffer(ctx_, {
+                                                                      .size = instance_bytes,
+                                                                      .usage = nw::gfx::BufferUsage::Storage,
+                                                                      .cpu_visible = true,
+                                                                  });
+        sound_debug_dot_instance_capacity_ = sound_debug_dot_instances_.valid()
+            ? instances.size()
+            : 0;
+    }
+    if (!sound_debug_dot_instances_.valid()) {
+        return;
+    }
+
+    auto* instance_data = nw::gfx::map_buffer(sound_debug_dot_instances_);
+    if (!instance_data) {
+        return;
+    }
+    std::memcpy(instance_data, instances.data(), instance_bytes);
+    nw::gfx::unmap_buffer(sound_debug_dot_instances_);
+
+    DebugShapeConstants constants{};
+    constants.view = ctx.view;
+    constants.projection = ctx.projection;
+    const auto uniforms = nw::gfx::allocate_uniform_span(
+        ctx_, sizeof(DebugShapeConstants));
+    if (!uniforms.data) {
+        return;
+    }
+    std::memcpy(uniforms.data, &constants, sizeof(DebugShapeConstants));
+
+    nw::gfx::cmd_bind_pipeline(cmd, sound_debug_dot_pipeline_);
+    nw::gfx::cmd_bind_vertex_buffer(
+        cmd, sound_debug_dot_vertices_, sizeof(SoundDebugDotVertex));
+    nw::gfx::cmd_bind_index_buffer(
+        cmd, sound_debug_dot_indices_, sizeof(uint16_t));
+    nw::gfx::cmd_bind_resources(cmd,
+        sound_debug_dot_pipeline_, uniforms,
+        nw::gfx::StorageSpan{
+            sound_debug_dot_instances_, 0,
+            static_cast<uint32_t>(instance_bytes)});
+    nw::gfx::cmd_draw_indexed(cmd,
+        static_cast<uint32_t>(kSoundDebugDotIndices.size()),
+        static_cast<uint32_t>(instances.size()));
 }
 
 void SceneDebugRenderer::render_transient_debug_shapes(
@@ -762,7 +1170,7 @@ void SceneDebugRenderer::render_selection_bounds(
     const nw::render::RenderContext& ctx,
     const glm::vec4& color)
 {
-    if (!cmd || !debug_shape_pipeline_.valid()) {
+    if (!cmd || !selection_bounds_pipeline_.valid()) {
         return;
     }
 
@@ -809,11 +1217,33 @@ void SceneDebugRenderer::render_selection_bounds(
         return;
     }
     std::memcpy(uniforms.data, &constants, sizeof(DebugShapeConstants));
-    nw::gfx::cmd_bind_pipeline(cmd, debug_shape_pipeline_);
+    nw::gfx::cmd_bind_pipeline(cmd, selection_bounds_pipeline_);
     nw::gfx::cmd_bind_vertex_buffer(cmd, selection_bounds_vertices_, sizeof(DebugShapeVertex));
     nw::gfx::cmd_bind_index_buffer(cmd, selection_bounds_indices_, sizeof(uint32_t));
-    nw::gfx::cmd_bind_resources(cmd, debug_shape_pipeline_, uniforms);
+    nw::gfx::cmd_bind_resources(cmd, selection_bounds_pipeline_, uniforms);
     nw::gfx::cmd_draw_indexed(cmd, geometry.index_count);
+}
+
+bool append_waypoint_debug_geometry(
+    PreviewScene& scene, const nw::Waypoint& waypoint)
+{
+    const nw::Location location = object_spatial_location(waypoint);
+    const size_t first_object_vertex = scene.debug_shape_vertices.size();
+    const size_t first_sound_dot = scene.sound_debug_dot_instances.size();
+    const size_t first_marker_index = scene.debug_shape_indices.size();
+    append_point_marker(
+        scene, location.position, {0.32f, 0.95f, 0.48f, 0.95f});
+    const uint32_t marker_range = append_debug_shape_range(
+        scene, DebugShapeCategory::waypoint, first_marker_index);
+    return marker_range != kInvalidAreaRenderRecordIndex
+        && append_debug_shape_selection_range(scene,
+            DebugShapeCategory::waypoint,
+            waypoint.handle(),
+            marker_range,
+            {})
+        && append_debug_object_range(scene,
+            waypoint.handle(), location.position,
+            first_object_vertex, first_sound_dot);
 }
 
 } // namespace nw::render::viewer

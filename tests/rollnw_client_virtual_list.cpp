@@ -263,6 +263,71 @@ TEST(ClientVirtualListHost, RejectsStaleSelectionsAndDisabledCells)
     }
 }
 
+TEST(ClientVirtualListHost, QueuesRevisionCheckedSingleColumnReorders)
+{
+    VirtualListHost host;
+    ASSERT_TRUE(host.create("items", {.row_height = 30, .overscan = 4}));
+    ASSERT_TRUE(host.set_items("items", {
+                                            {.key = "a", .cells = {"A", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                            {.key = "b", .cells = {"B", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                            {.key = "c", .cells = {"C", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                        }));
+    EXPECT_FALSE(host.reorder_snapshot("items"));
+    const auto invalid_event = static_cast<UiListEventType>(255);
+    EXPECT_FALSE(host.set_callback("items", invalid_event, "invalid"));
+    EXPECT_EQ(host.callback_ptr("items", invalid_event), nullptr);
+    ASSERT_TRUE(host.set_callback(
+        "items", UiListEventType::reorder, "on_reorder"));
+
+    const auto stale = host.reorder_snapshot("items");
+    ASSERT_TRUE(stale);
+    ASSERT_TRUE(host.set_title("items", "Changed"));
+    EXPECT_FALSE(host.push_reorder("items", 0, 2, stale->revision));
+
+    const auto current = host.reorder_snapshot("items");
+    ASSERT_TRUE(current);
+    EXPECT_FALSE(host.push_reorder("items", -1, 2, current->revision));
+    EXPECT_FALSE(host.push_reorder("items", 0, 3, current->revision));
+    EXPECT_FALSE(host.push_reorder("items", 1, 1, current->revision));
+    ASSERT_TRUE(host.push_reorder("items", 1, 2, current->revision));
+
+    std::vector<UiListEvent> events;
+    host.drain_events([&](const UiListEvent& event) {
+        events.push_back(event);
+    });
+    ASSERT_EQ(events.size(), 1);
+    EXPECT_EQ(events.front().type, UiListEventType::reorder);
+    EXPECT_EQ(events.front().list_id(), "items");
+    EXPECT_EQ(events.front().reorder.source_index, 1);
+    EXPECT_EQ(events.front().reorder.destination_index, 2);
+    ASSERT_NE(host.callback_ptr("items", events.front().type), nullptr);
+    EXPECT_EQ(*host.callback_ptr("items", events.front().type), "on_reorder");
+
+    ASSERT_TRUE(host.set_items("items", {
+                                            {.key = "a", .cells = {"A", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                            {.key = "c", .cells = {"C", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                            {.key = "b", .cells = {"B", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                        }));
+    const auto selected = host.get_selected("items");
+    ASSERT_TRUE(selected);
+    EXPECT_EQ(selected->index, 2);
+    EXPECT_EQ(selected->key, "b");
+
+    VirtualListHost grid_host;
+    ASSERT_TRUE(grid_host.create("grid", {
+                                             .row_height = 30,
+                                             .overscan = 4,
+                                             .columns = 2,
+                                         }));
+    ASSERT_TRUE(grid_host.set_items("grid", {
+                                                {.key = "a", .cells = {"A", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                                {.key = "b", .cells = {"B", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                            }));
+    ASSERT_TRUE(grid_host.set_callback(
+        "grid", UiListEventType::reorder, "on_reorder"));
+    EXPECT_FALSE(grid_host.reorder_snapshot("grid"));
+}
+
 TEST(ClientVirtualListHost, PublishesTitleAndVisibilityByRevision)
 {
     VirtualListHost host;

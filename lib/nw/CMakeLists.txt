@@ -81,6 +81,7 @@ add_library(nw STATIC
     profiles/nwn1/propset_gff_importer.cpp
     profiles/nwn1/propset_gff_exporter.cpp
     profiles/nwn1/scriptbridge.cpp
+    profiles/nwn1/toolset_visual.cpp
     profiles/nwn1/store_inventory_gff.cpp
 
     resources/assets.cpp

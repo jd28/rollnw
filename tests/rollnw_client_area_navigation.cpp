@@ -1,12 +1,16 @@
 #include <gtest/gtest.h>
 
+#include "../tools/client/area_door_hooks.hpp"
 #include "../tools/client/area_navigation.hpp"
+#include "../tools/client/area_regions.hpp"
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/preview_session.hpp"
 #include "../tools/client/workspace.hpp"
 
+#include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -43,6 +47,65 @@ protected:
 
 } // namespace
 
+TEST(ClientAreaDoorHooks, BuildsRotatedHooksAndRejectsOccupiedRows)
+{
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    tileset.tiles.resize(1);
+    tileset.tiles[0].door_slots.push_back({
+        .position = {2.0f, 0.0f, 1.0f},
+        .orientation = 270.0f,
+        .type = 65,
+    });
+    area->tileset = &tileset;
+    area->width = 1;
+    area->height = 1;
+    area->tiles.push_back({.id = 0, .height = 2, .orientation = 1});
+
+    nw::toolset::AreaDoorHookSnapshot hooks;
+    std::string diagnostic;
+    ASSERT_TRUE(nw::toolset::build_area_door_hooks(*area, hooks, diagnostic))
+        << diagnostic;
+    ASSERT_EQ(hooks.tile_offsets, (std::vector<uint32_t>{0u, 1u}));
+    ASSERT_EQ(hooks.hooks.size(), 1u);
+    EXPECT_NEAR(hooks.hooks[0].position.x, 5.0f, 1.0e-5f);
+    EXPECT_NEAR(hooks.hooks[0].position.y, 7.0f, 1.0e-5f);
+    EXPECT_NEAR(hooks.hooks[0].position.z, 11.0f, 1.0e-5f);
+    EXPECT_NEAR(hooks.hooks[0].orientation.x, 1.0f, 1.0e-5f);
+    EXPECT_NEAR(hooks.hooks[0].orientation.y, 0.0f, 1.0e-5f);
+
+    const auto available = nw::toolset::nearest_area_door_hook(
+        hooks, {4.0f, 4.0f, 0.0f}, 65);
+    ASSERT_TRUE(available);
+    EXPECT_EQ(available->tile_index, 0u);
+    EXPECT_TRUE(nw::toolset::nearest_area_door_hook(
+        hooks, {4.0f, 4.0f, 0.0f},
+        nw::toolset::k_area_door_any_hook_type));
+
+    auto* door = nw::kernel::objects().make<nw::Door>();
+    ASSERT_NE(door, nullptr);
+    EXPECT_EQ(nw::toolset::area_door_hook_type(door->handle()),
+        std::optional{nw::toolset::k_area_door_any_hook_type});
+    ASSERT_TRUE(nw::kernel::objects().components().set_area(
+        door->handle(), area->handle().id));
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(
+        door->handle(), hooks.hooks[0].position));
+    area->doors.push_back(door);
+    ASSERT_TRUE(nw::toolset::build_area_door_hooks(*area, hooks, diagnostic));
+    EXPECT_FALSE(nw::toolset::nearest_area_door_hook(
+        hooks, {4.0f, 4.0f, 0.0f}, 65));
+    EXPECT_FALSE(nw::toolset::nearest_area_door_hook(
+        hooks, {4.0f, 4.0f, 0.0f},
+        nw::toolset::k_area_door_any_hook_type));
+    EXPECT_TRUE(nw::toolset::nearest_area_door_hook(
+        hooks, {4.0f, 4.0f, 0.0f}, 65, door->handle()));
+
+    area->clear();
+    nw::kernel::objects().destroy(area->handle());
+}
+
 TEST_F(ClientAreaNavigation, ReusesGestureSnapshotAndRejectsFloatingCreature)
 {
     nw::toolset::AreaPlacementNavigation navigation;
@@ -71,6 +134,85 @@ TEST_F(ClientAreaNavigation, ReusesGestureSnapshotAndRejectsFloatingCreature)
     EXPECT_EQ(floating.input_index, 0u);
     EXPECT_EQ(navigation.revision, revision);
     EXPECT_EQ(nw::kernel::objects().components().find_spatial(row.owner)->position, row.position);
+}
+
+TEST_F(ClientAreaNavigation, ProjectsRegionRayBatchesAndReusesTheWorld)
+{
+    nw::toolset::AreaPlacementNavigation navigation;
+    const std::array rays{
+        nw::nav::NavRayProjectionInput{
+            .origin = row.position + glm::vec3{0.0f, 0.0f, 10.0f},
+            .displacement = {0.0f, 0.0f, -20.0f},
+        },
+    };
+    std::array<nw::nav::NavRayProjectionResult, 1> projected{};
+    std::string diagnostic;
+    const auto first = nw::toolset::project_area_navigation_rays(
+        navigation, area->handle(), rays, projected, diagnostic);
+    ASSERT_EQ(first.output_count, 1u) << diagnostic;
+    ASSERT_EQ(projected[0].status, nw::nav::NavStatus::ok);
+    const auto revision = navigation.revision;
+
+    const auto second = nw::toolset::project_area_navigation_rays(
+        navigation, area->handle(), rays, projected, diagnostic);
+    EXPECT_EQ(second.output_count, 1u) << diagnostic;
+    EXPECT_EQ(navigation.revision, revision);
+
+    std::array<nw::nav::NavRayProjectionResult, 0> mismatched{};
+    const auto rejected = nw::toolset::project_area_navigation_rays(
+        navigation, area->handle(), rays, mismatched, diagnostic);
+    EXPECT_EQ(rejected.rejected_count, 1u);
+    EXPECT_FALSE(diagnostic.empty());
+}
+
+TEST(ClientAreaRegions, AcceptsConcavePathsAndRejectsMalformedPolygons)
+{
+    const std::array concave{
+        glm::vec3{1.0f, 1.0f, 0.0f},
+        glm::vec3{5.0f, 1.0f, 0.0f},
+        glm::vec3{3.0f, 3.0f, 0.0f},
+        glm::vec3{5.0f, 5.0f, 0.0f},
+        glm::vec3{1.0f, 5.0f, 0.0f},
+    };
+    nw::toolset::AreaRegionGeometry geometry;
+    std::string diagnostic;
+    ASSERT_TRUE(nw::toolset::build_area_region_geometry(
+        1, 1, concave, geometry, diagnostic))
+        << diagnostic;
+    ASSERT_EQ(geometry.local_points.size(), concave.size());
+    EXPECT_EQ(geometry.root_position, concave.front());
+    EXPECT_EQ(geometry.local_points.front(), glm::vec3(0.0f));
+
+    const std::array crossing{
+        glm::vec3{1.0f, 1.0f, 0.0f},
+        glm::vec3{5.0f, 5.0f, 0.0f},
+        glm::vec3{1.0f, 5.0f, 0.0f},
+        glm::vec3{5.0f, 1.0f, 0.0f},
+    };
+    EXPECT_FALSE(nw::toolset::build_area_region_geometry(
+        1, 1, crossing, geometry, diagnostic));
+    EXPECT_NE(diagnostic.find("intersects"), std::string::npos);
+
+    const std::array duplicate{
+        glm::vec3{1.0f, 1.0f, 0.0f},
+        glm::vec3{1.0f, 1.0f, 0.0f},
+    };
+    EXPECT_FALSE(nw::toolset::validate_area_region_path(
+        1, 1, duplicate, false, diagnostic));
+
+    const std::array outside{
+        glm::vec3{1.0f, 1.0f, 0.0f},
+        glm::vec3{11.0f, 1.0f, 0.0f},
+        glm::vec3{1.0f, 5.0f, 0.0f},
+    };
+    EXPECT_FALSE(nw::toolset::build_area_region_geometry(
+        1, 1, outside, geometry, diagnostic));
+
+    std::vector<glm::vec3> oversized(
+        nw::toolset::k_maximum_area_region_points + 1u,
+        glm::vec3{1.0f, 1.0f, 0.0f});
+    EXPECT_FALSE(nw::toolset::validate_area_region_path(
+        1, 1, oversized, true, diagnostic));
 }
 
 TEST_F(ClientAreaNavigation, UnknownRadiusAndMalformedInputsRejectWithoutNavigation)

@@ -29,6 +29,12 @@ type ListScroll {
     end: int;
 };
 
+type ListReorder {
+    list_id: string;
+    source_index: int;
+    destination_index: int;
+};
+
 type UiListBinding {
     list_id: string;
     event: string;

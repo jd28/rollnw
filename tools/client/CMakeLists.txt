@@ -1,4 +1,6 @@
 add_library(rollnw_client_core STATIC
+    area_door_hooks.cpp
+    area_regions.cpp
     area_map.cpp
     area_navigation.cpp
     appearance_catalog.cpp
@@ -16,6 +18,7 @@ add_library(rollnw_client_core STATIC
     resource_document.cpp
     script_commands.cpp
     shell_controller.cpp
+    sound_catalog.cpp
     terminal.cpp
     workspace.cpp
 )

@@ -3,6 +3,7 @@
 #include "command_bus.hpp"
 
 #include <nw/objects/Equips.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectHandle.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/smalls/types.hpp>
@@ -73,6 +74,8 @@ struct ObjectTransformState {
     glm::vec3 position{0.0f};
     glm::vec3 orientation{0.0f};
     glm::vec3 scale{1.0f};
+
+    bool operator==(const ObjectTransformState&) const = default;
 };
 
 // Area selection is a true singleton: Client has one active object and one
@@ -203,8 +206,43 @@ struct SoundResourceEdit {
     std::vector<Resref> after;
 };
 
+// Radius input is a true singleton from the selected Sound and mouse wheel.
+// The edit still carries exact before/after values for strict undo and redo.
+struct SoundRadiusEdit {
+    ObjectHandle sound{};
+    float before = 0.0f;
+    float after = 0.0f;
+};
+
+// One live Encounter owns one ordered absolute spawn-point batch. Commands
+// carry complete before/after arrays so add, move, delete, undo, and redo are
+// strict and independent of transient renderer selection.
+struct EncounterSpawnPointBatchEdit {
+    ObjectHandle area{};
+    ObjectHandle encounter{};
+    std::vector<ObjectSpawnPoint> before;
+    std::vector<ObjectSpawnPoint> after;
+};
+
 [[nodiscard]] std::optional<std::vector<Resref>> snapshot_sound_resources(
     smalls::Runtime& runtime, ObjectHandle sound);
+
+// Builds one complete replacement from the current ordered resource batch and
+// a batch of additions. Empty additions, invalid targets, and results beyond
+// 1,024 entries reject the complete transform. Duplicate resrefs are valid.
+[[nodiscard]] std::optional<SoundResourceEdit> make_sound_resource_additions(
+    smalls::Runtime& runtime,
+    ObjectHandle sound,
+    std::span<const Resref> additions);
+
+// Builds one complete replacement with the resource at source_index moved to
+// destination_index. Both indices address the final ordered batch; invalid or
+// unchanged moves are rejected.
+[[nodiscard]] std::optional<SoundResourceEdit> make_reordered_sound_resources(
+    smalls::Runtime& runtime,
+    ObjectHandle sound,
+    size_t source_index,
+    size_t destination_index);
 
 [[nodiscard]] ObjectEditApplyResult apply_sound_resource_edit(
     smalls::Runtime& runtime,
@@ -213,6 +251,21 @@ struct SoundResourceEdit {
 
 [[nodiscard]] CommandResult commit_sound_resource_edit(
     SoundResourceEdit edit, std::string label, CommandContext& context);
+
+[[nodiscard]] ObjectEditApplyResult apply_sound_radius_edit(
+    const SoundRadiusEdit& edit, ObjectEditDirection direction);
+
+[[nodiscard]] CommandResult commit_sound_radius_edit(
+    SoundRadiusEdit edit, std::string label, CommandContext& context);
+
+[[nodiscard]] ObjectEditApplyResult apply_encounter_spawn_point_edit(
+    const EncounterSpawnPointBatchEdit& edit,
+    ObjectEditDirection direction);
+
+[[nodiscard]] CommandResult commit_encounter_spawn_point_edit(
+    EncounterSpawnPointBatchEdit edit,
+    std::string label,
+    CommandContext& context);
 
 enum class ObjectVariableEditKind : uint8_t {
     insert,
@@ -389,6 +442,7 @@ enum class ObjectVisualMutationKind : uint8_t {
     none,
     detail,
     base_appearance,
+    debug_geometry,
 };
 
 struct ObjectMutationState {
@@ -403,6 +457,8 @@ struct ObjectMutationState {
 struct AreaObjectBlueprintPlacement {
     Resource resource;
     ObjectTransformState transform;
+    std::span<const glm::vec3> geometry_points;
+    std::span<const ObjectSpawnPoint> spawn_points;
 };
 
 enum class AreaObjectBlueprintLoadStatus : uint8_t {
@@ -566,8 +622,10 @@ struct AreaObjectBlueprintLoadResult {
 // Structural placement receives detached live objects as one batch. Invalid,
 // stale, duplicate, already-attached, or wrong-area handles reject the complete
 // batch before insertion. Creature positions require current radius-class
-// navigation admission; placeables/items retain authored Z/non-walkable positioning.
-// Rejection leaves detached input ownership with the caller.
+// navigation admission. Trigger/Encounter footprints and Encounter spawn points
+// require valid Area-bounded geometry. Other authored kinds retain authored Z and
+// non-walkable positioning. Rejection leaves detached input ownership with the
+// caller.
 [[nodiscard]] CommandResult place_area_objects(
     ObjectHandle area,
     std::span<const ObjectHandle> objects,

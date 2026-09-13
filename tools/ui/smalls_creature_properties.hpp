@@ -44,6 +44,8 @@ enum class ObjectDetailsEditorKind : uint8_t {
     boolean,
     integer,
     door_state,
+    sound_position,
+    sound_volume,
 };
 
 struct ObjectDetailsRow {
@@ -94,6 +96,18 @@ struct ObjectDetailsValueEdit {
     std::string label;
 };
 
+struct ObjectDetailsSoundPositionEdit {
+    ObjectHandle object{};
+    smalls::TypeID propset_type{};
+    uint32_t positional_field_index = UINT32_MAX;
+    uint32_t random_position_field_index = UINT32_MAX;
+    int32_t positional_before = 0;
+    int32_t positional_after = 0;
+    int32_t random_position_before = 0;
+    int32_t random_position_after = 0;
+    std::string label;
+};
+
 // The selected object is a toolset singleton, but Smalls produces its Details
 // rows as one bounded batch for a linear partition into UI storage.
 void build_object_details(smalls::Runtime& runtime,
@@ -125,6 +139,25 @@ prepare_object_details_integer_edit(smalls::Runtime& runtime,
     int32_t expected,
     int32_t desired,
     std::string& diagnostic);
+
+// Sound placement is one three-state UI value backed by NWN's two historical
+// integer fields. The returned row carries both field changes for one atomic
+// undoable edit.
+[[nodiscard]] std::optional<ObjectDetailsSoundPositionEdit>
+prepare_object_details_sound_position_edit(smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    int32_t expected,
+    int32_t desired,
+    std::string& diagnostic);
+
+// NWN stores Sound volume on the inclusive 0..127 range. The workbench uses
+// eleven human-facing positions, 0..10. Invalid inputs are rejected at this
+// protocol boundary; valid UI values project to an exact uint8 payload.
+[[nodiscard]] std::optional<int32_t>
+sound_volume_editor_value(int32_t stored_value) noexcept;
+[[nodiscard]] std::optional<uint8_t>
+sound_volume_storage_value(int32_t editor_value) noexcept;
 
 struct CreatureClassPresentationSnapshot {
     ObjectHandle object{};

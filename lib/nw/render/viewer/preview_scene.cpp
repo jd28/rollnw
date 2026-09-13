@@ -30,12 +30,15 @@
 #include <nw/objects/Store.hpp>
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/util/error_context.hpp>
 #include <nw/util/string.hpp>
+
+#include <absl/container/flat_hash_map.h>
 
 #include <algorithm>
 #include <cctype>
@@ -49,7 +52,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <iterator>
 #include <limits>
-#include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
@@ -58,6 +60,27 @@
 #include <utility>
 
 namespace nw::render::viewer {
+
+namespace {
+
+constexpr float k_sound_toolset_marker_scale = 0.25f;
+constexpr std::string_view k_sound_area_marker_model = "gi_sound_area";
+constexpr std::string_view k_sound_position_marker_model = "gi_sound_pos";
+constexpr std::string_view k_sound_random_position_marker_model = "gi_sound_rndm";
+constexpr std::string_view k_store_toolset_marker_model = "gi_store";
+
+std::string_view sound_toolset_marker_model(
+    const nwn1::SoundToolsetVisualState& visual) noexcept
+{
+    if (!visual.positional) {
+        return k_sound_area_marker_model;
+    }
+    return visual.random_position
+        ? k_sound_random_position_marker_model
+        : k_sound_position_marker_model;
+}
+
+} // namespace
 
 SceneParticleSystem::SceneParticleSystem(SceneParticleSystem&& other) noexcept
     : owner_model_index(other.owner_model_index)
@@ -247,6 +270,10 @@ glm::mat4 area_object_render_placement_transform(
         } else {
             location.orientation = {0.0f, -1.0f, location.orientation.z};
         }
+    }
+
+    if (type == nw::ObjectType::sound) {
+        scale *= k_sound_toolset_marker_scale;
     }
 
     return area_object_placement_transform(location, scale);
@@ -1457,6 +1484,52 @@ AreaObjectSpatialUpdateStats update_area_object_spatial_states(
             }
             changed_models.push_back(it->model_index);
             ++stats.render_model_root_count;
+        }
+
+        for (auto& range : scene.debug_shape_object_ranges) {
+            if (range.object != spatial.owner) {
+                continue;
+            }
+            const size_t vertex_end = static_cast<size_t>(range.first_vertex)
+                + static_cast<size_t>(range.vertex_count);
+            const size_t sound_dot_end = static_cast<size_t>(range.first_sound_dot)
+                + static_cast<size_t>(range.sound_dot_count);
+            if (vertex_end > scene.debug_shape_vertices.size()
+                || sound_dot_end > scene.sound_debug_dot_instances.size()) {
+                continue;
+            }
+            const glm::vec3 delta = spatial.position - range.root_position;
+            for (size_t vertex_index = range.first_vertex;
+                vertex_index < vertex_end;
+                ++vertex_index) {
+                scene.debug_shape_vertices[vertex_index].position += delta;
+            }
+            for (size_t dot_index = range.first_sound_dot;
+                dot_index < sound_dot_end;
+                ++dot_index) {
+                scene.sound_debug_dot_instances[dot_index].center_radius
+                    += glm::vec4{delta, 0.0f};
+            }
+            for (auto& selection : scene.debug_shape_selection_ranges) {
+                if (selection.object != spatial.owner) {
+                    continue;
+                }
+                selection.bounds.min += delta;
+                selection.bounds.max += delta;
+                selection.plane_z += delta.z;
+                const size_t point_end = static_cast<size_t>(selection.first_point)
+                    + static_cast<size_t>(selection.point_count);
+                if (point_end > scene.debug_shape_selection_points.size()) {
+                    continue;
+                }
+                for (size_t point_index = selection.first_point;
+                    point_index < point_end;
+                    ++point_index) {
+                    scene.debug_shape_selection_points[point_index] += delta;
+                }
+            }
+            range.root_position = spatial.position;
+            stats.debug_shape_vertex_count += range.vertex_count;
         }
     }
 
@@ -3251,6 +3324,12 @@ void make_area_object_preview_translucent(PreviewScene& scene, float opacity)
         }
         instance->shadow = {};
     }
+    for (auto& vertex : scene.debug_shape_vertices) {
+        vertex.color.a *= opacity;
+    }
+    for (auto& dot : scene.sound_debug_dot_instances) {
+        dot.color.a *= opacity;
+    }
     scene.particles.clear();
     scene.local_lights.clear();
     scene.render_local_lights.clear();
@@ -3496,6 +3575,70 @@ static std::unique_ptr<PreviewScene> load_live_waypoint_scene(
     return scene;
 }
 
+static std::unique_ptr<PreviewScene> load_live_sound_scene(
+    PreviewRenderResources& resources,
+    const nw::Sound& sound,
+    std::string_view origin)
+{
+    auto scene = std::make_unique<PreviewScene>();
+    const auto visual = nwn1::sound_toolset_visual_state(sound.handle());
+    bool model_loaded = false;
+    if (visual) {
+        const auto model_resref = sound_toolset_marker_model(*visual);
+        auto model = load_area_object_model(resources, model_resref, origin);
+        const uint32_t model_index = add_placed_render_model(
+            *scene, std::move(model), object_spatial_placement(sound));
+        if (model_index != nw::render::kInvalidModelInstanceIndex) {
+            scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
+                .kind = nw::ObjectType::sound,
+                .object = sound.handle(),
+            };
+            if (auto* instance = scene->static_model_instance(model_index)) {
+                instance->shadow = {};
+            }
+            model_loaded = true;
+        }
+    }
+
+    if (!append_sound_debug_geometry(
+            *scene, sound, visual ? &*visual : nullptr, model_loaded)
+        && !model_loaded) {
+        return {};
+    }
+    scene->root_object = sound.handle();
+    scene->active_object = scene->root_object;
+    scene->owns_root_object = false;
+    return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_live_store_scene(
+    PreviewRenderResources& resources,
+    const nw::Store& store,
+    std::string_view origin)
+{
+    auto scene = std::make_unique<PreviewScene>();
+    auto model = load_area_object_model(
+        resources, k_store_toolset_marker_model, origin);
+    const uint32_t model_index = add_placed_render_model(
+        *scene, std::move(model), object_spatial_placement(store));
+    if (model_index != nw::render::kInvalidModelInstanceIndex) {
+        scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
+            .kind = nw::ObjectType::store,
+            .object = store.handle(),
+        };
+        if (auto* instance = scene->static_model_instance(model_index)) {
+            instance->shadow = {};
+        }
+    } else if (!append_store_debug_geometry(*scene, store)) {
+        return {};
+    }
+
+    scene->root_object = store.handle();
+    scene->active_object = scene->root_object;
+    scene->owns_root_object = false;
+    return scene;
+}
+
 static std::unique_ptr<PreviewScene> load_waypoint_scene(
     PreviewRenderResources& resources, const std::filesystem::path& path)
 {
@@ -3509,6 +3652,26 @@ static std::unique_ptr<PreviewScene> load_waypoint_scene(
     auto scene = load_live_waypoint_scene(resources, *waypoint, path);
     scene->owns_root_object = true;
     waypoint.release();
+    return scene;
+}
+
+static std::unique_ptr<PreviewScene> load_store_scene(
+    PreviewRenderResources& resources, const std::filesystem::path& path)
+{
+    PreviewObjectPtr<nw::Store> store{
+        nw::kernel::objects().load_file<nw::Store>(path)};
+    if (!store) {
+        LOG_F(ERROR, "Store preview '{}' failed to load", path.string());
+        log_preview_error_context();
+        return {};
+    }
+    auto scene = load_live_store_scene(resources, *store, path.string());
+    if (!scene) {
+        return {};
+    }
+    scene->owns_root_object = true;
+    scene->rebuild_load_report(path.string(), "store");
+    store.release();
     return scene;
 }
 
@@ -3895,7 +4058,7 @@ std::unique_ptr<PreviewScene> load_preview_scene(
             return load_data_object_scene<nw::Sound>(path, "sound");
         }
         if (resource.type == nw::ResourceType::utm) {
-            return load_data_object_scene<nw::Store>(path, "store");
+            return load_store_scene(resources, path);
         }
         if (resource.type == nw::ResourceType::utt) {
             return load_data_object_scene<nw::Trigger>(path, "trigger");
@@ -4053,8 +4216,8 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     float min_y = std::numeric_limits<float>::max();
     float max_y = std::numeric_limits<float>::lowest();
     float max_tile_z = std::numeric_limits<float>::lowest();
-    std::map<std::string, int> tile_model_counts;
-    std::map<std::array<uint8_t, 4>, int> tile_light_slot_counts;
+    absl::flat_hash_map<std::string, int> tile_model_counts;
+    absl::flat_hash_map<std::array<uint8_t, 4>, int> tile_light_slot_counts;
     resources.prepare_area_static_models(nw::kernel::resman().generation());
     AreaStaticModelCache static_model_cache;
     size_t loaded_creature_models = 0;
@@ -4130,7 +4293,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
                 loaded_tile_model_lights += append_tile_render_model_lights(
                     *scene, model_index, tile, x, y);
                 scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
-                    .kind = AreaRenderRecordKind::tile,
+                    .kind = nw::ObjectType::tile,
                     .tile_x = static_cast<int16_t>(x),
                     .tile_y = static_cast<int16_t>(y),
                     .tile_orientation = static_cast<uint8_t>(tile.orientation),
@@ -4151,7 +4314,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         if (creature_scene) {
             const size_t light_count_before = scene->local_lights.size();
             loaded_creature_models += append_render_models(*scene, *creature_scene, AreaRenderSourceInfo{
-                                                                                        .kind = AreaRenderRecordKind::creature,
+                                                                                        .kind = nw::ObjectType::creature,
                                                                                         .object = creature->handle(),
                                                                                     });
             loaded_area_object_model_lights += scene->local_lights.size() - light_count_before;
@@ -4178,9 +4341,9 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         if (model_index != nw::render::kInvalidModelInstanceIndex) {
             if (model_index < scene->static_area_model_info.size()) {
                 scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
-                    .kind = AreaRenderRecordKind::door,
+                    .kind = nw::ObjectType::door,
                     .object = door->handle(),
-                    .static_candidate = true,
+                    .static_candidate = !options.area_object_editing,
                 };
             }
             loaded_area_object_model_lights += append_render_model_authored_lights(*scene, model_index);
@@ -4199,7 +4362,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         if (item_scene) {
             const size_t light_count_before = scene->local_lights.size();
             loaded_item_models += append_render_models(*scene, *item_scene, AreaRenderSourceInfo{
-                                                                                .kind = AreaRenderRecordKind::item,
+                                                                                .kind = nw::ObjectType::item,
                                                                                 .object = item->handle(),
                                                                             });
             loaded_area_object_model_lights += scene->local_lights.size() - light_count_before;
@@ -4237,7 +4400,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
         if (model_index != nw::render::kInvalidModelInstanceIndex) {
             if (model_index < scene->static_area_model_info.size()) {
                 scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
-                    .kind = AreaRenderRecordKind::placeable,
+                    .kind = nw::ObjectType::placeable,
                     .object = placeable->handle(),
                     .static_candidate = !options.area_object_editing,
                 };
@@ -4255,25 +4418,102 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
 
         const auto origin = area_object_origin(area_resref, "waypoint", i, *waypoint);
         const auto model_ref = resolve_waypoint_model(*waypoint);
+        bool model_loaded = false;
         if (!model_ref.valid()) {
             LOG_F(WARNING, "Area waypoint '{}': {}", origin, model_ref.error);
+        } else {
+            auto model = load_area_static_model(
+                static_model_cache, resources, model_ref.model.view(), origin);
+            const uint32_t model_index = add_placed_render_model(
+                *scene, std::move(model), object_spatial_placement(*waypoint));
+            if (model_index != nw::render::kInvalidModelInstanceIndex) {
+                if (model_index < scene->static_area_model_info.size()) {
+                    scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
+                        .kind = nw::ObjectType::waypoint,
+                        .object = waypoint->handle(),
+                        .static_candidate = !options.area_object_editing,
+                    };
+                }
+                loaded_area_object_model_lights
+                    += append_render_model_authored_lights(*scene, model_index);
+                ++loaded_waypoint_models;
+                model_loaded = true;
+            }
+        }
+        if (!model_loaded) {
+            append_waypoint_debug_geometry(*scene, *waypoint);
+        }
+    }
+
+    nw::Vector<nw::ObjectHandle> sound_handles;
+    sound_handles.reserve(loaded_area->sounds.size());
+    for (const auto* sound : loaded_area->sounds) {
+        sound_handles.push_back(sound ? sound->handle() : nw::ObjectHandle{});
+    }
+    nw::Vector<nwn1::SoundToolsetVisualState> sound_visuals(
+        sound_handles.size());
+    nw::Vector<uint8_t> sound_visual_valid(
+        sound_handles.size(), uint8_t{0});
+    (void)nwn1::sound_toolset_visual_states(
+        sound_handles, sound_visuals, sound_visual_valid);
+
+    for (size_t i = 0; i < loaded_area->sounds.size(); ++i) {
+        const auto* sound = loaded_area->sounds[i];
+        if (!sound) {
+            continue;
+        }
+        const auto* visual = sound_visual_valid[i]
+            ? &sound_visuals[i]
+            : nullptr;
+        bool model_loaded = false;
+        if (visual) {
+            const auto origin = area_object_origin(
+                area_resref, "sound", i, *sound);
+            const auto model_resref = sound_toolset_marker_model(*visual);
+            auto model = load_area_static_model(
+                static_model_cache, resources, model_resref, origin);
+            const uint32_t model_index = add_placed_render_model(
+                *scene, std::move(model), object_spatial_placement(*sound));
+            if (model_index != nw::render::kInvalidModelInstanceIndex) {
+                scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
+                    .kind = nw::ObjectType::sound,
+                    .object = sound->handle(),
+                    .static_candidate = !options.area_object_editing,
+                };
+                if (auto* instance = scene->static_model_instance(model_index)) {
+                    instance->shadow = {};
+                }
+                model_loaded = true;
+            }
+        }
+        (void)append_sound_debug_geometry(
+            *scene, *sound, visual, model_loaded);
+    }
+
+    for (size_t i = 0; i < loaded_area->stores.size(); ++i) {
+        const auto* store = loaded_area->stores[i];
+        if (!store) {
             continue;
         }
 
+        const auto origin = area_object_origin(
+            area_resref, "store", i, *store);
         auto model = load_area_static_model(
-            static_model_cache, resources, model_ref.model.view(), origin);
+            static_model_cache, resources,
+            k_store_toolset_marker_model, origin);
         const uint32_t model_index = add_placed_render_model(
-            *scene, std::move(model), object_spatial_placement(*waypoint));
+            *scene, std::move(model), object_spatial_placement(*store));
         if (model_index != nw::render::kInvalidModelInstanceIndex) {
-            if (model_index < scene->static_area_model_info.size()) {
-                scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
-                    .kind = AreaRenderRecordKind::waypoint,
-                    .object = waypoint->handle(),
-                    .static_candidate = !options.area_object_editing,
-                };
+            scene->static_area_model_info[model_index] = AreaRenderSourceInfo{
+                .kind = nw::ObjectType::store,
+                .object = store->handle(),
+                .static_candidate = !options.area_object_editing,
+            };
+            if (auto* instance = scene->static_model_instance(model_index)) {
+                instance->shadow = {};
             }
-            loaded_area_object_model_lights += append_render_model_authored_lights(*scene, model_index);
-            ++loaded_waypoint_models;
+        } else {
+            append_store_debug_geometry(*scene, *store);
         }
     }
 
@@ -4480,7 +4720,15 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
         }
         break;
     case nw::ObjectType::sound:
+        if (auto* sound = nw::kernel::objects().get<nw::Sound>(object)) {
+            scene = load_live_sound_scene(resources, *sound, source);
+        }
+        break;
     case nw::ObjectType::store:
+        if (auto* store = nw::kernel::objects().get<nw::Store>(object)) {
+            scene = load_live_store_scene(resources, *store, source);
+        }
+        break;
     case nw::ObjectType::trigger:
         if (nw::kernel::objects().valid(object)) {
             scene = std::make_unique<PreviewScene>();
@@ -4493,10 +4741,14 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
         return {};
     }
 
-    // A standalone object preview has preview-local placement. Ignore any
-    // instance spatial state so retained and file-loaded documents share the
-    // same neutral pose; area scenes apply authored placement separately.
-    set_render_scene_root_placement(*scene, glm::mat4{1.0f});
+    // Object loaders apply instance spatial state, which standalone previews
+    // discard. Encounter previews already contain a preview-local spawn grid.
+    if (object.type != nw::ObjectType::encounter) {
+        const glm::mat4 neutral_placement = object.type == nw::ObjectType::sound
+            ? glm::scale(glm::mat4{1.0f}, glm::vec3{k_sound_toolset_marker_scale})
+            : glm::mat4{1.0f};
+        set_render_scene_root_placement(*scene, neutral_placement);
+    }
     append_scene_authored_model_lights(*scene);
     scene->rebuild_load_report(source, "live_object");
     scene->root_object = object;
@@ -4678,6 +4930,66 @@ std::optional<SceneModelRemoval> remove_object_model_rows(
     return removal;
 }
 
+bool append_debug_geometry(PreviewScene& destination, const PreviewScene& source)
+{
+    const size_t vertex_base = destination.debug_shape_vertices.size();
+    const size_t index_base = destination.debug_shape_indices.size();
+    const size_t range_base = destination.debug_shape_ranges.size();
+    const size_t sound_dot_base = destination.sound_debug_dot_instances.size();
+    const size_t point_base = destination.debug_shape_selection_points.size();
+    if (vertex_base > std::numeric_limits<uint32_t>::max()
+        || index_base > std::numeric_limits<uint32_t>::max()
+        || range_base > std::numeric_limits<uint32_t>::max()
+        || sound_dot_base > std::numeric_limits<uint32_t>::max()
+        || point_base > std::numeric_limits<uint32_t>::max()
+        || source.debug_shape_vertices.size()
+            > std::numeric_limits<uint32_t>::max() - vertex_base
+        || source.debug_shape_indices.size()
+            > std::numeric_limits<uint32_t>::max() - index_base
+        || source.debug_shape_ranges.size()
+            > std::numeric_limits<uint32_t>::max() - range_base
+        || source.sound_debug_dot_instances.size()
+            > std::numeric_limits<uint32_t>::max() - sound_dot_base
+        || source.debug_shape_selection_points.size()
+            > std::numeric_limits<uint32_t>::max() - point_base) {
+        return false;
+    }
+
+    destination.debug_shape_vertices.insert(
+        destination.debug_shape_vertices.end(),
+        source.debug_shape_vertices.begin(),
+        source.debug_shape_vertices.end());
+    for (const uint32_t index : source.debug_shape_indices) {
+        destination.debug_shape_indices.push_back(
+            index + static_cast<uint32_t>(vertex_base));
+    }
+    for (auto range : source.debug_shape_ranges) {
+        range.first_index += static_cast<uint32_t>(index_base);
+        destination.debug_shape_ranges.push_back(range);
+    }
+    destination.sound_debug_dot_instances.insert(
+        destination.sound_debug_dot_instances.end(),
+        source.sound_debug_dot_instances.begin(),
+        source.sound_debug_dot_instances.end());
+    destination.debug_shape_selection_points.insert(
+        destination.debug_shape_selection_points.end(),
+        source.debug_shape_selection_points.begin(),
+        source.debug_shape_selection_points.end());
+    for (auto range : source.debug_shape_selection_ranges) {
+        if (range.debug_shape_range_index != kInvalidAreaRenderRecordIndex) {
+            range.debug_shape_range_index += static_cast<uint32_t>(range_base);
+        }
+        range.first_point += static_cast<uint32_t>(point_base);
+        destination.debug_shape_selection_ranges.push_back(range);
+    }
+    for (auto range : source.debug_shape_object_ranges) {
+        range.first_vertex += static_cast<uint32_t>(vertex_base);
+        range.first_sound_dot += static_cast<uint32_t>(sound_dot_base);
+        destination.debug_shape_object_ranges.push_back(range);
+    }
+    return true;
+}
+
 } // namespace
 
 AreaObjectPreviewAppendResult append_area_object_previews(
@@ -4713,8 +5025,15 @@ AreaObjectPreviewAppendResult append_area_object_previews(
     for (size_t i = 0; i < objects.size(); ++i) {
         const auto object = objects[i];
         const auto* spatial = nw::kernel::objects().components().find_spatial(object);
-        if ((object.type != nw::ObjectType::creature && object.type != nw::ObjectType::placeable
-                && object.type != nw::ObjectType::item)
+        if ((object.type != nw::ObjectType::creature
+                && object.type != nw::ObjectType::door
+                && object.type != nw::ObjectType::encounter
+                && object.type != nw::ObjectType::item
+                && object.type != nw::ObjectType::placeable
+                && object.type != nw::ObjectType::sound
+                && object.type != nw::ObjectType::store
+                && object.type != nw::ObjectType::trigger
+                && object.type != nw::ObjectType::waypoint)
             || !nw::kernel::objects().valid(object) || !spatial
             || spatial->area != scene.root_object.id) {
             result.status = AreaObjectPreviewAppendStatus::invalid_input;
@@ -4729,18 +5048,67 @@ AreaObjectPreviewAppendResult append_area_object_previews(
             if (creature) {
                 preview = load_area_creature_scene(resources, *creature, origin, options);
             }
+        } else if (object.type == nw::ObjectType::door) {
+            auto* door = nw::kernel::objects().get<nw::Door>(object);
+            if (door) {
+                preview = load_live_door_scene(
+                    resources, *door, std::filesystem::path{origin}, false);
+            }
         } else if (object.type == nw::ObjectType::item) {
             auto* item = nw::kernel::objects().get<nw::Item>(object);
             if (item) {
                 preview = load_area_item_scene(resources, *item, origin);
             }
-        } else {
+        } else if (object.type == nw::ObjectType::placeable) {
             auto* placeable = nw::kernel::objects().get<nw::Placeable>(object);
             if (placeable) {
                 preview = load_area_placeable_scene(resources, *placeable, origin, options);
             }
+        } else if (object.type == nw::ObjectType::sound) {
+            auto* sound = nw::kernel::objects().get<nw::Sound>(object);
+            if (sound) {
+                preview = load_live_sound_scene(resources, *sound, origin);
+            }
+        } else if (object.type == nw::ObjectType::store) {
+            auto* store = nw::kernel::objects().get<nw::Store>(object);
+            if (store) {
+                preview = load_live_store_scene(resources, *store, origin);
+            }
+        } else if (object.type == nw::ObjectType::waypoint) {
+            auto* waypoint = nw::kernel::objects().get<nw::Waypoint>(object);
+            if (waypoint) {
+                preview = load_live_waypoint_scene(
+                    resources, *waypoint, std::filesystem::path{origin});
+                if (!preview || !scene_has_preview_model(*preview)) {
+                    preview = std::make_unique<PreviewScene>();
+                    if (!append_waypoint_debug_geometry(
+                            *preview, *waypoint)) {
+                        preview.reset();
+                    }
+                }
+            }
+        } else {
+            preview = std::make_unique<PreviewScene>();
+            bool appended = false;
+            if (object.type == nw::ObjectType::encounter) {
+                const auto* encounter
+                    = nw::kernel::objects().get<nw::Encounter>(object);
+                appended = encounter
+                    && append_encounter_debug_geometry(*preview, *encounter);
+            } else if (object.type == nw::ObjectType::trigger) {
+                const auto* trigger
+                    = nw::kernel::objects().get<nw::Trigger>(object);
+                appended = trigger
+                    && append_trigger_debug_geometry(*preview, *trigger);
+            }
+            if (!appended) {
+                preview.reset();
+            }
         }
-        if (!preview || !scene_has_preview_model(*preview)) {
+        if (!preview
+            || (!scene_has_preview_model(*preview)
+                && preview->debug_shape_indices.empty()
+                && preview->sound_debug_dot_instances.empty())) {
             result.status = AreaObjectPreviewAppendStatus::failed;
             result.diagnostic = "Area object preview visual construction failed";
             return result;
@@ -4756,15 +5124,19 @@ AreaObjectPreviewAppendResult append_area_object_previews(
     size_t appended_models = 0;
     for (size_t i = 0; i < previews.size(); ++i) {
         const auto object = objects[i];
-        const auto kind = object.type == nw::ObjectType::creature
-            ? AreaRenderRecordKind::creature
-            : object.type == nw::ObjectType::item
-            ? AreaRenderRecordKind::item
-            : AreaRenderRecordKind::placeable;
-        appended_models += append_render_models(scene,
-            *previews[i],
-            AreaRenderSourceInfo{.kind = kind, .object = object},
-            false);
+        if (scene_has_preview_model(*previews[i])) {
+            appended_models += append_render_models(scene,
+                *previews[i],
+                AreaRenderSourceInfo{.kind = object.type, .object = object},
+                false);
+        }
+        if ((!previews[i]->debug_shape_indices.empty()
+                || !previews[i]->sound_debug_dot_instances.empty())
+            && !append_debug_geometry(scene, *previews[i])) {
+            result.status = AreaObjectPreviewAppendStatus::failed;
+            result.diagnostic = "Area object preview debug geometry exceeds scene capacity";
+            return result;
+        }
     }
 
     for (size_t i = render_model_start; i < scene.static_model_instance_handles.size(); ++i) {
@@ -4849,8 +5221,8 @@ AreaTransientVisualResult append_area_transient_visuals(
             *visuals[i],
             AreaRenderSourceInfo{
                 .kind = objects[i].type == nw::ObjectType::creature
-                    ? AreaRenderRecordKind::creature
-                    : AreaRenderRecordKind::placeable,
+                    ? nw::ObjectType::creature
+                    : nw::ObjectType::placeable,
                 .object = objects[i],
             });
     }
@@ -4955,7 +5327,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
 
     std::vector<std::unique_ptr<PreviewScene>> replacements;
     replacements.reserve(objects.size());
-    std::vector<AreaRenderRecordKind> replacement_kinds;
+    std::vector<nw::ObjectType> replacement_kinds;
     replacement_kinds.reserve(objects.size());
     for (size_t i = 0; i < objects.size(); ++i) {
         const auto object = objects[i];
@@ -4970,7 +5342,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
         }
 
         std::unique_ptr<PreviewScene> replacement;
-        AreaRenderRecordKind kind = AreaRenderRecordKind::unknown;
+        nw::ObjectType kind = nw::ObjectType::invalid;
         switch (object.type) {
         case nw::ObjectType::creature: {
             auto* creature
@@ -4979,7 +5351,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
                 replacement = load_area_creature_scene(resources, *creature,
                     fmt::format("visual refresh {}", i), options);
             }
-            kind = AreaRenderRecordKind::creature;
+            kind = nw::ObjectType::creature;
         } break;
         case nw::ObjectType::item: {
             auto* item = nw::kernel::objects().get<nw::Item>(object);
@@ -4988,7 +5360,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
                     ? load_area_item_scene(resources, *item, fmt::format("visual refresh {}", i))
                     : load_live_item_models(resources, *item, fmt::format("visual refresh {}", i));
             }
-            kind = AreaRenderRecordKind::item;
+            kind = nw::ObjectType::item;
         } break;
         default:
             result.status = ObjectVisualRefreshStatus::invalid_input;

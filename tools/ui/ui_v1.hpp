@@ -41,17 +41,35 @@ struct UiListScroll {
     int end = 0;
 };
 
+struct UiListReorder {
+    std::string list_id;
+    int source_index = -1;
+    int destination_index = -1;
+};
+
+struct UiListReorderSnapshot {
+    int item_count = 0;
+    uint64_t revision = 0;
+};
+
 enum class UiListEventType : uint8_t {
     hover,
     select,
     activate,
     scroll,
+    reorder,
 };
+
+inline constexpr size_t ui_list_event_type_count
+    = static_cast<size_t>(UiListEventType::reorder) + 1;
 
 struct UiListEvent {
     UiListEventType type = UiListEventType::hover;
     UiListSelection selection;
     UiListScroll scroll;
+    UiListReorder reorder;
+
+    [[nodiscard]] std::string_view list_id() const noexcept;
 };
 
 // The host owns every string and row. This view is valid until the same host
@@ -109,6 +127,12 @@ public:
     bool push_hover(std::string_view list_id, int index);
     bool push_activate(std::string_view list_id, int index, int cell = -1);
     bool push_scroll(std::string_view list_id, int top, int start, int end);
+    [[nodiscard]] std::optional<UiListReorderSnapshot> reorder_snapshot(
+        std::string_view list_id) const;
+    bool push_reorder(std::string_view list_id,
+        int source_index,
+        int destination_index,
+        uint64_t expected_revision);
     std::optional<int> move_and_activate(std::string_view list_id,
         int delta,
         int viewport_height,
@@ -128,7 +152,8 @@ private:
         int hovered_index = -1;
         int selected_index = -1;
         int selected_cell = -1;
-        std::array<std::string, 4> callbacks;
+        int pending_reorder_selection = -1;
+        std::array<std::string, ui_list_event_type_count> callbacks;
         std::string title;
         uint64_t revision = 1;
         bool visible = true;

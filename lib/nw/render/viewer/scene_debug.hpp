@@ -16,13 +16,21 @@ class ShaderProvider;
 
 namespace nw {
 struct Encounter;
+struct Sound;
+struct Store;
 struct Trigger;
+struct Waypoint;
 } // namespace nw
+
+namespace nwn1 {
+struct SoundToolsetVisualState;
+}
 
 namespace nw::render::viewer {
 
 struct PreviewScene;
 struct DebugShapeVertex;
+struct SoundDebugDotInstance;
 enum class DebugShapeCategory : uint8_t;
 
 struct DebugShapeOptions {
@@ -66,10 +74,16 @@ private:
         size_t& index_capacity,
         uint64_t revision = 0,
         uint64_t* uploaded_revision = nullptr);
+    void render_sound_debug_dots(
+        nw::gfx::CommandList* cmd,
+        std::span<const SoundDebugDotInstance> instances,
+        const nw::render::RenderContext& ctx);
 
     nw::gfx::Context* ctx_ = nullptr;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_grid_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_shape_pipeline_;
+    nw::gfx::Handle<nw::gfx::Pipeline> selection_bounds_pipeline_;
+    nw::gfx::Handle<nw::gfx::Pipeline> sound_debug_dot_pipeline_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_shape_vertices_;
@@ -78,12 +92,16 @@ private:
     nw::gfx::Handle<nw::gfx::Buffer> transient_debug_shape_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_indices_;
+    nw::gfx::Handle<nw::gfx::Buffer> sound_debug_dot_vertices_;
+    nw::gfx::Handle<nw::gfx::Buffer> sound_debug_dot_indices_;
+    nw::gfx::Handle<nw::gfx::Buffer> sound_debug_dot_instances_;
     size_t debug_grid_vertex_capacity_ = 0;
     size_t debug_grid_index_capacity_ = 0;
     size_t debug_shape_vertex_capacity_ = 0;
     size_t debug_shape_index_capacity_ = 0;
     size_t transient_debug_shape_vertex_capacity_ = 0;
     size_t transient_debug_shape_index_capacity_ = 0;
+    size_t sound_debug_dot_instance_capacity_ = 0;
     uint64_t uploaded_transient_debug_shape_revision_ = UINT64_MAX;
 };
 
@@ -94,5 +112,12 @@ void append_debug_segment(PreviewScene& scene, const glm::vec3& a, const glm::ve
 uint32_t append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index);
 bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger);
 bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter);
+bool append_sound_debug_geometry(
+    PreviewScene& scene,
+    const nw::Sound& sound,
+    const nwn1::SoundToolsetVisualState* visual,
+    bool marker_model_loaded);
+bool append_store_debug_geometry(PreviewScene& scene, const nw::Store& store);
+bool append_waypoint_debug_geometry(PreviewScene& scene, const nw::Waypoint& waypoint);
 
 } // namespace nw::render::viewer

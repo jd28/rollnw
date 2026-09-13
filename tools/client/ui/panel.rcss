@@ -1535,6 +1535,56 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   overflow-y: auto;
   overflow-x: hidden;
 }
+.data_collection_action_bar {
+  display: flex;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 38px;
+  padding: 0px 7px;
+  border-top: 1px #36414c;
+  background: #171e24;
+  box-sizing: border-box;
+}
+.data_collection_action {
+  position: relative;
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  height: 28px;
+  padding: 0px;
+  border: 1px #43505c;
+  border-radius: 0px;
+  background: #202a32;
+  cursor: pointer;
+}
+.data_collection_action:hover,
+.data_collection_action:focus {
+  border-color: #bca36a;
+  background: #2b3741;
+}
+.data_collection_action:active {
+  background: #34434f;
+}
+.data_collection_action_mark {
+  position: absolute;
+  display: block;
+  background: #79c98e;
+  pointer-events: none;
+}
+.data_collection_action_mark.horizontal {
+  left: 7px;
+  top: 13px;
+  width: 12px;
+  height: 2px;
+}
+.data_collection_action_mark.vertical {
+  left: 12px;
+  top: 8px;
+  width: 2px;
+  height: 12px;
+}
 .data_collection_rows .managed_list_row {
   min-height: 34px;
   align-items: center;
@@ -1542,6 +1592,16 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   border-bottom: 1px #2a343e;
   background: #151b21;
   color: #dce3ea;
+}
+.managed_list_rows .managed_list_row.reorder_source {
+  color: #7f8b96;
+  background: #11171c;
+}
+.managed_list_rows .managed_list_row.reorder_before {
+  border-top: 2px #bca36a;
+}
+.managed_list_rows .managed_list_row.reorder_after {
+  border-bottom: 2px #bca36a;
 }
 .data_collection_header span,
 .data_collection_rows .managed_list_cell {
@@ -1562,6 +1622,57 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .sound_resource_header span,
 .sound_resource_rows .cell_0 {
   flex: 1;
+}
+.managed_list_rows.reorderable .managed_list_row {
+  cursor: grab;
+}
+.managed_list_rows.reorderable .managed_list_row.reorder_source {
+  cursor: grabbing;
+}
+.sound_catalog_row {
+  display: flex;
+  width: 100%;
+  height: 34px;
+  padding: 0px 8px;
+  border-bottom: 1px #29333c;
+  background: #151b21;
+  color: #dbe2e8;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.sound_catalog_row:hover,
+.sound_catalog_row.hovered {
+  background: #202930;
+}
+.sound_catalog_row.selected {
+  padding-left: 6px;
+  border-left: 2px #a78d62;
+  background: #25313b;
+}
+.sound_catalog_row * {
+  pointer-events: none;
+}
+.sound_catalog_name {
+  flex: 1;
+  min-width: 0px;
+  color: #e4e9ed;
+  font-size: 12px;
+  line-height: 33px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sound_catalog_resref {
+  flex: 0 0 128px;
+  min-width: 0px;
+  color: #788692;
+  font-family: RollnwMono;
+  font-size: 10px;
+  line-height: 33px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
 }
 .store_inventory_header span:nth-child(1),
 .store_inventory_rows .cell_0 { flex: 1; }
@@ -1928,6 +2039,15 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   pointer-events: auto;
 }
 .property_tree_row .object_details_integer_step {
+  pointer-events: auto;
+}
+.property_tree_row .object_details_cycle_state {
+  pointer-events: auto;
+}
+.property_tree_row .object_details_sound_position_field {
+  pointer-events: auto;
+}
+.property_tree_row .object_details_sound_volume {
   pointer-events: auto;
 }
 .property_tree_cells {
@@ -2592,7 +2712,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   cursor: default;
 }
 
-.object_details_door_state {
+.object_details_cycle_state {
     min-width: 76px;
     padding: 2px 8px;
     border: 1px #596473;
@@ -2602,9 +2722,79 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
     text-align: center;
 }
 
-.object_details_door_state:hover {
+.object_details_cycle_state:hover {
     background-color: #3b4654;
     border-color: #768397;
+}
+.object_details_sound_position_field {
+  height: 23px;
+  margin: 3px 0px;
+  padding: 0px 5px;
+  font-family: RollnwSans;
+  font-size: 11px;
+}
+.object_details_sound_position_field .combobox_value,
+.object_details_sound_position_field .combobox_arrow {
+  height: 21px;
+  line-height: 21px;
+}
+.object_details_combobox_popup {
+  display: none;
+  z-index: 60;
+}
+.object_details_combobox_popup.active {
+  display: block;
+}
+.object_details_sound_volume_control {
+  display: flex;
+  width: 100%;
+  height: 29px;
+  min-width: 0px;
+  align-items: center;
+}
+.object_details_sound_volume {
+  flex: 1;
+  width: auto;
+  min-width: 60px;
+  height: 23px;
+  margin: 3px 7px 3px 2px;
+  cursor: pointer;
+}
+.object_details_sound_volume slidertrack {
+  height: 5px;
+  margin: 9px 0px;
+  border-radius: 3px;
+  background: #202930;
+}
+.object_details_sound_volume sliderprogress {
+  height: 5px;
+  border-radius: 3px;
+  background: #a78d62;
+}
+.object_details_sound_volume sliderbar {
+  width: 13px;
+  height: 13px;
+  margin-top: 5px;
+  border: 1px #768397;
+  border-radius: 7px;
+  background: #d5be91;
+  cursor: pointer;
+}
+.object_details_sound_volume sliderbar:hover,
+.object_details_sound_volume sliderbar:active,
+.object_details_sound_volume sliderbar:focus {
+  border-color: #e4e9ed;
+  background: #e5d3af;
+}
+.object_details_sound_volume sliderarrowdec,
+.object_details_sound_volume sliderarrowinc {
+  display: none;
+}
+.object_details_sound_volume_value {
+  flex: 0 0 22px;
+  color: #e4e9ed;
+  font-family: RollnwMono;
+  text-align: right;
 }
 .creature_spell_filters {
   display: flex;
@@ -3322,6 +3512,26 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   pointer-events: auto;
 }
 #blueprint_operation_overlay.active { display: flex; tab-index: auto; }
+
+#project_load_overlay {
+  display: none;
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 120;
+  background: #000a;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+#project_load_overlay.active { display: flex; tab-index: auto; }
+.project_load_panel { width: 520px; }
+.project_load_path {
+  display: block; flex: none; width: 100%; margin-top: 10px;
+  color: #a7b0ba; line-height: 19px; white-space: pre-wrap;
+  word-break: break-all;
+}
+.project_load_panel .home_import_progress { width: 100%; margin-top: 14px; }
+
 .blueprint_operation_stage {
   display: block; flex: none; width: 100%; margin-bottom: 10px;
   color: #d5be91; font-weight: 600; line-height: 19px;

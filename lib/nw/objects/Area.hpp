@@ -58,8 +58,6 @@ struct AreaWeather {
 };
 
 struct AreaTile {
-    AreaTile() = default;
-
     bool from_json(const nlohmann::json& archive);
     nlohmann::json to_json() const;
 

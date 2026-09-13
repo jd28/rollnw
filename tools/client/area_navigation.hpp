@@ -36,9 +36,9 @@ struct AreaPlacementCandidate {
 };
 
 // Gesture-owned cold cache; command admission instead uses fresh stack storage.
-// Non-movable because world borrows source.geometry. Non-creature queries do
-// not build or allocate navigation. Input handles are non-owning generation
-// checks; candidate sorting and all navigation work use contiguous index rows.
+// Non-movable because world borrows source.geometry. Input handles are
+// non-owning generation checks; candidate sorting and all navigation work use
+// contiguous index rows.
 struct AreaPlacementNavigation {
     AreaPlacementNavigation() = default;
     AreaPlacementNavigation(const AreaPlacementNavigation&) = delete;
@@ -47,6 +47,7 @@ struct AreaPlacementNavigation {
     AreaNavigationSource source;
     nav::NavWorldState world;
     Vector<AreaPlacementCandidate> candidates;
+    Vector<glm::vec3> region_points;
     Vector<nav::NavDebugTriangle> debug_triangles;
     ObjectHandle area{};
     uint64_t epoch = 0;
@@ -68,9 +69,12 @@ struct AreaPlacementResult {
 // Read-only admission of proposed spatial rows in one live area. Empty batches
 // succeed. Rejects invalid/stale/duplicate/wrong-area rows and malformed or
 // out-of-bounds transforms before any navigation work. Creature rows must lie
-// on their radius-class surface at the requested XYZ; placeables/items retain free Z
-// and non-walkable positioning. No objects, undo entries, or files are written.
-// The cache is invalidated by area identity or the toolset mutation epoch.
+// on their radius-class surface at the requested XYZ. Trigger and Encounter
+// footprints must remain valid within Area bounds; Encounter spawn points move
+// with the root translation and must remain in bounds. Other authored kinds
+// retain free Z and non-walkable positioning. No objects, undo entries, or files
+// are written. The cache is invalidated by area identity or the toolset mutation
+// epoch.
 AreaPlacementResult validate_area_placements(
     AreaPlacementNavigation& navigation,
     ObjectHandle area,
@@ -78,5 +82,17 @@ AreaPlacementResult validate_area_placements(
 
 // Explicit cold overlay collection; not performed by command validation.
 bool collect_placement_navigation_debug(AreaPlacementNavigation& navigation);
+
+// Projects one batch of finite viewport rays onto the current Area's walkable
+// navigation surface. Results remain parallel to inputs. The gesture cache
+// owns the navigation source/world; input and output spans are borrowed for
+// this call. Invalid areas, mismatched spans, incomplete geometry, build
+// failures, and rays without a hit reject explicitly in the returned rows.
+nav::NavBatchStats project_area_navigation_rays(
+    AreaPlacementNavigation& navigation,
+    ObjectHandle area,
+    std::span<const nav::NavRayProjectionInput> inputs,
+    std::span<nav::NavRayProjectionResult> results,
+    std::string& diagnostic);
 
 } // namespace nw::toolset

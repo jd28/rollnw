@@ -20,6 +20,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+
 namespace nw {
 
 // -- AreaScripts -------------------------------------------------------------
@@ -190,6 +192,41 @@ bool Area::instantiate()
     if (!tileset) {
         throw std::runtime_error(fmt::format("invalid tileset: {}", tileset_resref.view()));
     }
+
+    auto& components = nw::kernel::objects().components();
+    const auto valid_members = [&components](const auto& members) {
+        return std::ranges::all_of(members, [&components](const auto* object) {
+            return object
+                && components.find_spatial(object->handle()) != nullptr;
+        });
+    };
+    if (handle().id == object_invalid
+        || !valid_members(creatures)
+        || !valid_members(doors)
+        || !valid_members(encounters)
+        || !valid_members(items)
+        || !valid_members(placeables)
+        || !valid_members(sounds)
+        || !valid_members(stores)
+        || !valid_members(triggers)
+        || !valid_members(waypoints)) {
+        LOG_F(ERROR, "area: cannot attach invalid or spatially incomplete members");
+        return false;
+    }
+    const auto attach_members = [&components, area = handle().id](const auto& members) {
+        for (const auto* object : members) {
+            components.find_spatial(object->handle())->area = area;
+        }
+    };
+    attach_members(creatures);
+    attach_members(doors);
+    attach_members(encounters);
+    attach_members(items);
+    attach_members(placeables);
+    attach_members(sounds);
+    attach_members(stores);
+    attach_members(triggers);
+    attach_members(waypoints);
     return true;
 }
 

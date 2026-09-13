@@ -59,6 +59,7 @@ struct NwnMeshImportData {
     float alpha_cutout_threshold = 0.5f;
     glm::vec3 color_key{0.0f};
     float color_key_threshold = 0.0f;
+    glm::vec3 diffuse{1.0f};
     glm::vec3 emissive{0.0f};
     float roughness = kNwnDefaultRoughness;
     float common_pbr_roughness = kNwnDefaultRoughness;
@@ -1533,6 +1534,9 @@ void initialize_mesh_material(NwnMeshImportData& mesh, const nwm::TrimeshNode* n
     mesh.transparencyhint = node->transparencyhint;
     mesh.opacity = opacity_override.value_or(mesh_alpha_value(node));
     mesh.alpha_cutout_threshold = 0.5f;
+    mesh.diffuse = finite_vec3(node->diffuse)
+        ? glm::clamp(node->diffuse, glm::vec3{0.0f}, glm::vec3{1.0f})
+        : glm::vec3{1.0f};
 
     const auto mtr = load_mtr_material_info(node);
     if (mtr.renderhint) {
@@ -2370,7 +2374,10 @@ nw::render::Material nwn_model_asset_material_from_mesh(const NwnMeshImportData&
 {
     nw::render::Material material{};
     material.lighting_model = nw::render::MaterialLightingModel::nwn_diffuse;
-    material.albedo = glm::vec4{1.0f, 1.0f, 1.0f, mesh.opacity};
+    const glm::vec3 albedo = clean_mtr_resource_name(mesh.bitmap_name).empty()
+        ? mesh.diffuse
+        : glm::vec3{1.0f};
+    material.albedo = glm::vec4{albedo, mesh.opacity};
     material.roughness = mesh.common_pbr_roughness;
     material.specular_strength = std::clamp(mesh.specular_strength, 0.0f, 1.0f);
     material.emissive = mesh.emissive;

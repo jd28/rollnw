@@ -77,6 +77,8 @@ public:
         ClientViewportRect viewport,
         ClientAreaSelectionTarget target);
     bool set_viewer_area_object_selection(nw::ObjectHandle object) noexcept;
+    [[nodiscard]] uint32_t active_viewer_area_debug_subindex(
+        nw::ObjectHandle object) const noexcept;
     bool focus_viewer_area_object_selection() noexcept;
     [[nodiscard]] std::optional<ClientViewportRay> viewer_viewport_ray(
         float pixel_x, float pixel_y, ClientViewportRect viewport);
@@ -101,6 +103,10 @@ public:
         const nw::toolset::PreviewCameraState& camera);
     bool update_toolset_preview_navigation_debug(
         const nw::toolset::PreviewNavigationDebugView& view);
+    bool update_viewer_area_region_preview(
+        std::span<const glm::vec3> points,
+        std::optional<glm::vec3> hover,
+        bool closing_valid);
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> viewer_area_camera_focus() const noexcept;
     bool sync_viewer_area_object_spatial(nw::ObjectHandle object);

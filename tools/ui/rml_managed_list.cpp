@@ -2,6 +2,7 @@
 
 #include "virtual_combobox.hpp"
 
+#include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
 
@@ -61,6 +62,190 @@ Rml::Element* ancestor_with_class(Rml::Element* element, std::string_view class_
         }
     }
     return nullptr;
+}
+
+Rml::Element* find_managed_list(
+    Rml::ElementDocument* document, std::string_view list_id)
+{
+    if (!document || list_id.empty()) {
+        return nullptr;
+    }
+    Rml::ElementList lists;
+    document->GetElementsByClassName(lists, "managed_list_rows");
+    const auto found = std::ranges::find_if(lists,
+        [&](const Rml::Element* list) {
+            return list->GetAttribute<Rml::String>("data-list-id", "")
+                == list_id;
+        });
+    return found == lists.end() ? nullptr : *found;
+}
+
+void clear_reorder_classes(Rml::Element* list)
+{
+    if (!list) {
+        return;
+    }
+    Rml::ElementList rows;
+    list->GetElementsByClassName(rows, "managed_list_row");
+    for (auto* row : rows) {
+        row->SetClass("reorder_source", false);
+        row->SetClass("reorder_before", false);
+        row->SetClass("reorder_after", false);
+    }
+}
+
+std::optional<int> row_index(
+    Rml::Element* element, std::string_view list_id, int item_count)
+{
+    auto* list = ancestor_with_class(element, "managed_list_rows");
+    auto* row = ancestor_with_class(element, "managed_list_row");
+    if (!list || !row || item_count <= 0
+        || list->GetAttribute<Rml::String>("data-list-id", "") != list_id
+        || row->GetAttribute<Rml::String>("data-list-id", "") != list_id) {
+        return std::nullopt;
+    }
+    const auto index = parse_int(
+        row->GetAttribute<Rml::String>("data-index", ""));
+    if (!index || *index < 0 || *index >= item_count) {
+        return std::nullopt;
+    }
+    return index;
+}
+
+std::optional<int> insertion_index(
+    Rml::Element* list,
+    std::string_view list_id,
+    float pointer_y,
+    int item_count)
+{
+    if (!list || item_count <= 0 || !std::isfinite(pointer_y)
+        || list->GetAttribute<Rml::String>("data-list-id", "") != list_id) {
+        return std::nullopt;
+    }
+
+    Rml::ElementList rows;
+    list->GetElementsByClassName(rows, "managed_list_row");
+    int last_index = -1;
+    for (auto* row : rows) {
+        const auto index = parse_int(
+            row->GetAttribute<Rml::String>("data-index", ""));
+        if (!index || *index < 0 || *index >= item_count) {
+            continue;
+        }
+        const float midpoint = row->GetAbsoluteTop()
+            + 0.5f * row->GetOffsetHeight();
+        if (pointer_y < midpoint) {
+            return index;
+        }
+        last_index = *index;
+    }
+    return last_index >= 0
+        ? std::optional<int>{std::min(item_count, last_index + 1)}
+        : std::nullopt;
+}
+
+void set_reorder_classes(Rml::Element* list,
+    int source_index,
+    int insertion_index,
+    int item_count)
+{
+    clear_reorder_classes(list);
+    if (!list || source_index < 0 || source_index >= item_count) {
+        return;
+    }
+
+    Rml::ElementList rows;
+    list->GetElementsByClassName(rows, "managed_list_row");
+    for (auto* row : rows) {
+        const auto index = parse_int(
+            row->GetAttribute<Rml::String>("data-index", ""));
+        if (!index) {
+            continue;
+        }
+        row->SetClass("reorder_source", *index == source_index);
+        if (insertion_index >= 0 && insertion_index < item_count
+            && *index == insertion_index) {
+            row->SetClass("reorder_before", true);
+        } else if (insertion_index == item_count
+            && *index == item_count - 1) {
+            row->SetClass("reorder_after", true);
+        }
+    }
+}
+
+bool update_reorder_target(ManagedListReorderState& state,
+    Rml::Element* list,
+    float pointer_x,
+    float pointer_y,
+    bool pointer_inside,
+    float threshold)
+{
+    if (!state.active() || !list || !std::isfinite(pointer_x)
+        || !std::isfinite(pointer_y) || !std::isfinite(threshold)
+        || threshold < 0.0f) {
+        return false;
+    }
+    if (!state.dragging
+        && (std::abs(pointer_x - state.start_x) >= threshold
+            || std::abs(pointer_y - state.start_y) >= threshold)) {
+        state.dragging = true;
+    }
+    if (!state.dragging) {
+        return true;
+    }
+
+    state.insertion_index = -1;
+    if (pointer_inside) {
+        if (const auto insertion = insertion_index(
+                list, state.list_id, pointer_y, state.item_count)) {
+            state.insertion_index = *insertion;
+        }
+    }
+    const auto destination = managed_list_reorder_destination(state);
+    set_reorder_classes(list, state.source_index,
+        destination ? state.insertion_index : -1, state.item_count);
+    return true;
+}
+
+bool auto_scroll_reorder(Rml::Element* list,
+    float pointer_y,
+    float edge,
+    float step)
+{
+    if (!list || !std::isfinite(pointer_y) || !std::isfinite(edge)
+        || !std::isfinite(step) || edge <= 0.0f || step <= 0.0f) {
+        return false;
+    }
+
+    const float top = list->GetAbsoluteTop();
+    const float height = list->GetClientHeight();
+    const float scroll_height = list->GetScrollHeight();
+    if (!std::isfinite(top) || !std::isfinite(height)
+        || !std::isfinite(scroll_height) || height <= 0.0f
+        || scroll_height <= height || pointer_y < top
+        || pointer_y > top + height) {
+        return false;
+    }
+
+    const float scroll_edge = std::min(edge, 0.5f * height);
+    const float raw_scroll = list->GetScrollTop();
+    if (!std::isfinite(raw_scroll)) {
+        return false;
+    }
+    const float current = std::clamp(
+        raw_scroll, 0.0f, scroll_height - height);
+    float next = current;
+    if (pointer_y < top + scroll_edge) {
+        next -= step;
+    } else if (pointer_y > top + height - scroll_edge) {
+        next += step;
+    }
+    next = std::clamp(next, 0.0f, scroll_height - height);
+    if (next == current) {
+        return false;
+    }
+    list->SetScrollTop(next);
+    return true;
 }
 
 void append_spacer(std::string& markup, int height)
@@ -401,7 +586,16 @@ bool sync_managed_lists(Rml::ElementDocument* document,
         }
         auto window = host.window(list_id, viewport_height, scroll_top);
         if (!window) {
+            if (element->IsClassSet("reorderable")) {
+                element->SetClass("reorderable", false);
+                changed = true;
+            }
             continue;
+        }
+        const bool reorderable = host.reorder_snapshot(list_id).has_value();
+        if (element->IsClassSet("reorderable") != reorderable) {
+            element->SetClass("reorderable", reorderable);
+            changed = true;
         }
 
         const bool source_or_selection_changed = force || !record.rendered
@@ -549,6 +743,126 @@ bool focus_managed_list_target(Rml::ElementDocument* document,
     focus->SetAttribute("tabindex", "0");
     focus->Focus();
     return true;
+}
+
+bool begin_managed_list_reorder(ManagedListReorderState& state,
+    Rml::Element* element,
+    const VirtualListHost& host,
+    float pointer_x,
+    float pointer_y)
+{
+    auto* list = ancestor_with_class(element, "managed_list_rows");
+    if (state.active() || !list || !std::isfinite(pointer_x)
+        || !std::isfinite(pointer_y)) {
+        return false;
+    }
+    const std::string list_id = list->GetAttribute<Rml::String>(
+        "data-list-id", "");
+    const auto snapshot = host.reorder_snapshot(list_id);
+    if (!snapshot) {
+        return false;
+    }
+    const auto source = row_index(element, list_id, snapshot->item_count);
+    if (!source) {
+        return false;
+    }
+    state = ManagedListReorderState{
+        .list_id = list_id,
+        .item_count = snapshot->item_count,
+        .source_index = *source,
+        .insertion_index = *source,
+        .revision = snapshot->revision,
+        .start_x = pointer_x,
+        .start_y = pointer_y,
+    };
+    return true;
+}
+
+bool update_managed_list_reorder(ManagedListReorderState& state,
+    Rml::ElementDocument* document,
+    VirtualListHost& host,
+    ManagedListRenderState& render_state,
+    float pointer_x,
+    float pointer_y,
+    float threshold,
+    float scroll_edge,
+    float scroll_step)
+{
+    if (!state.active()) {
+        return false;
+    }
+    const auto snapshot = host.reorder_snapshot(state.list_id);
+    auto* list = find_managed_list(document, state.list_id);
+    if (!snapshot || snapshot->item_count != state.item_count
+        || snapshot->revision != state.revision || !list) {
+        clear_managed_list_reorder(state, document);
+        return true;
+    }
+
+    const Rml::Vector2f point{pointer_x, pointer_y};
+    bool pointer_inside = list->IsPointWithinElement(point);
+    if (!update_reorder_target(state, list, pointer_x, pointer_y,
+            pointer_inside, threshold)) {
+        clear_managed_list_reorder(state, document);
+        return true;
+    }
+    if (!state.dragging || !pointer_inside
+        || !auto_scroll_reorder(list, pointer_y, scroll_edge, scroll_step)) {
+        return true;
+    }
+
+    (void)sync_managed_lists(document, host, render_state, false);
+    if (auto* context = document->GetContext()) {
+        context->Update();
+    }
+    list = find_managed_list(document, state.list_id);
+    if (!list) {
+        clear_managed_list_reorder(state, document);
+        return true;
+    }
+    pointer_inside = list->IsPointWithinElement(point);
+    (void)update_reorder_target(state, list, pointer_x, pointer_y,
+        pointer_inside, threshold);
+    return true;
+}
+
+std::optional<int> managed_list_reorder_destination(
+    const ManagedListReorderState& state) noexcept
+{
+    if (!state.active() || !state.dragging || state.item_count <= 1
+        || state.source_index < 0 || state.source_index >= state.item_count
+        || state.insertion_index < 0
+        || state.insertion_index > state.item_count) {
+        return std::nullopt;
+    }
+    const int destination = state.insertion_index > state.source_index
+        ? state.insertion_index - 1
+        : state.insertion_index;
+    return destination == state.source_index
+        ? std::nullopt
+        : std::optional<int>{destination};
+}
+
+bool commit_managed_list_reorder(ManagedListReorderState& state,
+    Rml::ElementDocument* document,
+    VirtualListHost& host)
+{
+    const auto destination = managed_list_reorder_destination(state);
+    const std::string list_id = state.list_id;
+    const int source_index = state.source_index;
+    const uint64_t revision = state.revision;
+    clear_managed_list_reorder(state, document);
+    return destination
+        && host.push_reorder(
+            list_id, source_index, *destination, revision);
+}
+
+void clear_managed_list_reorder(
+    ManagedListReorderState& state, Rml::ElementDocument* document)
+{
+    auto* list = find_managed_list(document, state.list_id);
+    clear_reorder_classes(list);
+    state = {};
 }
 
 bool cycle_managed_list_element(

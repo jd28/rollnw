@@ -8,5 +8,6 @@
 <body>
   <div id="command_form_overlay"></div>
   <div id="blueprint_operation_overlay"></div>
+  <div id="project_load_overlay"></div>
 </body>
 </rml>

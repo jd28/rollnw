@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 
 #include "../tools/client/appearance_catalog.hpp"
+#include "../tools/client/area_door_hooks.hpp"
 #include "../tools/client/object_document.hpp"
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/workspace.hpp"
 #include "../tools/ui/smalls_creature_properties.hpp"
 
+#include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
@@ -18,11 +20,15 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
+#include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/rules/Class.hpp>
 #include <nw/rules/Spell.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/Gff.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -40,6 +46,53 @@
 namespace nwk = nw::kernel;
 
 namespace {
+
+nw::Sound* make_test_sound(
+    bool positional,
+    float distance_min = 1.0f,
+    float distance_max = 10.0f,
+    bool random_position = false)
+{
+    nw::GffBuilder builder{nw::Sound::serial_id};
+    builder.top.add_field("TemplateResRef", nw::Resref{"test_sound"});
+    builder.top.add_field("MinDistance", distance_min);
+    builder.top.add_field("MaxDistance", distance_max);
+    builder.top.add_field("Elevation", 0.0f);
+    builder.top.add_field("Positional", uint8_t{positional});
+    builder.top.add_field("RandomPosition", uint8_t{random_position});
+    builder.build();
+    nw::ResourceData resource;
+    resource.bytes = builder.to_byte_array();
+    nw::Gff gff{std::move(resource)};
+    if (!gff.valid()) { return nullptr; }
+
+    auto* sound = nwk::objects().make<nw::Sound>();
+    if (!sound || !nw::deserialize(sound, gff.toplevel(), nw::SerializationProfile::blueprint)) {
+        if (sound) { nwk::objects().destroy(sound->handle()); }
+        return nullptr;
+    }
+    return sound;
+}
+
+nw::toolset::ObjectEditPatch sound_state_patch(
+    nw::Sound* sound,
+    std::string_view field,
+    int32_t before,
+    int32_t after)
+{
+    auto& runtime = nwk::runtime();
+    const auto propset_type = runtime.type_id(
+        "nwn1.propsets.SoundState", false);
+    const auto* definition = runtime.get_struct_def(propset_type);
+    EXPECT_NE(definition, nullptr);
+    return {
+        sound->handle(),
+        propset_type,
+        definition ? definition->field_index(field) : UINT32_MAX,
+        before,
+        after,
+    };
+}
 
 nw::toolset::ObjectEditPatch creature_plot_patch(nw::Creature* creature, int32_t before, int32_t after)
 {
@@ -172,6 +225,28 @@ std::optional<nw::toolset::ObjectAppearanceSelectors> first_other_door_appearanc
         if (exists.ok() && exists.value.type_id == runtime.bool_type()
             && exists.value.data.bval) {
             return candidate;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<nw::toolset::ObjectAppearanceSelectors> first_tileset_door_appearance(
+    nw::smalls::Runtime& runtime)
+{
+    const auto count = runtime.execute_script(
+        "nwn1.doors", "count_doortypes", {});
+    if (!count.ok() || count.value.type_id != runtime.int_type()) {
+        return std::nullopt;
+    }
+
+    for (int32_t row = 1; row < count.value.data.ival; ++row) {
+        const auto exists = runtime.execute_script("nwn1.doors",
+            "appearance_exists",
+            {nw::smalls::Value::make_int(row),
+                nw::smalls::Value::make_int(0)});
+        if (exists.ok() && exists.value.type_id == runtime.bool_type()
+            && exists.value.data.bval) {
+            return nw::toolset::ObjectAppearanceSelectors{row, 0};
         }
     }
     return std::nullopt;
@@ -1219,8 +1294,19 @@ TEST(ClientObjectEdits, SoundResourceReplacementPersistsAcrossUndoRedo)
         nwk::runtime(), sound->handle());
     ASSERT_TRUE(before);
     ASSERT_FALSE(before->empty());
-    auto after = *before;
-    after.push_back(before->front());
+    const std::array additions{before->front()};
+    auto edit = nw::toolset::make_sound_resource_additions(
+        nwk::runtime(), sound->handle(), additions);
+    ASSERT_TRUE(edit);
+    EXPECT_EQ(edit->before, *before);
+    ASSERT_EQ(edit->after.size(), before->size() + 1);
+    EXPECT_EQ(edit->after.back(), before->front());
+    EXPECT_FALSE(nw::toolset::make_sound_resource_additions(
+        nwk::runtime(), sound->handle(), std::span<const nw::Resref>{}));
+    const std::array invalid_additions{nw::Resref{}};
+    EXPECT_FALSE(nw::toolset::make_sound_resource_additions(
+        nwk::runtime(), sound->handle(), invalid_additions));
+    const auto after = edit->after;
 
     nw::toolset::WorkspaceState workspace;
     workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
@@ -1228,13 +1314,8 @@ TEST(ClientObjectEdits, SoundResourceReplacementPersistsAcrossUndoRedo)
     context.workspace = &workspace;
     context.active_tab_id = workspace.active_tab_id();
 
-    nw::toolset::SoundResourceEdit edit{
-        .sound = sound->handle(),
-        .before = *before,
-        .after = after,
-    };
     auto committed = nw::toolset::commit_sound_resource_edit(
-        edit, "Add sound resource", context);
+        *edit, "Add sound resource", context);
     ASSERT_TRUE(committed.ok()) << committed.message;
     ASSERT_TRUE(committed.undo_action);
     EXPECT_EQ(nw::toolset::snapshot_sound_resources(
@@ -1242,7 +1323,7 @@ TEST(ClientObjectEdits, SoundResourceReplacementPersistsAcrossUndoRedo)
         std::optional{after});
 
     const auto stale = nw::toolset::apply_sound_resource_edit(
-        nwk::runtime(), edit, nw::toolset::ObjectEditDirection::forward);
+        nwk::runtime(), *edit, nw::toolset::ObjectEditDirection::forward);
     EXPECT_EQ(stale.status, nw::toolset::ObjectEditStatus::stale_value);
 
     workspace.push_undo(*committed.undo_action);
@@ -1282,6 +1363,384 @@ TEST(ClientObjectEdits, SoundResourceReplacementPersistsAcrossUndoRedo)
     EXPECT_EQ(nw::toolset::snapshot_sound_resources(
                   nwk::runtime(), reloaded->handle()),
         std::optional{after});
+}
+
+TEST(ClientObjectEdits, SoundResourceReorderMovesOneEntryAndReplaysExactOrder)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* sound = nwk::objects().load_file<nw::Sound>(
+        "test_data/user/development/blue_bell.uts");
+    ASSERT_NE(sound, nullptr);
+
+    const std::array additions{
+        nw::Resref{"zz_order_a"},
+        nw::Resref{"zz_order_b"},
+    };
+    auto added = nw::toolset::make_sound_resource_additions(
+        nwk::runtime(), sound->handle(), additions);
+    ASSERT_TRUE(added);
+    ASSERT_TRUE(nw::toolset::apply_sound_resource_edit(nwk::runtime(),
+        *added, nw::toolset::ObjectEditDirection::forward)
+            .ok());
+
+    const size_t source = added->after.size() - 1;
+    auto reordered = nw::toolset::make_reordered_sound_resources(
+        nwk::runtime(), sound->handle(), source, 0);
+    ASSERT_TRUE(reordered);
+    ASSERT_EQ(reordered->before, added->after);
+    ASSERT_EQ(reordered->after.size(), reordered->before.size());
+    EXPECT_EQ(reordered->after.front(), additions.back());
+    EXPECT_TRUE(std::ranges::equal(
+        std::span{reordered->after}.subspan(1),
+        std::span{reordered->before}.first(source)));
+    EXPECT_FALSE(nw::toolset::make_reordered_sound_resources(
+        nwk::runtime(), sound->handle(), 0, 0));
+    EXPECT_FALSE(nw::toolset::make_reordered_sound_resources(
+        nwk::runtime(), sound->handle(), reordered->before.size(), 0));
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test",
+        nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context{
+        .active_tab_id = workspace.active_tab_id(),
+        .workspace = &workspace,
+    };
+    auto committed = nw::toolset::commit_sound_resource_edit(
+        *reordered, "Reorder sound resources", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    workspace.push_undo(*committed.undo_action);
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        std::optional{reordered->after});
+
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        std::optional{reordered->before});
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  nwk::runtime(), sound->handle()),
+        std::optional{reordered->after});
+}
+
+TEST(ClientObjectEdits, SoundRadiusReplacementUsesTypedProfilePolicyAndReplays)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* sound = make_test_sound(true);
+    ASSERT_NE(sound, nullptr);
+    const auto before = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(before);
+    ASSERT_TRUE(before->positional);
+    const std::array sound_rows{
+        sound->handle(),
+        nw::ObjectHandle{},
+    };
+    std::array<nwn1::SoundToolsetVisualState, 2> visual_rows{};
+    std::array<uint8_t, 2> visual_valid{};
+    const auto visual_stats = nwn1::sound_toolset_visual_states(
+        sound_rows, visual_rows, visual_valid);
+    EXPECT_EQ(visual_stats.input_count, 2u);
+    EXPECT_EQ(visual_stats.output_count, 1u);
+    EXPECT_EQ(visual_stats.rejected_count, 1u);
+    EXPECT_EQ(visual_valid, (std::array<uint8_t, 2>{1, 0}));
+    EXPECT_EQ(visual_rows[0].distance_max, before->distance_max);
+
+    std::array<nwn1::SoundToolsetVisualState, 1> short_output{};
+    const auto mismatched_stats = nwn1::sound_toolset_visual_states(
+        sound_rows, short_output, visual_valid);
+    EXPECT_EQ(mismatched_stats.output_count, 0u);
+    EXPECT_EQ(mismatched_stats.rejected_count, sound_rows.size());
+    EXPECT_EQ(visual_valid, (std::array<uint8_t, 2>{0, 0}));
+    const float after = before->distance_max + 1.0f;
+
+    nw::toolset::CommandContext context;
+    auto command = nw::toolset::commit_sound_radius_edit(
+        {
+            .sound = sound->handle(),
+            .before = before->distance_max,
+            .after = after,
+        },
+        "Resize Sound radius",
+        context);
+    ASSERT_TRUE(command.ok()) << command.message;
+    ASSERT_TRUE(command.undo_action);
+    ASSERT_TRUE(nwn1::sound_toolset_visual_state(sound->handle()));
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())->distance_min,
+        before->distance_min);
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())->distance_max,
+        after);
+
+    EXPECT_TRUE(command.undo_action->undo(context).ok());
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())->distance_min,
+        before->distance_min);
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())->distance_max,
+        before->distance_max);
+    EXPECT_TRUE(command.undo_action->redo(context).ok());
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())->distance_min,
+        before->distance_min);
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())->distance_max,
+        after);
+
+    EXPECT_EQ(nw::toolset::apply_sound_radius_edit(
+                  {
+                      .sound = sound->handle(),
+                      .before = before->distance_max,
+                      .after = after + 1.0f,
+                  },
+                  nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::stale_value);
+    nwk::objects().destroy(sound->handle());
+}
+
+TEST(ClientObjectEdits, SoundIntegerEditsRequestBaseVisualRebuild)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* sound = make_test_sound(true);
+    ASSERT_NE(sound, nullptr);
+
+    nw::toolset::ObjectEditBatch positional;
+    positional.kind = nw::toolset::ObjectEditKind::propset_int;
+    positional.patches.push_back(
+        sound_state_patch(sound, "positional", 1, 0));
+    auto result = nw::toolset::apply_object_edits(
+        nwk::runtime(), positional, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(result.ok()) << result.diagnostic;
+    ASSERT_TRUE(nwn1::sound_toolset_visual_state(sound->handle()));
+    EXPECT_FALSE(nwn1::sound_toolset_visual_state(sound->handle())->positional);
+    EXPECT_EQ(nw::toolset::object_mutation_state().kind,
+        nw::toolset::ObjectMutationKind::visual);
+    EXPECT_EQ(nw::toolset::object_mutation_state().visual_kind,
+        nw::toolset::ObjectVisualMutationKind::base_appearance);
+
+    result = nw::toolset::apply_object_edits(
+        nwk::runtime(), positional, nw::toolset::ObjectEditDirection::inverse);
+    ASSERT_TRUE(result.ok()) << result.diagnostic;
+    ASSERT_TRUE(nwn1::sound_toolset_visual_state(sound->handle()));
+    EXPECT_TRUE(nwn1::sound_toolset_visual_state(sound->handle())->positional);
+
+    nw::toolset::ObjectEditBatch random_position;
+    random_position.kind = nw::toolset::ObjectEditKind::propset_int;
+    random_position.patches.push_back(
+        sound_state_patch(sound, "random_position", 0, 1));
+    result = nw::toolset::apply_object_edits(nwk::runtime(),
+        random_position,
+        nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(result.ok()) << result.diagnostic;
+    ASSERT_TRUE(nwn1::sound_toolset_visual_state(sound->handle()));
+    EXPECT_TRUE(
+        nwn1::sound_toolset_visual_state(sound->handle())->random_position);
+    EXPECT_EQ(nw::toolset::object_mutation_state().visual_kind,
+        nw::toolset::ObjectVisualMutationKind::base_appearance);
+
+    nwk::objects().destroy(sound->handle());
+}
+
+TEST(ClientObjectEdits, RejectsRadiusReplacementForNonPositionalSound)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+
+    auto* sound = nwk::objects().load_file<nw::Sound>(
+        "test_data/user/development/blue_bell.uts");
+    ASSERT_NE(sound, nullptr);
+    const auto visual = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(visual);
+    ASSERT_FALSE(visual->positional);
+    const float distance_before = visual->distance_max;
+
+    const auto result = nw::toolset::apply_sound_radius_edit(
+        {
+            .sound = sound->handle(),
+            .before = visual->distance_max,
+            .after = visual->distance_max + 2.0f,
+        },
+        nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(result.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(result.diagnostic,
+        "Non-positional Sounds have no editable radius");
+    ASSERT_TRUE(nwn1::sound_toolset_visual_state(sound->handle()));
+    EXPECT_EQ(nwn1::sound_toolset_visual_state(sound->handle())
+                  ->distance_max,
+        distance_before);
+    nwk::objects().destroy(sound->handle());
+}
+
+TEST(ClientObjectEdits, LoadsValidatedRegionGeometryAndEncounterSpawns)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* area = nwk::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->width = area->height = 2;
+
+    const std::array local_points{
+        glm::vec3{0.0f, 0.0f, 0.0f},
+        glm::vec3{3.0f, 0.0f, 0.0f},
+        glm::vec3{1.5f, 2.0f, 0.0f},
+    };
+    const std::array spawn_points{
+        nw::ObjectSpawnPoint{
+            .position = {5.0f, 5.0f, 0.0f},
+            .orientation = 0.5f,
+        },
+    };
+    const std::array placements{
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = {nw::Resref{"boundelementallo"}, nw::ResourceType::ute},
+            .transform = {
+                .position = {4.0f, 4.0f, 0.0f},
+                .orientation = {1.0f, 0.0f, 0.0f},
+                .scale = {1.0f, 1.0f, 1.0f},
+            },
+            .geometry_points = local_points,
+            .spawn_points = spawn_points,
+        },
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = {nw::Resref{"newtransition001"}, nw::ResourceType::utt},
+            .transform = {
+                .position = {10.0f, 10.0f, 0.0f},
+                .orientation = {1.0f, 0.0f, 0.0f},
+                .scale = {1.0f, 1.0f, 1.0f},
+            },
+            .geometry_points = local_points,
+        },
+    };
+    auto loaded = nw::toolset::load_area_object_blueprints(
+        area->handle(), placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    ASSERT_EQ(loaded.objects.size(), placements.size());
+    const auto* encounter_geometry
+        = nwk::objects().components().find_geometry(loaded.objects[0]);
+    const auto* trigger_geometry
+        = nwk::objects().components().find_geometry(loaded.objects[1]);
+    ASSERT_NE(encounter_geometry, nullptr);
+    ASSERT_NE(trigger_geometry, nullptr);
+    EXPECT_EQ(encounter_geometry->points,
+        (nw::Vector<glm::vec3>{local_points.begin(), local_points.end()}));
+    EXPECT_EQ(encounter_geometry->spawn_points,
+        (nw::Vector<nw::ObjectSpawnPoint>{spawn_points.begin(), spawn_points.end()}));
+    EXPECT_EQ(trigger_geometry->points,
+        (nw::Vector<glm::vec3>{local_points.begin(), local_points.end()}));
+
+    const auto trigger_before = read_transform(loaded.objects[1]);
+    auto trigger_after = trigger_before;
+    trigger_after.position = {19.0f, 19.0f, 0.0f};
+    EXPECT_EQ(nw::toolset::apply_object_transform_edit(
+                  {
+                      .object = loaded.objects[1],
+                      .before = trigger_before,
+                      .after = trigger_after,
+                      .area = area->handle(),
+                  },
+                  nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(read_transform(loaded.objects[1]), trigger_before);
+
+    const std::array crossing{
+        glm::vec3{0.0f, 0.0f, 0.0f},
+        glm::vec3{3.0f, 3.0f, 0.0f},
+        glm::vec3{0.0f, 3.0f, 0.0f},
+        glm::vec3{3.0f, 0.0f, 0.0f},
+    };
+    const std::array invalid_rows{
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = placements[1].resource,
+            .transform = placements[1].transform,
+            .geometry_points = crossing,
+        },
+    };
+    auto rejected = nw::toolset::load_area_object_blueprints(
+        area->handle(), invalid_rows);
+    EXPECT_EQ(rejected.status,
+        nw::toolset::AreaObjectBlueprintLoadStatus::invalid_input);
+    EXPECT_TRUE(rejected.objects.empty());
+
+    for (const auto object : loaded.objects) {
+        nwk::objects().destroy(object);
+    }
+    nwk::objects().destroy(area->handle());
+}
+
+TEST(ClientObjectEdits, EncounterSpawnPointBatchesAddMoveDeleteAndReplay)
+{
+    auto* area = nwk::objects().make<nw::Area>();
+    auto* encounter = nwk::objects().make<nw::Encounter>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(encounter, nullptr);
+    area->width = area->height = 2;
+    area->encounters.push_back(encounter);
+    auto* spatial = nwk::objects().components().get_or_create_spatial(
+        encounter->handle());
+    ASSERT_NE(spatial, nullptr);
+    spatial->area = area->handle().id;
+
+    const std::vector<nw::ObjectSpawnPoint> added{
+        {.position = {2.0f, 3.0f, 0.0f}, .orientation = 0.25f},
+        {.position = {7.0f, 8.0f, 1.0f}, .orientation = 1.5f},
+    };
+    nw::toolset::CommandContext context;
+    auto command = nw::toolset::commit_encounter_spawn_point_edit(
+        {
+            .area = area->handle(),
+            .encounter = encounter->handle(),
+            .before = {},
+            .after = added,
+        },
+        "Add spawn points",
+        context);
+    ASSERT_TRUE(command.ok()) << command.message;
+    ASSERT_TRUE(command.undo_action);
+    auto* geometry = nwk::objects().components().find_geometry(
+        encounter->handle());
+    ASSERT_NE(geometry, nullptr);
+    EXPECT_EQ(geometry->spawn_points,
+        nw::Vector<nw::ObjectSpawnPoint>(added.begin(), added.end()));
+
+    EXPECT_TRUE(command.undo_action->undo(context).ok());
+    geometry = nwk::objects().components().find_geometry(
+        encounter->handle());
+    EXPECT_TRUE(!geometry || geometry->spawn_points.empty());
+    EXPECT_TRUE(command.undo_action->redo(context).ok());
+
+    geometry = nwk::objects().components().find_geometry(
+        encounter->handle());
+    ASSERT_NE(geometry, nullptr);
+    std::vector<nw::ObjectSpawnPoint> moved{
+        geometry->spawn_points.begin(), geometry->spawn_points.end()};
+    moved[0].position = {4.0f, 5.0f, 0.0f};
+    EXPECT_TRUE(nw::toolset::apply_encounter_spawn_point_edit(
+        {
+            .area = area->handle(),
+            .encounter = encounter->handle(),
+            .before = added,
+            .after = moved,
+        },
+        nw::toolset::ObjectEditDirection::forward)
+            .ok());
+    EXPECT_EQ(nwk::objects().components().find_geometry(encounter->handle())->spawn_points[0].position,
+        moved[0].position);
+
+    const std::vector<nw::ObjectSpawnPoint> outside{
+        {.position = {21.0f, 3.0f, 0.0f}, .orientation = 0.0f},
+    };
+    EXPECT_FALSE(nw::toolset::apply_encounter_spawn_point_edit(
+        {
+            .area = area->handle(),
+            .encounter = encounter->handle(),
+            .before = moved,
+            .after = outside,
+        },
+        nw::toolset::ObjectEditDirection::forward)
+            .ok());
+
+    area->clear();
+    nwk::objects().destroy(area->handle());
 }
 
 TEST(ClientObjectEdits, StoreItemPlacementUsesExplicitCategoryAcrossUndoRedo)
@@ -2483,6 +2942,58 @@ TEST(ClientObjectEdits, TransformAppliesToPlaceableSpatialState)
     nwk::objects().destroy(placeable->handle());
 }
 
+TEST(ClientObjectEdits, LoadedAreaSoundsWaypointsAndTriggersUseSharedTransformPath)
+{
+    auto* module = nwk::load_module(
+        "test_data/user/modules/DockerDemo.mod", false);
+    ASSERT_NE(module, nullptr);
+    nw::Gff are{"test_data/user/development/test_area.are"};
+    nw::Gff git{"test_data/user/development/test_area.git"};
+    nw::Gff gic{"test_data/user/development/test_area.gic"};
+    ASSERT_TRUE(are.valid());
+    ASSERT_TRUE(git.valid());
+    ASSERT_TRUE(gic.valid());
+
+    auto* area = nwk::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_TRUE(nw::deserialize(
+        area, are.toplevel(), git.toplevel(), gic.toplevel()));
+    ASSERT_TRUE(area->instantiate());
+    ASSERT_FALSE(area->sounds.empty());
+    ASSERT_FALSE(area->waypoints.empty());
+    ASSERT_FALSE(area->triggers.empty());
+    const std::array objects{
+        area->sounds.front()->handle(),
+        area->waypoints.front()->handle(),
+        area->triggers.front()->handle(),
+    };
+
+    for (const auto object : objects) {
+        const auto before = read_transform(object);
+        auto after = before;
+        const float area_center_x
+            = static_cast<float>(area->width) * 5.0f;
+        const float area_center_y
+            = static_cast<float>(area->height) * 5.0f;
+        after.position.x += before.position.x < area_center_x ? 0.125f : -0.125f;
+        after.position.y += before.position.y < area_center_y ? 0.125f : -0.125f;
+        const auto applied = nw::toolset::apply_object_transform_edit(
+            {
+                .object = object,
+                .before = before,
+                .after = after,
+                .area = area->handle(),
+            },
+            nw::toolset::ObjectEditDirection::forward);
+        ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+        EXPECT_EQ(read_transform(object).position, after.position);
+    }
+
+    const auto area_handle = area->handle();
+    area->clear();
+    nwk::objects().destroy(area_handle);
+}
+
 TEST(ClientObjectEdits, AreaObjectMembershipDuplicatesDeletesAndReplaysStableHandles)
 {
     auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod", false);
@@ -2601,6 +3112,224 @@ TEST(ClientObjectEdits, AreaObjectMembershipDuplicatesDeletesAndReplaysStableHan
     }
 
     EXPECT_FALSE(nwk::objects().valid(clone_handle));
+    area->clear();
+    nwk::objects().destroy(area->handle());
+}
+
+TEST(ClientObjectEdits, GenericDoorDuplicatesAtAnUnoccupiedHook)
+{
+    auto* area = nwk::objects().make<nw::Area>();
+    auto* door = nwk::objects().make<nw::Door>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(door, nullptr);
+
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    tileset.tiles.resize(1);
+    tileset.tiles[0].door_slots.push_back({
+        .position = {-2.0f, 0.0f, 0.0f},
+        .orientation = 0.0f,
+        .type = 65,
+    });
+    tileset.tiles[0].door_slots.push_back({
+        .position = {2.0f, 0.0f, 0.0f},
+        .orientation = 180.0f,
+        .type = 66,
+    });
+    area->tileset = &tileset;
+    area->width = area->height = 1;
+    area->tiles.push_back({.id = 0, .height = 0, .orientation = 0});
+
+    nw::toolset::AreaDoorHookSnapshot hooks;
+    std::string diagnostic;
+    ASSERT_TRUE(nw::toolset::build_area_door_hooks(*area, hooks, diagnostic))
+        << diagnostic;
+    ASSERT_EQ(hooks.hooks.size(), 2u);
+    ASSERT_TRUE(nwk::objects().components().set_area(
+        door->handle(), area->handle().id));
+    ASSERT_TRUE(nwk::objects().components().set_position(
+        door->handle(), hooks.hooks[0].position));
+    ASSERT_TRUE(nwk::objects().components().set_orientation(
+        door->handle(), hooks.hooks[0].orientation));
+    area->doors.push_back(door);
+
+    nw::toolset::CommandContext context;
+    const std::array objects{door->handle()};
+    auto duplicated = nw::toolset::duplicate_area_objects(
+        area->handle(), objects, "Duplicate Door", context);
+    ASSERT_TRUE(duplicated.ok()) << duplicated.message;
+    ASSERT_TRUE(duplicated.undo_action);
+    ASSERT_EQ(area->doors.size(), 2u);
+    const auto clone = area->doors.back()->handle();
+    const auto* clone_spatial
+        = nwk::objects().components().find_spatial(clone);
+    ASSERT_NE(clone_spatial, nullptr);
+    EXPECT_EQ(clone_spatial->position, hooks.hooks[1].position);
+    EXPECT_EQ(clone_spatial->orientation, hooks.hooks[1].orientation);
+
+    auto off_hook = read_transform(clone);
+    off_hook.position.x += 0.25f;
+    const auto rejected = nw::toolset::apply_object_transform_edit(
+        {
+            .object = clone,
+            .before = read_transform(clone),
+            .after = off_hook,
+            .area = area->handle(),
+        },
+        nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(rejected.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(read_transform(clone).position, hooks.hooks[1].position);
+
+    EXPECT_TRUE(duplicated.undo_action->undo(context).ok());
+    EXPECT_EQ(area->doors.size(), 1u);
+    EXPECT_TRUE(nwk::objects().valid(clone));
+    EXPECT_TRUE(duplicated.undo_action->redo(context).ok());
+    EXPECT_EQ(area->doors.size(), 2u);
+    EXPECT_EQ(area->doors.back()->handle(), clone);
+
+    area->clear();
+    nwk::objects().destroy(area->handle());
+}
+
+TEST(ClientObjectEdits, TilesetDoorRedoRejectsAChangedHookTransform)
+{
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto* area = nwk::objects().make<nw::Area>();
+    auto* door = nwk::objects().make<nw::Door>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(door, nullptr);
+
+    auto& runtime = nwk::runtime();
+    const auto appearance = first_tileset_door_appearance(runtime);
+    ASSERT_TRUE(appearance);
+    auto appearance_edit = nw::toolset::make_door_appearance_edit(runtime,
+        door->handle(), appearance->appearance, appearance->generic_type);
+    ASSERT_TRUE(appearance_edit);
+    ASSERT_TRUE(nw::toolset::apply_object_appearance_edit(runtime,
+        *appearance_edit, nw::toolset::ObjectEditDirection::forward)
+            .ok());
+
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    tileset.tiles.resize(1);
+    tileset.tiles[0].door_slots.push_back({
+        .position = {0.0f, 0.0f, 0.0f},
+        .orientation = 0.0f,
+        .type = appearance->appearance,
+    });
+    area->tileset = &tileset;
+    area->width = area->height = 1;
+    area->tiles.push_back({.id = 0, .height = 0, .orientation = 0});
+
+    auto& components = nwk::objects().components();
+    ASSERT_TRUE(components.set_area(door->handle(), area->handle().id));
+    ASSERT_TRUE(components.set_position(
+        door->handle(), {5.0f, 5.0f, 0.0f}));
+    ASSERT_TRUE(components.set_orientation(
+        door->handle(), {1.0f, 0.0f, 0.0f}));
+
+    nw::toolset::CommandContext context;
+    const std::array objects{door->handle()};
+    auto placed = nw::toolset::place_area_objects(
+        area->handle(), objects, "Place Door", context);
+    ASSERT_TRUE(placed.ok()) << placed.message;
+    ASSERT_TRUE(placed.undo_action);
+    ASSERT_EQ(area->doors.size(), 1u);
+
+    ASSERT_TRUE(placed.undo_action->undo(context).ok());
+    ASSERT_TRUE(area->doors.empty());
+    area->tiles[0].orientation = 1;
+    const auto rejected = placed.undo_action->redo(context);
+    EXPECT_EQ(rejected.status, nw::toolset::CommandStatus::failed);
+    EXPECT_NE(rejected.message.find("hook"), std::string::npos);
+    EXPECT_TRUE(area->doors.empty());
+    EXPECT_TRUE(nwk::objects().valid(door->handle()));
+
+    area->clear();
+    nwk::objects().destroy(area->handle());
+}
+
+TEST(ClientObjectEdits, AreaObjectMembershipDeletesAndRestoresAllAuthoredKinds)
+{
+    auto* area = nwk::objects().make<nw::Area>();
+    auto* creature = nwk::objects().make<nw::Creature>();
+    auto* door = nwk::objects().make<nw::Door>();
+    auto* encounter = nwk::objects().make<nw::Encounter>();
+    auto* item = nwk::objects().make<nw::Item>();
+    auto* placeable = nwk::objects().make<nw::Placeable>();
+    auto* sound = nwk::objects().make<nw::Sound>();
+    auto* store = nwk::objects().make<nw::Store>();
+    auto* trigger = nwk::objects().make<nw::Trigger>();
+    auto* waypoint = nwk::objects().make<nw::Waypoint>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(creature, nullptr);
+    ASSERT_NE(door, nullptr);
+    ASSERT_NE(encounter, nullptr);
+    ASSERT_NE(item, nullptr);
+    ASSERT_NE(placeable, nullptr);
+    ASSERT_NE(sound, nullptr);
+    ASSERT_NE(store, nullptr);
+    ASSERT_NE(trigger, nullptr);
+    ASSERT_NE(waypoint, nullptr);
+
+    area->width = 1;
+    area->height = 1;
+    area->creatures.push_back(creature);
+    area->doors.push_back(door);
+    area->encounters.push_back(encounter);
+    area->items.push_back(item);
+    area->placeables.push_back(placeable);
+    area->sounds.push_back(sound);
+    area->stores.push_back(store);
+    area->triggers.push_back(trigger);
+    area->waypoints.push_back(waypoint);
+
+    const std::array objects{
+        creature->handle(), door->handle(), encounter->handle(),
+        item->handle(), placeable->handle(), sound->handle(),
+        store->handle(), trigger->handle(), waypoint->handle()};
+    for (const auto object : objects) {
+        ASSERT_TRUE(nwk::objects().components().set_area(object, area->handle().id));
+        ASSERT_TRUE(nwk::objects().components().set_position(object, {5.0f, 5.0f, 0.0f}));
+    }
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("area:all-kinds", "All Kinds", nw::toolset::WorkspaceTabKind::area);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    context.area_object = area->handle();
+
+    auto deleted = nw::toolset::delete_area_objects(
+        area->handle(), objects, "Delete area objects", context);
+    ASSERT_TRUE(deleted.ok()) << deleted.message;
+    ASSERT_TRUE(deleted.undo_action);
+    EXPECT_TRUE(area->creatures.empty());
+    EXPECT_TRUE(area->doors.empty());
+    EXPECT_TRUE(area->encounters.empty());
+    EXPECT_TRUE(area->items.empty());
+    EXPECT_TRUE(area->placeables.empty());
+    EXPECT_TRUE(area->sounds.empty());
+    EXPECT_TRUE(area->stores.empty());
+    EXPECT_TRUE(area->triggers.empty());
+    EXPECT_TRUE(area->waypoints.empty());
+
+    workspace.push_undo(*deleted.undo_action);
+    const auto undone = workspace.undo(context);
+    ASSERT_TRUE(undone.ok()) << undone.message;
+    EXPECT_EQ(area->creatures.front(), creature);
+    EXPECT_EQ(area->doors.front(), door);
+    EXPECT_EQ(area->encounters.front(), encounter);
+    EXPECT_EQ(area->items.front(), item);
+    EXPECT_EQ(area->placeables.front(), placeable);
+    EXPECT_EQ(area->sounds.front(), sound);
+    EXPECT_EQ(area->stores.front(), store);
+    EXPECT_EQ(area->triggers.front(), trigger);
+    EXPECT_EQ(area->waypoints.front(), waypoint);
+
+    const auto redone = workspace.redo(context);
+    ASSERT_TRUE(redone.ok()) << redone.message;
     area->clear();
     nwk::objects().destroy(area->handle());
 }
@@ -2756,7 +3485,7 @@ TEST(ClientObjectEdits, LoadsDetachedBlueprintAndPlacesExactHandleWithUndoOwners
         EXPECT_TRUE(nwk::objects().valid(placed_placeable_handle));
 
         const nw::toolset::AreaObjectBlueprintPlacement unsupported{
-            .resource = nw::Resource{nw::Resref{"door_ttr_002"}, nw::ResourceType::utd},
+            .resource = nw::Resource{nw::Resref{"invalid"}, nw::ResourceType::wav},
             .transform = placements.front().transform,
         };
         const std::array unsupported_rows{unsupported};

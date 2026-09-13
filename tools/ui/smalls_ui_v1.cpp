@@ -247,6 +247,10 @@ void register_smalls_ui_v1(Runtime& rt)
                                                                                {"list_id", rt.string_type()},
                                                                                {"function_name", rt.string_type()},
                                                                            });
+    auto list_on_reorder_meta = make_meta("list_on_reorder", rt.bool_type(), {
+                                                                                 {"list_id", rt.string_type()},
+                                                                                 {"function_name", rt.string_type()},
+                                                                             });
 
     ModuleInterface iface;
     iface.module_path = "core.ui.v1";
@@ -263,6 +267,7 @@ void register_smalls_ui_v1(Runtime& rt)
         list_on_select_meta,
         list_on_activate_meta,
         list_on_scroll_meta,
+        list_on_reorder_meta,
     };
     rt.register_native_interface(std::move(iface));
 
@@ -430,6 +435,7 @@ void register_smalls_ui_v1(Runtime& rt)
     register_callback("list_on_select", UiListEventType::select, std::move(list_on_select_meta));
     register_callback("list_on_activate", UiListEventType::activate, std::move(list_on_activate_meta));
     register_callback("list_on_scroll", UiListEventType::scroll, std::move(list_on_scroll_meta));
+    register_callback("list_on_reorder", UiListEventType::reorder, std::move(list_on_reorder_meta));
 }
 
 } // namespace nw::toolset

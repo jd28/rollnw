@@ -1708,7 +1708,6 @@ TEST(ClientRmlManagedList, FixedColumnGridMaterializesOnlyVisibleLogicalRows)
         });
     }
     ASSERT_TRUE(host.set_items("models", std::move(items)));
-
     const auto window = host.window("models", viewport_height, 0);
     ASSERT_TRUE(window);
     const std::string markup = nw::toolset::render_managed_list_window(
@@ -1737,6 +1736,191 @@ TEST(ClientRmlManagedList, FixedColumnGridMaterializesOnlyVisibleLogicalRows)
     EXPECT_NE(final_markup.find("data-index=\"99\""), std::string::npos);
     EXPECT_NE(final_markup.find("managed_list_grid_item selected"),
         std::string::npos);
+}
+
+TEST(ClientRmlManagedList, ReorderDestinationUsesOriginalInsertionSlots)
+{
+    nw::toolset::ManagedListReorderState state{
+        .list_id = "sounds",
+        .item_count = 4,
+        .source_index = 1,
+        .insertion_index = 0,
+        .dragging = true,
+    };
+    EXPECT_EQ(nw::toolset::managed_list_reorder_destination(state), 0);
+
+    state.insertion_index = 1;
+    EXPECT_FALSE(nw::toolset::managed_list_reorder_destination(state));
+    state.insertion_index = 2;
+    EXPECT_FALSE(nw::toolset::managed_list_reorder_destination(state));
+    state.insertion_index = 4;
+    EXPECT_EQ(nw::toolset::managed_list_reorder_destination(state), 3);
+
+    state.insertion_index = 5;
+    EXPECT_FALSE(nw::toolset::managed_list_reorder_destination(state));
+    state.source_index = -1;
+    EXPECT_FALSE(nw::toolset::managed_list_reorder_destination(state));
+}
+
+TEST(ClientRmlManagedList, ReorderGestureUsesRowHalvesAndMarksTheDropBoundary)
+{
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext(
+        "managed-list-reorder-test", {300, 180});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml><head><style>
+body { margin: 0px; }
+#sounds { display: block; width: 200px; height: 90px; overflow-y: auto; }
+.managed_list_row { display: block; width: 200px; height: 30px; }
+</style></head><body>
+<div id="sounds" class="managed_list_rows" data-list-id="sounds">
+  <div id="sound-0" class="managed_list_row" data-list-id="sounds" data-index="0">A</div>
+  <div id="sound-1" class="managed_list_row" data-list-id="sounds" data-index="1">B</div>
+  <div id="sound-2" class="managed_list_row" data-list-id="sounds" data-index="2">C</div>
+</div>
+</body></rml>)RML");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    auto* list = document->GetElementById("sounds");
+    auto* row0 = document->GetElementById("sound-0");
+    auto* row1 = document->GetElementById("sound-1");
+    auto* row2 = document->GetElementById("sound-2");
+    ASSERT_NE(list, nullptr);
+    ASSERT_NE(row0, nullptr);
+    ASSERT_NE(row1, nullptr);
+    ASSERT_NE(row2, nullptr);
+
+    nw::toolset::VirtualListHost host;
+    ASSERT_TRUE(host.create("sounds", {
+                                          .row_height = 30,
+                                          .overscan = 1,
+                                      }));
+    ASSERT_TRUE(host.set_items("sounds", {
+                                             {.key = "a", .cells = {"A", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                             {.key = "b", .cells = {"B", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                             {.key = "c", .cells = {"C", "", "", ""}, .cell_count = 1, .enabled_mask = 1},
+                                         }));
+    ASSERT_TRUE(host.set_callback(
+        "sounds", nw::toolset::UiListEventType::reorder, "on_reorder"));
+
+    nw::toolset::ManagedListReorderState state;
+    nw::toolset::ManagedListRenderState render_state;
+    const float start_y = row1->GetAbsoluteTop()
+        + 0.5f * row1->GetOffsetHeight();
+    ASSERT_TRUE(nw::toolset::begin_managed_list_reorder(
+        state, row1, host, 10.0f, start_y));
+    ASSERT_TRUE(nw::toolset::update_managed_list_reorder(state, document,
+        host, render_state, 10.0f, row0->GetAbsoluteTop() + 1.0f,
+        5.0f, 15.0f, 10.0f));
+    EXPECT_EQ(nw::toolset::managed_list_reorder_destination(state), 0);
+    EXPECT_TRUE(row1->IsClassSet("reorder_source"));
+    EXPECT_TRUE(row0->IsClassSet("reorder_before"));
+
+    ASSERT_TRUE(nw::toolset::update_managed_list_reorder(state, document,
+        host, render_state, 10.0f,
+        row2->GetAbsoluteTop() + row2->GetOffsetHeight() - 1.0f,
+        5.0f, 15.0f, 10.0f));
+    EXPECT_EQ(nw::toolset::managed_list_reorder_destination(state), 2);
+    EXPECT_FALSE(row0->IsClassSet("reorder_before"));
+    EXPECT_TRUE(row2->IsClassSet("reorder_after"));
+
+    ASSERT_TRUE(nw::toolset::commit_managed_list_reorder(
+        state, document, host));
+    EXPECT_FALSE(state.active());
+    EXPECT_FALSE(row1->IsClassSet("reorder_source"));
+    EXPECT_FALSE(row2->IsClassSet("reorder_after"));
+
+    const auto selected = host.get_selected("sounds");
+    ASSERT_TRUE(selected);
+    EXPECT_EQ(selected->index, 2);
+    std::vector<nw::toolset::UiListEvent> events;
+    host.drain_events([&](const nw::toolset::UiListEvent& event) {
+        events.push_back(event);
+    });
+    ASSERT_EQ(events.size(), 1);
+    EXPECT_EQ(events.front().type, nw::toolset::UiListEventType::reorder);
+    EXPECT_EQ(events.front().list_id(), "sounds");
+    EXPECT_EQ(events.front().reorder.source_index, 1);
+    EXPECT_EQ(events.front().reorder.destination_index, 2);
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("managed-list-reorder-test");
+}
+
+TEST(ClientRmlManagedList, ReorderGestureAutoScrollsOverflowingList)
+{
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext(
+        "managed-list-reorder-scroll-test", {300, 180});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml><head><style>
+body { margin: 0px; }
+#items { display: block; width: 200px; height: 60px; overflow-y: auto; }
+.managed_list_row { display: block; width: 200px; height: 30px; }
+</style></head><body>
+<div id="items" class="managed_list_rows" data-list-id="items"></div>
+</body></rml>)RML");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    nw::toolset::VirtualListHost host;
+    ASSERT_TRUE(host.create("items", {
+                                         .row_height = 30,
+                                         .overscan = 1,
+                                     }));
+    std::vector<nw::toolset::UiListItem> items;
+    for (int index = 0; index < 10; ++index) {
+        items.push_back({
+            .key = std::to_string(index),
+            .cells = {std::to_string(index), "", "", ""},
+            .cell_count = 1,
+            .enabled_mask = 1,
+        });
+    }
+    ASSERT_TRUE(host.set_items("items", std::move(items)));
+    ASSERT_TRUE(host.set_callback(
+        "items", nw::toolset::UiListEventType::reorder, "on_reorder"));
+    nw::toolset::ManagedListRenderState render_state;
+    ASSERT_TRUE(nw::toolset::sync_managed_lists(
+        document, host, render_state, true));
+    context->Update();
+
+    auto* list = document->GetElementById("items");
+    ASSERT_NE(list, nullptr);
+    EXPECT_TRUE(list->IsClassSet("reorderable"));
+    Rml::ElementList rows;
+    list->GetElementsByClassName(rows, "managed_list_row");
+    ASSERT_GE(rows.size(), 2);
+
+    nw::toolset::ManagedListReorderState state;
+    const float start_y = rows.front()->GetAbsoluteTop()
+        + 0.5f * rows.front()->GetOffsetHeight();
+    ASSERT_TRUE(nw::toolset::begin_managed_list_reorder(
+        state, rows.front(), host, 10.0f, start_y));
+    ASSERT_TRUE(nw::toolset::update_managed_list_reorder(state, document,
+        host, render_state, 10.0f,
+        list->GetAbsoluteTop() + list->GetClientHeight() - 1.0f,
+        5.0f, 15.0f, 10.0f));
+    EXPECT_GT(list->GetScrollTop(), 0.0f);
+    nw::toolset::clear_managed_list_reorder(state, document);
+    ASSERT_TRUE(host.destroy("items"));
+    EXPECT_TRUE(nw::toolset::sync_managed_lists(
+        document, host, render_state, false));
+    EXPECT_FALSE(list->IsClassSet("reorderable"));
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("managed-list-reorder-scroll-test");
 }
 
 TEST(ClientRmlManagedList, LargeSingleColumnSourceMaterializesOnlyViewportAndOverscan)
@@ -2635,7 +2819,7 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
         bool succeeded = true;
         host.drain_events([&](const nw::toolset::UiListEvent& event) {
             const auto* callback = host.callback_ptr(
-                event.selection.list_id, event.type);
+                event.list_id(), event.type);
             if (!callback) {
                 return;
             }
@@ -3193,7 +3377,7 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     ASSERT_TRUE(sound_resources_before);
     ASSERT_FALSE(sound_resources_before->empty());
     auto sound_resources_after = *sound_resources_before;
-    sound_resources_after.push_back(sound_resources_before->front());
+    sound_resources_after.push_back(nw::Resref{"zz_reorder"});
     const nw::toolset::SoundResourceEdit sound_edit{
         .sound = sound->handle(),
         .before = *sound_resources_before,
@@ -3211,6 +3395,41 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
         "data.sound.resources", 170, 0);
     ASSERT_TRUE(edited_sound_window);
     EXPECT_EQ(edited_sound_window->items.size(), sound_resources_after.size());
+    auto& list_host = nw::toolset::ui_v1_host();
+    EXPECT_EQ(list_host.callback("data.sound.resources",
+                  nw::toolset::UiListEventType::reorder),
+        "toolset.data_object_editor.on_sound_resource_reorder");
+
+    const auto reorder_snapshot = list_host.reorder_snapshot(
+        "data.sound.resources");
+    ASSERT_TRUE(reorder_snapshot);
+    const int source_index = reorder_snapshot->item_count - 1;
+    const size_t undo_count_before_reorder = workspace.undo_count();
+    ASSERT_TRUE(list_host.push_reorder("data.sound.resources",
+        source_index, 0, reorder_snapshot->revision));
+    ASSERT_TRUE(dispatch_managed_list_events());
+
+    auto reordered_sound_resources = sound_resources_after;
+    std::rotate(reordered_sound_resources.begin(),
+        reordered_sound_resources.end() - 1,
+        reordered_sound_resources.end());
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  runtime, sound->handle()),
+        std::optional{reordered_sound_resources});
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_reorder + 1);
+
+    ASSERT_TRUE(runtime.execute_script(
+                           "toolset.data_object_editor", "sound_resources_refresh", {})
+            .ok());
+    const auto reordered_sound_window = list_host.window(
+        "data.sound.resources", 170, 0);
+    ASSERT_TRUE(reordered_sound_window);
+    EXPECT_EQ(reordered_sound_window->selected_index, 0);
+    ASSERT_TRUE(workspace.undo(undo_context).ok());
+    EXPECT_EQ(nw::toolset::snapshot_sound_resources(
+                  runtime, sound->handle()),
+        std::optional{sound_resources_after});
+
     ASSERT_EQ(nw::toolset::apply_sound_resource_edit(
                   runtime, sound_edit,
                   nw::toolset::ObjectEditDirection::inverse)

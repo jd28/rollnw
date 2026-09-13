@@ -1,11 +1,15 @@
 #include "object_edits.hpp"
 
+#include "area_door_hooks.hpp"
 #include "area_navigation.hpp"
+#include "area_regions.hpp"
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/AreaTransforms.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/Module.hpp>
@@ -14,7 +18,10 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
+#include <nw/objects/Trigger.hpp>
+#include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/serialization/component_propset_json.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -42,6 +49,9 @@ namespace {
 
 ObjectMutationState g_mutation_state;
 
+constexpr size_t k_area_object_kind_count = 9;
+using AreaMembershipCounts = std::array<size_t, k_area_object_kind_count>;
+
 struct AreaObjectMembershipRow {
     ObjectHandle object{};
     size_t index = 0;
@@ -53,7 +63,7 @@ struct AreaObjectMembershipState {
     ObjectHandle area{};
     ObjectHandle attached_selection{};
     ObjectHandle detached_selection{};
-    std::array<size_t, 3> before_counts{}; // creatures, placeables, items
+    AreaMembershipCounts before_counts{};
     std::vector<AreaObjectMembershipRow> rows;
     bool owns_detached = true;
 
@@ -596,6 +606,67 @@ const ObjectTransformState& transform_values(
     return replacement == forward ? edit.after : edit.before;
 }
 
+bool validate_area_door_hook_transforms(
+    ObjectHandle area,
+    std::span<const ObjectSpatialState> transforms,
+    bool exclude_live_owners,
+    std::string& diagnostic)
+{
+    constexpr float k_hook_epsilon_squared = 1.0e-6f;
+    const auto* live_area = kernel::objects().get<Area>(area);
+    if (!live_area) {
+        diagnostic = "Door hook Area is invalid or stale";
+        return false;
+    }
+
+    AreaDoorHookSnapshot snapshot;
+    bool snapshot_ready = false;
+    for (const auto& transform : transforms) {
+        if (transform.owner.type != ObjectType::door) continue;
+        const auto hook_type = area_door_hook_type(transform.owner);
+        if (!hook_type) {
+            diagnostic = "Door hook policy is invalid or unavailable";
+            return false;
+        }
+        if (!snapshot_ready) {
+            if (!build_area_door_hooks(*live_area, snapshot, diagnostic)) {
+                return false;
+            }
+            snapshot_ready = true;
+        }
+
+        const ObjectHandle exclude = exclude_live_owners
+            ? transform.owner
+            : ObjectHandle{};
+        const auto hook = nearest_area_door_hook(
+            snapshot, transform.position, *hook_type, exclude);
+        if (!hook) {
+            diagnostic = "No compatible unoccupied door hook is available";
+            return false;
+        }
+        const glm::vec3 position_delta = hook->position - transform.position;
+        const glm::vec3 orientation_delta
+            = hook->orientation - transform.orientation;
+        if (glm::dot(position_delta, position_delta) > k_hook_epsilon_squared
+            || glm::dot(orientation_delta, orientation_delta)
+                > k_hook_epsilon_squared) {
+            diagnostic = "Door transform does not match its door hook";
+            return false;
+        }
+        const auto claimed = std::find_if(snapshot.hooks.begin(),
+            snapshot.hooks.end(), [&hook](const AreaDoorHook& row) {
+                return row.tile_index == hook->tile_index
+                    && row.slot_index == hook->slot_index;
+            });
+        if (claimed == snapshot.hooks.end()) {
+            diagnostic = "Door hook snapshot became inconsistent";
+            return false;
+        }
+        claimed->occupant = transform.owner;
+    }
+    return true;
+}
+
 bool valid_live_object(ObjectHandle object)
 {
     return object.type != ObjectType::invalid
@@ -604,9 +675,20 @@ bool valid_live_object(ObjectHandle object)
 
 bool editable_area_object(ObjectHandle object) noexcept
 {
-    return object.type == ObjectType::creature
-        || object.type == ObjectType::placeable
-        || object.type == ObjectType::item;
+    switch (object.type) {
+    case ObjectType::creature:
+    case ObjectType::door:
+    case ObjectType::encounter:
+    case ObjectType::item:
+    case ObjectType::placeable:
+    case ObjectType::sound:
+    case ObjectType::store:
+    case ObjectType::trigger:
+    case ObjectType::waypoint:
+        return true;
+    default:
+        return false;
+    }
 }
 
 bool editable_appearance_object(ObjectHandle object) noexcept
@@ -633,10 +715,22 @@ std::optional<size_t> area_object_index(const Area& area, ObjectHandle object)
     switch (object.type) {
     case ObjectType::creature:
         return member_index(area.creatures, object);
-    case ObjectType::placeable:
-        return member_index(area.placeables, object);
+    case ObjectType::door:
+        return member_index(area.doors, object);
+    case ObjectType::encounter:
+        return member_index(area.encounters, object);
     case ObjectType::item:
         return member_index(area.items, object);
+    case ObjectType::placeable:
+        return member_index(area.placeables, object);
+    case ObjectType::sound:
+        return member_index(area.sounds, object);
+    case ObjectType::store:
+        return member_index(area.stores, object);
+    case ObjectType::trigger:
+        return member_index(area.triggers, object);
+    case ObjectType::waypoint:
+        return member_index(area.waypoints, object);
     default:
         return std::nullopt;
     }
@@ -647,22 +741,36 @@ size_t membership_kind_index(ObjectType type) noexcept
     switch (type) {
     case ObjectType::creature:
         return 0;
-    case ObjectType::placeable:
+    case ObjectType::door:
         return 1;
-    case ObjectType::item:
+    case ObjectType::encounter:
         return 2;
+    case ObjectType::item:
+        return 3;
+    case ObjectType::placeable:
+        return 4;
+    case ObjectType::sound:
+        return 5;
+    case ObjectType::store:
+        return 6;
+    case ObjectType::trigger:
+        return 7;
+    case ObjectType::waypoint:
+        return 8;
     default:
         assert(false);
         return 0;
     }
 }
 
-std::array<size_t, 3> area_membership_counts(const Area& area)
+AreaMembershipCounts area_membership_counts(const Area& area)
 {
-    return {area.creatures.size(), area.placeables.size(), area.items.size()};
+    return {area.creatures.size(), area.doors.size(), area.encounters.size(),
+        area.items.size(), area.placeables.size(), area.sounds.size(),
+        area.stores.size(), area.triggers.size(), area.waypoints.size()};
 }
 
-std::array<size_t, 3> membership_counts(
+AreaMembershipCounts membership_counts(
     const AreaObjectMembershipState& state, bool attached)
 {
     auto result = state.before_counts;
@@ -689,16 +797,52 @@ void insert_area_object(Area& area, const AreaObjectMembershipRow& row)
         area.creatures.insert(area.creatures.begin() + row.index, object);
         return;
     }
-    case ObjectType::placeable: {
-        auto* object = kernel::objects().get<Placeable>(row.object);
-        assert(object && row.index <= area.placeables.size());
-        area.placeables.insert(area.placeables.begin() + row.index, object);
+    case ObjectType::door: {
+        auto* object = kernel::objects().get<Door>(row.object);
+        assert(object && row.index <= area.doors.size());
+        area.doors.insert(area.doors.begin() + row.index, object);
+        return;
+    }
+    case ObjectType::encounter: {
+        auto* object = kernel::objects().get<Encounter>(row.object);
+        assert(object && row.index <= area.encounters.size());
+        area.encounters.insert(area.encounters.begin() + row.index, object);
         return;
     }
     case ObjectType::item: {
         auto* object = kernel::objects().get<Item>(row.object);
         assert(object && row.index <= area.items.size());
         area.items.insert(area.items.begin() + row.index, object);
+        return;
+    }
+    case ObjectType::placeable: {
+        auto* object = kernel::objects().get<Placeable>(row.object);
+        assert(object && row.index <= area.placeables.size());
+        area.placeables.insert(area.placeables.begin() + row.index, object);
+        return;
+    }
+    case ObjectType::sound: {
+        auto* object = kernel::objects().get<Sound>(row.object);
+        assert(object && row.index <= area.sounds.size());
+        area.sounds.insert(area.sounds.begin() + row.index, object);
+        return;
+    }
+    case ObjectType::store: {
+        auto* object = kernel::objects().get<Store>(row.object);
+        assert(object && row.index <= area.stores.size());
+        area.stores.insert(area.stores.begin() + row.index, object);
+        return;
+    }
+    case ObjectType::trigger: {
+        auto* object = kernel::objects().get<Trigger>(row.object);
+        assert(object && row.index <= area.triggers.size());
+        area.triggers.insert(area.triggers.begin() + row.index, object);
+        return;
+    }
+    case ObjectType::waypoint: {
+        auto* object = kernel::objects().get<Waypoint>(row.object);
+        assert(object && row.index <= area.waypoints.size());
+        area.waypoints.insert(area.waypoints.begin() + row.index, object);
         return;
     }
     default:
@@ -715,15 +859,45 @@ void erase_area_object(Area& area, const AreaObjectMembershipRow& row)
             && area.creatures[row.index]->handle() == row.object);
         area.creatures.erase(area.creatures.begin() + row.index);
         return;
-    case ObjectType::placeable:
-        assert(row.index < area.placeables.size() && area.placeables[row.index]
-            && area.placeables[row.index]->handle() == row.object);
-        area.placeables.erase(area.placeables.begin() + row.index);
+    case ObjectType::door:
+        assert(row.index < area.doors.size() && area.doors[row.index]
+            && area.doors[row.index]->handle() == row.object);
+        area.doors.erase(area.doors.begin() + row.index);
+        return;
+    case ObjectType::encounter:
+        assert(row.index < area.encounters.size() && area.encounters[row.index]
+            && area.encounters[row.index]->handle() == row.object);
+        area.encounters.erase(area.encounters.begin() + row.index);
         return;
     case ObjectType::item:
         assert(row.index < area.items.size() && area.items[row.index]
             && area.items[row.index]->handle() == row.object);
         area.items.erase(area.items.begin() + row.index);
+        return;
+    case ObjectType::placeable:
+        assert(row.index < area.placeables.size() && area.placeables[row.index]
+            && area.placeables[row.index]->handle() == row.object);
+        area.placeables.erase(area.placeables.begin() + row.index);
+        return;
+    case ObjectType::sound:
+        assert(row.index < area.sounds.size() && area.sounds[row.index]
+            && area.sounds[row.index]->handle() == row.object);
+        area.sounds.erase(area.sounds.begin() + row.index);
+        return;
+    case ObjectType::store:
+        assert(row.index < area.stores.size() && area.stores[row.index]
+            && area.stores[row.index]->handle() == row.object);
+        area.stores.erase(area.stores.begin() + row.index);
+        return;
+    case ObjectType::trigger:
+        assert(row.index < area.triggers.size() && area.triggers[row.index]
+            && area.triggers[row.index]->handle() == row.object);
+        area.triggers.erase(area.triggers.begin() + row.index);
+        return;
+    case ObjectType::waypoint:
+        assert(row.index < area.waypoints.size() && area.waypoints[row.index]
+            && area.waypoints[row.index]->handle() == row.object);
+        area.waypoints.erase(area.waypoints.begin() + row.index);
         return;
     default:
         assert(false);
@@ -801,6 +975,12 @@ ObjectEditApplyResult apply_membership_state(
                     }
                     placements.push_back(*spatial);
                 }
+                std::string door_diagnostic;
+                if (!validate_area_door_hook_transforms(
+                        state.area, placements, false, door_diagnostic)) {
+                    return edit_result(ObjectEditStatus::invalid_batch,
+                        std::move(door_diagnostic));
+                }
                 AreaPlacementNavigation navigation;
                 const auto admission = validate_area_placements(navigation, state.area, placements);
                 if (!admission.ok()) {
@@ -812,19 +992,34 @@ ObjectEditApplyResult apply_membership_state(
                 return edit_result(ObjectEditStatus::failed, "Placement input exceeds container capacity");
             }
         }
-        std::array<size_t, 3> additions{};
+        AreaMembershipCounts additions{};
         for (const auto& row : state.rows) {
             ++additions[membership_kind_index(row.object.type)];
         }
-        if (additions[0] > area->creatures.max_size() - area->creatures.size()
-            || additions[1] > area->placeables.max_size() - area->placeables.size()
-            || additions[2] > area->items.max_size() - area->items.size()) {
+        const auto capacity_available = [](const auto& members, size_t addition) {
+            return addition <= members.max_size() - members.size();
+        };
+        if (!capacity_available(area->creatures, additions[0])
+            || !capacity_available(area->doors, additions[1])
+            || !capacity_available(area->encounters, additions[2])
+            || !capacity_available(area->items, additions[3])
+            || !capacity_available(area->placeables, additions[4])
+            || !capacity_available(area->sounds, additions[5])
+            || !capacity_available(area->stores, additions[6])
+            || !capacity_available(area->triggers, additions[7])
+            || !capacity_available(area->waypoints, additions[8])) {
             return edit_result(ObjectEditStatus::failed, "Area object membership exceeds container capacity");
         }
         try {
             area->creatures.reserve(area->creatures.size() + additions[0]);
-            area->placeables.reserve(area->placeables.size() + additions[1]);
-            area->items.reserve(area->items.size() + additions[2]);
+            area->doors.reserve(area->doors.size() + additions[1]);
+            area->encounters.reserve(area->encounters.size() + additions[2]);
+            area->items.reserve(area->items.size() + additions[3]);
+            area->placeables.reserve(area->placeables.size() + additions[4]);
+            area->sounds.reserve(area->sounds.size() + additions[5]);
+            area->stores.reserve(area->stores.size() + additions[6]);
+            area->triggers.reserve(area->triggers.size() + additions[7]);
+            area->waypoints.reserve(area->waypoints.size() + additions[8]);
         } catch (const std::bad_alloc&) {
             return edit_result(ObjectEditStatus::failed, "Area object membership allocation failed");
         } catch (const std::length_error&) {
@@ -858,10 +1053,14 @@ ObjectEditApplyResult apply_membership_state(
 }
 
 std::optional<glm::vec3> duplicate_batch_offset(
-    const Area& area, std::span<const ObjectHandle> objects, std::string& diagnostic)
+    const Area& area,
+    std::span<const ObjectHandle> objects,
+    std::vector<int32_t>& door_hook_types,
+    std::string& diagnostic)
 {
     constexpr float k_tile_size = 10.0f;
     constexpr float k_axis_offset = 1.5f;
+    constexpr int32_t k_not_a_door = -2;
     const float area_max_x = static_cast<float>(area.width) * k_tile_size;
     const float area_max_y = static_cast<float>(area.height) * k_tile_size;
     if (area.width <= 0 || area.height <= 0) {
@@ -875,16 +1074,54 @@ std::optional<glm::vec3> duplicate_batch_offset(
         glm::vec3{k_axis_offset, -k_axis_offset, 0.0f},
         glm::vec3{-k_axis_offset, -k_axis_offset, 0.0f},
     };
+    door_hook_types.clear();
+    try {
+        door_hook_types.reserve(objects.size());
+        for (const auto object : objects) {
+            if (object.type != ObjectType::door) {
+                door_hook_types.push_back(k_not_a_door);
+                continue;
+            }
+            const auto type = area_door_hook_type(object);
+            if (!type) {
+                diagnostic = "Door hook policy is invalid or unavailable";
+                return std::nullopt;
+            }
+            door_hook_types.push_back(*type);
+        }
+    } catch (const std::bad_alloc&) {
+        diagnostic = "Door duplicate policy allocation failed";
+        return std::nullopt;
+    } catch (const std::length_error&) {
+        diagnostic = "Door duplicate policy exceeds container capacity";
+        return std::nullopt;
+    }
+    const bool has_non_door_object = std::any_of(
+        objects.begin(), objects.end(), [](ObjectHandle object) {
+            return object.type != ObjectType::door;
+        });
+    if (!has_non_door_object) {
+        return glm::vec3{0.0f};
+    }
     for (const auto offset : candidates) {
-        const bool fits = std::all_of(objects.begin(), objects.end(), [&](ObjectHandle object) {
+        bool fits = true;
+        for (size_t index = 0; index < objects.size(); ++index) {
+            if (objects[index].type == ObjectType::door) {
+                continue;
+            }
+            const auto object = objects[index];
             const auto* spatial = kernel::objects().components().find_spatial(object);
             if (!spatial || !finite_vec3(spatial->position)) {
-                return false;
+                fits = false;
+                break;
             }
             const glm::vec3 position = spatial->position + offset;
-            return position.x >= 0.0f && position.x <= area_max_x
-                && position.y >= 0.0f && position.y <= area_max_y;
-        });
+            if (position.x < 0.0f || position.x > area_max_x
+                || position.y < 0.0f || position.y > area_max_y) {
+                fits = false;
+                break;
+            }
+        }
         if (fits) {
             return offset;
         }
@@ -918,14 +1155,32 @@ ObjectBase* clone_area_object(
     case ObjectType::creature:
         clone = kernel::objects().load_instance<Creature>(archive);
         break;
-    case ObjectType::placeable:
-        clone = kernel::objects().load_instance<Placeable>(archive);
+    case ObjectType::door:
+        clone = kernel::objects().load_instance<Door>(archive);
+        break;
+    case ObjectType::encounter:
+        clone = kernel::objects().load_instance<Encounter>(archive);
         break;
     case ObjectType::item:
         clone = kernel::objects().load_instance<Item>(archive);
         break;
+    case ObjectType::placeable:
+        clone = kernel::objects().load_instance<Placeable>(archive);
+        break;
+    case ObjectType::sound:
+        clone = kernel::objects().load_instance<Sound>(archive);
+        break;
+    case ObjectType::store:
+        clone = kernel::objects().load_instance<Store>(archive);
+        break;
+    case ObjectType::trigger:
+        clone = kernel::objects().load_instance<Trigger>(archive);
+        break;
+    case ObjectType::waypoint:
+        clone = kernel::objects().load_instance<Waypoint>(archive);
+        break;
     default:
-        diagnostic = "Only Creature, Placeable, and Item area objects can be duplicated";
+        diagnostic = "Area object type cannot be duplicated";
         return nullptr;
     }
     if (!clone) {
@@ -940,6 +1195,21 @@ ObjectBase* clone_area_object(
         diagnostic = "Area object clone spatial initialization failed";
         kernel::objects().destroy(clone->handle());
         return nullptr;
+    }
+    if (source.type == ObjectType::encounter) {
+        if (const auto* geometry = components.find_geometry(clone->handle());
+            geometry && !geometry->spawn_points.empty()) {
+            std::vector<ObjectSpawnPoint> translated{
+                geometry->spawn_points.begin(), geometry->spawn_points.end()};
+            for (auto& spawn : translated) {
+                spawn.position += offset;
+            }
+            if (!components.set_spawn_points(clone->handle(), translated)) {
+                diagnostic = "Encounter clone spawn-point translation failed";
+                kernel::objects().destroy(clone->handle());
+                return nullptr;
+            }
+        }
     }
     return clone;
 }
@@ -2287,7 +2557,7 @@ CommandResult validate_area_object_command(
         if (!editable_area_object(object) || !valid_live_object(object)
             || !area_object_index(*live_area, object)) {
             return command_edit_result(CommandStatus::rejected,
-                "Selected object is not a live Creature, Placeable, or Item member of the active area",
+                "Selected object is not a live authored-object member of the active area",
                 CommandOutputChannel::warn);
         }
     }
@@ -2344,7 +2614,7 @@ CommandResult validate_detached_area_object_command(
             || spatial->position.x < 0.0f || spatial->position.x > area_max_x
             || spatial->position.y < 0.0f || spatial->position.y > area_max_y) {
             return command_edit_result(CommandStatus::rejected,
-                "Placed object is not a valid detached Creature, Placeable, or Item in the active area",
+                "Placed object is not a valid detached authored object in the active area",
                 CommandOutputChannel::warn);
         }
     }
@@ -2370,9 +2640,14 @@ std::shared_ptr<AreaObjectMembershipState> make_delete_membership_state(
 std::shared_ptr<AreaObjectMembershipState> make_duplicate_membership_state(
     ObjectHandle area,
     std::span<const ObjectHandle> objects,
+    std::span<const int32_t> door_hook_types,
     glm::vec3 offset,
     std::string& diagnostic)
 {
+    if (door_hook_types.size() != objects.size()) {
+        diagnostic = "Door duplicate policy batch is invalid";
+        return {};
+    }
     auto state = std::make_shared<AreaObjectMembershipState>();
     state->area = area;
     state->detached_selection = objects.front();
@@ -2380,10 +2655,51 @@ std::shared_ptr<AreaObjectMembershipState> make_duplicate_membership_state(
     state->before_counts = area_membership_counts(*live_area);
     auto next_indices = state->before_counts;
     state->rows.reserve(objects.size());
-    for (const auto source : objects) {
+    AreaDoorHookSnapshot door_hooks;
+    bool door_hooks_ready = false;
+    for (size_t source_index = 0; source_index < objects.size(); ++source_index) {
+        const auto source = objects[source_index];
         auto* clone = clone_area_object(source, *live_area, offset, diagnostic);
         if (!clone) {
             return {};
+        }
+        if (source.type == ObjectType::door) {
+            const int32_t type = door_hook_types[source_index];
+            if (!door_hooks_ready) {
+                if (!build_area_door_hooks(
+                        *live_area, door_hooks, diagnostic)) {
+                    kernel::objects().destroy(clone->handle());
+                    return {};
+                }
+                door_hooks_ready = true;
+            }
+            const auto* spatial = kernel::objects().components().find_spatial(
+                clone->handle());
+            const auto hook = spatial
+                ? nearest_area_door_hook(
+                      door_hooks, spatial->position, type)
+                : std::nullopt;
+            if (!hook
+                || !kernel::objects().components().set_position(
+                    clone->handle(), hook->position)
+                || !kernel::objects().components().set_orientation(
+                    clone->handle(), hook->orientation)) {
+                diagnostic = "No compatible unoccupied door hook is available for the duplicate";
+                kernel::objects().destroy(clone->handle());
+                return {};
+            }
+            const auto claimed = std::find_if(
+                door_hooks.hooks.begin(), door_hooks.hooks.end(),
+                [&hook](const AreaDoorHook& row) {
+                    return row.tile_index == hook->tile_index
+                        && row.slot_index == hook->slot_index;
+                });
+            if (claimed == door_hooks.hooks.end()) {
+                diagnostic = "Duplicated Door hook row became stale";
+                kernel::objects().destroy(clone->handle());
+                return {};
+            }
+            claimed->occupant = clone->handle();
         }
         if (state->attached_selection.type == ObjectType::invalid) {
             state->attached_selection = clone->handle();
@@ -3274,6 +3590,74 @@ std::optional<std::vector<Resref>> snapshot_sound_resources(
     }
 }
 
+std::optional<SoundResourceEdit> make_sound_resource_additions(
+    smalls::Runtime& runtime,
+    ObjectHandle sound,
+    std::span<const Resref> additions)
+{
+    if (sound.type != ObjectType::sound || additions.empty()
+        || additions.size() > 1024
+        || std::ranges::any_of(additions, &Resref::empty)) {
+        return std::nullopt;
+    }
+
+    auto before = snapshot_sound_resources(runtime, sound);
+    if (!before || additions.size() > 1024 - before->size()) {
+        return std::nullopt;
+    }
+
+    try {
+        auto after = *before;
+        after.reserve(before->size() + additions.size());
+        after.insert(after.end(), additions.begin(), additions.end());
+        return SoundResourceEdit{
+            .sound = sound,
+            .before = std::move(*before),
+            .after = std::move(after),
+        };
+    } catch (const std::bad_alloc&) {
+        return std::nullopt;
+    } catch (const std::length_error&) {
+        return std::nullopt;
+    }
+}
+
+std::optional<SoundResourceEdit> make_reordered_sound_resources(
+    smalls::Runtime& runtime,
+    ObjectHandle sound,
+    size_t source_index,
+    size_t destination_index)
+{
+    auto before = snapshot_sound_resources(runtime, sound);
+    if (!before || source_index >= before->size()
+        || destination_index >= before->size()
+        || source_index == destination_index) {
+        return std::nullopt;
+    }
+
+    try {
+        auto after = *before;
+        if (source_index < destination_index) {
+            std::rotate(after.begin() + source_index,
+                after.begin() + source_index + 1,
+                after.begin() + destination_index + 1);
+        } else {
+            std::rotate(after.begin() + destination_index,
+                after.begin() + source_index,
+                after.begin() + source_index + 1);
+        }
+        return SoundResourceEdit{
+            .sound = sound,
+            .before = std::move(*before),
+            .after = std::move(after),
+        };
+    } catch (const std::bad_alloc&) {
+        return std::nullopt;
+    } catch (const std::length_error&) {
+        return std::nullopt;
+    }
+}
+
 ObjectEditApplyResult apply_sound_resource_edit(
     smalls::Runtime& runtime,
     const SoundResourceEdit& edit,
@@ -3407,6 +3791,245 @@ CommandResult commit_sound_resource_edit(
         mark_context_dirty(redo_context);
         return command_edit_result(
             CommandStatus::success, "Redo " + label, CommandOutputChannel::none);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
+
+ObjectEditApplyResult apply_sound_radius_edit(
+    const SoundRadiusEdit& edit, ObjectEditDirection direction)
+{
+    const float expected = direction == ObjectEditDirection::forward
+        ? edit.before
+        : edit.after;
+    const float replacement = direction == ObjectEditDirection::forward
+        ? edit.after
+        : edit.before;
+    if (edit.sound.type != ObjectType::sound
+        || !kernel::objects().get<Sound>(edit.sound)
+        || !std::isfinite(expected)
+        || !std::isfinite(replacement)
+        || expected < 0.0f
+        || replacement < 0.0f) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Sound radius edit target or value is invalid");
+    }
+    if (expected == replacement) {
+        return edit_result(ObjectEditStatus::empty,
+            "Sound radius is already set");
+    }
+    const auto current = nwn1::sound_toolset_visual_state(edit.sound);
+    if (!current) {
+        return edit_result(ObjectEditStatus::failed,
+            "Sound radius could not be read through profile policy");
+    }
+    if (!current->positional) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Non-positional Sounds have no editable radius");
+    }
+    if (current->distance_max != expected) {
+        return edit_result(ObjectEditStatus::stale_value,
+            "Sound radius changed before the edit was applied");
+    }
+    if (replacement < current->distance_min) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Sound radius cannot be smaller than its minimum distance");
+    }
+    if (!nwn1::replace_sound_toolset_radius(
+            edit.sound, expected, replacement)) {
+        return edit_result(ObjectEditStatus::failed,
+            "Smalls rejected the Sound radius replacement");
+    }
+
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::visual;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::debug_geometry;
+    g_mutation_state.object = edit.sound;
+    return {ObjectEditStatus::success, 1, {}};
+}
+
+CommandResult commit_sound_radius_edit(
+    SoundRadiusEdit edit, std::string label, CommandContext& context)
+{
+    if (context.workspace) {
+        const auto* active_tab = context.workspace->active_tab();
+        if (!active_tab || active_tab->kind != WorkspaceTabKind::area) {
+            return command_edit_result(CommandStatus::rejected,
+                "Sound radius editing is only available in area tabs",
+                CommandOutputChannel::warn);
+        }
+    }
+
+    auto applied = apply_sound_radius_edit(edit, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(
+            CommandStatus::noop, std::move(applied.diagnostic),
+            CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        const bool failed = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(
+            failed ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic.empty()
+                ? "Sound radius edit rejected"
+                : std::move(applied.diagnostic),
+            failed ? CommandOutputChannel::error : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [edit, label](CommandContext& undo_context) {
+        auto replayed = apply_sound_radius_edit(
+            edit, ObjectEditDirection::inverse);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty()
+                    ? "Sound radius undo failed"
+                    : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(undo_context);
+        return command_edit_result(CommandStatus::success,
+            "Undo " + label, CommandOutputChannel::none);
+    };
+    action->redo = [edit, label](CommandContext& redo_context) {
+        auto replayed = apply_sound_radius_edit(
+            edit, ObjectEditDirection::forward);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty()
+                    ? "Sound radius redo failed"
+                    : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(redo_context);
+        return command_edit_result(CommandStatus::success,
+            "Redo " + label, CommandOutputChannel::none);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
+
+ObjectEditApplyResult apply_encounter_spawn_point_edit(
+    const EncounterSpawnPointBatchEdit& edit,
+    ObjectEditDirection direction)
+{
+    constexpr size_t k_maximum_spawn_points = 1024;
+    const auto* area = kernel::objects().get<Area>(edit.area);
+    const auto* encounter = kernel::objects().get<Encounter>(edit.encounter);
+    const auto* spatial
+        = kernel::objects().components().find_spatial(edit.encounter);
+    const auto& expected = direction == ObjectEditDirection::forward
+        ? edit.before
+        : edit.after;
+    const auto& replacement = direction == ObjectEditDirection::forward
+        ? edit.after
+        : edit.before;
+    if (!area || !encounter || !spatial
+        || spatial->area != edit.area.id
+        || area->width <= 0 || area->height <= 0
+        || expected.size() > k_maximum_spawn_points
+        || replacement.size() > k_maximum_spawn_points) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Encounter spawn-point edit target or batch is invalid");
+    }
+    const float max_x = static_cast<float>(area->width) * 10.0f;
+    const float max_y = static_cast<float>(area->height) * 10.0f;
+    for (const auto point : replacement) {
+        if (!std::isfinite(point.position.x)
+            || !std::isfinite(point.position.y)
+            || !std::isfinite(point.position.z)
+            || !std::isfinite(point.orientation)
+            || point.position.x < 0.0f || point.position.x > max_x
+            || point.position.y < 0.0f || point.position.y > max_y) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Encounter spawn point is non-finite or outside the Area");
+        }
+    }
+    if (expected == replacement) {
+        return edit_result(ObjectEditStatus::empty,
+            "Encounter spawn points are already set");
+    }
+
+    auto& components = kernel::objects().components();
+    const auto* geometry = components.find_geometry(edit.encounter);
+    const std::span<const ObjectSpawnPoint> current = geometry
+        ? std::span<const ObjectSpawnPoint>{geometry->spawn_points}
+        : std::span<const ObjectSpawnPoint>{};
+    if (!std::ranges::equal(current, expected)) {
+        return edit_result(ObjectEditStatus::stale_value,
+            "Encounter spawn points changed before the edit was applied");
+    }
+    if (!components.set_spawn_points(edit.encounter, replacement)) {
+        return edit_result(ObjectEditStatus::failed,
+            "Encounter spawn-point replacement failed");
+    }
+
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::visual;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::debug_geometry;
+    g_mutation_state.object = edit.encounter;
+    return {ObjectEditStatus::success,
+        static_cast<uint32_t>(replacement.size()), {}};
+}
+
+CommandResult commit_encounter_spawn_point_edit(
+    EncounterSpawnPointBatchEdit edit,
+    std::string label,
+    CommandContext& context)
+{
+    auto applied = apply_encounter_spawn_point_edit(
+        edit, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(CommandStatus::noop,
+            std::move(applied.diagnostic), CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        const bool failed = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(
+            failed ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic.empty()
+                ? "Encounter spawn-point edit rejected"
+                : std::move(applied.diagnostic),
+            failed ? CommandOutputChannel::error
+                   : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [edit, label](CommandContext& undo_context) {
+        auto replayed = apply_encounter_spawn_point_edit(
+            edit, ObjectEditDirection::inverse);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty()
+                    ? "Encounter spawn-point undo failed"
+                    : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(undo_context);
+        return command_edit_result(CommandStatus::success,
+            "Undo " + label, CommandOutputChannel::none);
+    };
+    action->redo = [edit, label](CommandContext& redo_context) {
+        auto replayed = apply_encounter_spawn_point_edit(
+            edit, ObjectEditDirection::forward);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::failed,
+                replayed.diagnostic.empty()
+                    ? "Encounter spawn-point redo failed"
+                    : std::move(replayed.diagnostic),
+                CommandOutputChannel::error);
+        }
+        mark_context_dirty(redo_context);
+        return command_edit_result(CommandStatus::success,
+            "Redo " + label, CommandOutputChannel::none);
     };
     result.undo_action = std::move(action);
     return result;
@@ -4426,15 +5049,20 @@ ObjectEditApplyResult apply_object_edits(
         }
     }
 
+    const bool sound_visual = batch.kind == ObjectEditKind::propset_int
+        && batch.patches.front().object.type == ObjectType::sound;
+    const bool detail_visual = batch.kind == ObjectEditKind::creature_body_part
+        || batch.kind == ObjectEditKind::creature_color
+        || batch.kind == ObjectEditKind::creature_accessory
+        || batch.kind == ObjectEditKind::item_model_part
+        || batch.kind == ObjectEditKind::item_color;
     ++g_mutation_state.epoch;
-    g_mutation_state.kind = batch.kind == ObjectEditKind::creature_body_part
-            || batch.kind == ObjectEditKind::creature_color
-            || batch.kind == ObjectEditKind::creature_accessory
-            || batch.kind == ObjectEditKind::item_model_part
-            || batch.kind == ObjectEditKind::item_color
+    g_mutation_state.kind = sound_visual || detail_visual
         ? ObjectMutationKind::visual
         : ObjectMutationKind::properties;
-    g_mutation_state.visual_kind = g_mutation_state.kind == ObjectMutationKind::visual
+    g_mutation_state.visual_kind = sound_visual
+        ? ObjectVisualMutationKind::base_appearance
+        : detail_visual
         ? ObjectVisualMutationKind::detail
         : ObjectVisualMutationKind::none;
     g_mutation_state.object = batch.patches.front().object;
@@ -5087,10 +5715,31 @@ ObjectEditApplyResult apply_object_transform_edit(
         proposed.orientation = replacement.orientation;
         proposed.scale = replacement.scale;
         const std::array rows{proposed};
+        std::string door_diagnostic;
+        if (!validate_area_door_hook_transforms(
+                edit.area, rows, true, door_diagnostic)) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                std::move(door_diagnostic));
+        }
         AreaPlacementNavigation navigation;
         const auto admission = validate_area_placements(navigation, edit.area, rows);
         if (!admission.ok()) {
             return edit_result(ObjectEditStatus::invalid_batch, admission.diagnostic);
+        }
+    }
+
+    std::vector<ObjectSpawnPoint> spawn_points_before;
+    std::vector<ObjectSpawnPoint> spawn_points_after;
+    if (edit.object.type == ObjectType::encounter) {
+        if (const auto* geometry = components.find_geometry(edit.object);
+            geometry && !geometry->spawn_points.empty()) {
+            spawn_points_before.assign(
+                geometry->spawn_points.begin(), geometry->spawn_points.end());
+            spawn_points_after = spawn_points_before;
+            const glm::vec3 delta = replacement.position - expected.position;
+            for (auto& spawn : spawn_points_after) {
+                spawn.position += delta;
+            }
         }
     }
     if (!components.set_position(edit.object, replacement.position)
@@ -5100,6 +5749,15 @@ ObjectEditApplyResult apply_object_transform_edit(
         components.set_orientation(edit.object, expected.orientation);
         components.set_scale(edit.object, expected.scale);
         return edit_result(ObjectEditStatus::failed, "Object transform write failed and was rolled back");
+    }
+    if (!spawn_points_after.empty()
+        && !components.set_spawn_points(edit.object, spawn_points_after)) {
+        components.set_position(edit.object, expected.position);
+        components.set_orientation(edit.object, expected.orientation);
+        components.set_scale(edit.object, expected.scale);
+        components.set_spawn_points(edit.object, spawn_points_before);
+        return edit_result(ObjectEditStatus::failed,
+            "Encounter spawn-point translation failed and was rolled back");
     }
 
     ++g_mutation_state.epoch;
@@ -5161,12 +5819,15 @@ CommandResult duplicate_area_objects(
 
     std::string diagnostic;
     const auto* live_area = kernel::objects().get<Area>(area);
-    const auto offset = duplicate_batch_offset(*live_area, objects, diagnostic);
+    std::vector<int32_t> door_hook_types;
+    const auto offset = duplicate_batch_offset(
+        *live_area, objects, door_hook_types, diagnostic);
     if (!offset) {
         return command_edit_result(CommandStatus::rejected,
             std::move(diagnostic), CommandOutputChannel::warn);
     }
-    auto state = make_duplicate_membership_state(area, objects, *offset, diagnostic);
+    auto state = make_duplicate_membership_state(
+        area, objects, door_hook_types, *offset, diagnostic);
     if (!state) {
         return command_edit_result(CommandStatus::failed,
             diagnostic.empty() ? "Area object duplication failed" : std::move(diagnostic),
@@ -5218,8 +5879,14 @@ AreaObjectBlueprintLoadResult load_area_object_blueprints(
     const float area_max_y = static_cast<float>(live_area->height) * k_tile_size;
     for (const auto& placement : placements) {
         if ((placement.resource.type != ResourceType::utc
+                && placement.resource.type != ResourceType::utd
+                && placement.resource.type != ResourceType::ute
+                && placement.resource.type != ResourceType::uti
+                && placement.resource.type != ResourceType::utm
                 && placement.resource.type != ResourceType::utp
-                && placement.resource.type != ResourceType::uti)
+                && placement.resource.type != ResourceType::uts
+                && placement.resource.type != ResourceType::utt
+                && placement.resource.type != ResourceType::utw)
             || !placement.resource.valid()
             || !valid_transform_state(placement.transform)
             || placement.transform.position.x < 0.0f
@@ -5229,6 +5896,67 @@ AreaObjectBlueprintLoadResult load_area_object_blueprints(
             result.status = AreaObjectBlueprintLoadStatus::invalid_input;
             result.diagnostic = "Area object blueprint placement input is invalid or out of bounds";
             return result;
+        }
+        const bool region = placement.resource.type == ResourceType::ute
+            || placement.resource.type == ResourceType::utt;
+        if ((!region && !placement.geometry_points.empty())
+            || (placement.resource.type != ResourceType::ute
+                && !placement.spawn_points.empty())
+            || (region && placement.geometry_points.size() < 3)) {
+            result.status = AreaObjectBlueprintLoadStatus::invalid_input;
+            result.diagnostic = "Area object placement geometry does not match its resource type";
+            return result;
+        }
+        if (region) {
+            try {
+                std::vector<glm::vec3> world_points;
+                world_points.reserve(placement.geometry_points.size());
+                glm::mat4 transform{1.0f};
+                if (!build_area_object_world_transform(
+                        {
+                            .position = placement.transform.position,
+                            .orientation = placement.transform.orientation,
+                            .scale = placement.transform.scale,
+                        },
+                        transform)) {
+                    result.status = AreaObjectBlueprintLoadStatus::invalid_input;
+                    result.diagnostic = "Area region transform is invalid";
+                    return result;
+                }
+                for (const glm::vec3 point : placement.geometry_points) {
+                    world_points.push_back(
+                        glm::vec3{transform * glm::vec4{point, 1.0f}});
+                }
+                AreaRegionGeometry normalized;
+                if (!build_area_region_geometry(live_area->width,
+                        live_area->height, world_points, normalized,
+                        result.diagnostic)
+                    || normalized.root_position != placement.transform.position) {
+                    result.status = AreaObjectBlueprintLoadStatus::invalid_input;
+                    if (result.diagnostic.empty()) {
+                        result.diagnostic = "Region local geometry must begin at the object root";
+                    }
+                    return result;
+                }
+            } catch (const std::bad_alloc&) {
+                result.status = AreaObjectBlueprintLoadStatus::failed;
+                result.diagnostic = "Area region validation allocation failed";
+                return result;
+            } catch (const std::length_error&) {
+                result.status = AreaObjectBlueprintLoadStatus::invalid_input;
+                result.diagnostic = "Area region geometry exceeds container capacity";
+                return result;
+            }
+        }
+        for (const auto& spawn : placement.spawn_points) {
+            if (!finite_vec3(spawn.position)
+                || !std::isfinite(spawn.orientation)
+                || spawn.position.x < 0.0f || spawn.position.x > area_max_x
+                || spawn.position.y < 0.0f || spawn.position.y > area_max_y) {
+                result.status = AreaObjectBlueprintLoadStatus::invalid_input;
+                result.diagnostic = "Encounter spawn point is invalid or outside the Area";
+                return result;
+            }
         }
         if (!kernel::resman().contains(placement.resource)) {
             result.status = AreaObjectBlueprintLoadStatus::invalid_input;
@@ -5262,12 +5990,36 @@ AreaObjectBlueprintLoadResult load_area_object_blueprints(
 
     for (const auto& placement : placements) {
         ObjectBase* object = nullptr;
-        if (placement.resource.type == ResourceType::utc) {
+        switch (placement.resource.type) {
+        case ResourceType::utc:
             object = kernel::objects().load<Creature>(placement.resource.resref);
-        } else if (placement.resource.type == ResourceType::uti) {
+            break;
+        case ResourceType::utd:
+            object = kernel::objects().load<Door>(placement.resource.resref);
+            break;
+        case ResourceType::ute:
+            object = kernel::objects().load<Encounter>(placement.resource.resref);
+            break;
+        case ResourceType::uti:
             object = kernel::objects().load<Item>(placement.resource.resref);
-        } else {
+            break;
+        case ResourceType::utm:
+            object = kernel::objects().load<Store>(placement.resource.resref);
+            break;
+        case ResourceType::utp:
             object = kernel::objects().load<Placeable>(placement.resource.resref);
+            break;
+        case ResourceType::uts:
+            object = kernel::objects().load<Sound>(placement.resource.resref);
+            break;
+        case ResourceType::utt:
+            object = kernel::objects().load<Trigger>(placement.resource.resref);
+            break;
+        case ResourceType::utw:
+            object = kernel::objects().load<Waypoint>(placement.resource.resref);
+            break;
+        default:
+            break;
         }
         if (!object) {
             destroy_loaded();
@@ -5281,7 +6033,11 @@ AreaObjectBlueprintLoadResult load_area_object_blueprints(
         if (!components.set_area(handle, area.id)
             || !components.set_position(handle, placement.transform.position)
             || !components.set_orientation(handle, placement.transform.orientation)
-            || !components.set_scale(handle, placement.transform.scale)) {
+            || !components.set_scale(handle, placement.transform.scale)
+            || (!placement.geometry_points.empty()
+                && !components.set_geometry(handle, placement.geometry_points))
+            || (!placement.spawn_points.empty()
+                && !components.set_spawn_points(handle, placement.spawn_points))) {
             kernel::objects().destroy(handle);
             destroy_loaded();
             result.status = AreaObjectBlueprintLoadStatus::failed;

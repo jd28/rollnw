@@ -150,7 +150,7 @@ bool item_bounds_near_pointer(glm::vec2 pixel, const glm::mat4& view_projection,
     const glm::vec2 viewport_origin{viewport.x, viewport.y};
     const glm::vec2 viewport_size{viewport.width, viewport.height};
     for (size_t index = 0; index < bounds.size(); ++index) {
-        if (kinds[index] != AreaRenderRecordKind::item
+        if (kinds[index] != nw::ObjectType::item
             || (flags[index] & AreaRenderScene::RecordFlag::render_enabled) == 0
             || !nw::kernel::objects().valid(objects[index])) {
             continue;
@@ -552,7 +552,7 @@ void select_area_pointer_objects(
             if (!sample_ray) continue;
             const auto hit = select_area_object(*sample_ray, records, scene,
                 {.triggers_enabled = false, .encounters_enabled = false});
-            if (hit.status != AreaObjectSelectionStatus::hit || hit.kind != AreaRenderRecordKind::item) {
+            if (hit.status != AreaObjectSelectionStatus::hit || hit.kind != nw::ObjectType::item) {
                 continue;
             }
             const auto tile = select_area_object(*sample_ray, records, scene,
@@ -916,6 +916,21 @@ bool ViewerSession::set_area_object_selection(nw::ObjectHandle object) noexcept
     active_area_selection_ = {};
     scene_->active_object = object;
     return true;
+}
+
+uint32_t ViewerSession::active_area_debug_subindex(
+    nw::ObjectHandle object) const noexcept
+{
+    if (!scene_
+        || active_area_selection_.status != AreaObjectSelectionStatus::hit
+        || active_area_selection_.source != AreaObjectSelectionSource::debug_shape
+        || active_area_selection_.object != object
+        || active_area_selection_.record_index
+            >= scene_->debug_shape_selection_ranges.size()) {
+        return UINT32_MAX;
+    }
+    return scene_->debug_shape_selection_ranges[active_area_selection_.record_index]
+        .subindex;
 }
 
 bool ViewerSession::focus_area_object_selection() noexcept
@@ -1642,9 +1657,24 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
                 && active_area_selection_.source == AreaObjectSelectionSource::debug_shape
                 && active_area_selection_.record_index < scene_->debug_shape_selection_ranges.size()) {
                 const auto& range = scene_->debug_shape_selection_ranges[active_area_selection_.record_index];
-                const bool range_visible = area_debug_enabled_
-                    && ((range.category == DebugShapeCategory::trigger && area_triggers_enabled_)
-                        || (range.category == DebugShapeCategory::encounter && area_encounters_enabled_));
+                bool range_visible = false;
+                if (area_debug_enabled_) {
+                    switch (range.category) {
+                    case DebugShapeCategory::trigger:
+                        range_visible = area_triggers_enabled_;
+                        break;
+                    case DebugShapeCategory::encounter:
+                        range_visible = area_encounters_enabled_;
+                        break;
+                    case DebugShapeCategory::sound:
+                    case DebugShapeCategory::store:
+                    case DebugShapeCategory::waypoint:
+                        range_visible = true;
+                        break;
+                    case DebugShapeCategory::general:
+                        break;
+                    }
+                }
                 if (range_visible && range.object == active_area_selection_.object) {
                     debug_renderer_->render_selection_bounds(
                         command_list,

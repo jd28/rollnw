@@ -2,11 +2,19 @@
 
 #include "../config.hpp"
 
+#include <glm/vec3.hpp>
+
 #include <limits>
 #include <stdint.h>
 #include <string>
 
 namespace nw {
+
+struct TileDoorSlot {
+    glm::vec3 position{0.0f};
+    float orientation = 0.0f;
+    int32_t type = -1;
+};
 
 struct Tile {
     String model;
@@ -15,6 +23,7 @@ struct Tile {
     // interpret it.
     String path_node;
     int32_t path_node_orientation = 0;
+    Vector<TileDoorSlot> door_slots;
 };
 
 /// Abstraction of the SET tileset file.

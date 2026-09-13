@@ -13,6 +13,8 @@
 #include "terminal.hpp"
 #include "workspace.hpp"
 
+#include <nw/kernel/Kernel.hpp>
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -24,8 +26,11 @@
 namespace nw::toolset {
 
 struct EncounterSpawnEdit;
+struct EncounterSpawnPointBatchEdit;
 struct SoundResourceEdit;
+struct SoundRadiusEdit;
 struct ItemPlacement;
+struct ObjectTransformEdit;
 struct StoreItemPlacement;
 
 struct RecentModuleEntry {
@@ -65,12 +70,15 @@ public:
     std::optional<CommandResult> poll_blueprint_updates(const std::filesystem::path& executable);
 
     CommandResult open_module(std::string_view module_path);
-    CommandResult open_project(std::string_view project_path);
+    CommandResult open_project(std::string_view project_path,
+        kernel::ModuleLoadProgressSink progress = {});
     CommandResult execute_command(std::string_view command_id, const std::vector<std::string_view>& args, CommandContext context);
     CommandResult execute_command(CommandInvocation invocation, CommandContext context);
     CommandResult place_area_objects(ObjectHandle area,
         std::span<const ObjectHandle> objects,
         CommandContext context);
+    CommandResult transform_area_object(
+        ObjectTransformEdit edit, CommandContext context);
     CommandResult place_creature_items(ObjectHandle creature,
         std::span<const ItemPlacement> placements,
         CommandContext context);
@@ -82,8 +90,13 @@ public:
         CommandContext context);
     CommandResult replace_encounter_spawns(
         EncounterSpawnEdit edit, CommandContext context);
-    CommandResult replace_sound_resources(
-        SoundResourceEdit edit, CommandContext context);
+    CommandResult replace_sound_resources(SoundResourceEdit edit,
+        std::string label,
+        CommandContext context);
+    CommandResult resize_sound_radius(
+        SoundRadiusEdit edit, CommandContext context);
+    CommandResult replace_encounter_spawn_points(
+        EncounterSpawnPointBatchEdit edit, CommandContext context);
     [[nodiscard]] TerminalCompletionResult complete_console_command(std::string_view line, size_t cursor_byte_position) const;
     [[nodiscard]] bool is_open_module_dialog_invocation(std::string_view line) const;
     [[nodiscard]] bool is_open_project_dialog_invocation(std::string_view line) const;

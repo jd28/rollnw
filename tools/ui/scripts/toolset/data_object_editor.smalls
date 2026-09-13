@@ -12,8 +12,9 @@ from core.rmlui import {
     active_object,
     active_object_type,
 };
-from core.ui import { ListItem };
+from core.ui import { ListItem, ListReorder };
 from core.ui.v1 import {
+    list_on_reorder,
     list_set_items,
     list_set_title,
 };
@@ -26,6 +27,18 @@ const max_collection_rows = 1024;
 fn _ensure_lists(): bool {
     var result = command_execute("toolset.data_objects.initialize", {});
     return result.status == 0 || result.status == 4;
+}
+
+fn _ensure_sound_list(): bool {
+    return _ensure_lists() && list_on_reorder(sound_resource_list,
+        "toolset.data_object_editor.on_sound_resource_reorder");
+}
+
+fn on_sound_resource_reorder(reorder: ListReorder) {
+    command_execute("toolset.sound.resources.reorder", {
+        f"{reorder.source_index}",
+        f"{reorder.destination_index}",
+    });
 }
 
 fn _set_empty(list_id: string, title: string): array!(Command) {
@@ -53,7 +66,7 @@ fn encounter_spawns_refresh(): array!(Command) {
     }
 
     var encounter = active_object() as Encounter;
-    if ((encounter as object) == O.invalid) {
+    if (encounter == O.invalid) {
         return _set_empty(encounter_spawn_list, "Waiting for a live Encounter.");
     }
 
@@ -81,12 +94,13 @@ fn encounter_spawns_refresh(): array!(Command) {
 }
 
 fn sound_resources_refresh(): array!(Command) {
+    if (!_ensure_sound_list()) { return {}; }
     if (active_object_type() != (Const.object_type_sound as int)) {
         return _set_empty(sound_resource_list, "Waiting for a live Sound.");
     }
 
     var sound = active_object() as Sound;
-    if ((sound as object) == O.invalid) {
+    if (sound == O.invalid) {
         return _set_empty(sound_resource_list, "Waiting for a live Sound.");
     }
 
@@ -141,7 +155,7 @@ fn store_inventory_refresh(): array!(Command) {
     }
 
     var store = active_object() as Store;
-    if ((store as object) == O.invalid) {
+    if (store == O.invalid) {
         return _set_empty(store_inventory_list, "Waiting for a live Store.");
     }
 

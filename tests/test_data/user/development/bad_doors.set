@@ -1,0 +1,18 @@
+[GENERAL]
+Name=0
+UnlocalizedName=Invalid Door Count Test
+Transition=0
+
+[TILES]
+Count=1
+
+[TILE0]
+Model=tno01_r01_01
+Doors=65
+
+[TILE0DOOR0]
+Type=0
+X=0.0
+Y=0.0
+Z=0.0
+Orientation=0.0

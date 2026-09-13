@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <limits>
 #include <unordered_set>
+#include <utility>
 
 namespace nw::toolset {
 
@@ -20,6 +21,11 @@ constexpr size_t event_slot(UiListEventType type)
     return static_cast<size_t>(type);
 }
 
+bool valid_event_type(UiListEventType type)
+{
+    return event_slot(type) < ui_list_event_type_count;
+}
+
 int logical_row_count(size_t item_count, int columns)
 {
     return static_cast<int>((item_count + static_cast<size_t>(columns) - 1)
@@ -32,6 +38,18 @@ int logical_row_for_index(int index, int columns)
 }
 
 } // namespace
+
+std::string_view UiListEvent::list_id() const noexcept
+{
+    switch (type) {
+    case UiListEventType::scroll:
+        return scroll.list_id;
+    case UiListEventType::reorder:
+        return reorder.list_id;
+    default:
+        return selection.list_id;
+    }
+}
 
 void VirtualListHost::reset() noexcept
 {
@@ -109,8 +127,13 @@ bool VirtualListHost::set_items(std::string_view list_id, std::vector<UiListItem
     state->controller.set_total_rows(
         logical_row_count(state->items.size(), state->config.columns));
 
-    int next_selected = -1;
-    if (!previous_key.empty()) {
+    int next_selected = std::exchange(
+        state->pending_reorder_selection, -1);
+    if (next_selected < 0
+        || next_selected >= static_cast<int>(state->items.size())) {
+        next_selected = -1;
+    }
+    if (next_selected < 0 && !previous_key.empty()) {
         auto it = state->key_to_index.find(previous_key);
         if (it != state->key_to_index.end()) {
             next_selected = it->second;
@@ -161,6 +184,7 @@ bool VirtualListHost::set_selected(std::string_view list_id, const UiListSelecti
     }
 
     state->selected_index = resolved_index;
+    state->pending_reorder_selection = -1;
     state->controller.set_selected(
         logical_row_for_index(resolved_index, state->config.columns));
     state->selected_cell = resolved_index >= 0 ? resolved_cell : -1;
@@ -237,10 +261,14 @@ std::optional<UiListWindow> VirtualListHost::window(
 bool VirtualListHost::set_callback(std::string_view list_id, UiListEventType type, std::string function_name)
 {
     auto* state = get_state(list_id);
-    if (!state) {
+    if (!state || !valid_event_type(type)) {
         return false;
     }
-    state->callbacks[event_slot(type)] = std::move(function_name);
+    auto& callback = state->callbacks[event_slot(type)];
+    if (callback != function_name) {
+        callback = std::move(function_name);
+        ++state->revision;
+    }
     return true;
 }
 
@@ -255,7 +283,7 @@ std::string VirtualListHost::callback(std::string_view list_id, UiListEventType 
 const std::string* VirtualListHost::callback_ptr(std::string_view list_id, UiListEventType type) const
 {
     const auto* state = get_state(list_id);
-    if (!state) {
+    if (!state || !valid_event_type(type)) {
         return nullptr;
     }
     const std::string& handler = state->callbacks[event_slot(type)];
@@ -293,6 +321,7 @@ bool VirtualListHost::push_activate(std::string_view list_id, int index, int cel
     }
 
     state->selected_index = index;
+    state->pending_reorder_selection = -1;
     state->controller.set_selected(
         logical_row_for_index(index, state->config.columns));
     state->selected_cell = cell;
@@ -373,6 +402,53 @@ bool VirtualListHost::push_scroll(std::string_view list_id, int top, int start, 
     return true;
 }
 
+std::optional<UiListReorderSnapshot> VirtualListHost::reorder_snapshot(
+    std::string_view list_id) const
+{
+    const auto* state = get_state(list_id);
+    if (!state || state->config.columns != 1 || state->items.size() < 2
+        || state->callbacks[event_slot(UiListEventType::reorder)].empty()) {
+        return std::nullopt;
+    }
+    return UiListReorderSnapshot{
+        .item_count = static_cast<int>(state->items.size()),
+        .revision = state->revision,
+    };
+}
+
+bool VirtualListHost::push_reorder(std::string_view list_id,
+    int source_index,
+    int destination_index,
+    uint64_t expected_revision)
+{
+    auto* state = get_state(list_id);
+    if (!state || state->revision != expected_revision
+        || state->config.columns != 1
+        || state->callbacks[event_slot(UiListEventType::reorder)].empty()
+        || source_index < 0 || destination_index < 0
+        || source_index >= static_cast<int>(state->items.size())
+        || destination_index >= static_cast<int>(state->items.size())
+        || source_index == destination_index) {
+        return false;
+    }
+
+    state->selected_index = destination_index;
+    state->selected_cell = -1;
+    state->pending_reorder_selection = destination_index;
+    state->controller.set_selected(destination_index);
+    ++state->revision;
+
+    UiListEvent event;
+    event.type = UiListEventType::reorder;
+    event.reorder = UiListReorder{
+        .list_id = std::string{list_id},
+        .source_index = source_index,
+        .destination_index = destination_index,
+    };
+    enqueue_ordered(std::move(event));
+    return true;
+}
+
 void VirtualListHost::drain_events(const std::function<void(const UiListEvent&)>& sink)
 {
     if (!sink || events_.empty()) {
@@ -415,8 +491,7 @@ void VirtualListHost::enqueue_coalesced(UiListEvent event)
 {
     for (auto& existing : events_) {
         if (existing.type == event.type
-            && existing.selection.list_id == event.selection.list_id
-            && existing.scroll.list_id == event.scroll.list_id
+            && existing.list_id() == event.list_id()
             && (event.type == UiListEventType::hover || event.type == UiListEventType::scroll)) {
             existing = std::move(event);
             return;

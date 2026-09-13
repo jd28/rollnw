@@ -225,6 +225,18 @@ bool ClientRenderer::set_viewer_area_object_selection(nw::ObjectHandle object) n
     return false;
 }
 
+uint32_t ClientRenderer::active_viewer_area_debug_subindex(
+    nw::ObjectHandle object) const noexcept
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.active_viewer_area_debug_subindex(object);
+    }
+#endif
+    (void)object;
+    return UINT32_MAX;
+}
+
 bool ClientRenderer::focus_viewer_area_object_selection() noexcept
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
@@ -357,6 +369,24 @@ bool ClientRenderer::update_toolset_preview_navigation_debug(
 #endif
 
     (void)view;
+    return false;
+}
+
+bool ClientRenderer::update_viewer_area_region_preview(
+    std::span<const glm::vec3> points,
+    std::optional<glm::vec3> hover,
+    bool closing_valid)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.update_viewer_area_region_preview(
+            points, hover, closing_valid);
+    }
+#endif
+
+    (void)points;
+    (void)hover;
+    (void)closing_valid;
     return false;
 }
 

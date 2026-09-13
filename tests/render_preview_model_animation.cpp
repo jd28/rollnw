@@ -858,11 +858,11 @@ TEST(PreviewModelAnimation, CreatureTurnsSelectAuthoredOrReversedBodyClips)
     scene.add(std::move(fallback_model));
     scene.add(std::move(authored_model));
     scene.static_area_model_info[0] = {
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .object = fallback_owner,
     };
     scene.static_area_model_info[1] = {
-        .kind = viewer::AreaRenderRecordKind::creature,
+        .kind = nw::ObjectType::creature,
         .object = authored_owner,
     };
 
@@ -929,7 +929,7 @@ TEST(PreviewModelAnimation, DoorAnimationLeaseUpdatesEveryJoinedRowAndRestoresSt
     scene.add(std::move(second));
     for (auto& info : scene.static_area_model_info) {
         info = {
-            .kind = viewer::AreaRenderRecordKind::door,
+            .kind = nw::ObjectType::door,
             .object = door,
         };
     }
@@ -1032,7 +1032,7 @@ TEST(PreviewModelAnimation, DoorMissingHoldFreezesCompletedTransition)
     scene.is_area = true;
     scene.add(std::move(model));
     scene.static_area_model_info[0] = {
-        .kind = viewer::AreaRenderRecordKind::door,
+        .kind = nw::ObjectType::door,
         .object = door,
     };
 
@@ -1089,7 +1089,7 @@ TEST(PreviewModelAnimation, DoorAnimationSwitchesParticlePayloadAndRestoresState
     scene.add(std::move(door_model));
     scene.add(std::move(unrelated));
     scene.static_area_model_info[0] = {
-        .kind = viewer::AreaRenderRecordKind::door,
+        .kind = nw::ObjectType::door,
         .object = door,
     };
     ASSERT_TRUE(scene_has_particle_effect(scene, "closed_fx"));
@@ -1160,7 +1160,7 @@ TEST(PreviewModelAnimation, DoorZeroDurationHoldSamplesAuthoredPose)
     scene.is_area = true;
     scene.add(std::move(model));
     scene.static_area_model_info[0] = {
-        .kind = viewer::AreaRenderRecordKind::door,
+        .kind = nw::ObjectType::door,
         .object = door,
     };
     auto* instance = scene.static_model_instance(0);

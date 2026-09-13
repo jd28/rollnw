@@ -25,9 +25,29 @@ struct Runtime;
 
 namespace kernel {
 
+enum struct ModuleLoadProgressStage : uint8_t {
+    reset_services,
+    load_module_resource,
+    load_dependencies,
+    initialize_services,
+    instantiate_module,
+    complete,
+};
+
+using ModuleLoadProgressCallback = void (*)(
+    void* user_data, ModuleLoadProgressStage stage);
+
+// Synchronous, borrowed callback protocol. The caller owns user_data for the
+// complete load call; the kernel stores neither pointer after load_module.
+struct ModuleLoadProgressSink {
+    ModuleLoadProgressCallback callback = nullptr;
+    void* user_data = nullptr;
+};
+
 struct ModuleLoadOptions {
     Vector<std::filesystem::path> hak_roots;
     Vector<std::filesystem::path> tlk_roots;
+    ModuleLoadProgressSink progress;
 };
 
 /// Guides services on load order.

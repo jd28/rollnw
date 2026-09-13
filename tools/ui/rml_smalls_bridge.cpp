@@ -57,15 +57,27 @@ std::optional<UiListEventType> to_list_event_type(std::string_view event_name)
     if (event_name == ui_contract::list_v1::event_scroll) {
         return UiListEventType::scroll;
     }
+    if (event_name == ui_contract::list_v1::event_reorder) {
+        return UiListEventType::reorder;
+    }
     return std::nullopt;
 }
 
 bool validate_list_callback_signature(nw::smalls::Runtime& rt, std::string_view module_path,
     std::string_view fn_name, UiListEventType event_type)
 {
-    const auto expected_arg_type = (event_type == UiListEventType::scroll)
-        ? rt.type_id("core.ui.ListScroll", false)
-        : rt.type_id("core.ui.ListSelection", false);
+    nw::smalls::TypeID expected_arg_type = nw::smalls::invalid_type_id;
+    switch (event_type) {
+    case UiListEventType::scroll:
+        expected_arg_type = rt.type_id("core.ui.ListScroll", false);
+        break;
+    case UiListEventType::reorder:
+        expected_arg_type = rt.type_id("core.ui.ListReorder", false);
+        break;
+    default:
+        expected_arg_type = rt.type_id("core.ui.ListSelection", false);
+        break;
+    }
     if (expected_arg_type == nw::smalls::invalid_type_id) {
         return false;
     }
@@ -147,6 +159,30 @@ nw::smalls::Value make_scroll_value(nw::smalls::Runtime& rt, const UiListScroll&
         || !rt.write_struct_field(ptr, type_id, "top", nw::smalls::Value::make_int(scroll.top))
         || !rt.write_struct_field(ptr, type_id, "start", nw::smalls::Value::make_int(scroll.start))
         || !rt.write_struct_field(ptr, type_id, "end", nw::smalls::Value::make_int(scroll.end))) {
+        return {};
+    }
+    return nw::smalls::Value::make_heap(ptr, type_id);
+}
+
+nw::smalls::Value make_reorder_value(
+    nw::smalls::Runtime& rt, const UiListReorder& reorder)
+{
+    const auto type_id = rt.type_id("core.ui.ListReorder", false);
+    if (type_id == nw::smalls::invalid_type_id) {
+        return {};
+    }
+
+    const auto ptr = rt.alloc_struct(type_id);
+    if (ptr.value == 0) {
+        return {};
+    }
+
+    if (!rt.write_struct_field(
+            ptr, type_id, "list_id", make_string(rt, reorder.list_id))
+        || !rt.write_struct_field(ptr, type_id, "source_index",
+            nw::smalls::Value::make_int(reorder.source_index))
+        || !rt.write_struct_field(ptr, type_id, "destination_index",
+            nw::smalls::Value::make_int(reorder.destination_index))) {
         return {};
     }
     return nw::smalls::Value::make_heap(ptr, type_id);
@@ -732,6 +768,8 @@ SmallsInvocationResult RmlSmallsBridge::call_ui_list_callback(
 
     if (event.type == UiListEventType::scroll) {
         args.push_back(make_scroll_value(rt, event.scroll));
+    } else if (event.type == UiListEventType::reorder) {
+        args.push_back(make_reorder_value(rt, event.reorder));
     } else {
         args.push_back(make_selection_value(rt, event.selection));
     }

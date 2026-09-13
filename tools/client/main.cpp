@@ -1,7 +1,8 @@
-
 #include "appearance_catalog.hpp"
+#include "area_door_hooks.hpp"
 #include "area_map.hpp"
 #include "area_navigation.hpp"
+#include "area_regions.hpp"
 #include "dialog_view.hpp"
 #include "forward_plus_debug.hpp"
 #include "object_document.hpp"
@@ -21,6 +22,7 @@
 #include "smalls_creature_inventory.hpp"
 #include "smalls_creature_properties.hpp"
 #include "smalls_creature_spells.hpp"
+#include "sound_catalog.hpp"
 #include "toolset_backend.hpp"
 #include "viewport_pointer_drag.hpp"
 #include "virtual_combobox.hpp"
@@ -36,6 +38,7 @@
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Store.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/resources/StaticDirectory.hpp>
@@ -103,6 +106,10 @@ constexpr int kCreatureSpellOverscanRows = 8;
 constexpr int kCreatureInventoryCellPx = 32;
 constexpr int kAppearanceRowHeightPx = 30;
 constexpr int kAppearanceOverscanRows = 4;
+constexpr int kSoundCatalogRowHeightPx = 34;
+constexpr int kSoundCatalogOverscanRows = 4;
+constexpr float kManagedListAutoScrollEdgePx = 28.0f;
+constexpr float kManagedListAutoScrollStepPx = 14.0f;
 constexpr int kHomeAreaRowHeightPx = 190;
 constexpr int kHomeAreaOverscanRows = 2;
 constexpr int kHomeAreaMinimumCardWidthPx = 240;
@@ -740,6 +747,12 @@ struct AreaObjectDragState {
     bool active = false;
     bool moved = false;
     bool valid = false;
+    bool encounter_spawn = false;
+    uint32_t encounter_spawn_index = UINT32_MAX;
+    nw::ObjectSpawnPoint spawn_before;
+    nw::ObjectSpawnPoint spawn_preview;
+    std::unique_ptr<nw::toolset::AreaDoorHookSnapshot> door_hooks;
+    int32_t door_hook_type = -2;
     std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
     std::string diagnostic;
 };
@@ -762,6 +775,12 @@ struct AreaObjectPlacementState {
     AreaObjectPlacementPhase phase = AreaObjectPlacementPhase::idle;
     bool threshold_crossed = false;
     bool materialization_failed = false;
+    bool region_drawing = false;
+    bool region_closing_valid = false;
+    std::vector<glm::vec3> region_points;
+    std::optional<glm::vec3> region_hover;
+    std::unique_ptr<nw::toolset::AreaDoorHookSnapshot> door_hooks;
+    int32_t door_hook_type = -2;
     std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
     std::string diagnostic;
 
@@ -884,6 +903,16 @@ struct PlayPreviewState {
     }
 };
 
+struct ProjectLoadRequest {
+    std::string path;
+    std::string stage = "Indexing project files...";
+    nw::toolset::CommandSource source = nw::toolset::CommandSource::widget;
+    bool presented = false;
+    bool close_import_panel_on_success = false;
+
+    [[nodiscard]] bool active() const noexcept { return !path.empty(); }
+};
+
 struct AppState {
     nw::toolset::RmlSmallsBridge smalls;
     nw::toolset::ToolsetBackend backend;
@@ -903,6 +932,15 @@ struct AppState {
     nw::toolset::DialogViewState dialog_view;
     nw::toolset::ObjectDetailsSnapshot object_details;
     nw::toolset::VirtualListController details_list;
+    nw::toolset::VirtualComboBox object_details_combobox{
+        nw::toolset::VirtualComboBoxConfig{
+            .row_height = 30,
+            .visible_rows = 3,
+            .overscan = 0,
+        }};
+    std::optional<uint32_t> object_details_combobox_row;
+    std::optional<nw::toolset::VirtualComboBoxPopupPlacement>
+        object_details_combobox_placement;
     nw::toolset::ObjectVariableSnapshot object_variables;
     nw::toolset::VirtualListController object_variable_list;
     nw::toolset::CreatureClassPresentationSnapshot creature_class_presentation;
@@ -927,12 +965,16 @@ struct AppState {
         .kind = nw::toolset::AppearanceCatalogKind::tail};
     std::vector<uint32_t> appearance_matches;
     nw::toolset::VirtualListController appearance_list;
+    nw::toolset::SoundCatalog sound_catalog;
+    std::vector<uint32_t> sound_catalog_matches;
+    nw::toolset::VirtualListController sound_catalog_list;
     std::unique_ptr<nw::toolset::RmlSmallsLanguageBinding> rml_smalls_binding;
     std::unique_ptr<nw::toolset::RmlSmallsDataModel> rml_smalls_data_model;
     std::string active_object_tab_id;
     std::string creature_feat_query;
     std::string creature_spell_query;
     std::string appearance_query;
+    std::string sound_catalog_query;
     nw::ObjectHandle appearance_object{};
     nw::ObjectHandle appearance_body_preview_object{};
     nw::ObjectHandle color_editor_object{};
@@ -945,6 +987,7 @@ struct AppState {
     CreatureSpellFilterField creature_spell_filter_field = CreatureSpellFilterField::none;
     AppearanceEditorField appearance_editor_field = AppearanceEditorField::appearance;
     uint64_t appearance_catalog_generation = std::numeric_limits<uint64_t>::max();
+    uint64_t sound_catalog_generation = std::numeric_limits<uint64_t>::max();
     uint64_t observed_object_mutation_epoch = 0;
     uint64_t observed_area_structure_epoch = 0;
     bool backend_ready = false;
@@ -970,6 +1013,7 @@ struct AppState {
     std::string import_status;
     std::filesystem::path client_executable;
     nw::toolset::ProjectImportJob project_import;
+    ProjectLoadRequest project_load;
     uint64_t import_module_generation = 0;
     std::string command_palette_restore_focus_id;
     std::filesystem::path preferences_path;
@@ -994,6 +1038,7 @@ struct AppState {
     AreaObjectDragState area_object_drag;
     AreaObjectPlacementState area_object_placement;
     ProjectBlueprintDragState project_blueprint_drag;
+    nw::toolset::ManagedListReorderState managed_list_reorder;
     ClientViewportDragMode viewer_viewport_drag_mode = ClientViewportDragMode::look;
     Rml::Vector2f viewer_viewport_last_point;
     float viewer_fps_frame_seconds = 0.0f;
@@ -1163,6 +1208,9 @@ struct AppState {
     bool appearance_rendered = false;
     bool appearance_scroll_to_selection = false;
     bool appearance_selector_open = false;
+    bool sound_catalog_list_configured = false;
+    bool sound_catalog_rendered = false;
+    bool sound_resource_selector_open = false;
     bool command_palette_ui_visible = false;
     bool command_palette_restore_captured = false;
     bool command_palette_restore_viewport_focus = false;
@@ -1191,6 +1239,8 @@ struct AppState {
     int rendered_creature_spell_row_count = 0;
     nw::toolset::VirtualListRange rendered_appearance_range{};
     int rendered_appearance_row_count = 0;
+    nw::toolset::VirtualListRange rendered_sound_catalog_range{};
+    int rendered_sound_catalog_row_count = 0;
 };
 
 struct OpenModuleDialogRequest {
@@ -1207,6 +1257,10 @@ bool ensure_backend_ready(AppState& state);
 Rml::Element* find_ancestor_with_id(Rml::Element* element, std::string_view id);
 Rml::Vector2f to_context_point(SDL_Window* window, float x, float y);
 void cancel_area_object_drag(ClientRenderer& renderer, AppState& state);
+nw::toolset::CommandContext command_context(
+    AppState& state, nw::toolset::CommandSource source);
+void append_command_result(
+    AppState& state, const nw::toolset::CommandResult& result);
 
 std::filesystem::path preferences_path(const char* app_name)
 {
@@ -2689,11 +2743,7 @@ void dispatch_managed_list_events(AppState& state)
 {
     auto& host = nw::toolset::ui_v1_host();
     host.drain_events([&](const nw::toolset::UiListEvent& event) {
-        const auto* callback = host.callback_ptr(
-            event.type == nw::toolset::UiListEventType::scroll
-                ? std::string_view{event.scroll.list_id}
-                : std::string_view{event.selection.list_id},
-            event.type);
+        const auto* callback = host.callback_ptr(event.list_id(), event.type);
         if (!callback) {
             return;
         }
@@ -3606,13 +3656,48 @@ public:
                 }
                 markup += ">+</button></span>";
             } else if (row.editor == nw::toolset::ObjectDetailsEditorKind::door_state) {
-                markup += "<button type=\"button\" class=\"object_details_door_state\" data-row=\"";
+                markup += "<button type=\"button\" class=\"object_details_cycle_state\" data-row=\"";
                 markup += std::to_string(index);
                 markup += "\" data-current=\"";
                 markup += std::to_string(row.edit_value);
                 markup += "\" title=\"Cycle authored state: Closed, Open 1, Open 2\">";
                 markup += escape_html(value);
                 markup += "</button>";
+            } else if (row.editor
+                == nw::toolset::ObjectDetailsEditorKind::sound_position) {
+                markup += "<button id=\"object_details_sound_position_field_";
+                markup += std::to_string(index);
+                markup += "\" type=\"button\" class=\"combobox_field "
+                          "object_details_sound_position_field\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" title=\"Choose sound placement\">"
+                          "<span class=\"combobox_value\">";
+                markup += escape_html(value);
+                markup += "</span><span class=\"combobox_arrow\">"
+                          "<span class=\"combobox_arrow_indicator\"></span>"
+                          "</span></button>";
+            } else if (row.editor
+                == nw::toolset::ObjectDetailsEditorKind::sound_volume) {
+                const auto volume = nw::toolset::sound_volume_editor_value(
+                    row.edit_value);
+                if (!volume) {
+                    markup += "Invalid";
+                } else {
+                    markup += "<span class=\"object_details_sound_volume_control\">"
+                              "<input class=\"object_details_sound_volume\" type=\"range\" "
+                              "min=\"0\" max=\"10\" step=\"1\" data-row=\"";
+                    markup += std::to_string(index);
+                    markup += "\" data-current=\"";
+                    markup += std::to_string(row.edit_value);
+                    markup += "\" value=\"";
+                    markup += std::to_string(*volume);
+                    markup += "\" title=\"Volume: 0 to 10\"/>"
+                              "<span class=\"object_details_sound_volume_value\">";
+                    markup += std::to_string(*volume);
+                    markup += "</span></span>";
+                }
             } else {
                 markup += escape_html(value.empty() ? std::string_view{"Not set"} : value);
             }
@@ -3818,6 +3903,148 @@ void invalidate_details_render(AppState& state)
     state.details_rendered = false;
 }
 
+void clear_object_details_combobox_state(AppState& state)
+{
+    state.object_details_combobox.close();
+    state.object_details_combobox_row.reset();
+    state.object_details_combobox_placement.reset();
+}
+
+void close_object_details_combobox(
+    Rml::ElementDocument* doc, AppState& state)
+{
+    if (state.object_details_combobox_row) {
+        const auto field_id = "object_details_sound_position_field_"
+            + std::to_string(*state.object_details_combobox_row);
+        if (auto* field = find_el(doc, field_id.c_str())) {
+            field->SetClass("open", false);
+        }
+    }
+    clear_object_details_combobox_state(state);
+    if (auto* popup = find_el(doc, "object_details_combobox_popup")) {
+        popup->SetClass("active", false);
+        popup->SetInnerRML("");
+    }
+}
+
+bool open_object_details_sound_position_combobox(
+    Rml::ElementDocument* doc, AppState& state, uint32_t row_index)
+{
+    if (!active_object_details_matches_tab(state)
+        || row_index >= state.object_details.rows.size()) {
+        return false;
+    }
+    const auto& row = state.object_details.rows[row_index];
+    if (row.kind != nw::toolset::ObjectDetailsRowKind::value
+        || row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
+        || row.edit_value < 0 || row.edit_value > 2) {
+        return false;
+    }
+    if (state.object_details_combobox_row == row_index
+        && state.object_details_combobox.is_active()) {
+        if (state.object_details_combobox.popup_visible()) {
+            state.object_details_combobox.hide_popup();
+        } else {
+            (void)state.object_details_combobox.show_popup();
+        }
+        state.object_details_combobox_placement.reset();
+        return true;
+    }
+
+    std::vector<nw::toolset::VirtualComboBoxItem> options{
+        {.key = 0, .label = "Everywhere"},
+        {.key = 1, .label = "Positional"},
+        {.key = 2, .label = "Random Position"},
+    };
+    close_object_details_combobox(doc, state);
+    if (!state.object_details_combobox.open(
+            std::move(options), row.edit_value)) {
+        return false;
+    }
+    state.object_details_combobox_row = row_index;
+    return true;
+}
+
+bool sync_object_details_combobox(
+    Rml::ElementDocument* doc, AppState& state, bool force = false)
+{
+    if (!state.object_details_combobox.is_active()
+        || !state.object_details_combobox_row) {
+        return false;
+    }
+    const auto row_index = *state.object_details_combobox_row;
+    if (!active_object_details_matches_tab(state)
+        || row_index >= state.object_details.rows.size()) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+    const auto& row = state.object_details.rows[row_index];
+    const auto selected = state.object_details_combobox.selected_key();
+    if (row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
+        || !selected || *selected < 0 || *selected > 2) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+
+    const auto field_id = "object_details_sound_position_field_"
+        + std::to_string(row_index);
+    auto* field = find_el(doc, field_id.c_str());
+    auto* popup = find_el(doc, "object_details_combobox_popup");
+    auto* workbench = find_el(doc, "object_workbench");
+    if (!field || !popup || !workbench) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+
+    const bool visible = state.object_details_combobox.popup_visible();
+    field->SetClass("open", visible);
+    popup->SetClass("active", visible);
+    if (!visible) {
+        return false;
+    }
+
+    const nw::toolset::VirtualComboBoxRect anchor{
+        .x = static_cast<int>(std::lround(
+            field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft())),
+        .y = static_cast<int>(std::lround(
+            field->GetAbsoluteTop() - workbench->GetAbsoluteTop())),
+        .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
+        .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
+    };
+    const nw::toolset::VirtualComboBoxRect bounds{
+        .width = static_cast<int>(std::lround(workbench->GetClientWidth())),
+        .height = static_cast<int>(std::lround(workbench->GetClientHeight())),
+    };
+    const auto placement = state.object_details_combobox.place_popup(
+        anchor, bounds);
+    if (placement.width <= 0 || placement.height <= 0) {
+        return false;
+    }
+
+    bool changed = false;
+    if (!state.object_details_combobox_placement
+        || *state.object_details_combobox_placement != placement) {
+        popup->SetProperty("left", std::to_string(placement.left) + "px");
+        popup->SetProperty("top", std::to_string(placement.top) + "px");
+        popup->SetProperty("width", std::to_string(placement.width) + "px");
+        popup->SetProperty("height", std::to_string(placement.height) + "px");
+        state.object_details_combobox_placement = placement;
+        changed = true;
+    }
+
+    const int observed_scroll_top = std::max(0,
+        static_cast<int>(std::lround(popup->GetScrollTop())));
+    auto update = state.object_details_combobox.update(
+        placement.height, observed_scroll_top, force);
+    if (update.replace_markup) {
+        popup->SetInnerRML(update.markup);
+    }
+    if (update.set_scroll) {
+        popup->SetScrollTop(static_cast<float>(update.scroll_top));
+    }
+    return changed || update.replace_markup || update.set_scroll;
+}
+
 void rebuild_active_object_details(AppState& state, nw::ObjectHandle object)
 {
     auto& runtime = nw::kernel::runtime();
@@ -3850,10 +4077,13 @@ void clear_active_creature_feats(AppState& state);
 void clear_active_creature_spells(AppState& state);
 void clear_active_creature_inventory(AppState& state);
 void clear_active_appearances(AppState& state);
+void clear_active_sound_catalog(AppState& state);
 void clear_color_editor(AppState& state);
 
 void clear_active_object_details(AppState& state)
 {
+    clear_object_details_combobox_state(state);
+    state.managed_list_reorder = {};
     state.object_details = {};
     state.object_variables = {};
     state.creature_class_presentation = {};
@@ -3869,6 +4099,7 @@ void clear_active_object_details(AppState& state)
     clear_active_creature_spells(state);
     clear_active_creature_inventory(state);
     clear_active_appearances(state);
+    clear_active_sound_catalog(state);
     state.object_workbench_surface = ObjectWorkbenchSurface::details;
 }
 
@@ -3970,7 +4201,11 @@ bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool
 {
     const bool variable_changed = sync_object_variable_window(doc, state, force);
     if (state.object_workbench_surface != ObjectWorkbenchSurface::details) {
-        return variable_changed;
+        const bool combobox_changed = state.object_details_combobox.is_active();
+        if (combobox_changed) {
+            close_object_details_combobox(doc, state);
+        }
+        return variable_changed || combobox_changed;
     }
     auto* list = find_el(doc, "property_tree_rows");
     if (!list) {
@@ -3990,7 +4225,8 @@ bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool
         && row_count == state.rendered_details_row_count
         && range.start == state.rendered_details_range.start
         && range.end == state.rendered_details_range.end) {
-        return false;
+        return variable_changed
+            || sync_object_details_combobox(doc, state, false);
     }
 
     const auto& snapshot = state.object_details;
@@ -4020,6 +4256,7 @@ bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool
     state.rendered_details_range = range;
     state.rendered_details_row_count = row_count;
     state.details_rendered = true;
+    (void)sync_object_details_combobox(doc, state, true);
     return true;
 }
 
@@ -5076,6 +5313,201 @@ bool sync_appearance_window(Rml::ElementDocument* doc, AppState& state, bool for
     return !stable_markup || request_scroll;
 }
 
+void configure_sound_catalog_list(AppState& state)
+{
+    if (state.sound_catalog_list_configured) {
+        return;
+    }
+    state.sound_catalog_list.set_row_height(kSoundCatalogRowHeightPx);
+    state.sound_catalog_list.set_overscan(kSoundCatalogOverscanRows);
+    state.sound_catalog_list_configured = true;
+}
+
+void close_sound_resource_selector(AppState& state)
+{
+    state.sound_resource_selector_open = false;
+    state.sound_catalog_query.clear();
+}
+
+void clear_active_sound_catalog(AppState& state)
+{
+    close_sound_resource_selector(state);
+    state.sound_catalog_matches.clear();
+    configure_sound_catalog_list(state);
+    state.sound_catalog_list.set_total_rows(0);
+    state.sound_catalog_list.set_scroll_top(0);
+    state.sound_catalog_rendered = false;
+}
+
+bool active_sound_resource_selector_matches_tab(const AppState& state)
+{
+    return state.sound_resource_selector_open
+        && state.object_workbench_surface == ObjectWorkbenchSurface::sounds
+        && state.object_details.object.type == nw::ObjectType::sound
+        && active_object_matches_tab(state);
+}
+
+void rebuild_sound_catalog(AppState& state, bool reset_selection)
+{
+    configure_sound_catalog_list(state);
+    const uint64_t generation = state.backend_ready
+        ? nw::kernel::resman().generation()
+        : 0;
+    if (generation != state.sound_catalog_generation) {
+        state.sound_catalog = {};
+        state.sound_catalog_generation = generation;
+    }
+    if (state.sound_catalog.status == nw::toolset::SoundCatalogStatus::empty) {
+        (void)nw::toolset::build_sound_catalog(state.sound_catalog);
+    }
+
+    nw::toolset::filter_sound_catalog(state.sound_catalog,
+        state.sound_catalog_query, state.sound_catalog_matches);
+    state.sound_catalog_list.set_total_rows(
+        static_cast<int>(state.sound_catalog_matches.size()));
+    if (reset_selection
+        || state.sound_catalog_list.selected() < 0
+        || static_cast<size_t>(state.sound_catalog_list.selected())
+            >= state.sound_catalog_matches.size()) {
+        state.sound_catalog_list.set_selected(
+            state.sound_catalog_matches.empty() ? -1 : 0);
+    }
+    state.sound_catalog_rendered = false;
+}
+
+class SoundCatalogListAdapter final : public nw::toolset::VirtualListAdapter {
+public:
+    SoundCatalogListAdapter(const nw::toolset::SoundCatalog& catalog,
+        const std::vector<uint32_t>& matches)
+        : catalog_{catalog}
+        , matches_{matches}
+    {
+    }
+
+    [[nodiscard]] int size() const override
+    {
+        return static_cast<int>(matches_.size());
+    }
+
+    [[nodiscard]] int row_key(int index) const override
+    {
+        return static_cast<int>(matches_[static_cast<size_t>(index)]);
+    }
+
+    [[nodiscard]] std::string_view row_extra_classes() const override
+    {
+        return "sound_catalog_row";
+    }
+
+    [[nodiscard]] std::string render_row_inner(
+        int index, bool /*selected*/) const override
+    {
+        const auto& value = row(index);
+        std::string markup;
+        markup.reserve(value.name.size() + value.resource.length() + 96);
+        markup += "<div class=\"sound_catalog_name\">";
+        markup += escape_html(value.name);
+        markup += "</div><div class=\"sound_catalog_resref\">";
+        markup += escape_html(value.resource.view());
+        markup += "</div>";
+        return markup;
+    }
+
+private:
+    [[nodiscard]] const nw::toolset::SoundCatalogRow& row(int index) const
+    {
+        return catalog_.rows[matches_[static_cast<size_t>(index)]];
+    }
+
+    const nw::toolset::SoundCatalog& catalog_;
+    const std::vector<uint32_t>& matches_;
+};
+
+bool sync_sound_catalog_window(
+    Rml::ElementDocument* doc, AppState& state, bool force)
+{
+    auto* list = find_el(doc, "sound_catalog_rows");
+    if (!list || !active_sound_resource_selector_matches_tab(state)) {
+        return false;
+    }
+
+    const uint64_t generation = state.backend_ready
+        ? nw::kernel::resman().generation()
+        : 0;
+    if (generation != state.sound_catalog_generation) {
+        rebuild_sound_catalog(state, true);
+        force = true;
+    }
+
+    configure_sound_catalog_list(state);
+    const int viewport_height = std::max(1,
+        static_cast<int>(std::lround(std::max(
+            list->GetClientHeight(), list->GetOffsetHeight()))));
+    const int scroll_top = std::max(0,
+        static_cast<int>(std::lround(list->GetScrollTop())));
+    state.sound_catalog_list.set_viewport_height(viewport_height);
+    state.sound_catalog_list.set_scroll_top(scroll_top);
+    const auto range = state.sound_catalog_list.compute_range();
+    const int row_count = static_cast<int>(state.sound_catalog_matches.size());
+    const bool stable_markup = !force && state.sound_catalog_rendered
+        && row_count == state.rendered_sound_catalog_row_count
+        && range.start == state.rendered_sound_catalog_range.start
+        && range.end == state.rendered_sound_catalog_range.end;
+    if (stable_markup) {
+        return false;
+    }
+
+    std::string markup;
+    if (state.sound_catalog.status
+        != nw::toolset::SoundCatalogStatus::ready) {
+        markup = "<div class=\"property_tree_empty error\">";
+        markup += escape_html(state.sound_catalog.diagnostic.empty()
+                ? std::string_view{"Sound data is unavailable."}
+                : std::string_view{state.sound_catalog.diagnostic});
+        markup += "</div>";
+    } else if (state.sound_catalog_matches.empty()) {
+        markup = "<div class=\"property_tree_empty\">"
+                 "No sound resources match this filter.</div>";
+    } else {
+        markup = nw::toolset::render_virtual_list(state.sound_catalog_list,
+            SoundCatalogListAdapter{
+                state.sound_catalog, state.sound_catalog_matches});
+    }
+
+    list->SetInnerRML(markup);
+    list->SetScrollTop(static_cast<float>(scroll_top));
+    state.rendered_sound_catalog_range = range;
+    state.rendered_sound_catalog_row_count = row_count;
+    state.sound_catalog_rendered = true;
+    return true;
+}
+
+bool commit_sound_catalog_selection(AppState& state, uint32_t row_index)
+{
+    if (!active_sound_resource_selector_matches_tab(state)
+        || row_index >= state.sound_catalog.rows.size()) {
+        return false;
+    }
+
+    const std::array additions{
+        state.sound_catalog.rows[row_index].resource,
+    };
+    auto edit = nw::toolset::make_sound_resource_additions(
+        nw::kernel::runtime(), state.object_details.object, additions);
+    if (!edit) {
+        append_output(state, "warn",
+            "The Sound resource list is invalid or already contains 1,024 entries");
+        return false;
+    }
+
+    auto result = state.backend.replace_sound_resources(std::move(*edit),
+        "Add sound resource",
+        command_context(state, nw::toolset::CommandSource::widget));
+    const bool committed = result.ok();
+    append_command_result(state, result);
+    return committed;
+}
+
 std::string appearance_editor_label(
     const AppState& state, AppearanceEditorField field, int32_t current)
 {
@@ -5176,6 +5608,26 @@ void append_appearance_selector_markup(std::string& content_markup, const AppSta
     content_markup += escape_html(state.appearance_query);
     content_markup += "\" /></div><div id=\"appearance_rows\" class=\"appearance_selector_rows\">"
                       "<div class=\"property_tree_empty\">Loading options...</div></div></div>";
+}
+
+void append_sound_resource_selector_markup(
+    std::string& content_markup, const AppState& state)
+{
+    content_markup += "<div class=\"sound_resource_selector appearance_selector\">"
+                      "<div class=\"appearance_selector_header\">"
+                      "<button id=\"sound_resource_selector_back\" "
+                      "class=\"appearance_selector_back panel_back_button\" title=\"Back\">"
+                      "<span class=\"panel_back_icon\"><span class=\"panel_back_head\"></span>"
+                      "<span class=\"panel_back_shaft\"></span></span></button>"
+                      "<div class=\"appearance_selector_title\">Add Sound</div></div>"
+                      "<div class=\"appearance_selector_filter\">"
+                      "<input id=\"sound_catalog_search\" type=\"text\" "
+                      "placeholder=\"Filter sounds...\" value=\"";
+    content_markup += escape_html(state.sound_catalog_query);
+    content_markup += "\" /></div><div id=\"sound_catalog_rows\" "
+                      "class=\"appearance_selector_rows sound_catalog_rows\">"
+                      "<div class=\"property_tree_empty\">Loading sounds...</div>"
+                      "</div></div>";
 }
 
 void append_placeable_appearance_markup(
@@ -6193,17 +6645,28 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
                           "data-empty-text=\"This encounter has no spawn entries.\"></div></div>";
     } else if (object_type == nw::ObjectType::sound
         && state.object_workbench_surface == ObjectWorkbenchSurface::sounds) {
-        content_markup += "<div id=\"sound_resource_collection\" "
-                          "class=\"data_object_collection smalls_refresh\" "
-                          "onrefresh=\"sound_resources_refresh()\">"
-                          "<div class=\"data_collection_header sound_resource_header\">"
-                          "<span>Resource</span></div>"
-                          "<div class=\"data_collection_summary managed_list_title\" "
-                          "data-list-id=\"data.sound.resources\"></div>"
-                          "<div class=\"data_collection_rows sound_resource_rows managed_list_rows\" "
-                          "tabindex=\"0\" "
-                          "data-list-id=\"data.sound.resources\" "
-                          "data-empty-text=\"This sound object has no sound resources.\"></div></div>";
+        if (state.sound_resource_selector_open) {
+            append_sound_resource_selector_markup(content_markup, state);
+        } else {
+            content_markup += "<div id=\"sound_resource_collection\" "
+                              "class=\"data_object_collection smalls_refresh\" "
+                              "onrefresh=\"sound_resources_refresh()\">"
+                              "<div class=\"data_collection_header sound_resource_header\">"
+                              "<span>Resource</span></div>"
+                              "<div class=\"data_collection_summary managed_list_title\" "
+                              "data-list-id=\"data.sound.resources\"></div>"
+                              "<div id=\"sound_resource_rows\" "
+                              "class=\"data_collection_rows sound_resource_rows managed_list_rows\" "
+                              "tabindex=\"0\" "
+                              "data-list-id=\"data.sound.resources\" "
+                              "data-empty-text=\"This sound object has no sound resources.\"></div>"
+                              "<div class=\"data_collection_action_bar\">"
+                              "<button id=\"sound_resource_add\" type=\"button\" "
+                              "class=\"data_collection_action add\" title=\"Add sound resource\">"
+                              "<span class=\"data_collection_action_mark horizontal\"></span>"
+                              "<span class=\"data_collection_action_mark vertical\"></span>"
+                              "</button></div></div>";
+        }
     } else if (object_type == nw::ObjectType::store
         && state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory) {
         content_markup += "<div id=\"store_inventory_collection\" "
@@ -6236,6 +6699,11 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
         content_markup += std::to_string(active_details_row_count(state));
         content_markup += "</span></div><div id=\"property_tree_rows\" class=\"property_tree_rows\">";
         content_markup += "<div class=\"property_tree_empty\">Select an object to inspect.</div></div>";
+    }
+    if (object_type == nw::ObjectType::sound) {
+        content_markup += "<div id=\"object_details_combobox_popup\" "
+                          "class=\"combobox_options combobox_popup "
+                          "object_details_combobox_popup\"></div>";
     }
     content_markup += "</div>";
 }
@@ -7920,20 +8388,64 @@ nw::toolset::CommandResult dispatch_command(AppState& state,
     return state.backend.execute_command(command_id, args, command_context(state, source));
 }
 
-// Object variable text inputs are genuine single-field UI transactions. RmlUi
-// emits change events for every keystroke, marks the Enter event with
-// linebreak=true, and emits a separate non-bubbling blur event on focus loss.
-// Reject invalid numeric mutations as they arrive, then commit only on Enter
-// or blur so one user edit produces one command.
-class ObjectVariableChangeListener final : public Rml::EventListener {
+bool commit_object_details_sound_position(
+    Rml::ElementDocument* doc, AppState& state, int32_t desired)
+{
+    if (!state.object_details_combobox_row
+        || !state.object_details_combobox.select_key(desired)) {
+        return false;
+    }
+    const auto row_index = *state.object_details_combobox_row;
+    if (!active_object_details_matches_tab(state)
+        || row_index >= state.object_details.rows.size()) {
+        close_object_details_combobox(doc, state);
+        return false;
+    }
+    const auto& row = state.object_details.rows[row_index];
+    if (row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
+        || row.edit_value < 0 || row.edit_value > 2
+        || desired < 0 || desired > 2) {
+        close_object_details_combobox(doc, state);
+        return false;
+    }
+    if (desired == row.edit_value) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+
+    const auto result = dispatch_command(state,
+        "object.details.set_sound_position",
+        {std::to_string(row_index), std::to_string(row.edit_value),
+            std::to_string(desired)},
+        nw::toolset::CommandSource::widget);
+    append_command_result(state, result);
+    close_object_details_combobox(doc, state);
+    return result.ok();
+}
+
+// Object variable text inputs commit on Enter or blur. RmlUi emits Sound
+// volume changes throughout a drag, so retain only the newest slider value and
+// commit it when that input gesture ends.
+class ObjectWorkbenchChangeListener final : public Rml::EventListener {
 public:
-    explicit ObjectVariableChangeListener(AppState& state)
+    explicit ObjectWorkbenchChangeListener(AppState& state)
         : state_{state}
     {
     }
 
     void ProcessEvent(Rml::Event& event) override
     {
+        if (event == Rml::EventId::Change
+            && stage_sound_volume(event)) {
+            return;
+        }
+        if (event == Rml::EventId::Blur
+            && event.GetTargetElement()
+            && event.GetTargetElement()->IsClassSet(
+                "object_details_sound_volume")) {
+            (void)commit_sound_volume();
+            return;
+        }
         if (event == Rml::EventId::Change) {
             if (!event.GetParameter<bool>("linebreak", false)) {
                 reject_invalid_numeric_input(event.GetTargetElement());
@@ -7955,7 +8467,79 @@ public:
         (void)commit_input(event.GetTargetElement());
     }
 
+    bool commit_sound_volume()
+    {
+        if (!pending_sound_volume_) {
+            return false;
+        }
+        const auto pending = *pending_sound_volume_;
+        pending_sound_volume_.reset();
+        if (pending.current == pending.desired) {
+            return true;
+        }
+        const std::string row = std::to_string(pending.row);
+        const std::string current = std::to_string(pending.current);
+        const std::string desired = std::to_string(pending.desired);
+        const auto result = dispatch_command(state_,
+            "object.details.set_integer",
+            {row, current, desired},
+            nw::toolset::CommandSource::widget);
+        append_command_result(state_, result);
+        return result.ok();
+    }
+
 private:
+    struct PendingSoundVolume {
+        uint32_t row = 0;
+        int32_t current = 0;
+        int32_t desired = 0;
+    };
+
+    bool stage_sound_volume(Rml::Event& event)
+    {
+        auto* target = event.GetTargetElement();
+        if (!target
+            || !target->IsClassSet("object_details_sound_volume")) {
+            return false;
+        }
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        if (!input) {
+            return true;
+        }
+        const float event_value = event.GetParameter<float>("value", -1.0f);
+        const int32_t editor_value = static_cast<int32_t>(std::lround(event_value));
+        const auto stored_value = std::abs(
+                                      event_value - static_cast<float>(editor_value))
+                < 0.001f
+            ? nw::toolset::sound_volume_storage_value(editor_value)
+            : std::nullopt;
+        const auto row = parse_decimal_int32(input->GetAttribute<Rml::String>(
+            "data-row", ""));
+        const auto current = parse_decimal_int32(
+            input->GetAttribute<Rml::String>("data-current", ""));
+        if (!stored_value || !row || *row < 0 || !current
+            || !active_object_details_matches_tab(state_)
+            || static_cast<size_t>(*row) >= state_.object_details.rows.size()) {
+            return true;
+        }
+        const auto& details_row = state_.object_details.rows[static_cast<size_t>(*row)];
+        if (details_row.editor
+                != nw::toolset::ObjectDetailsEditorKind::sound_volume
+            || details_row.edit_value != *current) {
+            return true;
+        }
+        pending_sound_volume_ = PendingSoundVolume{
+            .row = static_cast<uint32_t>(*row),
+            .current = *current,
+            .desired = *stored_value,
+        };
+        if (auto* value = input->GetNextSibling(); value
+            && value->IsClassSet("object_details_sound_volume_value")) {
+            value->SetInnerRML(std::to_string(editor_value));
+        }
+        return true;
+    }
+
     static void reject_invalid_numeric_input(Rml::Element* target)
     {
         if (!target || !target->IsClassSet("object_variable_value")) {
@@ -8027,6 +8611,7 @@ private:
     }
 
     AppState& state_;
+    std::optional<PendingSoundVolume> pending_sound_volume_;
     bool suppress_blur_commit_ = false;
 };
 
@@ -8169,8 +8754,71 @@ bool sync_appearance_body_preview(ClientRenderer& renderer, AppState& state)
 
 bool editable_area_object(nw::ObjectHandle object) noexcept
 {
-    return object.type == nw::ObjectType::creature || object.type == nw::ObjectType::placeable
-        || object.type == nw::ObjectType::item;
+    switch (object.type) {
+    case nw::ObjectType::creature:
+    case nw::ObjectType::door:
+    case nw::ObjectType::encounter:
+    case nw::ObjectType::item:
+    case nw::ObjectType::placeable:
+    case nw::ObjectType::sound:
+    case nw::ObjectType::store:
+    case nw::ObjectType::trigger:
+    case nw::ObjectType::waypoint:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool snap_area_door_preview(
+    nw::ObjectHandle area,
+    nw::ObjectHandle door,
+    glm::vec3 requested_position,
+    std::unique_ptr<nw::toolset::AreaDoorHookSnapshot>& hooks,
+    int32_t& hook_type,
+    nw::ObjectSpatialState& preview,
+    std::string& diagnostic)
+{
+    constexpr int32_t k_unresolved_hook_type = -2;
+    constexpr int32_t k_invalid_hook_type = -3;
+    if (door.type != nw::ObjectType::door) {
+        return true;
+    }
+    if (hook_type == k_unresolved_hook_type) {
+        hook_type = nw::toolset::area_door_hook_type(door)
+                        .value_or(k_invalid_hook_type);
+    }
+    if (hook_type == k_invalid_hook_type) {
+        diagnostic = "Door hook policy is invalid or unavailable";
+        return false;
+    }
+    if (!hooks) {
+        const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+        if (!live_area) {
+            diagnostic = "Active area is invalid or stale";
+            return false;
+        }
+        try {
+            hooks = std::make_unique<nw::toolset::AreaDoorHookSnapshot>();
+        } catch (const std::bad_alloc&) {
+            diagnostic = "Door-hook snapshot allocation failed";
+            return false;
+        }
+        if (!nw::toolset::build_area_door_hooks(*live_area, *hooks, diagnostic)) {
+            hooks.reset();
+            return false;
+        }
+    }
+    const auto hook = nw::toolset::nearest_area_door_hook(
+        *hooks, requested_position, hook_type, door);
+    if (!hook) {
+        diagnostic = "No compatible unoccupied door hook is available";
+        return false;
+    }
+    preview.position = hook->position;
+    preview.orientation = hook->orientation;
+    diagnostic.clear();
+    return true;
 }
 
 std::string precise_float_text(float value)
@@ -8224,6 +8872,45 @@ bool validate_placement_preview(ClientRenderer& renderer,
     return result.ok();
 }
 
+bool project_area_navigation_point(
+    ClientRenderer& renderer,
+    std::unique_ptr<nw::toolset::AreaPlacementNavigation>& navigation,
+    nw::ObjectHandle area,
+    Rml::Vector2f point,
+    ClientViewportRect viewport,
+    glm::vec3& output,
+    std::string& diagnostic)
+{
+    const auto ray = renderer.viewer_viewport_ray(
+        point.x, point.y, viewport);
+    if (!ray) {
+        diagnostic = "Navigation ray could not be constructed";
+        return false;
+    }
+    if (!navigation) {
+        try {
+            navigation
+                = std::make_unique<nw::toolset::AreaPlacementNavigation>();
+        } catch (const std::bad_alloc&) {
+            diagnostic = "Area navigation allocation failed";
+            return false;
+        }
+    }
+    const std::array inputs{nw::nav::NavRayProjectionInput{
+        .origin = ray->origin,
+        .displacement = ray->displacement,
+    }};
+    std::array<nw::nav::NavRayProjectionResult, 1> projected{};
+    const auto stats = nw::toolset::project_area_navigation_rays(
+        *navigation, area, inputs, projected, diagnostic);
+    if (stats.output_count != 1
+        || projected[0].status != nw::nav::NavStatus::ok) {
+        return false;
+    }
+    output = projected[0].position;
+    return true;
+}
+
 bool begin_area_object_drag(ClientRenderer& renderer,
     AppState& state,
     Rml::Vector2f point,
@@ -8244,6 +8931,16 @@ bool begin_area_object_drag(ClientRenderer& renderer,
         return false;
     }
 
+    const uint32_t spawn_index
+        = renderer.active_viewer_area_debug_subindex(object);
+    const auto* geometry = object.type == nw::ObjectType::encounter
+        ? nw::kernel::objects().components().find_geometry(object)
+        : nullptr;
+    const bool encounter_spawn = geometry
+        && spawn_index < geometry->spawn_points.size();
+    const nw::ObjectSpawnPoint spawn = encounter_spawn
+        ? geometry->spawn_points[spawn_index]
+        : nw::ObjectSpawnPoint{};
     state.area_object_drag = {
         .area = renderer.area_viewer_object(),
         .before = *spatial,
@@ -8252,6 +8949,10 @@ bool begin_area_object_drag(ClientRenderer& renderer,
         .pointer = {viewport.rect, {point.x, point.y}},
         .active = true,
         .valid = true,
+        .encounter_spawn = encounter_spawn,
+        .encounter_spawn_index = spawn_index,
+        .spawn_before = spawn,
+        .spawn_preview = spawn,
     };
     state.smalls.publish_active_object(object);
     state.active_object_tab_id = state.workspace.active_tab_id();
@@ -8278,6 +8979,20 @@ bool update_area_object_drag(ClientRenderer& renderer,
         return false;
     }
     if (pointer_status == ClientViewportPointerDragStatus::pending) return false;
+    auto& drag = state.area_object_drag;
+    if (drag.encounter_spawn) {
+        glm::vec3 position{0.0f};
+        drag.valid = project_area_navigation_point(renderer,
+            drag.navigation, drag.area, point, viewport.rect,
+            position, drag.diagnostic);
+        if (!drag.valid) return false;
+        drag.spawn_preview.position = position;
+        drag.moved = drag.spawn_preview != drag.spawn_before;
+        renderer.update_viewer_area_region_preview(
+            {}, drag.spawn_preview.position, true);
+        return true;
+    }
+
     const auto surface_point = renderer.viewer_area_surface_point(
         point.x, point.y, viewport.rect);
     if (!surface_point) {
@@ -8286,13 +9001,22 @@ bool update_area_object_drag(ClientRenderer& renderer,
         return false;
     }
 
-    const glm::vec3 position = *surface_point + state.area_object_drag.grab_offset;
-    state.area_object_drag.preview.position = position;
-    state.area_object_drag.moved = position != state.area_object_drag.before.position;
-    auto& drag = state.area_object_drag;
-    drag.valid = validate_placement_preview(renderer, drag.navigation,
-        drag.area, drag.preview, drag.diagnostic);
-    renderer.preview_viewer_area_object_spatial(state.area_object_drag.preview);
+    const glm::vec3 position = *surface_point + drag.grab_offset;
+    drag.preview.position = position;
+    const bool snapped = snap_area_door_preview(
+        drag.area,
+        drag.before.owner,
+        position,
+        drag.door_hooks,
+        drag.door_hook_type,
+        drag.preview,
+        drag.diagnostic);
+    drag.moved = drag.preview.position != drag.before.position
+        || drag.preview.orientation != drag.before.orientation;
+    drag.valid = snapped && validate_placement_preview(renderer, drag.navigation, drag.area, drag.preview, drag.diagnostic);
+    if (snapped) {
+        renderer.preview_viewer_area_object_spatial(drag.preview);
+    }
     return true;
 }
 
@@ -8303,6 +9027,10 @@ void cancel_area_object_drag(ClientRenderer& renderer, AppState& state)
     }
     if (state.area_object_drag.navigation) {
         renderer.update_toolset_preview_navigation_debug({});
+    }
+    if (state.area_object_drag.encounter_spawn) {
+        renderer.update_viewer_area_region_preview(
+            {}, std::nullopt, false);
     }
     if (state.area_object_drag.pointer.dragging) {
         renderer.sync_viewer_area_object_spatial(state.area_object_drag.before.owner);
@@ -8319,39 +9047,167 @@ void commit_area_object_drag(ClientRenderer& renderer, AppState& state)
     const auto drag = std::move(state.area_object_drag);
     state.area_object_drag = {};
     if (drag.navigation) renderer.update_toolset_preview_navigation_debug({});
+    if (drag.encounter_spawn) {
+        renderer.update_viewer_area_region_preview(
+            {}, std::nullopt, false);
+    }
     if (!drag.pointer.dragging) return;
     if (!drag.moved || state.smalls.active_object() != drag.before.owner) {
         renderer.sync_viewer_area_object_spatial(drag.before.owner);
         return;
     }
     if (!drag.valid) {
-        renderer.sync_viewer_area_object_spatial(drag.before.owner);
+        if (!drag.encounter_spawn) {
+            renderer.sync_viewer_area_object_spatial(drag.before.owner);
+        }
         append_output(state, "warn", drag.diagnostic);
         return;
     }
 
-    const std::array<std::string, 3> args{
-        precise_float_text(drag.preview.position.x),
-        precise_float_text(drag.preview.position.y),
-        precise_float_text(drag.preview.position.z),
-    };
-    if (std::any_of(args.begin(), args.end(), [](const auto& arg) { return arg.empty(); })) {
-        renderer.sync_viewer_area_object_spatial(drag.before.owner);
+    if (drag.encounter_spawn) {
+        const auto* geometry
+            = nw::kernel::objects().components().find_geometry(
+                drag.before.owner);
+        if (!geometry
+            || drag.encounter_spawn_index
+                >= geometry->spawn_points.size()) {
+            append_output(state, "warn",
+                "Encounter spawn point changed during the drag");
+            return;
+        }
+        std::vector<nw::ObjectSpawnPoint> before{
+            geometry->spawn_points.begin(),
+            geometry->spawn_points.end(),
+        };
+        auto after = before;
+        after[drag.encounter_spawn_index] = drag.spawn_preview;
+        const auto result = state.backend.replace_encounter_spawn_points(
+            {
+                .area = drag.area,
+                .encounter = drag.before.owner,
+                .before = std::move(before),
+                .after = std::move(after),
+            },
+            command_context(state,
+                nw::toolset::CommandSource::renderer));
+        append_command_result(state, result);
         return;
     }
-    const auto result = dispatch_command(state,
-        "object.transform.set_position",
-        {args[0], args[1], args[2]},
-        nw::toolset::CommandSource::renderer);
+
+    const auto result = state.backend.transform_area_object(
+        {
+            .object = drag.before.owner,
+            .before = {
+                .position = drag.before.position,
+                .orientation = drag.before.orientation,
+                .scale = drag.before.scale,
+            },
+            .after = {
+                .position = drag.preview.position,
+                .orientation = drag.preview.orientation,
+                .scale = drag.preview.scale,
+            },
+            .area = drag.area,
+        },
+        command_context(state, nw::toolset::CommandSource::renderer));
     sync_area_object_after_command(renderer, state, result);
+}
+
+bool add_encounter_spawn_point(
+    ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport)
+{
+    const auto encounter = renderer.active_viewer_object();
+    const auto area = renderer.area_viewer_object();
+    if (encounter.type != nw::ObjectType::encounter
+        || area.type != nw::ObjectType::area) {
+        return false;
+    }
+    std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
+    glm::vec3 position{0.0f};
+    std::string diagnostic;
+    if (!project_area_navigation_point(renderer, navigation, area,
+            point, viewport.rect, position, diagnostic)) {
+        append_output(state, "warn", diagnostic);
+        return true;
+    }
+    const auto* geometry
+        = nw::kernel::objects().components().find_geometry(encounter);
+    std::vector<nw::ObjectSpawnPoint> before;
+    if (geometry) {
+        before.assign(
+            geometry->spawn_points.begin(),
+            geometry->spawn_points.end());
+    }
+    auto after = before;
+    after.push_back({
+        .position = position,
+        .orientation = 0.0f,
+    });
+    const auto result = state.backend.replace_encounter_spawn_points(
+        {
+            .area = area,
+            .encounter = encounter,
+            .before = std::move(before),
+            .after = std::move(after),
+        },
+        command_context(state, nw::toolset::CommandSource::renderer));
+    append_command_result(state, result);
+    return true;
+}
+
+bool delete_selected_encounter_spawn_point(
+    ClientRenderer& renderer, AppState& state)
+{
+    const auto encounter = renderer.active_viewer_object();
+    const auto area = renderer.area_viewer_object();
+    const uint32_t spawn_index
+        = renderer.active_viewer_area_debug_subindex(encounter);
+    const auto* geometry
+        = nw::kernel::objects().components().find_geometry(encounter);
+    if (encounter.type != nw::ObjectType::encounter
+        || area.type != nw::ObjectType::area
+        || !geometry || spawn_index >= geometry->spawn_points.size()) {
+        return false;
+    }
+    std::vector<nw::ObjectSpawnPoint> before{
+        geometry->spawn_points.begin(),
+        geometry->spawn_points.end(),
+    };
+    auto after = before;
+    after.erase(after.begin() + static_cast<ptrdiff_t>(spawn_index));
+    const auto result = state.backend.replace_encounter_spawn_points(
+        {
+            .area = area,
+            .encounter = encounter,
+            .before = std::move(before),
+            .after = std::move(after),
+        },
+        command_context(state, nw::toolset::CommandSource::shortcut));
+    append_command_result(state, result);
+    return true;
 }
 
 bool placement_blueprint_resource(const nw::Resource& resource) noexcept
 {
     return resource.valid()
         && (resource.type == nw::ResourceType::utc
+            || resource.type == nw::ResourceType::utd
+            || resource.type == nw::ResourceType::ute
             || resource.type == nw::ResourceType::utp
-            || resource.type == nw::ResourceType::uti);
+            || resource.type == nw::ResourceType::uti
+            || resource.type == nw::ResourceType::utm
+            || resource.type == nw::ResourceType::uts
+            || resource.type == nw::ResourceType::utt
+            || resource.type == nw::ResourceType::utw);
+}
+
+bool region_blueprint_resource(const nw::Resource& resource) noexcept
+{
+    return resource.type == nw::ResourceType::ute
+        || resource.type == nw::ResourceType::utt;
 }
 
 bool area_object_placement_position_valid(nw::ObjectHandle area, glm::vec3 position)
@@ -8396,6 +9252,10 @@ void cancel_area_object_placement(ClientRenderer& renderer, AppState& state)
 
     const auto placement = std::move(state.area_object_placement);
     state.area_object_placement = {};
+    if (region_blueprint_resource(placement.resource)) {
+        renderer.update_viewer_area_region_preview(
+            {}, std::nullopt, false);
+    }
     if (placement.navigation) renderer.update_toolset_preview_navigation_debug({});
     if (nw::kernel::objects().valid(placement.object)) {
         nw::kernel::objects().destroy(placement.object);
@@ -8409,6 +9269,56 @@ void cancel_area_object_placement(ClientRenderer& renderer, AppState& state)
             append_output(state, "error", "Area object placement cancellation rebuild failed");
         }
     }
+}
+
+bool update_area_region_placement(
+    ClientRenderer& renderer,
+    AreaObjectPlacementState& placement,
+    nw::ObjectHandle area,
+    Rml::Vector2f point,
+    ClientViewportRect viewport)
+{
+    glm::vec3 projected{0.0f};
+    if (!project_area_navigation_point(renderer,
+            placement.navigation, area, point, viewport,
+            projected, placement.diagnostic)) {
+        placement.region_hover.reset();
+        placement.region_closing_valid = false;
+        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        renderer.update_viewer_area_region_preview(
+            placement.region_points, std::nullopt, false);
+        return true;
+    }
+
+    const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+    std::vector<glm::vec3> candidate = placement.region_points;
+    candidate.push_back(projected);
+    std::string path_diagnostic;
+    const bool open_valid = live_area
+        && nw::toolset::validate_area_region_path(
+            live_area->width, live_area->height,
+            candidate, false, path_diagnostic);
+    std::string close_diagnostic;
+    placement.region_closing_valid = open_valid && candidate.size() >= 3
+        && nw::toolset::validate_area_region_path(
+            live_area->width, live_area->height,
+            candidate, true, close_diagnostic);
+    placement.region_hover = projected;
+    placement.area = area;
+    placement.phase = open_valid
+        ? AreaObjectPlacementPhase::ghost_valid
+        : AreaObjectPlacementPhase::ghost_invalid;
+    placement.diagnostic = open_valid
+        ? close_diagnostic
+        : path_diagnostic;
+    if (!renderer.update_viewer_area_region_preview(
+            placement.region_points,
+            placement.region_hover,
+            placement.region_closing_valid)) {
+        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        placement.diagnostic = "Region preview construction failed";
+    }
+    return true;
 }
 
 bool update_area_object_placement(ClientRenderer& renderer,
@@ -8433,8 +9343,12 @@ bool update_area_object_placement(ClientRenderer& renderer,
 
     if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area
         || !point_within_viewport(viewport->rect, point)) {
-        if (placement.object.type != nw::ObjectType::invalid) {
-            placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        if (region_blueprint_resource(placement.resource)) {
+            placement.region_hover.reset();
+            placement.region_closing_valid = false;
+            renderer.update_viewer_area_region_preview(
+                placement.region_points, std::nullopt, false);
         }
         return true;
     }
@@ -8443,11 +9357,21 @@ bool update_area_object_placement(ClientRenderer& renderer,
     if (area.type != nw::ObjectType::area || !nw::kernel::objects().valid(area)
         || state.workspace.active_tab_id() != placement.tab_id) {
         placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        placement.region_hover.reset();
+        placement.region_closing_valid = false;
         return true;
     }
     if (placement.area.type != nw::ObjectType::invalid && placement.area != area) {
         placement.phase = AreaObjectPlacementPhase::ghost_invalid;
+        placement.region_hover.reset();
+        placement.region_closing_valid = false;
         return true;
+    }
+
+    if (region_blueprint_resource(placement.resource)
+        && placement.object.type == nw::ObjectType::invalid) {
+        return update_area_region_placement(
+            renderer, placement, area, point, viewport->rect);
     }
 
     const auto surface_point = renderer.viewer_area_surface_point(
@@ -8502,16 +9426,132 @@ bool update_area_object_placement(ClientRenderer& renderer,
     }
 
     placement.preview.position = *surface_point;
-    if (!renderer.preview_viewer_area_object_spatial(placement.preview)) {
+    const bool snapped = snap_area_door_preview(
+        area,
+        placement.object,
+        *surface_point,
+        placement.door_hooks,
+        placement.door_hook_type,
+        placement.preview,
+        placement.diagnostic);
+    if (snapped && !renderer.preview_viewer_area_object_spatial(placement.preview)) {
         append_output(state, "error", "Area object placement preview update failed");
         cancel_area_object_placement(renderer, state);
         return true;
     }
-    const bool admitted = validate_placement_preview(renderer, placement.navigation,
-        area, placement.preview, placement.diagnostic);
-    placement.phase = valid_position && admitted
+    const bool admitted = snapped && validate_placement_preview(renderer, placement.navigation, area, placement.preview, placement.diagnostic);
+    placement.phase = valid_position && snapped && admitted
         ? AreaObjectPlacementPhase::ghost_valid
         : AreaObjectPlacementPhase::ghost_invalid;
+    return true;
+}
+
+bool accept_area_region_point(
+    ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport)
+{
+    auto& placement = state.area_object_placement;
+    if (!placement.region_drawing
+        || !update_area_region_placement(
+            renderer, placement, placement.area, point, viewport.rect)
+        || placement.phase != AreaObjectPlacementPhase::ghost_valid
+        || !placement.region_hover) {
+        if (!placement.diagnostic.empty()) {
+            append_output(state, "warn", placement.diagnostic);
+        }
+        return false;
+    }
+    placement.region_points.push_back(*placement.region_hover);
+    placement.region_hover.reset();
+    placement.region_closing_valid = false;
+    placement.diagnostic.clear();
+    renderer.update_viewer_area_region_preview(
+        placement.region_points, std::nullopt, false);
+    return true;
+}
+
+void commit_area_object_placement(
+    ClientRenderer& renderer, AppState& state);
+
+bool complete_area_region_placement(
+    ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport)
+{
+    auto& placement = state.area_object_placement;
+    if (!placement.region_drawing
+        || !update_area_region_placement(
+            renderer, placement, placement.area, point, viewport.rect)
+        || !placement.region_hover) {
+        return false;
+    }
+
+    std::vector<glm::vec3> world_points = placement.region_points;
+    const glm::vec3 final_delta = world_points.empty()
+        ? glm::vec3{1.0f}
+        : world_points.back() - *placement.region_hover;
+    if (world_points.empty()
+        || glm::dot(final_delta, final_delta) > 1.0e-8f) {
+        world_points.push_back(*placement.region_hover);
+    }
+    const auto* area = nw::kernel::objects().get<nw::Area>(placement.area);
+    nw::toolset::AreaRegionGeometry geometry;
+    if (!area || !nw::toolset::build_area_region_geometry(area->width, area->height, world_points, geometry, placement.diagnostic)) {
+        append_output(state, "warn", placement.diagnostic);
+        return false;
+    }
+
+    const std::array placement_rows{
+        nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = placement.resource,
+            .transform = {
+                .position = geometry.root_position,
+                .orientation = {1.0f, 0.0f, 0.0f},
+                .scale = {1.0f, 1.0f, 1.0f},
+            },
+            .geometry_points = geometry.local_points,
+        },
+    };
+    auto loaded = nw::toolset::load_area_object_blueprints(
+        placement.area, placement_rows);
+    if (!loaded.ok() || loaded.objects.size() != 1) {
+        placement.diagnostic = loaded.diagnostic.empty()
+            ? "Area region placement load failed"
+            : std::move(loaded.diagnostic);
+        append_output(state,
+            loaded.status
+                    == nw::toolset::AreaObjectBlueprintLoadStatus::failed
+                ? "error"
+                : "warn",
+            placement.diagnostic);
+        return false;
+    }
+    placement.object = loaded.objects.front();
+    const auto* spatial = nw::kernel::objects().components().find_spatial(
+        placement.object);
+    if (!spatial) {
+        nw::kernel::objects().destroy(placement.object);
+        placement.object = nw::ObjectHandle{};
+        append_output(state, "error",
+            "Area region placement has no spatial state");
+        return false;
+    }
+    placement.preview = *spatial;
+    placement.phase = AreaObjectPlacementPhase::ghost_valid;
+    renderer.update_viewer_area_region_preview({}, std::nullopt, false);
+    const std::array objects{placement.object};
+    if (!renderer.append_viewer_area_object_previews(
+            objects, kAreaObjectPlacementOpacity)) {
+        nw::kernel::objects().destroy(placement.object);
+        placement.object = nw::ObjectHandle{};
+        append_output(state, "error",
+            "Area region preview construction failed");
+        return false;
+    }
+    commit_area_object_placement(renderer, state);
     return true;
 }
 
@@ -8532,8 +9572,19 @@ void commit_area_object_placement(ClientRenderer& renderer, AppState& state)
     const auto placement = std::move(state.area_object_placement);
     state.area_object_placement = {};
     if (placement.navigation) renderer.update_toolset_preview_navigation_debug({});
-    if (!nw::kernel::objects().components().set_position(
-            placement.object, placement.preview.position)) {
+    auto& components = nw::kernel::objects().components();
+    const auto* current_spatial = components.find_spatial(placement.object);
+    const nw::ObjectSpatialState before = current_spatial
+        ? *current_spatial
+        : nw::ObjectSpatialState{};
+    if (!current_spatial
+        || !components.set_position(placement.object, placement.preview.position)
+        || !components.set_orientation(
+            placement.object, placement.preview.orientation)) {
+        if (current_spatial) {
+            components.set_position(placement.object, before.position);
+            components.set_orientation(placement.object, before.orientation);
+        }
         if (nw::kernel::objects().valid(placement.object)) {
             nw::kernel::objects().destroy(placement.object);
         }
@@ -8792,10 +9843,7 @@ bool materialize_project_blueprint_drag(AppState& state)
             return false;
         }
 
-        auto before = nw::toolset::snapshot_sound_resources(
-            nw::kernel::runtime(), drag.owner);
-        if (!before || before->size() >= 1024
-            || !drag.resource.valid()
+        if (!drag.resource.valid()
             || drag.resource.type != nw::ResourceType::wav
             || drag.resource.resref.empty()) {
             drag.materialization_failed = true;
@@ -8804,13 +9852,15 @@ bool materialize_project_blueprint_drag(AppState& state)
             return false;
         }
 
-        auto after = *before;
-        after.push_back(drag.resource.resref);
-        drag.sound_resource_edit = nw::toolset::SoundResourceEdit{
-            .sound = drag.owner,
-            .before = std::move(*before),
-            .after = std::move(after),
-        };
+        const std::array additions{drag.resource.resref};
+        drag.sound_resource_edit = nw::toolset::make_sound_resource_additions(
+            nw::kernel::runtime(), drag.owner, additions);
+        if (!drag.sound_resource_edit) {
+            drag.materialization_failed = true;
+            append_output(state, "error",
+                "Sound resource drag source or target list is invalid or full");
+            return false;
+        }
         return true;
     }
 
@@ -9138,6 +10188,7 @@ void commit_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
         }
         auto result = state.backend.replace_sound_resources(
             std::move(*drag.sound_resource_edit),
+            "Add sound resource",
             command_context(state, nw::toolset::CommandSource::renderer));
         append_command_result(state, result);
         return;
@@ -9201,7 +10252,7 @@ bool handle_area_object_key(ClientRenderer& renderer,
     int frame_width,
     int frame_height)
 {
-    if (key.repeat || key.key != SDLK_R
+    if (key.repeat
         || (key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))
         || state.shell.command_palette_visible || state.module_dialog_open
         || focused_text_input(context)) {
@@ -9215,6 +10266,17 @@ bool handle_area_object_key(ClientRenderer& renderer,
         return false;
     }
 
+    if (key.key == SDLK_DELETE
+        && delete_selected_encounter_spawn_point(renderer, state)) {
+        return true;
+    }
+    if (key.key == SDLK_DELETE) {
+        const auto result = dispatch_command(state,
+            "area.object.delete", {}, nw::toolset::CommandSource::shortcut);
+        append_command_result(state, result);
+        return true;
+    }
+    if (key.key != SDLK_R) return false;
     const auto result = dispatch_command(state,
         "object.transform.randomize_orientation", {}, nw::toolset::CommandSource::shortcut);
     sync_area_object_after_command(renderer, state, result);
@@ -9225,12 +10287,60 @@ void sync_command_overlay_visibility(AppState& state)
 {
     auto* doc = state.command_overlay_document;
     if (!doc) { return; }
-    const bool active = state.command_form || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending();
+    const bool active = state.command_form || state.project_load.active()
+        || state.backend.blueprint_operation_active()
+        || state.backend.blueprint_publication_pending();
     if (active && !doc->IsVisible()) {
         doc->Show(Rml::ModalFlag::Modal);
     } else if (!active && doc->IsVisible()) {
         doc->Hide();
     }
+}
+
+void sync_project_load_overlay(AppState& state)
+{
+    sync_command_overlay_visibility(state);
+    auto* host = find_el(state.command_overlay_document,
+        "project_load_overlay");
+    if (!host) { return; }
+    host->SetClass("active", state.project_load.active());
+    if (!state.project_load.active()) {
+        host->SetInnerRML("");
+        return;
+    }
+
+    auto* message = find_el(state.command_overlay_document,
+        "project_load_message");
+    if (!message) {
+        std::string markup
+            = "<div class=\"command_form project_load_panel\">"
+              "<div class=\"command_form_title\">Opening Project</div>"
+              "<div id=\"project_load_message\" class=\"command_form_message\"></div>"
+              "<div class=\"home_import_progress\"><div class=\"home_import_progress_fill\"></div></div>"
+              "<div class=\"project_load_path\">";
+        markup += escape_html(state.project_load.path);
+        markup += "</div></div>";
+        host->SetInnerRML(markup);
+        message = find_el(state.command_overlay_document,
+            "project_load_message");
+    }
+    if (message) {
+        message->SetInnerRML(escape_html(state.project_load.stage));
+    }
+}
+
+bool queue_project_open(AppState& state, std::string path,
+    nw::toolset::CommandSource source,
+    bool close_import_panel_on_success = false)
+{
+    if (path.empty() || state.project_load.active()) { return false; }
+    state.project_load = {
+        .path = std::move(path),
+        .source = source,
+        .close_import_panel_on_success = close_import_panel_on_success,
+    };
+    sync_project_load_overlay(state);
+    return true;
 }
 
 void close_command_form_combobox(AppState& state)
@@ -9903,6 +11013,14 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
         return;
     }
 
+    if (command == "toolset.open_project") {
+        if (!queue_project_open(state, path,
+                nw::toolset::CommandSource::palette)) {
+            append_output(state, "warn", "A project is already opening");
+        }
+        return;
+    }
+
     const bool was_showing_areas = state.shell.showing_areas;
     const bool was_showing_project = state.shell.showing_project_tree;
     const auto command_result = dispatch_command(state,
@@ -9910,9 +11028,6 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
         {std::string_view{path}},
         nw::toolset::CommandSource::palette);
     append_command_result(state, command_result);
-    if (command_result.ok() && command == "toolset.open_project") {
-        remember_recent_project(state, state.backend.current_project_dir());
-    }
     refresh_bottom_dock_view(doc, state);
     if (command_result.ok()
         && (state.shell.showing_areas
@@ -10098,16 +11213,145 @@ void poll_project_import(SDL_Window* window, Rml::ElementDocument* doc, AppState
             state.import_status += ". Open it from Open Project or Recent Projects when you are ready; your current work was kept open.";
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Import complete", state.import_status.c_str(), window);
         } else {
-            const std::string path = result->project_dir.string();
-            const auto opened = dispatch_command_flow(window, state,
-                "toolset.open_project", {path}, nw::toolset::CommandSource::widget);
-            if (opened.ok()) { state.import_panel_open = false; }
-            if (!opened.ok()) {
-                state.import_status += ". " + opened.message;
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Could not open imported project", state.import_status.c_str(), window);
+            if (!queue_project_open(state, result->project_dir.string(),
+                    nw::toolset::CommandSource::widget, true)) {
+                state.import_status += ". Another project is already opening.";
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+                    "Could not open imported project",
+                    state.import_status.c_str(), window);
             }
         }
     }
+    refresh_recent_list(doc, state);
+    refresh_workspace_view(doc, state);
+}
+
+std::string_view project_load_stage_message(
+    nw::kernel::ModuleLoadProgressStage stage) noexcept
+{
+    using Stage = nw::kernel::ModuleLoadProgressStage;
+    switch (stage) {
+    case Stage::reset_services:
+        return "Preparing module services...";
+    case Stage::load_module_resource:
+        return "Loading module resources...";
+    case Stage::load_dependencies:
+        return "Loading HAK and TLK dependencies...";
+    case Stage::initialize_services:
+        return "Initializing module data...";
+    case Stage::instantiate_module:
+        return "Instantiating module objects...";
+    case Stage::complete:
+        return "Finalizing project...";
+    }
+    return "Opening project...";
+}
+
+struct ProjectLoadPresentation {
+    SDL_Window* window = nullptr;
+    Rml::Context* context = nullptr;
+    Rml::Context* palette_context = nullptr;
+    ClientRenderer* renderer = nullptr;
+    AppState* state = nullptr;
+    nw::kernel::ModuleLoadProgressStage stage
+        = nw::kernel::ModuleLoadProgressStage::reset_services;
+    Uint64 last_present_ms = 0;
+    bool has_stage = false;
+};
+
+void present_project_load_progress(
+    void* user_data, nw::kernel::ModuleLoadProgressStage stage)
+{
+    auto* presentation = static_cast<ProjectLoadPresentation*>(user_data);
+    if (!presentation || !presentation->window || !presentation->context
+        || !presentation->palette_context || !presentation->renderer
+        || !presentation->state
+        || !presentation->state->project_load.active()) {
+        return;
+    }
+
+    constexpr Uint64 k_min_present_interval_ms = 32;
+    const Uint64 now = SDL_GetTicks();
+    const bool stage_changed = !presentation->has_stage
+        || presentation->stage != stage;
+    if (!stage_changed
+        && now - presentation->last_present_ms < k_min_present_interval_ms) {
+        return;
+    }
+    presentation->stage = stage;
+    presentation->has_stage = true;
+    presentation->last_present_ms = now;
+
+    presentation->state->project_load.stage
+        = project_load_stage_message(stage);
+    sync_project_load_overlay(*presentation->state);
+    SDL_PumpEvents();
+
+    const auto window_flags = SDL_GetWindowFlags(presentation->window);
+    const auto pixels = query_window_pixels(presentation->window);
+    if ((window_flags & SDL_WINDOW_MINIMIZED)
+        || pixels.first <= 0 || pixels.second <= 0) {
+        return;
+    }
+
+    uint32_t width = static_cast<uint32_t>(pixels.first);
+    uint32_t height = static_cast<uint32_t>(pixels.second);
+    if (!presentation->renderer->ensure_swapchain(
+            presentation->window, width, height, presentation->context)) {
+        return;
+    }
+    presentation->palette_context->SetDimensions(
+        Rml::Vector2i(static_cast<int>(width), static_cast<int>(height)));
+    presentation->palette_context->Update();
+    presentation->renderer->begin_frame();
+    presentation->context->Render();
+    presentation->palette_context->Render();
+    presentation->renderer->end_frame();
+}
+
+void poll_project_open(SDL_Window* window,
+    Rml::Context* context,
+    Rml::Context* palette_context,
+    Rml::ElementDocument* doc,
+    Rml::ElementDocument* palette_doc,
+    ClientRenderer& renderer,
+    AppState& state)
+{
+    if (!state.project_load.active() || !state.project_load.presented) {
+        return;
+    }
+
+    const auto request = state.project_load;
+    ProjectLoadPresentation presentation{
+        .window = window,
+        .context = context,
+        .palette_context = palette_context,
+        .renderer = &renderer,
+        .state = &state,
+    };
+    const auto result = resolve_command_result(window, state,
+        state.backend.open_project(request.path,
+            {
+                .callback = present_project_load_progress,
+                .user_data = &presentation,
+            }),
+        request.source);
+    state.project_load = {};
+    if (result.ok()) {
+        remember_recent_project(state, state.backend.current_project_dir());
+        if (request.close_import_panel_on_success) {
+            state.import_panel_open = false;
+        }
+        state.selected_recent_index = -1;
+        set_input_value(doc, "recent_search", "");
+    } else {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+            "Unable to open project", result.message.c_str(), window);
+    }
+
+    sync_project_load_overlay(state);
+    sync_shell_visibility(
+        context, palette_context, doc, palette_doc, state);
     refresh_recent_list(doc, state);
     refresh_workspace_view(doc, state);
 }
@@ -10524,11 +11768,11 @@ int main(int argc, char* argv[])
             SDL_free(gamepads);
         }
     }
-    ObjectVariableChangeListener object_variable_change_listener{state};
+    ObjectWorkbenchChangeListener object_workbench_change_listener{state};
     context->AddEventListener(
-        "change", &object_variable_change_listener, false);
+        "change", &object_workbench_change_listener, false);
     context->AddEventListener(
-        "blur", &object_variable_change_listener, true);
+        "blur", &object_workbench_change_listener, true);
     renderer.set_rml_generated_textures(&state.item_icon_cache.textures);
     state.backend.bind(&state.smalls, &state.shell, &state.workspace);
     state.backend_ready = state.backend.initialize();
@@ -10645,6 +11889,8 @@ int main(int argc, char* argv[])
         }
         sync_blueprint_operation(state);
         poll_project_import(window, doc, state);
+        poll_project_open(window, context, palette_context,
+            doc, palette_doc, renderer, state);
         sync_command_form(state);
         synchronize_smalls_runtime(state);
         const Uint64 frame_start_counter = SDL_GetPerformanceCounter();
@@ -10908,6 +12154,13 @@ int main(int argc, char* argv[])
                 }
 
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && state.object_details_combobox.is_active()) {
+                    close_object_details_combobox(doc, state);
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
                     && close_active_smalls_selector(doc)) {
                     dispatched_to_rml = true;
                     break;
@@ -10989,6 +12242,59 @@ int main(int argc, char* argv[])
                     break;
                 }
 
+                auto* focused_sound_position = find_ancestor_with_class(
+                    context->GetFocusElement(),
+                    "object_details_sound_position_field");
+                const auto focused_sound_position_row = focused_sound_position
+                    ? parse_decimal_int32(focused_sound_position->GetAttribute<Rml::String>(
+                          "data-row", ""))
+                    : std::nullopt;
+                const bool sound_position_focused = focused_sound_position_row
+                    && *focused_sound_position_row >= 0
+                    && !(event.key.mod
+                        & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+                if (sound_position_focused
+                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)) {
+                    const auto row_index = static_cast<uint32_t>(
+                        *focused_sound_position_row);
+                    if (state.object_details_combobox_row != row_index
+                        || !state.object_details_combobox.is_active()) {
+                        (void)open_object_details_sound_position_combobox(
+                            doc, state, row_index);
+                    } else if (!state.object_details_combobox.popup_visible()) {
+                        (void)state.object_details_combobox.show_popup();
+                    }
+                    (void)state.object_details_combobox.move_selection(
+                        event.key.key == SDLK_UP ? -1 : 1);
+                    (void)sync_object_details_combobox(doc, state, true);
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (!event.key.repeat && sound_position_focused
+                    && (event.key.key == SDLK_RETURN
+                        || event.key.key == SDLK_KP_ENTER)) {
+                    const auto row_index = static_cast<uint32_t>(
+                        *focused_sound_position_row);
+                    if (state.object_details_combobox_row != row_index
+                        || !state.object_details_combobox.is_active()) {
+                        if (open_object_details_sound_position_combobox(
+                                doc, state, row_index)) {
+                            (void)sync_object_details_combobox(doc, state, true);
+                        }
+                    } else if (!state.object_details_combobox.popup_visible()) {
+                        (void)state.object_details_combobox.show_popup();
+                        (void)sync_object_details_combobox(doc, state, true);
+                    } else if (const auto selected
+                        = state.object_details_combobox.selected_key()) {
+                        if (commit_object_details_sound_position(
+                                doc, state, *selected)) {
+                            refresh_workspace_content(doc, state);
+                        }
+                    }
+                    dispatched_to_rml = true;
+                    break;
+                }
+
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
                     && state.color_editor_channel >= 0) {
                     clear_color_editor(state);
@@ -11002,6 +12308,23 @@ int main(int argc, char* argv[])
                     close_appearance_selector(state);
                     rebuild_active_appearances(state, state.object_details.object);
                     refresh_workspace_content(doc, state);
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && state.sound_resource_selector_open) {
+                    close_sound_resource_selector(state);
+                    refresh_workspace_content(doc, state);
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && state.managed_list_reorder.active()) {
+                    nw::toolset::clear_managed_list_reorder(
+                        state.managed_list_reorder, doc);
+                    system_interface.SetMouseCursor("arrow");
                     dispatched_to_rml = true;
                     break;
                 }
@@ -11093,6 +12416,46 @@ int main(int argc, char* argv[])
                                 rebuild_active_appearances(state, state.object_details.object);
                                 refresh_workspace_content(doc, state);
                             }
+                        }
+                    }
+                    dispatched_to_rml = true;
+                    break;
+                }
+
+                const bool sound_catalog_search_focused
+                    = !state.shell.command_palette_visible
+                    && active_sound_resource_selector_matches_tab(state)
+                    && focused_element_has_id(context, "sound_catalog_search")
+                    && !(event.key.mod
+                        & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+                if (sound_catalog_search_focused
+                    && (event.key.key == SDLK_UP
+                        || event.key.key == SDLK_DOWN)) {
+                    const int selected = state.sound_catalog_list.move_selection(
+                        event.key.key == SDLK_UP ? -1 : 1);
+                    const int scroll_top
+                        = state.sound_catalog_list.scroll_top_for_index(selected);
+                    state.sound_catalog_list.set_scroll_top(scroll_top);
+                    if (auto* list = find_el(doc, "sound_catalog_rows")) {
+                        list->SetScrollTop(static_cast<float>(scroll_top));
+                    }
+                    state.sound_catalog_rendered = false;
+                    sync_sound_catalog_window(doc, state, true);
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (!event.key.repeat && sound_catalog_search_focused
+                    && (event.key.key == SDLK_RETURN
+                        || event.key.key == SDLK_KP_ENTER)) {
+                    const int selected = state.sound_catalog_list.selected();
+                    if (selected >= 0
+                        && static_cast<size_t>(selected)
+                            < state.sound_catalog_matches.size()) {
+                        const uint32_t row_index
+                            = state.sound_catalog_matches[static_cast<size_t>(selected)];
+                        if (commit_sound_catalog_selection(state, row_index)) {
+                            close_sound_resource_selector(state);
+                            refresh_workspace_content(doc, state);
                         }
                     }
                     dispatched_to_rml = true;
@@ -11306,6 +12669,14 @@ int main(int argc, char* argv[])
                 blur_focused_object_variable_input(context,
                     to_context_point(window, event.button.x, event.button.y));
                 if (event.button.button == SDL_BUTTON_RIGHT
+                    && state.managed_list_reorder.active()) {
+                    nw::toolset::clear_managed_list_reorder(
+                        state.managed_list_reorder, doc);
+                    system_interface.SetMouseCursor("arrow");
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (event.button.button == SDL_BUTTON_RIGHT
                     && state.project_blueprint_drag.active()) {
                     cancel_project_blueprint_drag(doc, state);
                     state.pressed_recent_index = -1;
@@ -11323,6 +12694,30 @@ int main(int argc, char* argv[])
                     cancel_area_object_placement(renderer, state);
                     state.pressed_recent_index = -1;
                     system_interface.SetMouseCursor("arrow");
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (event.button.button == SDL_BUTTON_LEFT
+                    && state.area_object_placement.region_drawing) {
+                    const auto point = to_context_point(
+                        window, event.button.x, event.button.y);
+                    const auto viewport = active_workspace_viewer_viewport_request(
+                        doc, state, frame_width, frame_height);
+                    if (viewport
+                        && viewport->kind == WorkspaceViewerViewportKind::area
+                        && point_within_viewport(viewport->rect, point)) {
+                        if (event.button.clicks >= 2) {
+                            complete_area_region_placement(
+                                renderer, state, point, *viewport);
+                        } else {
+                            accept_area_region_point(
+                                renderer, state, point, *viewport);
+                        }
+                    }
+                    system_interface.SetMouseCursor(
+                        state.area_object_placement.region_drawing
+                            ? "cross"
+                            : "arrow");
                     dispatched_to_rml = true;
                     break;
                 }
@@ -11345,13 +12740,18 @@ int main(int argc, char* argv[])
                         && !nw::toolset::combobox_contains_element(top_hit)) {
                         const bool closed_smalls
                             = close_active_smalls_selector(doc);
+                        const bool closed_details
+                            = state.object_details_combobox.is_active();
+                        if (closed_details) {
+                            close_object_details_combobox(doc, state);
+                        }
                         const bool closed_spell
                             = state.creature_spell_combobox.is_active();
                         if (closed_spell) {
                             clear_creature_spell_filter(state);
                             refresh_workspace_content(doc, state);
                         }
-                        if (closed_smalls || closed_spell) {
+                        if (closed_smalls || closed_details || closed_spell) {
                             context->Update();
                             top_hit = context->GetElementAtPoint(point);
                         }
@@ -11365,6 +12765,10 @@ int main(int argc, char* argv[])
                             close_appearance_selector(state);
                             rebuild_active_appearances(
                                 state, state.object_details.object);
+                            refresh_workspace_content(doc, state);
+                        }
+                        if (state.sound_resource_selector_open) {
+                            close_sound_resource_selector(state);
                             refresh_workspace_content(doc, state);
                         }
                         state.viewer_viewport_focused = true;
@@ -11448,6 +12852,19 @@ int main(int argc, char* argv[])
                         }
                         const bool preview_orbit_drag = viewer_viewport->kind == WorkspaceViewerViewportKind::preview
                             && event.button.button == SDL_BUTTON_LEFT;
+                        if (viewer_viewport->kind
+                                == WorkspaceViewerViewportKind::area
+                            && event.button.button == SDL_BUTTON_LEFT
+                            && (SDL_GetModState()
+                                   & (SDL_KMOD_CTRL | SDL_KMOD_ALT
+                                       | SDL_KMOD_GUI | SDL_KMOD_SHIFT))
+                                == SDL_KMOD_SHIFT
+                            && add_encounter_spawn_point(
+                                renderer, state, point, *viewer_viewport)) {
+                            system_interface.SetMouseCursor("arrow");
+                            dispatched_to_rml = true;
+                            break;
+                        }
                         if (viewer_viewport->kind == WorkspaceViewerViewportKind::area
                             && event.button.button == SDL_BUTTON_LEFT) {
                             const bool control_pressed = (SDL_GetModState() & SDL_KMOD_CTRL) != 0;
@@ -11525,6 +12942,13 @@ int main(int argc, char* argv[])
                             break;
                         }
                     }
+                    if (!state.project_blueprint_drag.active()
+                        && nw::toolset::begin_managed_list_reorder(
+                            state.managed_list_reorder, top_hit,
+                            nw::toolset::ui_v1_host(), point.x, point.y)) {
+                        dispatched_to_rml = true;
+                        break;
+                    }
                     if (!recent_list_hit_blocked(doc, top_hit, point, state)) {
                         if (auto* recent_item = recent_item_at_point(doc, point)) {
                             const std::string key = recent_item->GetAttribute<Rml::String>("data-key", "");
@@ -11579,6 +13003,24 @@ int main(int argc, char* argv[])
                 }
                 if (command_palette_contains_point(palette_doc, point)) {
                     RmlSDL::InputEventHandler(palette_context, window, event);
+                    dispatched_to_rml = true;
+                    break;
+                }
+                if (nw::toolset::update_managed_list_reorder(
+                        state.managed_list_reorder, doc,
+                        nw::toolset::ui_v1_host(), state.managed_lists,
+                        point.x, point.y, kWorkspaceTabDragThresholdPx,
+                        kManagedListAutoScrollEdgePx,
+                        kManagedListAutoScrollStepPx)) {
+                    const auto& gesture = state.managed_list_reorder;
+                    const char* cursor = "arrow";
+                    if (gesture.dragging) {
+                        cursor = nw::toolset::managed_list_reorder_destination(
+                                     gesture)
+                            ? "grabbing"
+                            : "unavailable";
+                    }
+                    system_interface.SetMouseCursor(cursor);
                     dispatched_to_rml = true;
                     break;
                 }
@@ -11790,12 +13232,42 @@ int main(int argc, char* argv[])
                             break;
                         }
                         const auto object = renderer.active_viewer_object();
-                        const bool object_wheel = viewer_viewport->kind == WorkspaceViewerViewportKind::area
-                            && editable_area_object(object)
+                        const bool area_object_wheel = viewer_viewport->kind == WorkspaceViewerViewportKind::area
+                            && (object.type == nw::ObjectType::creature
+                                || object.type == nw::ObjectType::item
+                                || object.type == nw::ObjectType::placeable)
+                            && !focused_text_input(context)
+                            && !state.module_dialog_open;
+                        const bool sound_radius_wheel
+                            = viewer_viewport->kind == WorkspaceViewerViewportKind::area
+                            && object.type == nw::ObjectType::sound
                             && !focused_text_input(context)
                             && !state.module_dialog_open;
                         cancel_area_object_drag(renderer, state);
-                        if (object_wheel
+                        if (sound_radius_wheel
+                            && !(modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
+                            if (const auto sound
+                                = nwn1::sound_toolset_visual_state(object)) {
+                                const float factor = std::pow(1.1f, event.wheel.y);
+                                const float radius = std::max(sound->distance_min,
+                                    sound->distance_max * factor);
+                                if (std::isfinite(radius)
+                                    && radius != sound->distance_max) {
+                                    const auto result = state.backend.resize_sound_radius(
+                                        {
+                                            .sound = object,
+                                            .before = sound->distance_max,
+                                            .after = radius,
+                                        },
+                                        command_context(state,
+                                            nw::toolset::CommandSource::renderer));
+                                    append_command_result(state, result);
+                                }
+                            }
+                            dispatched_to_rml = true;
+                            break;
+                        }
+                        if (area_object_wheel
                             && !(modifiers & (SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
                             const bool rotate = (modifiers & SDL_KMOD_CTRL) != 0;
                             const float value = rotate
@@ -11854,6 +13326,40 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
+                if (state.managed_list_reorder.active()
+                    && event.button.button == SDL_BUTTON_LEFT) {
+                    const auto point = to_context_point(
+                        window, event.button.x, event.button.y);
+                    const bool was_dragging = state.managed_list_reorder.dragging;
+                    (void)nw::toolset::update_managed_list_reorder(
+                        state.managed_list_reorder, doc,
+                        nw::toolset::ui_v1_host(), state.managed_lists,
+                        point.x, point.y, kWorkspaceTabDragThresholdPx,
+                        kManagedListAutoScrollEdgePx,
+                        kManagedListAutoScrollStepPx);
+                    const bool dragged = was_dragging
+                        || (state.managed_list_reorder.active()
+                            && state.managed_list_reorder.dragging);
+                    if (dragged) {
+                        if (nw::toolset::commit_managed_list_reorder(
+                                state.managed_list_reorder, doc,
+                                nw::toolset::ui_v1_host())) {
+                            dispatch_managed_list_events(state);
+                            refresh_smalls_elements(doc, state);
+                            (void)nw::toolset::sync_managed_lists(doc,
+                                nw::toolset::ui_v1_host(),
+                                state.managed_lists, true);
+                        }
+                    } else {
+                        nw::toolset::clear_managed_list_reorder(
+                            state.managed_list_reorder, doc);
+                    }
+                    system_interface.SetMouseCursor("arrow");
+                    if (dragged) {
+                        dispatched_to_rml = true;
+                        break;
+                    }
+                }
                 if (state.project_blueprint_drag.active()
                     && event.button.button == SDL_BUTTON_LEFT) {
                     const bool blueprint_dragged = state.project_blueprint_drag.threshold_crossed;
@@ -11876,12 +13382,41 @@ int main(int argc, char* argv[])
                 }
                 if (state.area_object_placement.active()
                     && event.button.button == SDL_BUTTON_LEFT) {
+                    if (state.area_object_placement.region_drawing) {
+                        dispatched_to_rml = true;
+                        break;
+                    }
                     const bool placement_dragged = state.area_object_placement.threshold_crossed;
                     if (placement_dragged) {
                         const auto point = to_context_point(window, event.button.x, event.button.y);
                         const auto viewport = active_workspace_viewer_viewport_request(
                             doc, state, frame_width, frame_height);
                         update_area_object_placement(renderer, state, point, viewport);
+                        if (region_blueprint_resource(
+                                state.area_object_placement.resource)) {
+                            auto& placement = state.area_object_placement;
+                            if (placement.phase
+                                    == AreaObjectPlacementPhase::ghost_valid
+                                && placement.region_hover) {
+                                placement.region_points.push_back(
+                                    *placement.region_hover);
+                                placement.region_hover.reset();
+                                placement.region_drawing = true;
+                                placement.region_closing_valid = false;
+                                placement.diagnostic.clear();
+                                renderer.update_viewer_area_region_preview(
+                                    placement.region_points,
+                                    std::nullopt,
+                                    false);
+                                state.pressed_recent_index = -1;
+                                system_interface.SetMouseCursor("cross");
+                            } else {
+                                cancel_area_object_placement(renderer, state);
+                                system_interface.SetMouseCursor("arrow");
+                            }
+                            dispatched_to_rml = true;
+                            break;
+                        }
                         commit_area_object_placement(renderer, state);
                         state.pressed_recent_index = -1;
                         system_interface.SetMouseCursor("arrow");
@@ -12140,11 +13675,38 @@ int main(int argc, char* argv[])
                         } else if (auto* option = find_ancestor_with_class(hit, "combobox_option")) {
                             const std::string key = option->GetAttribute<Rml::String>("data-key", "");
                             const auto value = parse_decimal_int32(key);
-                            if (value && active_creature_spell_filter_matches_tab(state)) {
+                            if (value
+                                && state.object_details_combobox.is_active()
+                                && find_ancestor_with_id(option,
+                                    "object_details_combobox_popup")) {
+                                release_workspace_mouse_up();
+                                if (commit_object_details_sound_position(
+                                        doc, state, *value)) {
+                                    refresh_workspace_content(doc, state);
+                                }
+                            } else if (value
+                                && active_creature_spell_filter_matches_tab(state)) {
                                 release_workspace_mouse_up();
                                 if (commit_creature_spell_filter(state, *value)) {
                                     refresh_workspace_content(doc, state);
                                     sync_creature_spell_window(doc, state, true);
+                                }
+                            }
+                            handled = true;
+                        } else if (auto* sound_position_field
+                            = find_ancestor_with_class(hit,
+                                "object_details_sound_position_field")) {
+                            const auto row_index = parse_decimal_int32(
+                                sound_position_field->GetAttribute<Rml::String>(
+                                    "data-row", ""));
+                            if (row_index && *row_index >= 0) {
+                                release_workspace_mouse_up();
+                                if (open_object_details_sound_position_combobox(
+                                        doc, state,
+                                        static_cast<uint32_t>(*row_index))) {
+                                    (void)sync_object_details_combobox(
+                                        doc, state, true);
+                                    sound_position_field->Focus();
                                 }
                             }
                             handled = true;
@@ -12286,12 +13848,12 @@ int main(int argc, char* argv[])
                             }
                             release_workspace_mouse_up();
                             handled = true;
-                        } else if (auto* door_state = find_ancestor_with_class(
-                                       hit, "object_details_door_state")) {
+                        } else if (auto* cycle_state = find_ancestor_with_class(
+                                       hit, "object_details_cycle_state")) {
                             const auto row_index = parse_decimal_int32(
-                                door_state->GetAttribute<Rml::String>("data-row", ""));
+                                cycle_state->GetAttribute<Rml::String>("data-row", ""));
                             const auto current = parse_decimal_int32(
-                                door_state->GetAttribute<Rml::String>("data-current", ""));
+                                cycle_state->GetAttribute<Rml::String>("data-current", ""));
                             if (row_index && current && *row_index >= 0
                                 && *current >= 0 && *current <= 2
                                 && active_object_details_matches_tab(state)
@@ -12299,8 +13861,7 @@ int main(int argc, char* argv[])
                                     < state.object_details.rows.size()) {
                                 const auto& row = state.object_details.rows[static_cast<size_t>(*row_index)];
                                 if (row.kind == nw::toolset::ObjectDetailsRowKind::value
-                                    && row.editor
-                                        == nw::toolset::ObjectDetailsEditorKind::door_state
+                                    && row.editor == nw::toolset::ObjectDetailsEditorKind::door_state
                                     && row.edit_value == *current) {
                                     const std::string desired
                                         = std::to_string((*current + 1) % 3);
@@ -12313,6 +13874,41 @@ int main(int argc, char* argv[])
                                 }
                             }
                             release_workspace_mouse_up();
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "sound_resource_add")) {
+                            release_workspace_mouse_up();
+                            (void)close_active_smalls_selector(doc);
+                            close_appearance_selector(state);
+                            state.sound_resource_selector_open = true;
+                            state.sound_catalog_query.clear();
+                            rebuild_sound_catalog(state, true);
+                            state.sound_catalog_list.set_scroll_top(0);
+                            refresh_workspace_content(doc, state);
+                            sync_sound_catalog_window(doc, state, true);
+                            if (auto* input
+                                = find_el(doc, "sound_catalog_search")) {
+                                input->Focus();
+                            }
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "sound_resource_selector_back")) {
+                            release_workspace_mouse_up();
+                            close_sound_resource_selector(state);
+                            refresh_workspace_content(doc, state);
+                            handled = true;
+                        } else if (auto* sound_row
+                            = find_ancestor_with_class(hit, "sound_catalog_row")) {
+                            release_workspace_mouse_up();
+                            const auto row_index = parse_decimal_int32(
+                                sound_row->GetAttribute<Rml::String>(
+                                    "data-key", ""));
+                            if (row_index && *row_index >= 0
+                                && commit_sound_catalog_selection(state,
+                                    static_cast<uint32_t>(*row_index))) {
+                                close_sound_resource_selector(state);
+                                refresh_workspace_content(doc, state);
+                            }
                             handled = true;
                         } else if (find_ancestor_with_id(hit, "appearance_selector_back")) {
                             release_workspace_mouse_up();
@@ -12327,6 +13923,7 @@ int main(int argc, char* argv[])
                             clear_color_editor(state);
                             (void)close_active_smalls_selector(doc);
                             close_appearance_selector(state);
+                            close_sound_resource_selector(state);
                             if (surface == "details") {
                                 state.object_workbench_surface = ObjectWorkbenchSurface::details;
                             } else if (surface == "sheet"
@@ -12674,19 +14271,11 @@ int main(int argc, char* argv[])
                                     append_output(state, "error", message);
                                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", message.c_str(), window);
                                 } else if (ensure_backend_ready(state)) {
-                                    const auto result = dispatch_command(state,
-                                        "toolset.open_project",
-                                        {std::string_view{project.path}},
-                                        nw::toolset::CommandSource::widget);
-                                    append_command_result(state, result);
-                                    if (result.ok()) {
-                                        remember_recent_project(state, state.backend.current_project_dir());
-                                        sync_shell_visibility(context, palette_context, doc, palette_doc, state);
-                                        state.selected_recent_index = -1;
-                                        set_input_value(doc, "recent_search", "");
-                                        refresh_recent_list(doc, state);
-                                    } else {
-                                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", result.message.c_str(), window);
+                                    if (!queue_project_open(state,
+                                            project.path,
+                                            nw::toolset::CommandSource::widget)) {
+                                        append_output(state, "warn",
+                                            "A project is already opening");
                                     }
                                 } else {
                                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", "Backend initialization failed.", window);
@@ -12864,6 +14453,13 @@ int main(int argc, char* argv[])
                     palette_doc, state, window, event);
                 RmlSDL::InputEventHandler(targets_palette ? palette_context : context,
                     window, event);
+                const bool sound_volume_gesture_ended = !targets_palette
+                    && ((event.type == SDL_EVENT_MOUSE_BUTTON_UP
+                            && event.button.button == SDL_BUTTON_LEFT)
+                        || event.type == SDL_EVENT_KEY_DOWN);
+                if (sound_volume_gesture_ended) {
+                    (void)object_workbench_change_listener.commit_sound_volume();
+                }
                 if (!targets_palette && state.shell.output_panel_visible()
                     && output_scroll_input(doc, context, window, event)) {
                     observe_output_scroll(doc, state);
@@ -12898,7 +14494,9 @@ int main(int argc, char* argv[])
                     state.smalls.publish_active_object(mutation.object);
                     state.active_object_tab_id = state.workspace.active_tab_id();
                     state.object_workbench_surface = default_object_workbench_surface();
+                    state.managed_list_reorder = {};
                     clear_active_appearances(state);
+                    clear_active_sound_catalog(state);
                     configure_details_list(state);
                     state.details_list.set_scroll_top(0);
                     rebuild_active_object_details(state, mutation.object);
@@ -12955,7 +14553,10 @@ int main(int argc, char* argv[])
                         append_output(state, "error", "Failed to refresh the creature Appearance preview");
                     }
                     bool refreshed = false;
-                    if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail
+                    if (mutation.visual_kind
+                        == nw::toolset::ObjectVisualMutationKind::debug_geometry) {
+                        refreshed = area_tab && renderer.rebuild_live_viewer_area(renderer.area_viewer_object(), mutation.object);
+                    } else if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail
                         || (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance
                             && mutation.object.type == nw::ObjectType::creature)) {
                         refreshed = renderer.refresh_live_viewer_object_visual(mutation.object);
@@ -13054,6 +14655,16 @@ int main(int argc, char* argv[])
                     state.appearance_list.set_scroll_top(0);
                     sync_appearance_window(doc, state, true);
                 }
+            }
+        }
+        if (active_sound_resource_selector_matches_tab(state)) {
+            const std::string query
+                = get_input_value(doc, "sound_catalog_search");
+            if (query != state.sound_catalog_query) {
+                state.sound_catalog_query = query;
+                rebuild_sound_catalog(state, true);
+                state.sound_catalog_list.set_scroll_top(0);
+                sync_sound_catalog_window(doc, state, true);
             }
         }
 
@@ -13175,6 +14786,9 @@ int main(int argc, char* argv[])
             context->Update();
         }
         if (sync_appearance_window(doc, state, false)) {
+            context->Update();
+        }
+        if (sync_sound_catalog_window(doc, state, false)) {
             context->Update();
         }
         if (nw::toolset::sync_managed_lists(doc,
@@ -13326,7 +14940,9 @@ int main(int argc, char* argv[])
                     state.active_object_tab_id = active_tab_id;
                     if (object_changed) {
                         state.object_workbench_surface = default_object_workbench_surface();
+                        state.managed_list_reorder = {};
                         clear_active_appearances(state);
+                        clear_active_sound_catalog(state);
                         configure_details_list(state);
                         state.details_list.set_scroll_top(0);
                         rebuild_active_object_details(state, object);
@@ -13410,10 +15026,14 @@ int main(int argc, char* argv[])
         const Uint64 overlay_end_counter = SDL_GetPerformanceCounter();
         Uint64 palette_end_counter = overlay_end_counter;
         if (state.shell.command_palette_visible || state.command_form
+            || state.project_load.active()
             || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()) {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerPalette};
             palette_context->Update();
             palette_context->Render();
+            if (state.project_load.active()) {
+                state.project_load.presented = true;
+            }
             palette_end_counter = SDL_GetPerformanceCounter();
         }
         const Uint64 present_start_counter = palette_end_counter;
@@ -13452,9 +15072,9 @@ int main(int argc, char* argv[])
     Rml::ReleaseCompiledGeometry(rml_renderer);
     Rml::ReleaseTextures(rml_renderer);
     context->RemoveEventListener(
-        "change", &object_variable_change_listener, false);
+        "change", &object_workbench_change_listener, false);
     context->RemoveEventListener(
-        "blur", &object_variable_change_listener, true);
+        "blur", &object_workbench_change_listener, true);
     context->RemoveEventListener("click", &home_project_action_listener);
     palette_context->RemoveEventListener("click", &blueprint_action_listener);
     state.backend.shutdown_item_editor_data_model();

@@ -308,6 +308,66 @@ donemodel forward_skin
     EXPECT_EQ(result.asset->skins.front().joints.front(), 2);
 }
 
+TEST(RenderModelLoader, UntexturedMeshesPreserveAuthoredDiffuseColor)
+{
+    constexpr auto model_text = R"mdl(#MAXMODEL ASCII
+newmodel material_colors
+setsupermodel material_colors NULL
+classification Effect
+beginmodelgeom material_colors
+node dummy material_colors
+  parent NULL
+endnode
+node trimesh untextured
+  parent material_colors
+  render 1
+  diffuse 0.2 0.4 0.6
+  bitmap NULL
+  verts 3
+    0 0 0
+    1 0 0
+    0 1 0
+  faces 1
+    0 1 2 0 0 1 2 0
+  tverts 3
+    0 0 0
+    1 0 0
+    0 1 0
+endnode
+node trimesh textured
+  parent material_colors
+  render 1
+  diffuse 0.1 0.3 0.5
+  bitmap missing_test_texture
+  verts 3
+    0 0 1
+    1 0 1
+    0 1 1
+  faces 1
+    0 1 2 0 0 1 2 0
+  tverts 3
+    0 0 0
+    1 0 0
+    0 1 0
+endnode
+endmodelgeom material_colors
+donemodel material_colors
+)mdl"sv;
+
+    nw::ResourceData data;
+    data.bytes.append(model_text.data(), model_text.size());
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nw::render::nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->materials.size(), 2u);
+    EXPECT_TRUE(same_vec3(glm::vec3{result.asset->materials[0].albedo},
+        {0.2f, 0.4f, 0.6f}));
+    EXPECT_TRUE(same_vec3(glm::vec3{result.asset->materials[1].albedo},
+        {1.0f, 1.0f, 1.0f}));
+}
+
 TEST(RenderModelLoader, ImportsNwnIdentitySkinBoneRows)
 {
     namespace nwn = nw::render::nwn;

@@ -269,6 +269,14 @@ bool ClientRendererNwgfx::set_viewer_area_object_selection(nw::ObjectHandle obje
     return viewer_viewport_ && viewer_viewport_->set_area_object_selection(object);
 }
 
+uint32_t ClientRendererNwgfx::active_viewer_area_debug_subindex(
+    nw::ObjectHandle object) const noexcept
+{
+    return viewer_viewport_
+        ? viewer_viewport_->active_area_debug_subindex(object)
+        : UINT32_MAX;
+}
+
 bool ClientRendererNwgfx::focus_viewer_area_object_selection() noexcept
 {
     return viewer_viewport_ && viewer_viewport_->focus_area_object_selection();
@@ -339,6 +347,16 @@ bool ClientRendererNwgfx::update_toolset_preview_navigation_debug(
 {
     return viewer_viewport_
         && viewer_viewport_->update_toolset_preview_navigation_debug(view);
+}
+
+bool ClientRendererNwgfx::update_viewer_area_region_preview(
+    std::span<const glm::vec3> points,
+    std::optional<glm::vec3> hover,
+    bool closing_valid)
+{
+    return viewer_viewport_
+        && viewer_viewport_->update_area_region_preview(
+            points, hover, closing_valid);
 }
 
 bool ClientRendererNwgfx::end_toolset_preview_visuals() noexcept

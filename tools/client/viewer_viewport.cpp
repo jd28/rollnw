@@ -567,6 +567,14 @@ struct ClientViewerViewport::Impl {
         return session && session->set_area_object_selection(object);
     }
 
+    uint32_t active_area_debug_subindex(
+        nw::ObjectHandle object) const noexcept
+    {
+        return session
+            ? session->active_area_debug_subindex(object)
+            : UINT32_MAX;
+    }
+
     bool focus_area_object_selection() noexcept
     {
         return session && session->focus_area_object_selection();
@@ -625,7 +633,8 @@ struct ClientViewerViewport::Impl {
         }
         const std::array rows{spatial};
         const auto stats = session->update_area_object_spatial_states(rows);
-        return stats.render_model_root_count != 0;
+        return stats.render_model_root_count != 0
+            || stats.debug_shape_vertex_count != 0;
     }
 
     bool append_area_object_previews(
@@ -658,9 +667,37 @@ struct ClientViewerViewport::Impl {
                 .side = door.side,
             });
         }
-        const auto door_stats = session->begin_area_door_animation_lease(
+        auto door_stats = session->begin_area_door_animation_lease(
             transient_door_animation_inputs, transient_door_animation_lease);
-        if (door_stats.rejected_input_count != 0) {
+        const auto door_models_match = [&]() {
+            return std::ranges::all_of(
+                transient_door_animation_inputs,
+                [&](const auto& input) {
+                    return std::ranges::any_of(
+                        transient_door_animation_lease.rows,
+                        [owner = input.owner](const auto& row) {
+                            return row.owner == owner;
+                        });
+                });
+        };
+        if (door_stats.rejected_input_count == 0 && !door_models_match()) {
+            (void)session->restore_area_door_animation_lease(
+                transient_door_animation_lease);
+            const auto area = session->scene()
+                ? session->scene()->root_object
+                : nw::ObjectHandle{};
+            const auto selected = session->active_object();
+            if (!session->rebuild_live_area(area, selected)) {
+                transient_door_animation_inputs.clear();
+                return false;
+            }
+            door_stats = session->begin_area_door_animation_lease(
+                transient_door_animation_inputs,
+                transient_door_animation_lease);
+        }
+        if (door_stats.rejected_input_count != 0 || !door_models_match()) {
+            (void)session->restore_area_door_animation_lease(
+                transient_door_animation_lease);
             transient_door_animation_inputs.clear();
             return false;
         }
@@ -869,6 +906,122 @@ struct ClientViewerViewport::Impl {
         }
         applied_navigation_debug_revision = view.revision;
         return true;
+    }
+
+    bool update_area_region_preview(
+        std::span<const glm::vec3> points,
+        std::optional<glm::vec3> hover,
+        bool closing_valid)
+    {
+        if (!session || loaded_area_resref.empty()) {
+            return false;
+        }
+        if (points.empty() && !hover) {
+            session->clear_transient_debug_geometry();
+            transient_debug_vertices.clear();
+            transient_debug_indices.clear();
+            return true;
+        }
+        const auto finite = [](glm::vec3 point) {
+            return std::isfinite(point.x)
+                && std::isfinite(point.y)
+                && std::isfinite(point.z);
+        };
+        if (std::ranges::any_of(points,
+                [&finite](glm::vec3 point) { return !finite(point); })
+            || (hover && !finite(*hover))) {
+            return false;
+        }
+
+        if (points.size() > std::numeric_limits<uint32_t>::max() / 8u) {
+            return false;
+        }
+        const size_t accepted_segments = points.empty()
+            ? 0u
+            : points.size() - 1;
+        const size_t hover_segments = hover && !points.empty()
+            ? (points.size() >= 2 ? 2u : 1u)
+            : 0u;
+        const size_t marker_count = points.size() + (hover ? 1u : 0u);
+        const size_t segment_count = accepted_segments + hover_segments
+            + marker_count * 2u;
+        if (segment_count > std::numeric_limits<uint32_t>::max() / 6u) {
+            return false;
+        }
+        transient_debug_vertices.clear();
+        transient_debug_indices.clear();
+        transient_debug_vertices.reserve(segment_count * 4u);
+        transient_debug_indices.reserve(segment_count * 6u);
+
+        constexpr glm::vec3 k_offset{0.0f, 0.0f, 0.10f};
+        constexpr glm::vec4 k_outline{0.12f, 0.92f, 1.0f, 0.92f};
+        constexpr glm::vec4 k_valid{0.18f, 1.0f, 0.34f, 0.92f};
+        constexpr glm::vec4 k_invalid{1.0f, 0.16f, 0.12f, 0.92f};
+        for (size_t index = 1; index < points.size(); ++index) {
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                points[index - 1] + k_offset,
+                points[index] + k_offset,
+                k_outline,
+                0.08f);
+        }
+        if (hover && !points.empty()) {
+            const glm::vec4 guide = closing_valid ? k_valid : k_invalid;
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                points.back() + k_offset,
+                *hover + k_offset,
+                guide,
+                0.07f);
+            if (points.size() >= 2) {
+                append_transient_debug_segment(
+                    transient_debug_vertices,
+                    transient_debug_indices,
+                    *hover + k_offset,
+                    points.front() + k_offset,
+                    guide,
+                    0.05f);
+            }
+        }
+        for (const glm::vec3 point : points) {
+            constexpr float k_radius = 0.16f;
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                point + k_offset - glm::vec3{k_radius, 0.0f, 0.0f},
+                point + k_offset + glm::vec3{k_radius, 0.0f, 0.0f},
+                k_outline,
+                0.06f);
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                point + k_offset - glm::vec3{0.0f, k_radius, 0.0f},
+                point + k_offset + glm::vec3{0.0f, k_radius, 0.0f},
+                k_outline,
+                0.06f);
+        }
+        if (hover) {
+            constexpr float k_radius = 0.16f;
+            const glm::vec4 color = closing_valid ? k_valid : k_invalid;
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                *hover + k_offset - glm::vec3{k_radius, 0.0f, 0.0f},
+                *hover + k_offset + glm::vec3{k_radius, 0.0f, 0.0f},
+                color,
+                0.06f);
+            append_transient_debug_segment(
+                transient_debug_vertices,
+                transient_debug_indices,
+                *hover + k_offset - glm::vec3{0.0f, k_radius, 0.0f},
+                *hover + k_offset + glm::vec3{0.0f, k_radius, 0.0f},
+                color,
+                0.06f);
+        }
+        return session->set_transient_debug_geometry(
+            transient_debug_vertices, transient_debug_indices);
     }
 
     bool end_toolset_preview_visuals() noexcept
@@ -1206,6 +1359,14 @@ bool ClientViewerViewport::set_area_object_selection(nw::ObjectHandle object) no
     return impl_ && impl_->set_area_object_selection(object);
 }
 
+uint32_t ClientViewerViewport::active_area_debug_subindex(
+    nw::ObjectHandle object) const noexcept
+{
+    return impl_
+        ? impl_->active_area_debug_subindex(object)
+        : UINT32_MAX;
+}
+
 bool ClientViewerViewport::focus_area_object_selection() noexcept
 {
     return impl_ && impl_->focus_area_object_selection();
@@ -1268,6 +1429,15 @@ bool ClientViewerViewport::update_toolset_preview_navigation_debug(
     const nw::toolset::PreviewNavigationDebugView& view)
 {
     return impl_ && impl_->update_toolset_preview_navigation_debug(view);
+}
+
+bool ClientViewerViewport::update_area_region_preview(
+    std::span<const glm::vec3> points,
+    std::optional<glm::vec3> hover,
+    bool closing_valid)
+{
+    return impl_
+        && impl_->update_area_region_preview(points, hover, closing_valid);
 }
 
 bool ClientViewerViewport::end_toolset_preview_visuals() noexcept
