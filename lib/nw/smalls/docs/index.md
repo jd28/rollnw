@@ -16,7 +16,3 @@ Read the architecture documents in this order:
 4. [`load-config.md`](load-config.md) — typed shared rules/config batches and
    their relationship to live propsets and native values.
 5. [`spec.md`](spec.md) — SmallS language and virtual-machine design.
-
-The normative documents describe the target architecture. Current deviations
-and their migration sequence are tracked in
-[`issues/smalls-module-ownership-and-profile-boundaries.md`](../../../../issues/smalls-module-ownership-and-profile-boundaries.md).

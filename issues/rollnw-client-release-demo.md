@@ -45,8 +45,7 @@ is captured and reported from the demonstrated build.
 
 ## Placement release checks
 
-The [placement authoring slice](rollnw-client-area-object-placement.md) is complete;
-these release checks remain open:
+The placement authoring slice is complete; these release checks remain open:
 
 - From a fresh process, verify blueprint drop, selection, drag/cancel, undo/redo,
   and save/reopen; confirm navigation-overlay legibility.

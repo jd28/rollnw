@@ -13,9 +13,7 @@ Detailed storage and loading mechanics remain in
 [`load-config.md`](load-config.md), and
 [`profile-packages.md`](profile-packages.md).
 
-Existing code that violates these rules is migration work, not precedent. The
-active migration and its observed change surface are tracked in
-[`issues/smalls-module-ownership-and-profile-boundaries.md`](../../../../issues/smalls-module-ownership-and-profile-boundaries.md).
+Existing code that violates these rules is migration work, not precedent.
 
 ## Real Platform And Constraints
 

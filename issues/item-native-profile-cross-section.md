@@ -1,9 +1,7 @@
 # Item Native and Profile Ownership Cross-Section
 
 Status: runtime/profile ownership, native editor state, and the static Item
-appearance presentation are implemented. Tier 2. This is the reference-domain
-decision for
-`issues/smalls-module-ownership-and-profile-boundaries.md`.
+appearance presentation are implemented. Tier 2.
 
 ## Goal
 
