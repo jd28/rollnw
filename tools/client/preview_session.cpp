@@ -509,11 +509,16 @@ PreviewSessionStartResult start_toolset_preview(
         = input.spawn_source == PreviewSessionStartInput::SpawnSource::position
         ? input.spawn_position
         : input.spawn_ray.origin;
+    const glm::vec3 spawn_facing{
+        std::cos(input.camera.yaw),
+        std::sin(input.camera.yaw),
+        0.0f,
+    };
     const AreaObjectBlueprintPlacement placement{
         .resource = input.actor,
         .transform = {
             .position = spawn_position,
-            .orientation = {1.0f, 0.0f, 0.0f},
+            .orientation = spawn_facing,
             .scale = {1.0f, 1.0f, 1.0f},
         },
     };

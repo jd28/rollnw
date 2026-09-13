@@ -725,6 +725,7 @@ struct ClientViewerViewport::Impl {
         }
         (void)session->update_area_creature_locomotion_animations(
             transient_animation_inputs);
+        session->set_area_object_selection_enabled(false);
         apply_preview_camera(session->camera(), camera);
         return true;
     }
@@ -1027,6 +1028,7 @@ struct ClientViewerViewport::Impl {
     bool end_toolset_preview_visuals() noexcept
     {
         if (session) session->clear_transient_debug_geometry();
+        if (session) session->set_area_object_selection_enabled(true);
         transient_debug_vertices.clear();
         transient_debug_indices.clear();
         applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();

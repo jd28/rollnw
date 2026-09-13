@@ -59,6 +59,7 @@ void clear_preview_pointer_action(PreviewInputSample& sample) noexcept;
 
 struct PreviewCameraState {
     glm::vec3 focus{0.0f};
+    // Radians. (cos(yaw), sin(yaw)) is the horizontal view direction.
     float yaw = 0.0f;
     float pitch = -0.65f;
     float distance = 8.0f;

@@ -274,6 +274,14 @@ public:
         std::span<const uint32_t> indices);
     void clear_transient_debug_geometry() noexcept;
     bool clear_area_object_selection() noexcept;
+    [[nodiscard]] bool area_object_selection_enabled() const noexcept
+    {
+        return area_object_selection_enabled_;
+    }
+    void set_area_object_selection_enabled(bool enabled) noexcept
+    {
+        area_object_selection_enabled_ = enabled;
+    }
     bool fit_to_scene(ViewerViewport viewport);
     bool set_area_gameplay_view(ViewerViewport viewport, float fov_degrees = 65.0f);
     void update_viewport(ViewerViewport viewport);
@@ -411,6 +419,7 @@ private:
     bool authored_area_fog_enabled_ = false;
     bool area_lights_enabled_ = true;
     bool area_debug_enabled_ = true;
+    bool area_object_selection_enabled_ = true;
     bool area_triggers_enabled_ = true;
     bool area_encounters_enabled_ = true;
     bool area_shadows_enabled_ = true;

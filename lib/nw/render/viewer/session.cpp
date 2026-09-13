@@ -828,7 +828,8 @@ AreaObjectSelection ViewerSession::select_area_object(
     ViewerViewport viewport,
     AreaObjectSelectionTarget target)
 {
-    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+    if (!area_object_selection_enabled_ || !scene_
+        || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
         return {};
     }
 
@@ -882,7 +883,8 @@ AreaObjectCandidateSelection ViewerSession::select_area_object_candidate(
 
 bool ViewerSession::set_area_object_selection(nw::ObjectHandle object) noexcept
 {
-    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
+    if (!area_object_selection_enabled_ || !scene_
+        || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
         || !nw::kernel::objects().valid(object)) {
         return false;
     }
@@ -935,7 +937,8 @@ uint32_t ViewerSession::active_area_debug_subindex(
 
 bool ViewerSession::focus_area_object_selection() noexcept
 {
-    if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
+    if (!area_object_selection_enabled_ || !scene_
+        || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene
         || scene_->active_object.type == nw::ObjectType::invalid) {
         return false;
     }
@@ -1642,6 +1645,8 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
                 transient_debug_shape_indices_,
                 transient_debug_shape_revision_,
                 render_context);
+        }
+        if (debug_renderer_ && area_object_selection_enabled_) {
             bool rendered_selection_bounds = false;
             const auto tile_selection_bounds = area_render_scene
                 ? area_tile_selection_bounds(active_area_selection_, *area_render_scene)

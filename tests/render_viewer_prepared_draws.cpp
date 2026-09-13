@@ -3163,6 +3163,17 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     const nw::ObjectHandle selected_handle = *selected_object;
     ASSERT_TRUE(session->set_area_object_selection(selected_handle));
     EXPECT_EQ(session->active_object(), selected_handle);
+    EXPECT_TRUE(session->area_object_selection_enabled());
+    session->set_area_object_selection_enabled(false);
+    EXPECT_FALSE(session->area_object_selection_enabled());
+    EXPECT_EQ(
+        session->select_area_object(0.0f, 0.0f, viewport).status,
+        viewer::AreaObjectSelectionStatus::invalid_input);
+    EXPECT_FALSE(session->set_area_object_selection(selected_handle));
+    EXPECT_FALSE(session->focus_area_object_selection());
+    EXPECT_EQ(session->active_object(), selected_handle);
+    session->set_area_object_selection_enabled(true);
+    EXPECT_TRUE(session->area_object_selection_enabled());
     const auto selected_bounds = viewer::collect_area_object_bounds(
         selected_handle,
         scene->area_render_scene->bounds(),

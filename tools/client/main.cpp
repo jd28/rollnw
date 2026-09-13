@@ -7377,6 +7377,16 @@ void request_play_preview_actor(Rml::ElementDocument* doc, AppState& state,
     if (auto* search = find_el(doc, "recent_search")) search->Focus();
 }
 
+float play_preview_yaw(const ClientViewportRay& ray) noexcept
+{
+    const glm::vec2 direction{ray.displacement.x, ray.displacement.y};
+    const float length_squared = glm::dot(direction, direction);
+    if (!std::isfinite(length_squared) || length_squared <= 1.0e-8f) {
+        return 0.0f;
+    }
+    return std::atan2(direction.y, direction.x);
+}
+
 bool start_play_preview_from_ray(ClientRenderer& renderer,
     SystemInterface_SDL& system_interface,
     Rml::ElementDocument* doc,
@@ -7392,7 +7402,7 @@ bool start_play_preview_from_ray(ClientRenderer& renderer,
             .origin = ray.origin,
             .displacement = ray.displacement,
         },
-        .camera = {},
+        .camera = {.yaw = play_preview_yaw(ray)},
         .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
     };
     const auto started = nw::toolset::start_toolset_preview(

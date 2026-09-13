@@ -276,12 +276,16 @@ TEST(ClientPreview, StartsAndTargetsFromNavigationRays)
 
     const glm::vec3 ray_origin = module->entry_position + glm::vec3{0.0f, 0.0f, 10.0f};
     const glm::vec3 ray_displacement{0.0f, 0.0f, -20.0f};
+    constexpr float camera_yaw = 1.25f;
     nw::toolset::ToolsetPreviewSession session;
     const nw::toolset::PreviewSessionStartInput start{
         .area = area->handle(),
         .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
         .spawn_ray = {.origin = ray_origin, .displacement = ray_displacement},
-        .camera = {.focus = module->entry_position},
+        .camera = {
+            .focus = module->entry_position,
+            .yaw = camera_yaw,
+        },
         .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
     };
 
@@ -291,6 +295,9 @@ TEST(ClientPreview, StartsAndTargetsFromNavigationRays)
     ASSERT_NE(spatial, nullptr);
     EXPECT_NEAR(spatial->position.x, module->entry_position.x, 0.01f);
     EXPECT_NEAR(spatial->position.y, module->entry_position.y, 0.01f);
+    EXPECT_NEAR(spatial->orientation.x, std::cos(camera_yaw), 1.0e-6f);
+    EXPECT_NEAR(spatial->orientation.y, std::sin(camera_yaw), 1.0e-6f);
+    EXPECT_NEAR(spatial->orientation.z, 0.0f, 1.0e-6f);
 
     const std::array rays{
         nw::nav::NavRayProjectionInput{.origin = ray_origin, .displacement = ray_displacement},
