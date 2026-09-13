@@ -573,10 +573,6 @@ NavTileBuildStats build_nav_tile_data(const NavTileBuildInput& input,
     for (uint32_t link_index : input.door_link_indices) {
         if (link_index >= input.door_links.size()) return stats;
         const auto& link = input.door_links[link_index];
-        if (link.active_obstacle_state >= input.obstacle_active.size()) {
-            return stats;
-        }
-        if (input.obstacle_active[link.active_obstacle_state] == 0) continue;
         bool valid = finite(link.start) && finite(link.end)
             && std::isfinite(link.radius) && link.radius > 0.0f;
         const uint32_t user_id = door_user_id(link.door_index, link.side, valid);

@@ -224,7 +224,6 @@ bool build_projected_door_links(nav::NavAreaBuildSource& source,
             .end = side1.position,
             .radius = config.cell_size,
             .door_index = door.door_index,
-            .active_obstacle_state = door.closed_obstacle_state,
             .side = 0,
         });
         source.door_links.push_back({
@@ -232,7 +231,6 @@ bool build_projected_door_links(nav::NavAreaBuildSource& source,
             .end = side0.position,
             .radius = config.cell_size,
             .door_index = door.door_index,
-            .active_obstacle_state = door.closed_obstacle_state,
             .side = 1,
         });
     }
@@ -808,9 +806,39 @@ PreviewTickStats tick_toolset_preview(
             state.route_action_bounds_min = {};
             state.route_action_bounds_max = {};
         };
+        // A preview session owns exactly one actor. Crossing a door is a
+        // singleton event, implemented through the count-one batch APIs.
+        const auto relocate_agent = [&state](const glm::vec3& destination) {
+            const std::array registrations{
+                nav::NavAgentRegistrationInput{.position = destination},
+            };
+            std::array<nav::NavAgentRegistrationResult, 1> registered{};
+            const auto registration = nav::register_nav_agents(
+                state.nav_world, registrations, registered);
+            if (registration.output_count != 1
+                || (registered[0].status != nav::NavStatus::ok
+                    && registered[0].status != nav::NavStatus::clamped)) {
+                return false;
+            }
+
+            const std::array released{state.nav_agent};
+            if (nav::release_nav_agents(state.nav_world, released).output_count
+                != 1) {
+                const std::array rollback{registered[0].agent};
+                nav::release_nav_agents(state.nav_world, rollback);
+                return false;
+            }
+            state.nav_agent = registered[0].agent;
+            state.spatial.position = registered[0].position;
+            state.spatial.velocity = {};
+            return true;
+        };
         const auto assign_route = [&](const glm::vec3& destination) {
             const std::array request{
-                nav::NavPathRequest{state.spatial.position, destination},
+                nav::NavPathRequest{
+                    .start = state.spatial.position,
+                    .end = destination,
+                },
             };
             std::array<nav::NavPathResult, 1> path_result{};
             nav::find_nav_paths(state.nav_world, request, state.route_corners,
@@ -832,7 +860,18 @@ PreviewTickStats tick_toolset_preview(
             state.pending_door = UINT32_MAX;
             state.pending_door_side = 0;
             if (path_result[0].traversal_count > 0) {
-                const auto& traversal = state.route_arena.traversals[path_result[0].traversal_offset];
+                const size_t row = path_result[0].traversal_offset;
+                const size_t available = state.route_arena.traversals.size();
+                if (row >= available
+                    || path_result[0].traversal_count > available - row) {
+                    clear_route();
+                    return false;
+                }
+                const auto& traversal = state.route_arena.traversals[row];
+                if (traversal.door_index >= state.navigation.doors.size()) {
+                    clear_route();
+                    return false;
+                }
                 const uint32_t approach = path_result[0].corner_offset
                     + traversal.corner;
                 if (approach >= state.route_end) {
@@ -891,6 +930,10 @@ PreviewTickStats tick_toolset_preview(
                 if (!door.approach_valid[side]) continue;
                 ++stats.path_request_count;
                 if (!assign_route(door.approach_positions[side])) continue;
+                if (state.pending_door == sample.door_index) {
+                    clear_route();
+                    continue;
+                }
                 state.route_action_door = sample.door_index;
                 state.route_action_side = side;
                 state.route_action_bounds_min = sample.door_bounds_min;
@@ -1077,16 +1120,29 @@ PreviewTickStats tick_toolset_preview(
             if (state.pending_door != UINT32_MAX) {
                 const uint32_t door_index = state.pending_door;
                 const uint8_t side = state.pending_door_side;
-                const auto target = side == 0
-                    ? nav::NavDoorState::open1
-                    : nav::NavDoorState::open2;
                 const glm::vec3 destination = state.route_destination;
                 state.pending_door = UINT32_MAX;
-                if (!transition_door(door_index, target, side)) {
+                if (door_index >= state.navigation.doors.size()) {
                     clear_route();
                     ++stats.path_failure_count;
-                } else if (!assign_route(destination)) {
-                    ++stats.path_failure_count;
+                } else {
+                    auto& door = state.navigation.doors[door_index];
+                    const auto target = side == 0
+                        ? nav::NavDoorState::open1
+                        : nav::NavDoorState::open2;
+                    const bool opened = door.state != nav::NavDoorState::closed
+                        || transition_door(door_index, target, side);
+                    const uint8_t destination_side
+                        = static_cast<uint8_t>(1u - side);
+                    if (!opened
+                        || !door.approach_valid[destination_side]
+                        || !relocate_agent(
+                            door.approach_positions[destination_side])) {
+                        clear_route();
+                        ++stats.path_failure_count;
+                    } else if (!assign_route(destination)) {
+                        ++stats.path_failure_count;
+                    }
                 }
             } else if (state.route_action_door != UINT32_MAX) {
                 const uint32_t door_index = state.route_action_door;

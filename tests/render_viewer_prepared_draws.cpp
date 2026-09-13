@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../tools/client/object_edits.hpp"
+#include "../tools/client/preview_session.hpp"
 #include "../tools/client/workspace.hpp"
 #include "../tools/ui/smalls_creature_properties.hpp"
 
@@ -1183,6 +1184,80 @@ TEST(RenderViewerPreparedDraws, StoreBlueprintUsesAuroraToolsetMarker)
     EXPECT_EQ(scene->static_models[0]->name, "gi_store");
     EXPECT_EQ(scene->root_object.type, nw::ObjectType::store);
     EXPECT_EQ(scene->root_object, scene->active_object);
+}
+
+TEST(RenderViewerPreparedDraws, AreaViewportRaysProjectOntoGeneratedNavigation)
+{
+    namespace viewer = nw::render::viewer;
+    auto* module = nw::kernel::load_module(
+        "test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) GTEST_SKIP() << "headless graphics context unavailable";
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(
+        viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto render_session = device.make_session();
+    ASSERT_TRUE(render_session);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    ASSERT_TRUE(render_session->load_area("test_area"));
+
+    nw::toolset::ToolsetPreviewSession preview;
+    const nw::toolset::PreviewSessionStartInput start{
+        .area = area->handle(),
+        .actor = {nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+        .spawn_position = module->entry_position,
+        .camera = {.focus = module->entry_position},
+    };
+    const auto started = nw::toolset::start_toolset_preview(preview, start);
+    ASSERT_TRUE(started.ok()) << started.diagnostic;
+    ASSERT_EQ(nw::toolset::set_toolset_preview_navigation_debug(preview, true),
+        nw::toolset::PreviewStatus::ok);
+    const auto debug = nw::toolset::toolset_preview_navigation_debug(preview);
+
+    const viewer::ViewerViewport viewport{0, 0, 800, 600};
+    render_session->update_viewport(viewport);
+    const auto& camera = preview.camera();
+    render_session->camera().set_orbit_view(camera.focus, camera.distance,
+        glm::degrees(camera.yaw) + 180.0f,
+        glm::degrees(-camera.pitch));
+    const glm::mat4 view_projection
+        = render_session->camera().get_projection_matrix()
+        * render_session->camera().get_view_matrix();
+
+    size_t visible_count = 0;
+    for (const auto& triangle : debug.triangles) {
+        if (triangle.state != nw::nav::NavDebugPolygonState::walkable) continue;
+        const glm::vec3 target = (triangle.a + triangle.b + triangle.c) / 3.0f;
+        const glm::vec4 clip = view_projection * glm::vec4{target, 1.0f};
+        if (clip.w <= 0.0f) continue;
+        const glm::vec2 ndc = glm::vec2{clip} / clip.w;
+        const glm::vec2 pixel = (ndc + 1.0f) * 0.5f
+            * glm::vec2{viewport.width, viewport.height};
+        const auto viewport_width = static_cast<float>(viewport.width);
+        const auto viewport_height = static_cast<float>(viewport.height);
+        if (pixel.x < 0.0f || pixel.y < 0.0f
+            || pixel.x >= viewport_width || pixel.y >= viewport_height) {
+            continue;
+        }
+        ++visible_count;
+        const auto ray = render_session->viewport_ray(
+            pixel.x, pixel.y, viewport);
+        ASSERT_TRUE(ray);
+        const std::array direct_inputs{nw::nav::NavRayProjectionInput{
+            .origin = ray->origin,
+            .displacement = ray->direction,
+        }};
+        std::array<nw::nav::NavRayProjectionResult, 1> direct_results{};
+        const auto projection = nw::toolset::project_toolset_preview_rays(
+            preview, direct_inputs, direct_results);
+        EXPECT_EQ(projection.output_count, 1u);
+        EXPECT_EQ(direct_results[0].status, nw::nav::NavStatus::ok);
+        EXPECT_LT(glm::distance(direct_results[0].position, target), 1.0e-3f);
+    }
+    EXPECT_GT(visible_count, 0u);
 }
 
 TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuilds)

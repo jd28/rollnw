@@ -297,6 +297,39 @@ TEST(NavGeometry, BuildsExclusiveDoorObstacleStateCatalog)
     nw::kernel::objects().destroy(area->handle());
 }
 
+TEST(NavGeometry, DerivesDoorNormalFromClosedWalkmesh)
+{
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    auto* door = nw::kernel::objects().make<nw::Door>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(door, nullptr);
+    ASSERT_TRUE(door->instantiate());
+    nw::kernel::runtime().init_object_propsets(door->handle());
+
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.clear_visual(door->handle(), 0));
+    ASSERT_TRUE(components.add_visual_model(door->handle(), {
+                                                                .model = nw::Resref{"tn_sdoor_22"},
+                                                            }));
+    auto* spatial = components.get_or_create_spatial(door->handle());
+    ASSERT_NE(spatial, nullptr);
+    spatial->position = {40.0f, 50.0f, 0.0f};
+    spatial->orientation = {1.0f, 0.0f, 0.0f};
+    area->doors.push_back(door);
+
+    nw::nav::NavObjectObstacleSnapshot snapshot;
+    const auto stats = nw::nav::build_area_object_nav_obstacles(
+        *area, nw::kernel::resman(), snapshot);
+
+    EXPECT_EQ(stats.rejected_object_count, 0u);
+    ASSERT_EQ(snapshot.doors.size(), 1u);
+    EXPECT_EQ(snapshot.doors[0].normal, glm::vec3(0.0f, 1.0f, 0.0f));
+    EXPECT_GT(snapshot.doors[0].closed_half_depth, 0.0f);
+
+    nw::kernel::objects().destroy(door->handle());
+    nw::kernel::objects().destroy(area->handle());
+}
+
 TEST(NavGeometry, AppendsWalkmeshMaterialsAndNodeTransform)
 {
     auto mdl = parse_walkmesh(walkmesh);

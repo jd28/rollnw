@@ -127,8 +127,9 @@ enum class NavDoorState : uint8_t {
 };
 
 /// NWN-adapter row for one live door. Obstacle states are dense rows in the
-/// sibling active array. position/normal and closed_half_depth are authored
-/// world-space inputs used to derive projected link endpoints per radius class.
+/// sibling active array. position is the authored world-space origin; normal
+/// and closed_half_depth are derived from the closed DWK and used to project
+/// link endpoints per radius class.
 struct NavDoorObstacleRow {
     ObjectHandle door{};
     glm::vec3 position{0.0f};

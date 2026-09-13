@@ -89,6 +89,26 @@ void append_wall(nw::nav::NavAreaBuildSource& source, float x,
         = std::max(source.obstacle_state_count, obstacle_state + 1);
 }
 
+void append_door_links(nw::nav::NavAreaBuildSource& source)
+{
+    source.door_links = {
+        {
+            .start = {4.0f, 5.0f, 0.0f},
+            .end = {6.0f, 5.0f, 0.0f},
+            .radius = 0.5f,
+            .door_index = 7,
+            .side = 0,
+        },
+        {
+            .start = {6.0f, 5.0f, 0.0f},
+            .end = {4.0f, 5.0f, 0.0f},
+            .radius = 0.5f,
+            .door_index = 7,
+            .side = 1,
+        },
+    };
+}
+
 nw::nav::NavAreaBuildSource make_single_tile_area_source()
 {
     nw::nav::NavAreaBuildSource source;
@@ -494,24 +514,7 @@ TEST(NavTileBuild, ClosedDoorPlansThroughTaggedTraversalLink)
 {
     auto source = make_single_tile_area_source();
     append_wall(source, 5.0f, 0);
-    source.door_links = {
-        {
-            .start = {4.0f, 5.0f, 0.0f},
-            .end = {6.0f, 5.0f, 0.0f},
-            .radius = 0.5f,
-            .door_index = 7,
-            .active_obstacle_state = 0,
-            .side = 0,
-        },
-        {
-            .start = {6.0f, 5.0f, 0.0f},
-            .end = {4.0f, 5.0f, 0.0f},
-            .radius = 0.5f,
-            .door_index = 7,
-            .active_obstacle_state = 0,
-            .side = 1,
-        },
-    };
+    append_door_links(source);
     constexpr std::array<uint8_t, 1> active{1u};
     nw::nav::NavWorldState world;
     nw::nav::NavTiledWorldBuildStats build;
@@ -605,28 +608,57 @@ TEST(NavTileBuild, ClosedDoorPlansThroughTaggedTraversalLink)
     EXPECT_NEAR(continued[0].position.x, 8.0f, 0.125f);
 }
 
+TEST(NavTileBuild, DoorTraversalLinkSurvivesObstacleStateChange)
+{
+    auto source = make_single_tile_area_source();
+    append_wall(source, 5.0f, 0);
+    append_wall(source, 5.0f, 1);
+    append_door_links(source);
+    constexpr std::array<uint8_t, 2> closed{1u, 0u};
+    nw::nav::NavWorldState world;
+    nw::nav::NavTiledWorldBuildStats build;
+    ASSERT_EQ(nw::nav::build_tiled_nav_world(source, closed,
+                  nw::nav::NavTileBuildConfig{}, world, build),
+        nw::nav::NavStatus::ok);
+    ASSERT_EQ(build.enabled_door_link_count, 2u);
+
+    constexpr std::array request{nw::nav::NavPathRequest{
+        {2.0f, 5.0f, 0.0f}, {8.0f, 5.0f, 0.0f}}};
+    std::array<nw::nav::NavPathResult, 1> result{};
+    nw::Vector<glm::vec3> corners;
+    nw::nav::NavRouteArena routes;
+    corners.reserve(nw::nav::maximum_nav_path_corners);
+    routes.polygons.reserve(nw::nav::maximum_nav_path_polygons);
+    routes.tile_keys.reserve(nw::nav::maximum_nav_path_polygons);
+    routes.traversals.reserve(nw::nav::maximum_nav_path_corners);
+    ASSERT_EQ(nw::nav::find_nav_paths(
+                  world, request, corners, routes, result)
+                  .output_count,
+        1u);
+    ASSERT_EQ(result[0].traversal_count, 1u);
+
+    constexpr std::array changes{
+        nw::nav::NavObstacleStateChange{.obstacle_state = 0, .active = 0},
+        nw::nav::NavObstacleStateChange{.obstacle_state = 1, .active = 1},
+    };
+    std::array<uint32_t, 1> rebuilt{};
+    nw::nav::NavTileRebuildStats rebuild;
+    ASSERT_EQ(nw::nav::rebuild_nav_tiles(
+                  world, source, changes, rebuilt, rebuild),
+        nw::nav::NavStatus::ok);
+    ASSERT_EQ(nw::nav::find_nav_paths(
+                  world, request, corners, routes, result)
+                  .output_count,
+        1u);
+    EXPECT_EQ(result[0].status, nw::nav::NavStatus::ok);
+    EXPECT_EQ(result[0].traversal_count, 1u);
+}
+
 TEST(NavTileBuild, BatchedCorridorReusePreservesRequestEndpoints)
 {
     auto source = make_single_tile_area_source();
     append_wall(source, 5.0f, 0);
-    source.door_links = {
-        {
-            .start = {4.0f, 5.0f, 0.0f},
-            .end = {6.0f, 5.0f, 0.0f},
-            .radius = 0.5f,
-            .door_index = 7,
-            .active_obstacle_state = 0,
-            .side = 0,
-        },
-        {
-            .start = {6.0f, 5.0f, 0.0f},
-            .end = {4.0f, 5.0f, 0.0f},
-            .radius = 0.5f,
-            .door_index = 7,
-            .active_obstacle_state = 0,
-            .side = 1,
-        },
-    };
+    append_door_links(source);
     constexpr std::array<uint8_t, 1> active{1u};
     nw::nav::NavWorldState world;
     nw::nav::NavTiledWorldBuildStats build;

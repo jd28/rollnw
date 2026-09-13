@@ -2,6 +2,7 @@
 
 #include <glm/geometric.hpp>
 
+#include "../tools/client/area_navigation.hpp"
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/preview_session.hpp"
 
@@ -308,7 +309,7 @@ TEST(ClientPreview, StartsAndTargetsFromNavigationRays)
     EXPECT_NEAR(results[0].position.y, module->entry_position.y, 0.01f);
 }
 
-TEST(ClientPreview, OpensReplacementDoorInFreshPreviewSnapshot)
+TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
 {
     auto* module = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
     ASSERT_NE(module, nullptr);
@@ -392,6 +393,58 @@ TEST(ClientPreview, OpensReplacementDoorInFreshPreviewSnapshot)
             != nw::toolset::PreviewDoorState::closed;
     }
     EXPECT_TRUE(opened);
+
+    nw::toolset::AreaNavigationSource navigation;
+    std::string navigation_diagnostic;
+    ASSERT_TRUE(nw::toolset::build_area_navigation_source(
+        *area, navigation, navigation_diagnostic))
+        << navigation_diagnostic;
+    const auto door_row = std::ranges::find(
+        navigation.doors, replacement_door, &nw::nav::NavDoorObstacleRow::door);
+    ASSERT_NE(door_row, navigation.doors.end());
+    const float actor_side = glm::dot(
+                                 spatial_output[0].position - door_row->position, door_row->normal)
+            < 0.0f
+        ? -1.0f
+        : 1.0f;
+    constexpr std::array<float, 4> target_distances{2.0f, 4.0f, 6.0f, 8.0f};
+    std::array<nw::nav::NavRayProjectionInput, target_distances.size()> rays{};
+    for (size_t index = 0; index < rays.size(); ++index) {
+        rays[index] = {
+            .origin = door_row->position
+                - actor_side * door_row->normal * target_distances[index]
+                + glm::vec3{0.0f, 0.0f, 5.0f},
+            .displacement = {0.0f, 0.0f, -10.0f},
+        };
+    }
+    std::array<nw::nav::NavRayProjectionResult, rays.size()> projected{};
+    nw::toolset::project_toolset_preview_rays(session, rays, projected);
+    glm::vec3 target{0.0f};
+    bool found_target = false;
+    for (size_t index = projected.size(); index > 0; --index) {
+        if (projected[index - 1].status != nw::nav::NavStatus::ok) continue;
+        target = projected[index - 1].position;
+        found_target = true;
+        break;
+    }
+    ASSERT_TRUE(found_target);
+    ASSERT_TRUE(nw::toolset::set_preview_click_target(sample, target));
+    bool reached_target = false;
+    for (size_t tick = 0; tick < 10'000 && !reached_target; ++tick) {
+        const auto advanced = nw::toolset::tick_toolset_preview(
+            session,
+            std::span<const nw::toolset::PreviewInputSample>{&sample, 1},
+            spatial_output,
+            locomotion_output);
+        ASSERT_EQ(advanced.status, nw::toolset::PreviewStatus::ok);
+        sample = {};
+        const glm::vec2 distance{
+            spatial_output[0].position.x - target.x,
+            spatial_output[0].position.y - target.y,
+        };
+        reached_target = glm::dot(distance, distance) < 0.1f;
+    }
+    EXPECT_TRUE(reached_target);
 }
 
 TEST(ClientPreview, RestartsAfterRejectedPlacementRay)

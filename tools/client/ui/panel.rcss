@@ -377,7 +377,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 #workspace_shell, #workspace_shell * { box-sizing: border-box; }
 .play_preview_active #panel,
-.play_preview_active #bottom_dock,
+.play_preview_active #bottom_dock.visible,
 .play_preview_active #workspace_tab_bar,
 .play_preview_active .workspace_area_toolbar,
 .play_preview_active .object_workbench {

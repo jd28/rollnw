@@ -784,7 +784,19 @@ NavObjectGeometryStats build_area_object_nav_obstacles(
     stats.unique_resource_count = cached_models.size();
     stats.append = append_nav_geometry_models(append_inputs, output.geometry);
     for (auto& door : output.doors) {
-        float half_depth = 0.0f;
+        const std::array axes{
+            door.normal,
+            glm::vec3{-door.normal.y, door.normal.x, 0.0f},
+        };
+        std::array minimums{
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+        };
+        std::array maximums{
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+        };
+        std::array half_depths{0.0f, 0.0f};
         for (size_t triangle = 0;
             triangle < output.geometry.triangle_count(); ++triangle) {
             if (output.geometry.owner[triangle]
@@ -795,13 +807,21 @@ NavObjectGeometryStats build_area_object_nav_obstacles(
                 const uint32_t vertex
                     = output.geometry.indices[triangle * 3 + corner];
                 if (vertex >= output.geometry.vertices.size()) continue;
-                half_depth = std::max(half_depth,
-                    std::abs(glm::dot(
+                for (size_t axis = 0; axis < axes.size(); ++axis) {
+                    const float projection = glm::dot(
                         output.geometry.vertices[vertex] - door.position,
-                        door.normal)));
+                        axes[axis]);
+                    minimums[axis] = std::min(minimums[axis], projection);
+                    maximums[axis] = std::max(maximums[axis], projection);
+                    half_depths[axis]
+                        = std::max(half_depths[axis], std::abs(projection));
+                }
             }
         }
-        door.closed_half_depth = half_depth;
+        const size_t normal_axis
+            = maximums[1] - minimums[1] < maximums[0] - minimums[0] ? 1 : 0;
+        door.normal = axes[normal_axis];
+        door.closed_half_depth = half_depths[normal_axis];
     }
     return stats;
 }

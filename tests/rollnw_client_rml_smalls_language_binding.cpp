@@ -184,6 +184,60 @@ public:
 
 } // namespace
 
+TEST(ClientRmlTemplates, PlayPreviewHidesPersistentShellChrome)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+
+    auto* context = Rml::CreateContext(
+        "play-preview-shell-visibility-test", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml>
+<head><link type="text/css" href="tools/client/ui/panel.rcss"/></head>
+<body>
+  <div id="panel"></div>
+  <div id="bottom_dock" class="visible"></div>
+  <div id="workspace_shell">
+    <div id="workspace_tab_bar"></div>
+    <div id="area_toolbar" class="workspace_area_toolbar"></div>
+    <div id="object_workbench" class="object_workbench"></div>
+  </div>
+</body>
+</rml>)RML");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    constexpr std::array element_ids{
+        "bottom_dock",
+        "workspace_tab_bar",
+        "area_toolbar",
+        "object_workbench",
+    };
+    for (const auto* id : element_ids) {
+        SCOPED_TRACE(id);
+        auto* element = document->GetElementById(id);
+        ASSERT_NE(element, nullptr);
+        EXPECT_TRUE(element->IsVisible(true));
+    }
+
+    document->SetClass("play_preview_active", true);
+    context->Update();
+    for (const auto* id : element_ids) {
+        SCOPED_TRACE(id);
+        auto* element = document->GetElementById(id);
+        ASSERT_NE(element, nullptr);
+        EXPECT_FALSE(element->IsVisible(true));
+    }
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("play-preview-shell-visibility-test");
+}
+
 TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
@@ -1847,6 +1901,16 @@ body { margin: 0px; }
     EXPECT_EQ(events.front().list_id(), "sounds");
     EXPECT_EQ(events.front().reorder.source_index, 1);
     EXPECT_EQ(events.front().reorder.destination_index, 2);
+
+    ASSERT_TRUE(nw::toolset::begin_managed_list_reorder(
+        state, row0, host, 10.0f, row0->GetAbsoluteTop() + 1.0f));
+    list->SetProperty("display", "none");
+    context->Update();
+    ASSERT_TRUE(nw::toolset::update_managed_list_reorder(state, document,
+        host, render_state, 10.0f, row0->GetAbsoluteTop() + 1.0f,
+        5.0f, 15.0f, 10.0f));
+    EXPECT_FALSE(state.active());
+    EXPECT_FALSE(row0->IsClassSet("reorder_source"));
 
     document->Close();
     context->Update();

@@ -1889,7 +1889,8 @@ Rml::Element* element_at_mouse(Rml::Context* context, SDL_Window* window, const 
 bool point_within_element(Rml::ElementDocument* doc, std::string_view id, Rml::Vector2f point)
 {
     auto* element = find_el(doc, std::string(id).c_str());
-    return element && element->IsPointWithinElement(point);
+    return element && element->IsVisible(true)
+        && element->IsPointWithinElement(point);
 }
 
 bool point_within_viewport(ClientViewportRect rect, Rml::Vector2f point)
@@ -1901,9 +1902,11 @@ bool point_within_viewport(ClientViewportRect rect, Rml::Vector2f point)
     return point.x >= left && point.x < right && point.y >= top && point.y < bottom;
 }
 
-bool command_palette_contains_point(Rml::ElementDocument* palette_doc, Rml::Vector2f point)
+bool command_palette_contains_point(
+    Rml::ElementDocument* palette_doc, const AppState& state, Rml::Vector2f point)
 {
-    return point_within_element(palette_doc, "command_palette", point);
+    return state.shell.command_palette_visible
+        && point_within_element(palette_doc, "command_palette", point);
 }
 
 bool event_targets_command_palette(
@@ -1922,11 +1925,14 @@ bool event_targets_command_palette(
         return true;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP:
-        return command_palette_contains_point(palette_doc, to_context_point(window, event.button.x, event.button.y));
+        return command_palette_contains_point(
+            palette_doc, state, to_context_point(window, event.button.x, event.button.y));
     case SDL_EVENT_MOUSE_MOTION:
-        return command_palette_contains_point(palette_doc, to_context_point(window, event.motion.x, event.motion.y));
+        return command_palette_contains_point(
+            palette_doc, state, to_context_point(window, event.motion.x, event.motion.y));
     case SDL_EVENT_MOUSE_WHEEL:
-        return command_palette_contains_point(palette_doc, to_context_point(window, event.wheel.mouse_x, event.wheel.mouse_y));
+        return command_palette_contains_point(
+            palette_doc, state, to_context_point(window, event.wheel.mouse_x, event.wheel.mouse_y));
     default:
         return false;
     }
@@ -2342,11 +2348,13 @@ Rml::Element* recent_item_at_point(Rml::ElementDocument* doc, Rml::Vector2f poin
         return nullptr;
     }
 
-    if (auto* search = doc->GetElementById("recent_search"); search && search->IsPointWithinElement(point)) {
+    if (auto* search = doc->GetElementById("recent_search");
+        search && search->IsVisible(true)
+        && search->IsPointWithinElement(point)) {
         return nullptr;
     }
 
-    if (!list->IsPointWithinElement(point)) {
+    if (!list->IsVisible(true) || !list->IsPointWithinElement(point)) {
         return nullptr;
     }
 
@@ -2366,7 +2374,7 @@ Rml::Element* find_recent_item_at(Rml::Element* list, Rml::Vector2f point)
     }
 
     const auto visit = [&](auto&& self, Rml::Element* element) -> Rml::Element* {
-        if (!element) {
+        if (!element || !element->IsVisible(true)) {
             return nullptr;
         }
         if (element->IsClassSet("recent_item") && element->IsPointWithinElement(point)) {
@@ -2387,13 +2395,14 @@ Rml::Element* find_recent_item_at(Rml::Element* list, Rml::Vector2f point)
 Rml::Element* workspace_tab_element_at_point(Rml::ElementDocument* doc, std::string_view class_name, Rml::Vector2f point)
 {
     auto* tabs = find_el(doc, "workspace_tabs");
-    if (!tabs || !tabs->IsPointWithinElement(point)) {
+    if (!tabs || !tabs->IsVisible(true)
+        || !tabs->IsPointWithinElement(point)) {
         return nullptr;
     }
 
     const std::string class_text{class_name};
     const auto visit = [&](auto&& self, Rml::Element* element) -> Rml::Element* {
-        if (!element) {
+        if (!element || !element->IsVisible(true)) {
             return nullptr;
         }
         if (element->IsClassSet(class_text.c_str()) && element->IsPointWithinElement(point)) {
@@ -7368,23 +7377,20 @@ void request_play_preview_actor(Rml::ElementDocument* doc, AppState& state,
     if (auto* search = find_el(doc, "recent_search")) search->Focus();
 }
 
-bool start_play_preview_from_surface(ClientRenderer& renderer,
+bool start_play_preview_from_ray(ClientRenderer& renderer,
     SystemInterface_SDL& system_interface,
     Rml::ElementDocument* doc,
     AppState& state,
-    const glm::vec3& surface_point)
+    const ClientViewportRay& ray)
 {
     if (!state.play_preview.placement_pending()) return false;
 
-    constexpr float kPlacementProjectionHalfHeight = 0.5f;
     const nw::toolset::PreviewSessionStartInput input{
         .area = state.play_preview.area,
         .actor = state.play_preview.pending_actor,
         .spawn_ray = {
-            .origin = surface_point
-                + glm::vec3{0.0f, 0.0f, kPlacementProjectionHalfHeight},
-            .displacement = {0.0f, 0.0f,
-                -2.0f * kPlacementProjectionHalfHeight},
+            .origin = ray.origin,
+            .displacement = ray.displacement,
         },
         .camera = {},
         .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
@@ -10124,7 +10130,8 @@ bool update_project_blueprint_drag(Rml::Context* context,
     }
 
     auto* board = find_el(doc, "creature_inventory_board");
-    if (!board || !board->IsPointWithinElement(point)) {
+    if (!board || !board->IsVisible(true)
+        || !board->IsPointWithinElement(point)) {
         set_project_blueprint_drop_target(doc, drag, {}, false);
         return true;
     }
@@ -12730,7 +12737,8 @@ int main(int argc, char* argv[])
                     || event.button.button == SDL_BUTTON_MIDDLE
                     || event.button.button == SDL_BUTTON_RIGHT) {
                     const auto point = to_context_point(window, event.button.x, event.button.y);
-                    if (command_palette_contains_point(palette_doc, point)) {
+                    if (command_palette_contains_point(
+                            palette_doc, state, point)) {
                         RmlSDL::InputEventHandler(palette_context, window, event);
                         dispatched_to_rml = true;
                         break;
@@ -12779,14 +12787,14 @@ int main(int argc, char* argv[])
                             && viewer_viewport->kind == WorkspaceViewerViewportKind::area) {
                             if (event.button.button == SDL_BUTTON_LEFT
                                 && state.play_preview.placement_pending()) {
-                                if (const auto surface_point
-                                    = renderer.viewer_area_surface_point(
+                                if (const auto ray
+                                    = renderer.viewer_viewport_ray(
                                         point.x, point.y, viewer_viewport->rect)) {
-                                    (void)start_play_preview_from_surface(renderer,
-                                        system_interface, doc, state, *surface_point);
+                                    (void)start_play_preview_from_ray(renderer,
+                                        system_interface, doc, state, *ray);
                                 } else {
                                     state.play_preview.placement_diagnostic
-                                        = "Click did not hit an authored area surface";
+                                        = "Navigation ray could not be constructed";
                                     system_interface.SetMouseCursor("cross");
                                     append_output(state, "warn",
                                         state.play_preview.placement_diagnostic);
@@ -12813,20 +12821,14 @@ int main(int argc, char* argv[])
                                         door_hit->door_index,
                                         door_hit->bounds_min,
                                         door_hit->bounds_max);
-                                } else if (const auto surface_point
-                                    = renderer.viewer_area_surface_point(
+                                } else if (const auto ray
+                                    = renderer.viewer_viewport_ray(
                                         point.x, point.y,
                                         viewer_viewport->rect)) {
-                                    constexpr float kSurfaceProjectionHalfHeight
-                                        = 0.5f;
                                     const std::array projection_inputs{
                                         nw::nav::NavRayProjectionInput{
-                                            .origin = *surface_point
-                                                + glm::vec3{0.0f, 0.0f,
-                                                    kSurfaceProjectionHalfHeight},
-                                            .displacement = {0.0f, 0.0f,
-                                                -2.0f
-                                                    * kSurfaceProjectionHalfHeight},
+                                            .origin = ray->origin,
+                                            .displacement = ray->displacement,
                                         },
                                     };
                                     std::array<nw::nav::NavRayProjectionResult, 1> projected{};
@@ -13001,7 +13003,8 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
-                if (command_palette_contains_point(palette_doc, point)) {
+                if (command_palette_contains_point(
+                        palette_doc, state, point)) {
                     RmlSDL::InputEventHandler(palette_context, window, event);
                     dispatched_to_rml = true;
                     break;
@@ -13167,7 +13170,10 @@ int main(int argc, char* argv[])
                 auto* search = find_el(doc, "recent_search");
                 int hovered = -1;
                 if (!recent_list_hit_blocked(doc, top_hit, point, state)
-                    && list && (!search || !search->IsPointWithinElement(point)) && list->IsPointWithinElement(point)) {
+                    && list && list->IsVisible(true)
+                    && (!search || !search->IsVisible(true)
+                        || !search->IsPointWithinElement(point))
+                    && list->IsPointWithinElement(point)) {
                     if (auto* recent_item = find_recent_item_at(list, point)) {
                         const std::string key = recent_item->GetAttribute<Rml::String>("data-key", "");
                         if (!key.empty()) {
@@ -13190,7 +13196,8 @@ int main(int argc, char* argv[])
                     break;
                 }
                 const auto point = to_context_point(window, event.wheel.mouse_x, event.wheel.mouse_y);
-                if (command_palette_contains_point(palette_doc, point)) {
+                if (command_palette_contains_point(
+                        palette_doc, state, point)) {
                     RmlSDL::InputEventHandler(palette_context, window, event);
                     dispatched_to_rml = true;
                     break;
@@ -13476,7 +13483,8 @@ int main(int argc, char* argv[])
                         }
                     }
 
-                    if (command_palette_contains_point(palette_doc, point)) {
+                    if (command_palette_contains_point(
+                            palette_doc, state, point)) {
                         if (auto* hit = element_at_mouse(palette_context, window, event.button)) {
                             if (auto* command_item = find_ancestor_with_class(hit, "command_item")) {
                                 const std::string command_id = command_item->GetAttribute<Rml::String>("data-key", "");

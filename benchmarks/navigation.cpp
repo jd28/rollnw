@@ -240,7 +240,6 @@ void BM_recast_door_path_batch(benchmark::State& state)
             .end = {161.0f, 160.0f, 0.0f},
             .radius = 0.125f,
             .door_index = 0,
-            .active_obstacle_state = 0,
             .side = 0,
         },
         {
@@ -248,7 +247,6 @@ void BM_recast_door_path_batch(benchmark::State& state)
             .end = {159.0f, 160.0f, 0.0f},
             .radius = 0.125f,
             .door_index = 0,
-            .active_obstacle_state = 0,
             .side = 1,
         },
     };
@@ -274,7 +272,6 @@ void BM_recast_door_rebuild(benchmark::State& state)
             .end = {161.0f, 160.0f, 0.0f},
             .radius = 0.125f,
             .door_index = 0,
-            .active_obstacle_state = 0,
             .side = 0,
         },
         {
@@ -282,7 +279,6 @@ void BM_recast_door_rebuild(benchmark::State& state)
             .end = {159.0f, 160.0f, 0.0f},
             .radius = 0.125f,
             .door_index = 0,
-            .active_obstacle_state = 0,
             .side = 1,
         },
     };

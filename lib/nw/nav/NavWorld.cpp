@@ -698,14 +698,12 @@ std::span<const uint32_t> tile_range(const Vector<uint32_t>& offsets,
 
 bool build_obstacle_tile_ranges(const NavAreaBuildSource& source,
     const NavTileTriangleRanges& obstacle_ranges,
-    const Vector<uint32_t>& link_offsets,
-    const Vector<uint32_t>& link_indices, Vector<uint32_t>& state_offsets,
-    Vector<uint32_t>& state_tiles)
+    Vector<uint32_t>& state_offsets, Vector<uint32_t>& state_tiles)
 {
     Vector<uint64_t> pairs;
     const size_t tile_count
         = static_cast<size_t>(source.width) * source.height;
-    pairs.reserve(obstacle_ranges.triangles.size() + link_indices.size());
+    pairs.reserve(obstacle_ranges.triangles.size());
     for (size_t tile = 0; tile < tile_count; ++tile) {
         const NavTileCoord coordinate{
             static_cast<uint32_t>(tile % source.width),
@@ -715,15 +713,6 @@ bool build_obstacle_tile_ranges(const NavAreaBuildSource& source,
                  coordinate, source.width)) {
             if (triangle >= source.obstacle_owner.size()) return false;
             const uint32_t state = source.obstacle_owner[triangle];
-            if (state >= source.obstacle_state_count) return false;
-            pairs.push_back(
-                static_cast<uint64_t>(state) << 32 | tile);
-        }
-        for (uint32_t link_index : tile_range(
-                 link_offsets, link_indices, tile)) {
-            if (link_index >= source.door_links.size()) return false;
-            const uint32_t state
-                = source.door_links[link_index].active_obstacle_state;
             if (state >= source.obstacle_state_count) return false;
             pairs.push_back(
                 static_cast<uint64_t>(state) << 32 | tile);
@@ -784,11 +773,6 @@ NavStatus build_tiled_nav_world(const NavAreaBuildSource& source,
     for (uint32_t owner : source.obstacle_owner) {
         if (owner >= source.obstacle_state_count) return NavStatus::rejected;
     }
-    for (const auto& link : source.door_links) {
-        if (link.active_obstacle_state >= source.obstacle_state_count) {
-            return NavStatus::rejected;
-        }
-    }
     stats.declared_tile_count = static_cast<size_t>(declared_tile_count);
 
     const float border
@@ -818,8 +802,8 @@ NavStatus build_tiled_nav_world(const NavAreaBuildSource& source,
     }
     Vector<uint32_t> obstacle_tile_offsets;
     Vector<uint32_t> obstacle_tiles;
-    if (!build_obstacle_tile_ranges(source, obstacle_ranges, link_offsets,
-            link_indices, obstacle_tile_offsets, obstacle_tiles)) {
+    if (!build_obstacle_tile_ranges(source, obstacle_ranges,
+            obstacle_tile_offsets, obstacle_tiles)) {
         return NavStatus::rejected;
     }
 

@@ -70,15 +70,13 @@ NavTileRangeStats build_nav_tile_triangle_ranges(
     NavTileTriangleRanges& output);
 
 /// One already-projected traversal connection. Door indices are dense and
-/// snapshot-local; side is 0 or 1. active_obstacle_state is the closed door
-/// footprint row which enables this link. Disabled links are deliberately
-/// omitted from Detour data rather than filtered during each query.
+/// snapshot-local; side is 0 or 1. The connection remains available for every
+/// door state because an open DWK can leave disconnected navigation islands.
 struct NavDoorLink {
     glm::vec3 start{0.0f};
     glm::vec3 end{0.0f};
     float radius = 0.0f;
     uint32_t door_index = UINT32_MAX;
-    uint32_t active_obstacle_state = UINT32_MAX;
     uint8_t side = 0;
 };
 

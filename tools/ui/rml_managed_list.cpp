@@ -794,7 +794,8 @@ bool update_managed_list_reorder(ManagedListReorderState& state,
     const auto snapshot = host.reorder_snapshot(state.list_id);
     auto* list = find_managed_list(document, state.list_id);
     if (!snapshot || snapshot->item_count != state.item_count
-        || snapshot->revision != state.revision || !list) {
+        || snapshot->revision != state.revision || !list
+        || !list->IsVisible(true)) {
         clear_managed_list_reorder(state, document);
         return true;
     }
@@ -816,7 +817,7 @@ bool update_managed_list_reorder(ManagedListReorderState& state,
         context->Update();
     }
     list = find_managed_list(document, state.list_id);
-    if (!list) {
+    if (!list || !list->IsVisible(true)) {
         clear_managed_list_reorder(state, document);
         return true;
     }
