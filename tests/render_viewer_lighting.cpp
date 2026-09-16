@@ -569,6 +569,72 @@ TEST(RenderViewerCamera, AreaGameplayViewUsesLowPerspectiveCamera)
     EXPECT_NEAR(glm::length(glm::vec2{delta.x, delta.y}), 35.0f, 1.0e-4f);
 }
 
+TEST(RenderViewerCamera, AreaEditorMovesCameraWithoutPlanarBounds)
+{
+    nw::render::viewer::Camera camera;
+    camera.set_area_overview(nw::render::Bounds{
+        .min = {0.0f, 0.0f, 0.0f},
+        .max = {100.0f, 80.0f, 10.0f},
+    });
+    const glm::vec3 initial_target = camera.get_target();
+    const float distance
+        = glm::length(camera.get_position() - initial_target);
+    const glm::mat4 initial_view = camera.get_view_matrix();
+
+    ASSERT_TRUE(camera.orbit_around_target(90.0f, 0.0f, 5.0f, 90.0f));
+    EXPECT_EQ(camera.get_target(), initial_target);
+    EXPECT_NE(camera.get_view_matrix(), initial_view);
+
+    ASSERT_TRUE(camera.translate_planar(10000.0f, 0.0f));
+    const glm::vec3 translated_target = camera.get_target();
+    const glm::vec2 translation{translated_target - initial_target};
+    EXPECT_NEAR(glm::length(translation), 10000.0f, 1.0e-3f);
+    EXPECT_NEAR(translated_target.z, initial_target.z, 1.0e-5f);
+    EXPECT_NEAR(glm::length(
+                    camera.get_position() - translated_target),
+        distance,
+        1.0e-3f);
+
+    ASSERT_TRUE(camera.orbit_around_target(0.0f, -5.0f, 5.0f, 90.0f));
+    EXPECT_FALSE(camera.is_orthographic());
+    EXPECT_EQ(camera.get_target(), translated_target);
+    EXPECT_GT(camera.get_position().z, translated_target.z);
+
+    ASSERT_TRUE(camera.orbit_around_target(0.0f, -1000.0f, 5.0f, 90.0f));
+    EXPECT_GT(camera.get_position().z, translated_target.z);
+    EXPECT_NEAR(glm::length(
+                    camera.get_position() - translated_target),
+        distance,
+        1.0e-3f);
+
+    const glm::vec3 position = camera.get_position();
+    EXPECT_FALSE(camera.translate_planar(
+        std::numeric_limits<float>::infinity(), 0.0f));
+    EXPECT_FALSE(camera.orbit_around_target(
+        0.0f, 0.0f, 90.0f, 5.0f));
+    EXPECT_EQ(camera.get_position(), position);
+    EXPECT_EQ(camera.get_target(), translated_target);
+}
+
+TEST(RenderViewerCamera, AreaOverviewPanIsFiniteAtVerticalPole)
+{
+    nw::render::viewer::Camera camera;
+    camera.set_area_overview(nw::render::Bounds{
+        .min = {0.0f, 0.0f, 0.0f},
+        .max = {100.0f, 80.0f, 10.0f},
+    });
+
+    camera.pan(8.0f, -6.0f);
+    const glm::vec3 position = camera.get_position();
+    const glm::vec3 target = camera.get_target();
+    EXPECT_TRUE(std::isfinite(position.x));
+    EXPECT_TRUE(std::isfinite(position.y));
+    EXPECT_TRUE(std::isfinite(position.z));
+    EXPECT_TRUE(std::isfinite(target.x));
+    EXPECT_TRUE(std::isfinite(target.y));
+    EXPECT_TRUE(std::isfinite(target.z));
+}
+
 TEST(RenderViewerCamera, FocusOnFramesBoundsFromCurrentSide)
 {
     nw::render::viewer::Camera camera;

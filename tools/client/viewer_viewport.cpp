@@ -26,6 +26,9 @@ namespace {
 
 namespace viewer = nw::render::viewer;
 
+constexpr float kAreaCameraMinPitchDegrees = 5.0f;
+constexpr float kAreaCameraMaxPitchDegrees = 90.0f;
+
 std::optional<std::filesystem::path> canonical_project_path(const std::filesystem::path& project_dir)
 {
     std::error_code ec;
@@ -533,6 +536,13 @@ struct ClientViewerViewport::Impl {
         update_camera_viewport(viewport);
         auto& camera = session->camera();
         if (mode == ClientViewportDragMode::look) {
+            if (!loaded_area_resref.empty()) {
+                return camera.orbit_around_target(
+                    -delta_x * 0.35f,
+                    delta_y * 0.25f,
+                    kAreaCameraMinPitchDegrees,
+                    kAreaCameraMaxPitchDegrees);
+            }
             camera.yaw(-delta_x * 0.35f);
             camera.pitch(-delta_y * 0.25f);
         } else {
@@ -1118,15 +1128,27 @@ struct ClientViewerViewport::Impl {
         const float rotate_speed = 5.0f * scale;
         switch (command) {
         case ClientViewportCameraCommand::move_forward:
+            if (!loaded_area_resref.empty()) {
+                return camera.translate_planar(move_speed, 0.0f);
+            }
             camera.move_forward(move_speed, true);
             break;
         case ClientViewportCameraCommand::move_backward:
+            if (!loaded_area_resref.empty()) {
+                return camera.translate_planar(-move_speed, 0.0f);
+            }
             camera.move_forward(-move_speed, true);
             break;
         case ClientViewportCameraCommand::move_left:
+            if (!loaded_area_resref.empty()) {
+                return camera.translate_planar(0.0f, -move_speed);
+            }
             camera.move_right(-move_speed);
             break;
         case ClientViewportCameraCommand::move_right:
+            if (!loaded_area_resref.empty()) {
+                return camera.translate_planar(0.0f, move_speed);
+            }
             camera.move_right(move_speed);
             break;
         case ClientViewportCameraCommand::move_up:
@@ -1136,15 +1158,35 @@ struct ClientViewerViewport::Impl {
             camera.move_up(-move_speed);
             break;
         case ClientViewportCameraCommand::yaw_left:
+            if (!loaded_area_resref.empty()) {
+                return camera.orbit_around_target(-rotate_speed, 0.0f,
+                    kAreaCameraMinPitchDegrees,
+                    kAreaCameraMaxPitchDegrees);
+            }
             camera.yaw(-rotate_speed);
             break;
         case ClientViewportCameraCommand::yaw_right:
+            if (!loaded_area_resref.empty()) {
+                return camera.orbit_around_target(rotate_speed, 0.0f,
+                    kAreaCameraMinPitchDegrees,
+                    kAreaCameraMaxPitchDegrees);
+            }
             camera.yaw(rotate_speed);
             break;
         case ClientViewportCameraCommand::pitch_up:
+            if (!loaded_area_resref.empty()) {
+                return camera.orbit_around_target(0.0f, -rotate_speed,
+                    kAreaCameraMinPitchDegrees,
+                    kAreaCameraMaxPitchDegrees);
+            }
             camera.pitch(rotate_speed);
             break;
         case ClientViewportCameraCommand::pitch_down:
+            if (!loaded_area_resref.empty()) {
+                return camera.orbit_around_target(0.0f, rotate_speed,
+                    kAreaCameraMinPitchDegrees,
+                    kAreaCameraMaxPitchDegrees);
+            }
             camera.pitch(-rotate_speed);
             break;
         case ClientViewportCameraCommand::zoom_in:

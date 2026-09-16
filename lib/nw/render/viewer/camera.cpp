@@ -127,10 +127,20 @@ void Camera::orbit(float delta_yaw_degrees, float delta_pitch_degrees)
 
 void Camera::pan(float delta_right, float delta_up)
 {
-    auto forward = get_forward();
-    auto right = glm::normalize(glm::cross(forward, up_));
-    auto camera_up = glm::normalize(glm::cross(right, forward));
-    auto delta = right * delta_right + camera_up * delta_up;
+    const auto forward = get_forward();
+    auto right = glm::cross(forward, up_);
+    const float right_length_squared = glm::dot(right, right);
+    if (!std::isfinite(right_length_squared)) {
+        return;
+    }
+    if (right_length_squared <= 1.0e-8f) {
+        const auto heading = planar_forward();
+        right = {heading.y, -heading.x, 0.0f};
+    } else {
+        right /= std::sqrt(right_length_squared);
+    }
+    const auto camera_up = glm::normalize(glm::cross(right, forward));
+    const auto delta = right * delta_right + camera_up * delta_up;
     target_ += delta;
     position_ += delta;
 }
@@ -348,11 +358,99 @@ void Camera::pitch(float delta_degrees)
     target_ = position_ + front_;
 }
 
+bool Camera::translate_planar(
+    float forward_amount, float right_amount) noexcept
+{
+    if (!std::isfinite(forward_amount) || !std::isfinite(right_amount)) {
+        return false;
+    }
+
+    const glm::vec3 forward = planar_forward();
+    const glm::vec3 right{forward.y, -forward.x, 0.0f};
+    const glm::vec3 delta
+        = forward * forward_amount + right * right_amount;
+    const glm::vec3 position = position_ + delta;
+    const glm::vec3 target = target_ + delta;
+    if (!std::isfinite(position.x) || !std::isfinite(position.y)
+        || !std::isfinite(position.z) || !std::isfinite(target.x)
+        || !std::isfinite(target.y) || !std::isfinite(target.z)) {
+        return false;
+    }
+
+    position_ = position;
+    target_ = target;
+    return true;
+}
+
+bool Camera::orbit_around_target(float delta_yaw_degrees,
+    float delta_pitch_degrees,
+    float min_pitch_degrees,
+    float max_pitch_degrees) noexcept
+{
+    const glm::vec3 offset = position_ - target_;
+    const float radius = glm::length(offset);
+    if (!std::isfinite(delta_yaw_degrees)
+        || !std::isfinite(delta_pitch_degrees)
+        || !std::isfinite(min_pitch_degrees)
+        || !std::isfinite(max_pitch_degrees)
+        || min_pitch_degrees < -90.0f
+        || max_pitch_degrees > 90.0f
+        || min_pitch_degrees > max_pitch_degrees
+        || !std::isfinite(radius) || radius <= 1.0e-4f) {
+        return false;
+    }
+
+    const float planar_length_squared
+        = offset.x * offset.x + offset.y * offset.y;
+    if (!std::isfinite(planar_length_squared)) {
+        return false;
+    }
+
+    float yaw = 0.0f;
+    if (planar_length_squared > 1.0e-8f) {
+        yaw = std::atan2(offset.y, offset.x);
+    } else {
+        const glm::vec3 heading = planar_forward();
+        yaw = std::atan2(-heading.y, -heading.x);
+    }
+    yaw += glm::radians(std::remainder(delta_yaw_degrees, 360.0f));
+
+    const float pitch_degrees = glm::degrees(std::asin(
+        std::clamp(offset.z / radius, -1.0f, 1.0f)));
+    const float next_pitch_degrees = delta_pitch_degrees == 0.0f
+        ? pitch_degrees
+        : std::clamp(pitch_degrees + delta_pitch_degrees,
+              min_pitch_degrees, max_pitch_degrees);
+    const float pitch = glm::radians(next_pitch_degrees);
+    const float planar_radius = radius * std::cos(pitch);
+    position_ = target_ + glm::vec3{
+                    planar_radius * std::cos(yaw),
+                    planar_radius * std::sin(yaw),
+                    radius * std::sin(pitch),
+                };
+    orbit_radius_ = radius;
+    orbit_yaw_ = glm::degrees(yaw);
+    orbit_pitch_ = next_pitch_degrees;
+
+    if (!free_camera_) {
+        return true;
+    }
+
+    if (next_pitch_degrees < 89.999f) {
+        leave_orthographic_overview();
+        top_down_view_ = false;
+    }
+    free_yaw_ = std::remainder(-90.0f - orbit_yaw_, 360.0f);
+    free_pitch_ = -next_pitch_degrees;
+    update_vectors();
+    return true;
+}
+
 glm::mat4 Camera::get_view_matrix() const
 {
     const auto forward = glm::normalize(target_ - position_);
     const auto view_up = std::abs(glm::dot(forward, up_)) > 0.99f
-        ? glm::vec3{0.0f, 1.0f, 0.0f}
+        ? planar_forward()
         : up_;
     return glm::lookAt(position_, target_, view_up);
 }
@@ -381,6 +479,24 @@ glm::vec3 Camera::get_forward() const
         return front_;
     }
     return glm::normalize(delta);
+}
+
+glm::vec3 Camera::planar_forward() const noexcept
+{
+    glm::vec3 result = get_forward();
+    result.z = 0.0f;
+    float length_squared = glm::dot(result, result);
+    if (!std::isfinite(length_squared) || length_squared <= 1.0e-8f) {
+        result = free_camera_
+            ? glm::vec3{front_.x, front_.y, 0.0f}
+            : glm::vec3{-std::cos(glm::radians(orbit_yaw_)),
+                  -std::sin(glm::radians(orbit_yaw_)), 0.0f};
+        length_squared = glm::dot(result, result);
+    }
+    if (!std::isfinite(length_squared) || length_squared <= 1.0e-8f) {
+        return {0.0f, 1.0f, 0.0f};
+    }
+    return result / std::sqrt(length_squared);
 }
 
 float Camera::pan_units_per_pixel(float viewport_height_pixels) const

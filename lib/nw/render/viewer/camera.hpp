@@ -43,6 +43,12 @@ public:
     void move_up(float amount);
     void yaw(float delta_degrees);
     void pitch(float delta_degrees);
+    [[nodiscard]] bool translate_planar(
+        float forward_amount, float right_amount) noexcept;
+    [[nodiscard]] bool orbit_around_target(float delta_yaw_degrees,
+        float delta_pitch_degrees,
+        float min_pitch_degrees,
+        float max_pitch_degrees) noexcept;
 
     // Getters
     glm::mat4 get_view_matrix() const;
@@ -61,6 +67,7 @@ public:
     void fit_to_bounds(const nw::render::Bounds& bounds);
 
 private:
+    glm::vec3 planar_forward() const noexcept;
     void leave_orthographic_overview();
     void update_vectors();
     void sync_position_from_orbit();
