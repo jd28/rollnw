@@ -197,6 +197,7 @@ add_executable(rollnw_test
 
     rollnw_client_appearance_catalog.cpp
     rollnw_client_area_navigation.cpp
+    rollnw_client_area_tile_edits.cpp
     rollnw_client_blueprints.cpp
     rollnw_client_commands.cpp
     rollnw_client_dialog_document.cpp

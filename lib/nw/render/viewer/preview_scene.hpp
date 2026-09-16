@@ -202,6 +202,27 @@ struct AreaTransientVisualResult {
     }
 };
 
+struct AreaTilePreviewRow {
+    uint32_t tile_index = 0;
+    int32_t tile_id = -1;
+    int32_t height = 0;
+    int32_t orientation = 0;
+};
+
+struct AreaTilePreviewLease {
+    // Original tile rows precede transient rows, so their dense model indices
+    // remain stable while a preview batch is appended and removed.
+    std::vector<uint32_t> hidden_tile_model_indices;
+    // Object handles identify the transient rows for the existing batch
+    // removal transform; they do not refer to live kernel objects.
+    std::vector<nw::ObjectHandle> preview_objects;
+    // Dense scene rows for the retained preview instances. When the next
+    // batch uses the same models in the same order, only their transforms and
+    // the hidden original rows change; the area render cache remains intact.
+    std::vector<uint32_t> preview_model_indices;
+    bool active = false;
+};
+
 enum class ObjectVisualRefreshStatus : uint8_t {
     success,
     empty,
@@ -324,6 +345,9 @@ struct PreviewScene {
     std::vector<nw::render::ModelInstanceHandle> static_model_instance_handles;
     std::vector<uint32_t> static_model_attachment_binding_indices;
     std::vector<AreaRenderSourceInfo> static_area_model_info;
+    // Loaded once with the area. Row-major area tile index -> stable original
+    // model row; missing tile models leave an invalid index.
+    std::vector<uint32_t> area_tile_model_indices;
     nw::render::ModelInstanceStore model_instances;
     nw::render::ModelMaterialOverrideStore material_overrides;
     std::unique_ptr<AreaRenderScene> area_render_scene;
@@ -455,6 +479,18 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
     std::span<const nw::ObjectHandle> objects,
     float opacity,
     PreviewSceneLoadOptions options);
+// Replaces the current tile preview with one exact replacement per row and
+// hides the corresponding original tile instances. Rows are a borrowed,
+// strictly increasing row-major tile-index batch; the scene owns appended rows
+// until the lease is restored. An active lease with the same ordered model
+// layout is repositioned without rebuilding the area render cache.
+[[nodiscard]] AreaTransientVisualResult update_area_tile_previews(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const AreaTilePreviewRow> rows,
+    AreaTilePreviewLease& lease);
+[[nodiscard]] AreaTransientVisualResult restore_area_tile_previews(
+    PreviewScene& scene, AreaTilePreviewLease& lease);
 // Adds opaque, shadow-casting visuals for detached runtime objects without
 // changing editor selection. The scene owns the appended render rows until the
 // same object-handle batch is removed.

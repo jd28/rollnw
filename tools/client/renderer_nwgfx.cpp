@@ -143,9 +143,10 @@ Rml::RenderInterface* ClientRendererNwgfx::render_interface()
 }
 
 void ClientRendererNwgfx::set_rml_generated_textures(
-    const std::vector<nw::toolset::RmlGeneratedTexture>* textures) noexcept
+    const std::vector<nw::toolset::RmlGeneratedTexture>* item_icons,
+    const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles) noexcept
 {
-    renderer_.set_generated_textures(textures);
+    renderer_.set_generated_textures(item_icons, area_tiles);
 }
 
 void ClientRendererNwgfx::begin_frame()
@@ -264,6 +265,16 @@ bool ClientRendererNwgfx::select_viewer_area_object(
         && viewer_viewport_->select_area_object(pixel_x, pixel_y, viewport, target);
 }
 
+std::optional<ClientAreaTileHit> ClientRendererNwgfx::viewer_area_tile_hit(
+    float pixel_x,
+    float pixel_y,
+    ClientViewportRect viewport)
+{
+    return viewer_viewport_
+        ? viewer_viewport_->area_tile_hit(pixel_x, pixel_y, viewport)
+        : std::nullopt;
+}
+
 bool ClientRendererNwgfx::set_viewer_area_object_selection(nw::ObjectHandle object) noexcept
 {
     return viewer_viewport_ && viewer_viewport_->set_area_object_selection(object);
@@ -357,6 +368,17 @@ bool ClientRendererNwgfx::update_viewer_area_region_preview(
     return viewer_viewport_
         && viewer_viewport_->update_area_region_preview(
             points, hover, closing_valid);
+}
+
+bool ClientRendererNwgfx::update_viewer_area_tile_preview(
+    nw::ObjectHandle area,
+    std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
+    bool paintable,
+    bool replace_tiles)
+{
+    return viewer_viewport_
+        && viewer_viewport_->update_area_tile_preview(
+            area, rows, paintable, replace_tiles);
 }
 
 bool ClientRendererNwgfx::end_toolset_preview_visuals() noexcept

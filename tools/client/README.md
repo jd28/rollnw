@@ -258,6 +258,35 @@ and equipped-item poses are unchanged.
 Area drops create new instances from blueprints. Moving an existing inventory
 item into the world and picking up ground items are not supported yet.
 
+## Area Tile Editing
+
+Open the **Tiles** tab in an area to paint terrain, features, and tileset
+groups. A selected action keeps its exact world-space preview while the camera
+moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
+Eraser removes a complete placed group when its SET footprint can be identified;
+incomplete or ambiguous groups are rejected without changing the area.
+Overlapping group placement replaces the complete intersected groups and refits
+their uncovered cells to the SET's default terrain. Eraser previews outline the
+complete removal target without swapping in ground variations.
+Holding Shift outlines the tile or complete placed group under the pointer,
+changes the viewport cursor to a pointer, and shows the selection/variation
+controls above the tile palette. Selection and variation do not require a
+selected paint action.
+
+| Input | Action |
+| --- | --- |
+| Left drag | Paint the selected tile action; raise with Raise/Lower. |
+| Shift + left click | Select one tile or its complete placed SET group. |
+| Shift + right click | Select the tile under the pointer and cycle a compatible SET variation. |
+| Right drag | Lower with Raise/Lower; otherwise orbit the camera. |
+| Middle drag | Pan the camera. |
+| Mouse wheel | Zoom the camera. |
+| W / A / S / D | Move the camera relative to its current view. |
+| Q / E | Move the camera down / up. |
+| Arrow keys | Orbit and tilt the camera around its focus. |
+| R | Rotate the selected feature or group preview. |
+| Escape | Clear the tile selection or cancel the selected tile action and preview. |
+
 ## Play Preview
 
 Press F9 in an active area tab to enter the transient play preview. The first

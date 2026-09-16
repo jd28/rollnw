@@ -3885,6 +3885,26 @@ CommandResult ToolsetBackend::transform_area_object(
     return result;
 }
 
+CommandResult ToolsetBackend::edit_area_tiles(
+    AreaTileEditBatch edit,
+    std::string label,
+    CommandContext context)
+{
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected,
+            "Finish the blueprint operation before editing",
+            CommandOutputChannel::warn);
+    }
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    CommandResult result = commit_area_tile_edits(
+        std::move(edit), std::move(label), context);
+    if (result.ok() && result.undo_action && context.record_undo
+        && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
 CommandResult ToolsetBackend::place_creature_items(
     ObjectHandle creature,
     std::span<const ItemPlacement> placements,

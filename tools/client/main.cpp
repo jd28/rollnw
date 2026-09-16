@@ -3,6 +3,9 @@
 #include "area_map.hpp"
 #include "area_navigation.hpp"
 #include "area_regions.hpp"
+#include "area_tile_edits.hpp"
+#include "area_tile_interaction.hpp"
+#include "area_tile_palette.hpp"
 #include "dialog_view.hpp"
 #include "forward_plus_debug.hpp"
 #include "object_document.hpp"
@@ -31,6 +34,7 @@
 #include "workspace_view.hpp"
 
 #include "nw/log.hpp"
+#include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Area.hpp>
@@ -108,6 +112,8 @@ constexpr int kAppearanceRowHeightPx = 30;
 constexpr int kAppearanceOverscanRows = 4;
 constexpr int kSoundCatalogRowHeightPx = 34;
 constexpr int kSoundCatalogOverscanRows = 4;
+constexpr int kAreaTilePaletteRowHeightPx = 58;
+constexpr int kAreaTilePaletteOverscanRows = 3;
 constexpr float kManagedListAutoScrollEdgePx = 28.0f;
 constexpr float kManagedListAutoScrollStepPx = 14.0f;
 constexpr int kHomeAreaRowHeightPx = 190;
@@ -874,6 +880,12 @@ enum class OutputScrollAfterLayout : uint8_t {
     follow_tail,
 };
 
+enum class AreaWorkspaceSurface : uint8_t {
+    properties,
+    objects,
+    tiles,
+};
+
 struct PlayPreviewState {
     nw::toolset::ToolsetPreviewSession session;
     nw::toolset::PreviewFixedStepState fixed_step;
@@ -911,6 +923,48 @@ struct ProjectLoadRequest {
     bool close_import_panel_on_success = false;
 
     [[nodiscard]] bool active() const noexcept { return !path.empty(); }
+};
+
+struct AreaTileStrokeState {
+    nw::ObjectHandle area{};
+    nw::Resref tileset;
+    nw::toolset::AreaTileBrush brush;
+    std::string label;
+    uint64_t mutation_epoch = 0;
+    uint64_t resource_generation = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    nw::toolset::AreaTileCellCoord last_target{};
+    std::vector<uint8_t> visited;
+    std::vector<uint8_t> previewed_tiles;
+    std::vector<uint32_t> tile_indices;
+    std::vector<uint32_t> corner_indices;
+    uint8_t pointer_button = 0;
+    bool active = false;
+    bool has_last_target = false;
+};
+
+struct AreaTileEditorState {
+    nw::toolset::AreaTilePalette palette;
+    nw::toolset::VirtualListController list;
+    nw::toolset::VirtualListRange rendered_range{};
+    AreaTileStrokeState stroke;
+    nw::toolset::AreaTileSelection selection;
+    std::string feedback;
+    std::string query;
+    std::vector<nw::render::viewer::AreaTilePreviewRow> preview_rows;
+    Rml::Vector2f pending_cursor_point{};
+    uint32_t cursor_target_index = UINT32_MAX;
+    // Cached presentation mode, not a second source of keyboard state.
+    nw::toolset::AreaTilePointerModifier cursor_modifier
+        = nw::toolset::AreaTilePointerModifier::none;
+    uint64_t next_random_seed = 1;
+    int rendered_row_count = 0;
+    int32_t selected_row = -1;
+    int32_t group_orientation = 0;
+    bool list_configured = false;
+    bool rendered = false;
+    bool cursor_update_pending = false;
 };
 
 struct AppState {
@@ -968,6 +1022,9 @@ struct AppState {
     nw::toolset::SoundCatalog sound_catalog;
     std::vector<uint32_t> sound_catalog_matches;
     nw::toolset::VirtualListController sound_catalog_list;
+    AreaTileEditorState area_tile_editor;
+    AreaWorkspaceSurface area_workspace_surface
+        = AreaWorkspaceSurface::properties;
     std::unique_ptr<nw::toolset::RmlSmallsLanguageBinding> rml_smalls_binding;
     std::unique_ptr<nw::toolset::RmlSmallsDataModel> rml_smalls_data_model;
     std::string active_object_tab_id;
@@ -990,6 +1047,7 @@ struct AppState {
     uint64_t sound_catalog_generation = std::numeric_limits<uint64_t>::max();
     uint64_t observed_object_mutation_epoch = 0;
     uint64_t observed_area_structure_epoch = 0;
+    nw::ObjectHandle stale_area_viewport{};
     bool backend_ready = false;
     bool module_dialog_open = false;
     bool suppress_terminal_toggle_text_input = false;
@@ -1242,6 +1300,9 @@ struct AppState {
     nw::toolset::VirtualListRange rendered_sound_catalog_range{};
     int rendered_sound_catalog_row_count = 0;
 };
+
+bool synchronize_area_viewport_structure(
+    ClientRenderer& renderer, AppState& state, bool report_failure);
 
 struct OpenModuleDialogRequest {
     Uint32 event_type = 0;
@@ -1902,6 +1963,35 @@ bool point_within_viewport(ClientViewportRect rect, Rml::Vector2f point)
     return point.x >= left && point.x < right && point.y >= top && point.y < bottom;
 }
 
+bool shift_only(SDL_Keymod modifiers) noexcept
+{
+    return (modifiers & SDL_KMOD_SHIFT) != 0
+        && (modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI)) == 0;
+}
+
+nw::toolset::AreaTilePointerModifier area_tile_pointer_modifier(
+    SDL_Keymod modifiers) noexcept
+{
+    if ((modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI)) != 0) {
+        return nw::toolset::AreaTilePointerModifier::blocked;
+    }
+    return (modifiers & SDL_KMOD_SHIFT) != 0
+        ? nw::toolset::AreaTilePointerModifier::select
+        : nw::toolset::AreaTilePointerModifier::none;
+}
+
+nw::toolset::AreaTilePointerButton area_tile_pointer_button(
+    uint8_t button) noexcept
+{
+    if (button == SDL_BUTTON_LEFT) {
+        return nw::toolset::AreaTilePointerButton::primary;
+    }
+    if (button == SDL_BUTTON_RIGHT) {
+        return nw::toolset::AreaTilePointerButton::secondary;
+    }
+    return nw::toolset::AreaTilePointerButton::other;
+}
+
 bool command_palette_contains_point(
     Rml::ElementDocument* palette_doc, const AppState& state, Rml::Vector2f point)
 {
@@ -2290,8 +2380,7 @@ bool handle_viewer_viewport_key(ClientRenderer& renderer,
     int frame_width,
     int frame_height)
 {
-    if (!state.viewer_viewport_focused
-        || state.shell.command_palette_visible
+    if (state.shell.command_palette_visible
         || focused_text_input(context)
         || state.module_dialog_open
         || (key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
@@ -2307,6 +2396,12 @@ bool handle_viewer_viewport_key(ClientRenderer& renderer,
         state.viewer_viewport_focused = false;
         return false;
     }
+    const bool tile_camera_context
+        = state.area_workspace_surface == AreaWorkspaceSurface::tiles
+        && viewer_viewport->kind == WorkspaceViewerViewportKind::area;
+    if (!state.viewer_viewport_focused && !tile_camera_context) {
+        return false;
+    }
 
     auto command = viewer_viewport_camera_command_from_key(key.key, viewer_viewport->kind);
     if (!command) {
@@ -2317,6 +2412,9 @@ bool handle_viewer_viewport_key(ClientRenderer& renderer,
     const float scale = (key.mod & SDL_KMOD_SHIFT) ? 3.0f : 1.0f;
     cancel_area_object_drag(renderer, state);
     renderer.viewer_viewport_camera_command(*command, scale, viewer_viewport->rect);
+    if (tile_camera_context) {
+        state.area_tile_editor.cursor_update_pending = true;
+    }
     return true;
 }
 
@@ -5491,6 +5589,294 @@ bool sync_sound_catalog_window(
     return true;
 }
 
+void configure_area_tile_palette_list(AppState& state)
+{
+    auto& editor = state.area_tile_editor;
+    if (editor.list_configured) {
+        return;
+    }
+    editor.list.set_row_height(kAreaTilePaletteRowHeightPx);
+    editor.list.set_overscan(kAreaTilePaletteOverscanRows);
+    editor.list_configured = true;
+}
+
+void reset_area_tile_palette_folder_view(AreaTileEditorState& editor)
+{
+    editor.feedback.clear();
+    editor.query.clear();
+    editor.selected_row = -1;
+    editor.list.set_selected(-1);
+    editor.list.set_scroll_top(0);
+    editor.list.set_total_rows(
+        static_cast<int>(editor.palette.matches.size()));
+    editor.rendered = false;
+}
+
+bool rebuild_area_tile_palette(AppState& state, nw::ObjectHandle area)
+{
+    auto& editor = state.area_tile_editor;
+    if (!nw::toolset::build_area_tile_palette(area, editor.palette)) {
+        editor.list.set_total_rows(0);
+        editor.rendered = false;
+        return false;
+    }
+    if (!nw::toolset::filter_area_tile_palette(
+            editor.palette, editor.query)) {
+        editor.list.set_total_rows(0);
+        editor.rendered = false;
+        return false;
+    }
+    configure_area_tile_palette_list(state);
+    editor.list.set_total_rows(
+        static_cast<int>(editor.palette.matches.size()));
+    const auto selected = std::find(
+        editor.palette.matches.begin(), editor.palette.matches.end(),
+        static_cast<uint32_t>(editor.selected_row));
+    if (selected == editor.palette.matches.end()) {
+        editor.selected_row = -1;
+        editor.list.set_selected(-1);
+    } else {
+        editor.list.set_selected(static_cast<int>(
+            std::distance(editor.palette.matches.begin(), selected)));
+    }
+    editor.rendered = false;
+    return true;
+}
+
+class AreaTilePaletteListAdapter final
+    : public nw::toolset::VirtualListAdapter {
+public:
+    explicit AreaTilePaletteListAdapter(
+        const nw::toolset::AreaTilePalette& palette)
+        : palette_{palette}
+    {
+    }
+
+    [[nodiscard]] int size() const override
+    {
+        return static_cast<int>(palette_.matches.size());
+    }
+
+    [[nodiscard]] int row_key(int index) const override
+    {
+        return static_cast<int>(
+            palette_.matches[static_cast<size_t>(index)]);
+    }
+
+    [[nodiscard]] std::string_view row_extra_classes() const override
+    {
+        return "area_tile_palette_row";
+    }
+
+    [[nodiscard]] std::string render_row_inner(
+        int index, bool /*selected*/) const override
+    {
+        const auto& value = row(index);
+        std::string markup;
+        markup.reserve(
+            value.label.size() + value.thumbnail_source.size() + 160);
+        markup += "<div class=\"area_tile_palette_thumbnail";
+        if (value.kind == nw::toolset::AreaTilePaletteRowKind::folder) {
+            markup += " area_tile_palette_folder_indicator\">";
+            markup += "<span class=\"area_tile_palette_folder_glyph\">›</span>";
+        } else {
+            markup += "\">";
+            if (!value.thumbnail_source.empty()) {
+                markup += "<img src=\"";
+                markup += escape_html(value.thumbnail_source);
+                markup += "\"/>";
+            } else {
+                std::string_view glyph;
+                switch (value.brush.kind) {
+                case nw::toolset::AreaTileBrushKind::terrain:
+                    glyph = "T";
+                    break;
+                case nw::toolset::AreaTileBrushKind::crosser:
+                    glyph = "~";
+                    break;
+                case nw::toolset::AreaTileBrushKind::group:
+                    glyph = "F";
+                    break;
+                case nw::toolset::AreaTileBrushKind::eraser:
+                    glyph = "E";
+                    break;
+                case nw::toolset::AreaTileBrushKind::raise:
+                    glyph = "+/-";
+                    break;
+                case nw::toolset::AreaTileBrushKind::lower:
+                    glyph = "-";
+                    break;
+                }
+                markup += "<span class=\"area_tile_palette_action_glyph\">";
+                markup += glyph;
+                markup += "</span>";
+            }
+        }
+        markup += "</div><div class=\"area_tile_palette_text\">"
+                  "<div class=\"area_tile_palette_action_name\">";
+        markup += escape_html(value.label);
+        markup += "</div></div>";
+        return markup;
+    }
+
+private:
+    [[nodiscard]] const nw::toolset::AreaTilePaletteRow& row(
+        int index) const
+    {
+        return palette_.rows[palette_.matches[static_cast<size_t>(index)]];
+    }
+
+    const nw::toolset::AreaTilePalette& palette_;
+};
+
+void sync_area_tile_selection_info(
+    Rml::ElementDocument* doc, const AppState& state, nw::ObjectHandle area_handle)
+{
+    auto* element = find_el(doc, "area_tile_selection_info");
+    if (!element) {
+        return;
+    }
+    const auto& editor = state.area_tile_editor;
+    const auto& selection = editor.selection;
+    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
+    if (!selection.active() || selection.area != area_handle || !area
+        || !area->tileset
+        || selection.source_tile_index >= area->tiles.size()) {
+        element->SetInnerRML("");
+        element->SetClass("visible", false);
+        return;
+    }
+
+    const auto& tile = area->tiles[selection.source_tile_index];
+    const uint32_t x = selection.source_tile_index
+        % static_cast<uint32_t>(area->width);
+    const uint32_t y = selection.source_tile_index
+        / static_cast<uint32_t>(area->width);
+    std::string_view label = "Tileset Group";
+    if (selection.is_group()) {
+        const auto row = std::ranges::find_if(editor.palette.rows,
+            [&selection](const auto& value) {
+                return value.kind
+                    == nw::toolset::AreaTilePaletteRowKind::action
+                    && value.brush.kind
+                    == nw::toolset::AreaTileBrushKind::group
+                    && value.brush.value
+                    == static_cast<int32_t>(selection.group_index);
+            });
+        if (row != editor.palette.rows.end()) {
+            label = row->label;
+        }
+    } else if (tile.id >= 0
+        && static_cast<size_t>(tile.id) < area->tileset->tiles.size()) {
+        label = area->tileset->tiles[static_cast<size_t>(tile.id)].model;
+    } else {
+        label = "Area Tile";
+    }
+
+    std::string markup;
+    markup.reserve(label.size() + 180);
+    markup += "<div class=\"area_tile_selection_title\">Selected ";
+    markup += selection.is_group() ? "Group" : "Tile";
+    markup += "</div><div class=\"area_tile_selection_name\">";
+    markup += escape_html(label);
+    markup += "</div><div class=\"area_tile_selection_meta\">Cell ";
+    markup += std::to_string(x);
+    markup += ", ";
+    markup += std::to_string(y);
+    markup += " · Tile ";
+    markup += std::to_string(tile.id);
+    markup += " · Height ";
+    markup += std::to_string(tile.height);
+    markup += " · Rotation ";
+    markup += std::to_string(tile.orientation * 90);
+    markup += "°";
+    if (selection.is_group()) {
+        markup += " · ";
+        markup += std::to_string(selection.tile_indices.size());
+        markup += " cells";
+    }
+    markup += "</div>";
+    element->SetInnerRML(markup);
+    element->SetClass("visible", true);
+}
+
+bool sync_area_tile_palette_window(
+    Rml::ElementDocument* doc, AppState& state, bool force)
+{
+    auto& editor = state.area_tile_editor;
+    auto* list = find_el(doc, "area_tile_palette_rows");
+    const auto* active_tab = state.workspace.active_tab();
+    const nw::ObjectHandle area = active_tab
+            && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        ? active_tab->document.object()
+        : nw::ObjectHandle{};
+    if (state.area_workspace_surface != AreaWorkspaceSurface::tiles
+        || !list || area.type != nw::ObjectType::area) {
+        return false;
+    }
+    if (auto* feedback = find_el(doc, "area_tile_palette_feedback")) {
+        const bool visible = !editor.feedback.empty();
+        feedback->SetInnerRML(
+            visible ? escape_html(editor.feedback) : std::string{});
+        feedback->SetClass("visible", visible);
+    }
+    if (auto* hint = find_el(doc, "area_tile_modifier_hint")) {
+        hint->SetClass("visible",
+            area_tile_pointer_modifier(SDL_GetModState())
+                == nw::toolset::AreaTilePointerModifier::select);
+    }
+    sync_area_tile_selection_info(doc, state, area);
+
+    if (editor.palette.area != area
+        || editor.palette.resource_generation
+            != nw::kernel::resman().generation()) {
+        (void)rebuild_area_tile_palette(state, area);
+        force = true;
+    }
+    configure_area_tile_palette_list(state);
+    const int viewport_height = std::max(1,
+        static_cast<int>(std::lround(std::max(
+            list->GetClientHeight(), list->GetOffsetHeight()))));
+    const int scroll_top = std::max(0,
+        static_cast<int>(std::lround(list->GetScrollTop())));
+    editor.list.set_viewport_height(viewport_height);
+    editor.list.set_scroll_top(scroll_top);
+    const auto range = editor.list.compute_range();
+    const int row_count = static_cast<int>(editor.palette.matches.size());
+    const bool stable = !force && editor.rendered
+        && list->GetNumChildren() > 0
+        && editor.rendered_row_count == row_count
+        && editor.rendered_range.start == range.start
+        && editor.rendered_range.end == range.end;
+    if (stable) {
+        return false;
+    }
+    (void)nw::toolset::load_area_tile_palette_thumbnails(
+        editor.palette, range.start, range.end);
+
+    std::string markup;
+    if (editor.palette.status
+        != nw::toolset::AreaTilePaletteStatus::ready) {
+        markup = "<div class=\"property_tree_empty error\">";
+        markup += escape_html(editor.palette.diagnostic.empty()
+                ? std::string_view{"Tile palette is unavailable."}
+                : std::string_view{editor.palette.diagnostic});
+        markup += "</div>";
+    } else if (editor.palette.matches.empty()) {
+        markup = "<div class=\"property_tree_empty\">"
+                 "No actions match this filter.</div>";
+    } else {
+        markup = nw::toolset::render_virtual_list(
+            editor.list, AreaTilePaletteListAdapter{editor.palette});
+    }
+    list->SetInnerRML(markup);
+    list->SetScrollTop(static_cast<float>(scroll_top));
+    editor.rendered_range = range;
+    editor.rendered_row_count = row_count;
+    editor.rendered = true;
+    return true;
+}
+
 bool commit_sound_catalog_selection(AppState& state, uint32_t row_index)
 {
     if (!active_sound_resource_selector_matches_tab(state)
@@ -6522,7 +6908,9 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
     const auto* active_tab = state.workspace.active_tab();
     const bool area_tab = active_tab
         && active_tab->kind == nw::toolset::WorkspaceTabKind::area;
-    if (area_tab && !active_object_matches_tab(state)) {
+    if (area_tab
+        && state.area_workspace_surface == AreaWorkspaceSurface::objects
+        && !active_object_matches_tab(state)) {
         append_placed_area_object_list_markup(content_markup, state);
         return;
     }
@@ -6546,7 +6934,8 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
     const bool project_module = object_type == nw::ObjectType::module
         && !state.backend.current_project_dir().empty();
     content_markup += "<div id=\"object_workbench\" class=\"object_workbench\">";
-    if (area_tab && active_object_matches_tab(state)) {
+    if (area_tab && active_object_matches_tab(state)
+        && state.object_details.object.type != nw::ObjectType::area) {
         const std::string object_name = nw::toolset::live_object_display_name(
             state.object_details.object);
         content_markup += "<div class=\"object_workbench_header area_object_header\">";
@@ -6717,6 +7106,44 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
     content_markup += "</div>";
 }
 
+void append_area_tile_palette_markup(
+    std::string& content_markup, const AppState& state)
+{
+    const auto& editor = state.area_tile_editor;
+    std::string_view folder_label = "Tiles";
+    if (editor.palette.current_folder < editor.palette.rows.size()) {
+        folder_label
+            = editor.palette.rows[editor.palette.current_folder].label;
+    }
+    content_markup += "<div id=\"area_tile_palette\" "
+                      "class=\"object_workbench area_tile_palette\">"
+                      "<div class=\"object_workbench_header area_tile_palette_header\">";
+    if (editor.palette.current_folder != editor.palette.root_folder) {
+        content_markup += "<button id=\"area_tile_editor_back\" type=\"button\" "
+                          "class=\"panel_back_button\" title=\"Back\">"
+                          "<span class=\"panel_back_icon\"><span class=\"panel_back_head\"></span>"
+                          "<span class=\"panel_back_shaft\"></span></span></button>";
+    }
+    content_markup += "<div class=\"area_tile_palette_heading\">"
+                      "<div class=\"object_workbench_title\">";
+    content_markup += escape_html(folder_label);
+    content_markup += "</div></div></div>"
+                      "<div class=\"area_tile_palette_controls\">"
+                      "<input id=\"area_tile_palette_search\" type=\"text\" value=\"";
+    content_markup += escape_html(editor.query);
+    content_markup += "\" placeholder=\"Find terrain or feature\"/>"
+                      "<div id=\"area_tile_palette_feedback\" "
+                      "class=\"area_tile_palette_feedback\"></div>"
+                      "<div id=\"area_tile_modifier_hint\" "
+                      "class=\"area_tile_modifier_hint\">"
+                      "Left-click selects a tile or group &middot; "
+                      "Right-click cycles its variation</div>"
+                      "</div><div id=\"area_tile_selection_info\" "
+                      "class=\"area_tile_selection_info\"></div>"
+                      "<div id=\"area_tile_palette_rows\" "
+                      "class=\"area_tile_palette_rows\"></div></div>";
+}
+
 void append_workspace_document_markup(std::string& content_markup,
     const nw::toolset::WorkspaceTab& active_tab,
     const AppState& state)
@@ -6728,6 +7155,31 @@ void append_workspace_document_markup(std::string& content_markup,
         content_markup += escape_html(active_tab.title);
         content_markup += "</div><div class=\"workspace_area_detail\">";
         content_markup += escape_html(workspace_tab_detail(active_tab));
+        content_markup += "</div><div class=\"workspace_area_tabs object_workbench_tab_track\">";
+        struct AreaSurfaceTab {
+            AreaWorkspaceSurface surface;
+            std::string_view id;
+            std::string_view label;
+        };
+        constexpr std::array tabs{
+            AreaSurfaceTab{AreaWorkspaceSurface::properties,
+                "properties", "Properties"},
+            AreaSurfaceTab{AreaWorkspaceSurface::objects,
+                "objects", "Objects"},
+            AreaSurfaceTab{AreaWorkspaceSurface::tiles,
+                "tiles", "Tiles"},
+        };
+        for (const auto& tab : tabs) {
+            content_markup += "<div class=\"area_workspace_tab object_workbench_tab";
+            if (state.area_workspace_surface == tab.surface) {
+                content_markup += " active";
+            }
+            content_markup += "\" data-area-surface=\"";
+            content_markup += tab.id;
+            content_markup += "\">";
+            content_markup += tab.label;
+            content_markup += "</div>";
+        }
         content_markup += "</div></div>";
         content_markup += "<div class=\"workspace_preview_body workspace_area_body\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
         if (!has_resource) {
@@ -6740,7 +7192,11 @@ void append_workspace_document_markup(std::string& content_markup,
             content_markup += "<div class=\"workspace_area_placeholder\">Open an area from the project tree.</div>";
         }
         content_markup += "</div>";
-        append_object_workbench_markup(content_markup, state);
+        if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
+            append_area_tile_palette_markup(content_markup, state);
+        } else {
+            append_object_workbench_markup(content_markup, state);
+        }
         content_markup += "</div></div>";
         return;
     }
@@ -7466,6 +7922,10 @@ bool prepare_play_preview(ClientRenderer& renderer,
     if (!tab || tab->kind != nw::toolset::WorkspaceTabKind::area
         || tab->detail.empty() || project_dir.empty()) {
         warn("F9 play preview requires an open project area");
+        return false;
+    }
+    if (!synchronize_area_viewport_structure(renderer, state, true)) {
+        warn("F9 play preview is blocked until the area viewport rebuilds");
         return false;
     }
 
@@ -9206,6 +9666,989 @@ bool delete_selected_encounter_spawn_point(
     return true;
 }
 
+nw::ObjectHandle active_workspace_area(const AppState& state) noexcept
+{
+    const auto* tab = state.workspace.active_tab();
+    return tab && tab->kind == nw::toolset::WorkspaceTabKind::area
+        ? tab->document.object()
+        : nw::ObjectHandle{};
+}
+
+bool area_tile_editor_action_allowed(const AppState& state) noexcept
+{
+    return state.area_workspace_surface == AreaWorkspaceSurface::tiles
+        && active_workspace_area(state).type == nw::ObjectType::area
+        && !state.command_form && !state.module_dialog_open
+        && !state.backend.blueprint_operation_active()
+        && !state.backend.blueprint_publication_pending()
+        && !state.shell.command_palette_visible
+        && !state.play_preview.session.active();
+}
+
+bool area_tile_stroke_context_valid(const AppState& state) noexcept
+{
+    return area_tile_editor_action_allowed(state)
+        && state.area_tile_editor.stroke.active
+        && active_workspace_area(state) == state.area_tile_editor.stroke.area;
+}
+
+std::optional<nw::toolset::AreaTileBrush> selected_area_tile_brush(
+    const AppState& state, uint8_t pointer_button) noexcept
+{
+    const auto& editor = state.area_tile_editor;
+    if (editor.selected_row < 0
+        || static_cast<size_t>(editor.selected_row)
+            >= editor.palette.rows.size()
+        || editor.palette.rows[static_cast<size_t>(editor.selected_row)].kind
+            != nw::toolset::AreaTilePaletteRowKind::action) {
+        return std::nullopt;
+    }
+    auto brush
+        = editor.palette.rows[static_cast<size_t>(editor.selected_row)].brush;
+    if (brush.kind == nw::toolset::AreaTileBrushKind::group) {
+        brush.orientation = editor.group_orientation;
+    }
+    if (pointer_button == SDL_BUTTON_LEFT) {
+        return brush;
+    }
+    if (pointer_button == SDL_BUTTON_RIGHT
+        && brush.kind == nw::toolset::AreaTileBrushKind::raise) {
+        brush.kind = nw::toolset::AreaTileBrushKind::lower;
+        return brush;
+    }
+    return std::nullopt;
+}
+
+bool area_tile_height_brush(
+    nw::toolset::AreaTileBrush brush) noexcept
+{
+    return brush.kind == nw::toolset::AreaTileBrushKind::raise
+        || brush.kind == nw::toolset::AreaTileBrushKind::lower;
+}
+
+nw::toolset::ObjectEditApplyResult build_area_tile_stroke_edits(
+    nw::ObjectHandle area,
+    std::span<const uint32_t> tile_indices,
+    std::span<const uint32_t> corner_indices,
+    nw::toolset::AreaTileBrush brush,
+    uint64_t seed,
+    nw::toolset::AreaTileEditBatch& output)
+{
+    if (area_tile_height_brush(brush)) {
+        const int32_t delta
+            = brush.kind == nw::toolset::AreaTileBrushKind::raise ? 1 : -1;
+        return nw::toolset::build_area_tile_height_brush_edits(
+            area, corner_indices, delta, seed, output);
+    }
+    return nw::toolset::build_area_tile_brush_edits(
+        area, tile_indices, brush, seed, output);
+}
+
+bool preview_area_tile_stroke(ClientRenderer& renderer,
+    AreaTileEditorState& editor,
+    nw::ObjectHandle area,
+    std::span<const uint32_t> tile_indices,
+    std::span<const uint32_t> corner_indices,
+    nw::toolset::AreaTileBrush brush)
+{
+    nw::toolset::AreaTileEditBatch preview;
+    const auto built = build_area_tile_stroke_edits(area,
+        tile_indices, corner_indices, brush,
+        editor.next_random_seed, preview);
+    editor.feedback = built.ok() ? std::string{} : built.diagnostic;
+    const bool erasing = brush.kind == nw::toolset::AreaTileBrushKind::eraser;
+    const bool erase_empty = erasing
+        && built.status == nw::toolset::ObjectEditStatus::empty;
+    if (erase_empty) {
+        editor.feedback.clear();
+    }
+    try {
+        editor.preview_rows.clear();
+        std::vector<uint32_t> erase_cells;
+        const auto erase_targets = erasing
+            ? nw::toolset::resolve_area_tile_erase_cells(area, tile_indices, erase_cells)
+            : nw::toolset::ObjectEditApplyResult{};
+        if (erasing && !erase_targets.ok()) {
+            editor.feedback = erase_targets.diagnostic;
+            (void)renderer.update_viewer_area_tile_preview(area, {}, false);
+            return false;
+        }
+        if (erasing && erase_targets.ok()) {
+            const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+            editor.preview_rows.reserve(erase_cells.size());
+            for (const uint32_t tile_index : erase_cells) {
+                const auto& tile = live_area->tiles[tile_index];
+                editor.preview_rows.push_back({
+                    .tile_index = tile_index,
+                    .tile_id = tile.id,
+                    .height = tile.height,
+                    .orientation = tile.orientation,
+                });
+            }
+        } else if (built.ok()) {
+            editor.preview_rows.reserve(preview.rows.size());
+            for (const auto& row : preview.rows) {
+                editor.preview_rows.push_back({
+                    .tile_index = row.tile_index,
+                    .tile_id = row.after.id,
+                    .height = row.after.height,
+                    .orientation = row.after.orientation,
+                });
+            }
+        } else {
+            editor.preview_rows.reserve(tile_indices.size());
+            for (const uint32_t tile_index : tile_indices) {
+                editor.preview_rows.push_back({
+                    .tile_index = tile_index,
+                });
+            }
+        }
+    } catch (const std::bad_alloc&) {
+        editor.feedback = "Tile preview allocation failed";
+        (void)renderer.update_viewer_area_tile_preview(area, {}, false);
+        return false;
+    } catch (const std::length_error&) {
+        editor.feedback = "Tile preview exceeds container capacity";
+        (void)renderer.update_viewer_area_tile_preview(area, {}, false);
+        return false;
+    }
+    (void)renderer.update_viewer_area_tile_preview(
+        area, editor.preview_rows, built.ok() || erase_empty, !erasing);
+    return built.ok() || erase_empty;
+}
+
+bool append_area_tile_height_preview_cells(
+    AreaTileStrokeState& stroke,
+    std::span<const uint32_t> corner_indices) noexcept
+{
+    for (const uint32_t corner_index : corner_indices) {
+        const auto cells = nw::toolset::resolve_area_tile_corner_cell(
+            stroke.width, stroke.height, corner_index);
+        for (uint8_t index = 0; index < cells.count; ++index) {
+            const uint32_t tile_index = cells.tile_indices[index];
+            if (tile_index >= stroke.previewed_tiles.size()
+                || stroke.previewed_tiles[tile_index] != 0) {
+                continue;
+            }
+            try {
+                stroke.tile_indices.push_back(tile_index);
+            } catch (const std::bad_alloc&) {
+                return false;
+            } catch (const std::length_error&) {
+                return false;
+            }
+            stroke.previewed_tiles[tile_index] = 1;
+        }
+    }
+    return true;
+}
+
+void cancel_area_object_placement(ClientRenderer& renderer, AppState& state);
+void cancel_area_tile_stroke(ClientRenderer& renderer, AppState& state);
+bool begin_area_tile_stroke(ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport,
+    uint8_t pointer_button);
+bool cycle_selected_area_tile_variation(
+    ClientRenderer& renderer, AppState& state);
+
+bool synchronize_area_viewport_structure(
+    ClientRenderer& renderer, AppState& state, bool report_failure)
+{
+    const nw::ObjectHandle area = active_workspace_area(state);
+    if (area.type != nw::ObjectType::area
+        || state.stale_area_viewport != area) {
+        return true;
+    }
+    cancel_area_object_placement(renderer, state);
+    cancel_area_object_drag(renderer, state);
+    cancel_area_tile_stroke(renderer, state);
+    if (!renderer.rebuild_live_viewer_area(
+            area, renderer.active_viewer_object())) {
+        if (report_failure) {
+            append_output(state, "error",
+                "The area viewport is stale because its structural rebuild failed");
+        }
+        return false;
+    }
+    state.observed_area_structure_epoch
+        = nw::toolset::object_mutation_state().area_structure_epoch;
+    state.stale_area_viewport = nw::ObjectHandle{};
+    return true;
+}
+
+nw::toolset::AreaTileCellPick pick_area_tile_cell(
+    ClientRenderer& renderer,
+    nw::ObjectHandle area_handle,
+    Rml::Vector2f point,
+    ClientViewportRect viewport,
+    bool use_rendered_geometry)
+{
+    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
+    if (!area || area->width <= 0 || area->height <= 0) {
+        return {};
+    }
+
+    if (use_rendered_geometry) {
+        const auto hit = renderer.viewer_area_tile_hit(
+            point.x, point.y, viewport);
+        if (!hit) {
+            const auto ray = renderer.viewer_viewport_ray(
+                point.x, point.y, viewport);
+            return ray
+                ? nw::toolset::pick_area_tile_cell(*area,
+                      {
+                          .origin = ray->origin,
+                          .direction = ray->displacement,
+                      })
+                : nw::toolset::AreaTileCellPick{};
+        }
+        if (hit->tile_x >= 0 && hit->tile_x < area->width
+            && hit->tile_y >= 0 && hit->tile_y < area->height) {
+            return {
+                .position = hit->position,
+                .distance = hit->distance,
+                .tile_index = static_cast<uint32_t>(hit->tile_y * area->width
+                    + hit->tile_x),
+                .status = nw::toolset::AreaTileCellPickStatus::hit,
+            };
+        }
+        return {};
+    }
+
+    const auto ray = renderer.viewer_viewport_ray(
+        point.x, point.y, viewport);
+    return ray
+        ? nw::toolset::pick_area_tile_cell(*area,
+              {
+                  .origin = ray->origin,
+                  .direction = ray->displacement,
+              })
+        : nw::toolset::AreaTileCellPick{};
+}
+
+void clear_area_tile_selection(ClientRenderer& renderer, AppState& state)
+{
+    auto& editor = state.area_tile_editor;
+    editor.selection = {};
+    if (editor.stroke.active) {
+        return;
+    }
+    editor.preview_rows.clear();
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_modifier = nw::toolset::AreaTilePointerModifier::none;
+    editor.cursor_update_pending = false;
+    (void)renderer.update_viewer_area_tile_preview(
+        active_workspace_area(state), {});
+}
+
+bool update_area_tile_outlines(ClientRenderer& renderer,
+    AppState& state,
+    const nw::toolset::AreaTileSelection& selection)
+{
+    auto& editor = state.area_tile_editor;
+    const auto* area = nw::kernel::objects().get<nw::Area>(selection.area);
+    if (!selection.active() || selection.area != active_workspace_area(state)
+        || !area || !area->tileset
+        || std::ranges::any_of(selection.tile_indices,
+            [area](uint32_t tile_index) {
+                return tile_index >= area->tiles.size();
+            })) {
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            active_workspace_area(state), {});
+        return false;
+    }
+
+    try {
+        editor.preview_rows.clear();
+        editor.preview_rows.reserve(selection.tile_indices.size());
+        for (const uint32_t tile_index : selection.tile_indices) {
+            const auto& tile = area->tiles[tile_index];
+            editor.preview_rows.push_back({
+                .tile_index = tile_index,
+                .tile_id = tile.id,
+                .height = tile.height,
+                .orientation = tile.orientation,
+            });
+        }
+    } catch (const std::bad_alloc&) {
+        editor.feedback = "Tile selection highlight allocation failed";
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            selection.area, {});
+        return false;
+    } catch (const std::length_error&) {
+        editor.feedback = "Tile selection highlight exceeds container capacity";
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            selection.area, {});
+        return false;
+    }
+
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_update_pending = false;
+    if (!renderer.update_viewer_area_tile_preview(
+            selection.area, editor.preview_rows, true, false)) {
+        editor.feedback = "Tile selection highlight is unavailable";
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            selection.area, {});
+        return false;
+    }
+    return true;
+}
+
+bool update_area_tile_selection_preview(
+    ClientRenderer& renderer, AppState& state)
+{
+    if (!update_area_tile_outlines(
+            renderer, state, state.area_tile_editor.selection)) {
+        clear_area_tile_selection(renderer, state);
+        return false;
+    }
+    return true;
+}
+
+bool set_area_tile_selection(ClientRenderer& renderer,
+    AppState& state,
+    nw::ObjectHandle area,
+    uint32_t tile_index)
+{
+    cancel_area_tile_stroke(renderer, state);
+    auto& editor = state.area_tile_editor;
+    editor.selection = {};
+
+    nw::toolset::AreaTileSelection selection;
+    const auto built = nw::toolset::build_area_tile_selection(
+        area, tile_index, selection);
+    if (!built.ok()) {
+        editor.feedback = built.diagnostic;
+        append_output(state,
+            built.status == nw::toolset::ObjectEditStatus::failed
+                ? "error"
+                : "warn",
+            built.diagnostic);
+        return false;
+    }
+    editor.selection = std::move(selection);
+    editor.feedback.clear();
+    (void)update_area_tile_selection_preview(renderer, state);
+    return editor.selection.active();
+}
+
+bool select_area_tiles(ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport)
+{
+    if (!area_tile_editor_action_allowed(state)
+        || viewport.kind != WorkspaceViewerViewportKind::area) {
+        return false;
+    }
+    cancel_area_tile_stroke(renderer, state);
+    const nw::ObjectHandle area = active_workspace_area(state);
+    const auto pick = pick_area_tile_cell(
+        renderer, area, point, viewport.rect, true);
+    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
+        state.area_tile_editor.feedback
+            = "Tile selection target is unavailable";
+        return true;
+    }
+    (void)set_area_tile_selection(
+        renderer, state, area, pick.tile_index);
+    return true;
+}
+
+bool cycle_area_tile_at_point(ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport)
+{
+    if (!area_tile_editor_action_allowed(state)
+        || viewport.kind != WorkspaceViewerViewportKind::area) {
+        return false;
+    }
+    const nw::ObjectHandle area = active_workspace_area(state);
+    const auto pick = pick_area_tile_cell(
+        renderer, area, point, viewport.rect, true);
+    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
+        state.area_tile_editor.feedback
+            = "Tile variation target is unavailable";
+        return true;
+    }
+    if (set_area_tile_selection(renderer, state, area, pick.tile_index)) {
+        (void)cycle_selected_area_tile_variation(renderer, state);
+    }
+    return true;
+}
+
+bool handle_area_tile_pointer_down(
+    ClientRenderer& renderer,
+    SystemInterface_SDL& system_interface,
+    Rml::ElementDocument* doc,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport,
+    uint8_t pointer_button)
+{
+    if (state.area_workspace_surface != AreaWorkspaceSurface::tiles
+        || viewport.kind != WorkspaceViewerViewportKind::area) {
+        return false;
+    }
+
+    const auto input = nw::toolset::AreaTilePointerInput{
+        .button = area_tile_pointer_button(pointer_button),
+        .modifier = area_tile_pointer_modifier(SDL_GetModState()),
+        .secondary_paint_available
+        = selected_area_tile_brush(state, SDL_BUTTON_RIGHT).has_value(),
+    };
+    const auto result
+        = nw::toolset::resolve_area_tile_pointer_input(input);
+    switch (result.action) {
+    case nw::toolset::AreaTilePointerAction::select:
+        (void)select_area_tiles(renderer, state, point, viewport);
+        sync_area_tile_palette_window(doc, state, true);
+        system_interface.SetMouseCursor("arrow");
+        break;
+    case nw::toolset::AreaTilePointerAction::cycle_variation:
+        (void)cycle_area_tile_at_point(renderer, state, point, viewport);
+        sync_area_tile_palette_window(doc, state, true);
+        system_interface.SetMouseCursor("arrow");
+        break;
+    case nw::toolset::AreaTilePointerAction::paint: {
+        clear_area_tile_selection(renderer, state);
+        const bool began = begin_area_tile_stroke(
+            renderer, state, point, viewport, pointer_button);
+        system_interface.SetMouseCursor(
+            began ? "cross" : "unavailable");
+        break;
+    }
+    case nw::toolset::AreaTilePointerAction::none:
+        break;
+    }
+    return result.consumed;
+}
+
+void cancel_area_tile_stroke(ClientRenderer& renderer, AppState& state)
+{
+    auto& editor = state.area_tile_editor;
+    const bool was_active = editor.stroke.active;
+    editor.stroke = {};
+    if (was_active) {
+        (void)SDL_CaptureMouse(false);
+    }
+    editor.preview_rows.clear();
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_modifier = nw::toolset::AreaTilePointerModifier::none;
+    editor.cursor_update_pending = false;
+    (void)renderer.update_viewer_area_tile_preview(
+        active_workspace_area(state), {});
+}
+
+bool cancel_area_tile_action(ClientRenderer& renderer, AppState& state)
+{
+    auto& editor = state.area_tile_editor;
+    const bool had_action = editor.stroke.active || editor.selection.active()
+        || editor.selected_row >= 0 || !editor.preview_rows.empty()
+        || editor.cursor_update_pending;
+    if (!had_action) {
+        return false;
+    }
+    cancel_area_tile_stroke(renderer, state);
+    editor.selection = {};
+    editor.selected_row = -1;
+    editor.group_orientation = 0;
+    editor.feedback.clear();
+    editor.list.set_selected(-1);
+    editor.rendered = false;
+    return true;
+}
+
+bool open_area_tile_editor(ClientRenderer& renderer, AppState& state)
+{
+    const nw::ObjectHandle area_handle = active_workspace_area(state);
+    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
+    if (!area || area->tiles.empty()) {
+        append_output(state, "warn", "The displayed area has no editable tiles");
+        return false;
+    }
+
+    cancel_area_object_placement(renderer, state);
+    cancel_area_object_drag(renderer, state);
+    (void)renderer.clear_viewer_area_object_selection();
+    auto& editor = state.area_tile_editor;
+    state.area_workspace_surface = AreaWorkspaceSurface::tiles;
+    editor.feedback.clear();
+    editor.query.clear();
+    editor.preview_rows.clear();
+    editor.selection = {};
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_modifier = nw::toolset::AreaTilePointerModifier::none;
+    editor.cursor_update_pending = false;
+    editor.selected_row = -1;
+    editor.list.set_scroll_top(0);
+    if (!rebuild_area_tile_palette(state, area_handle)) {
+        append_output(state, "error", editor.palette.diagnostic);
+    }
+    return true;
+}
+
+void close_area_tile_editor(ClientRenderer& renderer, AppState& state)
+{
+    cancel_area_tile_stroke(renderer, state);
+    state.area_tile_editor = {};
+    (void)renderer.clear_viewer_area_object_selection();
+}
+
+bool set_area_workspace_surface(ClientRenderer& renderer,
+    AppState& state,
+    AreaWorkspaceSurface surface)
+{
+    if (state.area_workspace_surface == surface) {
+        return true;
+    }
+    if (surface == AreaWorkspaceSurface::tiles) {
+        return open_area_tile_editor(renderer, state);
+    }
+
+    if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
+        close_area_tile_editor(renderer, state);
+    } else {
+        cancel_area_object_placement(renderer, state);
+        cancel_area_object_drag(renderer, state);
+        (void)renderer.clear_viewer_area_object_selection();
+    }
+    state.area_workspace_surface = surface;
+    state.smalls.clear_active_object();
+    state.active_object_tab_id.clear();
+    clear_active_object_details(state);
+    return true;
+}
+
+bool update_area_tile_cursor(ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport)
+{
+    auto& editor = state.area_tile_editor;
+    if (state.area_workspace_surface != AreaWorkspaceSurface::tiles
+        || viewport.kind != WorkspaceViewerViewportKind::area) {
+        return false;
+    }
+
+    const nw::ObjectHandle area_handle = active_workspace_area(state);
+    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
+    if (!area) {
+        return false;
+    }
+    if (!editor.stroke.active
+        && area_tile_pointer_modifier(SDL_GetModState())
+            == nw::toolset::AreaTilePointerModifier::select) {
+        const auto pick = pick_area_tile_cell(
+            renderer, area_handle, point, viewport.rect, true);
+        if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
+            editor.cursor_target_index = UINT32_MAX;
+            editor.preview_rows.clear();
+            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
+            return true;
+        }
+        if (editor.cursor_target_index == pick.tile_index
+            && !editor.preview_rows.empty()) {
+            return true;
+        }
+        nw::toolset::AreaTileSelection hovered;
+        const auto built = nw::toolset::build_area_tile_selection(
+            area_handle, pick.tile_index, hovered);
+        if (!built.ok()) {
+            editor.feedback = built.diagnostic;
+            editor.cursor_target_index = UINT32_MAX;
+            editor.preview_rows.clear();
+            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
+            return true;
+        }
+        if (update_area_tile_outlines(renderer, state, hovered)) {
+            editor.cursor_target_index = pick.tile_index;
+        }
+        return true;
+    }
+    if (!editor.stroke.active && editor.selection.active()) {
+        return true;
+    }
+    const auto pick = pick_area_tile_cell(
+        renderer, area_handle, point, viewport.rect,
+        editor.preview_rows.empty());
+    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
+        editor.cursor_target_index = UINT32_MAX;
+        if (editor.stroke.active) {
+            editor.stroke.has_last_target = false;
+        } else {
+            editor.preview_rows.clear();
+            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
+        }
+        return true;
+    }
+
+    if (!editor.stroke.active) {
+        const auto brush = selected_area_tile_brush(
+            state, SDL_BUTTON_LEFT);
+        if (!brush) {
+            editor.cursor_target_index = UINT32_MAX;
+            editor.preview_rows.clear();
+            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
+            return true;
+        }
+        if (area_tile_height_brush(*brush)) {
+            const uint32_t corner
+                = nw::toolset::pick_area_tile_corner(*area, pick);
+            if (corner == UINT32_MAX) {
+                editor.feedback = "Terrain height target is unavailable";
+                editor.cursor_target_index = UINT32_MAX;
+                editor.preview_rows.clear();
+                (void)renderer.update_viewer_area_tile_preview(
+                    area_handle, {}, false);
+                return true;
+            }
+            if (editor.cursor_target_index == corner
+                && !editor.preview_rows.empty()) {
+                return true;
+            }
+            editor.cursor_target_index = corner;
+            const auto cells = nw::toolset::resolve_area_tile_corner_cell(
+                area->width, area->height, corner);
+            const std::array corners{corner};
+            (void)preview_area_tile_stroke(renderer, editor, area_handle,
+                std::span<const uint32_t>{cells.tile_indices.data(),
+                    cells.count},
+                corners, *brush);
+        } else {
+            if (editor.cursor_target_index == pick.tile_index
+                && !editor.preview_rows.empty()) {
+                return true;
+            }
+            editor.cursor_target_index = pick.tile_index;
+            const std::array cells{pick.tile_index};
+            (void)preview_area_tile_stroke(renderer, editor, area_handle,
+                cells, {}, *brush);
+        }
+        return true;
+    }
+
+    auto& stroke = editor.stroke;
+    if (stroke.brush.kind == nw::toolset::AreaTileBrushKind::group
+        && !stroke.tile_indices.empty()) {
+        return true;
+    }
+    const bool height_brush = area_tile_height_brush(stroke.brush);
+    const uint32_t target_index = height_brush
+        ? nw::toolset::pick_area_tile_corner(*area, pick)
+        : pick.tile_index;
+    if (target_index == UINT32_MAX) {
+        editor.feedback = "Terrain stroke target is unavailable";
+        stroke.has_last_target = false;
+        return true;
+    }
+    const int32_t target_width
+        = height_brush ? stroke.width + 1 : stroke.width;
+    const int32_t target_height
+        = height_brush ? stroke.height + 1 : stroke.height;
+    const nw::toolset::AreaTileCellCoord target{
+        .x = static_cast<int32_t>(
+            target_index % static_cast<uint32_t>(target_width)),
+        .y = static_cast<int32_t>(
+            target_index / static_cast<uint32_t>(target_width)),
+    };
+    auto& target_indices
+        = height_brush ? stroke.corner_indices : stroke.tile_indices;
+    const size_t appended_begin = target_indices.size();
+    const auto appended = nw::toolset::append_area_tile_grid_line(
+        target_width,
+        target_height,
+        stroke.has_last_target ? stroke.last_target : target,
+        target,
+        stroke.visited,
+        target_indices);
+    if (appended.status != nw::toolset::AreaTileLineStatus::success) {
+        editor.feedback = "Tile stroke buffer update failed";
+        append_output(state, "error", "Tile stroke buffer update failed");
+        cancel_area_tile_stroke(renderer, state);
+        return true;
+    }
+    if (appended.appended_count == 0) {
+        stroke.last_target = target;
+        stroke.has_last_target = true;
+        return true;
+    }
+    if (height_brush
+        && !append_area_tile_height_preview_cells(stroke,
+            std::span<const uint32_t>{target_indices}.subspan(
+                appended_begin))) {
+        editor.feedback = "Tile stroke preview allocation failed";
+        append_output(state, "error", editor.feedback);
+        cancel_area_tile_stroke(renderer, state);
+        return true;
+    }
+    stroke.last_target = target;
+    stroke.has_last_target = true;
+    (void)preview_area_tile_stroke(renderer, editor, area_handle,
+        stroke.tile_indices, stroke.corner_indices, stroke.brush);
+    return true;
+}
+
+void flush_area_tile_cursor_update(ClientRenderer& renderer,
+    SDL_Window* window,
+    Rml::Context* context,
+    Rml::ElementDocument* doc,
+    AppState& state,
+    int frame_width,
+    int frame_height)
+{
+    auto& editor = state.area_tile_editor;
+    if (!area_tile_editor_action_allowed(state)) {
+        return;
+    }
+    const auto modifier = area_tile_pointer_modifier(SDL_GetModState());
+    if (!editor.stroke.active && modifier != editor.cursor_modifier) {
+        editor.cursor_modifier = modifier;
+        editor.cursor_target_index = UINT32_MAX;
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            active_workspace_area(state), {});
+        // A modifier transition refreshes even with a stationary pointer.
+        editor.cursor_update_pending = true;
+        if (modifier != nw::toolset::AreaTilePointerModifier::select
+            && editor.selection.active()) {
+            (void)update_area_tile_selection_preview(renderer, state);
+            return;
+        }
+    }
+    if (!editor.cursor_update_pending) {
+        return;
+    }
+    float mouse_x = 0.0f;
+    float mouse_y = 0.0f;
+    (void)SDL_GetMouseState(&mouse_x, &mouse_y);
+    const Rml::Vector2f point = to_context_point(window, mouse_x, mouse_y);
+    editor.pending_cursor_point = point;
+    editor.cursor_update_pending = false;
+    const auto viewport = active_workspace_viewer_viewport_request(
+        doc, state, frame_width, frame_height);
+    auto* top_hit = context ? context->GetElementAtPoint(point) : nullptr;
+    if (modifier != nw::toolset::AreaTilePointerModifier::blocked
+        && SDL_GetMouseFocus() == window
+        && viewport
+        && viewport->kind == WorkspaceViewerViewportKind::area
+        && point_within_viewport(viewport->rect, point)
+        && !viewport_mouse_hit_blocked(doc, top_hit, point, state)) {
+        (void)update_area_tile_cursor(renderer, state, point, *viewport);
+        return;
+    }
+    editor.cursor_target_index = UINT32_MAX;
+    if (editor.stroke.active) {
+        editor.stroke.has_last_target = false;
+    } else if (modifier == nw::toolset::AreaTilePointerModifier::select
+        || !editor.selection.active()) {
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            active_workspace_area(state), {});
+    }
+}
+
+bool begin_area_tile_stroke(ClientRenderer& renderer,
+    AppState& state,
+    Rml::Vector2f point,
+    const WorkspaceViewerViewportRequest& viewport,
+    uint8_t pointer_button)
+{
+    auto& editor = state.area_tile_editor;
+    editor.cursor_update_pending = false;
+    const auto brush = selected_area_tile_brush(state, pointer_button);
+    if (!brush) {
+        editor.feedback = "Choose a terrain action";
+        return false;
+    }
+    if (area_tile_editor_action_allowed(state)
+        && !synchronize_area_viewport_structure(renderer, state, true)) {
+        return true;
+    }
+    const nw::ObjectHandle area_handle = active_workspace_area(state);
+    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
+    if (!area_tile_editor_action_allowed(state) || editor.stroke.active || !area
+        || !area->tileset || editor.selected_row < 0
+        || static_cast<size_t>(editor.selected_row)
+            >= editor.palette.rows.size()) {
+        editor.feedback = "Terrain editing is unavailable";
+        return false;
+    }
+
+    const uint64_t tile_count = static_cast<uint64_t>(area->width)
+        * static_cast<uint64_t>(area->height);
+    if (area->width <= 0 || area->height <= 0
+        || area->width == std::numeric_limits<int32_t>::max()
+        || area->height == std::numeric_limits<int32_t>::max()
+        || tile_count != area->tiles.size()
+        || tile_count > std::numeric_limits<uint32_t>::max()) {
+        editor.feedback = "Area tile grid is malformed";
+        append_output(state, "error", "Area tile grid is malformed");
+        return true;
+    }
+    const bool height_brush = area_tile_height_brush(*brush);
+    const uint64_t target_count = height_brush
+        ? static_cast<uint64_t>(area->width + 1)
+            * static_cast<uint64_t>(area->height + 1)
+        : tile_count;
+    if (target_count > std::numeric_limits<uint32_t>::max()) {
+        editor.feedback = "Area height grid exceeds the supported index range";
+        append_output(state, "error", editor.feedback);
+        return true;
+    }
+    try {
+        const auto& palette_row
+            = editor.palette.rows[static_cast<size_t>(editor.selected_row)];
+        editor.stroke = {
+            .area = area_handle,
+            .tileset = area->tileset_resref,
+            .brush = *brush,
+            .label = palette_row.label,
+            .mutation_epoch = nw::toolset::object_mutation_state().epoch,
+            .resource_generation = nw::kernel::resman().generation(),
+            .width = area->width,
+            .height = area->height,
+            .visited = std::vector<uint8_t>(
+                static_cast<size_t>(target_count), 0),
+            .previewed_tiles = height_brush
+                ? std::vector<uint8_t>(static_cast<size_t>(tile_count), 0)
+                : std::vector<uint8_t>{},
+            .pointer_button = pointer_button,
+            .active = true,
+        };
+        editor.stroke.tile_indices.reserve(
+            static_cast<size_t>(tile_count));
+        if (height_brush) {
+            editor.stroke.corner_indices.reserve(
+                static_cast<size_t>(target_count));
+        }
+        editor.feedback.clear();
+        (void)SDL_CaptureMouse(true);
+    } catch (const std::bad_alloc&) {
+        editor.stroke = {};
+        editor.feedback = "Tile stroke allocation failed";
+        append_output(state, "error", "Tile stroke allocation failed");
+        return true;
+    } catch (const std::length_error&) {
+        editor.stroke = {};
+        editor.feedback = "Tile stroke exceeds container capacity";
+        append_output(state, "error", "Tile stroke exceeds container capacity");
+        return true;
+    }
+    (void)update_area_tile_cursor(renderer, state, point, viewport);
+    if (editor.stroke.active
+        && (height_brush ? editor.stroke.corner_indices.empty()
+                         : editor.stroke.tile_indices.empty())) {
+        cancel_area_tile_stroke(renderer, state);
+    }
+    return true;
+}
+
+void commit_area_tile_stroke(ClientRenderer& renderer, AppState& state)
+{
+    auto& editor = state.area_tile_editor;
+    if (!editor.stroke.active) {
+        return;
+    }
+    if (!area_tile_stroke_context_valid(state)
+        || state.stale_area_viewport == editor.stroke.area) {
+        cancel_area_tile_stroke(renderer, state);
+        return;
+    }
+    auto stroke = std::move(editor.stroke);
+    editor.stroke = {};
+    (void)SDL_CaptureMouse(false);
+    (void)renderer.update_viewer_area_tile_preview(stroke.area, {});
+    editor.preview_rows.clear();
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_update_pending = false;
+    const auto* area = nw::kernel::objects().get<nw::Area>(stroke.area);
+    if (!area || active_workspace_area(state) != stroke.area
+        || area->tileset_resref != stroke.tileset
+        || area->width != stroke.width || area->height != stroke.height
+        || nw::kernel::resman().generation() != stroke.resource_generation
+        || nw::toolset::object_mutation_state().epoch
+            != stroke.mutation_epoch) {
+        editor.feedback = "Tile stroke was cancelled because its area changed";
+        append_output(state, "warn", "Tile stroke was cancelled because its area changed");
+        return;
+    }
+    nw::toolset::AreaTileEditBatch edit;
+    const auto built = build_area_tile_stroke_edits(stroke.area,
+        stroke.tile_indices, stroke.corner_indices, stroke.brush,
+        editor.next_random_seed++, edit);
+    if (!built.ok()) {
+        if (stroke.brush.kind == nw::toolset::AreaTileBrushKind::eraser
+            && built.status == nw::toolset::ObjectEditStatus::empty) {
+            editor.feedback = "Nothing to erase here";
+            return;
+        }
+        editor.feedback = built.diagnostic;
+        (void)preview_area_tile_stroke(renderer, editor, stroke.area,
+            stroke.tile_indices, stroke.corner_indices, stroke.brush);
+        append_output(state,
+            built.status == nw::toolset::ObjectEditStatus::failed
+                ? "error"
+                : "warn",
+            built.diagnostic);
+        return;
+    }
+    const size_t target_count = area_tile_height_brush(stroke.brush)
+        ? stroke.corner_indices.size()
+        : stroke.tile_indices.size();
+    const auto result = state.backend.edit_area_tiles(
+        std::move(edit),
+        target_count == 1 ? stroke.label : stroke.label + " stroke",
+        command_context(state, nw::toolset::CommandSource::renderer));
+    editor.feedback = result.ok() ? std::string{} : result.message;
+    append_command_result(state, result);
+}
+
+bool cycle_selected_area_tile_variation(
+    ClientRenderer& renderer, AppState& state)
+{
+    auto& editor = state.area_tile_editor;
+    if (!area_tile_editor_action_allowed(state)
+        || !editor.selection.active()) {
+        return false;
+    }
+    if (editor.selection.is_group()) {
+        editor.feedback
+            = "Placed groups do not expose interchangeable group variations";
+        return true;
+    }
+    cancel_area_tile_stroke(renderer, state);
+    const nw::ObjectHandle area = editor.selection.area;
+    const std::array cells{editor.selection.source_tile_index};
+    nw::toolset::AreaTileEditBatch edit;
+    const auto built = nw::toolset::build_area_tile_variation_edits(
+        area, cells, edit);
+    if (!built.ok()) {
+        editor.feedback = built.diagnostic;
+        append_output(state,
+            built.status == nw::toolset::ObjectEditStatus::failed
+                ? "error"
+                : "warn",
+            built.diagnostic);
+        (void)update_area_tile_selection_preview(renderer, state);
+        return true;
+    }
+    const auto result = state.backend.edit_area_tiles(std::move(edit),
+        "Cycle tile variation",
+        command_context(state, nw::toolset::CommandSource::renderer));
+    editor.feedback = result.ok() ? std::string{} : result.message;
+    append_command_result(state, result);
+    (void)update_area_tile_selection_preview(renderer, state);
+    return true;
+}
+
 bool placement_blueprint_resource(const nw::Resource& resource) noexcept
 {
     return resource.valid()
@@ -10261,6 +11704,65 @@ void commit_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
     append_command_result(state, result);
 }
 
+bool handle_area_tile_key(ClientRenderer& renderer,
+    Rml::Context* context,
+    Rml::ElementDocument* doc,
+    AppState& state,
+    const SDL_KeyboardEvent& key,
+    int frame_width,
+    int frame_height)
+{
+    if (key.repeat || key.key != SDLK_R
+        || (key.mod
+            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI
+                | SDL_KMOD_SHIFT))
+        || focused_text_input(context)
+        || !area_tile_editor_action_allowed(state)) {
+        return false;
+    }
+    auto& editor = state.area_tile_editor;
+    if (editor.stroke.active) {
+        return true;
+    }
+    const auto brush = selected_area_tile_brush(state, SDL_BUTTON_LEFT);
+    if (!brush) {
+        editor.feedback = "Choose a terrain action";
+        sync_area_tile_palette_window(doc, state, true);
+        return true;
+    }
+    if (brush->kind != nw::toolset::AreaTileBrushKind::group) {
+        editor.feedback = "Only tileset features have a manual rotation";
+        sync_area_tile_palette_window(doc, state, true);
+        return true;
+    }
+    editor.group_orientation = (editor.group_orientation + 1) % 4;
+    editor.feedback = "Feature rotation: "
+        + std::to_string(editor.group_orientation * 90) + " degrees";
+    const std::string feedback = editor.feedback;
+    const bool has_cursor_point = editor.cursor_update_pending
+        || editor.cursor_target_index != UINT32_MAX;
+    const Rml::Vector2f cursor_point = editor.pending_cursor_point;
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_update_pending = false;
+    const auto viewport = active_workspace_viewer_viewport_request(
+        doc, state, frame_width, frame_height);
+    if (viewport && viewport->kind == WorkspaceViewerViewportKind::area
+        && has_cursor_point
+        && point_within_viewport(viewport->rect, cursor_point)) {
+        (void)update_area_tile_cursor(
+            renderer, state, cursor_point, *viewport);
+    } else {
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            active_workspace_area(state), {});
+    }
+    if (editor.feedback.empty()) {
+        editor.feedback = feedback;
+    }
+    sync_area_tile_palette_window(doc, state, true);
+    return true;
+}
+
 bool handle_area_object_key(ClientRenderer& renderer,
     Rml::Context* context,
     Rml::ElementDocument* doc,
@@ -10275,13 +11777,19 @@ bool handle_area_object_key(ClientRenderer& renderer,
         || focused_text_input(context)) {
         return false;
     }
-    const auto viewport = active_workspace_viewer_viewport_request(
-        doc, state, frame_width, frame_height);
-    const auto object = renderer.active_viewer_object();
-    if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area
-        || !editable_area_object(object)) {
+    if (key.key != SDLK_DELETE && key.key != SDLK_R) {
         return false;
     }
+    const auto viewport = active_workspace_viewer_viewport_request(
+        doc, state, frame_width, frame_height);
+    if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area) {
+        return false;
+    }
+    if (!synchronize_area_viewport_structure(renderer, state, true)) {
+        return true;
+    }
+    const auto object = renderer.active_viewer_object();
+    if (!editable_area_object(object)) { return false; }
 
     if (key.key == SDLK_DELETE
         && delete_selected_encounter_spawn_point(renderer, state)) {
@@ -10293,7 +11801,6 @@ bool handle_area_object_key(ClientRenderer& renderer,
         append_command_result(state, result);
         return true;
     }
-    if (key.key != SDLK_R) return false;
     const auto result = dispatch_command(state,
         "object.transform.randomize_orientation", {}, nw::toolset::CommandSource::shortcut);
     sync_area_object_after_command(renderer, state, result);
@@ -11790,7 +13297,9 @@ int main(int argc, char* argv[])
         "change", &object_workbench_change_listener, false);
     context->AddEventListener(
         "blur", &object_workbench_change_listener, true);
-    renderer.set_rml_generated_textures(&state.item_icon_cache.textures);
+    renderer.set_rml_generated_textures(
+        &state.item_icon_cache.textures,
+        &state.area_tile_editor.palette.textures);
     state.backend.bind(&state.smalls, &state.shell, &state.workspace);
     state.backend_ready = state.backend.initialize();
     if (!state.backend_ready) {
@@ -12124,7 +13633,27 @@ int main(int argc, char* argv[])
                     dispatched_to_rml = true;
                     break;
                 }
+                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+                    && state.area_workspace_surface
+                        == AreaWorkspaceSurface::tiles) {
+                    if (cancel_area_tile_action(renderer, state)) {
+                        sync_area_tile_palette_window(doc, state, true);
+                    } else {
+                        (void)set_area_workspace_surface(renderer, state,
+                            AreaWorkspaceSurface::properties);
+                        refresh_workspace_content(doc, state);
+                    }
+                    system_interface.SetMouseCursor("arrow");
+                    dispatched_to_rml = true;
+                    break;
+                }
                 if (!event.key.repeat && event.key.key == SDLK_F9) {
+                    if (state.area_workspace_surface
+                        == AreaWorkspaceSurface::tiles) {
+                        (void)set_area_workspace_surface(renderer, state,
+                            AreaWorkspaceSurface::properties);
+                        refresh_workspace_content(doc, state);
+                    }
                     (void)prepare_play_preview(renderer, system_interface,
                         doc, state);
                     dispatched_to_rml = true;
@@ -12158,6 +13687,7 @@ int main(int argc, char* argv[])
                 }
 
                 if ((event.key.mod & SDL_KMOD_CTRL) && (event.key.mod & SDL_KMOD_SHIFT) && event.key.key == SDLK_P) {
+                    cancel_area_tile_stroke(renderer, state);
                     append_command_result(state, dispatch_command(state, "rollnw.client.palette.toggle", {}, nw::toolset::CommandSource::shortcut));
                     toggle_command_palette(context, palette_context, doc, palette_doc, state, state.shell.command_palette_visible);
                     dispatched_to_rml = true;
@@ -12554,6 +14084,7 @@ int main(int argc, char* argv[])
                     && (event.key.mod & SDL_KMOD_CTRL)
                     && !(event.key.mod & (SDL_KMOD_SHIFT | SDL_KMOD_ALT | SDL_KMOD_GUI));
                 if (command_ctrl && event.key.key == SDLK_W) {
+                    cancel_area_tile_stroke(renderer, state);
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(
                             window, state, "workspace.close_tab", {}, nw::toolset::CommandSource::shortcut);
@@ -12567,6 +14098,7 @@ int main(int argc, char* argv[])
                     && (event.key.mod & SDL_KMOD_SHIFT)
                     && !(event.key.mod & (SDL_KMOD_ALT | SDL_KMOD_GUI));
                 if ((command_ctrl || save_all_shortcut) && event.key.key == SDLK_S) {
+                    cancel_area_tile_stroke(renderer, state);
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(
                             window, state, save_all_shortcut ? "toolset.save_all" : "workspace.save_tab",
@@ -12577,6 +14109,7 @@ int main(int argc, char* argv[])
                     break;
                 }
                 if (command_ctrl && (event.key.key == SDLK_Z || event.key.key == SDLK_Y)) {
+                    cancel_area_tile_stroke(renderer, state);
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(window,
                             state,
@@ -12645,7 +14178,10 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                if (handle_area_object_key(
+                if (handle_area_tile_key(
+                        renderer, context, doc, state, event.key,
+                        frame_width, frame_height)
+                    || handle_area_object_key(
                         renderer, context, doc, state, event.key, frame_width, frame_height)
                     || handle_viewer_viewport_key(
                         renderer, context, doc, state, event.key, frame_width, frame_height)) {
@@ -12685,6 +14221,13 @@ int main(int argc, char* argv[])
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 blur_focused_object_variable_input(context,
                     to_context_point(window, event.button.x, event.button.y));
+                if (event.button.button == SDL_BUTTON_RIGHT
+                    && state.area_tile_editor.stroke.active) {
+                    cancel_area_tile_stroke(renderer, state);
+                    system_interface.SetMouseCursor("arrow");
+                    dispatched_to_rml = true;
+                    break;
+                }
                 if (event.button.button == SDL_BUTTON_RIGHT
                     && state.managed_list_reorder.active()) {
                     nw::toolset::clear_managed_list_reorder(
@@ -12792,6 +14335,14 @@ int main(int argc, char* argv[])
                         state.viewer_viewport_focused = true;
                         state.viewer_viewport_last_point = point;
                         clear_rml_focus(context);
+                        if (viewer_viewport->kind
+                                == WorkspaceViewerViewportKind::area
+                            && !synchronize_area_viewport_structure(
+                                renderer, state, true)) {
+                            system_interface.SetMouseCursor("unavailable");
+                            dispatched_to_rml = true;
+                            break;
+                        }
                         if ((state.play_preview.session.active()
                                 || state.play_preview.placement_pending())
                             && viewer_viewport->kind == WorkspaceViewerViewportKind::area) {
@@ -12862,15 +14413,19 @@ int main(int argc, char* argv[])
                             dispatched_to_rml = true;
                             break;
                         }
+                        if (handle_area_tile_pointer_down(
+                                renderer, system_interface, doc, state,
+                                point, *viewer_viewport,
+                                event.button.button)) {
+                            dispatched_to_rml = true;
+                            break;
+                        }
                         const bool preview_orbit_drag = viewer_viewport->kind == WorkspaceViewerViewportKind::preview
                             && event.button.button == SDL_BUTTON_LEFT;
                         if (viewer_viewport->kind
                                 == WorkspaceViewerViewportKind::area
                             && event.button.button == SDL_BUTTON_LEFT
-                            && (SDL_GetModState()
-                                   & (SDL_KMOD_CTRL | SDL_KMOD_ALT
-                                       | SDL_KMOD_GUI | SDL_KMOD_SHIFT))
-                                == SDL_KMOD_SHIFT
+                            && shift_only(SDL_GetModState())
                             && add_encounter_spawn_point(
                                 renderer, state, point, *viewer_viewport)) {
                             system_interface.SetMouseCursor("arrow");
@@ -12878,6 +14433,8 @@ int main(int argc, char* argv[])
                             break;
                         }
                         if (viewer_viewport->kind == WorkspaceViewerViewportKind::area
+                            && state.area_workspace_surface
+                                == AreaWorkspaceSurface::objects
                             && event.button.button == SDL_BUTTON_LEFT) {
                             const bool control_pressed = (SDL_GetModState() & SDL_KMOD_CTRL) != 0;
                             renderer.select_viewer_area_object(
@@ -13075,6 +14632,10 @@ int main(int argc, char* argv[])
                             renderer.drag_viewer_viewport(
                                 state.viewer_viewport_drag_mode, dx, dy,
                                 viewer_viewport->rect);
+                            if (state.area_workspace_surface
+                                == AreaWorkspaceSurface::tiles) {
+                                state.area_tile_editor.cursor_update_pending = true;
+                            }
                         }
                         system_interface.SetMouseCursor("grabbing");
                     } else {
@@ -13097,6 +14658,44 @@ int main(int argc, char* argv[])
                     }
                     dispatched_to_rml = true;
                     break;
+                }
+
+                if (state.area_workspace_surface
+                    == AreaWorkspaceSurface::tiles) {
+                    const auto viewer_viewport
+                        = active_workspace_viewer_viewport_request(
+                            doc, state, frame_width, frame_height);
+                    if (viewer_viewport
+                        && viewer_viewport->kind
+                            == WorkspaceViewerViewportKind::area
+                        && point_within_viewport(
+                            viewer_viewport->rect, point)
+                        && !viewport_mouse_hit_blocked(
+                            doc, top_hit, point, state)) {
+                        state.area_tile_editor.pending_cursor_point = point;
+                        const bool tile_shift
+                            = area_tile_pointer_modifier(SDL_GetModState())
+                            == nw::toolset::AreaTilePointerModifier::select;
+                        state.area_tile_editor.cursor_update_pending
+                            = true;
+                        system_interface.SetMouseCursor(
+                            tile_shift ? "pointer" : "cross");
+                        dispatched_to_rml = true;
+                        break;
+                    }
+                    state.area_tile_editor.cursor_update_pending = false;
+                    if (state.area_tile_editor.stroke.active) {
+                        state.area_tile_editor.stroke.has_last_target = false;
+                        dispatched_to_rml = true;
+                        break;
+                    }
+                    if (state.area_tile_editor.cursor_target_index != UINT32_MAX
+                        || !state.area_tile_editor.preview_rows.empty()) {
+                        state.area_tile_editor.cursor_target_index = UINT32_MAX;
+                        state.area_tile_editor.preview_rows.clear();
+                        (void)renderer.update_viewer_area_tile_preview(
+                            active_workspace_area(state), {});
+                    }
                 }
 
                 if (state.play_preview.session.active()
@@ -13302,6 +14901,9 @@ int main(int argc, char* argv[])
                             break;
                         }
                         renderer.zoom_viewer_viewport(event.wheel.y, viewer_viewport->rect);
+                        if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
+                            state.area_tile_editor.cursor_update_pending = true;
+                        }
                         dispatched_to_rml = true;
                         break;
                     }
@@ -13329,6 +14931,27 @@ int main(int argc, char* argv[])
                 break;
             }
             case SDL_EVENT_MOUSE_BUTTON_UP:
+                if (state.area_tile_editor.stroke.active
+                    && event.button.button
+                        == state.area_tile_editor.stroke.pointer_button) {
+                    state.area_tile_editor.cursor_update_pending = false;
+                    const auto point = to_context_point(
+                        window, event.button.x, event.button.y);
+                    if (const auto viewport
+                        = active_workspace_viewer_viewport_request(
+                            doc, state, frame_width, frame_height);
+                        viewport
+                        && viewport->kind
+                            == WorkspaceViewerViewportKind::area
+                        && point_within_viewport(viewport->rect, point)) {
+                        (void)update_area_tile_cursor(
+                            renderer, state, point, *viewport);
+                    }
+                    commit_area_tile_stroke(renderer, state);
+                    system_interface.SetMouseCursor("arrow");
+                    dispatched_to_rml = true;
+                    break;
+                }
                 if (state.output_selection.dragging
                     && event.button.button == SDL_BUTTON_LEFT) {
                     const auto point = to_context_point(
@@ -13531,7 +15154,102 @@ int main(int argc, char* argv[])
                             workspace_tab_hit = workspace_tab_element_at_point(doc, "workspace_tab", point);
                         }
 
-                        if (workspace_tab_scroll_button) {
+                        if (auto* area_surface_tab
+                            = find_ancestor_with_class(
+                                hit, "area_workspace_tab")) {
+                            const std::string surface
+                                = area_surface_tab->GetAttribute<Rml::String>(
+                                    "data-area-surface", "");
+                            release_workspace_mouse_up();
+                            if (surface == "properties") {
+                                (void)set_area_workspace_surface(renderer, state,
+                                    AreaWorkspaceSurface::properties);
+                            } else if (surface == "objects") {
+                                (void)set_area_workspace_surface(renderer, state,
+                                    AreaWorkspaceSurface::objects);
+                            } else if (surface == "tiles") {
+                                (void)set_area_workspace_surface(renderer, state,
+                                    AreaWorkspaceSurface::tiles);
+                            }
+                            refresh_workspace_content(doc, state);
+                            sync_area_tile_palette_window(doc, state, true);
+                            handled = true;
+                        } else if (find_ancestor_with_id(
+                                       hit, "area_tile_editor_back")) {
+                            release_workspace_mouse_up();
+                            auto& editor = state.area_tile_editor;
+                            if (nw::toolset::leave_area_tile_palette_folder(
+                                    editor.palette)) {
+                                cancel_area_tile_stroke(renderer, state);
+                                clear_area_tile_selection(renderer, state);
+                                reset_area_tile_palette_folder_view(editor);
+                                refresh_workspace_content(doc, state);
+                                sync_area_tile_palette_window(doc, state, true);
+                            } else {
+                                editor.feedback
+                                    = "Tile palette navigation is unavailable";
+                                sync_area_tile_palette_window(doc, state, true);
+                            }
+                            handled = true;
+                        } else if (auto* tile_row = find_ancestor_with_class(
+                                       hit, "area_tile_palette_row")) {
+                            release_workspace_mouse_up();
+                            const auto row_key = parse_decimal_int32(
+                                tile_row->GetAttribute<Rml::String>(
+                                    "data-key", ""));
+                            if (row_key && *row_key >= 0
+                                && static_cast<size_t>(*row_key)
+                                    < state.area_tile_editor.palette.rows.size()) {
+                                auto& editor = state.area_tile_editor;
+                                const auto& row = editor.palette.rows[static_cast<size_t>(*row_key)];
+                                if (row.kind
+                                    == nw::toolset::AreaTilePaletteRowKind::folder) {
+                                    if (nw::toolset::enter_area_tile_palette_folder(
+                                            editor.palette,
+                                            static_cast<uint32_t>(*row_key))) {
+                                        cancel_area_tile_stroke(renderer, state);
+                                        clear_area_tile_selection(
+                                            renderer, state);
+                                        reset_area_tile_palette_folder_view(
+                                            editor);
+                                        refresh_workspace_content(doc, state);
+                                        sync_area_tile_palette_window(
+                                            doc, state, true);
+                                    } else {
+                                        editor.feedback
+                                            = "Tile palette folder is unavailable";
+                                        sync_area_tile_palette_window(
+                                            doc, state, true);
+                                    }
+                                    handled = true;
+                                } else {
+                                    clear_area_tile_selection(renderer, state);
+                                    editor.selected_row = *row_key;
+                                    editor.group_orientation = 0;
+                                    editor.cursor_target_index = UINT32_MAX;
+                                    editor.cursor_update_pending = false;
+                                    editor.preview_rows.clear();
+                                    (void)renderer.update_viewer_area_tile_preview(
+                                        active_workspace_area(state), {});
+                                    editor.feedback.clear();
+                                    const auto selected = std::find(
+                                        editor.palette.matches.begin(),
+                                        editor.palette.matches.end(),
+                                        static_cast<uint32_t>(*row_key));
+                                    if (selected
+                                        != editor.palette.matches.end()) {
+                                        editor.list.set_selected(
+                                            static_cast<int>(std::distance(
+                                                editor.palette.matches.begin(),
+                                                selected)));
+                                    }
+                                    editor.rendered = false;
+                                    sync_area_tile_palette_window(
+                                        doc, state, true);
+                                }
+                            }
+                            handled = true;
+                        } else if (workspace_tab_scroll_button) {
                             release_workspace_mouse_up();
                             if (!workspace_tab_scroll_button->IsClassSet("disabled")) {
                                 const bool forward = workspace_tab_scroll_button->GetId()
@@ -14425,6 +16143,7 @@ int main(int argc, char* argv[])
                     }
                 }
                 break;
+            case SDL_EVENT_WINDOW_FOCUS_LOST:
             case SDL_EVENT_WINDOW_MOUSE_LEAVE:
                 if (state.project_blueprint_drag.active()) {
                     cancel_project_blueprint_drag(doc, state);
@@ -14498,17 +16217,63 @@ int main(int argc, char* argv[])
             state.observed_object_mutation_epoch = mutation.epoch;
             refresh_workspace_tabs(doc, state);
             const bool area_structure_changed = mutation.area_structure_epoch != state.observed_area_structure_epoch;
-            state.observed_area_structure_epoch = mutation.area_structure_epoch;
             const auto* displayed_tab = state.workspace.active_tab();
             const bool changed_area_visible = displayed_tab && displayed_tab->kind == nw::toolset::WorkspaceTabKind::area
                 && displayed_tab->document.object() == mutation.area;
             if (area_structure_changed && changed_area_visible) {
+                cancel_area_object_placement(renderer, state);
                 cancel_area_object_drag(renderer, state);
-                if (!renderer.rebuild_live_viewer_area(mutation.area, mutation.object)) {
+                cancel_area_tile_stroke(renderer, state);
+                const nw::ObjectHandle selected
+                    = state.area_workspace_surface
+                        == AreaWorkspaceSurface::objects
+                    ? mutation.object
+                    : nw::ObjectHandle{};
+                const bool rebuilt = renderer.rebuild_live_viewer_area(
+                    mutation.area, selected);
+                if (!rebuilt) {
+                    state.stale_area_viewport = mutation.area;
                     append_output(state, "error", "Failed to rebuild the live area viewport after structural edit");
+                } else {
+                    state.observed_area_structure_epoch
+                        = mutation.area_structure_epoch;
+                    state.stale_area_viewport = nw::ObjectHandle{};
+                    if (state.area_workspace_surface
+                        == AreaWorkspaceSurface::tiles) {
+                        if (state.area_tile_editor.selection.active()) {
+                            const uint32_t source_tile_index
+                                = state.area_tile_editor.selection
+                                      .source_tile_index;
+                            nw::toolset::AreaTileSelection selection;
+                            const auto selection_result
+                                = nw::toolset::build_area_tile_selection(
+                                    mutation.area, source_tile_index,
+                                    selection);
+                            if (selection_result.ok()) {
+                                state.area_tile_editor.selection
+                                    = std::move(selection);
+                                (void)update_area_tile_selection_preview(
+                                    renderer, state);
+                            } else {
+                                clear_area_tile_selection(renderer, state);
+                                state.area_tile_editor.feedback
+                                    = "Tile selection cleared: "
+                                    + selection_result.diagnostic;
+                            }
+                        } else if (state.area_tile_editor.cursor_target_index
+                            != UINT32_MAX) {
+                            state.area_tile_editor.cursor_target_index
+                                = UINT32_MAX;
+                            state.area_tile_editor.preview_rows.clear();
+                            (void)renderer.update_viewer_area_tile_preview(
+                                mutation.area, {});
+                        }
+                    }
                 }
                 state.smalls.publish_active_area(mutation.area);
-                if (mutation.object.type != nw::ObjectType::invalid) {
+                if (state.area_workspace_surface
+                        == AreaWorkspaceSurface::objects
+                    && mutation.object.type != nw::ObjectType::invalid) {
                     state.smalls.publish_active_object(mutation.object);
                     state.active_object_tab_id = state.workspace.active_tab_id();
                     state.object_workbench_surface = default_object_workbench_surface();
@@ -14554,6 +16319,12 @@ int main(int argc, char* argv[])
                 sync_creature_inventory_window(doc, state, true);
                 sync_appearance_window(doc, state, true);
             } else {
+                if (area_structure_changed
+                    && state.stale_area_viewport.type
+                        == nw::ObjectType::invalid) {
+                    state.observed_area_structure_epoch
+                        = mutation.area_structure_epoch;
+                }
                 const auto* active_tab = state.workspace.active_tab();
                 const bool area_tab = active_tab && active_tab->kind == nw::toolset::WorkspaceTabKind::area;
                 if (mutation.kind == nw::toolset::ObjectMutationKind::spatial) {
@@ -14588,7 +16359,10 @@ int main(int argc, char* argv[])
                         append_output(state, "error", "Failed to refresh the live object viewport after visual edit");
                     }
                 }
-                if (area_tab) {
+                if (area_tab
+                    && state.area_workspace_surface
+                        == AreaWorkspaceSurface::objects
+                    && editable_area_object(mutation.object)) {
                     renderer.set_viewer_area_object_selection(mutation.object);
                 }
                 if (mutation.object == state.object_details.object && active_object_details_matches_tab(state)) {
@@ -14685,6 +16459,40 @@ int main(int argc, char* argv[])
                 sync_sound_catalog_window(doc, state, true);
             }
         }
+        if (state.area_tile_editor.stroke.active
+            && !area_tile_stroke_context_valid(state)) {
+            cancel_area_tile_stroke(renderer, state);
+        }
+        if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
+            const std::string query
+                = get_input_value(doc, "area_tile_palette_search");
+            if (query != state.area_tile_editor.query) {
+                auto& editor = state.area_tile_editor;
+                editor.query = query;
+                (void)nw::toolset::filter_area_tile_palette(
+                    editor.palette, editor.query);
+                editor.list.set_total_rows(
+                    static_cast<int>(editor.palette.matches.size()));
+                const auto selected = std::find_if(
+                    editor.palette.matches.begin(),
+                    editor.palette.matches.end(),
+                    [&editor](uint32_t row_index) {
+                        return row_index < editor.palette.rows.size()
+                            && static_cast<int32_t>(row_index)
+                            == editor.selected_row;
+                    });
+                editor.list.set_selected(
+                    selected == editor.palette.matches.end()
+                        ? -1
+                        : static_cast<int>(std::distance(
+                              editor.palette.matches.begin(), selected)));
+                editor.list.set_scroll_top(0);
+                editor.rendered = false;
+                sync_area_tile_palette_window(doc, state, true);
+            } else {
+                sync_area_tile_palette_window(doc, state, false);
+            }
+        }
 
         if (workspace_home_active(state)
             && state.backend.module_object().type == nw::ObjectType::module) {
@@ -14759,6 +16567,8 @@ int main(int argc, char* argv[])
         frame_height = static_cast<int>(swapchain_height);
         fps_context->SetDimensions(Rml::Vector2i(frame_width, frame_height));
         palette_context->SetDimensions(Rml::Vector2i(frame_width, frame_height));
+        flush_area_tile_cursor_update(
+            renderer, window, context, doc, state, frame_width, frame_height);
 
         const Uint64 begin_frame_start_counter = SDL_GetPerformanceCounter();
         renderer.begin_frame();
@@ -14948,7 +16758,12 @@ int main(int argc, char* argv[])
                 } else {
                     state.smalls.clear_active_area();
                 }
-                const auto object = renderer.active_viewer_object();
+                const nw::ObjectHandle object
+                    = viewer_kind == WorkspaceViewerViewportKind::area
+                        && state.area_workspace_surface
+                            == AreaWorkspaceSurface::properties
+                    ? renderer.area_viewer_object()
+                    : renderer.active_viewer_object();
                 if (object.type != nw::ObjectType::invalid) {
                     state.smalls.publish_active_object(object);
                     const std::string active_tab_id = state.workspace.active_tab_id();

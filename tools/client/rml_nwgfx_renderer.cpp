@@ -633,9 +633,14 @@ void RmlNwgfxRenderer::ReleaseGeometry(Rml::CompiledGeometryHandle handle)
 Rml::TextureHandle RmlNwgfxRenderer::LoadTexture(Rml::Vector2i& texture_dimensions, const Rml::String& source)
 {
     texture_dimensions = Rml::Vector2i(0, 0);
-    if (generated_textures_) {
-        const auto* generated = nw::toolset::find_generated_texture(
-            *generated_textures_, source);
+    if (item_icon_textures_ || area_tile_textures_) {
+        const auto* generated = item_icon_textures_
+            ? nw::toolset::find_generated_texture(*item_icon_textures_, source)
+            : nullptr;
+        if (!generated && area_tile_textures_) {
+            generated = nw::toolset::find_generated_texture(
+                *area_tile_textures_, source);
+        }
         if (generated) {
             const uint64_t expected_size = static_cast<uint64_t>(generated->width)
                 * generated->height * 4;
@@ -681,35 +686,11 @@ Rml::TextureHandle RmlNwgfxRenderer::LoadTexture(Rml::Vector2i& texture_dimensio
         return {};
     }
 
-    const size_t pixel_count = static_cast<size_t>(image.width()) * image.height();
-    if (pixel_count > std::numeric_limits<size_t>::max() / 4) {
-        return {};
-    }
-    std::vector<Rml::byte> rgba(pixel_count * 4);
-    const auto* source_pixels = image.data();
-    const uint32_t channels = image.channels();
-    if (channels == 4) {
-        std::memcpy(rgba.data(), source_pixels, rgba.size());
-    } else if (channels >= 1 && channels <= 3) {
-        for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
-            const auto* input = source_pixels + pixel * channels;
-            auto* output = rgba.data() + pixel * 4;
-            if (channels == 1 || channels == 2) {
-                output[0] = input[0];
-                output[1] = input[0];
-                output[2] = input[0];
-                output[3] = channels == 2 ? input[1] : 255;
-            } else {
-                output[0] = input[0];
-                output[1] = input[1];
-                output[2] = input[2];
-                output[3] = 255;
-            }
-        }
-    } else {
+    nw::toolset::RmlGeneratedTexture decoded;
+    if (!nw::toolset::copy_image_rgba(image, false, decoded)) {
         Rml::Log::Message(Rml::Log::LT_WARNING,
-            "RmlNwgfxRenderer: texture '%s' has unsupported channel count %u",
-            source.c_str(), channels);
+            "RmlNwgfxRenderer: failed to convert texture '%s' to RGBA",
+            source.c_str());
         return {};
     }
 
@@ -718,7 +699,8 @@ Rml::TextureHandle RmlNwgfxRenderer::LoadTexture(Rml::Vector2i& texture_dimensio
         static_cast<int>(image.height()),
     };
     const auto handle = GenerateTexture(
-        Rml::Span<const Rml::byte>{rgba.data(), rgba.size()}, dimensions);
+        Rml::Span<const Rml::byte>{decoded.rgba.data(), decoded.rgba.size()},
+        dimensions);
     if (handle) {
         texture_dimensions = dimensions;
     }

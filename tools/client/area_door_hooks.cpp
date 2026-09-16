@@ -46,6 +46,15 @@ ObjectHandle hook_occupant(const Area& area, glm::vec3 position) noexcept
 bool build_area_door_hooks(
     const Area& area, AreaDoorHookSnapshot& output, std::string& diagnostic)
 {
+    return build_area_door_hooks(area, area.tiles, output, diagnostic);
+}
+
+bool build_area_door_hooks(
+    const Area& area,
+    std::span<const AreaTile> tiles,
+    AreaDoorHookSnapshot& output,
+    std::string& diagnostic)
+{
     output = {};
     diagnostic.clear();
     if (area.width <= 0 || area.height <= 0 || !area.tileset
@@ -57,8 +66,8 @@ bool build_area_door_hooks(
 
     const uint64_t tile_count_64 = static_cast<uint64_t>(area.width)
         * static_cast<uint64_t>(area.height);
-    if (tile_count_64 > UINT32_MAX || tile_count_64 > area.tiles.size()) {
-        diagnostic = "Area tile rows are incomplete or exceed the door-hook index range";
+    if (tile_count_64 > UINT32_MAX || tile_count_64 != tiles.size()) {
+        diagnostic = "Area tile rows do not match the door-hook grid or exceed its index range";
         return false;
     }
 
@@ -72,7 +81,7 @@ bool build_area_door_hooks(
         for (uint32_t tile_index = 0;
             tile_index < static_cast<uint32_t>(tile_count_64);
             ++tile_index) {
-            const auto& area_tile = area.tiles[tile_index];
+            const auto& area_tile = tiles[tile_index];
             if (area_tile.id >= 0
                 && static_cast<size_t>(area_tile.id) < area.tileset->tiles.size()) {
                 const auto& tile = area.tileset->tiles[static_cast<size_t>(area_tile.id)];

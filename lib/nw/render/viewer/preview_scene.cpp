@@ -4208,6 +4208,8 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     scene->is_area = true;
     scene->area_width = loaded_area->width;
     scene->area_height = loaded_area->height;
+    scene->area_tile_model_indices.assign(
+        loaded_area->tiles.size(), nw::render::kInvalidModelInstanceIndex);
     scene->area_flags = loaded_area->flags;
     scene->area_weather = loaded_area->weather;
     const float height_step = loaded_area->tileset->tile_height;
@@ -4286,6 +4288,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
             }
             const uint32_t model_index = add_placed_render_model(*scene, std::move(model), placement);
             if (model_index != nw::render::kInvalidModelInstanceIndex) {
+                scene->area_tile_model_indices[index] = model_index;
                 if (auto* instance = scene->static_model_instance(model_index)) {
                     instance->scene_animation_enabled = false;
                     instance->animation.enabled = false;
@@ -4991,6 +4994,265 @@ bool append_debug_geometry(PreviewScene& destination, const PreviewScene& source
 }
 
 } // namespace
+
+AreaTransientVisualResult update_area_tile_previews(
+    PreviewScene& scene,
+    PreviewRenderResources& resources,
+    std::span<const AreaTilePreviewRow> rows,
+    AreaTilePreviewLease& lease)
+{
+    AreaTransientVisualResult result;
+    if (rows.empty()) {
+        result.diagnostic = "Area tile preview batch is empty";
+        return result;
+    }
+    const auto* area = nw::kernel::objects().get<nw::Area>(scene.root_object);
+    if (!scene.is_area || !scene.area_render_scene || !area
+        || (lease.active
+            && (lease.preview_objects.empty()
+                || lease.preview_objects.size()
+                    != lease.preview_model_indices.size()))
+        || !area->tileset || area->width <= 0 || area->height <= 0
+        || static_cast<uint64_t>(area->width)
+                * static_cast<uint64_t>(area->height)
+            != area->tiles.size()
+        || !std::isfinite(area->tileset->tile_height)
+        || area->tileset->tile_height <= 0.0f
+        || scene.area_tile_model_indices.size() != area->tiles.size()
+        || rows.size() > std::numeric_limits<uint32_t>::max()
+        || scene.static_models.size()
+            > nw::render::kInvalidModelInstanceIndex - rows.size()) {
+        result.status = AreaTransientVisualStatus::invalid_input;
+        result.diagnostic = "Area tile preview input is invalid";
+        return result;
+    }
+
+    for (size_t index = 1; index < rows.size(); ++index) {
+        if (rows[index - 1].tile_index >= rows[index].tile_index) {
+            result.status = AreaTransientVisualStatus::invalid_input;
+            result.diagnostic
+                = "Area tile preview rows are not strictly increasing";
+            return result;
+        }
+    }
+
+    struct PendingTilePreview {
+        std::shared_ptr<nw::render::RenderModel> model;
+        glm::mat4 placement{1.0f};
+        uint32_t original_model_index = nw::render::kInvalidModelInstanceIndex;
+        nw::ObjectHandle preview_object;
+    };
+    std::vector<PendingTilePreview> pending;
+    pending.reserve(rows.size());
+    resources.prepare_area_static_models(nw::kernel::resman().generation());
+    AreaStaticModelCache static_model_cache;
+    for (const auto& row : rows) {
+        if (row.tile_index >= area->tiles.size() || row.tile_id < 0
+            || static_cast<size_t>(row.tile_id) >= area->tileset->tiles.size()
+            || row.orientation < 0 || row.orientation >= 4) {
+            result.status = AreaTransientVisualStatus::invalid_input;
+            result.diagnostic = "Area tile preview row is outside the area or SET";
+            return result;
+        }
+        const uint32_t original_model_index
+            = scene.area_tile_model_indices[row.tile_index];
+        const auto& tile = area->tileset->tiles[static_cast<size_t>(row.tile_id)];
+        auto model = load_area_static_model(
+            static_model_cache, resources, tile.model, "area tile preview");
+        glm::mat4 placement{1.0f};
+        const uint32_t tile_x
+            = row.tile_index % static_cast<uint32_t>(area->width);
+        const uint32_t tile_y
+            = row.tile_index / static_cast<uint32_t>(area->width);
+        if (!model
+            || !nw::build_area_tile_world_transform(area->tileset->tile_height,
+                nw::AreaTileTransformInput{
+                    static_cast<int32_t>(tile_x),
+                    static_cast<int32_t>(tile_y),
+                    row.height,
+                    row.orientation,
+                },
+                placement)) {
+            result.status = AreaTransientVisualStatus::failed;
+            result.diagnostic = "Area tile preview model could not be built";
+            return result;
+        }
+        pending.push_back({
+            .model = std::move(model),
+            .placement = placement,
+            .original_model_index = original_model_index,
+            .preview_object = nw::ObjectHandle{
+                .id = static_cast<nw::ObjectID>(row.tile_index),
+                .type = nw::ObjectType::tile,
+                .version = 1,
+            },
+        });
+    }
+
+    std::vector<uint32_t> hidden_tile_model_indices;
+    hidden_tile_model_indices.reserve(pending.size());
+    for (const auto& row : pending) {
+        if (scene.static_model_instance(row.original_model_index)) {
+            hidden_tile_model_indices.push_back(row.original_model_index);
+        }
+    }
+    bool can_reposition = lease.active
+        && lease.preview_model_indices.size() == pending.size()
+        && lease.hidden_tile_model_indices.size()
+            == hidden_tile_model_indices.size();
+    for (size_t index = 0; can_reposition && index < pending.size(); ++index) {
+        const uint32_t model_index = lease.preview_model_indices[index];
+        can_reposition = model_index < scene.static_models.size()
+            && scene.static_models[model_index] == pending[index].model
+            && scene.static_model_instance(model_index);
+    }
+    if (can_reposition) {
+        for (const uint32_t model_index : lease.hidden_tile_model_indices) {
+            if (auto* instance = scene.static_model_instance(model_index)) {
+                instance->visible = true;
+            }
+        }
+        for (size_t index = 0; index < pending.size(); ++index) {
+            const uint32_t model_index = lease.preview_model_indices[index];
+            const auto& row = pending[index];
+            auto* instance = scene.static_model_instance(model_index);
+            instance->root_transform = row.placement;
+            nw::render::publish_render_model_static_node_world_transforms(
+                *instance, *scene.static_models[model_index]);
+            instance->current_bounds = transform_bounds(
+                scene.static_models[model_index]->bounds, row.placement);
+            instance->shadow = render_model_shadow_summary(
+                *scene.static_models[model_index], instance->current_bounds);
+        }
+        for (const auto& row : pending) {
+            if (auto* instance
+                = scene.static_model_instance(row.original_model_index)) {
+                instance->visible = false;
+            }
+        }
+        lease.hidden_tile_model_indices
+            = std::move(hidden_tile_model_indices);
+        scene.area_render_scene->refresh_runtime_records(scene);
+        result.status = AreaTransientVisualStatus::success;
+        result.object_count = static_cast<uint32_t>(rows.size());
+        result.model_count = static_cast<uint32_t>(rows.size());
+        return result;
+    }
+
+    if (lease.active) {
+        const auto removal
+            = remove_object_model_rows(scene, lease.preview_objects);
+        if (!removal) {
+            result.status = AreaTransientVisualStatus::failed;
+            result.diagnostic
+                = "Previous area tile preview rows could not be removed";
+            return result;
+        }
+        for (const uint32_t model_index : lease.hidden_tile_model_indices) {
+            if (auto* instance = scene.static_model_instance(model_index)) {
+                instance->visible = true;
+            }
+        }
+        lease = {};
+    }
+
+    std::vector<nw::ObjectHandle> preview_objects;
+    std::vector<uint32_t> preview_model_indices;
+    preview_objects.reserve(pending.size());
+    preview_model_indices.reserve(pending.size());
+    scene.static_models.reserve(scene.static_models.size() + pending.size());
+    scene.static_model_instance_handles.reserve(
+        scene.static_model_instance_handles.size() + pending.size());
+    scene.static_model_attachment_binding_indices.reserve(
+        scene.static_model_attachment_binding_indices.size() + pending.size());
+    scene.static_area_model_info.reserve(
+        scene.static_area_model_info.size() + pending.size());
+    for (auto& row : pending) {
+        const uint32_t model_index = add_placed_render_model(
+            scene, std::move(row.model), row.placement);
+        if (model_index == nw::render::kInvalidModelInstanceIndex) {
+            (void)remove_object_model_rows(scene, preview_objects);
+            scene.area_render_scene->rebuild(scene);
+            result.status = AreaTransientVisualStatus::failed;
+            result.diagnostic = "Area tile preview model append failed";
+            return result;
+        }
+        scene.static_area_model_info[model_index] = {
+            .object = row.preview_object,
+        };
+        preview_objects.push_back(row.preview_object);
+        preview_model_indices.push_back(model_index);
+        auto* instance = scene.static_model_instance(model_index);
+        if (!instance) {
+            (void)remove_object_model_rows(scene, preview_objects);
+            scene.area_render_scene->rebuild(scene);
+            result.status = AreaTransientVisualStatus::failed;
+            result.diagnostic = "Area tile preview instance append failed";
+            return result;
+        }
+        instance->scene_animation_enabled = false;
+        instance->animation.enabled = false;
+    }
+    for (const auto& row : pending) {
+        if (auto* instance
+            = scene.static_model_instance(row.original_model_index)) {
+            instance->visible = false;
+        }
+    }
+    scene.area_render_scene->rebuild(scene);
+    lease = {
+        .hidden_tile_model_indices = std::move(hidden_tile_model_indices),
+        .preview_objects = std::move(preview_objects),
+        .preview_model_indices = std::move(preview_model_indices),
+        .active = true,
+    };
+    result.status = AreaTransientVisualStatus::success;
+    result.object_count = static_cast<uint32_t>(rows.size());
+    result.model_count = static_cast<uint32_t>(rows.size());
+    return result;
+}
+
+AreaTransientVisualResult restore_area_tile_previews(
+    PreviewScene& scene, AreaTilePreviewLease& lease)
+{
+    AreaTransientVisualResult result;
+    if (!lease.active) {
+        return result;
+    }
+    if (!scene.is_area || !scene.area_render_scene
+        || lease.preview_objects.empty()) {
+        result.status = AreaTransientVisualStatus::invalid_input;
+        result.diagnostic = "Area tile preview lease is invalid";
+        return result;
+    }
+    const auto removal
+        = remove_object_model_rows(scene, lease.preview_objects);
+    if (!removal) {
+        result.status = AreaTransientVisualStatus::failed;
+        result.diagnostic = "Area tile preview rows could not be removed";
+        return result;
+    }
+    uint32_t restored = 0;
+    for (const uint32_t model_index : lease.hidden_tile_model_indices) {
+        if (auto* instance = scene.static_model_instance(model_index)) {
+            instance->visible = true;
+            ++restored;
+        }
+    }
+    scene.area_render_scene->rebuild(scene);
+    result.object_count = removal->removed_count;
+    result.model_count = restored;
+    const uint32_t expected_restore_count
+        = static_cast<uint32_t>(lease.hidden_tile_model_indices.size());
+    lease = {};
+    if (restored != expected_restore_count) {
+        result.status = AreaTransientVisualStatus::failed;
+        result.diagnostic = "Area tile preview original model restore was incomplete";
+        return result;
+    }
+    result.status = AreaTransientVisualStatus::success;
+    return result;
+}
 
 AreaObjectPreviewAppendResult append_area_object_previews(
     PreviewScene& scene,

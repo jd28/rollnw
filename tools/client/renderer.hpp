@@ -35,6 +35,7 @@ struct PreviewNavigationDebugView;
 }
 
 namespace nw::render::viewer {
+struct AreaTilePreviewRow;
 struct ViewerFrameStats;
 }
 
@@ -48,7 +49,8 @@ public:
     bool is_swapchain_valid() const;
     Rml::RenderInterface* render_interface();
     void set_rml_generated_textures(
-        const std::vector<nw::toolset::RmlGeneratedTexture>* textures) noexcept;
+        const std::vector<nw::toolset::RmlGeneratedTexture>* item_icons,
+        const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles) noexcept;
     void begin_frame();
     [[nodiscard]] bool render_area_viewport(const std::filesystem::path& project_dir,
         uint64_t module_generation,
@@ -76,6 +78,10 @@ public:
         float pixel_y,
         ClientViewportRect viewport,
         ClientAreaSelectionTarget target);
+    [[nodiscard]] std::optional<ClientAreaTileHit> viewer_area_tile_hit(
+        float pixel_x,
+        float pixel_y,
+        ClientViewportRect viewport);
     bool set_viewer_area_object_selection(nw::ObjectHandle object) noexcept;
     [[nodiscard]] uint32_t active_viewer_area_debug_subindex(
         nw::ObjectHandle object) const noexcept;
@@ -107,6 +113,11 @@ public:
         std::span<const glm::vec3> points,
         std::optional<glm::vec3> hover,
         bool closing_valid);
+    bool update_viewer_area_tile_preview(
+        nw::ObjectHandle area,
+        std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
+        bool paintable = true,
+        bool replace_tiles = true);
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> viewer_area_camera_focus() const noexcept;
     bool sync_viewer_area_object_spatial(nw::ObjectHandle object);

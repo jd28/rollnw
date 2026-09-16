@@ -1,7 +1,7 @@
 #pragma once
 
-#include <nw/render/render_context.hpp>
 #include <nw/objects/ObjectHandle.hpp>
+#include <nw/render/render_context.hpp>
 
 #include <glm/vec3.hpp>
 
@@ -34,6 +34,13 @@ struct ClientAreaDoorHit {
     glm::vec3 bounds_min{0.0f};
     glm::vec3 bounds_max{0.0f};
     uint32_t door_index = UINT32_MAX;
+};
+
+struct ClientAreaTileHit {
+    glm::vec3 position{0.0f};
+    float distance = 0.0f;
+    int16_t tile_x = -1;
+    int16_t tile_y = -1;
 };
 
 struct ClientGpuTimerScope {

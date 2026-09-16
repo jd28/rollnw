@@ -5,9 +5,11 @@
 #include "preview_session.hpp"
 #include "viewer_camera_state.hpp"
 
+#include <nw/formats/Tileset.hpp>
 #include <nw/gfx/gfx.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/resources/assets.hpp>
@@ -572,6 +574,32 @@ struct ClientViewerViewport::Impl {
         return result.status != viewer::AreaObjectSelectionStatus::invalid_input;
     }
 
+    std::optional<ClientAreaTileHit> area_tile_hit(
+        float pixel_x,
+        float pixel_y,
+        ClientViewportRect viewport)
+    {
+        if (!session || !viewport.valid()) {
+            return std::nullopt;
+        }
+
+        const auto result = session->area_tile_hit(
+            pixel_x, pixel_y, to_viewer_viewport(viewport));
+        if (result.status != viewer::AreaObjectSelectionStatus::hit
+            || result.source != viewer::AreaObjectSelectionSource::area_record
+            || result.kind != nw::ObjectType::tile
+            || result.tile_x < 0
+            || result.tile_y < 0) {
+            return std::nullopt;
+        }
+        return ClientAreaTileHit{
+            .position = result.position,
+            .distance = result.distance,
+            .tile_x = result.tile_x,
+            .tile_y = result.tile_y,
+        };
+    }
+
     bool set_area_object_selection(nw::ObjectHandle object) noexcept
     {
         return session && session->set_area_object_selection(object);
@@ -1035,6 +1063,109 @@ struct ClientViewerViewport::Impl {
             transient_debug_vertices, transient_debug_indices);
     }
 
+    bool update_area_tile_preview(
+        nw::ObjectHandle area_handle,
+        std::span<const viewer::AreaTilePreviewRow> rows,
+        bool paintable,
+        bool replace_tiles)
+    {
+        if (!session || loaded_area_resref.empty()) {
+            return false;
+        }
+        if (rows.empty()) {
+            if (area_tile_preview_lease.active) {
+                const auto restored = session->restore_area_tile_previews(
+                    area_tile_preview_lease);
+                if (!restored.ok()) {
+                    LOG_F(ERROR, "Client tile preview restore: {}",
+                        restored.diagnostic);
+                    return false;
+                }
+            }
+            session->clear_transient_debug_geometry();
+            transient_debug_vertices.clear();
+            transient_debug_indices.clear();
+            return true;
+        }
+
+        const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
+        const uint64_t tile_count = area && area->width > 0 && area->height > 0
+            ? static_cast<uint64_t>(area->width)
+                * static_cast<uint64_t>(area->height)
+            : 0;
+        if (!area || !area->tileset || tile_count == 0
+            || tile_count != area->tiles.size()
+            || !std::isfinite(area->tileset->tile_height)
+            || area->tileset->tile_height <= 0.0f
+            || rows.size() > std::numeric_limits<uint32_t>::max() / 16u
+            || std::ranges::any_of(rows,
+                [area](const auto& row) {
+                    return row.tile_index >= area->tiles.size();
+                })) {
+            return false;
+        }
+
+        bool preview_visible = paintable && !replace_tiles;
+        if (paintable && replace_tiles) {
+            const auto updated = session->update_area_tile_previews(
+                rows, area_tile_preview_lease);
+            preview_visible = updated.ok();
+            if (!preview_visible) {
+                LOG_F(WARNING, "Client tile preview update: {}",
+                    updated.diagnostic);
+            }
+        } else if (area_tile_preview_lease.active) {
+            const auto restored = session->restore_area_tile_previews(
+                area_tile_preview_lease);
+            if (!restored.ok()) {
+                LOG_F(ERROR, "Client tile preview restore: {}",
+                    restored.diagnostic);
+                return false;
+            }
+        }
+
+        transient_debug_vertices.clear();
+        transient_debug_indices.clear();
+        transient_debug_vertices.reserve(rows.size() * 16u);
+        transient_debug_indices.reserve(rows.size() * 24u);
+        constexpr float k_tile_size = 10.0f;
+        constexpr float k_offset = 0.12f;
+        constexpr glm::vec4 k_paintable{0.18f, 0.92f, 0.42f, 0.95f};
+        constexpr glm::vec4 k_blocked{0.96f, 0.22f, 0.18f, 0.95f};
+        const glm::vec4 color
+            = paintable && preview_visible ? k_paintable : k_blocked;
+        for (const auto& row : rows) {
+            const uint32_t tile_index = row.tile_index;
+            const uint32_t x = tile_index % static_cast<uint32_t>(area->width);
+            const uint32_t y = tile_index / static_cast<uint32_t>(area->width);
+            const int32_t height
+                = paintable ? row.height : area->tiles[tile_index].height;
+            const float z = static_cast<float>(height) * area->tileset->tile_height
+                + k_offset;
+            if (!std::isfinite(z)) {
+                transient_debug_vertices.clear();
+                transient_debug_indices.clear();
+                return false;
+            }
+            const glm::vec3 p0{static_cast<float>(x) * k_tile_size,
+                static_cast<float>(y) * k_tile_size, z};
+            const glm::vec3 p1 = p0 + glm::vec3{k_tile_size, 0.0f, 0.0f};
+            const glm::vec3 p2 = p0 + glm::vec3{k_tile_size, k_tile_size, 0.0f};
+            const glm::vec3 p3 = p0 + glm::vec3{0.0f, k_tile_size, 0.0f};
+            append_transient_debug_segment(transient_debug_vertices,
+                transient_debug_indices, p0, p1, color, 0.09f);
+            append_transient_debug_segment(transient_debug_vertices,
+                transient_debug_indices, p1, p2, color, 0.09f);
+            append_transient_debug_segment(transient_debug_vertices,
+                transient_debug_indices, p2, p3, color, 0.09f);
+            append_transient_debug_segment(transient_debug_vertices,
+                transient_debug_indices, p3, p0, color, 0.09f);
+        }
+        return session->set_transient_debug_geometry(
+                   transient_debug_vertices, transient_debug_indices)
+            && (!paintable || !replace_tiles || preview_visible);
+    }
+
     bool end_toolset_preview_visuals() noexcept
     {
         if (session) session->clear_transient_debug_geometry();
@@ -1043,6 +1174,13 @@ struct ClientViewerViewport::Impl {
         transient_debug_indices.clear();
         applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();
         bool doors_restored = true;
+        bool tiles_restored = true;
+        if (session && area_tile_preview_lease.active) {
+            tiles_restored = session
+                                 ->restore_area_tile_previews(
+                                     area_tile_preview_lease)
+                                 .ok();
+        }
         if (session && transient_door_animation_lease.active) {
             doors_restored = session->restore_area_door_animation_lease(
                 transient_door_animation_lease);
@@ -1050,7 +1188,7 @@ struct ClientViewerViewport::Impl {
         transient_door_animation_inputs.clear();
         if (transient_preview_objects.empty()) {
             transient_saved_camera.reset();
-            return doors_restored;
+            return doors_restored && tiles_restored;
         }
 
         bool removed = false;
@@ -1068,7 +1206,7 @@ struct ClientViewerViewport::Impl {
         transient_preview_objects.clear();
         transient_animation_inputs.clear();
         transient_saved_camera.reset();
-        return removed && doors_restored;
+        return removed && doors_restored && tiles_restored;
     }
 
     std::optional<glm::vec3> area_camera_focus() const noexcept
@@ -1320,6 +1458,7 @@ struct ClientViewerViewport::Impl {
     std::vector<viewer::AreaCreatureLocomotionAnimationInput> transient_animation_inputs;
     std::vector<viewer::AreaDoorAnimationInput> transient_door_animation_inputs;
     viewer::AreaDoorAnimationLease transient_door_animation_lease;
+    viewer::AreaTilePreviewLease area_tile_preview_lease;
     std::vector<viewer::DebugShapeVertex> transient_debug_vertices;
     std::vector<uint32_t> transient_debug_indices;
     ClientAreaViewerOptions area_options;
@@ -1396,6 +1535,16 @@ bool ClientViewerViewport::select_area_object(
     ClientAreaSelectionTarget target)
 {
     return impl_ && impl_->select_area_object(pixel_x, pixel_y, viewport, target);
+}
+
+std::optional<ClientAreaTileHit> ClientViewerViewport::area_tile_hit(
+    float pixel_x,
+    float pixel_y,
+    ClientViewportRect viewport)
+{
+    return impl_
+        ? impl_->area_tile_hit(pixel_x, pixel_y, viewport)
+        : std::nullopt;
 }
 
 bool ClientViewerViewport::set_area_object_selection(nw::ObjectHandle object) noexcept
@@ -1482,6 +1631,17 @@ bool ClientViewerViewport::update_area_region_preview(
 {
     return impl_
         && impl_->update_area_region_preview(points, hover, closing_valid);
+}
+
+bool ClientViewerViewport::update_area_tile_preview(
+    nw::ObjectHandle area,
+    std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
+    bool paintable,
+    bool replace_tiles)
+{
+    return impl_
+        && impl_->update_area_tile_preview(
+            area, rows, paintable, replace_tiles);
 }
 
 bool ClientViewerViewport::end_toolset_preview_visuals() noexcept

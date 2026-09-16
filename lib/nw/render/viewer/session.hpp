@@ -234,6 +234,10 @@ public:
         float pixel_y,
         ViewerViewport viewport,
         AreaObjectSelectionTarget target = AreaObjectSelectionTarget::object);
+    // One pointer event is a size-one wrapper over select_area_pointer_objects.
+    // It does not change the active object selection.
+    [[nodiscard]] AreaObjectSelection area_tile_hit(
+        float pixel_x, float pixel_y, ViewerViewport viewport);
     [[nodiscard]] AreaObjectCandidateSelection select_area_object_candidate(
         float pixel_x,
         float pixel_y,
@@ -263,6 +267,11 @@ public:
         AreaDoorAnimationLease& lease) noexcept;
     [[nodiscard]] AreaObjectPreviewAppendResult append_area_object_previews(
         std::span<const nw::ObjectHandle> objects, float opacity);
+    [[nodiscard]] AreaTransientVisualResult update_area_tile_previews(
+        std::span<const AreaTilePreviewRow> rows,
+        AreaTilePreviewLease& lease);
+    [[nodiscard]] AreaTransientVisualResult restore_area_tile_previews(
+        AreaTilePreviewLease& lease);
     [[nodiscard]] AreaTransientVisualResult append_area_transient_visuals(
         std::span<const nw::ObjectHandle> objects);
     [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(

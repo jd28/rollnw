@@ -6,11 +6,13 @@
 
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
 namespace nw {
 struct Area;
+struct AreaTile;
 }
 
 namespace nw::toolset {
@@ -40,6 +42,15 @@ struct AreaDoorHookSnapshot {
 // tiles and slots are dropped; invalid Area shape rejects the complete snapshot.
 [[nodiscard]] bool build_area_door_hooks(
     const Area& area, AreaDoorHookSnapshot& output, std::string& diagnostic);
+
+// Builds the same snapshot against a complete candidate tile array without
+// mutating the Area. This is used to reject structural edits that would make
+// their own inverse unsafe.
+[[nodiscard]] bool build_area_door_hooks(
+    const Area& area,
+    std::span<const AreaTile> tiles,
+    AreaDoorHookSnapshot& output,
+    std::string& diagnostic);
 
 // Searches the pointer tile and its eight neighbors. Nonnegative types must match
 // exactly; k_area_door_any_hook_type accepts any hook. Occupied hooks are rejected

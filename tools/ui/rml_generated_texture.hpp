@@ -6,6 +6,10 @@
 #include <string_view>
 #include <vector>
 
+namespace nw {
+struct Image;
+}
+
 namespace nw::toolset {
 
 // Cold, main-thread protocol for pixels generated from live authoring data.
@@ -21,6 +25,9 @@ struct RmlGeneratedTexture {
     uint32_t visible_height = 0;
     std::vector<uint8_t> rgba;
 };
+
+[[nodiscard]] bool copy_image_rgba(
+    const nw::Image& image, bool flip_rows, RmlGeneratedTexture& output);
 
 [[nodiscard]] const RmlGeneratedTexture* find_generated_texture(
     std::span<const RmlGeneratedTexture> textures, std::string_view source) noexcept;

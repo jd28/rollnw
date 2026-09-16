@@ -3303,6 +3303,114 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     EXPECT_FALSE(nw::kernel::objects().valid(area_handle));
 }
 
+TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module(
+                  "test_data/user/modules/DockerDemo.mod", false),
+        nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(
+        viewer::ViewerDeviceOptions{.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_area("test_area"));
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_NE(scene->area_render_scene, nullptr);
+    const auto* area
+        = nw::kernel::objects().get<nw::Area>(scene->root_object);
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(area->tileset, nullptr);
+
+    std::array<uint32_t, 2> target_cells{UINT32_MAX, UINT32_MAX};
+    size_t target_count = 0;
+    for (uint32_t index = 0;
+        index < scene->area_tile_model_indices.size()
+        && target_count < target_cells.size();
+        ++index) {
+        if (scene->static_model_instance(
+                scene->area_tile_model_indices[index])) {
+            target_cells[target_count++] = index;
+        }
+    }
+    ASSERT_EQ(target_count, target_cells.size());
+    const int32_t preview_tile_id = area->tiles[target_cells[0]].id;
+    ASSERT_GE(preview_tile_id, 0);
+
+    const size_t original_model_count = scene->static_models.size();
+    viewer::AreaTilePreviewLease lease;
+    const std::array first{viewer::AreaTilePreviewRow{
+        .tile_index = target_cells[0],
+        .tile_id = preview_tile_id,
+    }};
+    const auto appended = viewer::update_area_tile_previews(
+        *scene, *device.preview_resources(), first, lease);
+    ASSERT_TRUE(appended.ok()) << appended.diagnostic;
+    ASSERT_TRUE(lease.active);
+    ASSERT_EQ(lease.preview_model_indices.size(), 1u);
+    EXPECT_EQ(scene->static_models.size(), original_model_count + 1u);
+    const uint32_t preview_model_index = lease.preview_model_indices[0];
+    const auto preview_handle
+        = scene->static_model_instance_handles[preview_model_index];
+    const auto preview_root
+        = scene->static_model_instance(preview_model_index)->root_transform;
+    const uint32_t preview_record = scene->area_render_scene
+                                        ->record_index_for_render_model(
+                                            preview_model_index);
+    ASSERT_NE(preview_record, viewer::kInvalidAreaRenderRecordIndex);
+    EXPECT_EQ(scene->area_render_scene->kinds()[preview_record],
+        nw::ObjectType::invalid);
+    EXPECT_EQ(scene->area_render_scene->flags()[preview_record]
+            & viewer::AreaRenderScene::RecordFlag::static_candidate,
+        0u);
+    EXPECT_NE(scene->area_render_scene->flags()[preview_record]
+            & viewer::AreaRenderScene::RecordFlag::render_enabled,
+        0u);
+    EXPECT_FALSE(scene->static_model_instance(
+                          scene->area_tile_model_indices[target_cells[0]])
+            ->visible);
+
+    const std::array second{viewer::AreaTilePreviewRow{
+        .tile_index = target_cells[1],
+        .tile_id = preview_tile_id,
+    }};
+    const auto repositioned = viewer::update_area_tile_previews(
+        *scene, *device.preview_resources(), second, lease);
+    ASSERT_TRUE(repositioned.ok()) << repositioned.diagnostic;
+    ASSERT_EQ(lease.preview_model_indices.size(), 1u);
+    EXPECT_EQ(lease.preview_model_indices[0], preview_model_index);
+    EXPECT_EQ(scene->static_model_instance_handles[preview_model_index],
+        preview_handle);
+    EXPECT_NE(scene->static_model_instance(preview_model_index)->root_transform,
+        preview_root);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[0]])
+            ->visible);
+    EXPECT_FALSE(scene->static_model_instance(
+                          scene->area_tile_model_indices[target_cells[1]])
+            ->visible);
+    std::string render_failure;
+    EXPECT_TRUE(render_viewer_frame(gfx.context, *session,
+        viewer::ViewerViewport{0, 0, 256, 256}, render_failure, 100))
+        << render_failure;
+
+    const auto restored = viewer::restore_area_tile_previews(*scene, lease);
+    ASSERT_TRUE(restored.ok()) << restored.diagnostic;
+    EXPECT_FALSE(lease.active);
+    EXPECT_EQ(scene->static_models.size(), original_model_count);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[0]])
+            ->visible);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[1]])
+            ->visible);
+}
+
 TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRemoveAsBatch)
 {
     namespace viewer = nw::render::viewer;

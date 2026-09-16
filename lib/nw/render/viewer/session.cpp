@@ -860,6 +860,30 @@ AreaObjectSelection ViewerSession::select_area_object(
     return result;
 }
 
+AreaObjectSelection ViewerSession::area_tile_hit(
+    float pixel_x,
+    float pixel_y,
+    ViewerViewport viewport)
+{
+    if (!area_object_selection_enabled_ || !scene_
+        || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
+        return {};
+    }
+
+    update_viewport(viewport);
+    const std::array pixels{glm::vec2{pixel_x, pixel_y}};
+    std::array<AreaObjectSelection, 1> selections;
+    select_area_pointer_objects(
+        pixels,
+        camera_,
+        viewport,
+        *scene_->area_render_scene,
+        *scene_,
+        selections,
+        {.target = AreaObjectSelectionTarget::tile});
+    return selections.front();
+}
+
 AreaObjectCandidateSelection ViewerSession::select_area_object_candidate(
     float pixel_x,
     float pixel_y,
@@ -1072,6 +1096,33 @@ AreaObjectPreviewAppendResult ViewerSession::append_area_object_previews(
     }
     return viewer::append_area_object_previews(
         *scene_, *preview_resources_, objects, opacity, preview_scene_load_options_);
+}
+
+AreaTransientVisualResult ViewerSession::update_area_tile_previews(
+    std::span<const AreaTilePreviewRow> rows,
+    AreaTilePreviewLease& lease)
+{
+    if (!preview_resources_ || !scene_
+        || scene_kind_ != ViewerSceneKind::area) {
+        return {
+            .status = AreaTransientVisualStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area scene",
+        };
+    }
+    return viewer::update_area_tile_previews(
+        *scene_, *preview_resources_, rows, lease);
+}
+
+AreaTransientVisualResult ViewerSession::restore_area_tile_previews(
+    AreaTilePreviewLease& lease)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area) {
+        return {
+            .status = AreaTransientVisualStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area scene",
+        };
+    }
+    return viewer::restore_area_tile_previews(*scene_, lease);
 }
 
 AreaTransientVisualResult ViewerSession::append_area_transient_visuals(

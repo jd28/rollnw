@@ -1,5 +1,6 @@
 #pragma once
 
+#include "area_tile_edits.hpp"
 #include "blueprint_edits.hpp"
 #include "blueprint_operations.hpp"
 #include "blueprint_update_job.hpp"
@@ -79,6 +80,8 @@ public:
         CommandContext context);
     CommandResult transform_area_object(
         ObjectTransformEdit edit, CommandContext context);
+    CommandResult edit_area_tiles(
+        AreaTileEditBatch edit, std::string label, CommandContext context);
     CommandResult place_creature_items(ObjectHandle creature,
         std::span<const ItemPlacement> placements,
         CommandContext context);

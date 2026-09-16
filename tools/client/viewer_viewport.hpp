@@ -20,6 +20,7 @@ struct Context;
 }
 
 namespace nw::render::viewer {
+struct AreaTilePreviewRow;
 struct ViewerFrameStats;
 }
 
@@ -65,6 +66,10 @@ public:
         float pixel_y,
         ClientViewportRect viewport,
         ClientAreaSelectionTarget target);
+    [[nodiscard]] std::optional<ClientAreaTileHit> area_tile_hit(
+        float pixel_x,
+        float pixel_y,
+        ClientViewportRect viewport);
     bool set_area_object_selection(nw::ObjectHandle object) noexcept;
     [[nodiscard]] uint32_t active_area_debug_subindex(
         nw::ObjectHandle object) const noexcept;
@@ -96,6 +101,11 @@ public:
         std::span<const glm::vec3> points,
         std::optional<glm::vec3> hover,
         bool closing_valid);
+    bool update_area_tile_preview(
+        nw::ObjectHandle area,
+        std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
+        bool paintable = true,
+        bool replace_tiles = true);
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> area_camera_focus() const noexcept;
     bool sync_area_object_spatial(nw::ObjectHandle object);

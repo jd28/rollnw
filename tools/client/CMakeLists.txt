@@ -1,8 +1,12 @@
 add_library(rollnw_client_core STATIC
     area_door_hooks.cpp
+    area_tile_interaction.cpp
+    area_tile_palette.cpp
     area_regions.cpp
     area_map.cpp
     area_navigation.cpp
+    area_tile_edits.cpp
+    area_tile_brush.cpp
     appearance_catalog.cpp
     blueprint_edits.cpp
     blueprint_references.cpp

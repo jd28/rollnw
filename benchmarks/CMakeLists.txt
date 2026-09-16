@@ -15,6 +15,7 @@ add_custom_target(copy-benchmark-files ALL
 
 add_executable(rollnw_benchmark
     appearance_catalog.cpp
+    area_tile_edit.cpp
     combat.cpp
     main.cpp
     navigation.cpp
