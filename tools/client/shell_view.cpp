@@ -3,6 +3,8 @@
 #include "shell_controller.hpp"
 #include "toolset_backend.hpp"
 
+#include <nw/log.hpp>
+
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/Elements/ElementFormControl.h>
@@ -18,6 +20,25 @@ namespace nw::toolset {
 namespace {
 
 constexpr int kBottomDockViewportReservePx = 96;
+constexpr const char* kLogCallbackId = "rollnw.client.output_log";
+constexpr size_t kMaxPendingLogLines = 512;
+
+std::string log_channel_for(loguru::Verbosity verbosity)
+{
+    if (verbosity <= loguru::Verbosity_ERROR) { return "error"; }
+    if (verbosity == loguru::Verbosity_WARNING) { return "warn"; }
+    return "info";
+}
+
+std::string format_captured_log_message(const loguru::Message& message)
+{
+    std::string out;
+    if (message.indentation && message.indentation[0] != '\0') { out += message.indentation; }
+    if (message.prefix && message.prefix[0] != '\0') { out += message.prefix; }
+    if (message.message && message.message[0] != '\0') { out += message.message; }
+    if (out.empty() && message.preamble) { out = message.preamble; }
+    return out;
+}
 
 Rml::Element* find_ancestor_with_id(Rml::Element* element, std::string_view id)
 {
@@ -187,6 +208,58 @@ bool left_dock_visible_for_active_tab(const ShellController& shell)
 }
 
 } // namespace
+
+LoguruOutputCapture::LoguruOutputCapture()
+{
+    loguru::add_callback(kLogCallbackId, &LoguruOutputCapture::handle_log, this, loguru::Verbosity_INFO);
+}
+
+LoguruOutputCapture::~LoguruOutputCapture()
+{
+    loguru::remove_callback(kLogCallbackId);
+}
+
+std::vector<CapturedLogLine> LoguruOutputCapture::drain()
+{
+    std::lock_guard lock{mutex_};
+    std::vector<CapturedLogLine> out;
+    out.reserve(lines_.size());
+    while (!lines_.empty()) {
+        out.push_back(std::move(lines_.front()));
+        lines_.pop_front();
+    }
+    return out;
+}
+
+void LoguruOutputCapture::push(const loguru::Message& message)
+{
+    CapturedLogLine line;
+    line.channel = log_channel_for(message.verbosity);
+    line.message = format_captured_log_message(message);
+    if (line.message.empty()) { return; }
+    std::lock_guard lock{mutex_};
+    while (lines_.size() >= kMaxPendingLogLines) {
+        lines_.pop_front();
+    }
+    lines_.push_back(std::move(line));
+}
+
+void LoguruOutputCapture::handle_log(void* user_data, const loguru::Message& message) noexcept
+{
+    auto* capture = static_cast<LoguruOutputCapture*>(user_data);
+    if (!capture) { return; }
+    try {
+        capture->push(message);
+    } catch (...) {
+    }
+}
+
+void flush_shell_log_capture(LoguruOutputCapture& capture, ShellController& shell)
+{
+    for (const auto& line : capture.drain()) {
+        shell.append_output(line.channel, line.message);
+    }
+}
 
 void apply_shell_layout(Rml::ElementDocument* doc, const ShellController& shell, ShellPreviewLayout preview)
 {
@@ -562,6 +635,15 @@ void refresh_bottom_dock_view(Rml::ElementDocument* doc, const ShellController& 
         if (auto* input = doc->GetElementById("terminal_input")) {
             input->Focus();
         }
+    }
+}
+
+void refresh_output_filter(Rml::ElementDocument* doc, ShellViewState& state, ShellController& shell)
+{
+    const auto filter = get_input_value(doc, "output_filter");
+    if (filter != state.last_output_filter) {
+        state.last_output_filter = filter;
+        shell.output_dirty = true;
     }
 }
 

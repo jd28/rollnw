@@ -540,6 +540,18 @@ void refresh_browser_view(Rml::ElementDocument* doc, BrowserViewState& state,
     }
 }
 
+void refresh_home_area_query(Rml::ElementDocument* doc, BrowserViewState& state, const ToolsetBackend& backend, bool home_active)
+{
+    if (!home_active || backend.module_object().type != ObjectType::module) { return; }
+    const auto query = get_input_value(doc, "home_area_search");
+    const bool changed = query != state.home_area_query;
+    if (changed) {
+        state.home_area_query = query;
+        refresh_home_area_catalog(state, backend, true);
+    }
+    (void)sync_home_area_window(doc, state, home_active, changed);
+}
+
 void refresh_home_area_catalog(BrowserViewState& state, const ToolsetBackend& backend, bool force)
 {
     const uint64_t generation = backend.module_generation();

@@ -8,10 +8,17 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
+
+namespace loguru {
+struct Message;
+}
 
 namespace Rml {
 class Context;
@@ -23,6 +30,29 @@ namespace nw::toolset {
 
 class ShellController;
 class ToolsetBackend;
+
+struct CapturedLogLine {
+    std::string channel;
+    std::string message;
+};
+// One active process callback, stable address until synchronized SDK removal.
+// Borrowed messages become owning FIFO rows; cap=512 drops oldest, empty rows
+// and callback allocation failures drop. Drains transfer the ordered row batch.
+class LoguruOutputCapture {
+public:
+    LoguruOutputCapture();
+    ~LoguruOutputCapture();
+    LoguruOutputCapture(const LoguruOutputCapture&) = delete;
+    LoguruOutputCapture& operator=(const LoguruOutputCapture&) = delete;
+    std::vector<CapturedLogLine> drain();
+
+private:
+    void push(const loguru::Message& message);
+    static void handle_log(void* user_data, const loguru::Message& message) noexcept;
+    std::mutex mutex_;
+    std::deque<CapturedLogLine> lines_;
+};
+void flush_shell_log_capture(LoguruOutputCapture& capture, ShellController& shell);
 
 struct OutputSelectionState {
     std::string text;
@@ -114,6 +144,8 @@ void apply_bottom_dock_height(Rml::ElementDocument* doc, ShellController& shell,
 void refresh_terminal_view(Rml::ElementDocument* doc, const ShellController& shell);
 void refresh_bottom_dock_view(Rml::ElementDocument* doc, const ShellController& shell, ShellPreviewLayout preview);
 void refresh_output_view(Rml::ElementDocument* doc, ShellViewState& state, const ShellController& shell);
+// Singleton displayed filter: missing field means empty, unchanged does no work.
+void refresh_output_filter(Rml::ElementDocument*, ShellViewState&, ShellController&);
 void observe_output_scroll(Rml::ElementDocument* doc, ShellController& shell);
 [[nodiscard]] bool apply_output_scroll_after_layout(Rml::ElementDocument* doc,
     ShellViewState& state, ShellController& shell);

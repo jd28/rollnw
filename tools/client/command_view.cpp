@@ -212,6 +212,70 @@ CommandOverlayAction handle_command_overlay_target(CommandViewState& state,
     return {CommandOverlayActionKind::handled};
 }
 
+CommandFormKeyResult handle_command_form_key(CommandViewState& state,
+    const ToolsetBackend& backend, bool project_load_active,
+    Rml::Context* context, const SDL_KeyboardEvent& key)
+{
+    if (!state.command_form || key.type != SDL_EVENT_KEY_DOWN || key.repeat) {
+        return {};
+    }
+    auto* focused_choice = find_ancestor_with_class(
+        context ? context->GetFocusElement() : nullptr, "command_form_choice_field");
+    const bool choice_key = focused_choice
+        && !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+    const auto focused_field = choice_key
+        ? parse_decimal_int32(focused_choice->GetAttribute<Rml::String>("data-field", ""))
+        : std::nullopt;
+    if (key.key == SDLK_ESCAPE && state.command_form_combobox.is_active()) {
+        close_command_form_combobox(state);
+        return {true};
+    }
+    if (key.key == SDLK_TAB && state.command_form_combobox.is_active()) {
+        close_command_form_combobox(state);
+    }
+    if (focused_field && *focused_field >= 0 && (key.key == SDLK_UP || key.key == SDLK_DOWN)) {
+        const auto field_index = static_cast<size_t>(*focused_field);
+        if (state.command_form_combobox_field != field_index
+            || !state.command_form_combobox.is_active()) {
+            (void)open_command_form_combobox(state, field_index);
+        } else if (!state.command_form_combobox.popup_visible()) {
+            (void)state.command_form_combobox.show_popup();
+        }
+        (void)state.command_form_combobox.move_selection(key.key == SDLK_UP ? -1 : 1);
+        sync_command_form_combobox(state, true);
+        return {true};
+    }
+    if (focused_field && *focused_field >= 0
+        && (key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER)) {
+        const auto field_index = static_cast<size_t>(*focused_field);
+        if (state.command_form_combobox_field != field_index
+            || !state.command_form_combobox.is_active()) {
+            if (open_command_form_combobox(state, field_index)) {
+                sync_command_form_combobox(state, true);
+            }
+        } else if (!state.command_form_combobox.popup_visible()) {
+            (void)state.command_form_combobox.show_popup();
+            sync_command_form_combobox(state, true);
+        } else if (const auto selected = state.command_form_combobox.selected_key()) {
+            (void)commit_command_form_combobox(state, backend, project_load_active, *selected);
+        }
+        return {true};
+    }
+    if (key.key == SDLK_ESCAPE) {
+        const auto& actions = state.command_form->actions;
+        const auto cancel = std::find_if(actions.begin(), actions.end(),
+            [](const auto& action) { return action.id == "cancel"; });
+        if (cancel != actions.end()) {
+            return {true, static_cast<size_t>(std::distance(actions.begin(), cancel))};
+        }
+        return {true};
+    }
+    if (key.key == SDLK_RETURN && !state.command_form->actions.empty()) {
+        return {true, 0};
+    }
+    return {};
+}
+
 std::optional<CommandPromptAction> take_command_form_action(CommandViewState& state,
     const ToolsetBackend& backend, bool project_load_active, bool dialog_open, size_t index)
 {

@@ -10,6 +10,41 @@
 namespace nw::toolset {
 namespace {
 
+EditorShortcutAction shortcut_action(const EditorShortcutInput& input) noexcept
+{
+    const auto modifiers = input.modifiers;
+    switch (input.key) {
+    case SDLK_P:
+        return (modifiers & SDL_KMOD_CTRL) && (modifiers & SDL_KMOD_SHIFT)
+            ? EditorShortcutAction::palette_toggle
+            : EditorShortcutAction::none;
+    case SDLK_J:
+        return modifiers & SDL_KMOD_CTRL ? EditorShortcutAction::output_toggle : EditorShortcutAction::none;
+    case SDLK_GRAVE:
+        return !(modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))
+            ? EditorShortcutAction::terminal_toggle
+            : EditorShortcutAction::none;
+    case SDLK_S:
+        if (!input.repeat && (modifiers & SDL_KMOD_CTRL)
+            && !(modifiers & (SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+            return modifiers & SDL_KMOD_SHIFT ? EditorShortcutAction::save_all : EditorShortcutAction::save_tab;
+        }
+        break;
+    case SDLK_W:
+    case SDLK_Z:
+    case SDLK_Y:
+        if (!input.repeat && (modifiers & SDL_KMOD_CTRL)
+            && !(modifiers & (SDL_KMOD_SHIFT | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+            if (input.key == SDLK_W) { return EditorShortcutAction::close_tab; }
+            return input.key == SDLK_Z ? EditorShortcutAction::undo : EditorShortcutAction::redo;
+        }
+        break;
+    default:
+        break;
+    }
+    return EditorShortcutAction::none;
+}
+
 std::optional<ClientViewportCameraCommand> camera_binding(SDL_Keycode key, bool preview)
 {
     switch (key) {
@@ -84,6 +119,19 @@ EditorKeyAction resolve(const EditorKeyInput& input)
 }
 
 } // namespace
+
+bool resolve_editor_shortcut_actions(std::span<const EditorShortcutInput> inputs,
+    std::span<EditorShortcutAction> outputs) noexcept
+{
+    if (inputs.size() != outputs.size()) {
+        std::ranges::fill(outputs, EditorShortcutAction::none);
+        return false;
+    }
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        outputs[i] = shortcut_action(inputs[i]);
+    }
+    return true;
+}
 
 bool editor_key_has_binding(SDL_Keycode key) noexcept
 {

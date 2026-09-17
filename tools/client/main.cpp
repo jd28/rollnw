@@ -46,6 +46,7 @@
 #include "smalls_creature_inventory.hpp"
 #include "smalls_creature_properties.hpp"
 #include "smalls_creature_spells.hpp"
+#include "smalls_view.hpp"
 #include "sound_catalog.hpp"
 #include "toolset_backend.hpp"
 #include "viewport_pointer_drag.hpp"
@@ -136,6 +137,7 @@ using nw::toolset::kPltPaletteCellPx;
 using nw::toolset::kPltPaletteColumns;
 using nw::toolset::kPltPaletteRows;
 using nw::toolset::kWorkspaceTabScrollStrip;
+using nw::toolset::LoguruOutputCapture;
 using nw::toolset::object_has_grid_inventory;
 using nw::toolset::ObjectWorkbenchSurface;
 using nw::toolset::output_scroll_input;
@@ -189,104 +191,6 @@ float seconds_between_performance_counters(Uint64 start, Uint64 end)
     const double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
     return static_cast<float>(static_cast<double>(end - start) / frequency);
 }
-
-struct CapturedLogLine {
-    std::string channel;
-    std::string message;
-};
-
-class LoguruOutputCapture {
-public:
-    LoguruOutputCapture()
-    {
-        loguru::add_callback(kCallbackId, &LoguruOutputCapture::handle_log, this, loguru::Verbosity_INFO);
-    }
-
-    ~LoguruOutputCapture()
-    {
-        loguru::remove_callback(kCallbackId);
-    }
-
-    LoguruOutputCapture(const LoguruOutputCapture&) = delete;
-    LoguruOutputCapture& operator=(const LoguruOutputCapture&) = delete;
-
-    std::vector<CapturedLogLine> drain()
-    {
-        std::lock_guard lock{mutex_};
-        std::vector<CapturedLogLine> out;
-        out.reserve(lines_.size());
-        while (!lines_.empty()) {
-            out.push_back(std::move(lines_.front()));
-            lines_.pop_front();
-        }
-        return out;
-    }
-
-private:
-    static constexpr const char* kCallbackId = "rollnw.client.output_log";
-    static constexpr size_t kMaxPendingLines = 512;
-
-    static std::string channel_for(loguru::Verbosity verbosity)
-    {
-        if (verbosity <= loguru::Verbosity_ERROR) {
-            return "error";
-        }
-        if (verbosity == loguru::Verbosity_WARNING) {
-            return "warn";
-        }
-        return "info";
-    }
-
-    static std::string format_message(const loguru::Message& message)
-    {
-        std::string out;
-        if (message.indentation && message.indentation[0] != '\0') {
-            out += message.indentation;
-        }
-        if (message.prefix && message.prefix[0] != '\0') {
-            out += message.prefix;
-        }
-        if (message.message && message.message[0] != '\0') {
-            out += message.message;
-        }
-        if (out.empty() && message.preamble) {
-            out = message.preamble;
-        }
-        return out;
-    }
-
-    void push(const loguru::Message& message)
-    {
-        CapturedLogLine line;
-        line.channel = channel_for(message.verbosity);
-        line.message = format_message(message);
-        if (line.message.empty()) {
-            return;
-        }
-
-        std::lock_guard lock{mutex_};
-        while (lines_.size() >= kMaxPendingLines) {
-            lines_.pop_front();
-        }
-        lines_.push_back(std::move(line));
-    }
-
-    static void handle_log(void* user_data, const loguru::Message& message) noexcept
-    {
-        auto* capture = static_cast<LoguruOutputCapture*>(user_data);
-        if (!capture) {
-            return;
-        }
-
-        try {
-            capture->push(message);
-        } catch (...) {
-        }
-    }
-
-    std::mutex mutex_;
-    std::deque<CapturedLogLine> lines_;
-};
 
 std::pair<int, int> query_window_pixels(SDL_Window* window)
 {
@@ -532,32 +436,6 @@ bool consume_terminal_toggle_text_input(AppState& state, const SDL_Event& event)
     return nw::toolset::consume_terminal_toggle_text_input(state.shell_view, event);
 }
 
-std::string escape_html(std::string_view text)
-{
-    std::string out;
-    out.reserve(text.size() + 16);
-    for (const char ch : text) {
-        switch (ch) {
-        case '&':
-            out += "&amp;";
-            break;
-        case '<':
-            out += "&lt;";
-            break;
-        case '>':
-            out += "&gt;";
-            break;
-        case '"':
-            out += "&quot;";
-            break;
-        default:
-            out.push_back(ch);
-            break;
-        }
-    }
-    return out;
-}
-
 void remember_recent_project(AppState& state, const std::filesystem::path& project_dir)
 {
     nw::toolset::remember_recent_project(state.shell_view.preferences_path, state.shell.docks, state.browser.recent_projects, project_dir);
@@ -690,34 +568,6 @@ void focus_workspace_viewport(Rml::ElementDocument* doc, AppState& state)
     }
 }
 
-std::optional<int32_t> parse_decimal_int32(std::string_view value)
-{
-    if (value.empty()) {
-        return std::nullopt;
-    }
-
-    int32_t result = 0;
-    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
-    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size()) {
-        return std::nullopt;
-    }
-    return result;
-}
-
-std::optional<uint64_t> parse_decimal_uint64(std::string_view value)
-{
-    if (value.empty()) {
-        return std::nullopt;
-    }
-
-    uint64_t result = 0;
-    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
-    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size()) {
-        return std::nullopt;
-    }
-    return result;
-}
-
 bool viewport_mouse_hit_blocked(Rml::ElementDocument* doc, Rml::Element* top_hit, Rml::Vector2f point, const AppState& state)
 {
     if (state.shell.bottom_dock_visible() && point_within_element(doc, "bottom_dock", point)) {
@@ -809,89 +659,28 @@ void append_output(AppState& state, std::string_view channel, std::string_view l
 
 void dispatch_managed_list_events(AppState& state)
 {
-    auto& host = nw::toolset::ui_v1_host();
-    host.drain_events([&](const nw::toolset::UiListEvent& event) {
-        const auto* callback = host.callback_ptr(event.list_id(), event.type);
-        if (!callback) {
-            return;
-        }
-        const std::string qualified_function = *callback;
-        const auto result = state.smalls.call_ui_list_callback(
-            qualified_function, event);
-        if (!result.ok) {
-            append_output(state, "error", result.message);
-        }
-    });
+    nw::toolset::dispatch_smalls_list_events(state.smalls, state.shell);
 }
-
 bool synchronize_smalls_runtime(AppState& state)
 {
-    if (!state.rml_smalls_binding || !state.rml_smalls_data_model
-        || !state.smalls.initialize()) {
-        return false;
-    }
-    auto& runtime = nw::kernel::runtime();
-    return state.rml_smalls_binding->initialize(runtime)
-        && state.rml_smalls_data_model->synchronize(runtime);
+    return nw::toolset::synchronize_smalls_view(state.smalls, state.rml_smalls_binding.get(), state.rml_smalls_data_model.get());
 }
-
 void refresh_smalls_elements(Rml::ElementDocument* document, AppState& state)
 {
-    if (document && synchronize_smalls_runtime(state)) {
-        state.rml_smalls_binding->refresh_elements(document);
-        state.rml_smalls_data_model->dirty_all();
-    }
+    nw::toolset::refresh_smalls_view(document, state.smalls, state.rml_smalls_binding.get(), state.rml_smalls_data_model.get());
 }
-
-struct ManagedListActivationResult {
-    std::optional<nw::toolset::ManagedListFocusTarget> focus_target;
-    bool activated = false;
-};
-
-ManagedListActivationResult activate_managed_list(Rml::ElementDocument* document,
-    AppState& state,
-    Rml::Element* hit)
+nw::toolset::SmallsListActivation activate_managed_list(Rml::ElementDocument* document, AppState& state, Rml::Element* hit)
 {
-    ManagedListActivationResult result;
-    result.focus_target = nw::toolset::managed_list_focus_target(hit);
-    auto& host = nw::toolset::ui_v1_host();
-    if (!nw::toolset::activate_managed_list_element(hit, host)) {
-        return result;
-    }
-    dispatch_managed_list_events(state);
-    refresh_smalls_elements(document, state);
-    nw::toolset::sync_managed_lists(
-        document, host, state.workbench.managed_lists, true);
-    result.activated = true;
-    return result;
+    return nw::toolset::activate_smalls_list(document, hit, state.smalls, state.rml_smalls_binding.get(), state.rml_smalls_data_model.get(), state.shell, state.workbench.managed_lists);
 }
-
-bool cycle_managed_list(Rml::ElementDocument* document,
-    AppState& state,
-    Rml::Element* element,
-    int delta)
+bool cycle_managed_list(Rml::ElementDocument* document, AppState& state, Rml::Element* element, int delta)
 {
-    const auto focus_target = nw::toolset::managed_list_focus_target(element);
-    auto& host = nw::toolset::ui_v1_host();
-    if (!nw::toolset::cycle_managed_list_element(element, host, delta)) {
-        return false;
-    }
-    dispatch_managed_list_events(state);
-    refresh_smalls_elements(document, state);
-    nw::toolset::sync_managed_lists(
-        document, host, state.workbench.managed_lists, true);
-    if (focus_target) {
-        (void)nw::toolset::focus_managed_list_target(
-            document, *focus_target);
-    }
-    return true;
+    return nw::toolset::cycle_smalls_list(document, element, delta, state.smalls, state.rml_smalls_binding.get(), state.rml_smalls_data_model.get(), state.shell, state.workbench.managed_lists);
 }
 
 void flush_log_capture(LoguruOutputCapture& capture, AppState& state)
 {
-    for (auto& line : capture.drain()) {
-        append_output(state, line.channel, line.message);
-    }
+    nw::toolset::flush_shell_log_capture(capture, state.shell);
 }
 
 void append_terminal(AppState& state, std::string_view style, std::string_view line)
@@ -927,12 +716,6 @@ void refresh_recent_list(Rml::ElementDocument* doc, AppState& state)
     apply_shell_layout(doc, state);
 }
 
-std::optional<nw::toolset::ResourceDocument> resource_document_for_tab(const AppState& state,
-    const nw::toolset::WorkspaceTab& active_tab)
-{
-    return nw::toolset::resource_document_for_tab(state.backend.current_project_dir(), active_tab);
-}
-
 void ensure_active_dialog_document(AppState& state)
 {
     nw::toolset::ensure_active_dialog_document(state.dialog_view, state.backend.current_project_dir(), state.workspace.active_tab());
@@ -957,12 +740,6 @@ void close_object_details_combobox(
     Rml::ElementDocument* doc, AppState& state)
 {
     nw::toolset::close_object_details_combobox(doc, state.workbench);
-}
-
-bool sync_object_details_combobox(
-    Rml::ElementDocument* doc, AppState& state, bool force = false)
-{
-    return nw::toolset::sync_object_details_combobox(doc, state.workbench, state.workspace, force);
 }
 
 void rebuild_active_object_details(AppState& state, nw::ObjectHandle object)
@@ -1017,34 +794,14 @@ bool sync_object_details_window(Rml::ElementDocument* doc, AppState& state, bool
     return nw::toolset::sync_object_details_window(doc, state.workbench, state.workspace, force);
 }
 
-void rebuild_active_creature_feats(AppState& state, nw::ObjectHandle object)
-{
-    nw::toolset::rebuild_active_creature_feats(state.workbench.creature_view, object);
-}
-
 bool sync_creature_feat_window(Rml::ElementDocument* doc, AppState& state, bool force)
 {
     return nw::toolset::sync_creature_feat_window(doc, state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), force);
 }
 
-bool active_creature_spell_filter_matches_tab(const AppState& state)
-{
-    return nw::toolset::active_creature_spell_filter_matches_tab(state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace));
-}
-
 void clear_creature_spell_filter(AppState& state)
 {
     nw::toolset::clear_creature_spell_filter(state.workbench.creature_view);
-}
-
-void filter_active_creature_spells(AppState& state)
-{
-    nw::toolset::filter_active_creature_spells(state.workbench.creature_view);
-}
-
-bool commit_creature_spell_filter(AppState& state, int32_t value)
-{
-    return nw::toolset::commit_creature_spell_filter(state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), value);
 }
 
 bool sync_creature_spell_window(Rml::ElementDocument* doc, AppState& state, bool force)
@@ -1106,16 +863,6 @@ void close_sound_resource_selector(AppState& state)
     nw::toolset::close_sound_resource_selector(state.workbench.appearance_view);
 }
 
-bool active_sound_resource_selector_matches_tab(const AppState& state)
-{
-    return nw::toolset::active_sound_resource_selector_matches_tab(state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace));
-}
-
-void rebuild_sound_catalog(AppState& state, bool reset_selection)
-{
-    nw::toolset::rebuild_sound_catalog(state.workbench.appearance_view, state.backend_ready ? nw::kernel::resman().generation() : 0, reset_selection);
-}
-
 bool sync_sound_catalog_window(
     Rml::ElementDocument* doc, AppState& state, bool force)
 {
@@ -1131,150 +878,12 @@ bool sync_appearance_body_preview(ClientRenderer& renderer, AppState& state)
 }
 
 
-void append_placed_area_object_list_markup(
-    std::string& content_markup, const AppState& state)
-{
-    std::vector<nw::toolset::PlacedAreaObjectRow> rows;
-    const auto* area = nw::kernel::objects().get<nw::Area>(state.smalls.active_area());
-    if (area) {
-        nw::toolset::build_placed_area_object_rows(*area, rows);
-    }
-
-    content_markup += "<div id=\"object_workbench\" class=\"object_workbench area_object_list_workbench\">";
-    content_markup += "<div class=\"object_workbench_header area_object_list_header\">";
-    content_markup += "<div class=\"object_workbench_title\">Placed Objects</div>";
-    content_markup += "<span class=\"area_object_list_count\">";
-    content_markup += std::to_string(rows.size());
-    content_markup += "</span></div><div class=\"area_object_list\">";
-    if (!area) {
-        content_markup += "<div class=\"property_tree_empty\">Loading placed objects...</div>";
-    } else if (rows.empty()) {
-        content_markup += "<div class=\"property_tree_empty\">This area has no placed objects.</div>";
-    } else {
-        for (const auto& row : rows) {
-            content_markup += "<button type=\"button\" class=\"area_object_row\" data-object=\"";
-            content_markup += std::to_string(row.object.to_ull());
-            content_markup += "\"><span class=\"area_object_row_name\">";
-            content_markup += escape_html(row.name);
-            content_markup += "</span><span class=\"area_object_row_type\">";
-            content_markup += escape_html(
-                nw::toolset::placed_area_object_type_label(row.object.type));
-            content_markup += "</span></button>";
-        }
-    }
-    content_markup += "</div></div>";
-}
-
-void append_object_workbench_markup(std::string& content_markup, const AppState& state)
-{
-    const auto* tab = state.workspace.active_tab();
-    if (tab && tab->kind == nw::toolset::WorkspaceTabKind::area
-        && state.area_workspace_surface == AreaWorkspaceSurface::objects
-        && !active_object_matches_tab(state)) {
-        append_placed_area_object_list_markup(content_markup, state);
-        return;
-    }
-    nw::toolset::append_object_workbench_markup(content_markup, state.workbench, state.workspace, state.backend);
-}
-
-void append_workspace_document_markup(std::string& content_markup,
-    const nw::toolset::WorkspaceTab& active_tab,
-    const AppState& state)
-{
-    if (active_tab.kind == nw::toolset::WorkspaceTabKind::area) {
-        content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
-        content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
-        content_markup += escape_html(active_tab.title);
-        content_markup += "</div><div class=\"workspace_area_detail\">";
-        content_markup += escape_html(workspace_tab_detail(active_tab));
-        content_markup += "</div><div class=\"workspace_area_tabs object_workbench_tab_track\">";
-        struct AreaSurfaceTab {
-            AreaWorkspaceSurface surface;
-            std::string_view id;
-            std::string_view label;
-        };
-        constexpr std::array tabs{
-            AreaSurfaceTab{AreaWorkspaceSurface::properties,
-                "properties", "Properties"},
-            AreaSurfaceTab{AreaWorkspaceSurface::objects,
-                "objects", "Objects"},
-            AreaSurfaceTab{AreaWorkspaceSurface::tiles,
-                "tiles", "Tiles"},
-        };
-        for (const auto& tab : tabs) {
-            content_markup += "<div class=\"area_workspace_tab object_workbench_tab";
-            if (state.area_workspace_surface == tab.surface) {
-                content_markup += " active";
-            }
-            content_markup += "\" data-area-surface=\"";
-            content_markup += tab.id;
-            content_markup += "\">";
-            content_markup += tab.label;
-            content_markup += "</div>";
-        }
-        content_markup += "</div></div>";
-        content_markup += "<div class=\"workspace_preview_body workspace_area_body\">";
-        nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
-        if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
-            nw::toolset::append_area_tile_palette_markup(content_markup, state.area_tile_editor);
-        } else {
-            append_object_workbench_markup(content_markup, state);
-        }
-        content_markup += "</div></div>";
-        return;
-    }
-
-    if (active_tab.kind == nw::toolset::WorkspaceTabKind::preview) {
-        content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
-        content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
-        content_markup += escape_html(active_tab.title);
-        content_markup += "</div><div class=\"workspace_area_detail\">";
-        content_markup += escape_html(workspace_tab_detail(active_tab));
-        content_markup += "</div></div>";
-        content_markup += "<div class=\"workspace_preview_body";
-        if (data_workbench_only(state.workbench.object_details.object.type,
-                state.workbench.object_workbench_surface)) {
-            content_markup += " data_workbench_only";
-        }
-        content_markup += "\">";
-        nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
-        append_object_workbench_markup(content_markup, state);
-        content_markup += "</div></div>";
-        return;
-    }
-
-    if (active_tab.kind == nw::toolset::WorkspaceTabKind::dialog) {
-        content_markup += nw::toolset::dialog_view_markup(state.dialog_view);
-        return;
-    }
-
-    if (active_tab.kind == nw::toolset::WorkspaceTabKind::resource) {
-        const auto document = resource_document_for_tab(state, active_tab);
-        content_markup += "<div class=\"workspace_resource_surface\">";
-        if (document) {
-            nw::toolset::append_resource_document_inspector(content_markup, *document);
-        } else {
-            nw::toolset::append_missing_resource_document(content_markup);
-        }
-        content_markup += "</div>";
-        return;
-    }
-
-    content_markup += "<div class=\"workspace_document workspace_document_";
-    content_markup += workspace_tab_kind_class(active_tab.kind);
-    content_markup += "\"><div class=\"workspace_document_title\">";
-    content_markup += escape_html(active_tab.title);
-    content_markup += "</div><div class=\"workspace_document_detail\">";
-    content_markup += escape_html(workspace_tab_detail(active_tab));
-    content_markup += "</div></div>";
-}
-
-
 void append_workspace_home_markup(std::string& content_markup, AppState& state)
 {
     const bool module_open = nw::toolset::append_workspace_home_start_markup(content_markup, state.browser,
         state.backend, state.loading, ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION);
-    if (module_open) { append_object_workbench_markup(content_markup, state); }
+    if (module_open) { nw::toolset::append_workspace_object_workbench_markup(content_markup, state.workspace,
+        state.backend, state.workbench, state.area_workspace_surface, state.smalls.active_area()); }
     content_markup += "</div>";
 }
 
@@ -1320,7 +929,9 @@ void refresh_workspace_content_impl(Rml::ElementDocument* doc, AppState& state, 
         append_workspace_home_markup(content_markup, state);
     } else {
         append_workspace_subtabs_markup(content_markup, *active_tab);
-        append_workspace_document_markup(content_markup, *active_tab, state);
+        nw::toolset::append_workspace_document_markup(content_markup, *active_tab, state.workspace,
+            state.backend, state.workbench, state.area_workspace_surface, state.area_tile_editor,
+            state.dialog_view, state.smalls.active_area());
     }
 
     if (auto* content = doc->GetElementById("workspace_content")) {
@@ -1995,26 +1606,10 @@ void close_command_form_combobox(AppState& state)
     nw::toolset::close_command_form_combobox(state.command_view);
 }
 
-bool open_command_form_combobox(AppState& state, size_t field_index)
-{
-    return nw::toolset::open_command_form_combobox(state.command_view, field_index);
-}
-
-void sync_command_form_combobox(AppState& state, bool force = false)
-{
-    nw::toolset::sync_command_form_combobox(state.command_view, force);
-}
-
 void sync_command_form(AppState& state, bool force = false)
 {
     nw::toolset::sync_command_form(state.command_view, state.backend,
         state.loading.project_load.active(), force);
-}
-
-bool commit_command_form_combobox(AppState& state, int32_t choice_index)
-{
-    return nw::toolset::commit_command_form_combobox(state.command_view,
-        state.backend, state.loading.project_load.active(), choice_index);
 }
 
 void sync_blueprint_operation(AppState& state)
@@ -2732,78 +2327,14 @@ int main(int argc, char* argv[])
                 }
             }
             if (state.command_view.command_form) {
-                if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) {
-                    auto* focused_choice = find_ancestor_with_class(
-                        palette_context->GetFocusElement(),
-                        "command_form_choice_field");
-                    const bool choice_key = focused_choice
-                        && !(event.key.mod
-                            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                    const auto focused_field = choice_key
-                        ? parse_decimal_int32(
-                              focused_choice->GetAttribute<Rml::String>(
-                                  "data-field", ""))
-                        : std::nullopt;
-                    if (event.key.key == SDLK_ESCAPE
-                        && state.command_view.command_form_combobox.is_active()) {
-                        close_command_form_combobox(state);
-                        continue;
+                if (event.type == SDL_EVENT_KEY_DOWN) {
+                    const auto key = nw::toolset::handle_command_form_key(
+                        state.command_view, state.backend, state.loading.project_load.active(),
+                        palette_context, event.key);
+                    if (key.action_index) {
+                        run_command_form_action(window, doc, state, *key.action_index);
                     }
-                    if (event.key.key == SDLK_TAB
-                        && state.command_view.command_form_combobox.is_active()) {
-                        close_command_form_combobox(state);
-                    }
-                    if (focused_field && *focused_field >= 0
-                        && (event.key.key == SDLK_UP
-                            || event.key.key == SDLK_DOWN)) {
-                        const auto field_index = static_cast<size_t>(*focused_field);
-                        if (state.command_view.command_form_combobox_field != field_index
-                            || !state.command_view.command_form_combobox.is_active()) {
-                            (void)open_command_form_combobox(
-                                state, field_index);
-                        } else if (!state.command_view.command_form_combobox.popup_visible()) {
-                            (void)state.command_view.command_form_combobox.show_popup();
-                        }
-                        (void)state.command_view.command_form_combobox.move_selection(
-                            event.key.key == SDLK_UP ? -1 : 1);
-                        sync_command_form_combobox(state, true);
-                        continue;
-                    }
-                    if (focused_field && *focused_field >= 0
-                        && (event.key.key == SDLK_RETURN
-                            || event.key.key == SDLK_KP_ENTER)) {
-                        const auto field_index = static_cast<size_t>(*focused_field);
-                        if (state.command_view.command_form_combobox_field != field_index
-                            || !state.command_view.command_form_combobox.is_active()) {
-                            if (open_command_form_combobox(
-                                    state, field_index)) {
-                                sync_command_form_combobox(state, true);
-                            }
-                        } else if (!state.command_view.command_form_combobox.popup_visible()) {
-                            (void)state.command_view.command_form_combobox.show_popup();
-                            sync_command_form_combobox(state, true);
-                        } else if (const auto selected
-                            = state.command_view.command_form_combobox.selected_key()) {
-                            (void)commit_command_form_combobox(
-                                state, *selected);
-                        }
-                        continue;
-                    }
-                    std::optional<size_t> action_index;
-                    if (event.key.key == SDLK_ESCAPE) {
-                        const auto cancel = std::find_if(state.command_view.command_form->actions.begin(), state.command_view.command_form->actions.end(), [](const auto& action) { return action.id == "cancel"; });
-                        if (cancel != state.command_view.command_form->actions.end()) {
-                            action_index = static_cast<size_t>(std::distance(state.command_view.command_form->actions.begin(), cancel));
-                        }
-                    } else if (event.key.key == SDLK_RETURN
-                        && !state.command_view.command_form->actions.empty()) {
-                        action_index = 0;
-                    }
-                    if (action_index) {
-                        run_command_form_action(window, doc, state, *action_index);
-                        continue;
-                    }
-                    if (event.key.key == SDLK_ESCAPE) { continue; }
+                    if (key.handled) { continue; }
                 }
                 if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP
                     || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING
@@ -2925,7 +2456,12 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                if ((event.key.mod & SDL_KMOD_CTRL) && (event.key.mod & SDL_KMOD_SHIFT) && event.key.key == SDLK_P) {
+                const std::array shortcut_inputs{nw::toolset::EditorShortcutInput{
+                    .key = event.key.key, .modifiers = event.key.mod, .repeat = event.key.repeat}};
+                std::array<nw::toolset::EditorShortcutAction, 1> shortcut_actions{};
+                (void)nw::toolset::resolve_editor_shortcut_actions(shortcut_inputs, shortcut_actions);
+                const auto shortcut = shortcut_actions.front();
+                if (shortcut == nw::toolset::EditorShortcutAction::palette_toggle) {
                     cancel_area_tile_stroke(renderer, state);
                     append_command_result(state, dispatch_command(state, "rollnw.client.palette.toggle", {}, nw::toolset::CommandSource::shortcut));
                     toggle_command_palette(context, palette_context, doc, palette_doc, state, state.shell.command_palette_visible);
@@ -3058,34 +2594,14 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                const bool creature_spell_filter_focused = !state.shell.command_palette_visible
-                    && active_creature_spell_filter_matches_tab(state)
-                    && focused_element_has_id(context, "active_creature_spell_filter_field")
-                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if (creature_spell_filter_focused
-                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)) {
-                    if (!state.workbench.creature_view.creature_spell_combobox.popup_visible()) {
-                        (void)state.workbench.creature_view.creature_spell_combobox.show_popup();
-                        refresh_workspace_content(doc, state);
-                    }
-                    (void)state.workbench.creature_view.creature_spell_combobox.move_selection(
-                        event.key.key == SDLK_UP ? -1 : 1);
-                    sync_creature_spell_filter_window(doc, state, true);
-                    dispatch.native_handled = true;
-                    break;
-                }
-                if (!event.key.repeat && creature_spell_filter_focused
-                    && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)) {
-                    if (!state.workbench.creature_view.creature_spell_combobox.popup_visible()) {
-                        (void)state.workbench.creature_view.creature_spell_combobox.show_popup();
-                        refresh_workspace_content(doc, state);
-                        sync_creature_spell_filter_window(doc, state, true);
-                    } else if (const auto selected = state.workbench.creature_view.creature_spell_combobox.selected_key()) {
-                        if (commit_creature_spell_filter(state, *selected)) {
-                            refresh_workspace_content(doc, state);
-                            sync_creature_spell_window(doc, state, true);
-                        }
-                    }
+                auto spell_key = nw::toolset::begin_creature_spell_filter_key(event.key,
+                    context, state.workbench.creature_view,
+                    nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                    state.shell.command_palette_visible);
+                if (spell_key.kind != nw::toolset::CreatureSpellFilterKeyKind::none) {
+                    if (spell_key.refresh_content) { refresh_workspace_content(doc, state); }
+                    nw::toolset::finish_creature_spell_filter_key(spell_key, doc,
+                        state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace));
                     dispatch.native_handled = true;
                     break;
                 }
@@ -3097,10 +2613,7 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                const bool command_ctrl = !event.key.repeat
-                    && (event.key.mod & SDL_KMOD_CTRL)
-                    && !(event.key.mod & (SDL_KMOD_SHIFT | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if (command_ctrl && event.key.key == SDLK_W) {
+                if (shortcut == nw::toolset::EditorShortcutAction::close_tab) {
                     cancel_area_tile_stroke(renderer, state);
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(
@@ -3110,27 +2623,23 @@ int main(int argc, char* argv[])
                     dispatch.native_handled = true;
                     break;
                 }
-                const bool save_all_shortcut = !event.key.repeat
-                    && (event.key.mod & SDL_KMOD_CTRL)
-                    && (event.key.mod & SDL_KMOD_SHIFT)
-                    && !(event.key.mod & (SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if ((command_ctrl || save_all_shortcut) && event.key.key == SDLK_S) {
+                if (shortcut == nw::toolset::EditorShortcutAction::save_tab || shortcut == nw::toolset::EditorShortcutAction::save_all) {
                     cancel_area_tile_stroke(renderer, state);
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(
-                            window, state, save_all_shortcut ? "toolset.save_all" : "workspace.save_tab",
+                            window, state, shortcut == nw::toolset::EditorShortcutAction::save_all ? "toolset.save_all" : "workspace.save_tab",
                             {}, nw::toolset::CommandSource::shortcut);
                         refresh_workspace_view(doc, state);
                     }
                     dispatch.native_handled = true;
                     break;
                 }
-                if (command_ctrl && (event.key.key == SDLK_Z || event.key.key == SDLK_Y)) {
+                if (shortcut == nw::toolset::EditorShortcutAction::undo || shortcut == nw::toolset::EditorShortcutAction::redo) {
                     cancel_area_tile_stroke(renderer, state);
                     if (ensure_backend_ready(state)) {
                         dispatch_command_flow(window,
                             state,
-                            event.key.key == SDLK_Z ? "command.undo" : "command.redo",
+                            shortcut == nw::toolset::EditorShortcutAction::undo ? "command.undo" : "command.redo",
                             {},
                             nw::toolset::CommandSource::shortcut);
                     }
@@ -3138,14 +2647,14 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                if ((event.key.mod & SDL_KMOD_CTRL) && event.key.key == SDLK_J) {
+                if (shortcut == nw::toolset::EditorShortcutAction::output_toggle) {
                     append_command_result(state, dispatch_command(state, "rollnw.client.output.toggle", {}, nw::toolset::CommandSource::shortcut));
                     toggle_output_panel(doc, state, state.shell.output_panel_visible());
                     dispatch.native_handled = true;
                     break;
                 }
 
-                if (!(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI)) && event.key.key == SDLK_GRAVE) {
+                if (shortcut == nw::toolset::EditorShortcutAction::terminal_toggle) {
                     append_command_result(state, dispatch_command(state, "rollnw.client.terminal.toggle", {}, nw::toolset::CommandSource::shortcut));
                     toggle_terminal(doc, state, state.shell.terminal_visible());
                     state.shell_view.suppress_terminal_toggle_text_input = true;
@@ -4162,162 +3671,30 @@ int main(int argc, char* argv[])
                             if (!release_workspace_mouse_up(phase)) { break; }
                             if (*selected) { nw::toolset::sync_dialog_view(doc, state.dialog_view, true); }
                             handled = true;
-                        } else if (auto color_click = nw::toolset::capture_color_editor_click(hit, point,
-                                       state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
-                            if (color_click->release_phase == nw::toolset::ClientRmlForwardPhase::before_native
-                                && !release_workspace_mouse_up()) { break; }
-                            if (color_click->kind == nw::toolset::ColorEditorClickKind::field) {
-                                (void)close_active_smalls_selector(doc);
-                            }
-                            const bool refresh = nw::toolset::apply_color_editor_click(*color_click,
-                                state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                state.workspace, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget));
-                            if (color_click->release_phase == nw::toolset::ClientRmlForwardPhase::after_native
-                                && !release_workspace_mouse_up(nw::toolset::ClientRmlForwardPhase::after_native)) { break; }
-                            if (refresh) { refresh_workspace_content(doc, state); }
-                            handled = true;
-                        } else if (auto combo_click = nw::toolset::capture_object_workbench_combo_click(hit,
+                        } else if (auto workbench_click = nw::toolset::capture_object_workbench_click(hit, point,
                                        state.workbench, state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            const auto effect = nw::toolset::apply_object_workbench_combo_click(*combo_click, doc,
-                                state.workbench, state.workspace, state.backend, state.shell,
-                                command_context(state, nw::toolset::CommandSource::widget));
-                            switch (effect) {
-                            case nw::toolset::ObjectWorkbenchComboEffect::sound_opened:
-                                (void)sync_object_details_combobox(doc, state, true);
-                                (void)nw::toolset::focus_object_workbench_combo_field(doc, *combo_click, state.workbench, state.workspace);
-                                break;
-                            case nw::toolset::ObjectWorkbenchComboEffect::sound_selected:
-                                refresh_workspace_content(doc, state);
-                                break;
-                            case nw::toolset::ObjectWorkbenchComboEffect::spell_opened:
-                                refresh_workspace_content(doc, state);
-                                sync_creature_spell_filter_window(doc, state, true);
-                                if (auto* field = find_el(doc, "active_creature_spell_filter_field")) { field->Focus(); }
-                                break;
-                            case nw::toolset::ObjectWorkbenchComboEffect::spell_selected:
-                                refresh_workspace_content(doc, state);
-                                sync_creature_spell_window(doc, state, true);
-                                break;
-                            default:
-                                break;
-                            }
-                            handled = true;
-                        } else if (auto* object_row = find_ancestor_with_class(hit, "area_object_row")) {
-                            const auto packed = parse_decimal_uint64(
-                                object_row->GetAttribute<Rml::String>("data-object", ""));
-                            if (packed) {
-                                const auto object = nw::ObjectHandle::from_ull(*packed);
-                                if (nw::kernel::objects().valid(object)) {
-                                    if (!release_workspace_mouse_up()) { break; }
-                                    if (renderer.set_viewer_area_object_selection(object)) {
-                                        (void)renderer.focus_viewer_area_object_selection();
-                                    }
-                                }
-                            }
-                            handled = true;
-                        } else if (find_ancestor_with_class(hit, "area_object_list_back")) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            (void)renderer.clear_viewer_area_object_selection();
-                            handled = true;
-                        } else if (auto click = nw::toolset::capture_object_workbench_command_click(
-                                       hit, state.workbench, state.workspace, state.backend.module_generation())) {
-                            if (click->release_phase == nw::toolset::ClientRmlForwardPhase::before_native
+                            const auto phase = workbench_click->release_phase;
+                            if (phase == nw::toolset::ClientRmlForwardPhase::before_native
                                 && !release_workspace_mouse_up()) { break; }
-                            (void)nw::toolset::execute_object_workbench_command_click(*click,
+                            nw::toolset::prepare_object_workbench_click(*workbench_click, doc);
+                            auto effect = nw::toolset::apply_object_workbench_click(*workbench_click, doc,
                                 state.workbench, state.workspace, state.backend, state.shell,
                                 command_context(state, nw::toolset::CommandSource::widget));
-                            if (click->release_phase == nw::toolset::ClientRmlForwardPhase::after_native
-                                && !release_workspace_mouse_up(nw::toolset::ClientRmlForwardPhase::after_native)) { break; }
-                            handled = true;
-                        } else if (auto sound_click = nw::toolset::capture_sound_resource_click(
-                                       hit, state.workbench.appearance_view,
-                                       nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            if (sound_click->kind == nw::toolset::SoundResourceClickKind::open) {
-                                (void)close_active_smalls_selector(doc);
+                            if (phase == nw::toolset::ClientRmlForwardPhase::after_native
+                                && !release_workspace_mouse_up(phase)) { break; }
+                            if (effect.selection.kind == nw::toolset::PlacedAreaObjectClickKind::select) {
+                                if (renderer.set_viewer_area_object_selection(effect.selection.object)) {
+                                    (void)renderer.focus_viewer_area_object_selection();
+                                }
+                            } else if (effect.selection.kind == nw::toolset::PlacedAreaObjectClickKind::back) {
+                                (void)renderer.clear_viewer_area_object_selection();
                             }
-                            const auto effect = nw::toolset::apply_sound_resource_click(*sound_click,
-                                state.workbench.appearance_view,
-                                nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                state.workspace, state.backend, state.shell,
-                                command_context(state, nw::toolset::CommandSource::widget));
-                            if (effect != nw::toolset::SoundResourceClickEffect::none) {
-                                refresh_workspace_content(doc, state);
-                            }
-                            if (effect == nw::toolset::SoundResourceClickEffect::opened) {
-                                sync_sound_catalog_window(doc, state, true);
-                                if (auto* input = find_el(doc, "sound_catalog_search")) { input->Focus(); }
-                            }
-                            handled = true;
-                        } else if (auto appearance_back_click = nw::toolset::capture_appearance_back_click(hit,
-                                       state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            if (nw::toolset::apply_appearance_catalog_click(*appearance_back_click,
-                                    state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                    state.workspace, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget))
-                                != nw::toolset::AppearanceCatalogClickEffect::none) { refresh_workspace_content(doc, state); }
-                            handled = true;
-                        } else if (auto surface_click = nw::toolset::capture_object_workbench_surface_click(hit)) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            (void)nw::toolset::apply_object_workbench_surface_click(
-                                *surface_click, state.workbench, doc, state.backend);
-                            if (!sync_appearance_body_preview(renderer, state)) {
+                            if (effect.sync_body && !sync_appearance_body_preview(renderer, state)) {
                                 append_output(state, "error", "Failed to update the creature Appearance preview");
                             }
-                            refresh_workspace_content(doc, state);
-                            sync_object_details_window(doc, state, true);
-                            sync_creature_feat_window(doc, state, true);
-                            sync_creature_spell_window(doc, state, true);
-                            sync_creature_inventory_window(doc, state, true);
-                            sync_appearance_window(doc, state, true);
-                            nw::toolset::sync_managed_lists(doc,
-                                nw::toolset::ui_v1_host(), state.workbench.managed_lists, true);
-                            handled = true;
-                        } else if (auto appearance_click = nw::toolset::capture_appearance_catalog_click(hit,
-                                       state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            if (appearance_click->kind == nw::toolset::AppearanceCatalogClickKind::open) {
-                                (void)close_active_smalls_selector(doc);
-                            }
-                            const auto effect = nw::toolset::apply_appearance_catalog_click(*appearance_click,
-                                state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                state.workspace, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget));
-                            if (effect != nw::toolset::AppearanceCatalogClickEffect::none) { refresh_workspace_content(doc, state); }
-                            if (effect == nw::toolset::AppearanceCatalogClickEffect::opened) {
-                                sync_appearance_window(doc, state, true);
-                                if (auto* input = find_el(doc, "appearance_search")) { input->Focus(); }
-                            }
-                            handled = true;
-                        } else if (auto inventory_click = nw::toolset::capture_inventory_workbench_click(
-                                       hit, state.workbench.inventory_view,
-                                       nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                       state.workspace, state.backend.module_generation())) {
-                            if (inventory_click->release_phase == nw::toolset::ClientRmlForwardPhase::before_native
-                                && !release_workspace_mouse_up()) { break; }
-                            if (nw::toolset::apply_inventory_workbench_click(
-                                    *inventory_click, state.workbench.inventory_view,
-                                    nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                    state.workspace, state.backend, state.shell,
-                                    command_context(state, nw::toolset::CommandSource::widget))) {
-                                sync_creature_inventory_window(doc, state, true);
-                            }
-                            handled = true;
-                        } else if (auto creature_click = nw::toolset::capture_creature_workbench_command_click(
-                                       hit, state.workbench.creature_view,
-                                       nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                       state.workspace, state.backend.module_generation())) {
-                            if (creature_click->release_phase == nw::toolset::ClientRmlForwardPhase::before_native
-                                && !release_workspace_mouse_up()) { break; }
-                            (void)nw::toolset::execute_creature_workbench_command_click(
-                                *creature_click, state.workbench.creature_view,
-                                nw::toolset::object_workbench_target(state.workbench, state.workspace),
-                                state.workspace, state.backend, state.shell,
-                                command_context(state, nw::toolset::CommandSource::widget));
+                            if (effect.refresh_content) { refresh_workspace_content(doc, state); }
+                            nw::toolset::finish_object_workbench_click(effect, *workbench_click, doc,
+                                state.workbench, state.workspace, nw::kernel::resman().generation());
                             handled = true;
                         } else if (const auto activation = activate_managed_list(
                                        doc, state, hit);
@@ -4668,99 +4045,16 @@ int main(int argc, char* argv[])
                 state.viewer_viewport_focused = false;
             }
         }
-        if (state.workbench.object_workbench_surface == ObjectWorkbenchSurface::feats) {
-            const std::string feat_query = get_input_value(doc, "creature_feat_search");
-            if (feat_query != state.workbench.creature_view.creature_feat_query) {
-                state.workbench.creature_view.creature_feat_query = feat_query;
-                if (state.workbench.object_details.object.type == nw::ObjectType::creature
-                    && active_object_details_matches_tab(state)) {
-                    rebuild_active_creature_feats(state, state.workbench.object_details.object);
-                    state.workbench.creature_view.creature_feat_list.set_scroll_top(0);
-                    sync_creature_feat_window(doc, state, true);
-                }
-            }
-        }
-        if (state.workbench.object_workbench_surface == ObjectWorkbenchSurface::spells) {
-            const std::string query = get_input_value(doc, "creature_spell_search");
-            if (query != state.workbench.creature_view.creature_spell_query) {
-                state.workbench.creature_view.creature_spell_query = query;
-                if (state.workbench.object_details.object.type == nw::ObjectType::creature
-                    && active_object_details_matches_tab(state)) {
-                    filter_active_creature_spells(state);
-                    state.workbench.creature_view.creature_spell_list.set_scroll_top(0);
-                    sync_creature_spell_window(doc, state, true);
-                }
-            }
-        }
-        if (state.workbench.object_workbench_surface == ObjectWorkbenchSurface::appearance
-            && state.workbench.appearance_view.appearance_selector_open) {
-            const std::string appearance_query = get_input_value(doc, "appearance_search");
-            if (appearance_query != state.workbench.appearance_view.appearance_query) {
-                state.workbench.appearance_view.appearance_query = appearance_query;
-                if (appearance_catalog_kind(state.workbench.object_details.object.type)
-                    && active_object_details_matches_tab(state)) {
-                    rebuild_active_appearances(state, state.workbench.object_details.object);
-                    state.workbench.appearance_view.appearance_list.set_scroll_top(0);
-                    sync_appearance_window(doc, state, true);
-                }
-            }
-        }
-        if (active_sound_resource_selector_matches_tab(state)) {
-            const std::string query
-                = get_input_value(doc, "sound_catalog_search");
-            if (query != state.workbench.appearance_view.sound_catalog_query) {
-                state.workbench.appearance_view.sound_catalog_query = query;
-                rebuild_sound_catalog(state, true);
-                state.workbench.appearance_view.sound_catalog_list.set_scroll_top(0);
-                sync_sound_catalog_window(doc, state, true);
-            }
-        }
+        nw::toolset::refresh_object_workbench_queries(doc, state.workbench,
+            state.workspace, state.backend, state.backend_ready ? nw::kernel::resman().generation() : 0);
         if (state.area_tile_editor.stroke.active
             && !area_tile_stroke_context_valid(state)) {
             cancel_area_tile_stroke(renderer, state);
         }
-        if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
-            const std::string query
-                = get_input_value(doc, "area_tile_palette_search");
-            if (query != state.area_tile_editor.query) {
-                auto& editor = state.area_tile_editor;
-                editor.query = query;
-                (void)nw::toolset::filter_area_tile_palette(
-                    editor.palette, editor.query);
-                editor.list.set_total_rows(
-                    static_cast<int>(editor.palette.matches.size()));
-                const auto selected = std::find_if(
-                    editor.palette.matches.begin(),
-                    editor.palette.matches.end(),
-                    [&editor](uint32_t row_index) {
-                        return row_index < editor.palette.rows.size()
-                            && static_cast<int32_t>(row_index)
-                            == editor.selected_row;
-                    });
-                editor.list.set_selected(
-                    selected == editor.palette.matches.end()
-                        ? -1
-                        : static_cast<int>(std::distance(
-                              editor.palette.matches.begin(), selected)));
-                editor.list.set_scroll_top(0);
-                editor.rendered = false;
-                sync_area_tile_palette_window(doc, state, true);
-            } else {
-                sync_area_tile_palette_window(doc, state, false);
-            }
-        }
-
-        if (workspace_home_active(state)
-            && state.backend.module_object().type == nw::ObjectType::module) {
-            const std::string area_query = get_input_value(doc, "home_area_search");
-            if (area_query != state.browser.home_area_query) {
-                state.browser.home_area_query = area_query;
-                refresh_home_area_catalog(state, true);
-                sync_home_area_window(doc, state, true);
-            } else {
-                sync_home_area_window(doc, state, false);
-            }
-        }
+        nw::toolset::refresh_area_tile_palette_query(doc, state.area_tile_editor,
+            active_workspace_area(state), state.area_workspace_surface == AreaWorkspaceSurface::tiles,
+            area_tile_pointer_modifier(SDL_GetModState()));
+        nw::toolset::refresh_home_area_query(doc, state.browser, state.backend, workspace_home_active(state));
 
         const std::string recent_query = get_input_value(doc, "recent_search");
         sync_command_form(state);
@@ -4774,11 +4068,7 @@ int main(int argc, char* argv[])
         nw::toolset::refresh_command_palette_query(palette_doc, state.command_view,
             state.backend, state.shell.command_palette_visible);
 
-        const std::string output_filter = get_input_value(doc, "output_filter");
-        if (output_filter != state.shell_view.last_output_filter) {
-            state.shell_view.last_output_filter = output_filter;
-            state.shell.output_dirty = true;
-        }
+        nw::toolset::refresh_output_filter(doc, state.shell_view, state.shell);
 
         flush_log_capture(log_capture, state);
 

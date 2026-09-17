@@ -1,6 +1,10 @@
 #include "workspace_view.hpp"
+#include "area_tile_editor.hpp"
 #include "browser_view.hpp"
+#include "dialog_view.hpp"
 #include "loading_view.hpp"
+#include "object_document.hpp"
+#include "object_workbench_view.hpp"
 
 #include "project.hpp"
 #include "resource_document.hpp"
@@ -10,7 +14,12 @@
 #include <RmlUi/Core/ElementDocument.h>
 #include <RmlUi/Core/StringUtilities.h>
 
+#include <nw/kernel/Kernel.hpp>
+#include <nw/objects/Area.hpp>
+#include <nw/objects/ObjectManager.hpp>
+
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <limits>
@@ -254,6 +263,115 @@ bool apply_tab_scroll_click(TabScrollClick& click, Rml::ElementDocument* doc,
     scroll_x = tab_scroll_target(doc, strip, click.forward);
     apply_tab_scroll(doc, strip, scroll_x);
     return true;
+}
+
+void append_workspace_object_workbench_markup(std::string& content_markup,
+    const WorkspaceState& workspace, const ToolsetBackend& backend,
+    const ObjectWorkbenchViewState& workbench, AreaWorkspaceSurface surface, ObjectHandle active_area)
+{
+    const auto* tab = workspace.active_tab();
+    if (tab && tab->kind == WorkspaceTabKind::area && surface == AreaWorkspaceSurface::objects
+        && !active_object_matches_tab(workbench, workspace)) {
+        std::vector<PlacedAreaObjectRow> rows;
+        const auto* area = kernel::objects().get<Area>(active_area);
+        if (area) { build_placed_area_object_rows(*area, rows); }
+        append_placed_area_object_list_markup(content_markup, rows, area != nullptr);
+        return;
+    }
+    append_object_workbench_markup(content_markup, workbench, workspace, backend);
+}
+
+void append_workspace_document_markup(std::string& content_markup, const WorkspaceTab& active_tab,
+    const WorkspaceState& workspace, const ToolsetBackend& backend,
+    const ObjectWorkbenchViewState& workbench, AreaWorkspaceSurface surface,
+    const AreaTileEditorState& tile_editor, const DialogViewState& dialog_view, ObjectHandle active_area)
+{
+    if (active_tab.kind == nw::toolset::WorkspaceTabKind::area) {
+        content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
+        content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
+        content_markup += escape_html(active_tab.title);
+        content_markup += "</div><div class=\"workspace_area_detail\">";
+        content_markup += escape_html(workspace_tab_detail(active_tab));
+        content_markup += "</div><div class=\"workspace_area_tabs object_workbench_tab_track\">";
+        struct AreaSurfaceTab {
+            AreaWorkspaceSurface surface;
+            std::string_view id;
+            std::string_view label;
+        };
+        constexpr std::array tabs{
+            AreaSurfaceTab{AreaWorkspaceSurface::properties,
+                "properties", "Properties"},
+            AreaSurfaceTab{AreaWorkspaceSurface::objects,
+                "objects", "Objects"},
+            AreaSurfaceTab{AreaWorkspaceSurface::tiles,
+                "tiles", "Tiles"},
+        };
+        for (const auto& tab : tabs) {
+            content_markup += "<div class=\"area_workspace_tab object_workbench_tab";
+            if (surface == tab.surface) {
+                content_markup += " active";
+            }
+            content_markup += "\" data-area-surface=\"";
+            content_markup += tab.id;
+            content_markup += "\">";
+            content_markup += tab.label;
+            content_markup += "</div>";
+        }
+        content_markup += "</div></div>";
+        content_markup += "<div class=\"workspace_preview_body workspace_area_body\">";
+        nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
+        if (surface == AreaWorkspaceSurface::tiles) {
+            nw::toolset::append_area_tile_palette_markup(content_markup, tile_editor);
+        } else {
+            append_workspace_object_workbench_markup(content_markup, workspace, backend, workbench, surface, active_area);
+        }
+        content_markup += "</div></div>";
+        return;
+    }
+
+    if (active_tab.kind == nw::toolset::WorkspaceTabKind::preview) {
+        content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
+        content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
+        content_markup += escape_html(active_tab.title);
+        content_markup += "</div><div class=\"workspace_area_detail\">";
+        content_markup += escape_html(workspace_tab_detail(active_tab));
+        content_markup += "</div></div>";
+        content_markup += "<div class=\"workspace_preview_body";
+        if (data_workbench_only(workbench.object_details.object.type,
+                workbench.object_workbench_surface)) {
+            content_markup += " data_workbench_only";
+        }
+        content_markup += "\">";
+        nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
+        append_workspace_object_workbench_markup(content_markup, workspace, backend, workbench, surface, active_area);
+        content_markup += "</div></div>";
+        return;
+    }
+
+    if (active_tab.kind == nw::toolset::WorkspaceTabKind::dialog) {
+        content_markup += nw::toolset::dialog_view_markup(dialog_view);
+        return;
+    }
+
+    if (active_tab.kind == nw::toolset::WorkspaceTabKind::resource) {
+        const auto document = resource_document_for_tab(backend.current_project_dir(), active_tab);
+        content_markup += "<div class=\"workspace_resource_surface\">";
+        if (document) {
+            nw::toolset::append_resource_document_inspector(content_markup, *document);
+        } else {
+            nw::toolset::append_missing_resource_document(content_markup);
+        }
+        content_markup += "</div>";
+        return;
+    }
+
+    content_markup += "<div class=\"workspace_document workspace_document_";
+    content_markup += workspace_tab_kind_class(active_tab.kind);
+    content_markup += "\"><div class=\"workspace_document_title\">";
+    content_markup += escape_html(active_tab.title);
+    content_markup += "</div><div class=\"workspace_document_detail\">";
+    content_markup += escape_html(workspace_tab_detail(active_tab));
+    content_markup += "</div></div>";
 }
 
 void append_workspace_viewport_markup(std::string& markup, const WorkspaceTab& tab)

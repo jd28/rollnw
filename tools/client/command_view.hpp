@@ -11,6 +11,7 @@
 #include <vector>
 
 struct SDL_Window;
+struct SDL_KeyboardEvent;
 
 namespace Rml {
 class Context;
@@ -76,6 +77,17 @@ struct CommandOverlayAction {
 [[nodiscard]] CommandOverlayAction handle_command_overlay_target(
     CommandViewState& state, const ToolsetBackend& backend,
     bool project_load_active, Rml::Element* target);
+
+// One overlay owns keyboard focus and choice presentation. No DOM borrow escapes
+// this synchronous singleton call. A returned action index is validated again by
+// take_command_form_action; unhandled keys retain ordinary SDK forwarding.
+struct CommandFormKeyResult {
+    bool handled = false;
+    std::optional<size_t> action_index;
+};
+[[nodiscard]] CommandFormKeyResult handle_command_form_key(
+    CommandViewState& state, const ToolsetBackend& backend,
+    bool project_load_active, Rml::Context* context, const SDL_KeyboardEvent& key);
 [[nodiscard]] std::optional<CommandPromptAction> take_command_form_action(
     CommandViewState& state, const ToolsetBackend& backend,
     bool project_load_active, bool dialog_open, size_t index);

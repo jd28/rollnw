@@ -13,7 +13,9 @@
 
 #include <RmlUi/Core/Types.h>
 #include <optional>
+#include <span>
 #include <string>
+#include <variant>
 
 namespace Rml {
 class Context;
@@ -30,6 +32,22 @@ class ShellController;
 struct WorkspaceTab;
 struct CommandContext;
 struct ObjectWorkbenchViewState;
+struct PlacedAreaObjectRow;
+
+// Existing category-ordered row batch; no row/DOM borrow is retained. One
+// displayed area workbench distinguishes unavailable from loaded-empty input.
+void append_placed_area_object_list_markup(std::string& markup,
+    std::span<const PlacedAreaObjectRow> rows, bool area_available);
+enum class PlacedAreaObjectClickKind : uint8_t { none,
+    select,
+    back };
+struct PlacedAreaObjectClick {
+    ObjectHandle object{};
+    PlacedAreaObjectClickKind kind = PlacedAreaObjectClickKind::none;
+};
+// Matched malformed/invalid rows return kind=none, preserving consume without
+// SDK release. Cold engine identity is copied; renderer validates it after release.
+[[nodiscard]] std::optional<PlacedAreaObjectClick> capture_placed_area_object_click(Rml::Element* hit);
 
 enum class ObjectWorkbenchCommandKind : uint8_t {
     none,
@@ -178,6 +196,49 @@ std::optional<ObjectWorkbenchSurfaceClick> capture_object_workbench_surface_clic
 // renderer/body and cross-view refresh remain composition responsibilities.
 bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
     ObjectWorkbenchViewState& state, Rml::ElementDocument* document, ToolsetBackend& backend);
+
+// In-process schema 1: current leaf DTOs own their semantic IDs/text/indices.
+// One displayed ordered UI release is a true singleton. Capture retains no DOM;
+// root compares common ownership around SDK dispatch before applying this slot.
+using ObjectWorkbenchClickPayload = std::variant<ColorEditorClick, ObjectWorkbenchComboClick,
+    PlacedAreaObjectClick, ObjectWorkbenchCommandClick, SoundResourceClick,
+    AppearanceCatalogClick, ObjectWorkbenchSurfaceClick, InventoryWorkbenchClick,
+    CreatureWorkbenchCommandClick>;
+struct ObjectWorkbenchClick {
+    ObjectWorkbenchClickPayload payload;
+    ClientRmlForwardPhase release_phase = ClientRmlForwardPhase::before_native;
+    bool pending = true;
+};
+enum class ObjectWorkbenchClickFinish : uint8_t {
+    none,
+    sound_combo,
+    spell_filter,
+    spells,
+    sound_catalog,
+    appearance_catalog,
+    inventory,
+    all_windows
+};
+// Caller applies selection/body requests before content refresh; finish consumes
+// the window/focus intent after fresh markup. Unknown finish tags do no work.
+struct ObjectWorkbenchClickEffect {
+    PlacedAreaObjectClick selection;
+    ObjectWorkbenchClickFinish finish = ObjectWorkbenchClickFinish::none;
+    bool sync_body = false;
+    bool refresh_content = false;
+};
+std::optional<ObjectWorkbenchClick> capture_object_workbench_click(Rml::Element*, Rml::Vector2f,
+    const ObjectWorkbenchViewState&, const WorkspaceState&, uint64_t module_generation,
+    uint64_t resource_generation);
+// Close a current selector before constructing fresh command/target facts.
+// Its SDK callbacks may change ownership. Root then calls apply with fresh facts.
+void prepare_object_workbench_click(const ObjectWorkbenchClick&, Rml::ElementDocument*);
+// Consumes once, preserving matched-invalid and each leaf's stale rejection.
+// Invalid release phases or valueless payloads reject without effects.
+ObjectWorkbenchClickEffect apply_object_workbench_click(ObjectWorkbenchClick&, Rml::ElementDocument*,
+    ObjectWorkbenchViewState&, const WorkspaceState&, ToolsetBackend&, ShellController&, const CommandContext&);
+void finish_object_workbench_click(ObjectWorkbenchClickEffect&, const ObjectWorkbenchClick&,
+    Rml::ElementDocument*, ObjectWorkbenchViewState&, const WorkspaceState&, uint64_t resource_generation);
 // DOM borrows last one call; returns immediately after the first close dispatch,
 // which may replace those nodes. RmlUi's control protocol requires live pointers.
 bool close_active_smalls_selector(Rml::ElementDocument* document);
@@ -186,6 +247,10 @@ bool close_active_smalls_selector(Rml::ElementDocument* document);
 bool active_tab_has_object_workbench(const WorkspaceTab* tab);
 ObjectWorkbenchTarget object_workbench_target(const ObjectWorkbenchViewState&, const WorkspaceState&);
 bool active_object_details_matches_tab(const ObjectWorkbenchViewState&, const WorkspaceState&);
+// One displayed workbench polls current query inputs before layout. Unchanged
+// queries preserve row DOM/scroll; stale targets retain queries without rebuild.
+void refresh_object_workbench_queries(Rml::ElementDocument*, ObjectWorkbenchViewState&,
+    const WorkspaceState&, const ToolsetBackend&, uint64_t resource_generation);
 bool active_object_matches_tab(const ObjectWorkbenchViewState&, const WorkspaceState&);
 bool active_object_variables_match_tab(const ObjectWorkbenchViewState&, const WorkspaceState&);
 size_t active_details_row_count(const ObjectWorkbenchViewState&, const WorkspaceState&);

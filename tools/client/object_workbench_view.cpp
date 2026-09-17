@@ -1,6 +1,8 @@
 #include "object_workbench_view.hpp"
 #include "command_view.hpp"
+#include "object_document.hpp"
 #include "smalls_rmlui.hpp"
+#include "smalls_ui_v1.hpp"
 #include "toolset_backend.hpp"
 #include "workspace.hpp"
 #include <RmlUi/Core.h>
@@ -16,6 +18,7 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/smalls/runtime.hpp>
+#include <type_traits>
 #include <utility>
 namespace nw::toolset {
 namespace {
@@ -945,6 +948,64 @@ bool active_object_details_matches_tab(const ObjectWorkbenchViewState& state, co
         && state.object_details.status == nw::toolset::ObjectDetailsStatus::ready;
 }
 
+void refresh_object_workbench_queries(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, const ToolsetBackend& backend, uint64_t resource_generation)
+{
+    const auto query_value = [&](const char* id) {
+        auto* input = find_el(doc, id);
+        if (auto* control = rmlui_dynamic_cast<Rml::ElementFormControl*>(input)) {
+            return control->GetValue();
+        }
+        return input ? input->GetAttribute<Rml::String>("value", "") : Rml::String{};
+    };
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::feats) {
+        const auto query = query_value("creature_feat_search");
+        if (query != state.creature_view.creature_feat_query) {
+            state.creature_view.creature_feat_query = query;
+            if (state.object_details.object.type == ObjectType::creature
+                && active_object_details_matches_tab(state, workspace)) {
+                rebuild_active_creature_feats(state.creature_view, state.object_details.object);
+                state.creature_view.creature_feat_list.set_scroll_top(0);
+                (void)sync_creature_feat_window(doc, state.creature_view, object_workbench_target(state, workspace), true);
+            }
+        }
+    }
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::spells) {
+        const auto query = query_value("creature_spell_search");
+        if (query != state.creature_view.creature_spell_query) {
+            state.creature_view.creature_spell_query = query;
+            if (state.object_details.object.type == ObjectType::creature
+                && active_object_details_matches_tab(state, workspace)) {
+                filter_active_creature_spells(state.creature_view);
+                state.creature_view.creature_spell_list.set_scroll_top(0);
+                (void)sync_creature_spell_window(doc, state.creature_view, object_workbench_target(state, workspace), true);
+            }
+        }
+    }
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance
+        && state.appearance_view.appearance_selector_open) {
+        const auto query = query_value("appearance_search");
+        if (query != state.appearance_view.appearance_query) {
+            state.appearance_view.appearance_query = query;
+            if (appearance_catalog_kind(state.object_details.object.type)
+                && active_object_details_matches_tab(state, workspace)) {
+                rebuild_active_appearances(state.appearance_view, backend.module_generation(), state.object_details.object);
+                state.appearance_view.appearance_list.set_scroll_top(0);
+                (void)sync_appearance_window(doc, state.appearance_view, object_workbench_target(state, workspace), true);
+            }
+        }
+    }
+    if (active_sound_resource_selector_matches_tab(state.appearance_view, object_workbench_target(state, workspace))) {
+        const auto query = query_value("sound_catalog_search");
+        if (query != state.appearance_view.sound_catalog_query) {
+            state.appearance_view.sound_catalog_query = query;
+            rebuild_sound_catalog(state.appearance_view, resource_generation, true);
+            state.appearance_view.sound_catalog_list.set_scroll_top(0);
+            (void)sync_sound_catalog_window(doc, state.appearance_view, object_workbench_target(state, workspace), resource_generation, true);
+        }
+    }
+}
+
 bool active_object_matches_tab(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
 {
     const auto* active_tab = workspace.active_tab();
@@ -1380,6 +1441,53 @@ void hydrate_object_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchVi
         break;
     }
 }
+void append_placed_area_object_list_markup(std::string& content_markup,
+    std::span<const PlacedAreaObjectRow> rows, bool area_available)
+{
+    content_markup += "<div id=\"object_workbench\" class=\"object_workbench area_object_list_workbench\">";
+    content_markup += "<div class=\"object_workbench_header area_object_list_header\">";
+    content_markup += "<div class=\"object_workbench_title\">Placed Objects</div>";
+    content_markup += "<span class=\"area_object_list_count\">";
+    content_markup += std::to_string(rows.size());
+    content_markup += "</span></div><div class=\"area_object_list\">";
+    if (!area_available) {
+        content_markup += "<div class=\"property_tree_empty\">Loading placed objects...</div>";
+    } else if (rows.empty()) {
+        content_markup += "<div class=\"property_tree_empty\">This area has no placed objects.</div>";
+    } else {
+        for (const auto& row : rows) {
+            content_markup += "<button type=\"button\" class=\"area_object_row\" data-object=\"";
+            content_markup += std::to_string(row.object.to_ull());
+            content_markup += "\"><span class=\"area_object_row_name\">";
+            content_markup += escape_html(row.name);
+            content_markup += "</span><span class=\"area_object_row_type\">";
+            content_markup += escape_html(
+                nw::toolset::placed_area_object_type_label(row.object.type));
+            content_markup += "</span></button>";
+        }
+    }
+    content_markup += "</div></div>";
+}
+
+std::optional<PlacedAreaObjectClick> capture_placed_area_object_click(Rml::Element* hit)
+{
+    if (auto* row = find_ancestor_with_class(hit, "area_object_row")) {
+        const auto value = row->GetAttribute<Rml::String>("data-object", "");
+        uint64_t packed = 0;
+        const auto parsed = std::from_chars(value.data(), value.data() + value.size(), packed);
+        if (value.empty() || parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size()) {
+            return PlacedAreaObjectClick{};
+        }
+        const auto object = ObjectHandle::from_ull(packed);
+        if (!kernel::objects().valid(object)) { return PlacedAreaObjectClick{}; }
+        return PlacedAreaObjectClick{object, PlacedAreaObjectClickKind::select};
+    }
+    if (find_ancestor_with_class(hit, "area_object_list_back")) {
+        return PlacedAreaObjectClick{{}, PlacedAreaObjectClickKind::back};
+    }
+    return std::nullopt;
+}
+
 void append_object_workbench_markup(std::string& content_markup, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace, const ToolsetBackend& backend)
 {
     const auto* active_tab = workspace.active_tab();
@@ -2156,6 +2264,174 @@ ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_Keyboa
     }
 
     return ObjectWorkbenchFieldKeyEffect::none;
+}
+
+std::optional<ObjectWorkbenchClick> capture_object_workbench_click(Rml::Element* hit, Rml::Vector2f point,
+    const ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation)
+{
+    const auto target = object_workbench_target(state, workspace);
+    if (auto click = capture_color_editor_click(hit, point, state.appearance_view, target, workspace, module_generation, resource_generation)) {
+        const auto phase = click->release_phase;
+        return ObjectWorkbenchClick{std::move(*click), phase};
+    }
+    if (auto click = capture_object_workbench_combo_click(hit, state, workspace, module_generation, resource_generation)) {
+        return ObjectWorkbenchClick{std::move(*click)};
+    }
+    if (auto click = capture_placed_area_object_click(hit)) {
+        const auto phase = click->kind == PlacedAreaObjectClickKind::none ? ClientRmlForwardPhase::none : ClientRmlForwardPhase::before_native;
+        return ObjectWorkbenchClick{std::move(*click), phase};
+    }
+    if (auto click = capture_object_workbench_command_click(hit, state, workspace, module_generation)) {
+        const auto phase = click->release_phase;
+        return ObjectWorkbenchClick{std::move(*click), phase};
+    }
+    if (auto click = capture_sound_resource_click(hit, state.appearance_view, target, workspace, module_generation, resource_generation)) {
+        return ObjectWorkbenchClick{std::move(*click)};
+    }
+    if (auto click = capture_appearance_back_click(hit, state.appearance_view, target, workspace, module_generation, resource_generation)) {
+        return ObjectWorkbenchClick{std::move(*click)};
+    }
+    if (auto click = capture_object_workbench_surface_click(hit)) {
+        return ObjectWorkbenchClick{std::move(*click)};
+    }
+    if (auto click = capture_appearance_catalog_click(hit, state.appearance_view, target, workspace, module_generation, resource_generation)) {
+        return ObjectWorkbenchClick{std::move(*click)};
+    }
+    if (auto click = capture_inventory_workbench_click(hit, state.inventory_view, target, workspace, module_generation)) {
+        const auto phase = click->release_phase;
+        return ObjectWorkbenchClick{std::move(*click), phase};
+    }
+    if (auto click = capture_creature_workbench_command_click(hit, state.creature_view, target, workspace, module_generation)) {
+        const auto phase = click->release_phase;
+        return ObjectWorkbenchClick{std::move(*click), phase};
+    }
+    return std::nullopt;
+}
+
+void prepare_object_workbench_click(const ObjectWorkbenchClick& click, Rml::ElementDocument* doc)
+{
+    if (!click.pending || click.payload.valueless_by_exception()
+        || click.release_phase > ClientRmlForwardPhase::after_native) { return; }
+    const bool close = std::visit([](const auto& payload) {
+        using T = std::decay_t<decltype(payload)>;
+        if constexpr (std::is_same_v<T, ColorEditorClick>) {
+            return payload.kind == ColorEditorClickKind::field;
+        } else if constexpr (std::is_same_v<T, SoundResourceClick>) {
+            return payload.kind == SoundResourceClickKind::open;
+        } else if constexpr (std::is_same_v<T, AppearanceCatalogClick>) {
+            return payload.kind == AppearanceCatalogClickKind::open;
+        }
+        return false;
+    },
+        click.payload);
+    if (close) { (void)close_active_smalls_selector(doc); }
+}
+
+ObjectWorkbenchClickEffect apply_object_workbench_click(ObjectWorkbenchClick& click, Rml::ElementDocument* doc,
+    ObjectWorkbenchViewState& state, const WorkspaceState& workspace, ToolsetBackend& backend,
+    ShellController& shell, const CommandContext& context)
+{
+    if (!std::exchange(click.pending, false) || click.payload.valueless_by_exception()
+        || click.release_phase > ClientRmlForwardPhase::after_native) { return {}; }
+    const auto target = [&] { return object_workbench_target(state, workspace); };
+    return std::visit([&](auto& payload) -> ObjectWorkbenchClickEffect {
+        using T = std::decay_t<decltype(payload)>;
+        ObjectWorkbenchClickEffect effect;
+        if constexpr (std::is_same_v<T, ColorEditorClick>) {
+            effect.refresh_content = apply_color_editor_click(payload, state.appearance_view, target(), workspace, backend, shell, context);
+        } else if constexpr (std::is_same_v<T, ObjectWorkbenchComboClick>) {
+            switch (apply_object_workbench_combo_click(payload, doc, state, workspace, backend, shell, context)) {
+            case ObjectWorkbenchComboEffect::sound_opened:
+                effect.finish = ObjectWorkbenchClickFinish::sound_combo;
+                break;
+            case ObjectWorkbenchComboEffect::sound_selected:
+                effect.refresh_content = true;
+                break;
+            case ObjectWorkbenchComboEffect::spell_opened:
+                effect.refresh_content = true;
+                effect.finish = ObjectWorkbenchClickFinish::spell_filter;
+                break;
+            case ObjectWorkbenchComboEffect::spell_selected:
+                effect.refresh_content = true;
+                effect.finish = ObjectWorkbenchClickFinish::spells;
+                break;
+            case ObjectWorkbenchComboEffect::none:
+                break;
+            }
+        } else if constexpr (std::is_same_v<T, PlacedAreaObjectClick>) {
+            effect.selection = payload;
+        } else if constexpr (std::is_same_v<T, ObjectWorkbenchCommandClick>) {
+            (void)execute_object_workbench_command_click(payload, state, workspace, backend, shell, context);
+        } else if constexpr (std::is_same_v<T, SoundResourceClick>) {
+            const auto changed = apply_sound_resource_click(payload, state.appearance_view, target(), workspace, backend, shell, context);
+            effect.refresh_content = changed != SoundResourceClickEffect::none;
+            if (changed == SoundResourceClickEffect::opened) { effect.finish = ObjectWorkbenchClickFinish::sound_catalog; }
+        } else if constexpr (std::is_same_v<T, AppearanceCatalogClick>) {
+            const auto changed = apply_appearance_catalog_click(payload, state.appearance_view, target(), workspace, backend, shell, context);
+            effect.refresh_content = changed != AppearanceCatalogClickEffect::none;
+            if (changed == AppearanceCatalogClickEffect::opened) { effect.finish = ObjectWorkbenchClickFinish::appearance_catalog; }
+        } else if constexpr (std::is_same_v<T, ObjectWorkbenchSurfaceClick>) {
+            (void)apply_object_workbench_surface_click(payload, state, doc, backend);
+            effect.sync_body = true;
+            effect.refresh_content = true;
+            effect.finish = ObjectWorkbenchClickFinish::all_windows;
+        } else if constexpr (std::is_same_v<T, InventoryWorkbenchClick>) {
+            if (apply_inventory_workbench_click(payload, state.inventory_view, target(), workspace, backend, shell, context)) {
+                effect.finish = ObjectWorkbenchClickFinish::inventory;
+            }
+        } else if constexpr (std::is_same_v<T, CreatureWorkbenchCommandClick>) {
+            (void)execute_creature_workbench_command_click(payload, state.creature_view, target(), workspace, backend, shell, context);
+        }
+        return effect;
+    },
+        click.payload);
+}
+
+void finish_object_workbench_click(ObjectWorkbenchClickEffect& effect, const ObjectWorkbenchClick& click,
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    uint64_t resource_generation)
+{
+    const auto finish = std::exchange(effect, {}).finish;
+    const auto target = [&] { return object_workbench_target(state, workspace); };
+    const auto focus = [&](const char* id) { if (auto* field = find_el(doc, id)) { field->Focus(); } };
+    switch (finish) {
+    case ObjectWorkbenchClickFinish::sound_combo:
+        (void)sync_object_details_combobox(doc, state, workspace, true);
+        if (const auto* payload = std::get_if<ObjectWorkbenchComboClick>(&click.payload)) {
+            (void)focus_object_workbench_combo_field(doc, *payload, state, workspace);
+        }
+        break;
+    case ObjectWorkbenchClickFinish::spell_filter:
+        (void)sync_creature_spell_filter_window(doc, state.creature_view, target(), true);
+        focus("active_creature_spell_filter_field");
+        break;
+    case ObjectWorkbenchClickFinish::spells:
+        (void)sync_creature_spell_window(doc, state.creature_view, target(), true);
+        break;
+    case ObjectWorkbenchClickFinish::sound_catalog:
+        (void)sync_sound_catalog_window(doc, state.appearance_view, target(), resource_generation, true);
+        focus("sound_catalog_search");
+        break;
+    case ObjectWorkbenchClickFinish::appearance_catalog:
+        (void)sync_appearance_window(doc, state.appearance_view, target(), true);
+        focus("appearance_search");
+        break;
+    case ObjectWorkbenchClickFinish::inventory:
+        (void)sync_creature_inventory_window(doc, state.inventory_view, target(), true);
+        break;
+    case ObjectWorkbenchClickFinish::all_windows:
+        (void)sync_object_details_window(doc, state, workspace, true);
+        (void)sync_creature_feat_window(doc, state.creature_view, target(), true);
+        (void)sync_creature_spell_window(doc, state.creature_view, target(), true);
+        (void)sync_creature_inventory_window(doc, state.inventory_view, target(), true);
+        (void)sync_appearance_window(doc, state.appearance_view, target(), true);
+        (void)sync_managed_lists(doc, ui_v1_host(), state.managed_lists, true);
+        break;
+    case ObjectWorkbenchClickFinish::none:
+    default:
+        break;
+    }
 }
 
 } // namespace nw::toolset

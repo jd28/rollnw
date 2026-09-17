@@ -27,6 +27,9 @@ struct WorkspaceTab;
 enum class WorkspaceTabKind : uint8_t;
 struct BrowserViewState;
 struct LoadingViewState;
+struct ObjectWorkbenchViewState;
+struct AreaTileEditorState;
+struct DialogViewState;
 class ToolsetBackend;
 class WorkspaceState;
 
@@ -123,6 +126,18 @@ std::string recent_projects_markup(std::span<const RecentProjectEntry> projects)
 // call; append owning escaped resource metadata and the existing empty prompt.
 // Other tab kinds append nothing. Surface/workbench composition stays outside.
 void append_workspace_viewport_markup(std::string& markup, const WorkspaceTab& tab);
+
+// One displayed workspace content surface. Borrow only its presentation inputs;
+// feature rows/text remain their owners' existing batches. Active-area identity
+// is a cold engine boundary; absent/invalid areas render the existing placeholder.
+void append_workspace_object_workbench_markup(std::string& markup,
+    const WorkspaceState&, const ToolsetBackend&, const ObjectWorkbenchViewState&,
+    AreaWorkspaceSurface, ObjectHandle active_area);
+// Existing generic tab fallback and unknown-surface workbench/no-active-tab
+// presentation are preserved. This call retains no DOM or feature-state borrow.
+void append_workspace_document_markup(std::string& markup, const WorkspaceTab&,
+    const WorkspaceState&, const ToolsetBackend&, const ObjectWorkbenchViewState&,
+    AreaWorkspaceSurface, const AreaTileEditorState&, const DialogViewState&, ObjectHandle active_area);
 
 // The workspace has one displayed viewport. Compare before rebuilding its DOM
 // so ordinary Details refreshes do not steal focus from an editor.

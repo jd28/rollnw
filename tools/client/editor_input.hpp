@@ -13,6 +13,28 @@ enum class ObjectType : uint32_t;
 
 namespace nw::toolset {
 
+enum class EditorShortcutAction : uint8_t { none,
+    palette_toggle,
+    output_toggle,
+    terminal_toggle,
+    close_tab,
+    save_tab,
+    save_all,
+    undo,
+    redo };
+// Existing editor application shortcuts, before world-map bindings. Independent
+// key-down rows own immutable SDK values; no focus/mode facts are cached here.
+// Caller applies each tag at its original priority; this API selects no PC map.
+struct EditorShortcutInput {
+    SDL_Keycode key = SDLK_UNKNOWN;
+    SDL_Keymod modifiers = SDL_KMOD_NONE;
+    bool repeat = false;
+};
+// Unknown keys produce none; ignored SDK modifier bits retain current policy.
+// Mismatched spans clear all outputs and reject; empty batches succeed.
+bool resolve_editor_shortcut_actions(std::span<const EditorShortcutInput>,
+    std::span<EditorShortcutAction>) noexcept;
+
 enum class EditorViewportKind : uint8_t { none,
     area,
     preview };

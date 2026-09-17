@@ -107,6 +107,10 @@ void sync_area_tile_selection_info(Rml::ElementDocument* document,
 bool sync_area_tile_palette_window(Rml::ElementDocument* document,
     AreaTileEditorState& editor, ObjectHandle area, bool tiles_visible,
     AreaTilePointerModifier modifier, bool force);
+// One displayed query is a singleton; existing indexed palette rows are filtered
+// in batches. Hidden surfaces retain state, missing fields mean an empty query.
+void refresh_area_tile_palette_query(Rml::ElementDocument*, AreaTileEditorState&,
+    ObjectHandle area, bool tiles_visible, AreaTilePointerModifier);
 void append_area_tile_palette_markup(std::string& markup, const AreaTileEditorState& editor);
 [[nodiscard]] bool reset_area_tile_editor(AreaTileEditorState& editor, ObjectHandle area);
 // A valid group rotation invalidates the retained hover target so a stationary

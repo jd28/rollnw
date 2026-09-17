@@ -426,6 +426,7 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/loading_view.cpp
         ../tools/client/browser_view.cpp
         ../tools/client/shell_view.cpp
+        ../tools/client/smalls_view.cpp
         ../tools/client/client_preferences.cpp
         ../tools/client/project_import.cpp
         ../tools/client/project_resource_drag.cpp

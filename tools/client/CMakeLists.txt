@@ -88,6 +88,7 @@ add_executable(rollnw-client
     runtime_input.cpp
     runtime_input_renderer.cpp
     shell_view.cpp
+    smalls_view.cpp
     renderer.cpp
     toolset_backend.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_bridge.cpp

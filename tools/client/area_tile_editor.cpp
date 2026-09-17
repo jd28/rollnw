@@ -7,6 +7,7 @@
 #include <nw/resources/ResourceManager.hpp>
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/Elements/ElementFormControl.h>
 #include <RmlUi/Core/StringUtilities.h>
 
 #include <algorithm>
@@ -319,6 +320,32 @@ void sync_area_tile_selection_info(
     markup += "</div>";
     element->SetInnerRML(markup);
     element->SetClass("visible", true);
+}
+
+void refresh_area_tile_palette_query(Rml::ElementDocument* doc, AreaTileEditorState& editor,
+    ObjectHandle area, bool tiles_visible, AreaTilePointerModifier modifier)
+{
+    if (!tiles_visible) { return; }
+    std::string query;
+    if (auto* field = find_el(doc, "area_tile_palette_search")) {
+        if (auto* control = rmlui_dynamic_cast<Rml::ElementFormControl*>(field)) {
+            query = control->GetValue();
+        } else {
+            query = field->GetAttribute<Rml::String>("value", "");
+        }
+    }
+    const bool changed = query != editor.query;
+    if (changed) {
+        editor.query = std::move(query);
+        (void)filter_area_tile_palette(editor.palette, editor.query);
+        editor.list.set_total_rows(static_cast<int>(editor.palette.matches.size()));
+        const auto selected = std::find_if(editor.palette.matches.begin(), editor.palette.matches.end(),
+            [&editor](uint32_t row) { return row < editor.palette.rows.size() && static_cast<int32_t>(row) == editor.selected_row; });
+        editor.list.set_selected(selected == editor.palette.matches.end() ? -1 : static_cast<int>(std::distance(editor.palette.matches.begin(), selected)));
+        editor.list.set_scroll_top(0);
+        editor.rendered = false;
+    }
+    (void)sync_area_tile_palette_window(doc, editor, area, tiles_visible, modifier, changed);
 }
 
 bool sync_area_tile_palette_window(

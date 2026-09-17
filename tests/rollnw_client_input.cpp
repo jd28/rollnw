@@ -698,6 +698,49 @@ TEST_F(ClientInput, ControllerEdgesUseSharedPcBindingsThroughFreshFocusAndRoute)
     }
 }
 
+TEST(ClientEditorInput, ApplicationShortcutBatchesKeepTheCurrentModifierAndRepeatMatrix)
+{
+    using A = EditorShortcutAction;
+    const std::array inputs{
+        EditorShortcutInput{SDLK_P, SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_ALT | SDL_KMOD_GUI, true},
+        EditorShortcutInput{SDLK_P, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_J, SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_ALT | SDL_KMOD_GUI, true},
+        EditorShortcutInput{SDLK_J, SDL_KMOD_GUI, false},
+        EditorShortcutInput{SDLK_GRAVE, SDL_KMOD_SHIFT, true},
+        EditorShortcutInput{SDLK_GRAVE, SDL_KMOD_ALT, false},
+        EditorShortcutInput{SDLK_GRAVE, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_GRAVE, SDL_KMOD_GUI, false},
+        EditorShortcutInput{SDLK_W, SDL_KMOD_CTRL | SDL_KMOD_CAPS | SDL_KMOD_NUM, false},
+        EditorShortcutInput{SDLK_W, SDL_KMOD_CTRL, true},
+        EditorShortcutInput{SDLK_W, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, false},
+        EditorShortcutInput{SDLK_S, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_S, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, false},
+        EditorShortcutInput{SDLK_S, SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_ALT, false},
+        EditorShortcutInput{SDLK_S, SDL_KMOD_CTRL | SDL_KMOD_GUI, false},
+        EditorShortcutInput{SDLK_S, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, true},
+        EditorShortcutInput{SDLK_Z, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_Y, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_Z, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, false},
+        EditorShortcutInput{SDLK_A, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_UNKNOWN, SDL_KMOD_CTRL, false},
+    };
+    const std::array expected{A::palette_toggle, A::none, A::output_toggle, A::none,
+        A::terminal_toggle, A::none, A::none, A::none, A::close_tab, A::none, A::none,
+        A::save_tab, A::save_all, A::none, A::none, A::none, A::undo, A::redo,
+        A::none, A::none, A::none};
+    std::array<A, inputs.size()> actions;
+    actions.fill(A::redo);
+    ASSERT_TRUE(resolve_editor_shortcut_actions(inputs, actions));
+    EXPECT_EQ(actions, expected);
+    EXPECT_FALSE(resolve_editor_shortcut_actions(std::span{inputs}.first(1), actions));
+    for (const auto action : actions) {
+        EXPECT_EQ(action, A::none);
+    }
+    EXPECT_TRUE(resolve_editor_shortcut_actions({}, {}));
+    RecordProperty("shortcut_input_bytes", sizeof(EditorShortcutInput));
+    RecordProperty("shortcut_action_bytes", sizeof(EditorShortcutAction));
+}
+
 TEST(ClientEditorInput, WheelBatchesPreserveFocusModifiersAndRejectNonEditorRecipients)
 {
     std::array<EditorWheelInput, 15> inputs;

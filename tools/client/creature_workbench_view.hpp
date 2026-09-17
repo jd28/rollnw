@@ -12,9 +12,11 @@
 #include <string_view>
 #include <vector>
 namespace Rml {
+class Context;
 class ElementDocument;
 class Element;
 }
+struct SDL_KeyboardEvent;
 namespace nw::toolset {
 class WorkspaceState;
 class ToolsetBackend;
@@ -107,6 +109,25 @@ std::optional<CreatureSpellFilterField> creature_spell_filter_field_from_name(
     std::string_view value) noexcept;
 bool open_creature_spell_filter(CreatureWorkbenchViewState& state, ObjectWorkbenchTarget target, CreatureSpellFilterField field);
 bool commit_creature_spell_filter(CreatureWorkbenchViewState& state, ObjectWorkbenchTarget target, int32_t value);
+
+enum class CreatureSpellFilterKeyKind : uint8_t { none,
+    handled,
+    move_up,
+    move_down,
+    sync_filter,
+    sync_spells };
+// Synchronous schema 1: begin shows/commits; caller refreshes content if requested;
+// finish consumes once and moves/synchronizes with fresh target facts. No DOM
+// borrow spans the refresh. One displayed filter is a true singleton.
+// Disabled/stale/unbound keys and unknown finish tags perform no feature work.
+struct CreatureSpellFilterKeyStep {
+    CreatureSpellFilterKeyKind kind = CreatureSpellFilterKeyKind::none;
+    bool refresh_content = false;
+};
+CreatureSpellFilterKeyStep begin_creature_spell_filter_key(const SDL_KeyboardEvent&,
+    Rml::Context*, CreatureWorkbenchViewState&, ObjectWorkbenchTarget, bool palette_visible);
+void finish_creature_spell_filter_key(CreatureSpellFilterKeyStep&,
+    Rml::ElementDocument*, CreatureWorkbenchViewState&, ObjectWorkbenchTarget);
 bool sync_creature_spell_window(Rml::ElementDocument* doc, CreatureWorkbenchViewState& state, ObjectWorkbenchTarget target, bool force);
 bool sync_creature_spell_filter_window(
     Rml::ElementDocument* doc, CreatureWorkbenchViewState& state, ObjectWorkbenchTarget target, bool force);

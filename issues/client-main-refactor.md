@@ -1031,13 +1031,13 @@ issues or scattering TODOs through moved code:
   actions require server authorization. Does not change the shared PC map or
   block this refactor; new authentication, possession and free-camera features
   need their own explicit scope.
-- Native callback lifetime: confirm vendored SDL dialog completion relative to
-  SDL shutdown and queued result disposal. Blocks changes to dialog/runtime
-  ownership until a safe lifetime contract is established; callbacks already
-  avoid borrowing AppState and must continue to do so.
-  The Unix Zenity implementation starts a detached thread
-  (`external/SDL/src/dialog/unix/SDL_zenitydialog.c:334`); callback completion
-  must not be assumed synchronous or implied by the UI handler's lifetime.
+- Native callback lifetime: application-owned requests/results now use the
+  shared delivery gate and pre-SDL-shutdown queue drain; callbacks borrow no
+  AppState or DOM. Production closure/late-result tests establish that contract.
+  Vendored SDL thread completion remains explicitly scoped in
+  [client-native-dialog-sdk-shutdown.md](client-native-dialog-sdk-shutdown.md).
+  The Unix Zenity thread frees SDK data after the application callback; no
+  synchronous completion or vendor cleanup guarantee is claimed.
 - Pending slider owner: characterize object/tab switch during staged volume
   changes. Blocks consolidation of that edit state if a stale-owner defect is
   found; a regression and separate fix resolve it.

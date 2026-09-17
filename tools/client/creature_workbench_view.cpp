@@ -1,4 +1,5 @@
 #include "creature_workbench_view.hpp"
+#include "client_input.hpp"
 #include "command_view.hpp"
 #include "shell_controller.hpp"
 #include "smalls_rmlui.hpp"
@@ -512,6 +513,58 @@ bool commit_creature_spell_filter(CreatureWorkbenchViewState& state, ObjectWorkb
     state.creature_spell_list.set_scroll_top(0);
     clear_creature_spell_filter(state);
     return true;
+}
+
+CreatureSpellFilterKeyStep begin_creature_spell_filter_key(const SDL_KeyboardEvent& key,
+    Rml::Context* context, CreatureWorkbenchViewState& state,
+    ObjectWorkbenchTarget target, bool palette_visible)
+{
+    if (key.type != SDL_EVENT_KEY_DOWN || palette_visible
+        || !active_creature_spell_filter_matches_tab(state, target)
+        || !focused_element_has_id(context, "active_creature_spell_filter_field")
+        || (key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+        return {};
+    }
+    if (key.key == SDLK_UP || key.key == SDLK_DOWN) {
+        const bool show = !state.creature_spell_combobox.popup_visible();
+        if (show) { (void)state.creature_spell_combobox.show_popup(); }
+        return {key.key == SDLK_UP ? CreatureSpellFilterKeyKind::move_up : CreatureSpellFilterKeyKind::move_down, show};
+    }
+    if (!key.repeat && (key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER)) {
+        if (!state.creature_spell_combobox.popup_visible()) {
+            (void)state.creature_spell_combobox.show_popup();
+            return {CreatureSpellFilterKeyKind::sync_filter, true};
+        }
+        if (const auto selected = state.creature_spell_combobox.selected_key();
+            selected && commit_creature_spell_filter(state, target, *selected)) {
+            return {CreatureSpellFilterKeyKind::sync_spells, true};
+        }
+        return {CreatureSpellFilterKeyKind::handled};
+    }
+    return {};
+}
+
+void finish_creature_spell_filter_key(CreatureSpellFilterKeyStep& step,
+    Rml::ElementDocument* doc, CreatureWorkbenchViewState& state, ObjectWorkbenchTarget target)
+{
+    const auto kind = std::exchange(step, {}).kind;
+    switch (kind) {
+    case CreatureSpellFilterKeyKind::move_up:
+    case CreatureSpellFilterKeyKind::move_down:
+        (void)state.creature_spell_combobox.move_selection(kind == CreatureSpellFilterKeyKind::move_up ? -1 : 1);
+        (void)sync_creature_spell_filter_window(doc, state, target, true);
+        break;
+    case CreatureSpellFilterKeyKind::sync_filter:
+        (void)sync_creature_spell_filter_window(doc, state, target, true);
+        break;
+    case CreatureSpellFilterKeyKind::sync_spells:
+        (void)sync_creature_spell_window(doc, state, target, true);
+        break;
+    case CreatureSpellFilterKeyKind::none:
+    case CreatureSpellFilterKeyKind::handled:
+    default:
+        break;
+    }
 }
 
 bool sync_creature_spell_window(Rml::ElementDocument* doc, CreatureWorkbenchViewState& state, ObjectWorkbenchTarget target, bool force)

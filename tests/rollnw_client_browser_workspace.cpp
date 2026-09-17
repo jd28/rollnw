@@ -15,10 +15,12 @@
 #include "script_commands.hpp"
 #include "shell_view.hpp"
 #include "smalls_rmlui.hpp"
+#include "smalls_view.hpp"
 #include "workspace_view.hpp"
 
 #include <nw/kernel/Rules.hpp>
 #include <nw/kernel/TilesetRegistry.hpp>
+#include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
@@ -48,6 +50,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <thread>
 #include <tuple>
 
 using namespace nw::toolset;
@@ -186,13 +189,19 @@ TEST_F(ClientBrowserWorkspace, RealProjectFiltersAndHomeWindowsKeepTheirExisting
     EXPECT_EQ(consume_home_workspace_click(*area_click, browser, backend), HomeWorkspaceClickKind::select_area);
     EXPECT_EQ(consume_home_workspace_click(*area_click, browser, backend), HomeWorkspaceClickKind::none);
     EXPECT_FALSE(sync_home_area_window(document, browser, false, true));
-    browser.home_area_query = "missing area query";
-    refresh_home_area_catalog(browser, backend, true);
+    auto* home_search = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("home_area_search"));
+    ASSERT_NE(home_search, nullptr);
+    home_search->SetValue("missing area query");
+    refresh_home_area_query(document, browser, backend, false);
+    EXPECT_TRUE(browser.home_area_query.empty());
+    refresh_home_area_query(document, browser, backend, true);
     EXPECT_EQ(browser.home_area_generation, generation);
     EXPECT_EQ(browser.home_area_query, "missing area query");
     EXPECT_TRUE(browser.home_areas.empty());
-    EXPECT_TRUE(sync_home_area_window(document, browser, true, true));
     EXPECT_NE(home_list->GetInnerRML().find("No matching areas."), std::string::npos);
+    const auto unchanged = home_list->GetInnerRML();
+    refresh_home_area_query(document, browser, backend, true);
+    EXPECT_EQ(home_list->GetInnerRML(), unchanged);
     ToolsetBackend empty_backend;
     refresh_home_area_catalog(browser, empty_backend, false);
     EXPECT_TRUE(browser.home_area_query.empty());
@@ -912,6 +921,59 @@ TEST_F(ClientBrowserWorkspace, NativeDialogSelectionPrecedesReleaseAndMalformedC
     EXPECT_EQ(view.list.selected(), 1);
 }
 
+TEST_F(ClientBrowserWorkspace, OwnerQueriesFilterActualTileRowsAndTrackOutputDirtiness)
+{
+    KernelServiceScope kernel;
+    auto* tileset = nw::kernel::tilesets().load("ttr01");
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(tileset, nullptr);
+    ASSERT_NE(area, nullptr);
+    area->tileset = tileset;
+    area->tileset_resref = nw::Resref{"ttr01"};
+    area->width = area->height = 1;
+    area->tiles.resize(1);
+    AreaTileEditorState editor;
+    ASSERT_TRUE(reset_area_tile_editor(editor, area->handle()));
+    std::string markup;
+    append_area_tile_palette_markup(markup, editor);
+    document->SetInnerRML("<div id='object_workbench' class='object_workbench' style='width:600px;height:600px;'>" + markup + "</div><input id='output_filter' type='text'/>");
+    context->Update();
+    auto* search = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("area_tile_palette_search"));
+    ASSERT_NE(search, nullptr);
+    search->SetValue("no matching tile query");
+    refresh_area_tile_palette_query(document, editor, area->handle(), false, AreaTilePointerModifier::none);
+    EXPECT_TRUE(editor.query.empty());
+    refresh_area_tile_palette_query(document, editor, area->handle(), true, AreaTilePointerModifier::none);
+    EXPECT_EQ(editor.query, "no matching tile query");
+    EXPECT_TRUE(editor.palette.matches.empty());
+    EXPECT_EQ(editor.list.selected(), -1);
+    auto* rows = document->GetElementById("area_tile_palette_rows");
+    ASSERT_NE(rows, nullptr);
+    const auto unchanged = rows->GetInnerRML();
+    refresh_area_tile_palette_query(document, editor, area->handle(), true, AreaTilePointerModifier::none);
+    EXPECT_EQ(rows->GetInnerRML(), unchanged);
+    search->SetValue("");
+    refresh_area_tile_palette_query(document, editor, area->handle(), true, AreaTilePointerModifier::none);
+    EXPECT_FALSE(editor.palette.matches.empty());
+    ShellController shell;
+    ShellViewState shell_view;
+    shell.output_dirty = false;
+    refresh_output_filter(document, shell_view, shell);
+    EXPECT_FALSE(shell.output_dirty);
+    auto* output = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("output_filter"));
+    ASSERT_NE(output, nullptr);
+    output->SetValue("warning β");
+    refresh_output_filter(document, shell_view, shell);
+    EXPECT_EQ(shell_view.last_output_filter, "warning β");
+    EXPECT_TRUE(shell.output_dirty);
+    shell.output_dirty = false;
+    refresh_output_filter(document, shell_view, shell);
+    EXPECT_FALSE(shell.output_dirty);
+    refresh_output_filter(nullptr, shell_view, shell);
+    EXPECT_TRUE(shell_view.last_output_filter.empty());
+    EXPECT_TRUE(shell.output_dirty);
+}
+
 TEST_F(ClientBrowserWorkspace, NativeTilePaletteUsesCurrentFolderAndRejectsStaleRowsAfterRelease)
 {
     KernelServiceScope kernel;
@@ -1039,6 +1101,66 @@ TEST_F(ClientBrowserWorkspace, RebuildRetainsTheSelectedIndexAndItsHighlight)
     ASSERT_TRUE(render_project_tree_window(document, browser, true));
     EXPECT_EQ(browser.selected_recent_index, 0);
     EXPECT_TRUE(list->GetChild(0)->GetChild(0)->IsClassSet("selected"));
+}
+
+TEST(ClientShellLogCapture, SdkMessagesOwnTextKeepBoundedOrderAndRemoveTheCallback)
+{
+    const auto previous_verbosity = loguru::g_stderr_verbosity;
+    loguru::g_stderr_verbosity = loguru::Verbosity_ERROR;
+    const auto restore = create_scope_exit([&] { loguru::g_stderr_verbosity = previous_verbosity; });
+    {
+        LoguruOutputCapture capture;
+        std::string text = "owned β";
+        LOG_F(INFO, "{}", text);
+        text = "replacement";
+        LOG_F(WARNING, "captured warning");
+        LOG_F(ERROR, "captured error");
+        LOG_F(1, "excluded verbose row");
+        auto rows = capture.drain();
+        ASSERT_EQ(rows.size(), 3u);
+        EXPECT_EQ(rows[0].channel, "info");
+        EXPECT_TRUE(rows[0].message.ends_with("owned β"));
+        EXPECT_EQ(rows[1].channel, "warn");
+        EXPECT_TRUE(rows[1].message.ends_with("captured warning"));
+        EXPECT_EQ(rows[2].channel, "error");
+        EXPECT_TRUE(rows[2].message.ends_with("captured error"));
+        EXPECT_TRUE(capture.drain().empty());
+        for (int i = 0; i < 520; ++i) {
+            LOG_F(INFO, "capture-row-{}", i);
+        }
+        rows = capture.drain();
+        ASSERT_EQ(rows.size(), 512u);
+        for (size_t i = 0; i < rows.size(); ++i) {
+            EXPECT_EQ(rows[i].channel, "info");
+            EXPECT_TRUE(rows[i].message.ends_with("capture-row-" + std::to_string(i + 8)));
+        }
+        std::thread worker{[] {
+            for (int i = 0; i < 32; ++i) {
+                LOG_F(INFO, "worker-row-{}", i);
+            }
+        }};
+        worker.join();
+        rows = capture.drain();
+        ASSERT_EQ(rows.size(), 32u);
+        for (size_t i = 0; i < rows.size(); ++i) {
+            EXPECT_TRUE(rows[i].message.ends_with("worker-row-" + std::to_string(i)));
+        }
+        ShellController shell;
+        LOG_F(INFO, "shell transfer");
+        flush_shell_log_capture(capture, shell);
+        ASSERT_EQ(shell.output_lines.size(), 1u);
+        EXPECT_EQ(shell.output_lines.front().first, "info");
+        EXPECT_TRUE(shell.output_lines.front().second.ends_with("shell transfer"));
+        EXPECT_TRUE(capture.drain().empty());
+    }
+    LOG_F(INFO, "after capture removal");
+    LoguruOutputCapture fresh;
+    EXPECT_TRUE(fresh.drain().empty());
+    LOG_F(INFO, "fresh owner");
+    const auto rows = fresh.drain();
+    ASSERT_EQ(rows.size(), 1u);
+    EXPECT_TRUE(rows.front().message.ends_with("fresh owner"));
+    RecordProperty("captured_log_row_bytes", sizeof(CapturedLogLine));
 }
 
 class ClientShellView : public ClientBrowserWorkspace { };
@@ -1667,6 +1789,129 @@ TEST_F(ClientObjectWorkbench, NativeVariableClickOwnsArgumentsAndCommitsOneUndo)
     EXPECT_EQ(module->locals.get_int("label"), 5);
 }
 
+TEST_F(ClientObjectWorkbench, ComposedWorkbenchClicksOwnArgumentsAcrossSdkReleaseAndConsumeOnce)
+{
+    auto* module = nw::kernel::objects().make<nw::Module>();
+    ASSERT_NE(module, nullptr);
+    module->locals.set_int("label", 5);
+    activate(module->handle());
+    document->SetInnerRML("<button class='object_variable_remove' data-name='label' data-type='1'><span id='target'>Remove</span></button>");
+    auto click = capture_object_workbench_click(document->GetElementById("target"), {}, view, workspace,
+        backend.module_generation(), nw::kernel::resman().generation());
+    ASSERT_TRUE(click);
+    ASSERT_TRUE(std::holds_alternative<ObjectWorkbenchCommandClick>(click->payload));
+    EXPECT_EQ(click->release_phase, ClientRmlForwardPhase::before_native);
+    SDL_Event event{};
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event.button.button = SDL_BUTTON_LEFT;
+    ClientInputDispatchState dispatch;
+    ASSERT_TRUE(forward_client_input(dispatch, ClientRmlRecipient::toolset, click->release_phase, context, nullptr, event).performed);
+    document->SetInnerRML("<button class='object_variable_remove' data-name='replacement' data-type='1'>Replacement</button>");
+    auto effect = apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+    EXPECT_FALSE(effect.refresh_content);
+    EXPECT_FALSE(effect.sync_body);
+    EXPECT_EQ(effect.finish, ObjectWorkbenchClickFinish::none);
+    EXPECT_EQ(module->locals.get_int("label"), 0);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    finish_object_workbench_click(effect, *click, document, view, workspace, nw::kernel::resman().generation());
+    const auto logs = shell.output_lines.size();
+    EXPECT_EQ(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).finish, ObjectWorkbenchClickFinish::none);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    EXPECT_EQ(shell.output_lines.size(), logs);
+    EXPECT_FALSE(forward_client_input(dispatch, ClientRmlRecipient::toolset, click->release_phase, context, nullptr, event).performed);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(module->locals.get_int("label"), 5);
+    RecordProperty("composed_click_bytes", sizeof(ObjectWorkbenchClick));
+    RecordProperty("composed_effect_bytes", sizeof(ObjectWorkbenchClickEffect));
+}
+
+TEST_F(ClientObjectWorkbench, SmallsViewDrainsCallbacksAndRestoresCurrentListFocus)
+{
+    ASSERT_TRUE(bridge.initialize());
+    EXPECT_FALSE(synchronize_smalls_view(bridge, nullptr, nullptr));
+    refresh_smalls_view(nullptr, bridge, nullptr, nullptr);
+    auto& host = ui_v1_host();
+    ASSERT_TRUE(host.create("client-smalls-view", {}));
+    const auto cleanup = create_scope_exit([&] { host.destroy("client-smalls-view"); });
+    ASSERT_TRUE(host.set_items("client-smalls-view", {
+                                                         {.key = "first", .cells = {"First", "", "", ""}},
+                                                         {.key = "second", .cells = {"Second", "", "", ""}},
+                                                     }));
+    ASSERT_TRUE(host.set_callback("client-smalls-view", UiListEventType::activate, "missing.module.callback"));
+    document->SetInnerRML("<div id='rows' class='managed_list_rows' data-list-id='client-smalls-view' data-focus-after-activate='focus' style='height:100px;width:200px;'></div>"
+                          "<button id='focus' class='managed_list_cycle' data-list-id='client-smalls-view' data-focus-after-activate='focus'>Cycle</button><button id='other'>Other</button>");
+    context->Update();
+    ManagedListRenderState lists;
+    ASSERT_TRUE(sync_managed_lists(document, host, lists, true));
+    Rml::ElementList rows;
+    document->GetElementsByClassName(rows, "managed_list_row");
+    ASSERT_EQ(rows.size(), 2u);
+    const auto errors = shell.output_lines.size();
+    auto activation = activate_smalls_list(document, rows.front(), bridge, nullptr, nullptr, shell, lists);
+    ASSERT_TRUE(activation.activated);
+    ASSERT_TRUE(activation.focus_target);
+    ASSERT_TRUE(host.get_selected("client-smalls-view"));
+    EXPECT_EQ(host.get_selected("client-smalls-view")->index, 0);
+    ASSERT_EQ(shell.output_lines.size(), errors + 1);
+    EXPECT_EQ(shell.output_lines.back().first, "error");
+    dispatch_smalls_list_events(bridge, shell);
+    EXPECT_EQ(shell.output_lines.size(), errors + 1);
+    ASSERT_TRUE(focus_managed_list_target(document, *activation.focus_target));
+    EXPECT_EQ(context->GetFocusElement(), document->GetElementById("focus"));
+    ASSERT_TRUE(cycle_smalls_list(document, document->GetElementById("focus"), 1, bridge, nullptr, nullptr, shell, lists));
+    EXPECT_EQ(host.get_selected("client-smalls-view")->index, 1);
+    EXPECT_EQ(context->GetFocusElement(), document->GetElementById("focus"));
+    EXPECT_EQ(shell.output_lines.size(), errors + 2);
+    EXPECT_FALSE(activate_smalls_list(document, document->GetElementById("other"), bridge, nullptr, nullptr, shell, lists).activated);
+    EXPECT_FALSE(cycle_smalls_list(document, document->GetElementById("other"), 1, bridge, nullptr, nullptr, shell, lists));
+    ASSERT_TRUE(host.set_callback("client-smalls-view", UiListEventType::activate, ""));
+    ASSERT_TRUE(host.push_activate("client-smalls-view", 0));
+    dispatch_smalls_list_events(bridge, shell);
+    EXPECT_EQ(shell.output_lines.size(), errors + 2);
+}
+
+TEST_F(ClientObjectWorkbench, ComposedWorkbenchClicksPreservePriorityMalformedPhasesAndSurfaceEffects)
+{
+    document->SetInnerRML("<button id='priority' class='area_object_row object_variable_remove' data-object='bad' data-name='label' data-type='1'>Both</button>"
+                          "<button id='boolean' class='object_details_boolean' data-row='-1' data-current='0'>Invalid</button>"
+                          "<button id='surface' class='object_workbench_tab' data-surface='invalid'>Surface</button><button id='other'>Other</button>");
+    const auto capture = [&](const char* id) {
+        return capture_object_workbench_click(document->GetElementById(id), {}, view, workspace,
+            backend.module_generation(), nw::kernel::resman().generation());
+    };
+    auto click = capture("priority");
+    ASSERT_TRUE(click);
+    ASSERT_TRUE(std::holds_alternative<PlacedAreaObjectClick>(click->payload));
+    EXPECT_EQ(click->release_phase, ClientRmlForwardPhase::none);
+    auto effect = apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+    EXPECT_EQ(effect.selection.kind, PlacedAreaObjectClickKind::none);
+    click = capture("boolean");
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->release_phase, ClientRmlForwardPhase::after_native);
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    click = capture("surface");
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->release_phase, ClientRmlForwardPhase::before_native);
+    effect = apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+    EXPECT_TRUE(effect.sync_body);
+    EXPECT_TRUE(effect.refresh_content);
+    EXPECT_EQ(effect.finish, ObjectWorkbenchClickFinish::all_windows);
+    document->SetInnerRML("<p>Fresh markup</p>");
+    finish_object_workbench_click(effect, *click, document, view, workspace, nw::kernel::resman().generation());
+    EXPECT_FALSE(effect.refresh_content);
+    EXPECT_FALSE(effect.sync_body);
+    EXPECT_EQ(effect.finish, ObjectWorkbenchClickFinish::none);
+    effect.finish = static_cast<ObjectWorkbenchClickFinish>(255);
+    finish_object_workbench_click(effect, *click, document, view, workspace, nw::kernel::resman().generation());
+    EXPECT_EQ(effect.finish, ObjectWorkbenchClickFinish::none);
+    click->pending = true;
+    click->release_phase = static_cast<ClientRmlForwardPhase>(255);
+    EXPECT_EQ(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).finish, ObjectWorkbenchClickFinish::none);
+    EXPECT_FALSE(click->pending);
+    EXPECT_FALSE(capture("other"));
+    EXPECT_EQ(workspace.undo_count(), 0);
+}
+
 TEST_F(ClientObjectWorkbench, NativeDetailsClickUsesLiveMetadataAndRejectsReplacementOwner)
 {
     auto* sound = nw::kernel::objects().make<nw::Sound>();
@@ -1940,22 +2185,25 @@ TEST_F(ClientObjectWorkbench, NativeSoundComboOwnsPropertyAndOptionsAndCommitsOn
     context->Update();
     auto* field = document->GetElementById(field_id);
     ASSERT_NE(field, nullptr);
-    auto click = capture_object_workbench_combo_click(field, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
+    auto click = capture_object_workbench_click(field, {}, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
     ASSERT_TRUE(click);
-    ASSERT_EQ(click->kind, ObjectWorkbenchComboKind::sound_open);
-    EXPECT_EQ(click->property->current, before);
-    const auto apply = [&](ObjectWorkbenchComboClick& input) {
-        return apply_object_workbench_combo_click(input, document, view, workspace, backend, shell, command);
+    ASSERT_EQ(std::get<ObjectWorkbenchComboClick>(click->payload).kind, ObjectWorkbenchComboKind::sound_open);
+    EXPECT_EQ(std::get<ObjectWorkbenchComboClick>(click->payload).property->current, before);
+    const auto apply = [&](ObjectWorkbenchClick& input) {
+        return apply_object_workbench_click(input, document, view, workspace, backend, shell, command);
     };
     document->SetInnerRML("<div id='object_workbench' class='object_workbench' style='position:absolute;left:0px;top:0px;width:600px;height:600px;'>"
                           "<button id='"
         + field_id + "' class='object_details_sound_position_field' data-row='" + std::to_string(index)
         + "' style='width:200px;height:40px;'>Placement</button><div id='object_details_combobox_popup' class='combobox_options combobox_popup object_details_combobox_popup'></div></div>");
     context->Update();
-    ASSERT_EQ(apply(*click), ObjectWorkbenchComboEffect::sound_opened);
-    EXPECT_EQ(apply(*click), ObjectWorkbenchComboEffect::none);
-    ASSERT_TRUE(sync_object_details_combobox(document, view, workspace, true));
-    EXPECT_TRUE(focus_object_workbench_combo_field(document, *click, view, workspace));
+    auto effect = apply(*click);
+    ASSERT_EQ(effect.finish, ObjectWorkbenchClickFinish::sound_combo);
+    EXPECT_FALSE(effect.refresh_content);
+    EXPECT_EQ(apply(*click).finish, ObjectWorkbenchClickFinish::none);
+    finish_object_workbench_click(effect, *click, document, view, workspace, nw::kernel::resman().generation());
+    EXPECT_EQ(context->GetFocusElement(), document->GetElementById(field_id));
+    EXPECT_EQ(effect.finish, ObjectWorkbenchClickFinish::none);
     context->Update();
     ASSERT_TRUE(sync_object_details_combobox(document, view, workspace, true));
     context->Update();
@@ -1971,19 +2219,21 @@ TEST_F(ClientObjectWorkbench, NativeSoundComboOwnsPropertyAndOptionsAndCommitsOn
     context->ProcessMouseMove(static_cast<int>((*target)->GetAbsoluteLeft() + (*target)->GetClientWidth() / 2),
         static_cast<int>((*target)->GetAbsoluteTop() + (*target)->GetClientHeight() / 2), 0);
     context->ProcessMouseButtonDown(0, 0);
-    click = capture_object_workbench_combo_click(*target, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
+    click = capture_object_workbench_click(*target, {}, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
     ASSERT_TRUE(click);
-    ASSERT_EQ(click->kind, ObjectWorkbenchComboKind::sound_select);
+    ASSERT_EQ(std::get<ObjectWorkbenchComboClick>(click->payload).kind, ObjectWorkbenchComboKind::sound_select);
     SDL_Event event{};
     event.type = SDL_EVENT_MOUSE_BUTTON_UP;
     event.button.button = SDL_BUTTON_LEFT;
     ClientInputDispatchState dispatch;
     ASSERT_TRUE(forward_client_input(dispatch, ClientRmlRecipient::toolset, ClientRmlForwardPhase::before_native, context, nullptr, event).performed);
     document->SetInnerRML("<p>Replacement after release</p>");
-    ASSERT_EQ(apply(*click), ObjectWorkbenchComboEffect::sound_selected);
+    effect = apply(*click);
+    ASSERT_TRUE(effect.refresh_content);
+    EXPECT_EQ(effect.finish, ObjectWorkbenchClickFinish::none);
     EXPECT_EQ(workspace.undo_count(), 1);
     EXPECT_FALSE(view.object_details_combobox.is_active());
-    EXPECT_EQ(apply(*click), ObjectWorkbenchComboEffect::none);
+    EXPECT_EQ(apply(*click).finish, ObjectWorkbenchClickFinish::none);
     EXPECT_FALSE(forward_client_input(dispatch, ClientRmlRecipient::toolset, ClientRmlForwardPhase::before_native, context, nullptr, event).performed);
     ObjectDetailsSnapshot current;
     build_object_details(runtime, sound->handle(), current);
@@ -1995,10 +2245,10 @@ TEST_F(ClientObjectWorkbench, NativeSoundComboOwnsPropertyAndOptionsAndCommitsOn
     ASSERT_TRUE(open_object_details_sound_position_combobox(document, view, workspace, index));
     document->SetInnerRML("<div id='object_details_combobox_popup'><button id='target' class='combobox_option' data-key='"
         + std::to_string(desired) + "'>Select</button></div>");
-    click = capture_object_workbench_combo_click(document->GetElementById("target"), view, workspace,
+    click = capture_object_workbench_click(document->GetElementById("target"), {}, view, workspace,
         backend.module_generation(), nw::kernel::resman().generation());
     ASSERT_TRUE(click);
-    ASSERT_EQ(click->kind, ObjectWorkbenchComboKind::sound_select);
+    ASSERT_EQ(std::get<ObjectWorkbenchComboClick>(click->payload).kind, ObjectWorkbenchComboKind::sound_select);
     const auto propset = runtime.find_propset_ref(row->propset_type, sound->handle());
     const auto* definition = runtime.get_struct_def(row->propset_type);
     ASSERT_NE(definition, nullptr);
@@ -2006,9 +2256,9 @@ TEST_F(ClientObjectWorkbench, NativeSoundComboOwnsPropertyAndOptionsAndCommitsOn
         nw::smalls::Value::make_int(desired == 0 ? 0 : 1)));
     ASSERT_TRUE(runtime.write_struct_value_field(propset, definition, definition->field_index("random_position"),
         nw::smalls::Value::make_int(desired == 2 ? 1 : 0)));
-    EXPECT_EQ(object_mutation_state().epoch, click->mutation_epoch);
+    EXPECT_EQ(object_mutation_state().epoch, std::get<ObjectWorkbenchComboClick>(click->payload).mutation_epoch);
     const auto logs = shell.output_lines.size();
-    EXPECT_EQ(apply(*click), ObjectWorkbenchComboEffect::none);
+    EXPECT_EQ(apply(*click).finish, ObjectWorkbenchClickFinish::none);
     EXPECT_EQ(workspace.undo_count(), 0);
     EXPECT_EQ(shell.output_lines.size(), logs);
 }
@@ -2613,6 +2863,96 @@ TEST_F(ClientCreatureWorkbench, RealCreatureClassesAndFeatWindowsKeepTheirContra
     EXPECT_EQ(creature.creature_feat_list.total_rows(), 0);
 }
 
+TEST_F(ClientCreatureWorkbench, FilterKeysFinishOnceAfterGeneratedPopupRefresh)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
+    ASSERT_NE(actor, nullptr);
+    activate(actor->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::spells;
+    CreatureWorkbenchViewState creature;
+    rebuild_active_creature_spells(creature, actor->handle());
+    ASSERT_EQ(creature.creature_spells.status, CreatureSpellViewStatus::ready);
+    const auto target = [&] { return object_workbench_target(view, workspace); };
+    const auto render = [&] {
+        std::string markup;
+        append_creature_spell_markup(markup, creature, target());
+        append_creature_workbench_overlay_markup(markup, creature, target());
+        document->SetInnerRML("<div id='object_workbench' style='height:500px;width:600px;overflow:auto;'>" + markup + "</div>");
+        context->Update();
+    };
+    ASSERT_TRUE(open_creature_spell_filter(creature, target(), CreatureSpellFilterField::level));
+    creature.creature_spell_combobox.hide_popup();
+    render();
+    auto* field = document->GetElementById("active_creature_spell_filter_field");
+    ASSERT_NE(field, nullptr);
+    ASSERT_TRUE(field->Focus());
+    SDL_KeyboardEvent key{};
+    key.type = SDL_EVENT_KEY_DOWN;
+    key.key = SDLK_DOWN;
+    key.mod = SDL_KMOD_CTRL;
+    EXPECT_EQ(begin_creature_spell_filter_key(key, context, creature, target(), false).kind, CreatureSpellFilterKeyKind::none);
+    key.mod = SDL_KMOD_NONE;
+    EXPECT_EQ(begin_creature_spell_filter_key(key, context, creature, target(), true).kind, CreatureSpellFilterKeyKind::none);
+    key.type = SDL_EVENT_KEY_UP;
+    EXPECT_EQ(begin_creature_spell_filter_key(key, context, creature, target(), false).kind, CreatureSpellFilterKeyKind::none);
+    key.type = SDL_EVENT_KEY_DOWN;
+    key.mod = SDL_KMOD_SHIFT;
+    key.repeat = true;
+    const auto initial = creature.creature_spell_combobox.selected_key();
+    auto step = begin_creature_spell_filter_key(key, context, creature, target(), false);
+    EXPECT_EQ(step.kind, CreatureSpellFilterKeyKind::move_down);
+    EXPECT_TRUE(step.refresh_content);
+    EXPECT_TRUE(creature.creature_spell_combobox.popup_visible());
+    EXPECT_EQ(creature.creature_spell_combobox.selected_key(), initial);
+    render();
+    finish_creature_spell_filter_key(step, document, creature, target());
+    EXPECT_EQ(step.kind, CreatureSpellFilterKeyKind::none);
+    EXPECT_FALSE(step.refresh_content);
+    EXPECT_EQ(creature.creature_spell_combobox.selected_key(), 0);
+    finish_creature_spell_filter_key(step, document, creature, target());
+    EXPECT_EQ(creature.creature_spell_combobox.selected_key(), 0);
+    field = document->GetElementById("active_creature_spell_filter_field");
+    ASSERT_NE(field, nullptr);
+    ASSERT_TRUE(field->Focus());
+    key.mod = SDL_KMOD_NONE;
+    key.key = SDLK_KP_ENTER;
+    EXPECT_EQ(begin_creature_spell_filter_key(key, context, creature, target(), false).kind, CreatureSpellFilterKeyKind::none);
+    key.repeat = false;
+    step = begin_creature_spell_filter_key(key, context, creature, target(), false);
+    EXPECT_EQ(step.kind, CreatureSpellFilterKeyKind::sync_spells);
+    EXPECT_TRUE(step.refresh_content);
+    EXPECT_EQ(creature.creature_spell_level, 0);
+    EXPECT_FALSE(creature.creature_spell_combobox.is_active());
+    render();
+    finish_creature_spell_filter_key(step, document, creature, target());
+    EXPECT_EQ(document->GetElementById("creature_spell_count")->GetInnerRML(), std::to_string(creature.creature_spell_matches.size()));
+    ASSERT_TRUE(open_creature_spell_filter(creature, target(), CreatureSpellFilterField::level));
+    creature.creature_spell_combobox.hide_popup();
+    render();
+    field = document->GetElementById("active_creature_spell_filter_field");
+    ASSERT_NE(field, nullptr);
+    ASSERT_TRUE(field->Focus());
+    key.key = SDLK_RETURN;
+    step = begin_creature_spell_filter_key(key, context, creature, target(), false);
+    EXPECT_EQ(step.kind, CreatureSpellFilterKeyKind::sync_filter);
+    EXPECT_TRUE(step.refresh_content);
+    render();
+    finish_creature_spell_filter_key(step, document, creature, target());
+    EXPECT_TRUE(creature.creature_spell_combobox.popup_visible());
+    step.kind = static_cast<CreatureSpellFilterKeyKind>(255);
+    finish_creature_spell_filter_key(step, document, creature, target());
+    EXPECT_EQ(step.kind, CreatureSpellFilterKeyKind::none);
+    EXPECT_EQ(creature.creature_spell_combobox.selected_key(), 0);
+    field = document->GetElementById("active_creature_spell_filter_field");
+    ASSERT_NE(field, nullptr);
+    ASSERT_TRUE(field->Focus());
+    workspace.open_tab("second", "Second", WorkspaceTabKind::preview);
+    key.key = SDLK_UP;
+    EXPECT_EQ(begin_creature_spell_filter_key(key, context, creature, target(), false).kind, CreatureSpellFilterKeyKind::none);
+    EXPECT_EQ(creature.creature_spell_combobox.selected_key(), 0);
+}
+
 TEST_F(ClientCreatureWorkbench, RealSpellFiltersRejectStaleAndInvalidChoices)
 {
     ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
@@ -3026,6 +3366,131 @@ TEST_F(ClientAppearanceView, WorkbenchActivationAndMutationRetainTheirDifferentS
     EXPECT_TRUE(view.creature_view.creature_spells.rows.empty());
     EXPECT_EQ(view.inventory_view.creature_inventory.inventory.size(), 0);
     EXPECT_FALSE(refresh_object_workbench_snapshots(view, other->handle()));
+}
+
+TEST_F(ClientAppearanceView, WorkspaceDocumentMarkupDelegatesLiveSurfacesAndPreservesFallbacks)
+{
+    load_fixture();
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(actor, nullptr);
+    ASSERT_NE(area, nullptr);
+    area->creatures.push_back(actor);
+    const auto cleanup = create_scope_exit([&] {
+        area->creatures.clear();
+        nw::kernel::objects().destroy(area->handle());
+    });
+    smalls_rmlui_host().publish_active_object(actor->handle());
+    activate_object_workbench(view, actor->handle(), workspace.active_tab_id());
+    AreaTileEditorState tiles;
+    DialogViewState dialog;
+    workspace.open_tab("area", "Area <&\" β", WorkspaceTabKind::area);
+    const auto append = [&](AreaWorkspaceSurface surface) {
+        std::string markup;
+        append_workspace_document_markup(markup, *workspace.active_tab(), workspace,
+            backend, view, surface, tiles, dialog, area->handle());
+        document->SetInnerRML(markup);
+        context->Update();
+        return markup;
+    };
+    for (const auto surface : {AreaWorkspaceSurface::properties, AreaWorkspaceSurface::objects, AreaWorkspaceSurface::tiles}) {
+        const auto markup = append(surface);
+        EXPECT_NE(markup.find("Area &lt;&amp;&quot; β"), std::string::npos);
+        ASSERT_NE(document->GetElementById("workspace_viewer_viewport"), nullptr);
+        Rml::ElementList tabs;
+        document->GetElementsByClassName(tabs, "area_workspace_tab");
+        ASSERT_EQ(tabs.size(), 3u);
+        size_t active = 0;
+        for (auto* tab : tabs) {
+            active += tab->IsClassSet("active");
+            const auto captured = capture_area_workspace_surface_click(tab);
+            ASSERT_TRUE(captured);
+            ASSERT_TRUE(captured->surface);
+            if (tab->IsClassSet("active")) { EXPECT_EQ(*captured->surface, surface); }
+        }
+        EXPECT_EQ(active, 1u);
+        if (surface == AreaWorkspaceSurface::objects) {
+            Rml::ElementList rows;
+            document->GetElementsByClassName(rows, "area_object_row");
+            ASSERT_EQ(rows.size(), 1u);
+            const auto captured = capture_placed_area_object_click(rows.front()->GetChild(0));
+            ASSERT_TRUE(captured);
+            EXPECT_EQ(captured->object, actor->handle());
+        } else if (surface == AreaWorkspaceSurface::tiles) {
+            EXPECT_NE(document->GetElementById("area_tile_palette"), nullptr);
+        }
+    }
+    workspace.open_tab("first", "First", WorkspaceTabKind::preview);
+    view.object_workbench_surface = ObjectWorkbenchSurface::spells;
+    const auto preview = append(AreaWorkspaceSurface::properties);
+    EXPECT_EQ(preview.find("data_workbench_only"), std::string::npos);
+    EXPECT_NE(document->GetElementById("workspace_viewer_viewport"), nullptr);
+    auto* sound = nw::kernel::objects().make<nw::Sound>();
+    ASSERT_NE(sound, nullptr);
+    smalls_rmlui_host().publish_active_object(sound->handle());
+    activate_object_workbench(view, sound->handle(), workspace.active_tab_id());
+    EXPECT_NE(append(AreaWorkspaceSurface::properties).find("data_workbench_only"), std::string::npos);
+    workspace.open_tab("dialog", "Dialog", WorkspaceTabKind::dialog);
+    EXPECT_EQ(append(AreaWorkspaceSurface::properties), dialog_view_markup(dialog));
+    workspace.open_tab("resource", "Resource", WorkspaceTabKind::resource);
+    EXPECT_NE(append(AreaWorkspaceSurface::properties).find("No project resource selected"), std::string::npos);
+    workspace.open_tab("generic", "Generic <&>", WorkspaceTabKind::generic);
+    EXPECT_NE(append(AreaWorkspaceSurface::properties).find("Generic &lt;&amp;&gt;"), std::string::npos);
+}
+
+TEST_F(ClientAppearanceView, WorkbenchQueriesReadLiveFieldsAndKeepUnchangedAndStaleRows)
+{
+    load_fixture();
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/wizard_pm.utc");
+    ASSERT_NE(actor, nullptr);
+    smalls_rmlui_host().publish_active_object(actor->handle());
+    activate_object_workbench(view, actor->handle(), workspace.active_tab_id());
+    ASSERT_EQ(view.creature_view.creature_spells.status, CreatureSpellViewStatus::ready);
+    ASSERT_FALSE(view.creature_view.creature_spells.rows.empty());
+    const std::string name{view.creature_view.creature_spells.text_view(view.creature_view.creature_spells.rows.front().name)};
+    view.object_workbench_surface = ObjectWorkbenchSurface::spells;
+    std::string markup;
+    append_creature_spell_markup(markup, view.creature_view, object_workbench_target(view, workspace));
+    document->SetInnerRML("<div id='object_workbench' style='height:500px;width:600px;overflow:auto;'>" + markup
+        + "<input id='creature_feat_search' value='no-such-feat-12345'/>"
+          "<input id='appearance_search' value='closed appearance'/><input id='sound_catalog_search' value='closed sound'/></div>");
+    context->Update();
+    ASSERT_TRUE(sync_creature_spell_window(document, view.creature_view, object_workbench_target(view, workspace), true));
+    auto* rows = document->GetElementById("creature_spell_rows");
+    ASSERT_NE(rows, nullptr);
+    auto* first = rows->GetChild(0);
+    const auto refresh = [&] {
+        refresh_object_workbench_queries(document, view, workspace, backend, nw::kernel::resman().generation());
+    };
+    refresh();
+    EXPECT_EQ(rows->GetChild(0), first);
+    EXPECT_TRUE(view.creature_view.creature_feat_query.empty());
+    EXPECT_TRUE(view.appearance_view.appearance_query.empty());
+    EXPECT_TRUE(view.appearance_view.sound_catalog_query.empty());
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("creature_spell_search"));
+    ASSERT_NE(input, nullptr);
+    input->SetValue(name);
+    refresh();
+    EXPECT_EQ(view.creature_view.creature_spell_query, name);
+    EXPECT_FALSE(view.creature_view.creature_spell_matches.empty());
+    EXPECT_DOUBLE_EQ(view.creature_view.creature_spell_list.scroll_top(), 0);
+    EXPECT_EQ(document->GetElementById("creature_spell_count")->GetInnerRML(), std::to_string(view.creature_view.creature_spell_matches.size()));
+    first = rows->GetChild(0);
+    refresh();
+    EXPECT_EQ(rows->GetChild(0), first);
+    const auto matches = view.creature_view.creature_spell_matches;
+    workspace.open_tab("second", "Second", WorkspaceTabKind::preview);
+    input->SetValue("stale query β");
+    refresh();
+    EXPECT_EQ(view.creature_view.creature_spell_query, "stale query β");
+    EXPECT_EQ(view.creature_view.creature_spell_matches, matches);
+    EXPECT_EQ(rows->GetChild(0), first);
+    workspace.open_tab("first", "First", WorkspaceTabKind::preview);
+    view.object_workbench_surface = ObjectWorkbenchSurface::feats;
+    refresh();
+    EXPECT_EQ(view.creature_view.creature_feat_query, "no-such-feat-12345");
+    EXPECT_TRUE(view.creature_view.creature_feats.rows.empty());
+    EXPECT_DOUBLE_EQ(view.creature_view.creature_feat_list.scroll_top(), 0);
 }
 
 TEST_F(ClientAppearanceView, WorkbenchCompositionHydratesOnlyTheDisplayedCreatureSurface)
@@ -3588,10 +4053,9 @@ TEST_F(ClientAppearanceView, NativeColorFieldClosesSharedSelectorBeforeOpeningAf
     document->SetInnerRML("<div class='smalls_selector active'><button class='smalls_selector_close'>Close</button></div>"
                           "<button id='target' class='creature_color_field' data-color='"
         + std::to_string(rows[0].color) + "'>Color</button>");
-    auto click = capture_color_editor_click(document->GetElementById("target"), {}, appearance, object_workbench_target(view, workspace),
-        workspace, backend.module_generation(), nw::kernel::resman().generation());
+    auto click = capture_object_workbench_click(document->GetElementById("target"), {}, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
     ASSERT_TRUE(click);
-    ASSERT_EQ(click->kind, ColorEditorClickKind::field);
+    ASSERT_EQ(std::get<ColorEditorClick>(click->payload).kind, ColorEditorClickKind::field);
     EXPECT_EQ(click->release_phase, ClientRmlForwardPhase::before_native);
     class CloseRecorder final : public Rml::EventListener {
     public:
@@ -3615,14 +4079,14 @@ TEST_F(ClientAppearanceView, NativeColorFieldClosesSharedSelectorBeforeOpeningAf
     } recorder{appearance, *document};
     context->AddEventListener("click", &recorder);
     const auto remove = create_scope_exit([&] { context->RemoveEventListener("click", &recorder); });
-    ASSERT_TRUE(close_active_smalls_selector(document));
+    prepare_object_workbench_click(*click, document);
     EXPECT_EQ(recorder.closes, 1);
     EXPECT_EQ(recorder.old_channel, rows[1].color);
     EXPECT_TRUE(recorder.old_selector);
-    ASSERT_TRUE(apply_color_editor_click(*click, appearance, object_workbench_target(view, workspace), workspace, backend, shell, command));
+    ASSERT_TRUE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
     EXPECT_EQ(appearance.color_editor_channel, rows[0].color);
     EXPECT_FALSE(appearance.appearance_selector_open);
-    EXPECT_FALSE(apply_color_editor_click(*click, appearance, object_workbench_target(view, workspace), workspace, backend, shell, command));
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
     EXPECT_EQ(workspace.undo_count(), 0);
 }
 

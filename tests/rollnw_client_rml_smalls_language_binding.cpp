@@ -6,7 +6,9 @@
 #include "command_view.hpp"
 #include "item_editor_data_model.hpp"
 #include "loading_view.hpp"
+#include "object_document.hpp"
 #include "object_edits.hpp"
+#include "object_workbench_view.hpp"
 #include "play_preview_view.hpp"
 #include "project.hpp"
 #include "project_resource_drag.hpp"
@@ -1309,6 +1311,74 @@ TEST(ClientRmlTemplates, CreatureWorkbenchOwnsBodyPartListStructure)
     Rml::RemoveContext("creature-workbench-template-test");
 }
 
+TEST(ClientRmlTemplates, PlacedObjectRowsGenerateEscapedTargetsAndRejectMalformedIdentities)
+{
+    using namespace nw::toolset;
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(creature, nullptr);
+    area->creatures.push_back(creature);
+    std::vector<PlacedAreaObjectRow> rows;
+    build_placed_area_object_rows(*area, rows);
+    ASSERT_EQ(rows.size(), 1u);
+    rows.front().name = "Name <&\" β";
+    std::string markup;
+    append_placed_area_object_list_markup(markup, rows, true);
+    EXPECT_NE(markup.find("Name &lt;&amp;&quot; β"), std::string::npos);
+    EXPECT_NE(markup.find("area_object_list_count\">1"), std::string::npos);
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("placed-object-targets", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory("<rml><body>" + markup
+        + "<button class='area_object_list_back'><span id='back'>Back</span></button>"
+          "<button id='unrelated'>Other</button></body></rml>");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+    Rml::ElementList elements;
+    document->GetElementsByClassName(elements, "area_object_row");
+    ASSERT_EQ(elements.size(), 1u);
+    auto* row = elements.front();
+    ASSERT_GT(row->GetNumChildren(), 0);
+    auto click = capture_placed_area_object_click(row->GetChild(0));
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->kind, PlacedAreaObjectClickKind::select);
+    EXPECT_EQ(click->object, creature->handle());
+    const auto packed = std::to_string(creature->handle().to_ull());
+    for (const auto& malformed : {std::string{}, packed + "tail", "+" + packed,
+             " " + packed, std::string{"-1"}, std::string{"18446744073709551616"}}) {
+        row->SetAttribute("data-object", malformed);
+        click = capture_placed_area_object_click(row->GetChild(0));
+        ASSERT_TRUE(click);
+        EXPECT_EQ(click->kind, PlacedAreaObjectClickKind::none);
+    }
+    row->SetAttribute("data-object", packed);
+    area->creatures.clear();
+    nw::kernel::objects().destroy(creature->handle());
+    click = capture_placed_area_object_click(row);
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->kind, PlacedAreaObjectClickKind::none);
+    click = capture_placed_area_object_click(document->GetElementById("back"));
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->kind, PlacedAreaObjectClickKind::back);
+    EXPECT_FALSE(capture_placed_area_object_click(document->GetElementById("unrelated")));
+    EXPECT_FALSE(capture_placed_area_object_click(nullptr));
+    markup.clear();
+    append_placed_area_object_list_markup(markup, {}, true);
+    EXPECT_NE(markup.find("This area has no placed objects."), std::string::npos);
+    markup.clear();
+    append_placed_area_object_list_markup(markup, {}, false);
+    EXPECT_NE(markup.find("Loading placed objects..."), std::string::npos);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("placed-object-targets");
+    nw::kernel::objects().destroy(area->handle());
+}
+
 TEST(ClientRmlTemplates, AreaSelectionKeepsViewportRectangleStableAcrossWorkbenchTypes)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
@@ -1732,6 +1802,91 @@ TEST(ClientRmlTemplates, CommandFormRefreshPreservesInputAndInvalidatesGeneratio
     document->Close();
     context->Update();
     Rml::RemoveContext("command-form-refresh");
+}
+
+TEST(ClientRmlTemplates, CommandFormKeysUseLiveFocusAndPreservePopupActionOrdering)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("command-form-keys", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/command_modals.rml");
+    ASSERT_NE(document, nullptr);
+    ToolsetBackend backend;
+    CommandViewState state;
+    state.command_overlay_document = document;
+    state.command_form = CommandPrompt{
+        .actions = {{"create", "Create"}, {"cancel", "Cancel"}},
+        .fields = {{.label = "Choice", .value = "first", .choices = {{"first", "First"}, {"second", "Second"}}}},
+    };
+    ++state.command_form_generation;
+    sync_command_form(state, backend, false);
+    context->Update();
+    auto* choice = document->GetElementById("command_form_field_0");
+    ASSERT_NE(choice, nullptr);
+    ASSERT_TRUE(choice->Focus());
+    const auto press = [&](SDL_Keycode code, SDL_Keymod mods = SDL_KMOD_NONE, bool repeat = false) {
+        SDL_KeyboardEvent key{};
+        key.type = SDL_EVENT_KEY_DOWN;
+        key.key = code;
+        key.mod = mods;
+        key.repeat = repeat;
+        return handle_command_form_key(state, backend, false, context, key);
+    };
+    EXPECT_FALSE(press(SDLK_DOWN, SDL_KMOD_NONE, true).handled);
+    EXPECT_FALSE(press(SDLK_DOWN, SDL_KMOD_CTRL).handled);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    for (const auto* malformed : {"0tail", "+0", "-1", "2147483648"}) {
+        choice->SetAttribute("data-field", malformed);
+        EXPECT_FALSE(press(SDLK_DOWN).handled);
+        EXPECT_FALSE(state.command_form_combobox.is_active());
+    }
+    choice->SetAttribute("data-field", "0");
+    auto key = press(SDLK_DOWN);
+    EXPECT_TRUE(key.handled);
+    EXPECT_FALSE(key.action_index);
+    ASSERT_TRUE(state.command_form_combobox.is_active());
+    EXPECT_EQ(state.command_form_combobox.selected_key(), 1);
+    EXPECT_TRUE(state.command_form_combobox.popup_visible());
+    EXPECT_EQ(state.command_form->fields[0].value, "first");
+    EXPECT_TRUE(press(SDLK_KP_ENTER).handled);
+    EXPECT_EQ(state.command_form->fields[0].value, "second");
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+
+    EXPECT_TRUE(press(SDLK_RETURN).handled);
+    EXPECT_TRUE(state.command_form_combobox.popup_visible());
+    key = press(SDLK_ESCAPE);
+    EXPECT_TRUE(key.handled);
+    EXPECT_FALSE(key.action_index);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    key = press(SDLK_ESCAPE);
+    ASSERT_TRUE(key.action_index);
+    EXPECT_EQ(*key.action_index, 1u);
+    ASSERT_TRUE(state.command_form);
+
+    EXPECT_TRUE(press(SDLK_RETURN).handled);
+    key = press(SDLK_TAB);
+    EXPECT_FALSE(key.handled);
+    EXPECT_FALSE(key.action_index);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    key = press(SDLK_RETURN, SDL_KMOD_CTRL);
+    ASSERT_TRUE(key.action_index);
+    EXPECT_EQ(*key.action_index, 0u);
+    choice->Blur();
+    EXPECT_FALSE(press(SDLK_KP_ENTER).handled);
+    key = press(SDLK_RETURN);
+    EXPECT_EQ(key.action_index, 0u);
+    state.command_form->actions.clear();
+    EXPECT_FALSE(press(SDLK_RETURN).handled);
+    EXPECT_TRUE(press(SDLK_ESCAPE).handled);
+    state.command_form.reset();
+    EXPECT_FALSE(press(SDLK_ESCAPE).handled);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("command-form-keys");
 }
 
 TEST(ClientRmlTemplates, CommandFormRejectsMalformedChoicesWithoutDiscardingCurrentPopup)
