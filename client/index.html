@@ -278,6 +278,73 @@ a five-pixel drag, and viewport/camera changes cancel the gesture. Standalone
 and equipped-item poses are unchanged.</p>
 <p>Area drops create new instances from blueprints. Moving an existing inventory
 item into the world and picking up ground items are not supported yet.</p>
+<h2 id="area-tile-editing">Area Tile Editing</h2>
+<p>Open the <strong>Tiles</strong> tab in an area to paint terrain, features, and tileset
+groups. A selected action keeps its exact world-space preview while the camera
+moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
+Eraser removes a complete placed group when its SET footprint can be identified;
+incomplete or ambiguous groups are rejected without changing the area.
+Overlapping group placement replaces the complete intersected groups and refits
+their uncovered cells to the SET's default terrain. Eraser previews outline the
+complete removal target without swapping in ground variations.
+Holding Shift outlines the tile or complete placed group under the pointer,
+changes the viewport cursor to a pointer, and shows the selection/variation
+controls above the tile palette. Selection and variation do not require a
+selected paint action.</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Left drag</td>
+<td>Paint the selected tile action; raise with Raise/Lower.</td>
+</tr>
+<tr>
+<td>Shift + left click</td>
+<td>Select one tile or its complete placed SET group.</td>
+</tr>
+<tr>
+<td>Shift + right click</td>
+<td>Select the tile under the pointer and cycle a compatible SET variation.</td>
+</tr>
+<tr>
+<td>Right drag</td>
+<td>Lower with Raise/Lower; otherwise orbit the camera.</td>
+</tr>
+<tr>
+<td>Middle drag</td>
+<td>Pan the camera.</td>
+</tr>
+<tr>
+<td>Mouse wheel</td>
+<td>Zoom the camera.</td>
+</tr>
+<tr>
+<td>W / A / S / D</td>
+<td>Move the camera relative to its current view.</td>
+</tr>
+<tr>
+<td>Q / E</td>
+<td>Move the camera down / up.</td>
+</tr>
+<tr>
+<td>Arrow keys</td>
+<td>Orbit and tilt the camera around its focus.</td>
+</tr>
+<tr>
+<td>R</td>
+<td>Rotate the selected feature or group preview.</td>
+</tr>
+<tr>
+<td>Escape</td>
+<td>Clear the tile selection or cancel the selected tile action and preview.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="play-preview">Play Preview</h2>
 <p>Press F9 in an active area tab to enter the transient play preview. The first
 use opens the project tree to choose a Creature blueprint; the project-relative
