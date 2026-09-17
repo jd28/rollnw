@@ -1,6 +1,6 @@
 # RmlUi scrollbar destruction lifetime
 
-Status: repaired.
+Status: closed on 2026-09-17; repaired and verified with the independent regression.
 
 The C14 popup fixture exposed an ASan heap-use-after-free in vendored RmlUi
 6.2: Element destroys its children before ElementMeta destroys ElementScroll.

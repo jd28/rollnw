@@ -202,6 +202,7 @@ add_executable(rollnw_test
     rollnw_client_commands.cpp
     rollnw_client_dialog_document.cpp
     rollnw_client_documents.cpp
+    rollnw_client_frame.cpp
     rollnw_client_object_edits.cpp
     rollnw_client_pc_input.cpp
     rollnw_client_ui_action.cpp

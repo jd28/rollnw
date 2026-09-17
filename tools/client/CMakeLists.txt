@@ -11,6 +11,7 @@ add_library(rollnw_client_core STATIC
     blueprint_edits.cpp
     blueprint_references.cpp
     blueprint_operations.cpp
+    client_frame.cpp
     client_input_routes.cpp
     client_ui_action.cpp
     command_bus.cpp
@@ -58,6 +59,18 @@ add_executable(rollnw-client
     blueprint_reference_commands.cpp
     blueprint_update_job.cpp
     browser_view.cpp
+    client_application.cpp
+    client_application_frame.cpp
+    client_application_input.cpp
+    client_application_editor.cpp
+    client_application_preview.cpp
+    client_application_shell.cpp
+    client_application_workbench.cpp
+    client_application_keys.cpp
+    client_application_pointer.cpp
+    client_application_release.cpp
+    client_application_commands.cpp
+    client_application_workspace.cpp
     client_cli.cpp
     client_preferences.cpp
     client_runtime.cpp

@@ -882,7 +882,7 @@ Rml shutdown. That corrected fixture passed the same full focused matrix.
 
 The fourth case characterizes an existing selection defect: replacing rows keeps
 the selected index but the equality guard skips painting its new DOM highlight.
-It is documented in issues/client-browser-selection-rebuild.md and intentionally
+It is documented in issues/closed/client-browser-selection-rebuild.md and intentionally
 preserved in this move. A failing desired-behavior regression and separate fix
 must follow before the shell extraction. Simplification retains existing caches
 and shared strip helper, removes root-state borrows and avoids a browser/document
@@ -1043,7 +1043,7 @@ not against the SDK serializer's choice of attribute escaping.
 
 The baseline characterization confirms a first sound's pending slider changes a
 replacement sound and records undo in its replacement tab. This move preserves
-that behavior; issues/client-sound-slider-owner.md records the concrete regression
+that behavior; issues/closed/client-sound-slider-owner.md records the concrete regression
 and required separate repair. The slider's unchecked numeric conversion is part
 of that repair, not a verified input boundary in this move. Other row/tab/range
 checks, singleton/DOM/engine identity exceptions and lifetime contracts are
@@ -4020,3 +4020,405 @@ queries/batched indexed rows documented, no added cache/controller/application
 state dependency, explicit hidden/missing/no-match handling, simplification
 removed root filter/list access and no performance claim. Desktop/manual and
 baseline LSan limitations remain; root composition/final integration are open.
+
+
+## C20a result and self-check
+
+The production frame loop now uses advance_client_frames at count one. Raw
+counter seconds and capped camera milliseconds retain separate outputs; original
+job/timestamp/event/metric ordering and pacing are unchanged. The two old previous
+timestamp locals become one same-size clock row. Invalid SDK frequency fails the
+frame, enters existing orderly shutdown and returns status 1. Pure batch rejection
+clears outputs without partial clock advancement. No DOM/mode/focus/session fact
+is cached by this transform.
+
+Three tests cover startup, full raw seconds vs 100-ms cap, regressing/full-range
+timestamps, independent clocks, zero-frequency/mismatched/empty batches and actual
+SDL counter/frequency samples. All existing application CLI/preferences/metrics
+tests remain present. Both builds passed warning-free; all 30 combined affected
+checks passed (normal 5,872 ms, ASan/UBSan 31,637 ms; no skips). Clock/sample/delta
+rows measure 16/24/8 bytes. Main: 4,403 to 4,407 lines. Self-check: flat batch
+contract, index-based linear transform, atomic reject/clamp policy, no allocation/
+queue/new ownership/general clock options, separate raw/camera time and no
+performance claim. Renderer-off checks and complete frame/root extraction remain
+for final integration. Baseline LSan and desktop/manual gaps remain explicit.
+
+
+## C20b mutation-stage/root-state plan
+
+Tier 2. Observed frame consumes the single current ObjectMutationState epoch,
+compares displayed area/structure epoch, partitions structural/spatial/visual work,
+refreshes matching workbench snapshots and restores owning managed-list focus.
+Inputs are that existing epoch, root-owned feature states, displayed SDK document/
+context and renderer. Outputs are observed epochs/stale-area status, renderer
+updates and presentation refresh. There is one displayed scene and one current
+mutation epoch: a true singleton coordinator over existing tile/object row batches,
+not a new queued mutation system. Actual mutation-kind frequencies are unmeasured.
+The desktop main thread and synchronous callbacks constrain lifetime and ordering.
+
+Name the existing composed root state ClientApplicationState in a private root
+header, preserving every field/order/address/lifetime. Only root coordinators may
+include it; feature APIs stay narrow. Move mutation coordination into
+client_application_workspace, retaining exact cancellation -> rebuild -> publish
+-> content/window -> focus ordering and the existing spatial/visual partitions.
+Move retained tile-selection/cursor refresh after rebuild into area_tile_editor
+runtime, using existing indexed selection/preview batches. Invalid source tile
+clears selection with its diagnostic; failed renderer rebuild retains stale area
+and logs. Existing unknown mutation behavior is preserved, not generalized.
+
+Costs: same composed state and epoch/DOM/renderer operations, an out-of-line stage
+call and a private dependency header, no new fields/owners/queue/caches. SDK context/
+document/renderer references are cold external borrows until runtime shutdown;
+engine handles remain existing validated identities, row loops use indices.
+Simplification removes root access to tile-selection internals and removes the
+mutation stage from entry control flow. Done: source comparison of every branch,
+feature-header dependency audit, normal/sanitized client/test builds and affected
+selection/edit/workbench/application suites. Existing GPU-dependent scene tests
+remain a final gate with explicit unsupported skips; desktop behavior is manual.
+This stage alone does not finish root/input/frame extraction. No performance claim.
+
+The C20b test boundary also moves the two pure frame-contract checks into an
+always-built core test source. Actual SDL sampling/CLI/metrics checks retain their
+existing desktop guard. This lets renderer/client-disabled builds exercise the
+same flat frame transform without SDL/Rml dependencies or configuration changes.
+
+
+## Remaining C10/C20 root composition plan
+
+Tier 2. The remaining entry source contains private root helper coordination,
+ordered SDL intake and frame stages; substantive workbench, browser, shell, tile,
+object, command-form and PC operations already live in their owners. Real input
+is the ordered SDL event stream (callbacks can replace DOM/focus), plus current
+root feature owners and three stable SDK contexts/documents. Outputs are existing
+forwarding dispositions, feature effects, renderer requests, updated root epochs
+and presented frames. One process/application/scene is a true singleton. Actual
+event-category frequencies are unmeasured. Keep every dispatch at its existing
+point; no queue, category batching, cached ownership or recursive input during
+synchronous loading. Existing pure feature/device transforms remain batch-first.
+
+Finish by responsibility, not copying the file into application.cpp: runtime
+owns existing window metrics/UI asset bootstrap helpers; root command/loading
+coordination and listeners get a private root boundary; root workspace refresh/
+activation stays distinct from mutation refresh; native SDL category coordinators
+call existing feature APIs and one shared final forwarding function; frame
+coordination explicitly calls jobs -> timing -> SDL -> mutation/query -> surface
+prepare -> layout/UI -> held PC/viewer -> overlays/present/metrics -> pacing.
+Main keeps build-info/logger/CLI selection and a desktop driver call. Root state
+is private composition and cannot appear in feature/input-map API headers.
+
+Use flat borrowed SDK surface/dimension records only for the actual shared
+window/three contexts/documents and current four dimensions, replacing equivalent
+existing root locals rather than mirroring ownership. SDL/Rml pointers are the
+external SDK's cold identity protocol; no indexed engine row loop gains pointers.
+Native handlers preserve early releases and current skip/default-forward paths;
+common UI/viewport authority is always freshly resolved after callbacks. All
+resource owners/guard declaration order and explicit C19 teardown remain stable.
+No new acquisition or failure state is introduced by root relocation. Startup
+invalid/missing resources retain current fail/shutdown behavior; malformed/stale
+feature inputs retain owner rejection policies. Dominant cost is unchanged SDK,
+backend/render work and existing strings; new stage calls/TUs add organization/
+build maintenance cost, no measured runtime improvement is claimed.
+
+Simplification removes entry's feature details and repeated cross-view sequences,
+retains existing narrow leaf APIs, and avoids a replacement dispatcher/controller
+or a generic registration bus. Done: main is entry/startup selection, application
+shows stage order, native handlers are independently readable by real event kind,
+feature include-direction/root-state audit passes, mechanical/source branch
+comparison and full normal/sanitized integration including renderer-disabled core
+and CLI/build identity. File-size targets are review guides; report actual sizes
+and explain remaining coordination instead of hiding code in implementation
+includes. Plan B is a smaller independently verified stage with the parent issue
+left open; no behavior/policy change is bundled to achieve a line target. Human
+GPU/window/controller/high-DPI feel checks remain explicitly manual.
+
+
+## C20b result and self-check
+
+ClientApplicationState is now private root composition with identical fields,
+order and ownership. Named private root coordination permits the mutation stage
+in client_application_workspace to call current root refresh/gesture seams; no
+feature includes or receives that state. The stage retains original structural,
+spatial and visual partitions, stale-area reporting and ordered presentation/
+focus refresh. area_tile_editor runtime owns retained selection/cursor refresh
+using the existing tile-source index and preview batches. Pure frame tests are
+always built; SDK sampling and current CLI/preferences/metrics remain guarded.
+
+Automated source comparisons confirmed exact root field/order identity and all
+mutation branches/order after substituting the tile refresh helper. Include/
+state-name audit finds only entry and private root state/workspace sources. Both
+client/test builds passed warning-free; all 86 affected edit/selection/workbench/
+input/list/application checks passed (normal 16,791 ms, ASan/UBSan 90,042 ms;
+no skips). After test relocation, all 10 frame/CLI/preferences/metrics checks
+passed again (normal 35 ms, ASan/UBSan 168 ms; no skips). Existing renderer-disabled
+configuration built warning-free and all 39 selected pure frame/tile/PC checks
+passed (2 ms; no skips). These times are validation durations, not speed claims.
+
+Main: 4,407 to 4,205 lines; mutation coordinator: 150 lines; root state: 70 lines.
+Self-check: unchanged owner/lifetimes/fields, singleton scene/epoch documented,
+existing indexed tile batches, explicit invalid-source clear/stale-rebuild policy,
+no feature-state dependency or new event/mutation queue and no performance claim.
+Direct GPU scene/root-desktop behavior remains unverified here; final graphics
+integration/manual matrix and baseline LSan exclusion remain explicit. Remaining
+root input/frame/driver composition stays open with its plan above.
+
+
+## C20c runtime bootstrap helper plan
+
+Tier 1. Existing entry reads one shared SDL window's logical/pixel sizes, logs
+metrics, resolves four ordered UI asset directory candidates and reads the single
+ROLLNW_CLIENT_UNCAPPED configuration. Inputs are current SDK window/process/base/
+cwd/source paths; outputs are copied sizes/path and startup pacing bool. Default
+is unset flag/pacing enabled; UI assets require current package/panel/style files.
+Move these actual helpers into client_runtime, keeping source directory (same
+folder), candidate order, weak canonicalization/error behavior, pixel fallback and
+false-token parsing. Expose pacing as a zero-argument singleton policy, not a new
+generic environment API. Null windows return zero sizes/no log; missing assets
+return empty and startup retains failure. Other SDK size ranges remain unchanged,
+with frame's existing invalid-size skips. Positive SDK counter frequency remains
+the platform contract; retain current metric counter helper at entry for now.
+Costs: existing O(1) SDK queries, up to four filesystem candidate checks and flag
+normalization/string allocation once; no new state/cache/ownership and no speed
+claim. SDK pointers are cold borrows for a call. Simplification removes bootstrap
+policy from entry without extending configuration. Done: actual dummy-window/
+null-window checks, current false-token flag behavior/restoration, real UI assets
+and runtime/application checks in normal and sanitizer builds. Root completion
+remains open; desktop/Vulkan/high-DPI behavior remains manual.
+
+
+## C20c result and self-check
+
+client_runtime now owns current logical/pixel window queries/logging, four-candidate
+UI directory resolution and the single pacing configuration. Source directory
+remains tools/client; candidate order/required files/weak canonicalization, pixel
+fallback and case-insensitive false tokens are unchanged. Only the current pacing
+policy is public; no generic environment option or new owner/state was added.
+Null windows return zero/no log; actual dimensions retain existing frame skips.
+
+The new actual dummy-window check verifies 321x123 logical/pixel sizes, null
+queries/logging, real required UI assets, unset/empty/false/mixed-case/true/unknown
+flag values and restoration of the previous process flag. Both builds passed
+warning-free; all 30 affected runtime/loading/files/frame/CLI checks passed
+(normal 1,043 ms, ASan/UBSan 5,658 ms; no skips). Source audit preserves helper
+bodies/candidates and the existing startup/event/frame call positions. Main:
+4,205 to 4,122 lines. Self-check: true bootstrap singletons/cold SDK borrows
+justified, explicit missing/null behavior, unchanged resource ownership, no new
+options/cache/controller and no performance claim. Pixel fallback failure/high-DPI
+and actual Vulkan/window behavior are manual; baseline LSan exclusion remains.
+Remaining root dispatch/frame/desktop driver extraction and final gates stay open.
+
+
+## C20d root command/loading coordination plan
+
+Tier 1. Current root resolves owning CommandResult prompts, queues/polls current
+project load/import and coordinates content/shell refresh from two SDK click
+listeners. Inputs are existing backend/result/loading/view states and borrowed
+window/document/context/renderer; outputs are the same command results, queued
+project state and ordered view refresh. One displayed command/load application is
+a true singleton; underlying jobs/rows remain existing batches. Frequency is
+unmeasured; no optimization claim. Move this contiguous root responsibility into
+client_application_commands with private root-state APIs. Move listener methods
+out of entry into that source, preserving fields/registration lifetime and fresh
+callback reads; header holds declarations only. Existing reject/cancel/prompt/
+missing-result/error logging policies remain unchanged. Cost: existing result/
+argument strings and SDK/backend calls, additional root TU/header maintenance,
+no new fields/owners/state/options. Simplification removes command/loading body
+and SDK callback policy from entry. Done: body/order/field source comparisons,
+include direction, both builds and affected command/loading/CLI/SDK checks.
+Remaining native category/frame/driver extraction and full integration stay open.
+
+
+## C20d result and self-check
+
+client_application_commands owns existing root prompt/result resolution, command
+form/overlay coordination, project queue/poll/import coordination and the two
+blueprint/home SDK listener methods. Headers hold declarations and identical
+listener fields; constructors and callback methods are out of line. Root-state
+APIs stay private; feature/input-map APIs still receive their existing narrow
+states. Callback reads, argument ownership, prompt cancellation/error reporting,
+project progress/present gate and all refresh order remain current.
+
+Automated body comparison confirmed all 15 moved function bodies and both SDK
+callback bodies are identical after formatting. Constructor initializer order
+and listener fields/registration positions were audited unchanged. Include/state
+name audit finds only private root sources and entry. Both client/test builds
+passed warning-free; all 38 affected command/template/loading/CLI/frame checks
+passed (normal 862 ms, ASan/UBSan 4,272 ms; no skips). Main: 4,122 to 3,775 lines;
+command coordinator: 342 lines; private declaration header: 83 lines. Self-check:
+existing singleton command/load ownership and row/job batches, cold SDK borrows
+justified, unchanged reject/cancel/error policies, no new state/queue/options,
+no application state passed into features and no performance claim. Interactive
+native prompts/desktop and baseline LSan gaps remain. Native category/frame/
+desktop driver extraction and final integration gates remain open.
+
+
+## C10c/C20e native category coordination plan
+
+Tier 1 within the Tier 2 root extraction. Inputs are the current ordered SDL
+event, freshly read UI/map/feature state and the existing eight cold SDK borrows
+and four logical/pixel dimension values. Output is the existing native effect
+and explicit finish/next-event obligation. SDK callbacks remain synchronous;
+no event batching/reordering or focus snapshot is introduced. Source inspection
+finds no nested loops in the native cases; preserve nested switch breaks and
+convert only poll-loop skips/outer-case breaks to category return values.
+ASSUMPTION: pointer motion remains the frequent case; rates are unmeasured and
+no speed claim depends on it. Null/stale/invalid input retains existing reject/
+cancel paths. One desktop UI/event stream is a true singleton; underlying pure
+input/row/tile paths remain indexed batches. Cost: one flat cold surfaces record
+(eight pointers/four ints), category call/return and new TUs; no new owner, queue
+or duplicated dimension cache. Simplification removes intertwined key, pointer
+and release policy from entry, retaining one shared final forwarding boundary.
+Done: exact transformed body/order audit, unchanged listener fields/lifetimes,
+both builds and affected input/editor/PC/workbench/template/preview checks.
+Actual desktop/GPU/controller/high-DPI feel remains manual.
+
+## C20f/C20g root composition plan and observed fixture correction
+
+Tier 1 within the committed Tier 2 completion plan. The native category body
+comparison passed for all five handlers, including documented outer-loop/case
+jump conversion; no nested loops were present. Move the 136 remaining root
+coordination bodies into private input/shell/workbench/workspace/preview/editor/
+command sources, preserving direct feature calls and keeping root state out of
+feature APIs. Polling retains one ordered SDL stream and one final forwarding
+block. Extract frame helpers at existing jobs/query/surface/layout/view boundaries,
+with timing counters, held-input recapture, presented-load gate and pacing in their
+original order. Desktop startup retains exact SDK/resource/listener declaration,
+guard and shutdown order. CLI selection stays at entry. Additional TUs/headers,
+one cold surfaces record and existing owning optional viewport output are the
+maintenance/stack costs; no new owner, state cache, event queue or speed claim.
+SDK pointer access stays cold and required by the external SDK; pure operations
+remain batches. Null/stale/malformed inputs retain existing reject/cancel paths;
+minimized/invalid-size/not-ready surfaces skip rendering with existing delays.
+Success: body/order/dependency audits, both builds, full integration, renderer-off
+and CLI gates. GPU/controller/high-DPI/manual feel remain explicitly unverified.
+
+A broader unchanged feature-test sequence failed three fixture-dependent checks,
+while all three pass in isolation. Logs show that a SmallS bridge initialization
+changes the process kernel paths from dedicated test data to the detected desktop
+install/home. The existing end-of-test service restoration restores mode but not
+paths. Fix that test harness boundary by capturing its two configured paths and
+restoring them before restarting services only when changed. This adds two cold
+owning paths to the singleton test listener and no production behavior. The
+already failing sequence is the regression evidence; verify it again with the
+bridge test preceding the three checks. No new implementation-mirroring test is
+needed. Broader feature validation remains pending rather than counted passed.
+
+## C10c/C20e–g composition result and self-check
+
+Entry is now 13 lines and selects build-info/CLI/desktop startup. The desktop
+application driver is 309 lines and owns the same resource declarations, guards,
+listeners and explicit shutdown sequence. The frame module is 469 lines and
+separates job polling, mutation/query synchronization, surface readiness, layout
+completion and workspace rendering at the existing timing boundaries. Held-PC
+facts remain captured after UI callbacks/layout; overlays, presented-load gate,
+GPU/CPU counters and pacing remain in their original order. Native category
+sources contain real key/pointer/release coordination; the private input source
+retains one ordered SDL poll loop and one shared final-forwarding block. Category
+finish/next return values preserve outer-case breaks and event-loop skips, while
+nested switches retain their breaks. Paired private headers expose only their
+root responsibility, and features do not receive the composed application state.
+The root state header is private composition, with no transitional feature API.
+
+Automated audits confirm all five category bodies after documented jump changes,
+135 root helper bodies after formatting, all five frame stage bodies after explicit
+surface/viewer returns, both workbench listener methods, the complete poll body,
+and desktop startup/failure-guard/shutdown bodies. Feature include/type audit finds
+no application-state or private-root dependency. The only removed root body was
+an unused tile-selection-preview delegate; the desktop API consumes just its
+actual executable-name input rather than an unused argument count. SDK borrows
+remain cold external API pointers; index/batch operations remain in their owners.
+Bootstrap size locals are consumed once into the current surface dimensions, not
+maintained as a second cache. Existing invalid/stale/missing input rejection,
+gesture cancellation and minimized/not-ready frame skips remain unchanged. No
+new feature states, queues, cached focus/modes, options or performance claims.
+
+The minimal unchanged-feature regression sequence (SmallS bridge initialization
+followed by inventory icon, appearance restoration and preview start checks)
+reproduced three failures before test-path restoration. All four pass afterward
+(normal 3,518 ms; ASan/UBSan 21,047 ms; no skips). The three fixture checks also
+passed in isolation before the correction. This is test-harness isolation, with
+no production policy change. Final full/client/sanitizer/renderer-off/CLI gates
+are pending below; direct desktop/GPU/high-DPI/controller and baseline LSan gaps
+remain explicit rather than counted passed.
+
+
+## Final C20 integration and completion
+
+Implementation complete from the 6182a1943 baseline. Entry is 13 lines, desktop
+driver 309 and frame coordinator 469. All private composition consumers are
+root files; no feature API accepts complete application state. Root resources
+and feature states retain one owner and stable binding/lifetime order. Pure
+routing and frame transforms have explicit batch contracts; SDK/displayed UI/
+startup lifecycle operations remain documented true singletons. The simplification
+pass reused operation modules, retained existing row/device storage and separated
+actual event/frame responsibilities without a generic event bus or new owner.
+No measured performance requirement or speed/memory-throughput claim is made.
+
+Normal final client/test/all-versioned-tool builds passed. Full configured CTest
+passed 15/15 (189.90 s): eight GoogleTest shards selected 2,250 cases, with
+2,209 passed and 41 graphics cases skipped. Build identity and all tool version
+checks passed. Combined ASan/UBSan client/test/all-versioned-tool builds
+passed; complete Client* suites plus the three named renderer regressions selected
+488 cases, with 485 passed, 3 skipped and zero failures (1059.325 s).
+Leak detection remains disabled for the independently observed baseline VM LSan
+limitation, not a clean leak claim. Expanded sanitizer mudl build has existing
+double-promotion warnings at viewer_runtime.cpp:2412; changed client sources build
+warning-free. Renderer-disabled/tools-disabled configuration remained unchanged,
+core/test build passed warning-free and all 275 Client* tests
+passed (144.737 s; no skips). These durations are validation times.
+
+Actual no-window CLI checks with an invalid SDL video driver passed all 11 cases:
+version/build-info/help, valid/repeated/literal-space init, invalid init, valid
+JSON/legacy DockerDemo imports, missing module and conflicting/unknown flags.
+Expected exits were 0/1/2. Import checks ran from the executable directory, where
+cwd and executable package roots coincide. Earlier cwd=build/tests exposed duplicate
+package rejection (exit 1); cwd=repository root exposed loss of executable-only
+packages on module reload (SIGABRT). Baseline start_client_kernel/package registration
+and kernel creation source are identical for these paths. This existing bootstrap
+policy is scoped separately in [client-cli-package-paths.md](../client-cli-package-paths.md);
+it is not counted as a successful import from arbitrary directories. No desktop
+client or GUI automation was launched.
+
+Automated dependency/body/order audits and supported acceptance tests passed.
+Expanded frame-loop comparison preserved all stage/counter/pacing order.
+The three named GPU regressions were skipped in both normal/full and sanitizer
+runs and are not claimed verified. Camera/group ghost/popup/reorder feel, F9
+desktop transitions, high-DPI agreement, physical controllers and GPU-only startup
+failure injection remain in [client-main-refactor-desktop-validation.md](client-main-refactor-desktop-validation.md).
+Native SDK thread completion remains in its existing separate issue. No unresolved
+feature/root ownership question remains; scoped verification/baseline policy gaps
+are explicit local issues. Final self-check satisfies framing/data/cost, common-case
+assumptions, simplification, explicit reject/cancel paths, batch/singleton contracts,
+SDK pointer justification and done criteria without unmeasured performance claims.
+
+
+## Final optional profiler include correction
+
+A syntax compile of the moved frame TU using its actual configured compiler
+arguments plus ROLLNW_ENABLE_TRACY/TRACY_ENABLE and the vendored Tracy public
+include path failed: FrameMark was undeclared. Original main directly included
+nw/util/profile.hpp. Restore that direct dependency in the frame source; no frame
+body, state, control or timing policy changes. The same optional-feature syntax
+check passes after correction. This is a compiler dependency regression/check,
+not a full Tracy-enabled link/run or a measured performance result. Frame module
+is now 469 lines. Normal/sanitized builds and build-identity/version metadata are
+refreshed after this correction; renderer-disabled configuration remains unchanged.
+The full supported integration runs above remain applicable to the unchanged
+frame bodies and default feature configuration.
+
+
+## User manual validation and acceptance — 2026-09-17
+
+The user tested the refactor and reported that all looks good. This completes
+manual acceptance and closes client-main-refactor-desktop-validation.md. The main
+refactor issue is complete. Detailed manual test coverage was not itemized, so
+the previously skipped GPU tests remain recorded as skipped; no new automated
+test, high-DPI, controller or failure-injection result is inferred. Existing CLI
+package-path and native-dialog SDK follow-ups retain their separate scope.
+
+
+## Issue archive — 2026-09-17
+
+The completed refactor, accepted desktop validation and three repaired defects
+are archived in issues/closed/ with this checkpoint log. Original checkpoint
+evidence and coverage limits are retained. The CLI package-path bug and native
+dialog SDK shutdown follow-up remain active in issues/.

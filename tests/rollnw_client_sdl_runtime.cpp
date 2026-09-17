@@ -10,6 +10,7 @@
 #include <SDL3/SDL.h>
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include <optional>
 #include <string>
 
@@ -53,6 +54,46 @@ TEST_F(ClientSdlRuntime, DummyVideoKeepsActualVulkanWindowFailureUntilExplicitSh
     runtime.shutdown();
     EXPECT_EQ(SDL_WasInit(0), 0);
     runtime.shutdown();
+}
+
+TEST_F(ClientSdlRuntime, BootstrapHelpersBorrowActualWindowAndRetainPacingConfiguration)
+{
+    using namespace nw::toolset;
+    nw::toolset::ClientSdlRuntime runtime;
+    ASSERT_TRUE(runtime.initialize_video("test", "org.rollnw.client.tests"));
+    auto* window = SDL_CreateWindow("metrics", 321, 123, 0);
+    ASSERT_NE(window, nullptr);
+    const auto destroy = create_scope_exit([&] { SDL_DestroyWindow(window); });
+    EXPECT_EQ(query_window_size(window), (std::pair{321, 123}));
+    EXPECT_EQ(query_window_pixels(window), (std::pair{321, 123}));
+    EXPECT_EQ(query_window_size(nullptr), (std::pair{0, 0}));
+    EXPECT_EQ(query_window_pixels(nullptr), (std::pair{0, 0}));
+    log_window_metrics(window, "dummy");
+    log_window_metrics(nullptr, "missing");
+    const auto ui = resolve_client_ui_dir();
+    ASSERT_FALSE(ui.empty());
+    EXPECT_TRUE(std::filesystem::exists(ui / "package.json"));
+    EXPECT_TRUE(std::filesystem::exists(ui / "panel.rml"));
+    EXPECT_TRUE(std::filesystem::exists(ui / "panel.rcss"));
+    std::optional<std::string> previous;
+    if (const auto* value = std::getenv("ROLLNW_CLIENT_UNCAPPED")) { previous = value; }
+    const auto restore = create_scope_exit([&] {
+        if (previous) {
+            SDL_setenv_unsafe("ROLLNW_CLIENT_UNCAPPED", previous->c_str(), 1);
+        } else {
+            SDL_unsetenv_unsafe("ROLLNW_CLIENT_UNCAPPED");
+        }
+    });
+    ASSERT_EQ(SDL_unsetenv_unsafe("ROLLNW_CLIENT_UNCAPPED"), 0);
+    EXPECT_TRUE(client_frame_pacing_enabled());
+    for (const auto* value : {"", "0", "FALSE", "Off", "no"}) {
+        ASSERT_EQ(SDL_setenv_unsafe("ROLLNW_CLIENT_UNCAPPED", value, 1), 0);
+        EXPECT_TRUE(client_frame_pacing_enabled()) << value;
+    }
+    for (const auto* value : {"1", "yes", "unexpected"}) {
+        ASSERT_EQ(SDL_setenv_unsafe("ROLLNW_CLIENT_UNCAPPED", value, 1), 0);
+        EXPECT_FALSE(client_frame_pacing_enabled()) << value;
+    }
 }
 
 TEST_F(ClientSdlRuntime, InvalidDriverReturnsFailureWithoutAWindow)

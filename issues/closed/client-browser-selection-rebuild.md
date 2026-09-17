@@ -1,5 +1,7 @@
 # Browser selection highlight after markup replacement
 
+Status: closed on 2026-09-17; repaired after the extraction checkpoint.
+
 Observed while implementing client-main-refactor C12a: a forced project-tree
 window rebuild retains selected_recent_index but drops the selected CSS class.
 render_project_tree_window replaces the rows and calls set_recent_selected with
@@ -18,6 +20,6 @@ skip rebuilding and painting. No extra render state or force parameter is needed
 Cost: traversal of current visible DOM rows on explicit selection presentation;
 no performance improvement is claimed.
 
-Status: repaired after the extraction checkpoint by removing the equality guard.
+The repair removes the equality guard.
 The desired production regression failed before the repair; final focused
 normal/sanitized results are recorded in client-main-refactor-progress.md.

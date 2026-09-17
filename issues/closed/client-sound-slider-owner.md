@@ -1,6 +1,6 @@
 # Pending sound slider edit loses its owner
 
-Status: repaired after the separate C13 extraction checkpoint.
+Status: closed on 2026-09-17; repaired after the separate C13 extraction checkpoint.
 
 The workbench change listener stores row/current/desired for a sound volume
 gesture, then dispatches `object.details.set_integer` against the bridge's

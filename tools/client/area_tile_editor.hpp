@@ -112,6 +112,10 @@ bool sync_area_tile_palette_window(Rml::ElementDocument* document,
 void refresh_area_tile_palette_query(Rml::ElementDocument*, AreaTileEditorState&,
     ObjectHandle area, bool tiles_visible, AreaTilePointerModifier);
 void append_area_tile_palette_markup(std::string& markup, const AreaTileEditorState& editor);
+// One displayed retained tile selection/cursor is a true singleton. Rebuild its
+// indexed tile batch after scene rebuild; invalid source clears with diagnostic.
+// Renderer and editor are borrowed for the call, no application state required.
+void refresh_area_tile_selection_after_rebuild(ClientRenderer&, AreaTileEditorState&, ObjectHandle area);
 [[nodiscard]] bool reset_area_tile_editor(AreaTileEditorState& editor, ObjectHandle area);
 // A valid group rotation invalidates the retained hover target so a stationary
 // pointer is repicked. No brush/non-group/active stroke leaves rotation intact.

@@ -12,15 +12,23 @@
 namespace {
 
 // Fixtures may replace or stop the process-owned services to obtain a clean
-// runtime. Restore game-mode services after fixture teardown so shard ordering
-// cannot affect the next test. start() is a no-op on the common path.
+// runtime or select desktop resource paths. Restore test paths and game-mode
+// services after fixture teardown so shard ordering cannot affect the next test.
+// start() is a no-op on the common path.
 class RestoreGameServices final : public ::testing::EmptyTestEventListener {
+    const std::filesystem::path install_path_ = nw::kernel::config().install_path();
+    const std::filesystem::path user_path_ = nw::kernel::config().user_path();
+
     void OnTestEnd(const ::testing::TestInfo&) override
     {
         auto& services = nw::kernel::services();
-        if (services.mode() != nw::kernel::ServiceMode::game) {
+        auto& config = nw::kernel::config();
+        const bool paths_changed = config.install_path() != install_path_
+            || config.user_path() != user_path_;
+        if (paths_changed || services.mode() != nw::kernel::ServiceMode::game) {
             services.shutdown();
         }
+        if (paths_changed) { config.set_paths(install_path_, user_path_); }
         services.start();
     }
 };

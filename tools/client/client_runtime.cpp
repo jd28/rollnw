@@ -5,11 +5,40 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <cstdlib>
+#include <string>
 #include <system_error>
 #include <utility>
 
 namespace nw::toolset {
 namespace {
+
+bool environment_flag_enabled(const char* name)
+{
+    const char* value = std::getenv(name);
+    if (!value || value[0] == '\0') {
+        return false;
+    }
+
+    std::string normalized{value};
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return normalized != "0" && normalized != "false" && normalized != "off" && normalized != "no";
+}
+
+bool client_ui_dir_exists(const std::filesystem::path& path)
+{
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    return fs::is_directory(path, ec)
+        && fs::exists(path / "package.json", ec)
+        && fs::exists(path / "panel.rml", ec)
+        && fs::exists(path / "panel.rcss", ec);
+}
 
 void register_smalls_packages()
 {
@@ -28,6 +57,76 @@ std::filesystem::path client_base_path()
     }
     std::error_code ec;
     return std::filesystem::current_path(ec);
+}
+
+std::pair<int, int> query_window_pixels(SDL_Window* window)
+{
+    if (!window) { return {0, 0}; }
+    int pixel_w = 0;
+    int pixel_h = 0;
+    SDL_GetWindowSizeInPixels(window, &pixel_w, &pixel_h);
+    if (pixel_w <= 0 || pixel_h <= 0) {
+        SDL_GetWindowSize(window, &pixel_w, &pixel_h);
+    }
+    return {pixel_w, pixel_h};
+}
+
+std::pair<int, int> query_window_size(SDL_Window* window)
+{
+    if (!window) { return {0, 0}; }
+    int window_w = 0;
+    int window_h = 0;
+    SDL_GetWindowSize(window, &window_w, &window_h);
+    return {window_w, window_h};
+}
+
+void log_window_metrics(SDL_Window* window, const char* label)
+{
+    if (!window) {
+        return;
+    }
+
+    const auto window_size = query_window_size(window);
+    const auto pixel_size = query_window_pixels(window);
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+        "rollnw client window metrics [%s]: window=%dx%d pixels=%dx%d display_scale=%.3f pixel_density=%.3f flags=0x%llx",
+        label,
+        window_size.first,
+        window_size.second,
+        pixel_size.first,
+        pixel_size.second,
+        static_cast<double>(SDL_GetWindowDisplayScale(window)),
+        static_cast<double>(SDL_GetWindowPixelDensity(window)),
+        static_cast<unsigned long long>(SDL_GetWindowFlags(window)));
+}
+
+std::filesystem::path resolve_client_ui_dir()
+{
+    namespace fs = std::filesystem;
+    std::error_code ec;
+
+    const fs::path base_path = client_base_path();
+    const fs::path cwd = fs::current_path(ec);
+    const fs::path source_dir = fs::path{__FILE__}.parent_path();
+    const std::array<fs::path, 4> candidates{
+        base_path / "ui",
+        cwd / "ui",
+        cwd / "tools/client/ui",
+        source_dir / "ui",
+    };
+
+    for (const fs::path& candidate : candidates) {
+        if (client_ui_dir_exists(candidate)) {
+            return fs::weakly_canonical(candidate, ec);
+        }
+    }
+
+    return {};
+}
+
+bool client_frame_pacing_enabled()
+{
+    return !environment_flag_enabled("ROLLNW_CLIENT_UNCAPPED");
 }
 
 void start_client_kernel(const std::filesystem::path& install, const std::filesystem::path& user)

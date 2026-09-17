@@ -1,6 +1,7 @@
 # Client main.cpp refactor
 
-Status: implementation in progress. Source baseline: `6182a1943`.
+Status: closed; supported automated validation passed and user manual testing
+accepted on 2026-09-17. Source baseline: `6182a1943`.
 Actual checkpoints and validation are recorded in
 [client-main-refactor-progress.md](client-main-refactor-progress.md).
 
@@ -359,8 +360,8 @@ queue, new observer registry, or duplicated mutation epoch is introduced.
 
 A temporary internal AppState header may support mechanical moves. Record every
 remaining consumer in the checkpoint description. A feature is not finished
-until its API stops taking the complete root; remove the header before the final
-root extraction. Do not substitute a giant ClientServices/context bundle that
+until its API stops taking the complete root; remove feature dependence before the final
+root extraction; keep only private application composition declarations. Do not substitute a giant ClientServices/context bundle that
 exposes the same state under a different name.
 
 Build placement is explicit:
@@ -690,13 +691,13 @@ renderer. Test failures after each actual acquisition boundary.
 
 ### 1. Capture contracts and extract low-risk leaves
 
-- [ ] Enumerate actual key/mouse/text/window/gamepad/native-dialog paths and
+- [x] Enumerate actual key/mouse/text/window/gamepad/native-dialog paths and
   precedence, including the F9 picker and placed-actor states.
-- [ ] Expose and test current hit/focus seams with visible and hidden overlays
+- [x] Expose and test current hit/focus seams with visible and hidden overlays
   at the same coordinates. Record ordered-dispatch and no-brush Shift cases;
   add production tests as their coordinators become directly callable.
 - [x] Extract metrics, preferences, and CLI paths with local dependencies.
-- [ ] Record CLI results and startup/shutdown resource order.
+- [x] Record CLI results and startup/shutdown resource order.
 
 These first commits establish the extraction style without rewriting dispatch.
 
@@ -710,7 +711,7 @@ These first commits establish the extraction style without rewriting dispatch.
 - [x] Extract runtime sampling/picking from F9 and one PC-in-world map used by
   F9, player and DM; test identical preview samples and pointer requests.
 - [x] Move F9 lifecycle/render coordination into play_preview_view.
-- [ ] Keep the central routing order intact during these mechanical moves.
+- [x] Keep the central routing order intact during these mechanical moves.
 
 A temporary internal root-state header is allowed to make mechanical moves
 buildable. It is not a final API. List its users and remove feature dependence
@@ -721,13 +722,13 @@ Editor and PC input become local while current control behavior stays intact.
 
 ### 3. Replace the central routing tangle with explicit ownership
 
-- [ ] Introduce the pure batch routing contract and production SDL/Rml adapter.
-- [ ] Move native handlers out of the giant event switch into their owners.
-- [ ] Separate editor and PC control maps. Player and DM select the same PC
+- [x] Introduce the pure batch routing contract and production SDL/Rml adapter.
+- [x] Move native handlers out of the giant event switch into their owners.
+- [x] Separate editor and PC control maps. Player and DM select the same PC
   handler; role-specific panels use common UI routing. Unknown maps/stale world
   contexts have no editor fallback. Authentication is not part of this boundary.
-- [ ] Centralize default Rml forwarding and event disposition.
-- [ ] Remove scattered copies of modal, focus, hit, and mode gates only after
+- [x] Centralize default Rml forwarding and event disposition.
+- [x] Remove scattered copies of modal, focus, hit, and mode gates only after
   equivalent production-adapter tests pass.
 
 Extract first, consolidate second. No patch simultaneously moves handlers,
@@ -735,41 +736,41 @@ changes their precedence, and changes the substantive operation they invoke.
 
 ### 4. Finish presentation and move its state together
 
-- [ ] Extract loading, shell, and browser views; extend workspace_view.
-- [ ] Extract workbench, creature, inventory, and appearance presentation.
-- [ ] Relocate each feature's filters, virtual ranges, selectors, and render
+- [x] Extract loading, shell, and browser views; extend workspace_view.
+- [x] Extract workbench, creature, inventory, and appearance presentation.
+- [x] Relocate each feature's filters, virtual ranges, selectors, and render
   dirty state with its functions; keep list/combobox behavior unchanged.
-- [ ] Narrow APIs to owned state plus the existing dependencies they use.
-- [ ] Keep backend/workspace bindings and generated texture owners stable.
+- [x] Narrow APIs to owned state plus the existing dependencies they use.
+- [x] Keep backend/workspace bindings and generated texture owners stable.
 
 ### 5. Remove duplicated refresh work
 
-- [ ] Merge the shared content-render path in refresh_workspace_content
+- [x] Merge the shared content-render path in refresh_workspace_content
   (`main.cpp:7559`) and refresh_workspace_view (`main.cpp:7672`). Full workspace
   refresh calls tab refresh plus the shared content path.
-- [ ] Preserve their intentional scroll/focus restoration differences explicitly.
-- [ ] Introduce one workbench activation transform for changing active object;
+- [x] Preserve their intentional scroll/focus restoration differences explicitly.
+- [x] Introduce one workbench activation transform for changing active object;
   mutation refresh remains a distinct path that preserves filters/selection.
-- [ ] Remove repeated configure/clear/hydrate sequences from input, rendering,
+- [x] Remove repeated configure/clear/hydrate sequences from input, rendering,
   and structural mutation handling.
-- [ ] Retain separate spatial, visual, and structural renderer update paths;
+- [x] Retain separate spatial, visual, and structural renderer update paths;
   do not rebuild the area for every change or replace them with a generic bus.
-- [ ] Finish narrow headers and remove the transitional monolithic state API.
+- [x] Finish narrow headers and remove the transitional monolithic state API.
 
 ### 6. Finish the root and lifecycle
 
-- [ ] Move startup/resource ownership into client_runtime with explicit cleanup
+- [x] Move startup/resource ownership into client_runtime with explicit cleanup
   after partial initialization and normal shutdown.
-- [ ] Move frame-stage coordination into client_application, delegating feature
+- [x] Move frame-stage coordination into client_application, delegating feature
   work. Preserve the synchronous project-load progress presentation path.
-- [ ] Ensure client_input delegates native feature actions to their owning views
+- [x] Ensure client_input delegates native feature actions to their owning views
   rather than retaining the old mouse-up chain or replacing main with another
   multi-thousand-line dispatch function. Routing, forwarding and effect ownership
   must be readable independently.
-- [ ] Reduce main to entry/CLI selection/startup. Target under 250 lines; target
+- [x] Reduce main to entry/CLI selection/startup. Target under 250 lines; target
   an application coordinator under roughly 700 lines. These are review guides,
   not reasons to hide code in includes or split functions arbitrarily.
-- [ ] Verify normal/sanitized builds and the integration matrix; commit each
+- [x] Verify normal/sanitized builds and the integration matrix; commit each
   phase with its actual validation and any remaining limitations.
 
 ### Reviewable commit checkpoints
@@ -1035,15 +1036,18 @@ issues or scattering TODOs through moved code:
   shared delivery gate and pre-SDL-shutdown queue drain; callbacks borrow no
   AppState or DOM. Production closure/late-result tests establish that contract.
   Vendored SDL thread completion remains explicitly scoped in
-  [client-native-dialog-sdk-shutdown.md](client-native-dialog-sdk-shutdown.md).
+  [client-native-dialog-sdk-shutdown.md](../client-native-dialog-sdk-shutdown.md).
   The Unix Zenity thread frees SDK data after the application callback; no
   synchronous completion or vendor cleanup guarantee is claimed.
-- Pending slider owner: characterize object/tab switch during staged volume
-  changes. Blocks consolidation of that edit state if a stale-owner defect is
-  found; a regression and separate fix resolve it.
-- Headless forwarding fixture: establish a valid non-desktop SDL density-aware
-  window path for end-to-end motion forwarding. Pure routes/classifiers are still
-  testable; missing adapter coverage must remain explicit.
+- Pending slider owner: characterized and repaired in separate commits; live
+  identity/generation/row/value checks reject replacement owners. Evidence is in
+  [client-sound-slider-owner.md](client-sound-slider-owner.md).
+- Headless forwarding fixture: real dummy SDL window established density-1
+  motion forwarding and context recipient checks. User manual testing was
+  accepted on 2026-09-17; detailed high-DPI/controller/GPU coverage was not
+  itemized. The desktop validation issue retains the targeted coverage checklist.
+- CLI cwd package policy: existing duplicate roots/reload loss are observed and
+  scoped in [client-cli-package-paths.md](../client-cli-package-paths.md).
 
 Stop and reduce scope if the proposed feature API needs the whole AppState,
 requires a new general event bus, cannot preserve early release/blur ordering,
@@ -1053,23 +1057,30 @@ test, not a second architectural framework.
 
 ### Final self-check for implementation
 
-- [ ] Source/data/cost assumptions are still accurate after the first extraction.
-- [ ] Pure routing uses bounded flat rows without allocations; adapters add no
+- [x] Source/data/cost assumptions are still accurate after the first extraction.
+- [x] Pure routing uses bounded flat rows without allocations; adapters add no
       unnecessary payload copies, and external DOM/device/renderer borrows have
       explicit lifetime justification.
-- [ ] Feature state has one owner; narrow APIs and allowed include direction are
-      enforced; the transitional root header is gone.
-- [ ] Plural transforms and singleton exceptions match the contracts; every
+- [x] Feature state has one owner; narrow APIs and allowed include direction are
+      enforced; the transitional feature API is gone; composed state remains private to the root.
+- [x] Plural transforms and singleton exceptions match the contracts; every
       malformed/stale boundary has an explicit rejection/cancellation policy.
-- [ ] F9, player and DM use one PC-in-world map including controllers; DM UI
+- [x] F9, player and DM use one PC-in-world map including controllers; DM UI
       availability is separate, no world input falls into editor actions, and
       command/job safeguards remain intact.
-- [ ] Simplification removed work without changing controls, rendering partitions,
+- [x] Simplification removed work without changing controls, rendering partitions,
       rule ownership or required UI layout/dispatch ordering.
-- [ ] Required focused/full/sanitizer checks ran; skips, existing LSan limitation,
-      unverified manual behavior and unmeasured performance remain explicit.
-- [ ] Each checkpoint is independently reviewable and reports what it actually
+- [x] Required focused/full/sanitizer checks ran; skips, existing LSan limitation,
+      limits of reported manual coverage and unmeasured performance remain explicit.
+- [x] Each checkpoint is independently reviewable and reports what it actually
       changed and verified; open ownership questions above are resolved or scoped.
 
-Plan verification: source and call paths were inspected at the baseline; no
-application code has changed and no new runtime validation is claimed here.
+Implementation verification: checkpoints, actual tests/counts, source/dependency
+audits and remaining limitations are recorded in
+[client-main-refactor-progress.md](client-main-refactor-progress.md). Full CTest,
+combined ASan/UBSan and renderer-disabled client tests passed on supported paths.
+User manual testing was accepted on 2026-09-17, closing
+[client-main-refactor-desktop-validation.md](client-main-refactor-desktop-validation.md).
+Skipped automated GPU tests remain recorded as skipped;
+existing cwd-dependent import bootstrap behavior is tracked in
+[client-cli-package-paths.md](../client-cli-package-paths.md).

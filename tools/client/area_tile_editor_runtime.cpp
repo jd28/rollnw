@@ -223,6 +223,38 @@ bool set_area_tile_selection(ClientRenderer& renderer, AreaTileEditorState& edit
 
 } // namespace
 
+void refresh_area_tile_selection_after_rebuild(ClientRenderer& renderer, AreaTileEditorState& editor, ObjectHandle area)
+{
+    if (editor.selection.active()) {
+        const uint32_t source_tile_index
+            = editor.selection
+                  .source_tile_index;
+        nw::toolset::AreaTileSelection selection;
+        const auto selection_result
+            = nw::toolset::build_area_tile_selection(
+                area, source_tile_index,
+                selection);
+        if (selection_result.ok()) {
+            editor.selection
+                = std::move(selection);
+            (void)update_area_tile_selection_preview(
+                renderer, editor, area);
+        } else {
+            clear_area_tile_selection(renderer, editor, area);
+            editor.feedback
+                = "Tile selection cleared: "
+                + selection_result.diagnostic;
+        }
+    } else if (editor.cursor_target_index
+        != UINT32_MAX) {
+        editor.cursor_target_index
+            = UINT32_MAX;
+        editor.preview_rows.clear();
+        (void)renderer.update_viewer_area_tile_preview(
+            area, {});
+    }
+}
+
 void clear_area_tile_selection(ClientRenderer& renderer, AreaTileEditorState& editor, ObjectHandle active_area)
 {
     editor.selection = {};

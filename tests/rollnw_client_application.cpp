@@ -1,3 +1,4 @@
+#include "../tools/client/client_frame.hpp"
 #include "../tools/client/client_metrics.hpp"
 #include "../tools/client/client_preferences.hpp"
 
@@ -8,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <initializer_list>
@@ -295,6 +297,24 @@ TEST(ClientMetrics, KeepsLastCountersWhenDelayedGpuSnapshotIsUnavailable)
     EXPECT_NE(markup.find("<br/>"), std::string::npos);
     EXPECT_NE(markup.find("4.00"), std::string::npos);
     EXPECT_NE(markup.find("8.00"), std::string::npos);
+}
+
+TEST(ClientApplicationFrames, ActualSdkSamplesFollowTheRawCounterContract)
+{
+    std::array<ClientFrameClock, 1> clocks{{{SDL_GetTicks(), SDL_GetPerformanceCounter()}}};
+    const auto previous = clocks.front();
+    const std::array samples{ClientFrameSample{SDL_GetTicks(), SDL_GetPerformanceCounter(), SDL_GetPerformanceFrequency()}};
+    ASSERT_GT(samples.front().frequency, 0);
+    std::array<ClientFrameDelta, 1> deltas{};
+    ASSERT_TRUE(advance_client_frames(clocks, samples, deltas));
+    const float expected = samples.front().counter > previous.counter
+        ? static_cast<float>(static_cast<double>(samples.front().counter - previous.counter) / static_cast<double>(samples.front().frequency))
+        : 0;
+    EXPECT_EQ(deltas.front().raw_seconds, expected);
+    EXPECT_GE(deltas.front().camera_milliseconds, 0);
+    EXPECT_LE(deltas.front().camera_milliseconds, 100);
+    EXPECT_EQ(clocks.front().counter, samples.front().counter);
+    EXPECT_EQ(clocks.front().ticks, samples.front().ticks);
 }
 
 } // namespace nw::toolset

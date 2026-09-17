@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 struct SDL_Window;
 
@@ -11,6 +12,17 @@ namespace nw::toolset {
 [[nodiscard]] std::filesystem::path client_base_path();
 void start_client_kernel(const std::filesystem::path& install,
     const std::filesystem::path& user);
+
+// One shared window/process configuration: true bootstrap singletons. SDK
+// window borrows last one call; null returns zero dimensions/no log. Preserve
+// pixel-size fallback; invalid dimensions remain the frame's skip responsibility.
+std::pair<int, int> query_window_pixels(SDL_Window*);
+std::pair<int, int> query_window_size(SDL_Window*);
+void log_window_metrics(SDL_Window*, const char* label);
+// Four current candidates in existing order; missing/invalid assets return empty.
+std::filesystem::path resolve_client_ui_dir();
+// Unset/empty/0/false/off/no (case-insensitive) enable pacing; others uncap.
+bool client_frame_pacing_enabled();
 
 // Process kernel singleton. No other live owner may use these services after
 // destruction. Existing bootstrap/Services remain the implementation authority.
