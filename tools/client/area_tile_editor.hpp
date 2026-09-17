@@ -18,6 +18,7 @@
 class ClientRenderer;
 
 namespace Rml {
+class Element;
 class ElementDocument;
 }
 
@@ -72,6 +73,32 @@ struct AreaTileEditorState {
     bool rendered = false;
     bool cursor_update_pending = false;
 };
+
+// Cold schema 1. One displayed palette click owns no DOM target. Existing
+// palette rows remain indexed batches; SDK release precedes apply. Stale or
+// malformed descriptors are consumed without changing editor state.
+enum class AreaTilePaletteClickKind : uint8_t { none,
+    back,
+    folder,
+    action };
+enum class AreaTilePaletteClickEffect : uint8_t { none,
+    folder_changed,
+    selected,
+    unavailable };
+struct AreaTilePaletteClick {
+    ObjectHandle area{};
+    uint64_t resource_generation = 0;
+    uint32_t folder = UINT32_MAX;
+    uint32_t row = UINT32_MAX;
+    uint32_t parent = UINT32_MAX;
+    AreaTileBrush brush;
+    AreaTilePaletteClickKind kind = AreaTilePaletteClickKind::none;
+    std::string query;
+};
+std::optional<AreaTilePaletteClick> capture_area_tile_palette_click(Rml::Element* hit,
+    const AreaTileEditorState& editor);
+AreaTilePaletteClickEffect apply_area_tile_palette_click(AreaTilePaletteClick& click,
+    AreaTileEditorState& editor, ObjectHandle active_area);
 
 void reset_area_tile_palette_folder_view(AreaTileEditorState& editor);
 [[nodiscard]] bool rebuild_area_tile_palette(AreaTileEditorState& editor, ObjectHandle area);

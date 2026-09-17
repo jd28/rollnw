@@ -27,7 +27,8 @@ bool valid_facts(const ClientInputFacts& row)
     }
     if (row.lifecycle_key && (row.category != ClientInputCategory::key || row.edge != ClientInputEdge::down)) { return false; }
     if (row.release_before_native && (row.category != ClientInputCategory::pointer || row.edge != ClientInputEdge::up || (row.target != ClientInputTarget::toolset && row.target != ClientInputTarget::command))) { return false; }
-    return row.map != ClientInputMap::pc || row.pointer_owner != ClientPointerOwner::editor;
+    return !(row.map == ClientInputMap::pc && row.pointer_owner == ClientPointerOwner::editor)
+        && !(row.map == ClientInputMap::editor && row.pointer_owner == ClientPointerOwner::pc);
 }
 
 ClientInputRoute resolve(const ClientInputFacts& row)
@@ -60,12 +61,17 @@ ClientInputRoute resolve(const ClientInputFacts& row)
         result.disposition = ClientInputDisposition::ui;
     } else if (row.lifecycle_key) {
         result.native = ClientNativeRecipient::lifecycle;
-    } else if (row.target == ClientInputTarget::command || row.target == ClientInputTarget::toolset
+    } else if (((row.target == ClientInputTarget::command || row.target == ClientInputTarget::toolset)
+                   && !(row.category == ClientInputCategory::pointer
+                       && (row.pointer_owner == ClientPointerOwner::editor || row.pointer_owner == ClientPointerOwner::pc)))
         || row.pointer_owner == ClientPointerOwner::toolset || row.pointer_owner == ClientPointerOwner::command
-        || (row.category != ClientInputCategory::pointer && row.focus != ClientInputFocus::none)
+        || (row.category == ClientInputCategory::key && row.focus != ClientInputFocus::none)
         || row.category == ClientInputCategory::text) {
         result.native = ClientNativeRecipient::ui;
         result.disposition = ClientInputDisposition::ui;
+    } else if (row.world_input_blocked) {
+        result.native = ClientNativeRecipient::none;
+        result.disposition = ClientInputDisposition::unavailable_world;
     } else if (row.map == ClientInputMap::pc) {
         result.native = row.world_available ? ClientNativeRecipient::pc : ClientNativeRecipient::none;
         if (!row.world_available) { result.disposition = ClientInputDisposition::unavailable_world; }

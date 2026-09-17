@@ -168,7 +168,9 @@ ClientInputForwardResult forward_client_input(ClientInputDispatchState& dispatch
     ClientRmlRecipient recipient, ClientRmlForwardPhase phase,
     Rml::Context* context, SDL_Window* window, SDL_Event& event)
 {
-    if (dispatch.native_handled || dispatch.forwarded_recipient != ClientRmlRecipient::none || !context
+    const bool completed_native_ui_release = phase == ClientRmlForwardPhase::after_native
+        && event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT;
+    if ((dispatch.native_handled && !completed_native_ui_release) || dispatch.forwarded_recipient != ClientRmlRecipient::none || !context
         || (recipient != ClientRmlRecipient::toolset && recipient != ClientRmlRecipient::command)
         || (phase != ClientRmlForwardPhase::before_native && phase != ClientRmlForwardPhase::after_native)
         || !valid_client_pointer_event(event)) { return {}; }
@@ -183,6 +185,17 @@ ClientInputForwardResult forward_client_input(ClientInputDispatchState& dispatch
     return {.performed = true, .propagating = RmlSDL::InputEventHandler(context, window, event)};
 }
 
+std::optional<int32_t> client_row_key(Rml::Element* row)
+{
+    if (!row) { return std::nullopt; }
+    const auto key = row->GetAttribute<Rml::String>("data-key", "");
+    int32_t result = 0;
+    const auto parsed = std::from_chars(key.data(), key.data() + key.size(), result);
+    return !key.empty() && parsed.ec == std::errc{} && parsed.ptr == key.data() + key.size()
+        ? std::optional<int32_t>{result}
+        : std::nullopt;
+}
+
 std::optional<int32_t> release_client_row_key(ClientInputDispatchState& dispatch,
     Rml::Element* row, Rml::Context* context, SDL_Window* window, SDL_Event& event)
 {
@@ -191,14 +204,11 @@ std::optional<int32_t> release_client_row_key(ClientInputDispatchState& dispatch
         || event.button.button != SDL_BUTTON_LEFT || !valid_client_pointer_event(event)) {
         return std::nullopt;
     }
-    const auto key = row->GetAttribute<Rml::String>("data-key", "");
-    int32_t result = 0;
-    const auto parsed = std::from_chars(key.data(), key.data() + key.size(), result);
-    const bool valid = !key.empty() && parsed.ec == std::errc{} && parsed.ptr == key.data() + key.size();
+    const auto key = client_row_key(row);
     // Dispatch may remove row and replace its markup. Only copied values survive.
     const auto released = forward_client_input(dispatch, ClientRmlRecipient::toolset,
         ClientRmlForwardPhase::before_native, context, window, event);
-    return valid && released.performed ? std::optional<int32_t>{result} : std::nullopt;
+    return released.performed ? key : std::nullopt;
 }
 
 namespace {
@@ -294,7 +304,7 @@ ClientInputFacts capture_client_input_facts(const SDL_Event& event, SDL_Window* 
             auto* hit = toolset ? toolset->GetElementAtPoint(*point) : nullptr;
             bool viewport = false;
             for (auto* element = hit; element; element = element->GetParentNode()) {
-                if (element->GetId() == "workspace_viewport") {
+                if (element->GetId() == "workspace_viewer_viewport") {
                     viewport = true;
                     break;
                 }
@@ -307,15 +317,22 @@ ClientInputFacts capture_client_input_facts(const SDL_Event& event, SDL_Window* 
     return facts;
 }
 
+ClientInputRoute resolve_client_event_input_route(const SDL_Event& event, SDL_Window* window,
+    Rml::Context* toolset, Rml::Context* command, Rml::ElementDocument* palette,
+    Rml::ElementDocument* modals, ClientInputOwnership ownership)
+{
+    const std::array facts{capture_client_input_facts(event, window, toolset, command, palette, modals, ownership)};
+    std::array<ClientInputRoute, 1> routes{};
+    (void)resolve_client_input_routes(facts, routes);
+    return routes[0];
+}
+
 ClientInputRoute resolve_client_forward_route(const SDL_Event& event, SDL_Window* window,
     Rml::ElementDocument* palette, ClientInputMap map)
 {
     // Native/exclusive UI handling has already run. Recipient selection needs
     // only visible palette bounds, avoiding another toolset hit/focus traversal.
-    const std::array facts{capture_client_input_facts(event, window, nullptr, nullptr, palette, nullptr, {.map = map})};
-    std::array<ClientInputRoute, 1> routes{};
-    (void)resolve_client_input_routes(facts, routes);
-    return routes.front();
+    return resolve_client_event_input_route(event, window, nullptr, nullptr, palette, nullptr, {.map = map});
 }
 
 } // namespace nw::toolset

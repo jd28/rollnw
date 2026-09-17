@@ -131,4 +131,23 @@ PreviewStatus apply_pc_pointer_actions(std::span<const PcPointerAction> inputs,
     return PreviewStatus::ok;
 }
 
+PreviewStatus apply_pc_controller_button_edges(std::span<const PcControllerButtonEdge> inputs,
+    std::span<PreviewInputSample> pending) noexcept
+{
+    if (inputs.size() != pending.size()
+        || std::ranges::any_of(inputs, [](const auto& edge) { return edge.button > PcControllerButton::back; })) {
+        for (auto& sample : pending) {
+            sample.flags &= ~preview_input_cancel;
+        }
+        return PreviewStatus::invalid_input;
+    }
+    for (size_t index = 0; index < inputs.size(); ++index) {
+        const auto& edge = inputs[index];
+        if (edge.enabled && edge.down && (edge.button == PcControllerButton::east || edge.button == PcControllerButton::back)) {
+            pending[index].flags |= preview_input_cancel;
+        }
+    }
+    return PreviewStatus::ok;
+}
+
 } // namespace nw::toolset

@@ -20,6 +20,7 @@
 #include "command_view.hpp"
 #include "creature_workbench_view.hpp"
 #include "dialog_view.hpp"
+#include "editor_input.hpp"
 #include "forward_plus_debug.hpp"
 #include "inventory_workbench_view.hpp"
 #include "loading_view.hpp"
@@ -155,11 +156,8 @@ using nw::toolset::update_client_gpu_metrics;
 using nw::toolset::update_viewer_frame_metrics;
 using nw::toolset::update_viewer_internal_metrics;
 using nw::toolset::update_viewer_render_metrics;
-using nw::toolset::workspace_tab_current_index;
 using nw::toolset::workspace_tab_detail;
-using nw::toolset::workspace_tab_element_at_point;
 using nw::toolset::workspace_tab_kind_class;
-using nw::toolset::workspace_tab_target_index_at_point;
 using nw::toolset::WorkspaceViewerViewportKind;
 using nw::toolset::WorkspaceViewerViewportRequest;
 
@@ -167,8 +165,6 @@ constexpr float kManagedListAutoScrollEdgePx = 28.0f;
 constexpr float kManagedListAutoScrollStepPx = 14.0f;
 constexpr float kWorkspaceTabDragThresholdPx = 5.0f;
 constexpr float kTabScrollStepPx = 48.0f;
-constexpr float kWorkspaceTabAutoScrollEdgePx = 28.0f;
-constexpr float kWorkspaceTabAutoScrollStepPx = 14.0f;
 
 bool environment_flag_enabled(const char* name)
 {
@@ -365,13 +361,7 @@ std::filesystem::path resolve_client_ui_dir()
     return {};
 }
 
-constexpr size_t kInvalidVirtualIndex = std::numeric_limits<size_t>::max();
-
-enum class AreaWorkspaceSurface : uint8_t {
-    properties,
-    objects,
-    tiles,
-};
+using nw::toolset::AreaWorkspaceSurface;
 
 struct AppState {
     nw::toolset::RmlSmallsBridge smalls;
@@ -396,7 +386,7 @@ struct AppState {
     nw::ObjectHandle stale_area_viewport{};
     bool backend_ready = false;
     std::filesystem::path client_executable;
-    bool viewer_viewport_dragging = false;
+    nw::toolset::ClientPointerOwner viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
     bool viewer_viewport_focused = false;
     nw::toolset::AreaObjectDragState area_object_drag;
     nw::toolset::AreaObjectPlacementState area_object_placement;
@@ -410,7 +400,7 @@ struct AppState {
     nw::toolset::ObjectWorkbenchViewState workbench;
 };
 
-nw::toolset::ClientInputOwnership client_input_ownership(const AppState& state, bool lifecycle_key = false)
+nw::toolset::ClientInputOwnership client_input_ownership(const AppState& state)
 {
     using namespace nw::toolset;
     const bool preview = state.play_preview.session.active() || state.play_preview.placement_pending();
@@ -420,9 +410,9 @@ nw::toolset::ClientInputOwnership client_input_ownership(const AppState& state, 
         || state.managed_list_reorder.active() || state.project_blueprint_drag.active();
     return {
         .map = map,
-        .pointer_owner = state.viewer_viewport_dragging ? (preview ? ClientPointerOwner::pc : ClientPointerOwner::editor)
-            : ui_pointer_gesture                        ? ClientPointerOwner::toolset
-                                                        : ClientPointerOwner::none,
+        .pointer_owner = state.viewer_viewport_pointer_owner != ClientPointerOwner::none ? state.viewer_viewport_pointer_owner
+            : ui_pointer_gesture                                                         ? ClientPointerOwner::toolset
+                                                                                         : ClientPointerOwner::none,
         .world_available = preview && state.workspace.active_tab_id() == state.play_preview.tab_id
             && state.backend.module_generation() == state.play_preview.module_generation
             && nw::kernel::objects().valid(state.play_preview.area)
@@ -430,8 +420,17 @@ nw::toolset::ClientInputOwnership client_input_ownership(const AppState& state, 
         .command_modal = state.backend.blueprint_operation_active()
             || state.backend.blueprint_publication_pending(),
         .world_input_blocked = state.loading.module_dialog_open || state.loading.project_load.active(),
-        .lifecycle_key = lifecycle_key,
     };
+}
+
+nw::toolset::ClientInputRoute client_world_pointer_route(const SDL_Event& event, SDL_Window* window,
+    Rml::Context* context, Rml::Context* palette_context, Rml::ElementDocument* palette_doc,
+    const AppState& state, WorkspaceViewerViewportKind viewport)
+{
+    auto ownership = client_input_ownership(state);
+    ownership.world_available = ownership.world_available && viewport == WorkspaceViewerViewportKind::area;
+    return nw::toolset::resolve_client_event_input_route(event, window, context, palette_context, palette_doc,
+        state.command_view.command_overlay_document, ownership);
 }
 
 nw::toolset::ClientUiActionOwner client_ui_action_owner(const AppState& state)
@@ -735,89 +734,6 @@ bool viewport_mouse_hit_blocked(Rml::ElementDocument* doc, Rml::Element* top_hit
     return !find_ancestor_with_id(top_hit, "workspace_viewer_viewport");
 }
 
-std::optional<ClientViewportCameraCommand> viewer_viewport_camera_command_from_key(
-    SDL_Keycode key, WorkspaceViewerViewportKind kind)
-{
-    const bool preview_controls = kind == WorkspaceViewerViewportKind::preview;
-    switch (key) {
-    case SDLK_W:
-        return preview_controls ? ClientViewportCameraCommand::pitch_up : ClientViewportCameraCommand::move_forward;
-    case SDLK_S:
-        return preview_controls ? ClientViewportCameraCommand::pitch_down : ClientViewportCameraCommand::move_backward;
-    case SDLK_A:
-        return preview_controls ? ClientViewportCameraCommand::yaw_left : ClientViewportCameraCommand::move_left;
-    case SDLK_D:
-        return preview_controls ? ClientViewportCameraCommand::yaw_right : ClientViewportCameraCommand::move_right;
-    case SDLK_Q:
-        return preview_controls ? ClientViewportCameraCommand::zoom_out : ClientViewportCameraCommand::move_down;
-    case SDLK_E:
-        return preview_controls ? ClientViewportCameraCommand::zoom_in : ClientViewportCameraCommand::move_up;
-    case SDLK_LEFT:
-        return ClientViewportCameraCommand::yaw_left;
-    case SDLK_RIGHT:
-        return ClientViewportCameraCommand::yaw_right;
-    case SDLK_UP:
-        return ClientViewportCameraCommand::pitch_up;
-    case SDLK_DOWN:
-        return ClientViewportCameraCommand::pitch_down;
-    case SDLK_F:
-        return ClientViewportCameraCommand::fit;
-    case SDLK_G:
-        if (!preview_controls) {
-            return ClientViewportCameraCommand::gameplay;
-        }
-        return std::nullopt;
-    default:
-        return std::nullopt;
-    }
-}
-
-bool handle_viewer_viewport_key(ClientRenderer& renderer,
-    Rml::Context* context,
-    Rml::ElementDocument* doc,
-    AppState& state,
-    const SDL_KeyboardEvent& key,
-    int frame_width,
-    int frame_height)
-{
-    if (state.shell.command_palette_visible
-        || focused_text_input(context)
-        || state.loading.module_dialog_open
-        || (key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
-        return false;
-    }
-
-    if (!viewer_viewport_camera_command_from_key(key.key, WorkspaceViewerViewportKind::area)) {
-        return false;
-    }
-
-    auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
-    if (!viewer_viewport) {
-        state.viewer_viewport_focused = false;
-        return false;
-    }
-    const bool tile_camera_context
-        = state.area_workspace_surface == AreaWorkspaceSurface::tiles
-        && viewer_viewport->kind == WorkspaceViewerViewportKind::area;
-    if (!state.viewer_viewport_focused && !tile_camera_context) {
-        return false;
-    }
-
-    auto command = viewer_viewport_camera_command_from_key(key.key, viewer_viewport->kind);
-    if (!command) {
-        return false;
-    }
-
-    state.viewer_viewport_focused = true;
-    const float scale = (key.mod & SDL_KMOD_SHIFT) ? 3.0f : 1.0f;
-    cancel_area_object_drag(renderer, state);
-    renderer.viewer_viewport_camera_command(*command, scale, viewer_viewport->rect);
-    if (tile_camera_context) {
-        state.area_tile_editor.cursor_update_pending = true;
-    }
-    return true;
-}
-
 bool recent_list_hit_blocked(Rml::ElementDocument* doc, Rml::Element* top_hit, Rml::Vector2f point, const AppState& state)
 {
     if (!doc) {
@@ -856,11 +772,6 @@ void clear_workspace_tab_drag(AppState& state)
 void set_recent_hover(Rml::ElementDocument* doc, AppState& state, int index)
 {
     nw::toolset::set_recent_hover(doc, state.browser, index);
-}
-
-void set_recent_selected(Rml::ElementDocument* doc, AppState& state, int index)
-{
-    nw::toolset::set_recent_selected(doc, state.browser, index);
 }
 
 std::string get_input_value(Rml::ElementDocument* doc, const char* id)
@@ -1048,12 +959,6 @@ void close_object_details_combobox(
     nw::toolset::close_object_details_combobox(doc, state.workbench);
 }
 
-bool open_object_details_sound_position_combobox(
-    Rml::ElementDocument* doc, AppState& state, uint32_t row_index)
-{
-    return nw::toolset::open_object_details_sound_position_combobox(doc, state.workbench, state.workspace, row_index);
-}
-
 bool sync_object_details_combobox(
     Rml::ElementDocument* doc, AppState& state, bool force = false)
 {
@@ -1065,18 +970,11 @@ void rebuild_active_object_details(AppState& state, nw::ObjectHandle object)
     nw::toolset::rebuild_object_workbench_snapshots(state.workbench, object);
 }
 
-void clear_color_editor(AppState& state);
-
 void clear_active_object_details(AppState& state)
 {
     nw::toolset::clear_object_workbench_snapshots(state.workbench);
     state.managed_list_reorder = {};
     nw::toolset::clear_object_workbench_children(state.workbench);
-}
-
-bool sync_object_variable_window(Rml::ElementDocument* doc, AppState& state, bool force)
-{
-    return nw::toolset::sync_object_variable_window(doc, state.workbench, state.workspace, force);
 }
 
 bool sync_active_module_object(AppState& state)
@@ -1129,11 +1027,6 @@ bool sync_creature_feat_window(Rml::ElementDocument* doc, AppState& state, bool 
     return nw::toolset::sync_creature_feat_window(doc, state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), force);
 }
 
-bool active_creature_spells_match_tab(const AppState& state)
-{
-    return nw::toolset::active_creature_spells_match_tab(state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace));
-}
-
 bool active_creature_spell_filter_matches_tab(const AppState& state)
 {
     return nw::toolset::active_creature_spell_filter_matches_tab(state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace));
@@ -1147,11 +1040,6 @@ void clear_creature_spell_filter(AppState& state)
 void filter_active_creature_spells(AppState& state)
 {
     nw::toolset::filter_active_creature_spells(state.workbench.creature_view);
-}
-
-bool open_creature_spell_filter(AppState& state, CreatureSpellFilterField field)
-{
-    return nw::toolset::open_creature_spell_filter(state.workbench.creature_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), field);
 }
 
 bool commit_creature_spell_filter(AppState& state, int32_t value)
@@ -1191,15 +1079,7 @@ bool sync_area_tile_palette_window(Rml::ElementDocument* doc, AppState& state, b
         area_tile_pointer_modifier(SDL_GetModState()), force);
 }
 
-const nw::toolset::AppearanceCatalog& active_appearance_catalog(const AppState& state)
-{
-    return nw::toolset::active_appearance_catalog(state.workbench.appearance_view);
-}
 
-void clear_color_editor(AppState& state)
-{
-    nw::toolset::clear_color_editor(state.workbench.appearance_view);
-}
 
 void close_appearance_selector(AppState& state)
 {
@@ -1214,11 +1094,6 @@ void rebuild_active_appearances(AppState& state, nw::ObjectHandle object)
 bool active_appearances_match_tab(const AppState& state)
 {
     return nw::toolset::active_appearances_match_tab(state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace));
-}
-
-bool open_color_editor(AppState& state, nw::ObjectHandle object, uint32_t color)
-{
-    return nw::toolset::open_color_editor(state.workbench.appearance_view, object, color);
 }
 
 bool sync_appearance_window(Rml::ElementDocument* doc, AppState& state, bool force)
@@ -1247,25 +1122,8 @@ bool sync_sound_catalog_window(
     return nw::toolset::sync_sound_catalog_window(doc, state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), state.backend_ready ? nw::kernel::resman().generation() : 0, force);
 }
 
-bool commit_sound_catalog_selection(AppState& state, uint32_t row_index)
-{
-    return nw::toolset::commit_sound_catalog_selection(state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget), row_index);
-}
 
-bool commit_active_appearance_selection(AppState& state, int32_t value)
-{
-    return nw::toolset::commit_active_appearance_selection(state.workbench.appearance_view, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget), value);
-}
 
-bool cycle_active_appearance(AppState& state, int direction)
-{
-    return nw::toolset::cycle_active_appearance(state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget), direction);
-}
-
-bool commit_active_color_selection(AppState& state, int32_t value)
-{
-    return nw::toolset::commit_active_color_selection(state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace), state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget), value);
-}
 
 bool sync_appearance_body_preview(ClientRenderer& renderer, AppState& state)
 {
@@ -1324,7 +1182,6 @@ void append_workspace_document_markup(std::string& content_markup,
     const AppState& state)
 {
     if (active_tab.kind == nw::toolset::WorkspaceTabKind::area) {
-        const bool has_resource = !active_tab.detail.empty();
         content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
         content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
         content_markup += escape_html(active_tab.title);
@@ -1356,17 +1213,8 @@ void append_workspace_document_markup(std::string& content_markup,
             content_markup += "</div>";
         }
         content_markup += "</div></div>";
-        content_markup += "<div class=\"workspace_preview_body workspace_area_body\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
-        if (!has_resource) {
-            content_markup += " empty";
-        }
-        content_markup += "\" data-resource=\"";
-        content_markup += escape_html(active_tab.detail);
-        content_markup += "\">";
-        if (!has_resource) {
-            content_markup += "<div class=\"workspace_area_placeholder\">Open an area from the project tree.</div>";
-        }
-        content_markup += "</div>";
+        content_markup += "<div class=\"workspace_preview_body workspace_area_body\">";
+        nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
         if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
             nw::toolset::append_area_tile_palette_markup(content_markup, state.area_tile_editor);
         } else {
@@ -1377,7 +1225,6 @@ void append_workspace_document_markup(std::string& content_markup,
     }
 
     if (active_tab.kind == nw::toolset::WorkspaceTabKind::preview) {
-        const bool has_resource = !active_tab.detail.empty();
         content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
         content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
         content_markup += escape_html(active_tab.title);
@@ -1389,17 +1236,8 @@ void append_workspace_document_markup(std::string& content_markup,
                 state.workbench.object_workbench_surface)) {
             content_markup += " data_workbench_only";
         }
-        content_markup += "\"><div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
-        if (!has_resource) {
-            content_markup += " empty";
-        }
-        content_markup += "\" data-resource=\"";
-        content_markup += escape_html(active_tab.detail);
         content_markup += "\">";
-        if (!has_resource) {
-            content_markup += "<div class=\"workspace_area_placeholder\">Open a previewable blueprint from the project tree.</div>";
-        }
-        content_markup += "</div>";
+        nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
         append_object_workbench_markup(content_markup, state);
         content_markup += "</div></div>";
         return;
@@ -1431,15 +1269,6 @@ void append_workspace_document_markup(std::string& content_markup,
     content_markup += "</div></div>";
 }
 
-bool sync_workspace_tab_elements(Rml::ElementDocument* doc, AppState& state)
-{
-    return nw::toolset::sync_workspace_tab_elements(doc, state.workspace_view, state.workspace);
-}
-
-bool remove_workspace_tab_element(Rml::ElementDocument* doc, AppState& state, std::string_view tab_id)
-{
-    return nw::toolset::remove_workspace_tab_element(doc, state.workspace_view, state.workspace, tab_id);
-}
 
 void append_workspace_home_markup(std::string& content_markup, AppState& state)
 {
@@ -1549,6 +1378,7 @@ void stop_play_preview(ClientRenderer& renderer, SystemInterface_SDL& system_int
     Rml::ElementDocument* doc, AppState& state)
 {
     nw::toolset::stop_play_preview(renderer, state.play_preview, state.runtime_input, state.shell);
+    state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
     apply_shell_layout(doc, state);
     system_interface.SetMouseCursor("arrow");
 }
@@ -1576,6 +1406,7 @@ bool start_play_preview_from_ray(ClientRenderer& renderer, SystemInterface_SDL& 
     apply_shell_layout(doc, state);
     system_interface.SetMouseCursor("arrow");
     const bool started = result.status == PlayPreviewStartStatus::started;
+    if (!started) { state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none; }
     append_output(state, started ? "info" : "error", result.message);
     return started;
 }
@@ -1626,6 +1457,7 @@ bool prepare_play_preview(ClientRenderer& renderer,
 
     nw::toolset::arm_play_preview(state.play_preview, state.runtime_input, resolved.actor,
         area, state.backend.module_generation(), state.workspace.active_tab_id());
+    state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
     restore_play_preview_picker_shell(doc, state);
     focus_workspace_viewport(doc, state);
     apply_shell_layout(doc, state);
@@ -1733,12 +1565,6 @@ nw::toolset::CommandResult dispatch_command(AppState& state,
     return state.backend.execute_command(command_id, args, command_context(state, source));
 }
 
-bool commit_object_details_sound_position(Rml::ElementDocument* doc, AppState& state, int32_t desired)
-{
-    return nw::toolset::commit_object_details_sound_position(doc, state.workbench, state.workspace,
-        state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget), desired);
-}
-
 class ObjectWorkbenchChangeListener final : public Rml::EventListener {
 public:
     explicit ObjectWorkbenchChangeListener(AppState& state)
@@ -1758,20 +1584,6 @@ public:
 private:
     AppState& state_;
 };
-
-std::string precise_float_text(float value)
-{
-    std::array<char, 64> buffer{};
-    const auto result = std::to_chars(
-        buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::general,
-        std::numeric_limits<float>::max_digits10);
-    return result.ec == std::errc{} ? std::string{buffer.data(), result.ptr} : std::string{};
-}
-
-void sync_area_object_after_command(ClientRenderer& renderer, AppState& state, const nw::toolset::CommandResult& result)
-{
-    nw::toolset::sync_area_object_after_command(renderer, state.shell, result, state.smalls.active_object());
-}
 
 bool begin_area_object_drag(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
@@ -2170,65 +1982,6 @@ void commit_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
     if (!state.project_blueprint_drag.active()) { return; }
     nw::toolset::commit_project_blueprint_drag(doc, state.project_blueprint_drag,
         state.backend, command_context(state, nw::toolset::CommandSource::renderer), state.shell);
-}
-
-bool handle_area_tile_key(ClientRenderer& renderer,
-    Rml::Context* context,
-    Rml::ElementDocument* doc,
-    AppState& state,
-    const SDL_KeyboardEvent& key,
-    int frame_width,
-    int frame_height)
-{
-    if (key.repeat || key.key != SDLK_R
-        || (key.mod
-            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI
-                | SDL_KMOD_SHIFT))
-        || focused_text_input(context)
-        || !area_tile_editor_action_allowed(state)) {
-        return false;
-    }
-    const auto viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
-    const std::optional<ClientViewportRect> area_viewport = viewport && viewport->kind == WorkspaceViewerViewportKind::area
-        ? std::optional<ClientViewportRect>{viewport->rect}
-        : std::nullopt;
-    if (nw::toolset::rotate_area_tile_group(renderer, state.area_tile_editor,
-            active_workspace_area(state), area_viewport, area_tile_pointer_modifier(SDL_GetModState()), state.shell)) {
-        sync_area_tile_palette_window(doc, state, true);
-    }
-    return true;
-}
-
-bool handle_area_object_key(ClientRenderer& renderer,
-    Rml::Context* context,
-    Rml::ElementDocument* doc,
-    AppState& state,
-    const SDL_KeyboardEvent& key,
-    int frame_width,
-    int frame_height)
-{
-    if (key.repeat
-        || (key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))
-        || state.shell.command_palette_visible || state.loading.module_dialog_open
-        || focused_text_input(context)) {
-        return false;
-    }
-    if (key.key != SDLK_DELETE && key.key != SDLK_R) {
-        return false;
-    }
-    const auto viewport = active_workspace_viewer_viewport_request(
-        doc, state, frame_width, frame_height);
-    if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area) {
-        return false;
-    }
-    if (!synchronize_area_viewport_structure(renderer, state, true)) {
-        return true;
-    }
-    const auto action = key.key == SDLK_DELETE
-        ? nw::toolset::AreaObjectEditKey::remove
-        : nw::toolset::AreaObjectEditKey::randomize_orientation;
-    return nw::toolset::handle_area_object_edit_key(renderer, action, state.backend,
-        command_context(state, nw::toolset::CommandSource::shortcut), state.shell, state.smalls.active_object());
 }
 
 void sync_command_overlay_visibility(AppState& state)
@@ -2949,7 +2702,7 @@ int main(int argc, char* argv[])
                 clear_workspace_tab_drag(state);
                 (void)end_bottom_dock_resize(state);
                 (void)end_left_dock_resize(state);
-                state.viewer_viewport_dragging = false;
+                state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
                 state.shell_view.output_selection.dragging = false;
                 state.browser.pressed_recent_index = -1;
                 nw::toolset::discard_runtime_pointer_input(state.runtime_input);
@@ -3199,155 +2952,18 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                auto* focused_variable_name = find_ancestor_with_class(
-                    context->GetFocusElement(), "object_variable_name");
-                auto* focused_variable_value = find_ancestor_with_class(
-                    context->GetFocusElement(), "object_variable_value");
-                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && (focused_variable_name || focused_variable_value)) {
-                    clear_rml_focus(context);
-                    sync_object_variable_window(doc, state, true);
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                auto* focused_details_integer = find_ancestor_with_class(
-                    context->GetFocusElement(), "object_details_integer");
-                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && focused_details_integer) {
-                    clear_rml_focus(context);
-                    sync_object_details_window(doc, state, true);
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                if ((event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)
-                    && focused_details_integer
-                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
-                    const auto minimum = parse_decimal_int32(
-                        focused_details_integer->GetAttribute<Rml::String>("data-min", ""));
-                    const auto maximum = parse_decimal_int32(
-                        focused_details_integer->GetAttribute<Rml::String>("data-max", ""));
-                    auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(
-                        focused_details_integer);
-                    const auto value = input
-                        ? parse_decimal_int32(input->GetValue())
-                        : std::nullopt;
-                    if (input && value && minimum && maximum
-                        && *minimum <= *value && *value <= *maximum) {
-                        const bool can_decrement = event.key.key == SDLK_DOWN
-                            && *value > *minimum;
-                        const bool can_increment = event.key.key == SDLK_UP
-                            && *value < *maximum;
-                        if (can_decrement || can_increment) {
-                            const int32_t adjusted = *value
-                                + (can_increment ? 1 : -1);
-                            const Rml::String adjusted_text = std::to_string(adjusted);
-                            input->SetValue(adjusted_text);
-                            const int cursor = static_cast<int>(adjusted_text.size());
-                            input->SetSelectionRange(cursor, cursor);
-                        }
-                    }
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                if (!event.key.repeat
-                    && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
-                    && focused_details_integer
-                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
-                    const std::string row = focused_details_integer->GetAttribute<Rml::String>(
-                        "data-row", "");
-                    const std::string current = focused_details_integer->GetAttribute<Rml::String>(
-                        "data-current", "");
-                    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(
-                        focused_details_integer);
-                    const std::string desired = input ? input->GetValue() : std::string{};
-                    const auto result = dispatch_command(state,
-                        "object.details.set_integer",
-                        {row, current, desired},
-                        nw::toolset::CommandSource::widget);
-                    append_command_result(state, result);
-                    if (result.ok()) {
-                        clear_rml_focus(context);
-                    }
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                auto* focused_sound_position = find_ancestor_with_class(
-                    context->GetFocusElement(),
-                    "object_details_sound_position_field");
-                const auto focused_sound_position_row = focused_sound_position
-                    ? parse_decimal_int32(focused_sound_position->GetAttribute<Rml::String>(
-                          "data-row", ""))
-                    : std::nullopt;
-                const bool sound_position_focused = focused_sound_position_row
-                    && *focused_sound_position_row >= 0
-                    && !(event.key.mod
-                        & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if (sound_position_focused
-                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)) {
-                    const auto row_index = static_cast<uint32_t>(
-                        *focused_sound_position_row);
-                    if (state.workbench.object_details_combobox_row != row_index
-                        || !state.workbench.object_details_combobox.is_active()) {
-                        (void)open_object_details_sound_position_combobox(
-                            doc, state, row_index);
-                    } else if (!state.workbench.object_details_combobox.popup_visible()) {
-                        (void)state.workbench.object_details_combobox.show_popup();
-                    }
-                    (void)state.workbench.object_details_combobox.move_selection(
-                        event.key.key == SDLK_UP ? -1 : 1);
-                    (void)sync_object_details_combobox(doc, state, true);
-                    dispatch.native_handled = true;
-                    break;
-                }
-                if (!event.key.repeat && sound_position_focused
-                    && (event.key.key == SDLK_RETURN
-                        || event.key.key == SDLK_KP_ENTER)) {
-                    const auto row_index = static_cast<uint32_t>(
-                        *focused_sound_position_row);
-                    if (state.workbench.object_details_combobox_row != row_index
-                        || !state.workbench.object_details_combobox.is_active()) {
-                        if (open_object_details_sound_position_combobox(
-                                doc, state, row_index)) {
-                            (void)sync_object_details_combobox(doc, state, true);
-                        }
-                    } else if (!state.workbench.object_details_combobox.popup_visible()) {
-                        (void)state.workbench.object_details_combobox.show_popup();
-                        (void)sync_object_details_combobox(doc, state, true);
-                    } else if (const auto selected
-                        = state.workbench.object_details_combobox.selected_key()) {
-                        if (commit_object_details_sound_position(
-                                doc, state, *selected)) {
-                            refresh_workspace_content(doc, state);
-                        }
-                    }
+                const auto field_key_effect = nw::toolset::handle_object_workbench_field_key(event.key,
+                    context, doc, state.workbench, state.workspace, state.backend, state.shell,
+                    command_context(state, nw::toolset::CommandSource::widget));
+                if (field_key_effect != nw::toolset::ObjectWorkbenchFieldKeyEffect::none) {
+                    if (field_key_effect == nw::toolset::ObjectWorkbenchFieldKeyEffect::content_changed) { refresh_workspace_content(doc, state); }
                     dispatch.native_handled = true;
                     break;
                 }
 
                 if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && state.workbench.appearance_view.color_editor_channel >= 0) {
-                    clear_color_editor(state);
-                    refresh_workspace_content(doc, state);
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && state.workbench.appearance_view.appearance_selector_open) {
-                    close_appearance_selector(state);
-                    rebuild_active_appearances(state, state.workbench.object_details.object);
-                    refresh_workspace_content(doc, state);
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                if (!event.key.repeat && event.key.key == SDLK_ESCAPE
-                    && state.workbench.appearance_view.sound_resource_selector_open) {
-                    close_sound_resource_selector(state);
+                    && nw::toolset::close_appearance_selector_for_escape(state.workbench.appearance_view,
+                        nw::toolset::object_workbench_target(state.workbench, state.workspace), state.backend.module_generation())) {
                     refresh_workspace_content(doc, state);
                     dispatch.native_handled = true;
                     break;
@@ -3413,81 +3029,14 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                const bool appearance_search_focused = !state.shell.command_palette_visible
-                    && state.workbench.object_workbench_surface == ObjectWorkbenchSurface::appearance
-                    && state.workbench.appearance_view.appearance_selector_open
-                    && focused_element_has_id(context, "appearance_search")
-                    && !(event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if (appearance_search_focused
-                    && (event.key.key == SDLK_UP || event.key.key == SDLK_DOWN)) {
-                    const int selected = state.workbench.appearance_view.appearance_list.move_selection(
-                        event.key.key == SDLK_UP ? -1 : 1);
-                    const int scroll_top = state.workbench.appearance_view.appearance_list.scroll_top_for_index(selected);
-                    state.workbench.appearance_view.appearance_list.set_scroll_top(scroll_top);
-                    if (auto* list = find_el(doc, "appearance_rows")) {
-                        list->SetScrollTop(static_cast<float>(scroll_top));
-                    }
-                    state.workbench.appearance_view.appearance_rendered = false;
-                    sync_appearance_window(doc, state, true);
-                    dispatch.native_handled = true;
-                    break;
-                }
-                if (!event.key.repeat && appearance_search_focused
-                    && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)) {
-                    const int selected = state.workbench.appearance_view.appearance_list.selected();
-                    const auto& catalog = active_appearance_catalog(state);
-                    if (selected >= 0
-                        && static_cast<size_t>(selected) < state.workbench.appearance_view.appearance_matches.size()) {
-                        const uint32_t row_index = state.workbench.appearance_view.appearance_matches[static_cast<size_t>(selected)];
-                        if (row_index < catalog.rows.size()) {
-                            if (commit_active_appearance_selection(
-                                    state, catalog.rows[row_index].id)) {
-                                close_appearance_selector(state);
-                                rebuild_active_appearances(state, state.workbench.object_details.object);
-                                refresh_workspace_content(doc, state);
-                            }
-                        }
-                    }
-                    dispatch.native_handled = true;
-                    break;
-                }
-
-                const bool sound_catalog_search_focused
-                    = !state.shell.command_palette_visible
-                    && active_sound_resource_selector_matches_tab(state)
-                    && focused_element_has_id(context, "sound_catalog_search")
-                    && !(event.key.mod
-                        & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
-                if (sound_catalog_search_focused
-                    && (event.key.key == SDLK_UP
-                        || event.key.key == SDLK_DOWN)) {
-                    const int selected = state.workbench.appearance_view.sound_catalog_list.move_selection(
-                        event.key.key == SDLK_UP ? -1 : 1);
-                    const int scroll_top
-                        = state.workbench.appearance_view.sound_catalog_list.scroll_top_for_index(selected);
-                    state.workbench.appearance_view.sound_catalog_list.set_scroll_top(scroll_top);
-                    if (auto* list = find_el(doc, "sound_catalog_rows")) {
-                        list->SetScrollTop(static_cast<float>(scroll_top));
-                    }
-                    state.workbench.appearance_view.sound_catalog_rendered = false;
-                    sync_sound_catalog_window(doc, state, true);
-                    dispatch.native_handled = true;
-                    break;
-                }
-                if (!event.key.repeat && sound_catalog_search_focused
-                    && (event.key.key == SDLK_RETURN
-                        || event.key.key == SDLK_KP_ENTER)) {
-                    const int selected = state.workbench.appearance_view.sound_catalog_list.selected();
-                    if (selected >= 0
-                        && static_cast<size_t>(selected)
-                            < state.workbench.appearance_view.sound_catalog_matches.size()) {
-                        const uint32_t row_index
-                            = state.workbench.appearance_view.sound_catalog_matches[static_cast<size_t>(selected)];
-                        if (commit_sound_catalog_selection(state, row_index)) {
-                            close_sound_resource_selector(state);
-                            refresh_workspace_content(doc, state);
-                        }
-                    }
+                const auto catalog_key_effect = !state.shell.command_palette_visible
+                    ? nw::toolset::handle_appearance_selector_key(event.key, context, doc,
+                          state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                          state.backend_ready ? nw::kernel::resman().generation() : 0, state.backend, state.shell,
+                          command_context(state, nw::toolset::CommandSource::widget))
+                    : nw::toolset::AppearanceSelectorKeyEffect::none;
+                if (catalog_key_effect != nw::toolset::AppearanceSelectorKeyEffect::none) {
+                    if (catalog_key_effect == nw::toolset::AppearanceSelectorKeyEffect::content_changed) { refresh_workspace_content(doc, state); }
                     dispatch.native_handled = true;
                     break;
                 }
@@ -3541,24 +3090,9 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                const bool output_shortcut = !event.key.repeat
-                    && focused_element_has_id(context, "output_list")
-                    && (event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI))
-                    && !(event.key.mod & SDL_KMOD_ALT);
-                if (output_shortcut && event.key.key == SDLK_A) {
-                    state.shell_view.output_selection.anchor = 0;
-                    state.shell_view.output_selection.focus = state.shell_view.output_selection.text.size();
-                    state.shell.output_dirty = true;
-                    dispatch.native_handled = true;
-                    break;
-                }
-                if (output_shortcut && event.key.key == SDLK_C) {
-                    const auto [selection_start, selection_end]
-                        = state.shell_view.output_selection.range();
-                    if (selection_start < selection_end) {
-                        system_interface.SetClipboardText(state.shell_view.output_selection.text.substr(
-                            selection_start, selection_end - selection_start));
-                    }
+                const auto output_key = nw::toolset::handle_shell_output_key(event.key, context, state.shell_view, state.shell);
+                if (output_key.handled) {
+                    if (output_key.clipboard) { system_interface.SetClipboardText(*output_key.clipboard); }
                     dispatch.native_handled = true;
                     break;
                 }
@@ -3661,14 +3195,60 @@ int main(int argc, char* argv[])
                     break;
                 }
 
-                if (handle_area_tile_key(
-                        renderer, context, doc, state, event.key,
-                        frame_width, frame_height)
-                    || handle_area_object_key(
-                        renderer, context, doc, state, event.key, frame_width, frame_height)
-                    || handle_viewer_viewport_key(
-                        renderer, context, doc, state, event.key, frame_width, frame_height)) {
+                if (!nw::toolset::editor_key_has_binding(event.key.key)) { break; }
+                const auto key_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
+                const auto key_facts = nw::toolset::capture_client_input_facts(event, window,
+                    context, palette_context, palette_doc, state.command_view.command_overlay_document, client_input_ownership(state));
+                const std::array key_inputs{nw::toolset::EditorKeyInput{
+                    .facts = key_facts,
+                    .key = event.key.key,
+                    .modifiers = event.key.mod,
+                    .viewport = !key_viewport                                     ? nw::toolset::EditorViewportKind::none
+                        : key_viewport->kind == WorkspaceViewerViewportKind::area ? nw::toolset::EditorViewportKind::area
+                                                                                  : nw::toolset::EditorViewportKind::preview,
+                    .repeat = event.key.repeat,
+                    .viewport_focused = state.viewer_viewport_focused,
+                    .tiles_active = state.area_workspace_surface == AreaWorkspaceSurface::tiles,
+                    .tile_action_allowed = event.key.key == SDLK_R && area_tile_editor_action_allowed(state),
+                }};
+                std::array<nw::toolset::EditorKeyAction, 1> key_actions{};
+                (void)nw::toolset::resolve_editor_key_actions(key_inputs, key_actions);
+                const auto& key_action = key_actions.front();
+                if (key_action.clear_viewport_focus) { state.viewer_viewport_focused = false; }
+                switch (key_action.kind) {
+                case nw::toolset::EditorKeyActionKind::rotate_tiles: {
+                    const std::optional<ClientViewportRect> area_viewport = key_viewport && key_viewport->kind == WorkspaceViewerViewportKind::area
+                        ? std::optional<ClientViewportRect>{key_viewport->rect}
+                        : std::nullopt;
+                    if (nw::toolset::rotate_area_tile_group(renderer, state.area_tile_editor,
+                            active_workspace_area(state), area_viewport, area_tile_pointer_modifier(SDL_GetModState()), state.shell)) {
+                        sync_area_tile_palette_window(doc, state, true);
+                    }
                     dispatch.native_handled = true;
+                    break;
+                }
+                case nw::toolset::EditorKeyActionKind::remove_object:
+                case nw::toolset::EditorKeyActionKind::randomize_object_orientation:
+                    if (!synchronize_area_viewport_structure(renderer, state, true)) {
+                        dispatch.native_handled = true;
+                    } else {
+                        dispatch.native_handled = nw::toolset::handle_area_object_edit_key(renderer,
+                            key_action.kind == nw::toolset::EditorKeyActionKind::remove_object
+                                ? nw::toolset::AreaObjectEditKey::remove
+                                : nw::toolset::AreaObjectEditKey::randomize_orientation,
+                            state.backend, command_context(state, nw::toolset::CommandSource::shortcut), state.shell, state.smalls.active_object());
+                    }
+                    break;
+                case nw::toolset::EditorKeyActionKind::camera:
+                    state.viewer_viewport_focused = true;
+                    cancel_area_object_drag(renderer, state);
+                    renderer.viewer_viewport_camera_command(key_action.camera, key_action.scale, key_viewport->rect);
+                    if (state.area_workspace_surface == AreaWorkspaceSurface::tiles && key_viewport->kind == WorkspaceViewerViewportKind::area) {
+                        state.area_tile_editor.cursor_update_pending = true;
+                    }
+                    dispatch.native_handled = true;
+                    break;
+                case nw::toolset::EditorKeyActionKind::none:
                     break;
                 }
                 break;
@@ -3694,11 +3274,10 @@ int main(int argc, char* argv[])
                 }
                 break;
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-                if (state.play_preview.session.active()
-                    && (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST
-                        || event.gbutton.button == SDL_GAMEPAD_BUTTON_BACK)) {
-                    state.runtime_input.pending.flags
-                        |= nw::toolset::preview_input_cancel;
+                if (state.play_preview.session.active()) {
+                    const auto route = nw::toolset::resolve_client_event_input_route(event, window, context,
+                        palette_context, palette_doc, state.command_view.command_overlay_document, client_input_ownership(state));
+                    (void)nw::toolset::apply_runtime_pc_controller_button(state.runtime_input, event, route);
                 }
                 break;
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -3827,9 +3406,15 @@ int main(int argc, char* argv[])
                             dispatch.native_handled = true;
                             break;
                         }
-                        if ((state.play_preview.session.active()
-                                || state.play_preview.placement_pending())
-                            && viewer_viewport->kind == WorkspaceViewerViewportKind::area) {
+                        const auto world_route = client_world_pointer_route(event, window, context, palette_context,
+                            palette_doc, state, viewer_viewport->kind);
+                        if (world_route.native != nw::toolset::ClientNativeRecipient::editor
+                            && !(world_route.native == nw::toolset::ClientNativeRecipient::pc && world_route.sources.pointer)) {
+                            system_interface.SetMouseCursor("unavailable");
+                            dispatch.native_handled = true;
+                            break;
+                        }
+                        if (world_route.native == nw::toolset::ClientNativeRecipient::pc) {
                             if (event.button.button == SDL_BUTTON_LEFT
                                 && state.play_preview.placement_pending()) {
                                 if (const auto ray
@@ -3849,7 +3434,7 @@ int main(int argc, char* argv[])
                                     state.runtime_input, {point.x, point.y}, viewer_viewport->rect);
                             } else if (event.button.button == SDL_BUTTON_RIGHT
                                 || event.button.button == SDL_BUTTON_MIDDLE) {
-                                state.viewer_viewport_dragging = true;
+                                state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::pc;
                                 state.viewer_viewport_drag_mode
                                     = ClientViewportDragMode::look;
                                 system_interface.SetMouseCursor("grabbing");
@@ -3894,7 +3479,7 @@ int main(int argc, char* argv[])
                         }
                         if (preview_orbit_drag || event.button.button == SDL_BUTTON_RIGHT || event.button.button == SDL_BUTTON_MIDDLE) {
                             cancel_area_object_drag(renderer, state);
-                            state.viewer_viewport_dragging = true;
+                            state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::editor;
                             state.viewer_viewport_drag_mode = event.button.button == SDL_BUTTON_MIDDLE
                                 ? ClientViewportDragMode::pan
                                 : ClientViewportDragMode::look;
@@ -3937,23 +3522,9 @@ int main(int argc, char* argv[])
                         state.shell.output_dirty = true;
                     }
                     auto* top_hit = context ? context->GetElementAtPoint(point) : nullptr;
-                    clear_workspace_tab_drag(state);
-                    auto* workspace_tab_close_hit = find_ancestor_with_class(top_hit, "workspace_tab_close");
-                    if (!workspace_tab_close_hit) {
-                        workspace_tab_close_hit = workspace_tab_element_at_point(doc, "workspace_tab_close", point);
-                    }
-                    if (!workspace_tab_close_hit) {
-                        auto* workspace_tab_hit = find_ancestor_with_class(top_hit, "workspace_tab");
-                        if (!workspace_tab_hit) {
-                            workspace_tab_hit = workspace_tab_element_at_point(doc, "workspace_tab", point);
-                        }
-                        if (workspace_tab_hit && workspace_tab_hit->GetAttribute<Rml::String>("data-movable", "") == "1") {
-                            state.workspace_view.workspace_tab_drag_id = workspace_tab_hit->GetAttribute<Rml::String>("data-tab", "");
-                            state.workspace_view.workspace_tab_drag_start_x = point.x;
-                            state.workspace_view.workspace_tab_drag_start_y = point.y;
-                            dispatch.native_handled = true;
-                            break;
-                        }
+                    if (nw::toolset::begin_workspace_tab_drag(doc, state.workspace_view, top_hit, point)) {
+                        dispatch.native_handled = true;
+                        break;
                     }
                     if (!state.project_blueprint_drag.active()
                         && nw::toolset::begin_managed_list_reorder(
@@ -3964,9 +3535,9 @@ int main(int argc, char* argv[])
                     }
                     if (!recent_list_hit_blocked(doc, top_hit, point, state)) {
                         if (auto* recent_item = recent_item_at_point(doc, point)) {
-                            const std::string key = recent_item->GetAttribute<Rml::String>("data-key", "");
-                            if (!key.empty()) {
-                                state.browser.pressed_recent_index = static_cast<int>(std::strtol(key.c_str(), nullptr, 10));
+                            const auto key = nw::toolset::client_row_key(recent_item);
+                            state.browser.pressed_recent_index = key.value_or(-1);
+                            if (key) {
                                 const size_t index = static_cast<size_t>(
                                     std::max(state.browser.pressed_recent_index, 0));
                                 if (state.shell.showing_project_tree
@@ -4065,15 +3636,19 @@ int main(int argc, char* argv[])
                         break;
                     }
                 }
-                if (state.viewer_viewport_dragging) {
+                if (state.viewer_viewport_pointer_owner != nw::toolset::ClientPointerOwner::none) {
                     const float dx = point.x - state.viewer_viewport_last_point.x;
                     const float dy = point.y - state.viewer_viewport_last_point.y;
                     state.viewer_viewport_last_point = point;
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height)) {
-                        if (state.play_preview.session.active()) {
-                            state.runtime_input.mouse_look_pixels.x += dx;
-                            state.runtime_input.mouse_look_pixels.y += dy;
-                        } else {
+                        const auto world_route = client_world_pointer_route(event, window, context, palette_context,
+                            palette_doc, state, viewer_viewport->kind);
+                        if (world_route.native == nw::toolset::ClientNativeRecipient::pc && world_route.sources.pointer) {
+                            if (state.play_preview.session.active()) {
+                                state.runtime_input.mouse_look_pixels.x += dx;
+                                state.runtime_input.mouse_look_pixels.y += dy;
+                            }
+                        } else if (world_route.native == nw::toolset::ClientNativeRecipient::editor) {
                             renderer.drag_viewer_viewport(
                                 state.viewer_viewport_drag_mode, dx, dy,
                                 viewer_viewport->rect);
@@ -4081,10 +3656,14 @@ int main(int argc, char* argv[])
                                 == AreaWorkspaceSurface::tiles) {
                                 state.area_tile_editor.cursor_update_pending = true;
                             }
+                        } else {
+                            state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
+                            nw::toolset::discard_runtime_pointer_input(state.runtime_input);
                         }
-                        system_interface.SetMouseCursor("grabbing");
+                        system_interface.SetMouseCursor(state.viewer_viewport_pointer_owner != nw::toolset::ClientPointerOwner::none ? "grabbing" : "arrow");
                     } else {
-                        state.viewer_viewport_dragging = false;
+                        state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
+                        nw::toolset::discard_runtime_pointer_input(state.runtime_input);
                         system_interface.SetMouseCursor("arrow");
                     }
                     dispatch.native_handled = true;
@@ -4161,49 +3740,16 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                if (!state.workspace_view.workspace_tab_drag_id.empty()) {
-                    const float dx = point.x - state.workspace_view.workspace_tab_drag_start_x;
-                    const float dy = point.y - state.workspace_view.workspace_tab_drag_start_y;
-                    if (!state.workspace_view.workspace_tab_dragging
-                        && (std::abs(dx) >= kWorkspaceTabDragThresholdPx || std::abs(dy) >= kWorkspaceTabDragThresholdPx)) {
-                        state.workspace_view.workspace_tab_dragging = true;
-                        system_interface.SetMouseCursor("grabbing");
+                auto tab_drag = nw::toolset::update_workspace_tab_drag(doc, state.workspace_view, state.workspace, point);
+                if (tab_drag.handled) {
+                    system_interface.SetMouseCursor("grabbing");
+                    if (tab_drag.command) {
+                        const auto result = state.backend.execute_command(std::move(*tab_drag.command),
+                            command_context(state, nw::toolset::CommandSource::widget));
+                        if (result.ok()) { refresh_workspace_view(doc, state); }
                     }
-
-                    if (state.workspace_view.workspace_tab_dragging) {
-                        system_interface.SetMouseCursor("grabbing");
-                        if (auto* tabs = find_el(doc, "workspace_tabs")) {
-                            state.workspace_view.workspace_tab_scroll_x = tabs->GetScrollLeft();
-                            const float left = tabs->GetAbsoluteLeft();
-                            const float right = left + tabs->GetClientWidth();
-                            if (point.x < left + kWorkspaceTabAutoScrollEdgePx) {
-                                state.workspace_view.workspace_tab_scroll_x -= kWorkspaceTabAutoScrollStepPx;
-                                apply_workspace_tab_scroll(doc, state);
-                            } else if (point.x > right - kWorkspaceTabAutoScrollEdgePx) {
-                                state.workspace_view.workspace_tab_scroll_x += kWorkspaceTabAutoScrollStepPx;
-                                apply_workspace_tab_scroll(doc, state);
-                            }
-                        }
-
-                        const auto& tabs = state.workspace.tabs();
-                        const size_t current_index = workspace_tab_current_index(tabs, state.workspace_view.workspace_tab_drag_id, kInvalidVirtualIndex);
-                        const size_t fallback = current_index == kInvalidVirtualIndex
-                            ? (tabs.empty() ? 0 : tabs.size() - 1)
-                            : current_index;
-                        const size_t target_index = workspace_tab_target_index_at_point(doc, point, tabs, state.workspace_view.workspace_tab_drag_id, fallback);
-                        if (current_index != kInvalidVirtualIndex && target_index != current_index) {
-                            const std::string target_index_text = std::to_string(target_index);
-                            const auto result = dispatch_command(state,
-                                "workspace.move_tab",
-                                {std::string_view{state.workspace_view.workspace_tab_drag_id}, std::string_view{target_index_text}},
-                                nw::toolset::CommandSource::widget);
-                            if (result.ok()) {
-                                refresh_workspace_view(doc, state);
-                            }
-                        }
-                        dispatch.native_handled = true;
-                        break;
-                    }
+                    dispatch.native_handled = true;
+                    break;
                 }
 
                 auto* list = find_el(doc, "recent_list");
@@ -4215,10 +3761,7 @@ int main(int argc, char* argv[])
                         || !search->IsPointWithinElement(point))
                     && list->IsPointWithinElement(point)) {
                     if (auto* recent_item = find_recent_item_at(list, point)) {
-                        const std::string key = recent_item->GetAttribute<Rml::String>("data-key", "");
-                        if (!key.empty()) {
-                            hovered = static_cast<int>(std::strtol(key.c_str(), nullptr, 10));
-                        }
+                        hovered = nw::toolset::client_row_key(recent_item).value_or(-1);
                     }
                 }
                 set_recent_hover(doc, state, hovered);
@@ -4274,67 +3817,41 @@ int main(int argc, char* argv[])
                     }
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
                         viewer_viewport && point_within_viewport(viewer_viewport->rect, point)) {
-                        if (state.play_preview.session.active()) {
-                            state.runtime_input.wheel_zoom += event.wheel.y;
+                        const auto world_route = client_world_pointer_route(event, window, context, palette_context,
+                            palette_doc, state, viewer_viewport->kind);
+                        if (world_route.native == nw::toolset::ClientNativeRecipient::pc && world_route.sources.pointer) {
+                            if (state.play_preview.session.active()) { state.runtime_input.wheel_zoom += event.wheel.y; }
+                            dispatch.native_handled = true;
+                            break;
+                        }
+                        if (world_route.native != nw::toolset::ClientNativeRecipient::editor) {
                             dispatch.native_handled = true;
                             break;
                         }
                         const auto object = renderer.active_viewer_object();
-                        const bool area_object_wheel = viewer_viewport->kind == WorkspaceViewerViewportKind::area
-                            && (object.type == nw::ObjectType::creature
-                                || object.type == nw::ObjectType::item
-                                || object.type == nw::ObjectType::placeable)
-                            && !focused_text_input(context)
-                            && !state.loading.module_dialog_open;
-                        const bool sound_radius_wheel
-                            = viewer_viewport->kind == WorkspaceViewerViewportKind::area
-                            && object.type == nw::ObjectType::sound
-                            && !focused_text_input(context)
-                            && !state.loading.module_dialog_open;
+                        const std::array wheel_inputs{nw::toolset::EditorWheelInput{
+                            .recipient = world_route.native,
+                            .viewport = viewer_viewport->kind == WorkspaceViewerViewportKind::area ? nw::toolset::EditorViewportKind::area : nw::toolset::EditorViewportKind::preview,
+                            .object_type = object.type,
+                            .modifiers = modifiers,
+                            .amount = event.wheel.y,
+                            .text_focused = focused_text_input(context)}};
+                        std::array<nw::toolset::EditorWheelAction, 1> wheel_actions{};
+                        (void)nw::toolset::resolve_editor_wheel_actions(wheel_inputs, wheel_actions);
                         cancel_area_object_drag(renderer, state);
-                        if (sound_radius_wheel
-                            && !(modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
-                            if (const auto sound
-                                = nwn1::sound_toolset_visual_state(object)) {
-                                const float factor = std::pow(1.1f, event.wheel.y);
-                                const float radius = std::max(sound->distance_min,
-                                    sound->distance_max * factor);
-                                if (std::isfinite(radius)
-                                    && radius != sound->distance_max) {
-                                    const auto result = state.backend.resize_sound_radius(
-                                        {
-                                            .sound = object,
-                                            .before = sound->distance_max,
-                                            .after = radius,
-                                        },
-                                        command_context(state,
-                                            nw::toolset::CommandSource::renderer));
-                                    append_command_result(state, result);
+                        const auto& action = wheel_actions[0];
+                        if (action.kind == nw::toolset::EditorWheelActionKind::camera_zoom) {
+                            renderer.zoom_viewer_viewport(action.amount, viewer_viewport->rect);
+                            if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) { state.area_tile_editor.cursor_update_pending = true; }
+                        } else {
+                            if (auto result = nw::toolset::apply_area_object_wheel_action(action, state.backend,
+                                    command_context(state, nw::toolset::CommandSource::renderer), object)) {
+                                if (action.kind == nw::toolset::EditorWheelActionKind::sound_radius) {
+                                    append_command_result(state, *result);
+                                } else {
+                                    nw::toolset::sync_area_object_after_command(renderer, state.shell, *result, state.smalls.active_object());
                                 }
                             }
-                            dispatch.native_handled = true;
-                            break;
-                        }
-                        if (area_object_wheel
-                            && !(modifiers & (SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
-                            const bool rotate = (modifiers & SDL_KMOD_CTRL) != 0;
-                            const float value = rotate
-                                ? event.wheel.y * 15.0f
-                                : std::pow(1.1f, event.wheel.y);
-                            const std::string argument = precise_float_text(value);
-                            if (!argument.empty()) {
-                                const auto result = dispatch_command(state,
-                                    rotate ? "object.transform.rotate" : "object.transform.scale",
-                                    {argument},
-                                    nw::toolset::CommandSource::renderer);
-                                sync_area_object_after_command(renderer, state, result);
-                            }
-                            dispatch.native_handled = true;
-                            break;
-                        }
-                        renderer.zoom_viewer_viewport(event.wheel.y, viewer_viewport->rect);
-                        if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
-                            state.area_tile_editor.cursor_update_pending = true;
                         }
                         dispatch.native_handled = true;
                         break;
@@ -4516,11 +4033,11 @@ int main(int argc, char* argv[])
                     dispatch.native_handled = true;
                     break;
                 }
-                if (state.viewer_viewport_dragging
+                if ((state.viewer_viewport_pointer_owner != nw::toolset::ClientPointerOwner::none)
                     && (event.button.button == SDL_BUTTON_LEFT
                         || event.button.button == SDL_BUTTON_MIDDLE
                         || event.button.button == SDL_BUTTON_RIGHT)) {
-                    state.viewer_viewport_dragging = false;
+                    state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
                     const auto point = to_context_point(window, event.button.x, event.button.y);
                     system_interface.SetMouseCursor(point_within_element(doc, "workspace_tabs", point) ? "pointer" : "arrow");
                     dispatch.native_handled = true;
@@ -4560,16 +4077,18 @@ int main(int argc, char* argv[])
                             }
                         }
                         dispatch.native_handled = true;
+                        (void)nw::toolset::forward_client_input(dispatch, nw::toolset::ClientRmlRecipient::command,
+                            nw::toolset::ClientRmlForwardPhase::after_native, palette_context, window, event);
                         break;
                     }
 
                     Rml::Element* recent_hit = nullptr;
                     bool handled = false;
-                    const auto release_workspace_mouse_up = [&] {
+                    const auto release_workspace_mouse_up = [&](nw::toolset::ClientRmlForwardPhase phase = nw::toolset::ClientRmlForwardPhase::before_native) {
                         const auto before = client_ui_action_owner(state);
                         if (dispatch.forwarded_recipient == nw::toolset::ClientRmlRecipient::none && context) {
                             (void)nw::toolset::forward_client_input(dispatch, nw::toolset::ClientRmlRecipient::toolset,
-                                nw::toolset::ClientRmlForwardPhase::before_native, context, window, event);
+                                phase, context, window, event);
                         }
                         const bool unchanged = nw::toolset::same_client_ui_action_owner(before, client_ui_action_owner(state));
                         if (!unchanged) {
@@ -4579,340 +4098,110 @@ int main(int argc, char* argv[])
                         return unchanged;
                     };
                     if (auto* hit = element_at_mouse(context, window, event.button)) {
-                        auto* workspace_tab_scroll_button = find_ancestor_with_class(
-                            hit, "workspace_tab_scroll_button");
-                        auto* object_workbench_tab_scroll_button = find_ancestor_with_class(
-                            hit, "object_workbench_tab_scroll_button");
-                        auto* workspace_tab_close_hit = find_ancestor_with_class(hit, "workspace_tab_close");
-                        if (!workspace_tab_close_hit) {
-                            workspace_tab_close_hit = workspace_tab_element_at_point(doc, "workspace_tab_close", point);
-                        }
-                        auto* workspace_tab_hit = find_ancestor_with_class(hit, "workspace_tab");
-                        if (!workspace_tab_hit) {
-                            workspace_tab_hit = workspace_tab_element_at_point(doc, "workspace_tab", point);
-                        }
 
-                        if (auto* area_surface_tab
-                            = find_ancestor_with_class(
-                                hit, "area_workspace_tab")) {
-                            const std::string surface
-                                = area_surface_tab->GetAttribute<Rml::String>(
-                                    "data-area-surface", "");
+                        if (auto area_surface_click = nw::toolset::capture_area_workspace_surface_click(hit)) {
                             if (!release_workspace_mouse_up()) { break; }
-                            if (surface == "properties") {
-                                (void)set_area_workspace_surface(renderer, state,
-                                    AreaWorkspaceSurface::properties);
-                            } else if (surface == "objects") {
-                                (void)set_area_workspace_surface(renderer, state,
-                                    AreaWorkspaceSurface::objects);
-                            } else if (surface == "tiles") {
-                                (void)set_area_workspace_surface(renderer, state,
-                                    AreaWorkspaceSurface::tiles);
-                            }
+                            if (area_surface_click->surface) { (void)set_area_workspace_surface(renderer, state, *area_surface_click->surface); }
                             refresh_workspace_content(doc, state);
                             sync_area_tile_palette_window(doc, state, true);
                             handled = true;
-                        } else if (find_ancestor_with_id(
-                                       hit, "area_tile_editor_back")) {
+                        } else if (auto tile_click = nw::toolset::capture_area_tile_palette_click(hit, state.area_tile_editor)) {
                             if (!release_workspace_mouse_up()) { break; }
-                            auto& editor = state.area_tile_editor;
-                            if (nw::toolset::leave_area_tile_palette_folder(
-                                    editor.palette)) {
+                            const auto effect = nw::toolset::apply_area_tile_palette_click(*tile_click, state.area_tile_editor, active_workspace_area(state));
+                            if (effect == nw::toolset::AreaTilePaletteClickEffect::folder_changed) {
                                 cancel_area_tile_stroke(renderer, state);
                                 clear_area_tile_selection(renderer, state);
-                                nw::toolset::reset_area_tile_palette_folder_view(editor);
+                                nw::toolset::reset_area_tile_palette_folder_view(state.area_tile_editor);
                                 refresh_workspace_content(doc, state);
-                                sync_area_tile_palette_window(doc, state, true);
-                            } else {
-                                editor.feedback
-                                    = "Tile palette navigation is unavailable";
-                                sync_area_tile_palette_window(doc, state, true);
+                            } else if (effect == nw::toolset::AreaTilePaletteClickEffect::selected) {
+                                clear_area_tile_selection(renderer, state);
+                                (void)renderer.update_viewer_area_tile_preview(active_workspace_area(state), {});
                             }
+                            if (effect != nw::toolset::AreaTilePaletteClickEffect::none) { sync_area_tile_palette_window(doc, state, true); }
                             handled = true;
-                        } else if (auto* tile_row = find_ancestor_with_class(
-                                       hit, "area_tile_palette_row")) {
-                            const auto before = client_ui_action_owner(state);
-                            const auto row_key = nw::toolset::release_client_row_key(
-                                dispatch, tile_row, context, window, event);
-                            if (!nw::toolset::same_client_ui_action_owner(before, client_ui_action_owner(state))) {
-                                state.browser.pressed_recent_index = -1;
-                                dispatch.native_handled = true;
-                                break;
-                            }
-                            if (row_key && *row_key >= 0
-                                && static_cast<size_t>(*row_key)
-                                    < state.area_tile_editor.palette.rows.size()) {
-                                auto& editor = state.area_tile_editor;
-                                const auto& row = editor.palette.rows[static_cast<size_t>(*row_key)];
-                                if (row.kind
-                                    == nw::toolset::AreaTilePaletteRowKind::folder) {
-                                    if (nw::toolset::enter_area_tile_palette_folder(
-                                            editor.palette,
-                                            static_cast<uint32_t>(*row_key))) {
-                                        cancel_area_tile_stroke(renderer, state);
-                                        clear_area_tile_selection(
-                                            renderer, state);
-                                        nw::toolset::reset_area_tile_palette_folder_view(
-                                            editor);
-                                        refresh_workspace_content(doc, state);
-                                        sync_area_tile_palette_window(
-                                            doc, state, true);
-                                    } else {
-                                        editor.feedback
-                                            = "Tile palette folder is unavailable";
-                                        sync_area_tile_palette_window(
-                                            doc, state, true);
-                                    }
-                                    handled = true;
-                                } else {
-                                    clear_area_tile_selection(renderer, state);
-                                    editor.selected_row = *row_key;
-                                    editor.group_orientation = 0;
-                                    editor.cursor_target_index = UINT32_MAX;
-                                    editor.cursor_update_pending = false;
-                                    editor.preview_rows.clear();
-                                    (void)renderer.update_viewer_area_tile_preview(
-                                        active_workspace_area(state), {});
-                                    editor.feedback.clear();
-                                    const auto selected = std::find(
-                                        editor.palette.matches.begin(),
-                                        editor.palette.matches.end(),
-                                        static_cast<uint32_t>(*row_key));
-                                    if (selected
-                                        != editor.palette.matches.end()) {
-                                        editor.list.set_selected(
-                                            static_cast<int>(std::distance(
-                                                editor.palette.matches.begin(),
-                                                selected)));
-                                    }
-                                    editor.rendered = false;
-                                    sync_area_tile_palette_window(
-                                        doc, state, true);
-                                }
-                            }
-                            handled = true;
-                        } else if (workspace_tab_scroll_button) {
-                            const bool disabled = workspace_tab_scroll_button->IsClassSet("disabled");
-                            const bool forward = workspace_tab_scroll_button->GetId() == "workspace_tabs_next";
+                        } else if (auto scroll_click = nw::toolset::capture_tab_scroll_click(hit,
+                                       kWorkspaceTabScrollStrip, "workspace_tab_scroll_button")) {
                             if (!release_workspace_mouse_up()) { break; }
-                            if (!disabled) {
-                                state.workspace_view.workspace_tab_scroll_x = tab_scroll_target(
-                                    doc, kWorkspaceTabScrollStrip, forward);
-                                apply_workspace_tab_scroll(doc, state);
-                            }
+                            (void)nw::toolset::apply_tab_scroll_click(*scroll_click, doc,
+                                kWorkspaceTabScrollStrip, state.workspace_view.workspace_tab_scroll_x);
                             handled = true;
-                        } else if (object_workbench_tab_scroll_button) {
-                            const bool disabled = object_workbench_tab_scroll_button->IsClassSet("disabled");
-                            const bool forward = object_workbench_tab_scroll_button->GetId() == "object_workbench_tabs_next";
+                        } else if (auto workbench_scroll_click = nw::toolset::capture_tab_scroll_click(hit,
+                                       kObjectWorkbenchTabScrollStrip, "object_workbench_tab_scroll_button")) {
                             if (!release_workspace_mouse_up()) { break; }
-                            if (!disabled) {
-                                state.workbench.object_workbench_tab_scroll_x = tab_scroll_target(
-                                    doc, kObjectWorkbenchTabScrollStrip, forward);
-                                apply_object_workbench_tab_scroll(doc, state);
-                            }
+                            (void)nw::toolset::apply_tab_scroll_click(*workbench_scroll_click, doc,
+                                kObjectWorkbenchTabScrollStrip, state.workbench.object_workbench_tab_scroll_x);
                             handled = true;
-                        } else if (workspace_tab_close_hit) {
-                            const std::string tab_id = workspace_tab_close_hit->GetAttribute<Rml::String>("data-tab", "");
-                            if (!tab_id.empty() && ensure_backend_ready(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                const auto result = dispatch_command_flow(window,
-                                    state,
-                                    "workspace.close_tab",
-                                    {std::string_view{tab_id}},
-                                    nw::toolset::CommandSource::widget);
-                                if (result.ok()) {
-                                    if (!remove_workspace_tab_element(doc, state, tab_id)) {
-                                        refresh_workspace_view(doc, state);
-                                    } else {
-                                        refresh_workspace_content(doc, state);
-                                    }
-                                    state.workspace_hover_refresh_pending = true;
-                                    state.workspace_hover_refresh_point = point;
-                                }
-                            }
-                            handled = true;
-                        } else if (workspace_tab_hit) {
-                            const std::string tab_id = workspace_tab_hit->GetAttribute<Rml::String>("data-tab", "");
-                            if (!tab_id.empty() && ensure_backend_ready(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                const auto result = dispatch_command(state,
-                                    "workspace.activate_tab",
-                                    {std::string_view{tab_id}},
-                                    nw::toolset::CommandSource::widget);
-                                append_command_result(state, result);
-                                if (result.ok()) {
-                                    if (!sync_workspace_tab_elements(doc, state)) {
-                                        refresh_workspace_view(doc, state);
-                                    } else {
-                                        refresh_workspace_content(doc, state);
-                                    }
-                                    state.workspace_hover_refresh_pending = true;
-                                    state.workspace_hover_refresh_point = point;
-                                }
-                            }
-                            handled = true;
-                        } else if (auto* workspace_subtab_close = find_ancestor_with_class(hit, "workspace_subtab_close")) {
-                            const std::string tab_id = workspace_subtab_close->GetAttribute<Rml::String>("data-tab", "");
-                            const std::string subtab_id = workspace_subtab_close->GetAttribute<Rml::String>("data-subtab", "");
-                            if (!tab_id.empty() && !subtab_id.empty() && ensure_backend_ready(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                const auto result = dispatch_command(state,
-                                    "workspace.close_subtab",
-                                    {std::string_view{tab_id}, std::string_view{subtab_id}},
-                                    nw::toolset::CommandSource::widget);
-                                append_command_result(state, result);
-                                if (result.ok()) {
-                                    refresh_workspace_content(doc, state);
-                                    state.workspace_hover_refresh_pending = true;
-                                    state.workspace_hover_refresh_point = point;
-                                }
-                            }
-                            handled = true;
-                        } else if (auto* workspace_subtab = find_ancestor_with_class(hit, "workspace_subtab")) {
-                            const std::string tab_id = workspace_subtab->GetAttribute<Rml::String>("data-tab", "");
-                            const std::string subtab_id = workspace_subtab->GetAttribute<Rml::String>("data-subtab", "");
-                            if (!tab_id.empty() && !subtab_id.empty() && ensure_backend_ready(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                const auto result = dispatch_command(state,
-                                    "workspace.activate_subtab",
-                                    {std::string_view{tab_id}, std::string_view{subtab_id}},
-                                    nw::toolset::CommandSource::widget);
-                                append_command_result(state, result);
-                                if (result.ok()) {
-                                    refresh_workspace_content(doc, state);
-                                    state.workspace_hover_refresh_pending = true;
-                                    state.workspace_hover_refresh_point = point;
-                                }
-                            }
-                            handled = true;
-                        } else if (auto* dialog_row = find_ancestor_with_class(hit, "dialog_row")) {
-                            const auto row_index = parse_decimal_int32(
-                                dialog_row->GetAttribute<Rml::String>("data-key", ""));
-                            const auto* active_tab = state.workspace.active_tab();
-                            if (row_index && *row_index >= 0
-                                && active_tab
-                                && active_tab->kind == nw::toolset::WorkspaceTabKind::dialog
-                                && nw::toolset::select_dialog_view_row(state.dialog_view, *row_index)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                nw::toolset::sync_dialog_view(doc, state.dialog_view, true);
-                            }
-                            handled = true;
-                        } else if (find_ancestor_with_id(hit, "creature_color_selector_close")) {
+                        } else if (auto tab_click = nw::toolset::capture_workspace_tab_click(doc, hit, point, state.workspace)) {
                             if (!release_workspace_mouse_up()) { break; }
-                            clear_color_editor(state);
-                            refresh_workspace_content(doc, state);
-                            handled = true;
-                        } else if (auto* color_channel = find_ancestor_with_class(hit, "creature_color_channel")) {
-                            const auto color = parse_decimal_int32(
-                                color_channel->GetAttribute<Rml::String>("data-color", ""));
-                            if (color && *color >= 0
-                                && open_color_editor(state, state.workbench.object_details.object,
-                                    static_cast<uint32_t>(*color))) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                refresh_workspace_content(doc, state);
-                            }
-                            handled = true;
-                        } else if (auto* palette = find_ancestor_with_id(hit, "creature_color_palette")) {
-                            const float left = palette->GetAbsoluteLeft() + palette->GetClientLeft();
-                            const float top = palette->GetAbsoluteTop() + palette->GetClientTop();
-                            const float palette_width = palette->GetClientWidth();
-                            const float palette_height = palette->GetClientHeight();
-                            const float local_x = point.x - left;
-                            const float local_y = point.y - top;
-                            if (palette_width > 0.0f && palette_height > 0.0f
-                                && local_x >= 0.0f && local_x < palette_width
-                                && local_y >= 0.0f && local_y < palette_height) {
-                                const int column = std::min(kPltPaletteColumns - 1,
-                                    static_cast<int>(local_x * kPltPaletteColumns / palette_width));
-                                const int row = std::min(kPltPaletteRows - 1,
-                                    static_cast<int>(local_y * kPltPaletteRows / palette_height));
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (commit_active_color_selection(
-                                        state, row * kPltPaletteColumns + column)) {
-                                    refresh_workspace_content(doc, state);
+                            const auto kind = tab_click->kind;
+                            if (kind != nw::toolset::WorkspaceTabClickKind::none && ensure_backend_ready(state)) {
+                                if (auto invocation = nw::toolset::take_workspace_tab_click_command(*tab_click, state.workspace)) {
+                                    auto result = state.backend.execute_command(std::move(*invocation),
+                                        command_context(state, nw::toolset::CommandSource::widget));
+                                    if (kind == nw::toolset::WorkspaceTabClickKind::close) {
+                                        result = resolve_command_result(window, state, std::move(result), nw::toolset::CommandSource::widget);
+                                    } else {
+                                        append_command_result(state, result);
+                                    }
+                                    if (result.ok()) {
+                                        if (nw::toolset::sync_workspace_tab_click(doc, state.workspace_view,
+                                                state.workspace, kind, tab_click->tab_id)) {
+                                            refresh_workspace_content(doc, state);
+                                        } else {
+                                            refresh_workspace_view(doc, state);
+                                        }
+                                        state.workspace_hover_refresh_pending = true;
+                                        state.workspace_hover_refresh_point = point;
+                                    }
                                 }
                             }
                             handled = true;
-                        } else if (auto* color_field = find_ancestor_with_class(hit, "creature_color_field")) {
-                            const auto color = parse_decimal_int32(
-                                color_field->GetAttribute<Rml::String>("data-color", ""));
-                            if (color && *color >= 0
-                                && active_appearances_match_tab(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
+                        } else if (auto selected = nw::toolset::select_dialog_view_clicked_row(hit, state.dialog_view, state.workspace)) {
+                            const auto phase = *selected ? nw::toolset::ClientRmlForwardPhase::after_native
+                                                         : nw::toolset::ClientRmlForwardPhase::before_native;
+                            if (!release_workspace_mouse_up(phase)) { break; }
+                            if (*selected) { nw::toolset::sync_dialog_view(doc, state.dialog_view, true); }
+                            handled = true;
+                        } else if (auto color_click = nw::toolset::capture_color_editor_click(hit, point,
+                                       state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
+                            if (color_click->release_phase == nw::toolset::ClientRmlForwardPhase::before_native
+                                && !release_workspace_mouse_up()) { break; }
+                            if (color_click->kind == nw::toolset::ColorEditorClickKind::field) {
                                 (void)close_active_smalls_selector(doc);
-                                close_appearance_selector(state);
-                                (void)open_color_editor(state,
-                                    state.workbench.object_details.object,
-                                    static_cast<uint32_t>(*color));
-                                refresh_workspace_content(doc, state);
                             }
+                            const bool refresh = nw::toolset::apply_color_editor_click(*color_click,
+                                state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                                state.workspace, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget));
+                            if (color_click->release_phase == nw::toolset::ClientRmlForwardPhase::after_native
+                                && !release_workspace_mouse_up(nw::toolset::ClientRmlForwardPhase::after_native)) { break; }
+                            if (refresh) { refresh_workspace_content(doc, state); }
                             handled = true;
-                        } else if (find_ancestor_with_id(hit, "creature_color_selector")) {
+                        } else if (auto combo_click = nw::toolset::capture_object_workbench_combo_click(hit,
+                                       state.workbench, state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
                             if (!release_workspace_mouse_up()) { break; }
-                            handled = true;
-                        } else if (auto* option = find_ancestor_with_class(hit, "combobox_option")) {
-                            const std::string key = option->GetAttribute<Rml::String>("data-key", "");
-                            const auto value = parse_decimal_int32(key);
-                            if (value
-                                && state.workbench.object_details_combobox.is_active()
-                                && find_ancestor_with_id(option,
-                                    "object_details_combobox_popup")) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (commit_object_details_sound_position(
-                                        doc, state, *value)) {
-                                    refresh_workspace_content(doc, state);
-                                }
-                            } else if (value
-                                && active_creature_spell_filter_matches_tab(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (commit_creature_spell_filter(state, *value)) {
-                                    refresh_workspace_content(doc, state);
-                                    sync_creature_spell_window(doc, state, true);
-                                }
-                            }
-                            handled = true;
-                        } else if (auto* sound_position_field
-                            = find_ancestor_with_class(hit,
-                                "object_details_sound_position_field")) {
-                            const auto row_index = parse_decimal_int32(
-                                sound_position_field->GetAttribute<Rml::String>(
-                                    "data-row", ""));
-                            if (row_index && *row_index >= 0) {
-                                const std::string field_id = sound_position_field->GetId();
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (open_object_details_sound_position_combobox(
-                                        doc, state,
-                                        static_cast<uint32_t>(*row_index))) {
-                                    (void)sync_object_details_combobox(
-                                        doc, state, true);
-                                    if (auto* field = find_el(doc, field_id.c_str()); field
-                                        && parse_decimal_int32(field->GetAttribute<Rml::String>("data-row", "")) == row_index) {
-                                        field->Focus();
-                                    }
-                                }
-                            }
-                            handled = true;
-                        } else if (auto* spell_filter_field = find_ancestor_with_class(hit, "creature_spell_filter_field")) {
-                            const auto filter = creature_spell_filter_field_from_name(
-                                spell_filter_field->GetAttribute<Rml::String>("data-filter", ""));
-                            if (filter && active_creature_spells_match_tab(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (state.workbench.creature_view.creature_spell_filter_field == *filter
-                                    && state.workbench.creature_view.creature_spell_combobox.is_active()) {
-                                    if (state.workbench.creature_view.creature_spell_combobox.popup_visible()) {
-                                        state.workbench.creature_view.creature_spell_combobox.hide_popup();
-                                    } else {
-                                        (void)state.workbench.creature_view.creature_spell_combobox.show_popup();
-                                    }
-                                } else {
-                                    (void)open_creature_spell_filter(state, *filter);
-                                }
+                            const auto effect = nw::toolset::apply_object_workbench_combo_click(*combo_click, doc,
+                                state.workbench, state.workspace, state.backend, state.shell,
+                                command_context(state, nw::toolset::CommandSource::widget));
+                            switch (effect) {
+                            case nw::toolset::ObjectWorkbenchComboEffect::sound_opened:
+                                (void)sync_object_details_combobox(doc, state, true);
+                                (void)nw::toolset::focus_object_workbench_combo_field(doc, *combo_click, state.workbench, state.workspace);
+                                break;
+                            case nw::toolset::ObjectWorkbenchComboEffect::sound_selected:
+                                refresh_workspace_content(doc, state);
+                                break;
+                            case nw::toolset::ObjectWorkbenchComboEffect::spell_opened:
                                 refresh_workspace_content(doc, state);
                                 sync_creature_spell_filter_window(doc, state, true);
-                                if (auto* active_field = find_el(
-                                        doc, "active_creature_spell_filter_field")) {
-                                    active_field->Focus();
-                                }
+                                if (auto* field = find_el(doc, "active_creature_spell_filter_field")) { field->Focus(); }
+                                break;
+                            case nw::toolset::ObjectWorkbenchComboEffect::spell_selected:
+                                refresh_workspace_content(doc, state);
+                                sync_creature_spell_window(doc, state, true);
+                                break;
+                            default:
+                                break;
                             }
                             handled = true;
                         } else if (auto* object_row = find_ancestor_with_class(hit, "area_object_row")) {
@@ -4940,7 +4229,7 @@ int main(int argc, char* argv[])
                                 state.workbench, state.workspace, state.backend, state.shell,
                                 command_context(state, nw::toolset::CommandSource::widget));
                             if (click->release_phase == nw::toolset::ClientRmlForwardPhase::after_native
-                                && !release_workspace_mouse_up()) { break; }
+                                && !release_workspace_mouse_up(nw::toolset::ClientRmlForwardPhase::after_native)) { break; }
                             handled = true;
                         } else if (auto sound_click = nw::toolset::capture_sound_resource_click(
                                        hit, state.workbench.appearance_view,
@@ -4963,11 +4252,14 @@ int main(int argc, char* argv[])
                                 if (auto* input = find_el(doc, "sound_catalog_search")) { input->Focus(); }
                             }
                             handled = true;
-                        } else if (find_ancestor_with_id(hit, "appearance_selector_back")) {
+                        } else if (auto appearance_back_click = nw::toolset::capture_appearance_back_click(hit,
+                                       state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
                             if (!release_workspace_mouse_up()) { break; }
-                            close_appearance_selector(state);
-                            rebuild_active_appearances(state, state.workbench.object_details.object);
-                            refresh_workspace_content(doc, state);
+                            if (nw::toolset::apply_appearance_catalog_click(*appearance_back_click,
+                                    state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                                    state.workspace, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget))
+                                != nw::toolset::AppearanceCatalogClickEffect::none) { refresh_workspace_content(doc, state); }
                             handled = true;
                         } else if (auto surface_click = nw::toolset::capture_object_workbench_surface_click(hit)) {
                             if (!release_workspace_mouse_up()) { break; }
@@ -4985,73 +4277,20 @@ int main(int argc, char* argv[])
                             nw::toolset::sync_managed_lists(doc,
                                 nw::toolset::ui_v1_host(), state.workbench.managed_lists, true);
                             handled = true;
-                        } else if (find_ancestor_with_id(
-                                       hit, "placeable_appearance_previous")) {
+                        } else if (auto appearance_click = nw::toolset::capture_appearance_catalog_click(hit,
+                                       state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                                       state.workspace, state.backend.module_generation(), nw::kernel::resman().generation())) {
                             if (!release_workspace_mouse_up()) { break; }
-                            if (cycle_active_appearance(state, -1)) {
-                                rebuild_active_appearances(
-                                    state, state.workbench.object_details.object);
-                                refresh_workspace_content(doc, state);
-                            }
-                            handled = true;
-                        } else if (find_ancestor_with_id(
-                                       hit, "placeable_appearance_next")) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            if (cycle_active_appearance(state, 1)) {
-                                rebuild_active_appearances(
-                                    state, state.workbench.object_details.object);
-                                refresh_workspace_content(doc, state);
-                            }
-                            handled = true;
-                        } else if (find_ancestor_with_id(
-                                       hit, "door_appearance_previous")) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            if (cycle_active_appearance(state, -1)) {
-                                rebuild_active_appearances(
-                                    state, state.workbench.object_details.object);
-                                refresh_workspace_content(doc, state);
-                            }
-                            handled = true;
-                        } else if (find_ancestor_with_id(
-                                       hit, "door_appearance_next")) {
-                            if (!release_workspace_mouse_up()) { break; }
-                            if (cycle_active_appearance(state, 1)) {
-                                rebuild_active_appearances(
-                                    state, state.workbench.object_details.object);
-                                refresh_workspace_content(doc, state);
-                            }
-                            handled = true;
-                        } else if (auto* catalog_field = find_ancestor_with_class(hit, "appearance_catalog_field")) {
-                            const auto selected_field = appearance_editor_field_from_name(
-                                catalog_field->GetAttribute<Rml::String>("data-field", ""));
-                            if (selected_field && active_appearances_match_tab(state)
-                                && (*selected_field == AppearanceEditorField::appearance
-                                    || state.workbench.object_details.object.type == nw::ObjectType::creature)) {
-                                if (!release_workspace_mouse_up()) { break; }
+                            if (appearance_click->kind == nw::toolset::AppearanceCatalogClickKind::open) {
                                 (void)close_active_smalls_selector(doc);
-                                clear_color_editor(state);
-                                state.workbench.appearance_view.appearance_editor_field = *selected_field;
-                                state.workbench.appearance_view.appearance_selector_open = true;
-                                state.workbench.appearance_view.appearance_query.clear();
-                                rebuild_active_appearances(state, state.workbench.object_details.object);
-                                state.workbench.appearance_view.appearance_scroll_to_selection = true;
-                                refresh_workspace_content(doc, state);
-                                sync_appearance_window(doc, state, true);
-                                if (auto* input = find_el(doc, "appearance_search")) {
-                                    input->Focus();
-                                }
                             }
-                            handled = true;
-                        } else if (auto* appearance_row = find_ancestor_with_class(hit, "appearance_row")) {
-                            const std::string id_text = appearance_row->GetAttribute<Rml::String>("data-key", "");
-                            const auto id = parse_decimal_int32(id_text);
-                            if (id && *id >= 0 && active_appearances_match_tab(state)) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (commit_active_appearance_selection(state, *id)) {
-                                    close_appearance_selector(state);
-                                    rebuild_active_appearances(state, state.workbench.object_details.object);
-                                    refresh_workspace_content(doc, state);
-                                }
+                            const auto effect = nw::toolset::apply_appearance_catalog_click(*appearance_click,
+                                state.workbench.appearance_view, nw::toolset::object_workbench_target(state.workbench, state.workspace),
+                                state.workspace, state.backend, state.shell, command_context(state, nw::toolset::CommandSource::widget));
+                            if (effect != nw::toolset::AppearanceCatalogClickEffect::none) { refresh_workspace_content(doc, state); }
+                            if (effect == nw::toolset::AppearanceCatalogClickEffect::opened) {
+                                sync_appearance_window(doc, state, true);
+                                if (auto* input = find_el(doc, "appearance_search")) { input->Focus(); }
                             }
                             handled = true;
                         } else if (auto inventory_click = nw::toolset::capture_inventory_workbench_click(
@@ -5089,91 +4328,60 @@ int main(int argc, char* argv[])
                                     doc, *activation.focus_target);
                             }
                             handled = true;
-                        } else if (auto* area_card = find_ancestor_with_class(hit, "home_area_card")) {
-                            const auto index = parse_decimal_int32(
-                                area_card->GetAttribute<Rml::String>("data-key", ""));
-                            if (index && *index >= 0
-                                && static_cast<size_t>(*index) < state.browser.home_areas.size()
-                                && ensure_backend_ready(state)) {
-                                const std::string resref = state.browser.home_areas[static_cast<size_t>(*index)].resref;
+                        } else if (auto home_click = nw::toolset::capture_home_workspace_click(hit, state.browser, state.backend)) {
+                            if (home_click->kind != nw::toolset::HomeWorkspaceClickKind::none
+                                && (home_click->kind != nw::toolset::HomeWorkspaceClickKind::select_area || ensure_backend_ready(state))) {
                                 if (!release_workspace_mouse_up()) { break; }
-                                const auto result = dispatch_command_flow(window, state,
-                                    "toolset.select_area",
-                                    {std::string_view{resref}},
-                                    nw::toolset::CommandSource::widget);
-                                if (result.ok()) {
+                                const auto kind = nw::toolset::consume_home_workspace_click(*home_click, state.browser, state.backend);
+                                switch (kind) {
+                                case nw::toolset::HomeWorkspaceClickKind::select_area: {
+                                    const auto result = dispatch_command_flow(window, state, "toolset.select_area",
+                                        {std::string_view{home_click->area_resref}}, nw::toolset::CommandSource::widget);
+                                    if (result.ok()) {
+                                        refresh_workspace_view(doc, state);
+                                        if (result.status == nw::toolset::CommandStatus::success) { focus_workspace_viewport(doc, state); }
+                                    }
+                                    break;
+                                }
+                                case nw::toolset::HomeWorkspaceClickKind::remove_project: {
+                                    const std::array indices{static_cast<size_t>(home_click->index)};
+                                    if (nw::toolset::forget_recent_project_preferences(state.shell_view.preferences_path,
+                                            state.shell.docks, state.browser.recent_projects, indices)
+                                        == nw::toolset::RecentProjectForgetStatus::save_failed) {
+                                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to remove recent project",
+                                            "Could not save preferences. The project was kept in the recent list.", window);
+                                    }
+                                    refresh_workspace_content(doc, state);
+                                    break;
+                                }
+                                case nw::toolset::HomeWorkspaceClickKind::open_project: {
+                                    const auto& project = home_click->project;
+                                    if (!project.error.empty()) {
+                                        const auto message = project.error + ":\n" + project.path;
+                                        append_output(state, "error", message);
+                                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", message.c_str(), window);
+                                    } else if (ensure_backend_ready(state)) {
+                                        if (!queue_project_open(state, project.path, nw::toolset::CommandSource::widget)) {
+                                            append_output(state, "warn", "A project is already opening");
+                                        }
+                                    } else {
+                                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", "Backend initialization failed.", window);
+                                    }
                                     refresh_workspace_view(doc, state);
-                                    if (result.status == nw::toolset::CommandStatus::success) {
-                                        focus_workspace_viewport(doc, state);
-                                    }
+                                    break;
+                                }
+                                case nw::toolset::HomeWorkspaceClickKind::none:
+                                    break;
                                 }
                             }
                             handled = true;
-                        } else if (auto* remove = find_ancestor_with_class(hit, "home_project_remove")) {
-                            const auto index = parse_decimal_int32(remove->GetAttribute<Rml::String>("data-key", ""));
-                            if (index && *index >= 0 && static_cast<size_t>(*index) < state.browser.recent_projects.size()) {
-                                if (!release_workspace_mouse_up()) { break; }
-                                auto previous = state.browser.recent_projects;
-                                const std::array indices{static_cast<size_t>(*index)};
-                                if (nw::toolset::forget_recent_projects(state.browser.recent_projects, indices)
-                                    && !save_ui_preferences(state.shell_view.preferences_path, state.shell.docks, state.browser.recent_projects)) {
-                                    state.browser.recent_projects = std::move(previous);
-                                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to remove recent project",
-                                        "Could not save preferences. The project was kept in the recent list.", window);
-                                }
-                                refresh_workspace_content(doc, state);
+                        } else if (auto shell_click = nw::toolset::capture_shell_ui_click(hit)) {
+                            const bool sync_visibility = shell_click->kind == nw::toolset::ShellUiClickKind::dock && !shell_click->value.empty();
+                            if (auto command = nw::toolset::take_shell_ui_click_command(*shell_click)) {
+                                append_command_result(state, state.backend.execute_command(std::move(*command), command_context(state, nw::toolset::CommandSource::widget)));
                             }
+                            if (sync_visibility) { sync_shell_visibility(context, palette_context, doc, palette_doc, state); }
                             handled = true;
-                        } else if (auto* project_item = find_ancestor_with_class(hit, "home_project_item")) {
-                            const auto index = parse_decimal_int32(project_item->GetAttribute<Rml::String>("data-key", ""));
-                            if (index && *index >= 0 && static_cast<size_t>(*index) < state.browser.recent_projects.size()) {
-                                nw::toolset::refresh_recent_projects(state.browser.recent_projects);
-                                const auto project = state.browser.recent_projects[static_cast<size_t>(*index)];
-                                if (!release_workspace_mouse_up()) { break; }
-                                if (!project.error.empty()) {
-                                    const auto message = project.error + ":\n" + project.path;
-                                    append_output(state, "error", message);
-                                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", message.c_str(), window);
-                                } else if (ensure_backend_ready(state)) {
-                                    if (!queue_project_open(state,
-                                            project.path,
-                                            nw::toolset::CommandSource::widget)) {
-                                        append_output(state, "warn",
-                                            "A project is already opening");
-                                    }
-                                } else {
-                                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", "Backend initialization failed.", window);
-                                }
-                                refresh_workspace_view(doc, state);
-                            }
-                            handled = true;
-                        } else if (auto* dock_tab = find_ancestor_with_class(hit, "dock_tab")) {
-                            const std::string widget = dock_tab->GetAttribute<Rml::String>("data-widget", "");
-                            if (!widget.empty()) {
-                                append_command_result(state,
-                                    dispatch_command(state,
-                                        "rollnw.client.dock.activate",
-                                        {"bottom", std::string_view{widget}},
-                                        nw::toolset::CommandSource::widget));
-                                sync_shell_visibility(context, palette_context, doc, palette_doc, state);
-                            }
-                            handled = true;
-                        } else if (auto* output_toggle = find_ancestor_with_class(hit, "output_toggle")) {
-                            const std::string id = output_toggle->GetId();
-                            std::string_view channel;
-                            if (id == "output_info") {
-                                channel = "info";
-                            } else if (id == "output_warn") {
-                                channel = "warn";
-                            } else if (id == "output_error") {
-                                channel = "error";
-                            } else if (id == "output_script") {
-                                channel = "script";
-                            }
-                            if (!channel.empty()) {
-                                append_command_result(state, dispatch_command(state, "rollnw.client.output.channel", {channel}, nw::toolset::CommandSource::widget));
-                                handled = true;
-                            }
                         } else {
                             recent_hit = find_ancestor_with_class(hit, "recent_item");
                         }
@@ -5186,79 +4394,33 @@ int main(int argc, char* argv[])
                         }
 
                         if (recent_hit) {
-                            auto* recent_item = recent_hit;
-                            const std::string index_text = recent_item->GetAttribute<Rml::String>("data-key", "");
-                            if (!index_text.empty()) {
-                                const int clicked_index = static_cast<int>(std::strtol(index_text.c_str(), nullptr, 10));
-                                if (clicked_index >= 0 && clicked_index == state.browser.pressed_recent_index) {
-                                    set_recent_selected(doc, state, clicked_index);
-
-                                    const size_t idx = static_cast<size_t>(clicked_index);
-                                    if (state.shell.showing_project_tree) {
-                                        if (idx < state.browser.project_rows.size()) {
-                                            const auto& row = state.browser.project_rows[idx].node;
-                                            if (row.is_container()) {
-                                                if (state.browser.collapsed_project_nodes.erase(row.id) == 0) {
-                                                    state.browser.collapsed_project_nodes.insert(row.id);
-                                                }
-                                                state.browser.selected_recent_index = -1;
-                                                refresh_recent_list(doc, state);
-                                            } else if (state.play_preview.selecting_actor) {
-                                                const auto resource = nw::Resource::from_path(
-                                                    row.relative_path, false);
-                                                if (resource.type != nw::ResourceType::utc) {
-                                                    append_output(state, "warn",
-                                                        "Choose a Creature blueprint for play preview");
-                                                } else {
-                                                    const auto saved
-                                                        = nw::toolset::save_project_preview_test_actor(
-                                                            state.backend.current_project_dir(),
-                                                            row.relative_path);
-                                                    append_output(state,
-                                                        saved.ok ? "info" : "error",
-                                                        saved.message);
-                                                    if (saved.ok) {
-                                                        const auto actor_path = row.relative_path;
-                                                        if (!release_workspace_mouse_up()) { break; }
-                                                        (void)prepare_play_preview(renderer,
-                                                            system_interface, doc, state,
-                                                            actor_path);
-                                                    } else {
-                                                        state.shell.set_output_panel_visible(true);
-                                                        refresh_bottom_dock_view(doc, state);
-                                                    }
-                                                }
-                                            } else if (ensure_backend_ready(state)) {
-                                                const std::string relative_path = row.relative_path.generic_string();
-                                                if (!release_workspace_mouse_up()) { break; }
-                                                const auto result = dispatch_command_flow(window, state,
-                                                    "toolset.open_resource",
-                                                    {std::string_view{relative_path}},
-                                                    nw::toolset::CommandSource::widget);
-                                                if (result.ok()) {
-                                                    refresh_workspace_view(doc, state);
-                                                    const auto* tab = state.workspace.active_tab();
-                                                    if (result.status == nw::toolset::CommandStatus::success
-                                                        && tab && tab->kind == nw::toolset::WorkspaceTabKind::area) {
-                                                        focus_workspace_viewport(doc, state);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else if (state.shell.showing_areas) {
-                                        const std::string resref = recent_item->GetAttribute<Rml::String>("data-resref", "");
-                                        if (!resref.empty()) {
-                                            if (!release_workspace_mouse_up()) { break; }
-                                            const auto result = dispatch_command_flow(window, state,
-                                                "toolset.select_area",
-                                                {std::string_view{resref}},
-                                                nw::toolset::CommandSource::widget);
-                                            if (result.ok()) {
-                                                refresh_workspace_view(doc, state);
-                                                if (result.status == nw::toolset::CommandStatus::success) {
-                                                    focus_workspace_viewport(doc, state);
-                                                }
-                                            }
+                            auto click = nw::toolset::prepare_browser_row_click(doc, recent_hit,
+                                state.browser, state.backend, state.shell, state.play_preview.selecting_actor);
+                            if (click.output_changed) { refresh_bottom_dock_view(doc, state); }
+                            if (click.kind != nw::toolset::BrowserRowClickKind::none
+                                && (click.kind != nw::toolset::BrowserRowClickKind::open_resource || ensure_backend_ready(state))) {
+                                if (!release_workspace_mouse_up()) { break; }
+                                const auto kind = nw::toolset::consume_browser_row_click(click,
+                                    state.browser, state.backend, state.shell, state.play_preview.selecting_actor);
+                                if (kind == nw::toolset::BrowserRowClickKind::preview_actor) {
+                                    (void)prepare_play_preview(renderer, system_interface, doc, state, click.resource_path);
+                                } else if (kind == nw::toolset::BrowserRowClickKind::open_resource
+                                    || kind == nw::toolset::BrowserRowClickKind::select_area) {
+                                    const auto argument = kind == nw::toolset::BrowserRowClickKind::open_resource
+                                        ? click.resource_path.generic_string()
+                                        : click.area_resref;
+                                    const auto result = dispatch_command_flow(window, state,
+                                        kind == nw::toolset::BrowserRowClickKind::open_resource
+                                            ? "toolset.open_resource"
+                                            : "toolset.select_area",
+                                        {std::string_view{argument}}, nw::toolset::CommandSource::widget);
+                                    if (result.ok()) {
+                                        refresh_workspace_view(doc, state);
+                                        const auto* tab = state.workspace.active_tab();
+                                        if (result.status == nw::toolset::CommandStatus::success
+                                            && (kind == nw::toolset::BrowserRowClickKind::select_area
+                                                || (tab && tab->kind == nw::toolset::WorkspaceTabKind::area))) {
+                                            focus_workspace_viewport(doc, state);
                                         }
                                     }
                                 }
@@ -5268,6 +4430,8 @@ int main(int argc, char* argv[])
                     state.browser.pressed_recent_index = -1;
                     if (handled) {
                         dispatch.native_handled = true;
+                        (void)nw::toolset::forward_client_input(dispatch, nw::toolset::ClientRmlRecipient::toolset,
+                            nw::toolset::ClientRmlForwardPhase::after_native, context, window, event);
                     }
                 }
                 break;
@@ -5283,7 +4447,7 @@ int main(int argc, char* argv[])
                     state.browser.pressed_recent_index = -1;
                     system_interface.SetMouseCursor("arrow");
                 }
-                state.viewer_viewport_dragging = false;
+                state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
                 state.shell_view.output_selection.dragging = false;
                 hide_object_variable_warning_tooltip(doc, state);
                 set_recent_hover(doc, state, -1);
@@ -5742,6 +4906,7 @@ int main(int argc, char* argv[])
             if (nw::toolset::update_play_preview_frame(renderer, state.play_preview,
                     state.runtime_input, state.shell, static_cast<double>(raw_frame_delta_seconds), eligibility)
                 == nw::toolset::PreviewStatus::invalid_input) {
+                state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
                 apply_shell_layout(doc, state);
                 system_interface.SetMouseCursor("arrow");
             }

@@ -2497,3 +2497,1064 @@ failure injection, low-level allocation/constructor-exception injection, native
 driver internals, physical devices/high-DPI and complete root integration remain
 unverified. Remaining native input/one routing authority and final composition/
 integration gates are still required; no performance or clean LSan claim.
+
+## C10b9 native creature color input plan
+
+Tier 1. Actual profile provider emits four color editor rows (hair, skin, two
+tattoos) for valid humanoid colors, otherwise an empty batch. Rows carry numeric
+channel, value [0,175] and one of two existing palette IDs. Actual UI has close,
+channel, 16x11 palette, field and selector-container controls in that priority.
+Input is one main-thread SDK mouse release, current live creature/tab/surface,
+module/resource generations and existing mutation epoch; output is an existing
+selector transition or backend color command/undo, plus content-refresh intent.
+ASSUMPTION: valid palette clicks dominate this cold group — affects no allocation
+or measured optimization. DOM geometry/strings are borrowed only during capture.
+
+Capture an owned tab and scalar channel/value/palette/cell before SDK callbacks;
+consume once and recheck current object/tab/generations/epoch and provider row
+before applying a post-release edit. Keep channel opening before SDK release,
+other controls after release, and shared SmallS-selector close before field
+opening; recheck owners after that synchronous callback. Matched rejected
+controls still discharge SDK release, following the existing C10 invalid/stale
+press contract, while issuing no backend command. Root only applies refresh.
+The release helper records the actual before/after phase already selected by
+existing workbench actions; this changes no SDK dispatch count.
+
+Cost: one cold tab-string copy and, for post-SDK field/palette operations, two
+four-row provider reads/comparisons around dispatch; channel opening retains its
+single existing provider lookup before SDK. No per-motion payload, new epoch,
+lookup, event bus or AppState interface. Fixed palette math and existing SmallS
+provider/backend remain authoritative. Reuse validated fresh rows instead of a
+third provider lookup for field opening. Singleton selector edges cannot be
+batched across synchronous callbacks; provider and color arrays remain batches.
+
+Done: actual markup/geometry, pre-release channel ordering, owned selection after
+DOM replacement, once-only backend edit/undo, independently stale channel/value/
+owner/tab/generation/epoch rejection and malformed controls; normal/sanitized
+builds and affected view/input cases. Full root routing, desktop control feel,
+physical devices/high-DPI and final composition remain open. No speed claim.
+
+## C10b9 native creature color input result
+
+Moved five native color-control families into an owned capture/once-only apply
+boundary in appearance_view. Tab, owner, channel, source value/palette and selected
+cell survive SDK DOM replacement. Channel opens before SDK release; field/palette/
+close follow release and fresh validation. Field caller closes shared SmallS
+selector first; apply rechecks identity before touching native state. Release
+helper now records the actual existing before/after order for color and workbench
+commands. Matched invalid controls discharge SDK press without a backend command.
+Root retains refresh and SDK forwarding coordination, not palette lookup/edit
+policy. The two unused root color wrappers are removed. Main is 5,900 lines.
+
+Four new cases use actual provider rows and markup/geometry. SDK mouseup observes
+the newly opened channel and replaces DOM; one forwarding obligation is enforced.
+An owned palette selection survives markup replacement, commits once and undoes
+exactly. Shared selector close sees the old native selector/channel before its
+DOM replacement and subsequent field opening. Real channel changes, actual direct
+script color change without advancing toolset epoch, actual object replacement
+and tab switch reject old requests without extra commands/undo/logs. Corrupted
+module/resource/epoch/value/palette/cell metadata rejects independently; these
+packet checks do not claim actual module reload. Malformed fields release real
+SDK active presses and issue no commands.
+
+All 45 affected cases from 5 suites passed normally in 20,245 ms and under
+ASan/UBSan in 115,421 ms, no skips. Final builds passed without warnings after
+adding the required public Rml vector include and explicit fixture float casts.
+Formatting/diff checks passed. Self-check retained existing SmallS/backend/rule
+ownership, fixed palette layout, singular callback-dependent selector edges and
+batched provider/colors, reused fresh rows to avoid a third field lookup and
+added no new epoch/table/general interface. Full production root routing, real
+module/resource reload, physical controller/high-DPI/desktop feel and final
+composition/integration remain open. No performance or clean LSan claim.
+
+## C10b10 native appearance catalog plan
+
+Tier 1. Actual input is copied, authoring-sorted appearance catalog rows and
+filtered dense indices, SDK controls carrying semantic appearance IDs/field tags,
+current Creature/Placeable/Door values and existing tab/module/resource/epoch
+facts. Catalog volumes depend on the actual loaded rules tables; no distribution
+or event rate is measured. Rows are stable within module generation; query, field,
+selector and live values can change during synchronous release/close callbacks.
+Output is an existing appearance/accessory command/undo or selector transition
+and explicit refresh/open effect. Unsupported type/field, malformed ID, stale
+owner/generation/query/value or unavailable catalog rejects without a command.
+
+Keep Back's separate capture entry before surface clicks; group the four cycle
+buttons, catalog field and semantic-ID row after surface clicks. Own tab/query
+and scalar live values; Door needs both appearance kind and generic type so two
+non-generic styles cannot compare equal merely because their generic value is
+unavailable. Derive cycle's target using the existing sorted-row wrap/fallback
+policy before SDK, then validate it and the live values after release. Consume
+once, reuse existing commit/rebuild/close functions. Field caller closes shared
+SmallS selector before fresh apply; root retains window sync/focus and refresh.
+
+Cost: cold tab/query ownership, two live-value provider reads around SDK, existing
+cycle lookup and O(matches) membership verification for selection. No per-motion
+payload, new catalog/epoch/controller/framework, whole-state parameter or new
+row pointer lifetime. Selection is a synchronous singleton edge; catalog/filter
+providers remain batch transforms. Simplification precomputes the existing cycle
+ID once and avoids its third live-value lookup during apply; backend/rules remain
+authoritative. Done: actual selector/field/cycle controls, copied semantic ID after
+DOM replacement, one command/undo, wrap/fallback, both Door selectors, independent
+stale owner/query/field/value/generation and malformed-release checks, normal/
+sanitized builds and affected suites. Full root authority/frame integration and
+desktop/native-device/high-DPI behavior remain open; no speed claim.
+
+## C10b10 native appearance catalog result
+
+Captured Back separately before surface selection; the four Placeable/Door
+cycle buttons, catalog fields and semantic-ID rows now use the appearance
+owner's capture/apply functions. SDK release and shared-selector close precede
+fresh validation. Copied tab/query/field/live values survive DOM replacement;
+Door comparison includes both selectors. Existing catalog ordering, wrap and
+non-generic fallback, commands, undo, selector retention and refresh remain
+authoritative. Removed the unused root cycle delegate.
+
+Normal and combined ASan/UBSan client/test builds pass without compiler
+diagnostics. The selected appearance/input/owner/routes suites passed 34 tests
+in four suites: normal 17,754 ms, sanitized 100,979 ms, no skips. After adding
+actual replacement-object coverage, rebuilt both binaries and reran all three
+new catalog tests: normal 2,949 ms, sanitized 16,678 ms, no skips. Actual
+Bodak semantic selection after DOM replacement produces one command/undo; Back
+closes without editing; Placeable and Door cycles wrap; two real non-generic
+Door styles changed through rules without advancing the toolset epoch reject
+the captured action. Independent query/field/selector/source-value/generation/
+epoch/tab/object changes and malformed SDK presses reject without commands.
+The test uses Bodak's actual catalog spelling `Bodak` (not a fabricated row).
+
+Self-check: observed catalogs and provider values supplied the inputs; unavailable
+and stale boundaries reject; cold strings and linear membership costs remain
+explicit. Simplification retained the existing providers/commit path and derived
+cycle target once. Single displayed selector/click exceptions are documented;
+DOM borrows end at capture, engine handles retain their ABI, no feature receives
+AppState, no new epoch/cache/framework or performance claim. Main: 5,900 to
+5,846 lines. Full routing authority/frame composition and final integration,
+desktop control feel, real module reload, high DPI and physical devices remain
+open. Existing baseline VM LSan exclusion remains separate.
+
+## C10b11 workspace controls plan
+
+Tier 1. The existing SDL3/RmlUi main-thread client supplies one displayed tab
+strip, one workbench strip, tab/subtab UTF-8 IDs, current WorkspaceState rows
+and a parsed active dialog snapshot. Actual tab actions use semantic IDs; scroll
+actions capture enabled/direction before release and calculate against fresh
+layout afterward. Dialog selection currently happens before SDK release.
+Tab counts/layouts and dialog row counts depend on loaded documents; event
+distribution is unmeasured. IDs/document ownership are stable until switch/close;
+focus, dirty state, strip layout and active selection can change in callbacks.
+
+Own tab/subtab/source-active IDs and target kind/detail/document identity across
+release, reject missing/stale targets, consume once, and return the existing
+CommandInvocation. Root executes through its current prompt/result path and
+calls one feature-owned tab synchronization function. Dirty state stays live so
+close/save/discard policy remains backend-owned. Scroll uses bounded scalar
+capture, fresh layout and existing clamp policy. Dialog row parsing/selection
+is one immediate feature call before release; no owning DTO is needed because
+no DOM borrow crosses SDK. Matched malformed presses still receive one release.
+
+Cost: cold string/command-argument ownership, existing O(tabs/subtabs) lookup and
+strip traversal, O(1) dialog index lookup; no per-motion allocation or new row
+registry/epoch. Singleton UI actions are documented; backing row transforms
+stay batch paths. Simplification removes four repeated command/result/tab-sync
+branches and keeps prompts/undo/loading with existing owners. Done: actual
+tab/subtab activate/close effects including dirty prompt, stale identity and
+active-tab rejection, both fresh scroll layouts, dialog pre-release selection,
+malformed/unmatched release, normal/sanitized builds and affected tests. Full
+routing/frame composition and unavailable desktop/device checks remain open.
+
+## C10b11 workspace controls result
+
+Four tab/subtab branches now share copied semantic target/source identity,
+consume-once command preparation and feature-owned tab synchronization. Root
+keeps the existing prompt/result flow and content/full refresh/hover coordination.
+Dirty state remains live: marking the captured tab dirty produces the existing
+save/discard/cancel prompt instead of bypassing it. Both scroll buttons capture
+enabled/direction and use fresh layout after release. Dialog row parsing and
+selection are immediate before SDK; the adapter now records its actual
+after-native release phase. Malformed matched controls release without changes.
+Removed two unused root synchronization delegates.
+
+Final normal and combined ASan/UBSan client/test builds pass without diagnostics.
+Affected workspace/browser/content/input/owner/route checks: 34 tests in six
+suites, normal 2,198 ms, sanitized 11,999 ms, no skips. New tests exercise actual
+SDK release with DOM replacement and previous active/selected state, all four
+backend tab/subtab commands, dirty close prompts, changed source/missing subtab/
+active-tab rejection, both strips' changed scroll layouts, repeat consumption,
+actual parsed dialog rows and malformed pressed controls. Initial failures were
+fixture errors: file paths were supplied to open_tab's boolean flag, and the
+workbench track lacked the actual class providing its flex layout. Corrected
+fixtures use open_or_replace_tab and the real track class; no production layout
+or WorkspaceState policy change was required.
+
+Self-check: observed SDK/tab/dialog data and explicit cold-string/linear lookup
+costs supplied the plan. Simplification removed repeated command/result/refresh
+branches and constructs each ancestry class string once, rather than once per
+ancestor. Dialog needs no retained DTO because apply precedes SDK. Singleton
+actions and batched backing rows remain explicit; malformed/stale identities
+reject, dirty policy stays backend-owned, no AppState feature API/new epoch/
+registry/queue/performance claim. Main: 5,846 to 5,762 lines. Full routing/frame
+composition and final normal/sanitized integration remain open. Native desktop
+prompt interaction, device feel and high DPI remain unverified; baseline VM
+LSan exclusion remains separate.
+
+## C10b12 workbench combobox plan
+
+Tier 1. Actual inputs are SDK option/field attributes, the current Sound details
+property rows (semantic propset/field/element/editor/current value), Creature
+spell-filter choices and selected class/metamagic/level/query, current combobox
+selection/visibility, active tab/object and existing generations/epoch. Values
+are Sound position 0..2, spell level -1 or 0..9, and provider-owned class/metamagic
+keys. Row/choice counts depend on the real loaded actor; event rates/distribution
+are unmeasured. Rules/schema stay stable within generation; callback focus,
+query, owner, popup and selected filter can change during SDK release.
+
+Preserve option-before-Sound-field-before-spell-field dispatch priority. Own
+semantic property/filter facts and field ID before SDK; release once, validate
+the fresh owner/presentation state, then use existing open/toggle/commit helpers.
+Sound reuses the existing fresh-provider property comparison, including current
+value, before backend commit. Root retains content refresh, window sync and
+focus after effects. Invalid/missing/out-of-range or stale descriptors reject
+without edits/logs; matched invalid controls still release the SDK press.
+
+Cost: cold tab/query/field strings and bounded scalar facts, current combobox
+choice lookup, O(details rows) fresh Sound snapshot and existing commit/rebuild.
+No per-motion allocation, option registry, new epoch/controller/binding policy
+or AppState feature API. Each displayed combobox/click is a true singleton;
+choice/property providers remain batches. Simplification removes three root
+branches and shares the existing fresh property comparison. Done: real Sound
+open/option/undo and Creature filter open/toggle/select controls across DOM
+replacement, repeat/malformed/stale owner/source/filter rejection, one SDK
+release, affected normal/sanitized builds/tests. Full routing/frame composition
+and unavailable desktop/device/high-DPI integration stay open.
+
+## C10b13 tile palette and area surface plan
+
+Tier 1. Input is one SDK area-surface/back/virtual-row click, the actual palette's
+area/resource generation/current folder, indexed folder/action rows, current
+query and brush (kind/value/orientation). Output is an existing surface request
+or palette navigation/selection plus a presentation effect. Folder rows are
+validated children; action keys are nonnegative int32 indices into the current
+row batch. Malformed/stale keys reject; unavailable navigation retains the
+existing feedback. Schema/resources are stable within generation; folder/query
+and SDK owner can change on release. ASSUMPTION: motion remains the common
+input event; cold palette-click frequency is unmeasured and affects no tuning.
+
+On the existing main-thread SDL/Rml desktop, capture bounded scalar facts and
+own the query before SDK release; consume once, compare fresh palette facts,
+then reuse existing enter/leave/filter operations or select the existing brush.
+Root retains renderer cancellation/preview clearing and content/window sync;
+area surface remains a cross-editor coordination request. Cost is O(query
+bytes) cold storage, existing folder filtering and match lookup, no new queue,
+epoch, painter or copied row batch. DOM pointers are SDK call borrows only.
+Displayed palette/surface are true singletons; providers remain indexed batches.
+
+Simplification removes root folder/selection policy and duplicated attribute
+parsing. No approximation or extra cache is justified. Done: actual loaded-area
+palette navigation/action selection across DOM replacement, consumed/stale/query/
+generation/malformed rejection, existing tile/input/window tests, warning-free
+normal and sanitizer builds. Full routing/frame composition and unavailable
+physical desktop/controller/high-DPI checks remain open.
+
+## C10b12 workbench combobox result
+
+Owning Sound property/filter descriptors replace three native root branches.
+Sound fresh-provider comparison is shared with existing Details command clicks;
+root retains refresh/window/focus work. Actual Sound open/option/undo, direct
+propset mutation without a toolset epoch change, real wizard spell-filter
+open/select/toggle, stale owner/filter/generation and malformed SDK press cases
+are covered by three added production-control tests. Initial fixtures omitted
+spell-row rebuilding and popup layout classes; corrected fixtures use the
+actual activation/provider and popup layout. No product behavior fix was hidden.
+
+Warning-free normal and combined ASan/UBSan client/test builds passed. All 41
+checks in five affected suites passed: normal 15,579 ms, sanitizers 89,092 ms;
+no skips. Leak detection remains excluded for the documented baseline VM leak.
+The three new normal cases also passed separately in 2,742 ms. Root main was
+5,762 to 5,718 lines before C10b13. No speed or desktop/device/high-DPI claim.
+Self-check: actual data/platform/cost supplied the plan; singleton UI exception,
+indexed provider batches and SDK borrow lifetimes are documented; invalid/stale
+inputs consume once without commands/logs, existing commit/undo is authoritative,
+no new epoch/controller/general binding was introduced. Full routing/frame
+composition and final integration remain required.
+
+## C10b13 tile palette and area surface result
+
+Area surface attributes now produce typed requests in workspace_view. Palette
+back/folder/action clicks own their area, generation, folder/query and indexed
+row/brush facts; area_tile_editor consumes and validates them after SDK release,
+then uses the existing folder/filter/selection operations. Root coordinates
+renderer cancellation/preview cleanup and content/window synchronization.
+The real ttr01 palette test navigates an actual folder and selects an actual
+materialized action after DOM replacement; repeats, stale generation/folder/
+query/brush/index and malformed keys reject, and root-folder Back keeps the
+existing unavailable feedback. All three surface tags and unknown attributes
+are characterized. No row batch, texture, epoch or binding was duplicated.
+
+Final normal and ASan/UBSan client/test builds passed without warnings. All 63
+checks in six affected tile/browser/workspace/input suites passed: normal
+2,302 ms, sanitizer 12,495 ms; no skips. The added palette case separately
+passed normally in 491 ms. Baseline LSan exclusion and unsupported physical
+Vulkan/desktop/controller/high-DPI/manual control feel remain explicit.
+Self-check: plan data/platform/cost and true-singleton exceptions hold; source
+facts use existing generations and indices, DOM borrows end before release,
+malformed/stale inputs reject, unavailable navigation reports existing feedback,
+and simplification removes root policy without a new operation/controller.
+Main: 5,718 to 5,631 lines. C10b12/b13 are committed together as a buildable
+native workbench/palette checkpoint. Remaining routing/frame composition and
+final integration are required before marking the parent issue complete.
+
+## C10b14 focused workbench field keys plan
+
+Tier 1. Actual inputs are one SDL keyboard edge, fresh SDK focus ancestors,
+variable/integer/Sound-position attributes, integer text/min/max and current
+workbench/combobox/command owner. Outputs are existing text adjustment, blur/
+window sync, Sound option movement/open/commit, one existing command/undo and
+an explicit content-refresh effect. Integer bounds/text are strict int32;
+out-of-range/malformed text makes no adjustment or commit, while the matched
+arrow is consumed. Up/Down repeat remains allowed; Enter/Escape retain their
+existing nonrepeat gates and Ctrl/Alt/GUI exclusions. Focus/text/owner changes
+on callbacks; schema and Sound option keys 0..2 are stable.
+
+Keep the same location after shared SmallS-selector Escape and before color/
+appearance/other gesture Escape. Move this contiguous field policy into
+object_workbench_view, borrowing keyboard/context/document only synchronously;
+copy command arguments before execution and reacquire focus for blur. Root
+only reacts to handled/content-changed effects. Existing providers/commands,
+window sync, variable listener and Sound commit remain authoritative. Cost:
+existing SDK ancestor traversal, cold integer strings and existing command/
+snapshot/window work; no new event queue/epoch or per-motion work. One displayed
+focus/keyboard event is singular; row/undo transforms remain batches.
+
+Simplification removes root field policy and redundant wrappers as their real
+call sites disappear. Done: real bounded integer arrows/Enter/undo/modifier/
+repeat handling, Sound open/move/Enter/undo, existing variable Enter/blur tests,
+normal and sanitizer affected builds/tests. Full mode routing/frame composition
+and unavailable desktop/device/high-DPI integration remain required.
+
+## C10b15 catalog keys and selector Escape plan
+
+Tier 1. Input is one SDL key edge, current SDK search focus, indexed Appearance/
+Sound matches and virtual selection, selector/color state, active object/surface,
+and current module/resource facts. Output is existing list movement/scroll/sync,
+catalog commit/undo or selector close/rebuild and a content-refresh effect.
+Arrow repeat, nonrepeat Enter, Ctrl/Alt/GUI exclusions and color-before-Appearance-
+before-Sound Escape priority are preserved. Source lists have dynamic provider
+counts; real queries/choices are observed in the loaded module fixtures, their
+population/event frequency is unmeasured. Definitions stay stable within
+generation; focus/filter/selection changes during synchronous callbacks.
+
+Reuse client_input's visible focus classifier and existing appearance_view
+commit/list/close helpers. Root excludes a visible command palette before the
+catalog-key call and reacts to handled/content-changed effects; its existing
+Escape location and interleaved gesture policies remain fixed. SDK borrows last
+only for the call, semantic IDs are read from current indexed matches. Cost is
+existing focus traversal, bounded virtual rows, provider lookup/rebuild and
+commands; no new binding map, queue, cache or root-state API. One displayed
+selector/focus is a true singleton; provider/undo rows stay batches.
+
+Simplification removes root catalog key policy and wrappers with no remaining
+callers. Done: real Appearance and Sound search arrows/Enter/modifier/repeat,
+command/undo counts and Escape priority, affected normal/sanitizer builds/tests.
+Full mode routing/frame composition and unsupported physical desktop/controller/
+high-DPI/manual checks remain open.
+
+## C10b14 focused field key result
+
+The workbench view owns variable/integer Escape, bounded integer text arrows/
+Enter, and Sound-position open/move/Enter policy. Root only handles the explicit
+content-refresh effect at the original dispatch location. Three obsolete root
+delegates were removed. Two real-control tests verify integer bounds/malformed
+text/modifier/repeat handling and Sound option movement, one command/undo and
+actual provider restoration. Existing variable Enter/blur coverage still passes.
+
+Final normal and combined ASan/UBSan client/test builds passed warning-free.
+All 37 affected checks in four suites passed: normal 11,394 ms; sanitizer
+65,294 ms; no skips. The two new normal cases separately passed in 1,040 ms.
+LSan remains excluded for the documented baseline leak. Main: 5,631 to 5,494
+lines before the following catalog move. Self-check: observed data/platform/cost,
+strict numeric boundaries, true-singleton focus/event and indexed provider/undo
+contracts hold; SDK borrows end before return, fresh focus is queried on blur,
+existing commands and listener semantics remain authoritative. No new state,
+queue/epoch/binding or performance claim. Remaining routing/frame composition,
+final integration and unsupported desktop/device/high-DPI/manual checks stay open.
+
+## C10b16 workspace tab drag plan
+
+Tier 1. Actual input is one current SDK tab/close hit and pointer point, owned
+armed tab ID/start point/drag flag/scroll, current Workspace tab array, and the
+rendered strip's bounds/index rows. Output is armed/dragging state, existing
+clamped scroll and optionally one owning workspace.move_tab invocation. The
+existing 5 px threshold and 28 px/14 px edge scrolling remain fixed; locked
+prefix and valid target ranges remain existing workspace helper policy. Tab
+counts and motion rates are unmeasured. Tab IDs persist until close; points,
+layout/order and captured drag change between events.
+
+Move arming and motion policy into workspace_view. SDK hit/bounds borrows end
+at return; the ID owns its bytes. Motion below threshold produces no command;
+dragging looks up current source/target indices, unknown source cannot reorder.
+Nonfinite standalone input cancels; normal intake already rejects it centrally.
+Root retains cursor choice, command execution and refresh at the original
+locations. Cost: existing O(tabs) target traversal and scroll layout; owning
+command strings only on an actual reorder, no new queue/controller or row copy.
+One displayed strip/primary captured pointer is genuinely singular.
+
+Simplification removes root gesture policy and two unused edge constants. Done:
+actual strip arming/close exclusion/threshold/reorder/locked prefix/scroll/stale
+source/cancel checks, existing browser/workspace/input tests, normal and sanitizer
+builds. Full routing/frame composition and unavailable physical control-feel/
+controller/high-DPI checks remain required.
+
+## C10b15 catalog key result
+
+Appearance/Sound search arrows/Enter and color/Appearance/Sound Escape now use
+appearance_view's existing list, commit and close helpers. Root retains palette
+exclusion, original Escape location and content refresh. Four obsolete delegates
+and a color forward declaration were removed. The real catalog-key test checks
+provider-selected Appearance IDs and a real Sound resource, repeat/modifier
+behavior, exactly one command/undo, rule restoration and Escape priority.
+The initial fixture set an Appearance query before the first generation reset;
+corrected setup filters after reset and reads actual matches, rather than assuming
+a fixed population. No product behavior change was hidden in that correction.
+
+Final normal and ASan/UBSan client/test builds passed warning-free. All 35 checks
+in four affected Appearance/input suites passed: normal 19,745 ms; sanitizer
+102,282 ms; no skips. The added normal catalog-key case passed in 1,399 ms.
+Baseline VM LSan exclusion remains. Main: 5,494 to 5,392 lines before tab drag.
+Self-check: plan data/platform/cost and singleton focus/selector exception hold;
+provider/undo rows remain indexed batches, SDK/event borrows end at return,
+invalid/unavailable choices make no edit and existing commands stay authoritative.
+No new queue/state epoch, binding, cache or performance claim. Remaining mode
+routing/frame composition, final integration and unsupported physical desktop/
+controller/high-DPI/manual control feel stay open.
+
+## C10b16 workspace tab drag result
+
+Workspace view now owns tab arming, the existing threshold, edge scrolling and
+current-row reorder intent. Root executes the optional owning command and
+refreshes at the original location. The actual strip regression checks close
+exclusion, threshold, locked prefix, one reorder, scrolling, stale source and
+nonfinite cancellation. Normal and ASan/UBSan client/test builds passed without
+warnings; all 35 affected checks in five suites passed, normal 3,323 ms and
+sanitizer 17,532 ms, no skips. The new case passed separately in 606/2,841 ms.
+Baseline LSan exclusion remains. Main decreased from 5,392 to 5,338 lines.
+Self-check: observed input/cost and singleton strip contract hold; DOM borrows
+end at return, tab IDs own their bytes, unknown sources cannot reorder, existing
+workspace operations remain authoritative. No new queue/state/cache or measured
+performance claim. Full routing/frame composition and final integration remain.
+
+## C10b17 browser row key fix plan
+
+Tier 1. Actual browser hover/press/release reads SDK data-key strings and uses
+unchecked strtol casts; 0tail can alias row zero. Output must be a fully parsed
+int32 index or rejection, with each browser's existing nonnegative/array bounds
+checks. The SDK strings change on DOM replacement, row order changes on refresh.
+Reuse the strict parser already exercised by native SDK release tests, exposing
+a call-scoped row query used by hover, press and release. SDK borrows end at
+return; singleton pointer input and indexed feature arrays remain unchanged.
+Cost is one existing copied attribute and linear numeric parsing per query.
+Simplification removes three lenient conversions and duplicate parsing at the
+release boundary. No forwarding/order/operation changes. Done: extend the actual
+malformed-row SDK release test with 0tail/+0/whitespace and query rejection,
+run input/browser checks and normal/sanitizer builds. Plan B is leave extraction
+for the following checkpoint; this defect is committed separately.
+
+## C10b18 browser click plan
+
+Tier 1. Actual sidebar release compares the copied strict row index with the
+armed index, selects the row, then either toggles a project container, saves a
+Creature preview preference, opens a project resource or selects an area.
+Folders refresh before default SDK release; resource/actor/area identities own
+their bytes before early SDK release. Input is the current browser row array,
+SDK attributes, backend project/generations, query and shell mode; output is
+view changes or one owning resource/area/actor intent. These stable identities
+must still match after callbacks; points, filters, rows and mode are volatile.
+Volumes/rates are unmeasured. The desktop/main-thread/callback platform and SDK
+borrow lifetime remain fixed.
+
+Move selection/folder/actor-preference policy to browser_view using existing
+refresh/save functions. Root performs early release, command-flow/preview calls
+and resulting cross-feature refresh/focus. Consume the owning intent once;
+reject changed mode/query/project/generation or semantic row identity after SDK
+callbacks. One displayed sidebar gesture is a singleton; rows remain arrays.
+Cost is existing folder rebuild/preference file write, copied cold identities,
+and bounded source-row validation; no extra queue, epoch or controller.
+Simplification removes nested browser policy from root without moving command
+flow into the browser. Done: actual imported project folder/leaf and area rows,
+SDK release with DOM replacement, one existing command, malformed/stale/consumed
+intent checks; affected normal/sanitizer builds/tests. Preview renderer feel and
+high-DPI/physical controllers remain unverified; full routing/frame work remains.
+
+## C10b17 browser row key fix result
+
+The three browser hover/press/release paths and native SDK release now share
+complete int32 parsing. Malformed hover clears its index; malformed press clears
+the armed index, so release cannot activate a previously armed row. The actual
+SDK malformed-row test covers numeric tails, plus signs, whitespace and overflow,
+with one release and no action. Both client/test builds passed warning-free;
+all 24 affected checks in three suites passed (normal 2,901 ms, sanitizer
+14,405 ms, no skips). LSan baseline exclusion remains. Main was 5,334 lines
+before browser extraction. Self-check: observed defect, explicit rejection,
+call-scoped SDK borrowing and singleton event contract hold; array bounds remain
+feature-owned. No forwarding/operation/precedence change or performance claim.
+
+## C10b19 editor key map plan
+
+Tier 1. Actual final key-down fallback tries Tiles R, area Delete/R, then camera
+W/S/A/D/Q/E/arrows/F/G. Tile and object edits exclude repeats and all modifiers;
+camera allows repeats and Shift (scale 3), area/preview bindings differ and
+preview G is unavailable. Visible text, palette, native dialog and current
+derived PC map exclude editor actions. Missing viewport clears camera focus only
+for recognized camera keys. The old root contains these binding/gate functions.
+Input is copied SDL key/modifier/repeat plus freshly captured routing facts and
+current viewport/focus/tile eligibility. Output is one flat edit/camera intent;
+existing renderer, tile and object functions still execute it. Frequency and
+distribution are unmeasured; key/focus/mode/layout are volatile per event.
+
+Move bindings into editor_input's independent batch transform, use the actual
+production facts/router for UI/map authority, and execute one returned intent at
+the old fallback location. SDL/DOM/kernel borrows end before classification;
+arrays own equal-length rows/results and invalid/mismatched inputs clear results.
+Root processes count=1 because earlier events/callbacks change facts; batching
+the whole frame would be incorrect. Cost is O(keys), fixed row scratch, no
+allocation, copied world state, handler registry or second map authority.
+Simplification removes three root key gates and camera binding switch; actual
+commands/rules/camera mathematics are retained. Done: real Rml focus visibility,
+captured routing facts, repeat/modifier/viewport/area-preview binding and PC/no
+editor fallback checks, affected client/input/camera/tile normal/sanitizer builds.
+Manual camera feel remains unverified. Full pointer/native UI routing and frame
+composition stay open; reduce to mechanical binding extraction if precedence
+cannot be preserved without changing an operation.
+
+## C10b18 browser click result
+
+Browser view owns strict pressed-row selection, folder toggling/refresh and
+preview preference saves. Root retains release, command-flow/preview execution
+and cross-feature refresh/focus. Owning intents consume once and reject changed
+project/generations/query/mode or semantic row identity. The actual imported
+project regression verifies folder-before-release and leaf DOM replacement,
+one existing resource command, malformed/stale/consumed intents, a saved real
+Creature preview preference and actual area selection. DockerDemo contains no
+Creature blueprint resource; fixture setup now copies the existing Agent JSON
+blueprint into the test project before opening it, rather than assuming one.
+
+Normal and combined ASan/UBSan client/test builds passed warning-free. All 25
+affected checks in three suites passed: normal 4,798 ms, sanitizer 28,086 ms;
+no skips. The corrected added normal case passed separately in 2,062 ms.
+Baseline LSan exclusion remains. Main: 5,334 to 5,284 lines. Self-check: observed
+input/cost, explicit malformed/stale rejection and singleton sidebar/array row
+contracts hold; no DOM/provider borrow survives release, existing save/command
+operations remain authoritative. No queue/cache/epoch or performance claim.
+Full mode routing/frame composition, final integration and unsupported physical
+desktop/controller/high-DPI/manual preview feel remain open.
+
+## C10b19 editor key map result
+
+Editor input now classifies the existing tile/object/camera bindings through
+fresh production routing facts and returns one flat intent. Root executes it at
+the old fallback location. Three root gate/binding functions were removed;
+unbound keys bypass viewport/focus capture. Pointer capture alone does not own
+keyboard input; earlier exclusive gesture handling remains fixed. Area/preview
+camera bindings, repeat/Shift scale, edit priority, missing-viewport focus,
+malformed/mismatched rows, visible/hidden actual Rml focus and all PC roles are
+covered. No camera/edit/rule operations were replaced.
+
+Normal and ASan/UBSan client/test builds passed warning-free. All 78 checks in
+eight affected input/PC/preview/camera/tile suites passed (normal 7,887 ms,
+sanitizer 41,896 ms; no skips). Added two cases passed in 14/51 ms. XML properties
+measure input/action rows at 24/16 bytes on this configured desktop build.
+Baseline LSan exclusion remains. Main decreased 5,284 to 5,189 lines.
+Self-check: observed keys/data/cost and explicit rejection hold; independent
+batch rows retain no borrows and root uses count=1 for ordered callback facts.
+No extra map authority, state, queue/cache or performance claim. Full pointer/
+native UI routing, frame composition, final integration and unsupported physical
+desktop/controller/high-DPI/manual camera feel remain open.
+
+## C10b20 native UI release fix plan
+
+Tier 1. Actual mouse-up completion sets native_handled after matched Home and
+shell controls; invalid Home rows and shell output/dock commands can reach this
+point with no SDK release. Default forwarding excludes native_handled, and the
+explicit adapter also rejects it, leaving the SDK press active. Input is one
+already completed native UI left release, its dispatch obligation and current
+SDK context. Output is exactly one SDK release after native work; existing early
+release paths must remain once-only. Context/event borrows end at return. Common
+valid early-release controls keep their straight-line path; unfinished native
+UI releases complete at the final matched-control boundary.
+
+First add/run a regression on the production adapter showing a real SDK press
+survives a consumed native release. Then allow explicit after-native left UI
+release despite native consumption and complete that obligation in root. Keep
+default forwarding suppressed and consumed keys/down/other events rejected.
+Cost is bounded dispatch checks and the existing required SDK call; no queue or
+new capture state. One UI context/release is a true singleton. Simplification
+separates native consumption from its explicit SDK release obligation. Done:
+failing/passing SDK active-state and one-release assertions, early-release no
+duplicate and consumed keyboard checks, affected input/browser normal/sanitizer
+builds/tests. Further Home/shell extraction follows this separate fix.
+
+## C10b21 Home row plan
+
+Tier 1. Actual Home controls select an indexed area, remove indexed recent
+history with preference rollback, or refresh filesystem errors and queue opening
+an indexed recent project. Input is the current SDK ancestor/key, Home area and
+recent arrays, backend/catalog generations and preference path/docks. Output is
+one owning area/project intent or persisted history change. Path/resref identities
+are stable until catalog/history changes; row order/errors/focus/SDK markup are
+volatile. Counts/rates are unmeasured. Desktop synchronous SDK callbacks require
+copying identities before release and validating current source afterward.
+
+Move row preparation/validation to browser_view, preserving area/remove/open
+priority and recent filesystem refresh before release. Root keeps early release,
+command/queue calls and resulting UI refresh/message boxes. Invalid matched rows
+make no action and use the separately fixed after-native SDK completion. Move
+the existing history copy/remove/save/rollback to client_preferences' batch API;
+invalid indices reject all, empty batch skips I/O, save failure restores rows.
+Cost is existing cold filesystem checks, identity copies, O(history) rollback
+storage and existing remove/atomic-save work; no new queue/state/cache/controller.
+One displayed Home pointer click is a singleton; catalogs/history remain arrays.
+Simplification removes root row parsing/source references and preference
+transaction policy. Done: real generated Home controls across SDK DOM replacement,
+semantic stale/consumed/malformed source checks and real preference persistence/
+rollback, affected normal/sanitizer builds/tests. Full pointer routing/frame
+composition and unsupported physical desktop/high-DPI/manual checks stay open.
+
+## C10b20 native UI release fix result
+
+The production SDK regression failed before the fix: zero mouse-ups, no recorded
+phase and a still-active SDK control after native consumption. Explicit
+after-native left UI release now completes that obligation; consumed keys/down
+and default forwarding remain excluded. Root finishes matched native toolset and
+palette clicks after their existing actions; earlier release records reject a
+duplicate. No DOM/source pointer is used after final dispatch.
+
+Normal and ASan/UBSan client/test builds passed warning-free. All 67 checks in
+six affected input/browser/workbench/appearance suites passed (normal 33,351 ms,
+sanitizer 182,236 ms; no skips), including the previously failing real SDK press.
+Baseline LSan exclusion remains. Main increased 5,189 to 5,193 lines before Home
+extraction. Self-check: observed dispatch state/cost, explicit invalid/null/tag
+rejection and singleton event/SDK borrow contract hold; native handling remains
+independent of propagation, exactly one obligation is recorded before callbacks.
+This is a separately reproduced fix; existing native actions and their ordering
+remain unchanged. No queue/capture state/performance claim. Remaining routing,
+frame composition and final integration stay open.
+
+## C10b22 shell input plan
+
+Tier 1. Actual shell native clicks use a dock widget attribute or four output
+toggle IDs; output Ctrl/GUI+A/C reads visible current output focus and byte-range
+selection. Output is one existing owning dock/channel command or selection/
+clipboard intent. Current dock/output rows and flattened text belong to shell;
+SDK attributes/focus are borrowed only for the call and change on refresh.
+Counts/rates are unmeasured. Existing main-thread SDL/Rml lifetime/ordering holds.
+
+Move click capture/consume and output key policy to shell_view. Root executes
+existing backend commands, synchronizes visibility for dock activation and sends
+owning clipboard text through the existing SDL system interface. Preserve native
+actions before the separately fixed SDK release. Empty/unknown toggle metadata
+does no command; unsupported nonempty dock widgets retain backend rejection.
+Consume clicks once; clipboard ranges clamp to the current text boundary.
+Cost: existing DOM ancestry/focus traversal, owning cold attribute/command/text
+copies, no extra state/queue/registry. One displayed shell/current click or key
+is a true singleton; output rows/text retain existing batch storage.
+Simplification removes root widget/channel parsing and output shortcut policy.
+Done: actual generated dock/output controls, SDK press/release, one command,
+malformed/consumed metadata and UTF-8 clipboard/range/focus/modifier/repeat checks;
+affected normal/sanitizer builds/tests. Full pointer routing/frame composition
+and physical desktop/controller/high-DPI/manual checks remain open.
+
+## C10b21 Home row result
+
+Browser view now owns Home ancestor/key capture, owning area/project identities,
+pre-release recent filesystem refresh and once-only current-source validation.
+Root keeps release, command/queue and cross-feature refresh/message boxes.
+Preferences own the existing batch remove/save/rollback transaction; empty
+batches skip I/O, invalid indices reject all and boolean save failure restores
+the full original rows. Existing allocation/exception propagation is retained.
+Real generated Home controls verify SDK DOM replacement, stale/consumed/malformed
+identities and current filesystem errors; real preference files verify history
+order, persistence, failed-save rollback and project files retained. The existing
+imported-project case also verifies current/stale loaded area intents.
+
+Both client/test builds passed warning-free. All 39 affected checks in six
+browser/preferences/input/loading suites passed (normal 5,141 ms, ASan/UBSan
+26,076 ms; no skips). Two added/extended normal cases passed separately in
+2,034 ms, sanitizer 10,869 ms. Baseline LSan exclusion remains. Main: 5,193 to
+5,182 lines. Self-check: actual input/cost, explicit malformed/stale/invalid/save
+boundaries and singleton click/batch history contracts hold; no DOM/source-row
+borrow survives SDK release. Existing operations/rules and early-release order
+remain authoritative; no new queue/state/cache or performance claim. Remaining
+mode routing/frame composition, final integration and unsupported physical
+desktop/controller/high-DPI/manual behavior stay open.
+
+## C10b22 shell input result
+
+Shell view owns dock/channel click capture, once-only owning command construction
+and output selection shortcuts. Root retains command execution, dock visibility
+synchronization and clipboard delivery. Actual shell controls verify one channel
+command, one SDK release, dock activation, rejected empty/unknown metadata and
+consumption. UTF-8 selection checks verify clipboard ownership, visible focus,
+repeat/modifier rejection and clamped stale byte ranges.
+
+Both client/test builds passed warning-free. All 33 affected checks in five shell,
+input/routing/action/workspace suites passed (normal 738 ms, ASan/UBSan 3,549 ms;
+no skips). The added real-control case passed separately in 502/2,657 ms.
+Baseline LSan exclusion remains. Main: 5,182 to 5,147 lines. Self-check: current
+data/cost, explicit metadata/range rejection and singleton event/DOM borrow
+contracts hold; root policy and cold string ownership moved without adding a
+queue, registry or cache. Existing backend commands and action-before-release
+order remain authoritative. No performance claim. Remaining map routing, frame
+composition and final integration remain open.
+
+## C10b23 tab target validation plan
+
+Tier 1, separately scoped defect. Actual generated workspace tabs carry decimal
+data-index values and owning IDs; current strtoull accepts trailing bytes as a
+different valid row. Input is the displayed tab array/DOM child range and one
+pointer point; output is an existing reorder index. Main-thread Rml lifetime,
+locked prefix and current tab count constrain the valid range. Generated keys
+are normally canonical decimal; malformed keys are exceptional, event rates
+unmeasured. ASSUMPTION: externally stale/malformed DOM metadata is possible —
+affects rejection, not an added synchronization mechanism.
+
+Add an actual generated-tab regression and run it against the current production
+target helper before fixing. Strict full-size_t parsing rejects malformed keys;
+retain existing bounds, locked prefix and final insertion policy. Cost: one
+linear bounded child pass and existing attribute copies; no persistent state.
+One displayed drag is a singleton; tab data remains a batch. Simplification uses
+existing from_chars rather than adding a parser abstraction. Done: regression
+fails before and passes after, generated valid/negative/tail/overflow key cases
+and affected normal/sanitizer tests pass. Limit: no new tab reorder semantics;
+plan B is retain the helper and fix only the confirmed parser defect.
+
+## C10b24 viewport markup and classification plan
+
+Tier 1. The actual root emits identical viewport elements for area/preview tabs,
+with escaped resource detail and one kind-specific empty placeholder. The input
+adapter instead checks a different ID. Inputs are the current owning tab and
+current visible Rml hit ancestry; outputs are existing markup and routing facts.
+Area/preview details are stable between tab/resource changes, hit/focus is volatile.
+The desktop main-thread SDK and one displayed viewport constrain the transform;
+there is no measured event distribution. ASSUMPTION: nonempty resource tabs are
+the common case — affects no optimization or validity policy.
+
+Move only the duplicated viewport fragment to workspace_view, preserving bytes
+and rejecting other tab kinds with no output. Root retains surface composition.
+Add real generated markup/hit regression, run against current production input
+capture before correcting the ID. Hidden/detached elements remain excluded by
+the SDK hit test; no cached DOM pointer survives a call. Cost: existing cold
+markup allocation/escaping and SDK ancestry traversal, no retained state. The
+one displayed viewport is a true singleton, not multiple duplicate DOM IDs.
+Simplification removes duplicate markup and aligns the existing classifier with
+the existing DOM. Done: exact fragments for populated/empty area/preview tabs,
+real hit test fails before ID fix and passes after, affected builds/tests pass.
+No camera/DPI/new map semantics; plan B remains this bounded fragment/ID fix.
+
+## C10b23 tab target validation result
+
+The real generated-tab regression failed before the fix: trailing, plus-prefixed
+and space-prefixed keys all aliased row 2. Full from_chars size_t parsing now
+skips malformed/overflow keys before the unchanged range/locked-prefix/insertion
+policy. Valid generated keys still select the same reorder target.
+Both client/test builds passed warning-free; all 20 affected browser/workspace
+checks passed (normal 6,479 ms, ASan/UBSan 32,260 ms; no skips). Baseline LSan
+exclusion remains. Self-check: actual source and cost observed, singleton drag
+and batch tab contract retained, explicit parsing/range rejection, no new state
+or abstraction. This separately reproduced fix precedes further extraction;
+no performance claim. Main remains 5,147 lines at this checkpoint.
+
+## C10b25 captured/blocked world route plan
+
+Tier 1, separately tested routing defects before native integration. Actual root
+viewport drags process motion before hovered panel hits, while current pure
+routes prioritize hovered UI even for an editor/PC pointer capture. Root loading
+gates also block world operations; current pure native routes expose an editor
+recipient under world_input_blocked. Inputs are existing flat routing rows,
+outputs existing recipients/source eligibility; no new data layout or owner.
+One main-thread selected map and current capture are volatile per ordered event;
+contiguous batches resolve independently. No measured event distribution.
+
+Add failing production-route regressions for captures crossing both UI contexts
+and blocked world rows before correcting precedence. Explicit pointer capture
+claims pointer edges, not keys; actual command modals still win. Blocked unclaimed
+world rows return unavailable and no native world recipient. Unknown tags/mixed
+owners retain current invalid rejection. Cost: existing O(N) flat batch traversal,
+bounded scratch, no allocations; linear access and state-dependent predictable
+branches are a hypothesis, not a measured claim. Simplification removes competing
+root/pure ownership decisions; no queue/new route type. Done: before-failure and
+after-pass, existing route/PC/editor/input suites pass in both builds. Limit:
+bindings/lifecycle/role policy remain unchanged; plan B is a smaller precedence
+fix with the existing route protocol.
+
+## C10b26 world pointer authority plan
+
+Tier 1. Actual root down/motion/wheel paths choose PC controls independently from
+the already-derived control map. After a tab switch in the same SDL batch, PC
+down can reach editor orbit; while F9 placement is pending, wheel and captured
+motion can reach editor camera/object actions. Inputs are ordered SDL pointer
+events, current visible DOM, existing ownership facts and displayed viewport.
+Outputs are existing editor operations or shared PC pending look/zoom/clicks;
+F9 actor placement remains lifecycle work. Rates/branch entropy are unmeasured.
+
+Use one current capture/resolve adapter over the existing flat route batch at
+each world boundary after earlier blur/popover callbacks. Root derives ownership
+once for that boundary; a non-area displayed viewport makes F9 world unavailable.
+Only an editor recipient may reach editor operations; only an eligible PC
+recipient may feed pending PC pointer input. Unavailable/blocked/invalid world
+input is consumed without editor fallback. PC placement wheel/look is consumed
+without changing the editor; existing active-PC translation remains authoritative.
+Captured drags retain ownership across hovered panels; unavailable capture ends
+the drag. True singleton current event/viewport; no queued copies or cached facts.
+
+Cost: existing DOM/focus traversal plus one bounded routing row per reached world
+boundary; no new allocations in the routing transform. SDL/Rml borrows are needed
+for current SDK hit/focus and last only the call; canonical engine handles remain
+necessary at the cold current-session identity boundary. Simplification removes
+three independent world-map fallbacks and an unused lifecycle parameter. Done:
+production adapter tests exercise fresh viewport/panel visibility, captures,
+blocked/unknown/unavailable maps and shared player/DM routes; affected builds/tests
+pass. Root event integration and physical desktop feel remain an explicit manual
+gap; no claim of an end-to-end failing root GUI fixture. Limit: no new camera,
+DPI, binding or F9 teardown semantics; plan B is this smaller map-authority guard.
+
+## C10b24 viewport classification result
+
+The production generated-markup regression failed before the ID fix: actual
+area/preview viewport down, motion and wheel hits were classified as toolset UI,
+including player/DM rows that should select PC or report unavailable. The
+classifier now recognizes the actual workspace_viewer_viewport ID. Workspace
+view owns the duplicated escaped viewport fragment; exact populated/empty
+area/preview fragments and no output for other kinds are verified. Root retains
+surface composition. Hidden generated viewports do not claim world hits.
+
+Both client/test builds passed warning-free. All 34 affected input/browser/
+workspace checks passed (normal 5,902 ms, ASan/UBSan 33,041 ms; no skips).
+Baseline LSan exclusion remains. Main: 5,147 to 5,127 lines. Self-check: real
+generated inputs, explicit kind/visibility rejection, singleton viewport and
+call-lifetime DOM borrow hold; duplicate formatting work removed, no new retained
+state or performance claim. Further native route integration remains open.
+
+## C10b25a captured map change plan
+
+Tier 1, captured-origin validation before native integration. Actual root stores
+only a viewport dragging boolean and derives capture owner from the current map;
+that can change a PC gesture into an editor gesture on F9 exit. Existing pure
+facts reject editor capture under the PC map, but accept the inverse. Inputs are
+existing flat map/owner facts after a mode change; output must be invalid/no
+action, not a newly interpreted gesture. No measured volume/frequency.
+
+Add a failing production batch regression for both mismatched world capture
+origins, then make validation symmetric. Native integration replaces the boolean
+with its actual captured owner, retaining the same number of fields and canceling
+mismatches through the existing authority. Cost: existing row validity checks,
+no allocations/new protocol. Batches remain independent; one pointer capture is
+a true singleton. Simplification removes a map-derived guess about capture
+provenance. Done: before-failure, after-pass and affected route/PC/editor checks
+in both builds; no role/binding/lifecycle changes. Plan B: keep the existing flat
+protocol and reject only the observed incompatible owner/map pair.
+
+## C10b25 captured/blocked route result
+
+The production-route regression failed before the fix: hovered UI stole captured
+world motion/release, unavailable PC capture was reported as UI, and blocked
+world rows retained native recipients. Pointer capture now precedes hovered
+targets, command modals retain priority, keys remain UI-owned and blocked
+unclaimed world rows return unavailable with no native action. Existing source
+eligibility and invalid input handling remain authoritative.
+
+Both client/test builds passed warning-free. All 26 affected input/routing/PC/
+editor checks passed (normal 174 ms, ASan/UBSan 760 ms; no skips). Baseline LSan
+exclusion remains. Main remains 5,127 lines. Self-check: actual root/pure contract
+differences reproduced, O(N) allocation-free batch and explicit invalid/blocked/
+unavailable policies retained; competing ownership decisions removed without
+new route types or state. No performance claim. Native integration remains open.
+
+## C10b25a captured map validation result
+
+The production batch regression failed before the fix: an old PC capture under
+the editor map selected an editor action. Map/world-owner validation is now
+symmetric; both mismatched capture origins reject with cleared recipients and
+source eligibility. Both client/test builds passed warning-free; all 27 affected
+input/routing/PC/editor checks passed (normal 224 ms, ASan/UBSan 931 ms; no skips).
+Baseline LSan exclusion remains. Self-check: actual map-change defect reproduced,
+flat batch ownership and explicit invalid behavior retained, no new allocation,
+state or abstraction. Main remains 5,127 lines at this checkpoint. Captured
+provenance/native integration follows; no performance claim.
+
+## C10b27 editor wheel plan
+
+Tier 1. Actual editor wheel policy selects camera zoom, area sound radius, or
+area creature/item/placeable scale/rotation using current resolved recipient,
+viewport kind, object type, visible text focus and modifiers. Root currently
+owns the selection and object command math/formatting. Inputs are flat owning
+facts and finite nonzero wheel amounts; outputs existing wheel intents, then
+existing backend commands or renderer zoom. Rates/common action distribution
+are unmeasured; these facts vary per event, object/profile data per mutation.
+The platform remains the single main-thread SDL/Rml/kernel/Vulkan client.
+
+Move selection to an equal-span editor wheel batch transform; only a resolved
+editor recipient can act. Unknown viewport/recipient and nonfinite/zero amounts
+reject; other object types retain camera zoom. Move radius/transform execution
+and exact float formatting to area_object_editor runtime; root keeps camera/
+tile-preview coordination and gesture cancellation. Preserve sound min clamp,
+nonfinite radius drop and backend numeric rejection/diagnostics for transforms.
+Singleton execution borrows canonical backend/renderer handles synchronously;
+indices cannot replace the current ObjectManager/renderer command APIs.
+Cost: O(N) flat selection, existing pow/format/command storage for actual edits;
+no new cache/state/queue, no performance claim. Simplification removes duplicate
+focus checks and root object-wheel policy/formatting. Done: bindings/focus/map/
+malformed batch checks and real radius/transform command counts with undo;
+affected normal/sanitizer builds/tests pass. Limit: no binding/math/camera changes;
+plan B is this narrow selector/executor, not a full pointer handler framework.
+
+C10b27 observed integration boundary: tests exclude renderer-dependent area
+runtime; linking the initial executor test failed. Keep command transactions in
+the existing renderer-independent area_object_editor source and return the owning
+optional result. Root presents it and synchronizes its fresh current selection
+after command execution. This reduces the interface from renderer/shell/two
+object borrows to backend/context/target and uses existing test linkage; no new
+renderer test framework or source-library changes. Direct renderer integration
+remains in its existing gate/manual coverage.
+
+## C10b26 world pointer authority result
+
+Native viewport down/captured motion/wheel now use the existing derived map and
+one fresh capture/resolve adapter after earlier callbacks. Only editor routes
+reach editor operations; PC routes feed pending click/look/zoom. F9 placement
+consumes look/wheel without changing editor controls, and non-area/unavailable/
+blocked routes cannot fall through. Capture stores its original editor/PC owner
+instead of a boolean interpreted through the new map; startup/stop/failure and
+focus loss reset it, incompatible/missing capture cancels and drops pointer data.
+Default SDK forwarding uses the same singleton adapter over the flat batch.
+
+Both client/test builds passed warning-free. All 86 affected checks in nine
+input/routing/editor/PC/gesture/camera/tile/preview/runtime suites passed (normal
+9,287 ms, ASan/UBSan 51,493 ms; no skips). Two new/extended real SDK adapter cases
+passed separately in 32 ms normal, covering generated viewports, fresh DOM
+replacement, panel capture, blocked/unknown/unavailable maps and shared F9/
+player/DM ownership. Baseline LSan exclusion remains. Main: 5,127 to 5,160 lines
+before editor wheel extraction. Self-check: current event/data/cost, explicit
+map/source rejection, singleton borrow and canonical identity contracts hold;
+three independent map fallbacks and an unused parameter removed without a queue
+or cached facts. Root GUI integration/control feel remains unverified; no claim
+of a failing end-to-end root GUI fixture or performance improvement. Remaining
+native feature policies/frame composition/final integration stay open.
+
+## C10b28 controller focus route plan
+
+Tier 1, separately reproduced route defect before controller-edge extraction.
+Actual PC held eligibility permits controllers while visible text fields own
+keyboard input; root East/Back navigation cancellation follows that policy.
+Current native routes instead classify all non-pointer focused input as UI,
+including gamepad edges. Inputs are current flat gamepad/key rows with real
+focus tags and PC availability; outputs existing recipients/source eligibility.
+Focus changes per event; one desktop main-thread consumer, rates unmeasured.
+
+Add a failing production-route regression, then constrain text focus ownership
+to key/text sources. Actual command modal/palette blocking still owns controller
+input, and UI keyboard focus still blocks keys. Cost: existing O(N) flat batch
+selection, no state/storage/allocation; no performance claim. Simplification
+aligns native edges with the existing held-source policy. Done: before-failure,
+after-pass and relevant route/PC/input suites in both builds. No controller
+binding/connection/lifecycle changes; plan B remains this bounded condition fix.
+
+## C10b27 editor wheel result
+
+Editor input owns flat wheel selection from the already-resolved native
+recipient. The renderer-independent area editor owns existing radius/transform
+math, exact float formatting and backend transactions, returning an owning
+optional result. Root keeps gesture cancellation, camera/tile coordination,
+result presentation and fresh post-command selection synchronization. No renderer
+test stub or new source-library linkage. The real test required area-tab scope
+and an explicit actor spatial component, matching the operation contracts.
+
+Both client/test builds passed warning-free. All 28 affected checks in five
+input/editor/PC/object-edit/workbench suites passed (normal 2,519 ms, ASan/UBSan
+12,781 ms; no skips). Two added cases passed separately in 1,039 ms normal.
+Real backend checks prove one undo per radius/scale/rotation edit, exact replay,
+minimum-radius clamp, nonfinite-radius drop, backend overflow rejection and no
+command for unsupported/nonfinite intents. Wheel input/action rows measure
+20/8 bytes in this build. Main: 5,160 to 5,114 lines. Baseline LSan exclusion
+remains. Self-check: current data/cost and flat batch/singleton transaction
+contracts hold, explicit recipient/viewport/numeric policies, no speculative
+state or abstraction; duplicate focus queries and root wheel math removed.
+No performance claim; renderer synchronization remains in existing/manual
+coverage. Remaining native feature policies/frame composition/final gates open.
+
+## C10b29 shared controller edge plan
+
+Tier 1. Actual native East/Back down edges OR navigation cancellation into PC
+pending flags; fixed ticks consume it once, held-source gates discard claimed
+controller input. The root owns those bindings. Inputs are physical controller
+button/down/eligibility facts; outputs update existing PreviewInputSample flags
+without changing movement, pointer edges or other payload fields. Ordered edges
+vary per event; one displayed consumer, independent pending rows in a batch.
+No observed event rates/controller distribution or physical device available.
+
+Move the two bindings to the existing PC batch translator; SDL runtime normalizes
+one borrowed gamepad event and enables it only for an eligible resolved PC
+recipient. Disabled/other/up edges retain pending state; malformed tags/mismatched
+spans clear only cancellation and reject. Root keeps F9 active-consumer lifetime,
+connection handling, warnings and SDK forwarding. Navigation cancel is a shared
+PC intent, not preview teardown. Cost: O(N) flat validation/update and one bounded
+singleton adapter row, no allocation/state/queue. Existing pending batches and
+device owner remain authoritative. Simplification removes root button bindings
+and reuses routing/source policy, no role branch. Done: batch retained/invalid/
+mixed-field checks plus real SDK focus/route → adapter → PC sample paths for F9,
+player and DM, normal/sanitizer builds/tests. Physical controller feel remains
+unverified. Limit: no rebinding/connection/device-selection or lifecycle change;
+plan B is this two-button map extraction, not a controller framework.
+
+## C10b28 controller focus route result
+
+The production regression failed before the fix: both visible text focus tags
+selected UI for a gamepad edge despite eligible controller sources. Native text
+focus ownership now applies to keyboard/text, retaining PC controller edges and
+existing command-modal blocking. Both client/test builds passed warning-free;
+all 33 affected input/routing/PC/runtime/editor checks passed (normal 174 ms,
+ASan/UBSan 811 ms; no skips). Baseline LSan exclusion remains.
+Self-check: actual native/held contract mismatch reproduced, existing flat batch
+and explicit UI/unavailable/invalid policies hold; one overly broad condition
+removed, no added state/allocation or performance claim. Main remains 5,114 lines
+at this checkpoint. Shared controller edge extraction follows.
+
+## C10b30 command form key plan
+
+Tier 1. Current root policy reads one visible command form, live Rml focus and
+choice metadata, and owning prompt action/choice arrays. Output is the existing
+popup/selection update or one action index. Form generations change on submit
+and replacement; focus and popup state vary per ordered key. One overlay/context
+is a true singleton, while choice rows retain existing virtual-combobox batches.
+ASSUMPTION: ordinary nonrepeat keys dominate — affects no optimization; rates
+and choice counts have not been measured on this desktop main-thread path.
+
+Move only the existing key policy to CommandView, reusing strict metadata parsing
+and open/close/sync/commit operations. Return handled plus an optional action
+index; root keeps action execution and SDK forwarding. Preserve popup-first
+Escape, Tab close then SDK, arrow selection, choice Return/keypad Enter and
+general Return/modifier behavior. Invalid choice indices cannot change a field;
+action execution retains existing bounds/busy gates. Cost: existing DOM ancestry,
+action scan and virtual-row work, no new queue/state/controller. SDK DOM borrows
+last one call; indices cannot replace the SDK focus API. Simplification removes
+duplicate policy and uses current feature state. Done: actual generated-modal
+focus/popup/selection/commit/action/repeat/modifier/malformed metadata checks,
+both builds and affected presentation/input checks. Limit/plan B: this bounded
+extraction without command semantics, DPI or lifecycle changes.
+
+## C10b29 shared controller edge result
+
+PC input now owns normalized East/Back navigation-cancel edges. The SDL adapter
+normalizes buttons and applies the current native recipient/controller eligibility;
+root retains F9 consumer lifetime, connections and existing SDK forwarding.
+All pending fields survive disabled/up/other edges; malformed batches clear only
+cancellation and reject. Actual SDK text focus, fresh routing and final PC samples
+cover the same binding for F9, player and DM, including modal rejection.
+
+Both final client/test builds passed without warnings. All 57 affected input,
+routing, editor, PC, runtime and preview checks passed (normal 9,727 ms,
+ASan/UBSan 51,418 ms; no skips). The two added checks also passed separately
+(13/58 ms). Controller edge rows measure 3 bytes. Main: 5,114 to 5,113 lines.
+Baseline LSan exclusion remains. Self-check: existing flat batch and singleton
+SDL adapter contracts, explicit invalid/disabled behavior, role-free binding,
+no new state/queue/allocation and no performance claim. Root raw bindings removed;
+physical-controller feel, remaining feature input/frame composition and final
+integration gates remain open.

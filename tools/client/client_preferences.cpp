@@ -201,4 +201,18 @@ void remember_recent_project(const std::filesystem::path& preferences_path, cons
     save_ui_preferences(preferences_path, docks, recent_projects);
 }
 
+RecentProjectForgetStatus forget_recent_project_preferences(const std::filesystem::path& path,
+    const DockLayout& docks, std::vector<RecentProjectEntry>& projects,
+    std::span<const size_t> indices)
+{
+    if (indices.empty()) { return RecentProjectForgetStatus::saved; }
+    auto previous = projects;
+    if (!forget_recent_projects(projects, indices)) { return RecentProjectForgetStatus::rejected; }
+    if (!save_ui_preferences(path, docks, projects)) {
+        projects = std::move(previous);
+        return RecentProjectForgetStatus::save_failed;
+    }
+    return RecentProjectForgetStatus::saved;
+}
+
 } // namespace nw::toolset

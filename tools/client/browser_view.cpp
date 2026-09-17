@@ -74,6 +74,14 @@ std::string get_input_value(Rml::ElementDocument* doc, const char* id)
     return {};
 }
 
+Rml::Element* home_control_ancestor(Rml::Element* hit, const Rml::String& class_name)
+{
+    for (; hit; hit = hit->GetParentNode()) {
+        if (hit->IsClassSet(class_name)) { return hit; }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 Rml::Element* recent_item_at_point(Rml::ElementDocument* doc, Rml::Vector2f point)
@@ -199,6 +207,130 @@ void reset_project_tree_render_state(BrowserViewState& state)
     state.rendered_project_row_start = kInvalidVirtualIndex;
     state.rendered_project_row_end = kInvalidVirtualIndex;
     state.rendered_project_row_count = 0;
+}
+
+BrowserRowClick prepare_browser_row_click(Rml::ElementDocument* doc, Rml::Element* row,
+    BrowserViewState& state, const ToolsetBackend& backend, ShellController& shell,
+    bool selecting_preview_actor)
+{
+    BrowserRowClick click;
+    const auto index = client_row_key(row);
+    if (!index || *index < 0 || *index != state.pressed_recent_index) { return click; }
+    set_recent_selected(doc, state, *index);
+    click.index = *index;
+    click.module_generation = backend.module_generation();
+    click.resource_generation = nw::kernel::resman().generation();
+    click.project_dir = backend.current_project_dir();
+    click.query = state.last_recent_query;
+    click.selecting_preview_actor = selecting_preview_actor;
+    if (shell.showing_project_tree) {
+        if (static_cast<size_t>(*index) >= state.project_rows.size()) { return click; }
+        const auto& source = state.project_rows[static_cast<size_t>(*index)].node;
+        if (source.is_container()) {
+            if (state.collapsed_project_nodes.erase(source.id) == 0) {
+                state.collapsed_project_nodes.insert(source.id);
+            }
+            state.selected_recent_index = -1;
+            refresh_browser_view(doc, state, backend, shell, true, selecting_preview_actor);
+            return click;
+        }
+        click.row_id = source.id;
+        click.resource_path = source.relative_path;
+        if (!selecting_preview_actor) {
+            click.kind = BrowserRowClickKind::open_resource;
+        } else if (nw::Resource::from_path(click.resource_path, false).type != nw::ResourceType::utc) {
+            shell.append_output("warn", "Choose a Creature blueprint for play preview");
+        } else {
+            const auto saved = save_project_preview_test_actor(click.project_dir, click.resource_path);
+            shell.append_output(saved.ok ? "info" : "error", saved.message);
+            if (saved.ok) {
+                click.kind = BrowserRowClickKind::preview_actor;
+            } else {
+                shell.set_output_panel_visible(true);
+                click.output_changed = true;
+            }
+        }
+    } else if (shell.showing_areas) {
+        click.area_resref = row->GetAttribute<Rml::String>("data-resref", "");
+        if (!click.area_resref.empty()) { click.kind = BrowserRowClickKind::select_area; }
+    }
+    return click;
+}
+
+BrowserRowClickKind consume_browser_row_click(BrowserRowClick& click,
+    const BrowserViewState& state, const ToolsetBackend& backend,
+    const ShellController& shell, bool selecting_preview_actor)
+{
+    const auto kind = std::exchange(click.kind, BrowserRowClickKind::none);
+    if (kind == BrowserRowClickKind::none || click.index < 0
+        || click.index != state.pressed_recent_index
+        || click.module_generation != backend.module_generation()
+        || click.resource_generation != nw::kernel::resman().generation()
+        || click.project_dir != backend.current_project_dir() || click.query != state.last_recent_query
+        || click.selecting_preview_actor != selecting_preview_actor) { return BrowserRowClickKind::none; }
+    if (kind == BrowserRowClickKind::open_resource || kind == BrowserRowClickKind::preview_actor) {
+        if (!shell.showing_project_tree || static_cast<size_t>(click.index) >= state.project_rows.size()) { return BrowserRowClickKind::none; }
+        const auto& source = state.project_rows[static_cast<size_t>(click.index)].node;
+        if (source.is_container() || source.id != click.row_id || source.relative_path != click.resource_path) { return BrowserRowClickKind::none; }
+        return kind;
+    }
+    if (kind == BrowserRowClickKind::select_area && !shell.showing_project_tree && shell.showing_areas) {
+        const auto areas = backend.list_areas(click.query);
+        if (std::ranges::any_of(areas, [&](const LoadedAreaEntry& area) { return area.resref == click.area_resref; })) { return kind; }
+    }
+    return BrowserRowClickKind::none;
+}
+
+std::optional<HomeWorkspaceClick> capture_home_workspace_click(Rml::Element* hit,
+    BrowserViewState& state, const ToolsetBackend& backend)
+{
+    auto kind = HomeWorkspaceClickKind::select_area;
+    auto* row = home_control_ancestor(hit, "home_area_card");
+    if (!row) {
+        kind = HomeWorkspaceClickKind::remove_project;
+        row = home_control_ancestor(hit, "home_project_remove");
+    }
+    if (!row) {
+        kind = HomeWorkspaceClickKind::open_project;
+        row = home_control_ancestor(hit, "home_project_item");
+    }
+    if (!row) { return std::nullopt; }
+    HomeWorkspaceClick click;
+    const auto index = client_row_key(row);
+    if (!index || *index < 0) { return click; }
+    click.index = *index;
+    click.module_generation = backend.module_generation();
+    click.resource_generation = nw::kernel::resman().generation();
+    if (kind == HomeWorkspaceClickKind::select_area) {
+        if (static_cast<size_t>(*index) >= state.home_areas.size()) { return click; }
+        click.area_generation = state.home_area_generation;
+        click.area_resref = state.home_areas[static_cast<size_t>(*index)].resref;
+    } else {
+        if (static_cast<size_t>(*index) >= state.recent_projects.size()) { return click; }
+        if (kind == HomeWorkspaceClickKind::open_project) { refresh_recent_projects(state.recent_projects); }
+        click.project = state.recent_projects[static_cast<size_t>(*index)];
+    }
+    click.kind = kind;
+    return click;
+}
+
+HomeWorkspaceClickKind consume_home_workspace_click(HomeWorkspaceClick& click,
+    const BrowserViewState& state, const ToolsetBackend& backend)
+{
+    const auto kind = std::exchange(click.kind, HomeWorkspaceClickKind::none);
+    if (kind < HomeWorkspaceClickKind::select_area || kind > HomeWorkspaceClickKind::open_project
+        || click.index < 0 || click.module_generation != backend.module_generation()
+        || click.resource_generation != nw::kernel::resman().generation()) { return HomeWorkspaceClickKind::none; }
+    const auto index = static_cast<size_t>(click.index);
+    if (kind == HomeWorkspaceClickKind::select_area) {
+        if (index >= state.home_areas.size() || click.area_generation != state.home_area_generation
+            || click.area_generation != backend.module_generation() || click.area_resref.empty()
+            || state.home_areas[index].resref != click.area_resref) { return HomeWorkspaceClickKind::none; }
+    } else if (index >= state.recent_projects.size() || click.project.path.empty()
+        || state.recent_projects[index].path != click.project.path) {
+        return HomeWorkspaceClickKind::none;
+    }
+    return kind;
 }
 
 void append_project_tree_rows(BrowserViewState& state,

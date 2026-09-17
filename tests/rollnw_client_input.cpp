@@ -1,9 +1,11 @@
 #include "client_input.hpp"
 #include "client_ui_action.hpp"
 #include "command_view.hpp"
+#include "editor_input.hpp"
 #include "object_workbench_view.hpp"
 #include "runtime_input.hpp"
 #include "workspace.hpp"
+#include "workspace_view.hpp"
 
 #include <RmlUi/Core.h>
 #include <gtest/gtest.h>
@@ -223,6 +225,40 @@ TEST_F(ClientInput, ForwardingPreservesPropagationAndIsIndependentOfNativeHandli
     EXPECT_EQ(recorder.events.size(), 1u);
 }
 
+TEST_F(ClientInput, ConsumedNativeUiReleaseStillCompletesItsSdkPressOnce)
+{
+    auto* target = document->GetElementById("old_target");
+    ASSERT_NE(target, nullptr);
+    target->SetClass("home_area_card", true);
+    target->SetAttribute("data-key", "0tail");
+    press_target();
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+    ASSERT_TRUE(target->IsPseudoClassSet("active"));
+    ASSERT_FALSE(client_row_key(target));
+    recorder.events.clear();
+    const auto point = target_point();
+    SDL_Event event{};
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = point.x;
+    event.button.y = point.y;
+    ClientInputDispatchState dispatch{.native_handled = true};
+    EXPECT_FALSE(client_input_forwarding_pending(dispatch));
+    EXPECT_TRUE(forward_client_input(dispatch, ClientRmlRecipient::toolset,
+        ClientRmlForwardPhase::after_native, context, window, event).performed);
+    EXPECT_TRUE(dispatch.native_handled);
+    EXPECT_EQ(dispatch.forwarding_phase, ClientRmlForwardPhase::after_native);
+    EXPECT_EQ(std::count(recorder.events.begin(), recorder.events.end(), "mouseup"), 1);
+    EXPECT_FALSE(target->IsPseudoClassSet("active"));
+    EXPECT_FALSE(forward_client_input(dispatch, ClientRmlRecipient::toolset,
+        ClientRmlForwardPhase::after_native, context, window, event).performed);
+    EXPECT_EQ(std::count(recorder.events.begin(), recorder.events.end(), "mouseup"), 1);
+    ClientInputDispatchState consumed_down{.native_handled = true};
+    event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    EXPECT_FALSE(forward_client_input(consumed_down, ClientRmlRecipient::toolset,
+        ClientRmlForwardPhase::after_native, context, window, event).performed);
+}
+
 TEST_F(ClientInput, EarlyReleasePrecedesDomReplacementAndCannotForwardAgain)
 {
     const auto point = target_point();
@@ -425,11 +461,12 @@ TEST_F(ClientInput, RejectedCreatureAndInventoryControlsReleaseTheirSdkPress)
 
 TEST_F(ClientInput, MalformedNativeRowKeysReleaseOnceWithoutAnAction)
 {
-    for (const char* key : {"", "17suffix", "2147483648", "-2147483649"}) {
+    for (const char* key : {"", "17suffix", "0tail", "+0", " 0", "0 ", "2147483648", "-2147483649"}) {
         SCOPED_TRACE(key);
         auto* row = document->GetElementById("old_target");
         ASSERT_NE(row, nullptr);
         row->SetAttribute("data-key", key);
+        EXPECT_FALSE(client_row_key(row));
         const auto point = target_point();
         press_target();
         ASSERT_FALSE(::testing::Test::HasFatalFailure());
@@ -491,6 +528,217 @@ TEST_F(ClientInput, RejectedReleaseCancelsTheOldPressWithoutActivatingItLater)
         ClientRmlForwardPhase::after_native, context, window, event)
             .performed);
     EXPECT_EQ(recorder.events, (std::vector<std::string>{"mouseup"}));
+}
+
+TEST_F(ClientInput, GeneratedViewportRoutesPointerInputToTheCurrentWorldMap)
+{
+    for (const auto kind : {WorkspaceTabKind::area, WorkspaceTabKind::preview}) {
+        WorkspaceTab tab;
+        tab.kind = kind;
+        tab.detail = "shared/a<&\".json";
+        std::string markup;
+        append_workspace_viewport_markup(markup, tab);
+        EXPECT_EQ(markup, "<div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport\" data-resource=\"shared/a&lt;&amp;&quot;.json\"></div>");
+        document->GetElementById("workspace_content")->SetInnerRML("<div class='workspace_preview_body' style='position:absolute;left:100px;top:100px;width:500px;height:300px;'>" + markup + "</div>");
+        context->Update();
+        auto* viewport = document->GetElementById("workspace_viewer_viewport");
+        ASSERT_NE(viewport, nullptr);
+        ASSERT_TRUE(viewport->IsVisible(true));
+        ASSERT_GT(viewport->GetOffsetWidth(), 40);
+        ASSERT_GT(viewport->GetOffsetHeight(), 40);
+        const Rml::Vector2f point{viewport->GetAbsoluteLeft() + 20, viewport->GetAbsoluteTop() + 20};
+        for (const auto type : {SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_EVENT_MOUSE_MOTION, SDL_EVENT_MOUSE_WHEEL}) {
+            SDL_Event event{};
+            event.type = type;
+            if (type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+                event.button.button = SDL_BUTTON_LEFT;
+                event.button.x = point.x;
+                event.button.y = point.y;
+            } else if (type == SDL_EVENT_MOUSE_MOTION) {
+                event.motion.x = point.x;
+                event.motion.y = point.y;
+            } else {
+                event.wheel.mouse_x = point.x;
+                event.wheel.mouse_y = point.y;
+                event.wheel.y = 1;
+            }
+            for (const auto role : {ClientControlRole::editor, ClientControlRole::player, ClientControlRole::dm}) {
+                const auto map = client_input_map(role, false);
+                const std::array facts{capture_client_input_facts(event, window, context, nullptr, nullptr, nullptr,
+                    {.map = map, .world_available = true})};
+                EXPECT_EQ(facts[0].target, ClientInputTarget::world);
+                const auto route = resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr,
+                    {.map = map, .world_available = true});
+                EXPECT_EQ(route.native, map == ClientInputMap::editor ? ClientNativeRecipient::editor : ClientNativeRecipient::pc);
+                if (map == ClientInputMap::pc) {
+                    EXPECT_TRUE(route.sources.pointer);
+                    const auto unavailable = resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr,
+                        {.map = map});
+                    EXPECT_EQ(unavailable.native, ClientNativeRecipient::none);
+                    EXPECT_EQ(unavailable.disposition, ClientInputDisposition::unavailable_world);
+                }
+            }
+        }
+        tab.detail.clear();
+        std::string empty;
+        append_workspace_viewport_markup(empty, tab);
+        EXPECT_EQ(empty, std::string{"<div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport empty\" data-resource=\"\"><div class=\"workspace_area_placeholder\">"} + (kind == WorkspaceTabKind::area ? "Open an area from the project tree." : "Open a previewable blueprint from the project tree.") + "</div></div>");
+        viewport->SetProperty("display", "none");
+        context->Update();
+        SDL_Event hidden{};
+        hidden.type = SDL_EVENT_MOUSE_MOTION;
+        hidden.motion.x = point.x;
+        hidden.motion.y = point.y;
+        const auto facts = capture_client_input_facts(hidden, window, context, nullptr, nullptr, nullptr,
+            {.map = ClientInputMap::pc, .world_available = true});
+        EXPECT_NE(facts.target, ClientInputTarget::world);
+    }
+    WorkspaceTab other;
+    std::string markup = "prefix";
+    append_workspace_viewport_markup(markup, other);
+    EXPECT_EQ(markup, "prefix");
+}
+
+TEST_F(ClientInput, EventAdapterUsesFreshUiAndTheCapturedWorldOwner)
+{
+    auto* target = document->GetElementById("old_target");
+    ASSERT_NE(target, nullptr);
+    const auto point = target_point();
+    SDL_Event event{};
+    event.type = SDL_EVENT_MOUSE_MOTION;
+    event.motion.x = point.x;
+    event.motion.y = point.y;
+    for (const auto role : {ClientControlRole::editor, ClientControlRole::player, ClientControlRole::dm}) {
+        const auto map = client_input_map(role, role == ClientControlRole::editor);
+        ClientInputOwnership ownership{.map = map, .world_available = true};
+        const auto resolve = [&] {
+            return resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr, ownership);
+        };
+        EXPECT_EQ(resolve().native, ClientNativeRecipient::ui);
+        ownership.pointer_owner = ClientPointerOwner::pc;
+        EXPECT_EQ(resolve().native, ClientNativeRecipient::pc);
+        EXPECT_TRUE(resolve().sources.pointer);
+        ownership.world_available = false;
+        EXPECT_EQ(resolve().native, ClientNativeRecipient::none);
+        ownership.world_available = true;
+        ownership.world_input_blocked = true;
+        EXPECT_EQ(resolve().native, ClientNativeRecipient::none);
+        EXPECT_FALSE(resolve().sources.pointer);
+        ownership.world_input_blocked = false;
+        ownership.command_modal = true;
+        EXPECT_EQ(resolve().native, ClientNativeRecipient::ui);
+        EXPECT_EQ(resolve().rml, ClientRmlRecipient::command);
+        ownership.command_modal = false;
+        ownership.map = ClientInputMap::editor;
+        EXPECT_EQ(resolve().disposition, ClientInputDisposition::invalid_input);
+        ownership.pointer_owner = ClientPointerOwner::editor;
+        EXPECT_EQ(resolve().native, ClientNativeRecipient::editor);
+        ownership.map = ClientInputMap::invalid;
+        EXPECT_EQ(resolve().disposition, ClientInputDisposition::invalid_input);
+    }
+    // The same event observes a newly generated viewport, then a panel, rather
+    // than retaining a hit/focus snapshot across document changes.
+    WorkspaceTab tab;
+    tab.kind = WorkspaceTabKind::area;
+    tab.detail = "area";
+    std::string markup;
+    append_workspace_viewport_markup(markup, tab);
+    auto* content = document->GetElementById("workspace_content");
+    content->SetInnerRML("<div class='workspace_preview_body' style='position:absolute;left:0px;top:0px;width:600px;height:400px;'>" + markup + "</div>");
+    context->Update();
+    const ClientInputOwnership ownership{.map = ClientInputMap::pc, .world_available = true};
+    EXPECT_EQ(resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr, ownership).native, ClientNativeRecipient::pc);
+    content->SetInnerRML("<button style='position:absolute;left:0px;top:0px;width:600px;height:400px;'>Panel</button>");
+    context->Update();
+    EXPECT_EQ(resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr, ownership).native, ClientNativeRecipient::ui);
+}
+
+TEST_F(ClientInput, ControllerEdgesUseSharedPcBindingsThroughFreshFocusAndRoute)
+{
+    auto* field = document->GetElementById("variable");
+    ASSERT_NE(field, nullptr);
+    ASSERT_TRUE(field->Focus());
+    for (const auto role : {ClientControlRole::editor, ClientControlRole::player, ClientControlRole::dm}) {
+        const auto map = client_input_map(role, role == ClientControlRole::editor);
+        ClientInputOwnership owner{.map = map, .world_available = true};
+        RuntimeInputState input;
+        for (const auto button : {SDL_GAMEPAD_BUTTON_EAST, SDL_GAMEPAD_BUTTON_BACK}) {
+            input.pending = {};
+            ASSERT_TRUE(set_preview_click_target(input.pending, {3, 4, 5}));
+            SDL_Event event{};
+            event.type = SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+            event.gbutton.button = button;
+            auto route = resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr, owner);
+            ASSERT_EQ(route.native, ClientNativeRecipient::pc);
+            EXPECT_TRUE(route.sources.controller);
+            EXPECT_FALSE(route.sources.keyboard);
+            ASSERT_EQ(apply_runtime_pc_controller_button(input, event, route), PreviewStatus::ok);
+            EXPECT_EQ(input.pending.flags, preview_input_click_target | preview_input_cancel);
+            PcDeviceSample physical;
+            ASSERT_EQ(acquire_pc_device_sample(input, 0.001, route.sources, physical), PreviewStatus::ok);
+            PreviewInputSample sample;
+            ASSERT_EQ(translate_pc_input_samples({&physical, 1}, {&sample, 1}), PreviewStatus::ok);
+            EXPECT_EQ(sample.flags, preview_input_click_target | preview_input_cancel);
+            EXPECT_EQ(sample.click_target, (glm::vec3{3, 4, 5}));
+            owner.command_modal = true;
+            route = resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr, owner);
+            ASSERT_EQ(route.native, ClientNativeRecipient::ui);
+            input.pending.flags &= ~preview_input_cancel;
+            ASSERT_EQ(apply_runtime_pc_controller_button(input, event, route), PreviewStatus::ok);
+            EXPECT_EQ(input.pending.flags, preview_input_click_target);
+            owner.command_modal = false;
+            event.type = SDL_EVENT_GAMEPAD_BUTTON_UP;
+            route = resolve_client_event_input_route(event, window, context, nullptr, nullptr, nullptr, owner);
+            ASSERT_EQ(apply_runtime_pc_controller_button(input, event, route), PreviewStatus::ok);
+            EXPECT_EQ(input.pending.flags, preview_input_click_target);
+            event.type = SDL_EVENT_MOUSE_MOTION;
+            EXPECT_EQ(apply_runtime_pc_controller_button(input, event, route), PreviewStatus::invalid_input);
+            EXPECT_EQ(input.pending.flags, preview_input_click_target);
+        }
+    }
+}
+
+TEST(ClientEditorInput, WheelBatchesPreserveFocusModifiersAndRejectNonEditorRecipients)
+{
+    std::array<EditorWheelInput, 15> inputs;
+    inputs.fill({.recipient = ClientNativeRecipient::editor, .viewport = EditorViewportKind::area, .object_type = nw::ObjectType::placeable, .amount = 1});
+    inputs[1].modifiers = SDL_KMOD_CTRL;
+    inputs[2].modifiers = SDL_KMOD_SHIFT;
+    inputs[3].modifiers = SDL_KMOD_ALT;
+    inputs[4].text_focused = true;
+    inputs[5].object_type = nw::ObjectType::sound;
+    inputs[6].object_type = nw::ObjectType::sound;
+    inputs[6].modifiers = SDL_KMOD_CTRL;
+    inputs[7].viewport = EditorViewportKind::preview;
+    inputs[8].viewport = EditorViewportKind::none;
+    inputs[9].amount = 0;
+    inputs[10].amount = std::numeric_limits<float>::infinity();
+    inputs[11].recipient = ClientNativeRecipient::pc;
+    inputs[12].recipient = static_cast<ClientNativeRecipient>(255);
+    inputs[13].viewport = static_cast<EditorViewportKind>(255);
+    inputs[14].object_type = static_cast<nw::ObjectType>(255);
+    const std::array expected{
+        EditorWheelActionKind::object_scale, EditorWheelActionKind::object_rotate,
+        EditorWheelActionKind::camera_zoom, EditorWheelActionKind::camera_zoom,
+        EditorWheelActionKind::camera_zoom, EditorWheelActionKind::sound_radius,
+        EditorWheelActionKind::camera_zoom, EditorWheelActionKind::camera_zoom,
+        EditorWheelActionKind::none, EditorWheelActionKind::none, EditorWheelActionKind::none,
+        EditorWheelActionKind::none, EditorWheelActionKind::none, EditorWheelActionKind::none,
+        EditorWheelActionKind::camera_zoom};
+    std::array<EditorWheelAction, inputs.size()> outputs{};
+    ASSERT_TRUE(resolve_editor_wheel_actions(inputs, outputs));
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(outputs[i].kind, expected[i]);
+        EXPECT_EQ(outputs[i].amount, expected[i] == EditorWheelActionKind::none ? 0 : 1);
+    }
+    EXPECT_FALSE(resolve_editor_wheel_actions(std::span{inputs}.first(1), outputs));
+    for (const auto& output : outputs) {
+        EXPECT_EQ(output.kind, EditorWheelActionKind::none);
+        EXPECT_EQ(output.amount, 0);
+    }
+    RecordProperty("wheel_input_bytes", sizeof(EditorWheelInput));
+    RecordProperty("wheel_action_bytes", sizeof(EditorWheelAction));
 }
 
 TEST_F(ClientInput, VisiblePaletteRoutesThroughProductionCaptureResolveAndSdkOnce)
@@ -604,5 +852,123 @@ TEST_F(ClientInput, HeldEligibilityUsesFreshVisibleFocusAndCaptureForBothPcRoles
         EXPECT_FALSE(route.sources.keyboard);
         EXPECT_FALSE(route.sources.controller);
         EXPECT_FALSE(route.sources.pointer);
+    }
+}
+
+TEST_F(ClientInput, EditorKeysUseFreshVisibleFocusAndRejectEveryPcRole)
+{
+    SDL_Event event{};
+    event.type = SDL_EVENT_KEY_DOWN;
+    event.key.key = SDLK_W;
+    const auto classify = [&](ClientInputMap map) {
+        const std::array inputs{EditorKeyInput{
+            .facts = capture_client_input_facts(event, window, context, nullptr, nullptr, nullptr,
+                {.map = map, .world_available = true}),
+            .key = event.key.key,
+            .modifiers = event.key.mod,
+            .viewport = EditorViewportKind::area,
+            .repeat = event.key.repeat,
+            .viewport_focused = true,
+            .tile_action_allowed = true,
+        }};
+        std::array<EditorKeyAction, 1> actions{};
+        EXPECT_TRUE(resolve_editor_key_actions(inputs, actions));
+        return actions.front();
+    };
+    auto* variable = document->GetElementById("variable");
+    ASSERT_NE(variable, nullptr);
+    ASSERT_TRUE(variable->Focus());
+    EXPECT_EQ(classify(ClientInputMap::editor).kind, EditorKeyActionKind::none);
+    variable->SetProperty("display", "none");
+    context->Update();
+    ASSERT_FALSE(variable->IsVisible(true));
+    auto action = classify(ClientInputMap::editor);
+    EXPECT_EQ(action.kind, EditorKeyActionKind::camera);
+    EXPECT_EQ(action.camera, ClientViewportCameraCommand::move_forward);
+    event.key.repeat = true;
+    event.key.mod = SDL_KMOD_SHIFT;
+    EXPECT_FLOAT_EQ(classify(ClientInputMap::editor).scale, 3);
+    event.key.mod = SDL_KMOD_CTRL;
+    EXPECT_EQ(classify(ClientInputMap::editor).kind, EditorKeyActionKind::none);
+    event.key.repeat = false;
+    event.key.mod = SDL_KMOD_NONE;
+    for (const auto role : {ClientControlRole::editor, ClientControlRole::player, ClientControlRole::dm}) {
+        EXPECT_EQ(classify(client_input_map(role, true)).kind, EditorKeyActionKind::none);
+    }
+    EXPECT_EQ(classify(ClientInputMap::invalid).kind, EditorKeyActionKind::none);
+    event.key.key = SDLK_R;
+    EXPECT_EQ(classify(ClientInputMap::editor).kind, EditorKeyActionKind::rotate_tiles);
+    EXPECT_EQ(classify(ClientInputMap::pc).kind, EditorKeyActionKind::none);
+}
+
+TEST(ClientEditorInput, BatchKeysPreserveCameraBindingsEditPriorityAndRejectInvalidRows)
+{
+    RecordProperty("editor_key_input_bytes", sizeof(EditorKeyInput));
+    RecordProperty("editor_key_action_bytes", sizeof(EditorKeyAction));
+    EditorKeyInput source{
+        .facts = {.category = ClientInputCategory::key, .edge = ClientInputEdge::down, .map = ClientInputMap::editor},
+        .key = SDLK_W,
+        .viewport = EditorViewportKind::area,
+        .viewport_focused = true,
+    };
+    std::array<EditorKeyInput, 12> inputs;
+    inputs.fill(source);
+    inputs[1].viewport = EditorViewportKind::preview;
+    inputs[2].key = SDLK_G;
+    inputs[2].viewport = EditorViewportKind::preview;
+    inputs[3].key = SDLK_G;
+    inputs[4].key = SDLK_R;
+    inputs[4].viewport = EditorViewportKind::none;
+    inputs[4].tile_action_allowed = true;
+    inputs[5].key = SDLK_DELETE;
+    inputs[6].key = SDLK_R;
+    inputs[7].key = SDLK_R;
+    inputs[7].repeat = true;
+    inputs[8].viewport = EditorViewportKind::none;
+    inputs[9].key = SDLK_UNKNOWN;
+    inputs[9].viewport = EditorViewportKind::none;
+    inputs[10].viewport = static_cast<EditorViewportKind>(255);
+    inputs[11].facts.world_input_blocked = true;
+    std::array<EditorKeyAction, 12> actions{};
+    ASSERT_TRUE(resolve_editor_key_actions(inputs, actions));
+    EXPECT_EQ(actions[0].camera, ClientViewportCameraCommand::move_forward);
+    EXPECT_EQ(actions[0].kind, EditorKeyActionKind::camera);
+    EXPECT_EQ(actions[1].camera, ClientViewportCameraCommand::pitch_up);
+    EXPECT_EQ(actions[1].kind, EditorKeyActionKind::camera);
+    EXPECT_EQ(actions[2].kind, EditorKeyActionKind::none);
+    EXPECT_EQ(actions[3].camera, ClientViewportCameraCommand::gameplay);
+    EXPECT_EQ(actions[4].kind, EditorKeyActionKind::rotate_tiles);
+    EXPECT_EQ(actions[5].kind, EditorKeyActionKind::remove_object);
+    EXPECT_EQ(actions[6].kind, EditorKeyActionKind::randomize_object_orientation);
+    EXPECT_EQ(actions[7].kind, EditorKeyActionKind::none);
+    EXPECT_TRUE(actions[8].clear_viewport_focus);
+    EXPECT_EQ(actions[8].kind, EditorKeyActionKind::none);
+    EXPECT_FALSE(actions[9].clear_viewport_focus);
+    EXPECT_EQ(actions[9].kind, EditorKeyActionKind::none);
+    EXPECT_EQ(actions[10].kind, EditorKeyActionKind::none);
+    EXPECT_EQ(actions[11].kind, EditorKeyActionKind::none);
+    source.facts.pointer_owner = ClientPointerOwner::toolset;
+    ASSERT_TRUE(resolve_editor_key_actions({&source, 1}, {actions.data(), 1}));
+    EXPECT_EQ(actions[0].kind, EditorKeyActionKind::camera);
+    EXPECT_TRUE(editor_key_has_binding(SDLK_G));
+    EXPECT_TRUE(editor_key_has_binding(SDLK_DELETE));
+    EXPECT_FALSE(editor_key_has_binding(SDLK_UNKNOWN));
+    source.key = SDLK_W;
+    source.viewport_focused = false;
+    source.tiles_active = true;
+    ASSERT_TRUE(resolve_editor_key_actions({&source, 1}, {actions.data(), 1}));
+    EXPECT_EQ(actions[0].kind, EditorKeyActionKind::camera);
+    source.viewport = EditorViewportKind::preview;
+    ASSERT_TRUE(resolve_editor_key_actions({&source, 1}, {actions.data(), 1}));
+    EXPECT_EQ(actions[0].kind, EditorKeyActionKind::none);
+    source.facts.category = ClientInputCategory::held;
+    ASSERT_TRUE(resolve_editor_key_actions({&source, 1}, {actions.data(), 1}));
+    EXPECT_EQ(actions[0].kind, EditorKeyActionKind::none);
+    actions.fill({.kind = EditorKeyActionKind::camera, .scale = 3, .clear_viewport_focus = true});
+    EXPECT_FALSE(resolve_editor_key_actions({}, actions));
+    for (const auto& action : actions) {
+        EXPECT_EQ(action.kind, EditorKeyActionKind::none);
+        EXPECT_FLOAT_EQ(action.scale, 1);
+        EXPECT_FALSE(action.clear_viewport_focus);
     }
 }

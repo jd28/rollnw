@@ -11,9 +11,11 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace nw::toolset {
 namespace {
@@ -123,6 +125,89 @@ private:
 };
 
 } // namespace
+
+std::optional<AreaTilePaletteClick> capture_area_tile_palette_click(Rml::Element* hit,
+    const AreaTileEditorState& editor)
+{
+    Rml::Element* control = nullptr;
+    bool back = false;
+    for (auto* element = hit; element; element = element->GetParentNode()) {
+        if (element->GetId() == "area_tile_editor_back") {
+            control = element;
+            back = true;
+            break;
+        }
+    }
+    if (!control) {
+        for (auto* element = hit; element; element = element->GetParentNode()) {
+            if (element->IsClassSet("area_tile_palette_row")) {
+                control = element;
+                break;
+            }
+        }
+    }
+    if (!control) { return std::nullopt; }
+    AreaTilePaletteClick click;
+    const auto& palette = editor.palette;
+    if (palette.status != AreaTilePaletteStatus::ready) { return click; }
+    click.area = palette.area;
+    click.resource_generation = palette.resource_generation;
+    click.folder = palette.current_folder;
+    click.query = editor.query;
+    if (back) {
+        click.kind = AreaTilePaletteClickKind::back;
+        return click;
+    }
+    const auto key = control->GetAttribute<Rml::String>("data-key", "");
+    int32_t row = -1;
+    const auto parsed = std::from_chars(key.data(), key.data() + key.size(), row);
+    if (parsed.ec != std::errc{} || parsed.ptr != key.data() + key.size() || row < 0
+        || static_cast<size_t>(row) >= palette.rows.size()) { return click; }
+    const auto& source = palette.rows[static_cast<size_t>(row)];
+    if (source.kind > AreaTilePaletteRowKind::action) { return click; }
+    click.row = static_cast<uint32_t>(row);
+    click.parent = source.parent;
+    click.brush = source.brush;
+    click.kind = source.kind == AreaTilePaletteRowKind::folder ? AreaTilePaletteClickKind::folder : AreaTilePaletteClickKind::action;
+    return click;
+}
+
+AreaTilePaletteClickEffect apply_area_tile_palette_click(AreaTilePaletteClick& click,
+    AreaTileEditorState& editor, ObjectHandle active_area)
+{
+    const auto kind = std::exchange(click.kind, AreaTilePaletteClickKind::none);
+    auto& palette = editor.palette;
+    if (kind == AreaTilePaletteClickKind::none || kind > AreaTilePaletteClickKind::action
+        || palette.status != AreaTilePaletteStatus::ready || palette.area != click.area || active_area != click.area
+        || !kernel::objects().valid(click.area) || palette.resource_generation != click.resource_generation
+        || kernel::resman().generation() != click.resource_generation || palette.current_folder != click.folder
+        || editor.query != click.query) { return AreaTilePaletteClickEffect::none; }
+    if (kind == AreaTilePaletteClickKind::back) {
+        if (leave_area_tile_palette_folder(palette)) { return AreaTilePaletteClickEffect::folder_changed; }
+        editor.feedback = "Tile palette navigation is unavailable";
+        return AreaTilePaletteClickEffect::unavailable;
+    }
+    if (click.row >= palette.rows.size() || click.row > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) { return AreaTilePaletteClickEffect::none; }
+    const auto& row = palette.rows[click.row];
+    const auto expected = kind == AreaTilePaletteClickKind::folder ? AreaTilePaletteRowKind::folder : AreaTilePaletteRowKind::action;
+    if (row.kind != expected || row.parent != click.parent || row.brush.kind != click.brush.kind
+        || row.brush.value != click.brush.value || row.brush.orientation != click.brush.orientation) { return AreaTilePaletteClickEffect::none; }
+    if (kind == AreaTilePaletteClickKind::folder) {
+        if (enter_area_tile_palette_folder(palette, click.row)) { return AreaTilePaletteClickEffect::folder_changed; }
+        editor.feedback = "Tile palette folder is unavailable";
+        return AreaTilePaletteClickEffect::unavailable;
+    }
+    editor.selected_row = static_cast<int32_t>(click.row);
+    editor.group_orientation = 0;
+    editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_update_pending = false;
+    editor.preview_rows.clear();
+    editor.feedback.clear();
+    const auto selected = std::ranges::find(palette.matches, click.row);
+    if (selected != palette.matches.end()) { editor.list.set_selected(static_cast<int>(selected - palette.matches.begin())); }
+    editor.rendered = false;
+    return AreaTilePaletteClickEffect::selected;
+}
 
 void reset_area_tile_palette_folder_view(AreaTileEditorState& editor)
 {

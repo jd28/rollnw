@@ -5,6 +5,7 @@
 #include <RmlUi/Core/ElementDocument.h>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <string_view>
@@ -398,6 +399,23 @@ bool select_dialog_view_row(DialogViewState& state, int row)
     state.list.set_selected(row);
     state.rendered = false;
     return true;
+}
+
+std::optional<bool> select_dialog_view_clicked_row(Rml::Element* hit,
+    DialogViewState& state, const WorkspaceState& workspace)
+{
+    auto* row = hit;
+    while (row && !row->IsClassSet("dialog_row")) {
+        row = row->GetParentNode();
+    }
+    if (!row) { return std::nullopt; }
+    const auto text = row->GetAttribute<Rml::String>("data-key", "");
+    int32_t index = -1;
+    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), index);
+    const auto* tab = workspace.active_tab();
+    return parsed.ec == std::errc{} && parsed.ptr == text.data() + text.size()
+        && tab && tab->kind == WorkspaceTabKind::dialog && state.tab_id == tab->id
+        && state.document.status == DialogDocumentStatus::ready && select_dialog_view_row(state, index);
 }
 
 void ensure_active_dialog_document(DialogViewState& state, const std::filesystem::path& project_dir, const WorkspaceTab* active_tab)

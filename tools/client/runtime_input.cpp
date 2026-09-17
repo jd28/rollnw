@@ -1,4 +1,5 @@
 #include "runtime_input.hpp"
+#include "client_input_routes.hpp"
 
 #include <SDL3/SDL.h>
 #include <nw/log.hpp>
@@ -59,6 +60,23 @@ void consume_runtime_input_edges(RuntimeInputState& input) noexcept
     input.mouse_look_pixels = {};
     input.mouse_sample_seconds = 0.0;
     input.wheel_zoom = 0.0f;
+}
+
+PreviewStatus apply_runtime_pc_controller_button(RuntimeInputState& input,
+    const SDL_Event& event, const ClientInputRoute& route) noexcept
+{
+    if (event.type != SDL_EVENT_GAMEPAD_BUTTON_DOWN && event.type != SDL_EVENT_GAMEPAD_BUTTON_UP) { return PreviewStatus::invalid_input; }
+    PcControllerButton button = PcControllerButton::other;
+    if (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST) {
+        button = PcControllerButton::east;
+    } else if (event.gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
+        button = PcControllerButton::back;
+    }
+    const std::array edges{PcControllerButtonEdge{
+        .button = button,
+        .down = event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN,
+        .enabled = route.native == ClientNativeRecipient::pc && route.sources.controller}};
+    return apply_pc_controller_button_edges(edges, {&input.pending, 1});
 }
 
 PreviewStatus acquire_pc_device_sample(RuntimeInputState& input, double frame_seconds,

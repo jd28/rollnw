@@ -1,4 +1,5 @@
 #include "appearance_view.hpp"
+#include "client_input.hpp"
 #include "command_view.hpp"
 #include "creature_body_part_editor.hpp"
 #include "object_edits.hpp"
@@ -7,6 +8,7 @@
 #include "toolset_backend.hpp"
 #include "workspace.hpp"
 #include <RmlUi/Core.h>
+#include <SDL3/SDL.h>
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -518,6 +520,120 @@ bool open_color_editor(AppearanceViewState& state, nw::ObjectHandle object, uint
     return true;
 }
 
+std::optional<ColorEditorClick> capture_color_editor_click(Rml::Element* hit, Rml::Vector2f point,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation)
+{
+    auto* control = find_ancestor_with_id(hit, "creature_color_selector_close");
+    auto kind = ColorEditorClickKind::close;
+    if (!control) {
+        control = find_ancestor_with_class(hit, "creature_color_channel");
+        kind = ColorEditorClickKind::channel;
+    }
+    if (!control) {
+        control = find_ancestor_with_id(hit, "creature_color_palette");
+        kind = ColorEditorClickKind::select;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "creature_color_field");
+        kind = ColorEditorClickKind::field;
+    }
+    if (!control) {
+        control = find_ancestor_with_id(hit, "creature_color_selector");
+        kind = ColorEditorClickKind::selector;
+    }
+    if (!control) { return std::nullopt; }
+    ColorEditorClick click;
+    if (!target.matches_active_tab || target.object.type != ObjectType::creature
+        || target.surface != ObjectWorkbenchSurface::appearance || !workspace.active_tab()
+        || !kernel::objects().valid(target.object)) { return click; }
+    if (kind == ColorEditorClickKind::channel || kind == ColorEditorClickKind::field) {
+        const auto text = control->GetAttribute<Rml::String>("data-color", "");
+        int32_t channel = -1;
+        const auto parsed = std::from_chars(text.data(), text.data() + text.size(), channel);
+        if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || channel < 0) { return click; }
+        click.channel = static_cast<uint32_t>(channel);
+    }
+    if (kind == ColorEditorClickKind::field || kind == ColorEditorClickKind::select) {
+        if (!active_appearances_match_tab(state, target)) { return click; }
+        if (kind == ColorEditorClickKind::select) {
+            if (!active_color_editor_matches_tab(state, target)) { return click; }
+            click.channel = static_cast<uint32_t>(state.color_editor_channel);
+            const float width = control->GetClientWidth();
+            const float height = control->GetClientHeight();
+            const float left = control->GetAbsoluteLeft() + control->GetClientLeft();
+            const float top = control->GetAbsoluteTop() + control->GetClientTop();
+            const float x = point.x - left;
+            const float y = point.y - top;
+            if (!std::isfinite(width) || !std::isfinite(height) || !std::isfinite(x) || !std::isfinite(y)
+                || width <= 0 || height <= 0 || x < 0 || x >= width || y < 0 || y >= height) { return click; }
+            const float scaled_x = x * kPltPaletteColumns / width;
+            const float scaled_y = y * kPltPaletteRows / height;
+            if (!std::isfinite(scaled_x) || !std::isfinite(scaled_y)) { return click; }
+            const int column = static_cast<int>(std::min(float(kPltPaletteColumns - 1), scaled_x));
+            const int row = static_cast<int>(std::min(float(kPltPaletteRows - 1), scaled_y));
+            click.selected = row * kPltPaletteColumns + column;
+        }
+        const auto rows = creature_color_editor_rows(kernel::runtime(), target.object);
+        const auto row = std::ranges::find(rows, click.channel, &CreatureColorEditorRow::color);
+        if (row == rows.end() || row->value < 0 || row->value >= kPltPaletteColumns * kPltPaletteRows
+            || creature_color_palette_asset(row->palette).empty()) { return click; }
+        click.source_value = row->value;
+        click.palette = row->palette;
+    }
+    click.kind = kind;
+    click.release_phase = kind == ColorEditorClickKind::channel
+        ? ClientRmlForwardPhase::after_native
+        : ClientRmlForwardPhase::before_native;
+    click.object = target.object;
+    click.editor_object = state.color_editor_object;
+    click.editor_channel = state.color_editor_channel;
+    click.tab_id = workspace.active_tab_id();
+    click.module_generation = module_generation;
+    click.resource_generation = resource_generation;
+    click.mutation_epoch = object_mutation_state().epoch;
+    return click;
+}
+
+bool apply_color_editor_click(ColorEditorClick& click, AppearanceViewState& state,
+    ObjectWorkbenchTarget target, const WorkspaceState& workspace, ToolsetBackend& backend,
+    ShellController& shell, const CommandContext& context)
+{
+    const auto kind = std::exchange(click.kind, ColorEditorClickKind::none);
+    const auto phase = kind == ColorEditorClickKind::channel
+        ? ClientRmlForwardPhase::after_native
+        : ClientRmlForwardPhase::before_native;
+    if (kind == ColorEditorClickKind::none || kind > ColorEditorClickKind::selector || click.release_phase != phase
+        || !target.matches_active_tab || target.object != click.object || target.object.type != ObjectType::creature
+        || target.surface != ObjectWorkbenchSurface::appearance || !workspace.active_tab()
+        || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id
+        || context.workspace != &workspace || smalls_rmlui_host().active_object() != click.object
+        || backend.module_generation() != click.module_generation || kernel::resman().generation() != click.resource_generation
+        || object_mutation_state().epoch != click.mutation_epoch || !kernel::objects().valid(click.object)
+        || state.color_editor_object != click.editor_object || state.color_editor_channel != click.editor_channel) { return false; }
+    if (kind == ColorEditorClickKind::selector) { return false; }
+    if (kind == ColorEditorClickKind::close) {
+        clear_color_editor(state);
+        return true;
+    }
+    if (kind == ColorEditorClickKind::channel) { return open_color_editor(state, click.object, click.channel); }
+    if (!active_appearances_match_tab(state, target)) { return false; }
+    const auto rows = creature_color_editor_rows(kernel::runtime(), click.object);
+    const auto row = std::ranges::find(rows, click.channel, &CreatureColorEditorRow::color);
+    if (row == rows.end() || row->value != click.source_value || row->palette != click.palette
+        || row->value < 0 || row->value >= kPltPaletteColumns * kPltPaletteRows
+        || creature_color_palette_asset(row->palette).empty()) { return false; }
+    if (kind == ColorEditorClickKind::select) {
+        return active_color_editor_matches_tab(state, target) && click.channel == static_cast<uint32_t>(state.color_editor_channel)
+            && click.selected >= 0 && click.selected < kPltPaletteColumns * kPltPaletteRows
+            && commit_active_color_selection(state, target, backend, shell, context, click.selected);
+    }
+    close_appearance_selector(state);
+    state.color_editor_object = click.object;
+    state.color_editor_channel = static_cast<int32_t>(click.channel);
+    return true;
+}
+
 bool sync_appearance_window(Rml::ElementDocument* doc, AppearanceViewState& state, ObjectWorkbenchTarget target, bool force)
 {
     auto* list = find_el(doc, "appearance_rows");
@@ -788,6 +904,165 @@ SoundResourceClickEffect apply_sound_resource_click(SoundResourceClick& click,
     }
     close_sound_resource_selector(state);
     return SoundResourceClickEffect::closed;
+}
+
+namespace {
+
+std::optional<std::array<int32_t, 2>> appearance_click_values(const AppearanceViewState& state, AppearanceEditorField field)
+{
+    if (state.appearance_object.type == ObjectType::door) {
+        const auto selectors = door_appearance(kernel::runtime(), state.appearance_object);
+        if (selectors) { return std::array{selectors->appearance, selectors->generic_type}; }
+        return std::nullopt;
+    }
+    const auto value = appearance_editor_value(state, field);
+    return value ? std::optional{std::array{*value, -1}} : std::nullopt;
+}
+
+bool appearance_id_is_matched(const AppearanceViewState& state, int32_t id)
+{
+    const auto& catalog = active_appearance_catalog(state);
+    return catalog.status == AppearanceCatalogStatus::ready
+        && std::ranges::any_of(state.appearance_matches, [&](uint32_t index) {
+               return index < catalog.rows.size() && catalog.rows[index].id == id;
+           });
+}
+
+AppearanceCatalogClick capture_appearance_control(Rml::Element& control, AppearanceCatalogClickKind kind,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation)
+{
+    AppearanceCatalogClick click;
+    if (!target.matches_active_tab || !workspace.active_tab() || !kernel::objects().valid(target.object)
+        || target.surface != ObjectWorkbenchSurface::appearance || !active_appearances_match_tab(state, target)
+        || state.appearance_catalog_generation != module_generation) { return click; }
+    click.field = state.appearance_editor_field;
+    if (kind == AppearanceCatalogClickKind::open) {
+        const auto field = appearance_editor_field_from_name(control.GetAttribute<Rml::String>("data-field", ""));
+        if (!field || (*field != AppearanceEditorField::appearance && target.object.type != ObjectType::creature)) { return click; }
+        click.field = *field;
+    }
+    click.source_values = appearance_click_values(state, click.field);
+    if (kind == AppearanceCatalogClickKind::previous || kind == AppearanceCatalogClickKind::next) {
+        if ((target.object.type != ObjectType::placeable && target.object.type != ObjectType::door)
+            || click.field != AppearanceEditorField::appearance || !click.source_values) { return click; }
+        const auto& catalog = active_appearance_catalog(state);
+        if (catalog.status != AppearanceCatalogStatus::ready || catalog.rows.empty()) { return click; }
+        const auto& values = *click.source_values;
+        const auto current = target.object.type != ObjectType::door ? std::optional{values[0]}
+            : values[0] == 0                                        ? std::optional{values[1]}
+                                                                    : std::nullopt;
+        const auto found = current ? std::ranges::find(catalog.rows, *current, &AppearanceCatalogRow::id) : catalog.rows.end();
+        size_t next = kind == AppearanceCatalogClickKind::previous ? catalog.rows.size() - 1 : 0;
+        if (found != catalog.rows.end()) {
+            const auto index = static_cast<size_t>(found - catalog.rows.begin());
+            next = kind == AppearanceCatalogClickKind::previous
+                ? (index == 0 ? catalog.rows.size() - 1 : index - 1)
+                : (index + 1 == catalog.rows.size() ? 0 : index + 1);
+        }
+        click.selected = catalog.rows[next].id;
+    }
+    if (kind == AppearanceCatalogClickKind::select) {
+        const auto text = control.GetAttribute<Rml::String>("data-key", "");
+        const auto parsed = std::from_chars(text.data(), text.data() + text.size(), click.selected);
+        if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || click.selected < 0
+            || !state.appearance_selector_open || !appearance_id_is_matched(state, click.selected)) { return click; }
+    }
+    click.kind = kind;
+    click.object = target.object;
+    click.previous_field = state.appearance_editor_field;
+    click.selector_open = state.appearance_selector_open;
+    click.query = state.appearance_query;
+    click.tab_id = workspace.active_tab_id();
+    click.module_generation = module_generation;
+    click.resource_generation = resource_generation;
+    click.mutation_epoch = object_mutation_state().epoch;
+    return click;
+}
+
+} // namespace
+
+std::optional<AppearanceCatalogClick> capture_appearance_back_click(Rml::Element* hit,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation)
+{
+    auto* control = find_ancestor_with_id(hit, "appearance_selector_back");
+    if (!control) { return std::nullopt; }
+    return capture_appearance_control(*control, AppearanceCatalogClickKind::back, state, target, workspace,
+        module_generation, resource_generation);
+}
+
+std::optional<AppearanceCatalogClick> capture_appearance_catalog_click(Rml::Element* hit,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation)
+{
+    auto* control = find_ancestor_with_id(hit, "placeable_appearance_previous");
+    auto kind = AppearanceCatalogClickKind::previous;
+    if (!control) {
+        control = find_ancestor_with_id(hit, "placeable_appearance_next");
+        kind = AppearanceCatalogClickKind::next;
+    }
+    if (!control) {
+        control = find_ancestor_with_id(hit, "door_appearance_previous");
+        kind = AppearanceCatalogClickKind::previous;
+    }
+    if (!control) {
+        control = find_ancestor_with_id(hit, "door_appearance_next");
+        kind = AppearanceCatalogClickKind::next;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "appearance_catalog_field");
+        kind = AppearanceCatalogClickKind::open;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "appearance_row");
+        kind = AppearanceCatalogClickKind::select;
+    }
+    if (!control) { return std::nullopt; }
+    return capture_appearance_control(*control, kind, state, target, workspace, module_generation, resource_generation);
+}
+
+AppearanceCatalogClickEffect apply_appearance_catalog_click(AppearanceCatalogClick& click,
+    AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context)
+{
+    const auto kind = std::exchange(click.kind, AppearanceCatalogClickKind::none);
+    if (kind == AppearanceCatalogClickKind::none || kind > AppearanceCatalogClickKind::select
+        || click.field > AppearanceEditorField::tail || click.previous_field > AppearanceEditorField::tail
+        || click.release_phase != ClientRmlForwardPhase::before_native || !target.matches_active_tab
+        || target.object != click.object || target.surface != ObjectWorkbenchSurface::appearance
+        || !active_appearances_match_tab(state, target) || !workspace.active_tab()
+        || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id
+        || context.workspace != &workspace || smalls_rmlui_host().active_object() != click.object
+        || backend.module_generation() != click.module_generation || kernel::resman().generation() != click.resource_generation
+        || state.appearance_catalog_generation != click.module_generation || object_mutation_state().epoch != click.mutation_epoch
+        || !kernel::objects().valid(click.object) || state.appearance_editor_field != click.previous_field
+        || state.appearance_selector_open != click.selector_open || state.appearance_query != click.query
+        || appearance_click_values(state, click.field) != click.source_values) { return AppearanceCatalogClickEffect::none; }
+    if (kind == AppearanceCatalogClickKind::open) {
+        if (click.field != AppearanceEditorField::appearance && target.object.type != ObjectType::creature) { return AppearanceCatalogClickEffect::none; }
+        clear_color_editor(state);
+        state.appearance_editor_field = click.field;
+        state.appearance_selector_open = true;
+        state.appearance_query.clear();
+        rebuild_active_appearances(state, click.module_generation, click.object);
+        state.appearance_scroll_to_selection = true;
+        return AppearanceCatalogClickEffect::opened;
+    }
+    if (kind != AppearanceCatalogClickKind::back) {
+        const bool cycle = kind == AppearanceCatalogClickKind::previous || kind == AppearanceCatalogClickKind::next;
+        if (click.field != click.previous_field || click.selected < 0
+            || (cycle && (target.object.type != ObjectType::placeable && target.object.type != ObjectType::door))
+            || (!cycle && (!click.selector_open || !appearance_id_is_matched(state, click.selected)))
+            || (cycle && (active_appearance_catalog(state).status != AppearanceCatalogStatus::ready || !find_appearance_catalog_row(active_appearance_catalog(state), click.selected)))
+            || !commit_active_appearance_selection(state, backend, shell, context, click.selected)) { return AppearanceCatalogClickEffect::none; }
+        // Existing cycles retain the current selector; row selection closes it.
+        if (!cycle) { close_appearance_selector(state); }
+    } else {
+        close_appearance_selector(state);
+    }
+    rebuild_active_appearances(state, click.module_generation, click.object);
+    return AppearanceCatalogClickEffect::refresh;
 }
 
 std::optional<AppearanceEditorField> appearance_editor_field_from_name(
@@ -1170,6 +1445,106 @@ bool update_appearance_preview_rows(nw::ObjectHandle object, bool equipment_visi
     const auto result = runtime.execute_script("nwn1.creature", "update_appearance_preview",
         {object_value, nw::smalls::Value::make_bool(equipment_visible)});
     return result.ok() && result.value.type_id == runtime.bool_type() && result.value.data.bval;
+}
+
+bool close_appearance_selector_for_escape(AppearanceViewState& state, ObjectWorkbenchTarget target,
+    uint64_t module_generation)
+{
+    if (state.color_editor_channel >= 0) {
+        clear_color_editor(state);
+        return true;
+    }
+    if (state.appearance_selector_open) {
+        close_appearance_selector(state);
+        rebuild_active_appearances(state, module_generation, target.object);
+        return true;
+    }
+    if (state.sound_resource_selector_open) {
+        close_sound_resource_selector(state);
+        return true;
+    }
+    return false;
+}
+
+AppearanceSelectorKeyEffect handle_appearance_selector_key(const SDL_KeyboardEvent& key,
+    Rml::Context* context, Rml::ElementDocument* doc, AppearanceViewState& state,
+    ObjectWorkbenchTarget target, uint64_t resource_generation, ToolsetBackend& backend,
+    ShellController& shell, const CommandContext& command)
+{
+    const bool appearance_search_focused = target.surface == ObjectWorkbenchSurface::appearance
+        && state.appearance_selector_open
+        && focused_element_has_id(context, "appearance_search")
+        && !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+    if (appearance_search_focused
+        && (key.key == SDLK_UP || key.key == SDLK_DOWN)) {
+        const int selected = state.appearance_list.move_selection(
+            key.key == SDLK_UP ? -1 : 1);
+        const int scroll_top = state.appearance_list.scroll_top_for_index(selected);
+        state.appearance_list.set_scroll_top(scroll_top);
+        if (auto* list = find_el(doc, "appearance_rows")) {
+            list->SetScrollTop(static_cast<float>(scroll_top));
+        }
+        state.appearance_rendered = false;
+        sync_appearance_window(doc, state, target, true);
+        return AppearanceSelectorKeyEffect::handled;
+    }
+    if (!key.repeat && appearance_search_focused
+        && (key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER)) {
+        const int selected = state.appearance_list.selected();
+        const auto& catalog = active_appearance_catalog(state);
+        if (selected >= 0
+            && static_cast<size_t>(selected) < state.appearance_matches.size()) {
+            const uint32_t row_index = state.appearance_matches[static_cast<size_t>(selected)];
+            if (row_index < catalog.rows.size()) {
+                if (commit_active_appearance_selection(
+                        state, backend, shell, command, catalog.rows[row_index].id)) {
+                    close_appearance_selector(state);
+                    rebuild_active_appearances(state, backend.module_generation(), target.object);
+                    return AppearanceSelectorKeyEffect::content_changed;
+                }
+            }
+        }
+        return AppearanceSelectorKeyEffect::handled;
+    }
+
+    const bool sound_catalog_search_focused
+        = active_sound_resource_selector_matches_tab(state, target)
+        && focused_element_has_id(context, "sound_catalog_search")
+        && !(key.mod
+            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+    if (sound_catalog_search_focused
+        && (key.key == SDLK_UP
+            || key.key == SDLK_DOWN)) {
+        const int selected = state.sound_catalog_list.move_selection(
+            key.key == SDLK_UP ? -1 : 1);
+        const int scroll_top
+            = state.sound_catalog_list.scroll_top_for_index(selected);
+        state.sound_catalog_list.set_scroll_top(scroll_top);
+        if (auto* list = find_el(doc, "sound_catalog_rows")) {
+            list->SetScrollTop(static_cast<float>(scroll_top));
+        }
+        state.sound_catalog_rendered = false;
+        sync_sound_catalog_window(doc, state, target, resource_generation, true);
+        return AppearanceSelectorKeyEffect::handled;
+    }
+    if (!key.repeat && sound_catalog_search_focused
+        && (key.key == SDLK_RETURN
+            || key.key == SDLK_KP_ENTER)) {
+        const int selected = state.sound_catalog_list.selected();
+        if (selected >= 0
+            && static_cast<size_t>(selected)
+                < state.sound_catalog_matches.size()) {
+            const uint32_t row_index
+                = state.sound_catalog_matches[static_cast<size_t>(selected)];
+            if (commit_sound_catalog_selection(state, target, backend, shell, command, row_index)) {
+                close_sound_resource_selector(state);
+                return AppearanceSelectorKeyEffect::content_changed;
+            }
+        }
+        return AppearanceSelectorKeyEffect::handled;
+    }
+
+    return AppearanceSelectorKeyEffect::none;
 }
 
 } // namespace nw::toolset

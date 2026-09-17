@@ -45,6 +45,11 @@ struct ClientInputOwnership {
 ClientInputFacts capture_client_input_facts(const SDL_Event&, SDL_Window*,
     Rml::Context* toolset, Rml::Context* command, Rml::ElementDocument* palette,
     Rml::ElementDocument* modals, ClientInputOwnership ownership);
+// Current ordered event is a singleton wrapper over the flat batch route.
+// Capture after earlier callbacks; no event/DOM borrow or cached facts escape.
+ClientInputRoute resolve_client_event_input_route(const SDL_Event&, SDL_Window*,
+    Rml::Context* toolset, Rml::Context* command, Rml::ElementDocument* palette,
+    Rml::ElementDocument* modals, ClientInputOwnership ownership);
 // Eligibility for already-claimed pending pointer input and current held device
 // state. There is one displayed session; callers resolve this as count = 1.
 ClientInputFacts capture_client_held_input_facts(Rml::Context* toolset,
@@ -77,12 +82,17 @@ bool valid_client_pointer_event(const SDL_Event& event) noexcept;
 void cancel_client_pointer_interactions(Rml::Context* toolset, Rml::Context* command,
     const SDL_Event& event);
 // Records the obligation before SDK callbacks; at most one call per event.
+// Explicit after-native left UI release may finish a consumed native click;
+// native consumption still suppresses default forwarding and all other events.
 // Null context/unknown tags/unsafe scaled motion reject without forwarding.
 ClientInputForwardResult forward_client_input(ClientInputDispatchState& dispatch,
     ClientRmlRecipient recipient, ClientRmlForwardPhase phase,
     Rml::Context* context, SDL_Window* window, SDL_Event& event);
 
 // The native virtual row's data-key and the SDK release share one ordered event.
+// Query copies and strictly parses the complete int32 key; no DOM borrow escapes.
+// Negative values are parsed; each feature enforces its own valid index range.
+std::optional<int32_t> client_row_key(Rml::Element* row);
 // Parses before SDK dispatch; malformed keys still release the SDK press.
 // The caller validates the returned index against its current feature owner.
 std::optional<int32_t> release_client_row_key(ClientInputDispatchState& dispatch,

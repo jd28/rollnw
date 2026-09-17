@@ -72,6 +72,7 @@ add_executable(rollnw-client
     appearance_view.cpp
     appearance_view_runtime.cpp
     dialog_view.cpp
+    editor_input.cpp
     item_editor.cpp
     item_editor_data_model.cpp
     loading_view.cpp

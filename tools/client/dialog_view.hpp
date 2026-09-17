@@ -4,9 +4,11 @@
 #include "virtual_list.hpp"
 
 #include <filesystem>
+#include <optional>
 #include <string>
 
 namespace Rml {
+class Element;
 class ElementDocument;
 }
 
@@ -15,6 +17,7 @@ namespace nw::toolset {
 // The workspace has one active dialog surface, so this state is genuinely
 // singular. The document rows it owns remain a flat batch for virtual display.
 struct WorkspaceTab;
+class WorkspaceState;
 
 struct DialogViewState {
     DialogDocumentSnapshot document;
@@ -36,6 +39,10 @@ bool sync_dialog_view(Rml::ElementDocument* document,
     DialogViewState& state,
     bool force);
 [[nodiscard]] bool select_dialog_view_row(DialogViewState& state, int row);
+// Immediate singleton selection before SDK release. Borrowed hit never escapes;
+// nullopt is unmatched, false is matched/rejected, true requests presentation.
+std::optional<bool> select_dialog_view_clicked_row(Rml::Element* hit,
+    DialogViewState& state, const WorkspaceState& workspace);
 
 // Cached by exact tab ID/source path/status. Non-dialog tabs clear the current
 // singleton; unchanged identity keeps selection. Load errors remain explicit.

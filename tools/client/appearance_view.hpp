@@ -6,14 +6,20 @@
 #include "sound_catalog.hpp"
 #include "virtual_list.hpp"
 
+#include <RmlUi/Core/Types.h>
+
+#include <array>
 #include <limits>
 #include <optional>
 
 class ClientRenderer;
 namespace Rml {
+class Context;
 class Element;
 class ElementDocument;
 }
+
+struct SDL_KeyboardEvent;
 
 namespace nw::toolset {
 class ToolsetBackend;
@@ -50,6 +56,31 @@ enum class SoundResourceClickEffect : uint8_t {
     closed,
 };
 
+enum class ColorEditorClickKind : uint8_t { none,
+    close,
+    channel,
+    select,
+    field,
+    selector };
+
+// Cold in-process schema 1. No DOM/geometry/provider-row borrow survives capture.
+// One selector edge is singular because SDK callbacks can change its owner.
+struct ColorEditorClick {
+    ObjectHandle object{};
+    ObjectHandle editor_object{};
+    uint64_t module_generation = 0;
+    uint64_t resource_generation = 0;
+    uint64_t mutation_epoch = 0;
+    uint32_t channel = 0;
+    int32_t editor_channel = -1;
+    int32_t source_value = -1;
+    int32_t palette = -1;
+    int32_t selected = -1;
+    ColorEditorClickKind kind = ColorEditorClickKind::none;
+    ClientRmlForwardPhase release_phase = ClientRmlForwardPhase::before_native;
+    std::string tab_id;
+};
+
 inline constexpr int kPltPaletteColumns = 16;
 inline constexpr int kPltPaletteRows = 11;
 inline constexpr int kPltPaletteCellPx = 24;
@@ -58,6 +89,35 @@ enum class AppearanceEditorField : uint8_t {
     appearance,
     wings,
     tail,
+};
+
+enum class AppearanceCatalogClickKind : uint8_t { none,
+    back,
+    previous,
+    next,
+    open,
+    select };
+enum class AppearanceCatalogClickEffect : uint8_t { none,
+    refresh,
+    opened };
+
+// Cold in-process schema 1: copied semantic ID and owning UTF-8 tab/query payload.
+// Source values are [appearance kind, generic type] for Door, [field value, -1]
+// otherwise. Missing values compare as unavailable; never an implicit zero.
+struct AppearanceCatalogClick {
+    ObjectHandle object{};
+    uint64_t module_generation = 0;
+    uint64_t resource_generation = 0;
+    uint64_t mutation_epoch = 0;
+    std::optional<std::array<int32_t, 2>> source_values;
+    int32_t selected = -1;
+    AppearanceEditorField field = AppearanceEditorField::appearance;
+    AppearanceEditorField previous_field = AppearanceEditorField::appearance;
+    AppearanceCatalogClickKind kind = AppearanceCatalogClickKind::none;
+    bool selector_open = false;
+    ClientRmlForwardPhase release_phase = ClientRmlForwardPhase::before_native;
+    std::string tab_id;
+    std::string query;
 };
 
 // One displayed selector owns copied catalog batches and dense match indices,
@@ -113,6 +173,39 @@ std::optional<SoundResourceClick> capture_sound_resource_click(
 SoundResourceClickEffect apply_sound_resource_click(SoundResourceClick& click,
     AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
     ToolsetBackend& backend, ShellController& shell, const CommandContext& context);
+
+std::optional<ColorEditorClick> capture_color_editor_click(Rml::Element* hit, Rml::Vector2f point,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation);
+// Channel applies before SDK release; others apply after. Field caller closes
+// the shared SmallS selector after release, then this rechecks the live owner.
+// Consumes once and returns whether the existing content refresh is required.
+bool apply_color_editor_click(ColorEditorClick& click, AppearanceViewState& state,
+    ObjectWorkbenchTarget target, const WorkspaceState& workspace, ToolsetBackend& backend,
+    ShellController& shell, const CommandContext& context);
+
+std::optional<AppearanceCatalogClick> capture_appearance_back_click(Rml::Element* hit,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation);
+std::optional<AppearanceCatalogClick> capture_appearance_catalog_click(Rml::Element* hit,
+    const AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation);
+// Before-native SDK release and shared-selector close precede apply. Checks
+// current ownership and values, consumes once, and returns presentation intent.
+AppearanceCatalogClickEffect apply_appearance_catalog_click(AppearanceCatalogClick& click,
+    AppearanceViewState& state, ObjectWorkbenchTarget target, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context);
+
+// Current displayed selector is singular. Root retains palette exclusion and
+// Escape precedence. No keyboard event or SDK pointer is retained across calls.
+enum class AppearanceSelectorKeyEffect : uint8_t { none,
+    handled,
+    content_changed };
+AppearanceSelectorKeyEffect handle_appearance_selector_key(const SDL_KeyboardEvent&,
+    Rml::Context*, Rml::ElementDocument*, AppearanceViewState&, ObjectWorkbenchTarget,
+    uint64_t resource_generation, ToolsetBackend&, ShellController&, const CommandContext&);
+bool close_appearance_selector_for_escape(AppearanceViewState&, ObjectWorkbenchTarget,
+    uint64_t module_generation);
 
 std::optional<nw::toolset::AppearanceCatalogKind> appearance_catalog_kind(nw::ObjectType type);
 const nw::toolset::AppearanceCatalog& active_appearance_catalog(const AppearanceViewState& state);

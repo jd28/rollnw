@@ -17,6 +17,15 @@ void load_ui_preferences(const std::filesystem::path& path,
     DockLayout& docks, std::vector<RecentProjectEntry>& recent_projects);
 bool save_ui_preferences(const std::filesystem::path& path,
     const DockLayout& docks, std::span<const RecentProjectEntry> recent_projects);
+
+enum class RecentProjectForgetStatus { rejected,
+    saved,
+    save_failed };
+// Caller owns history/indices for this call. Invalid indices reject all; empty
+// batches succeed without I/O. Save failure restores the complete original rows.
+RecentProjectForgetStatus forget_recent_project_preferences(const std::filesystem::path& path,
+    const DockLayout& docks, std::vector<RecentProjectEntry>& projects,
+    std::span<const size_t> indices);
 // One preference history update: canonicalize the opened project, deduplicate
 // its row, move it first, bound history and persist the existing dock/history.
 void remember_recent_project(const std::filesystem::path& path, const DockLayout& docks,

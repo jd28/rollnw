@@ -11,8 +11,10 @@
 #include <RmlUi/Core/StringUtilities.h>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
-#include <cstdlib>
+#include <limits>
+#include <utility>
 
 namespace nw::toolset {
 namespace {
@@ -140,6 +142,134 @@ std::string recent_projects_markup(std::span<const RecentProjectEntry> projects)
         markup += "\" title=\"Remove from recent projects. Project files are not deleted.\">&#215;</button></div>";
     }
     return markup;
+}
+
+namespace {
+Rml::Element* tab_control_ancestor(Rml::Element* hit, std::string_view class_name)
+{
+    const Rml::String class_text{class_name};
+    for (auto* element = hit; element; element = element->GetParentNode()) {
+        if (element->IsClassSet(class_text)) { return element; }
+    }
+    return nullptr;
+}
+bool tab_has_subtab(const WorkspaceTab& tab, std::string_view id)
+{
+    return std::ranges::any_of(tab.subtabs, [&](const WorkspaceSubTab& subtab) { return subtab.id == id; });
+}
+} // namespace
+
+std::optional<WorkspaceTabClick> capture_workspace_tab_click(Rml::ElementDocument* doc,
+    Rml::Element* hit, Rml::Vector2f point, const WorkspaceState& workspace)
+{
+    auto* control = tab_control_ancestor(hit, "workspace_tab_close");
+    if (!control) { control = workspace_tab_element_at_point(doc, "workspace_tab_close", point); }
+    auto kind = WorkspaceTabClickKind::close;
+    if (!control) {
+        control = tab_control_ancestor(hit, "workspace_tab");
+        if (!control) { control = workspace_tab_element_at_point(doc, "workspace_tab", point); }
+        kind = WorkspaceTabClickKind::activate;
+    }
+    if (!control) {
+        control = tab_control_ancestor(hit, "workspace_subtab_close");
+        kind = WorkspaceTabClickKind::close_subtab;
+    }
+    if (!control) {
+        control = tab_control_ancestor(hit, "workspace_subtab");
+        kind = WorkspaceTabClickKind::activate_subtab;
+    }
+    if (!control) { return std::nullopt; }
+    WorkspaceTabClick click;
+    click.tab_id = control->GetAttribute<Rml::String>("data-tab", "");
+    click.subtab_id = control->GetAttribute<Rml::String>("data-subtab", "");
+    const auto* tab = workspace.find_tab(click.tab_id);
+    if (!tab || click.tab_id.empty() || (kind >= WorkspaceTabClickKind::close_subtab && (click.subtab_id.empty() || !tab_has_subtab(*tab, click.subtab_id)))) { return click; }
+    click.active_tab_id = workspace.active_tab_id();
+    click.detail = tab->detail;
+    click.document = tab->document.object();
+    click.tab_kind = tab->kind;
+    click.kind = kind;
+    return click;
+}
+
+std::optional<CommandInvocation> take_workspace_tab_click_command(WorkspaceTabClick& click,
+    const WorkspaceState& workspace)
+{
+    const auto kind = std::exchange(click.kind, WorkspaceTabClickKind::none);
+    const auto* tab = workspace.find_tab(click.tab_id);
+    if (kind == WorkspaceTabClickKind::none || kind > WorkspaceTabClickKind::activate_subtab
+        || !tab || workspace.active_tab_id() != click.active_tab_id || tab->kind != click.tab_kind
+        || tab->detail != click.detail || tab->document.object() != click.document
+        || (kind >= WorkspaceTabClickKind::close_subtab && !tab_has_subtab(*tab, click.subtab_id))) { return std::nullopt; }
+    CommandInvocation invocation;
+    switch (kind) {
+    case WorkspaceTabClickKind::close:
+        invocation.command_id = "workspace.close_tab";
+        break;
+    case WorkspaceTabClickKind::activate:
+        invocation.command_id = "workspace.activate_tab";
+        break;
+    case WorkspaceTabClickKind::close_subtab:
+        invocation.command_id = "workspace.close_subtab";
+        break;
+    case WorkspaceTabClickKind::activate_subtab:
+        invocation.command_id = "workspace.activate_subtab";
+        break;
+    default:
+        return std::nullopt;
+    }
+    invocation.args.push_back(CommandArg::positional_string(click.tab_id));
+    if (kind >= WorkspaceTabClickKind::close_subtab) { invocation.args.push_back(CommandArg::positional_string(click.subtab_id)); }
+    return invocation;
+}
+
+bool sync_workspace_tab_click(Rml::ElementDocument* doc, WorkspaceViewState& view,
+    const WorkspaceState& workspace, WorkspaceTabClickKind kind, std::string_view tab_id)
+{
+    switch (kind) {
+    case WorkspaceTabClickKind::close:
+        return remove_workspace_tab_element(doc, view, workspace, tab_id);
+    case WorkspaceTabClickKind::activate:
+        return sync_workspace_tab_elements(doc, view, workspace);
+    case WorkspaceTabClickKind::close_subtab:
+    case WorkspaceTabClickKind::activate_subtab:
+        return true;
+    default:
+        return false;
+    }
+}
+
+std::optional<TabScrollClick> capture_tab_scroll_click(Rml::Element* hit,
+    const TabScrollStrip& strip, std::string_view button_class)
+{
+    auto* control = tab_control_ancestor(hit, button_class);
+    if (!control) { return std::nullopt; }
+    return TabScrollClick{.enabled = !control->IsClassSet("disabled"), .forward = control->GetId() == strip.next_id};
+}
+
+bool apply_tab_scroll_click(TabScrollClick& click, Rml::ElementDocument* doc,
+    const TabScrollStrip& strip, float& scroll_x)
+{
+    if (!std::exchange(click.pending, false) || !click.enabled) { return false; }
+    scroll_x = tab_scroll_target(doc, strip, click.forward);
+    apply_tab_scroll(doc, strip, scroll_x);
+    return true;
+}
+
+void append_workspace_viewport_markup(std::string& markup, const WorkspaceTab& tab)
+{
+    if (tab.kind != WorkspaceTabKind::area && tab.kind != WorkspaceTabKind::preview) { return; }
+    markup += "<div id=\"workspace_viewer_viewport\" class=\"workspace_viewer_viewport";
+    if (tab.detail.empty()) { markup += " empty"; }
+    markup += "\" data-resource=\"";
+    markup += escape_html(tab.detail);
+    markup += "\">";
+    if (tab.detail.empty()) {
+        markup += "<div class=\"workspace_area_placeholder\">";
+        markup += tab.kind == WorkspaceTabKind::area ? "Open an area from the project tree." : "Open a previewable blueprint from the project tree.";
+        markup += "</div>";
+    }
+    markup += "</div>";
 }
 
 bool area_viewport_changed(Rml::ElementDocument* document, const WorkspaceTab* tab)
@@ -293,7 +423,9 @@ size_t workspace_tab_target_index_at_point(Rml::ElementDocument* doc,
             continue;
         }
 
-        const size_t original_index = static_cast<size_t>(std::strtoull(index_text.c_str(), nullptr, 10));
+        size_t original_index = 0;
+        const auto parsed = std::from_chars(index_text.data(), index_text.data() + index_text.size(), original_index);
+        if (parsed.ec != std::errc{} || parsed.ptr != index_text.data() + index_text.size()) { continue; }
         if (original_index >= tabs.size() || original_index < locked_prefix) {
             continue;
         }
@@ -306,6 +438,67 @@ size_t workspace_tab_target_index_at_point(Rml::ElementDocument* doc,
         }
     }
     return tabs.size() - 1;
+}
+
+bool begin_workspace_tab_drag(Rml::ElementDocument* doc, WorkspaceViewState& view,
+    Rml::Element* hit, Rml::Vector2f point)
+{
+    clear_workspace_tab_drag(view);
+    if (!std::isfinite(point.x) || !std::isfinite(point.y)) { return false; }
+    auto* close = tab_control_ancestor(hit, "workspace_tab_close");
+    if (!close) { close = workspace_tab_element_at_point(doc, "workspace_tab_close", point); }
+    if (close) { return false; }
+    auto* tab = tab_control_ancestor(hit, "workspace_tab");
+    if (!tab) { tab = workspace_tab_element_at_point(doc, "workspace_tab", point); }
+    if (!tab || tab->GetAttribute<Rml::String>("data-movable", "") != "1") { return false; }
+    view.workspace_tab_drag_id = tab->GetAttribute<Rml::String>("data-tab", "");
+    view.workspace_tab_drag_start_x = point.x;
+    view.workspace_tab_drag_start_y = point.y;
+    return true;
+}
+
+WorkspaceTabDragUpdate update_workspace_tab_drag(Rml::ElementDocument* doc, WorkspaceViewState& view,
+    const WorkspaceState& workspace, Rml::Vector2f point)
+{
+    WorkspaceTabDragUpdate result;
+    if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
+        clear_workspace_tab_drag(view);
+        return result;
+    }
+    if (view.workspace_tab_drag_id.empty()) { return result; }
+    constexpr float threshold = 5.0f;
+    const float dx = point.x - view.workspace_tab_drag_start_x;
+    const float dy = point.y - view.workspace_tab_drag_start_y;
+    view.workspace_tab_dragging = view.workspace_tab_dragging || std::abs(dx) >= threshold || std::abs(dy) >= threshold;
+    if (!view.workspace_tab_dragging) { return result; }
+    result.handled = true;
+    if (auto* strip = find_el(doc, "workspace_tabs")) {
+        view.workspace_tab_scroll_x = strip->GetScrollLeft();
+        const float left = strip->GetAbsoluteLeft();
+        const float right = left + strip->GetClientWidth();
+        constexpr float edge = 28.0f;
+        constexpr float step = 14.0f;
+        if (point.x < left + edge) {
+            view.workspace_tab_scroll_x -= step;
+            apply_tab_scroll(doc, kWorkspaceTabScrollStrip, view.workspace_tab_scroll_x);
+        } else if (point.x > right - edge) {
+            view.workspace_tab_scroll_x += step;
+            apply_tab_scroll(doc, kWorkspaceTabScrollStrip, view.workspace_tab_scroll_x);
+        }
+    }
+    const auto& tabs = workspace.tabs();
+    constexpr size_t invalid = std::numeric_limits<size_t>::max();
+    const auto current = workspace_tab_current_index(tabs, view.workspace_tab_drag_id, invalid);
+    const auto fallback = current == invalid ? (tabs.empty() ? 0 : tabs.size() - 1) : current;
+    const auto target = workspace_tab_target_index_at_point(doc, point, tabs, view.workspace_tab_drag_id, fallback);
+    if (current != invalid && target != current) {
+        CommandInvocation invocation;
+        invocation.command_id = "workspace.move_tab";
+        invocation.args.push_back(CommandArg::positional_string(view.workspace_tab_drag_id));
+        invocation.args.push_back(CommandArg::positional_string(std::to_string(target)));
+        result.command = std::move(invocation);
+    }
+    return result;
 }
 
 void clear_workspace_tab_drag(WorkspaceViewState& state)
@@ -801,6 +994,24 @@ void append_missing_resource_document(std::string& content_markup)
     content_markup += "<div class=\"resource_inspector_title\">Resource</div>";
     content_markup += "<div class=\"resource_inspector_detail\">No project resource selected</div></div>";
     content_markup += "<div class=\"resource_inspector_empty\">Open a project resource to inspect it.</div></div>";
+}
+
+std::optional<AreaWorkspaceSurfaceClick> capture_area_workspace_surface_click(Rml::Element* hit)
+{
+    for (auto* element = hit; element; element = element->GetParentNode()) {
+        if (!element->IsClassSet("area_workspace_tab")) { continue; }
+        const auto value = element->GetAttribute<Rml::String>("data-area-surface", "");
+        AreaWorkspaceSurfaceClick click;
+        if (value == "properties") {
+            click.surface = AreaWorkspaceSurface::properties;
+        } else if (value == "objects") {
+            click.surface = AreaWorkspaceSurface::objects;
+        } else if (value == "tiles") {
+            click.surface = AreaWorkspaceSurface::tiles;
+        }
+        return click;
+    }
+    return std::nullopt;
 }
 
 } // namespace nw::toolset

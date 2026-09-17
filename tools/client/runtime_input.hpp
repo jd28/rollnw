@@ -7,9 +7,12 @@
 #include <optional>
 
 struct SDL_Gamepad;
+union SDL_Event;
 class ClientRenderer;
 
 namespace nw::toolset {
+
+struct ClientInputRoute;
 
 struct RuntimeGamepadDeleter {
     void operator()(SDL_Gamepad* gamepad) const noexcept;
@@ -30,6 +33,11 @@ void close_runtime_gamepad(RuntimeInputState& input) noexcept;
 void reset_runtime_pending_input(RuntimeInputState& input) noexcept;
 void discard_runtime_pointer_input(RuntimeInputState& input) noexcept;
 void consume_runtime_input_edges(RuntimeInputState& input) noexcept;
+// One current SDL edge/pending consumer is a singleton over the shared PC batch.
+// Wrong event category rejects unchanged; unbound SDL button values normalize
+// to other. No role/session teardown binding or retained event payload.
+PreviewStatus apply_runtime_pc_controller_button(RuntimeInputState& input,
+    const SDL_Event& event, const ClientInputRoute& route) noexcept;
 
 // SDL acquisition is a true singleton. Negative elapsed contribution is zero;
 // nonfinite time rejects. Claimed pending sources are discarded before capture.

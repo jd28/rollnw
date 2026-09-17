@@ -1,10 +1,17 @@
 #include "area_object_editor.hpp"
+#include "editor_input.hpp"
+#include "toolset_backend.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/profiles/nwn1/toolset_visual.hpp>
 
+#include <algorithm>
+#include <array>
+#include <charconv>
 #include <cmath>
+#include <limits>
 #include <new>
 #include <utility>
 
@@ -112,6 +119,29 @@ bool area_object_placement_position_valid(nw::ObjectHandle area, glm::vec3 posit
         && position.x <= static_cast<float>(live_area->width) * k_tile_size
         && position.y >= 0.0f
         && position.y <= static_cast<float>(live_area->height) * k_tile_size;
+}
+
+std::optional<CommandResult> apply_area_object_wheel_action(const EditorWheelAction& action,
+    ToolsetBackend& backend, const CommandContext& context, ObjectHandle target)
+{
+    if (!std::isfinite(action.amount) || action.amount == 0) { return std::nullopt; }
+    if (action.kind == EditorWheelActionKind::sound_radius) {
+        if (const auto sound = nwn1::sound_toolset_visual_state(target)) {
+            const float radius = std::max(sound->distance_min, sound->distance_max * std::pow(1.1f, action.amount));
+            if (std::isfinite(radius) && radius != sound->distance_max) {
+                return backend.resize_sound_radius({.sound = target, .before = sound->distance_max, .after = radius}, context);
+            }
+        }
+        return std::nullopt;
+    }
+    if (action.kind != EditorWheelActionKind::object_scale && action.kind != EditorWheelActionKind::object_rotate) { return std::nullopt; }
+    const bool rotate = action.kind == EditorWheelActionKind::object_rotate;
+    const float value = rotate ? action.amount * 15.0f : std::pow(1.1f, action.amount);
+    std::array<char, 64> buffer{};
+    const auto formatted = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::general, std::numeric_limits<float>::max_digits10);
+    if (formatted.ec != std::errc{}) { return std::nullopt; }
+    const std::string argument{buffer.data(), formatted.ptr};
+    return backend.execute_command(rotate ? "object.transform.rotate" : "object.transform.scale", {argument}, context);
 }
 
 } // namespace nw::toolset

@@ -5,12 +5,16 @@
 #include "workspace.hpp"
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/Elements/ElementFormControlInput.h>
+#include <SDL3/SDL.h>
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <initializer_list>
 #include <limits>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/ObjectManager.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <utility>
 namespace nw::toolset {
@@ -1814,6 +1818,160 @@ bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
     return true;
 }
 
+namespace {
+Rml::Element* combo_ancestor_with_id(Rml::Element* hit, const char* id)
+{
+    for (auto* element = hit; element; element = element->GetParentNode()) {
+        if (element->GetId() == id) { return element; }
+    }
+    return nullptr;
+}
+
+bool current_command_property_matches(ObjectHandle object, const ObjectWorkbenchCommandRow& property)
+{
+    ObjectDetailsSnapshot current;
+    build_object_details(kernel::runtime(), object, current);
+    if (current.status != ObjectDetailsStatus::ready || property.row >= current.rows.size()) { return false; }
+    const auto& row = current.rows[property.row];
+    return row.kind == ObjectDetailsRowKind::value && row.editor == property.editor
+        && row.propset_type == property.propset_type && row.field_index == property.field_index
+        && row.element_index == property.element_index && row.edit_value == property.current;
+}
+} // namespace
+
+std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rml::Element* hit,
+    const ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    uint64_t module_generation, uint64_t resource_generation)
+{
+    auto* control = find_ancestor_with_class(hit, "combobox_option");
+    const bool option = control != nullptr;
+    bool sound = false;
+    if (!control) {
+        control = find_ancestor_with_class(hit, "object_details_sound_position_field");
+        sound = control != nullptr;
+    }
+    if (!control) { control = find_ancestor_with_class(hit, "creature_spell_filter_field"); }
+    if (!control) { return std::nullopt; }
+    ObjectWorkbenchComboClick click;
+    const auto target = object_workbench_target(state, workspace);
+    if (!active_object_matches_tab(state, workspace) || !workspace.active_tab() || !kernel::objects().valid(target.object)) { return click; }
+    if (option) {
+        const auto value = parse_decimal_int32(control->GetAttribute<Rml::String>("data-key", ""));
+        if (!value) { return click; }
+        click.value = *value;
+        sound = state.object_details_combobox.is_active() && combo_ancestor_with_id(control, "object_details_combobox_popup");
+    }
+    if (sound) {
+        const auto row_index = option ? state.object_details_combobox_row
+                                      : [&]() -> std::optional<uint32_t> {
+            const auto row = parse_decimal_int32(control->GetAttribute<Rml::String>("data-row", ""));
+            return row && *row >= 0 ? std::optional{static_cast<uint32_t>(*row)} : std::nullopt;
+        }();
+        if (!active_object_details_matches_tab(state, workspace) || !row_index || *row_index >= state.object_details.rows.size()
+            || (option && (click.value < 0 || click.value > 2))) { return click; }
+        const auto& row = state.object_details.rows[*row_index];
+        if (row.kind != ObjectDetailsRowKind::value || row.editor != ObjectDetailsEditorKind::sound_position
+            || row.edit_value < 0 || row.edit_value > 2) { return click; }
+        click.property = ObjectWorkbenchCommandRow{.propset_type = row.propset_type, .field_index = row.field_index, .element_index = row.element_index, .row = *row_index, .current = row.edit_value, .editor = row.editor};
+        click.source_row = state.object_details_combobox_row;
+        click.source_selection = state.object_details_combobox.selected_key();
+        click.active = state.object_details_combobox.is_active();
+        click.popup_visible = state.object_details_combobox.popup_visible();
+        click.kind = option ? ObjectWorkbenchComboKind::sound_select : ObjectWorkbenchComboKind::sound_open;
+        if (!option) { click.field_id = control->GetId(); }
+    } else {
+        const auto& creature = state.creature_view;
+        if (option && !active_creature_spell_filter_matches_tab(creature, target)) { return click; }
+        const auto field = option ? std::optional{creature.creature_spell_filter_field}
+                                  : creature_spell_filter_field_from_name(control->GetAttribute<Rml::String>("data-filter", ""));
+        if (!field || *field == CreatureSpellFilterField::none || !active_creature_spells_match_tab(creature, target)) { return click; }
+        click.field = *field;
+        click.source_field = creature.creature_spell_filter_field;
+        click.selected_class = creature.creature_spells.selected_class;
+        click.selected_metamagic = creature.creature_spells.selected_metamagic;
+        click.level = creature.creature_spell_level;
+        click.query = creature.creature_spell_query;
+        click.source_selection = creature.creature_spell_combobox.selected_key();
+        click.active = creature.creature_spell_combobox.is_active();
+        click.popup_visible = creature.creature_spell_combobox.popup_visible();
+        click.kind = option ? ObjectWorkbenchComboKind::spell_select : ObjectWorkbenchComboKind::spell_open;
+    }
+    click.object = target.object;
+    click.surface = target.surface;
+    click.tab_id = workspace.active_tab_id();
+    click.module_generation = module_generation;
+    click.resource_generation = resource_generation;
+    click.mutation_epoch = object_mutation_state().epoch;
+    return click;
+}
+
+ObjectWorkbenchComboEffect apply_object_workbench_combo_click(ObjectWorkbenchComboClick& click,
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context)
+{
+    const auto kind = std::exchange(click.kind, ObjectWorkbenchComboKind::none);
+    const auto target = object_workbench_target(state, workspace);
+    if (kind == ObjectWorkbenchComboKind::none || kind > ObjectWorkbenchComboKind::spell_select
+        || click.surface > ObjectWorkbenchSurface::store_inventory
+        || click.field > CreatureSpellFilterField::metamagic || click.source_field > CreatureSpellFilterField::metamagic
+        || !active_object_matches_tab(state, workspace) || target.object != click.object || target.surface != click.surface
+        || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id || context.workspace != &workspace
+        || smalls_rmlui_host().active_object() != click.object || !kernel::objects().valid(click.object)
+        || backend.module_generation() != click.module_generation || kernel::resman().generation() != click.resource_generation
+        || object_mutation_state().epoch != click.mutation_epoch) { return ObjectWorkbenchComboEffect::none; }
+    if (kind == ObjectWorkbenchComboKind::sound_open || kind == ObjectWorkbenchComboKind::sound_select) {
+        if (!click.property || click.property->editor != ObjectDetailsEditorKind::sound_position
+            || state.object_details_combobox_row != click.source_row || state.object_details_combobox.is_active() != click.active
+            || state.object_details_combobox.popup_visible() != click.popup_visible
+            || state.object_details_combobox.selected_key() != click.source_selection
+            || !current_command_property_matches(click.object, *click.property)) { return ObjectWorkbenchComboEffect::none; }
+        if (kind == ObjectWorkbenchComboKind::sound_open) {
+            return open_object_details_sound_position_combobox(doc, state, workspace, click.property->row)
+                ? ObjectWorkbenchComboEffect::sound_opened
+                : ObjectWorkbenchComboEffect::none;
+        }
+        return click.active && commit_object_details_sound_position(doc, state, workspace, backend, shell, context, click.value)
+            ? ObjectWorkbenchComboEffect::sound_selected
+            : ObjectWorkbenchComboEffect::none;
+    }
+    auto& creature = state.creature_view;
+    if (click.field == CreatureSpellFilterField::none || click.field > CreatureSpellFilterField::metamagic
+        || !active_creature_spells_match_tab(creature, target) || creature.creature_spell_filter_field != click.source_field
+        || creature.creature_spells.selected_class != click.selected_class
+        || creature.creature_spells.selected_metamagic != click.selected_metamagic || creature.creature_spell_level != click.level
+        || creature.creature_spell_query != click.query || creature.creature_spell_combobox.is_active() != click.active
+        || creature.creature_spell_combobox.popup_visible() != click.popup_visible
+        || creature.creature_spell_combobox.selected_key() != click.source_selection) { return ObjectWorkbenchComboEffect::none; }
+    if (kind == ObjectWorkbenchComboKind::spell_open) {
+        if (creature.creature_spell_filter_field == click.field && creature.creature_spell_combobox.is_active()) {
+            if (creature.creature_spell_combobox.popup_visible()) {
+                creature.creature_spell_combobox.hide_popup();
+            } else {
+                (void)creature.creature_spell_combobox.show_popup();
+            }
+        } else {
+            (void)open_creature_spell_filter(creature, target, click.field);
+        }
+        return ObjectWorkbenchComboEffect::spell_opened;
+    }
+    if (creature.creature_spell_filter_field != click.field) { return ObjectWorkbenchComboEffect::none; }
+    return commit_creature_spell_filter(creature, target, click.value)
+        ? ObjectWorkbenchComboEffect::spell_selected
+        : ObjectWorkbenchComboEffect::none;
+}
+
+bool focus_object_workbench_combo_field(Rml::ElementDocument* doc, const ObjectWorkbenchComboClick& click,
+    const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    if (!active_object_details_matches_tab(state, workspace) || state.object_details.object != click.object
+        || workspace.active_tab_id() != click.tab_id || !click.property
+        || click.property->row > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) { return false; }
+    auto* field = doc && !click.field_id.empty() ? doc->GetElementById(click.field_id) : nullptr;
+    if (!field || !click.property
+        || parse_decimal_int32(field->GetAttribute<Rml::String>("data-row", "")) != std::optional{static_cast<int32_t>(click.property->row)}) { return false; }
+    return field->Focus();
+}
+
 bool execute_object_workbench_command_click(ObjectWorkbenchCommandClick& click,
     const ObjectWorkbenchViewState& state, const WorkspaceState& workspace, ToolsetBackend& backend,
     ShellController& shell, const CommandContext& context)
@@ -1860,19 +2018,144 @@ bool execute_object_workbench_command_click(ObjectWorkbenchCommandClick& click,
     if (details) {
         if (!click.property) { return false; }
         const auto& property = *click.property;
-        ObjectDetailsSnapshot current;
-        build_object_details(nw::kernel::runtime(), click.object, current);
-        if (current.status != ObjectDetailsStatus::ready || property.row >= current.rows.size()) { return false; }
-        const auto& row = current.rows[property.row];
-        if (row.kind != ObjectDetailsRowKind::value || row.editor != property.editor
-            || row.propset_type != property.propset_type || row.field_index != property.field_index
-            || row.element_index != property.element_index || row.edit_value != property.current) {
-            return false;
-        }
+        if (!current_command_property_matches(click.object, property)) { return false; }
     }
     const auto result = backend.execute_command({command, std::move(click.args)}, context);
     append_command_results(shell, {&result, 1});
     return result.ok();
+}
+
+ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_KeyboardEvent& key,
+    Rml::Context* context, Rml::ElementDocument* doc, ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, ToolsetBackend& backend, ShellController& shell,
+    const CommandContext& command)
+{
+    if (!context) { return ObjectWorkbenchFieldKeyEffect::none; }
+    const auto blur_focus = [&] { if (auto* focus = context->GetFocusElement()) { focus->Blur(); } };
+    auto* focused_variable_name = find_ancestor_with_class(
+        context->GetFocusElement(), "object_variable_name");
+    auto* focused_variable_value = find_ancestor_with_class(
+        context->GetFocusElement(), "object_variable_value");
+    if (!key.repeat && key.key == SDLK_ESCAPE
+        && (focused_variable_name || focused_variable_value)) {
+        blur_focus();
+        sync_object_variable_window(doc, state, workspace, true);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
+    auto* focused_details_integer = find_ancestor_with_class(
+        context->GetFocusElement(), "object_details_integer");
+    if (!key.repeat && key.key == SDLK_ESCAPE
+        && focused_details_integer) {
+        blur_focus();
+        sync_object_details_window(doc, state, workspace, true);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
+    if ((key.key == SDLK_UP || key.key == SDLK_DOWN)
+        && focused_details_integer
+        && !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+        const auto minimum = parse_decimal_int32(
+            focused_details_integer->GetAttribute<Rml::String>("data-min", ""));
+        const auto maximum = parse_decimal_int32(
+            focused_details_integer->GetAttribute<Rml::String>("data-max", ""));
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(
+            focused_details_integer);
+        const auto value = input
+            ? parse_decimal_int32(input->GetValue())
+            : std::nullopt;
+        if (input && value && minimum && maximum
+            && *minimum <= *value && *value <= *maximum) {
+            const bool can_decrement = key.key == SDLK_DOWN
+                && *value > *minimum;
+            const bool can_increment = key.key == SDLK_UP
+                && *value < *maximum;
+            if (can_decrement || can_increment) {
+                const int32_t adjusted = *value
+                    + (can_increment ? 1 : -1);
+                const Rml::String adjusted_text = std::to_string(adjusted);
+                input->SetValue(adjusted_text);
+                const int cursor = static_cast<int>(adjusted_text.size());
+                input->SetSelectionRange(cursor, cursor);
+            }
+        }
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
+    if (!key.repeat
+        && (key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER)
+        && focused_details_integer
+        && !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+        const std::string row = focused_details_integer->GetAttribute<Rml::String>(
+            "data-row", "");
+        const std::string current = focused_details_integer->GetAttribute<Rml::String>(
+            "data-current", "");
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+            focused_details_integer);
+        const std::string desired = input ? input->GetValue() : std::string{};
+        const auto result = backend.execute_command(
+            "object.details.set_integer",
+            {row, current, desired},
+            command);
+        append_command_results(shell, {&result, 1});
+        if (result.ok()) {
+            blur_focus();
+        }
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
+    auto* focused_sound_position = find_ancestor_with_class(
+        context->GetFocusElement(),
+        "object_details_sound_position_field");
+    const auto focused_sound_position_row = focused_sound_position
+        ? parse_decimal_int32(focused_sound_position->GetAttribute<Rml::String>(
+              "data-row", ""))
+        : std::nullopt;
+    const bool sound_position_focused = focused_sound_position_row
+        && *focused_sound_position_row >= 0
+        && !(key.mod
+            & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+    if (sound_position_focused
+        && (key.key == SDLK_UP || key.key == SDLK_DOWN)) {
+        const auto row_index = static_cast<uint32_t>(
+            *focused_sound_position_row);
+        if (state.object_details_combobox_row != row_index
+            || !state.object_details_combobox.is_active()) {
+            (void)open_object_details_sound_position_combobox(
+                doc, state, workspace, row_index);
+        } else if (!state.object_details_combobox.popup_visible()) {
+            (void)state.object_details_combobox.show_popup();
+        }
+        (void)state.object_details_combobox.move_selection(
+            key.key == SDLK_UP ? -1 : 1);
+        (void)sync_object_details_combobox(doc, state, workspace, true);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+    if (!key.repeat && sound_position_focused
+        && (key.key == SDLK_RETURN
+            || key.key == SDLK_KP_ENTER)) {
+        const auto row_index = static_cast<uint32_t>(
+            *focused_sound_position_row);
+        if (state.object_details_combobox_row != row_index
+            || !state.object_details_combobox.is_active()) {
+            if (open_object_details_sound_position_combobox(
+                    doc, state, workspace, row_index)) {
+                (void)sync_object_details_combobox(doc, state, workspace, true);
+            }
+        } else if (!state.object_details_combobox.popup_visible()) {
+            (void)state.object_details_combobox.show_popup();
+            (void)sync_object_details_combobox(doc, state, workspace, true);
+        } else if (const auto selected
+            = state.object_details_combobox.selected_key()) {
+            if (commit_object_details_sound_position(
+                    doc, state, workspace, backend, shell, command, *selected)) {
+                return ObjectWorkbenchFieldKeyEffect::content_changed;
+            }
+        }
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
+    return ObjectWorkbenchFieldKeyEffect::none;
 }
 
 } // namespace nw::toolset

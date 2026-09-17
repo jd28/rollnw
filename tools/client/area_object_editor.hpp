@@ -2,6 +2,7 @@
 
 #include "area_door_hooks.hpp"
 #include "area_navigation.hpp"
+#include "command_bus.hpp"
 #include "viewport_pointer_drag.hpp"
 #include "viewport_rect.hpp"
 
@@ -24,6 +25,7 @@ class ShellController;
 class ToolsetBackend;
 struct CommandContext;
 struct CommandResult;
+struct EditorWheelAction;
 
 // One displayed drag/placement owns its saved spatial rows and cached door/nav
 // snapshots. A placement owns its temporary ObjectManager root until commit
@@ -99,6 +101,12 @@ enum class AreaObjectEditKey : uint8_t {
 bool handle_area_object_edit_key(ClientRenderer& renderer, AreaObjectEditKey key,
     ToolsetBackend& backend, const CommandContext& context,
     ShellController& shell, ObjectHandle active_object);
+
+// One already-routed object wheel action is a singleton command transaction.
+// Camera/unknown/nonfinite/zero actions do no work. Radius clamps to profile
+// minimum and drops nonfinite results; transform validation stays with backend.
+std::optional<CommandResult> apply_area_object_wheel_action(const EditorWheelAction& action,
+    ToolsetBackend& backend, const CommandContext& context, ObjectHandle target);
 
 // The caller supplies current tab/selection facts and a current area viewport.
 // Invalid/stale hits cancel or reject; dragging pins the press viewport. Source

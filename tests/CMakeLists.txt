@@ -438,6 +438,7 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/client_metrics.cpp
         ../tools/client/command_view.cpp
         ../tools/client/client_input.cpp
+        ../tools/client/editor_input.cpp
         ../external/RmlUi-6.2/Backends/RmlUi_Platform_SDL.cpp
         ../tools/client/creature_body_part_editor.cpp
         ../tools/client/creature_workbench_view.cpp

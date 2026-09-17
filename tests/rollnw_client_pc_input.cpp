@@ -203,6 +203,40 @@ TEST(ClientPcInput, PointerActionsUseDoorIntentOrNavigationAndReplaceTheLastClic
     EXPECT_EQ(apply_pc_pointer_actions(inputs, {}), PreviewStatus::invalid_input);
 }
 
+TEST(ClientPcInput, ControllerButtonBatchesRetainPendingFieldsAndRejectMalformedEdges)
+{
+    const std::array edges{
+        PcControllerButtonEdge{PcControllerButton::east, true, true},
+        PcControllerButtonEdge{PcControllerButton::back, true, true},
+        PcControllerButtonEdge{PcControllerButton::east, false, true},
+        PcControllerButtonEdge{PcControllerButton::east, true, false},
+        PcControllerButtonEdge{PcControllerButton::other, true, true}};
+    std::array<PreviewInputSample, edges.size()> pending{};
+    for (auto& sample : pending) {
+        sample.move_axis = {0.5f, -0.5f};
+        ASSERT_TRUE(set_preview_click_target(sample, {3, 4, 5}));
+    }
+    ASSERT_EQ(apply_pc_controller_button_edges(edges, pending), PreviewStatus::ok);
+    for (size_t i = 0; i < pending.size(); ++i) {
+        EXPECT_EQ(pending[i].flags, preview_input_click_target | (i < 2 ? static_cast<uint32_t>(preview_input_cancel) : 0u));
+        EXPECT_EQ(pending[i].move_axis, (glm::vec2{0.5f, -0.5f}));
+        EXPECT_EQ(pending[i].click_target, (glm::vec3{3, 4, 5}));
+    }
+    auto invalid = edges;
+    invalid[2].button = static_cast<PcControllerButton>(255);
+    EXPECT_EQ(apply_pc_controller_button_edges(invalid, pending), PreviewStatus::invalid_input);
+    for (const auto& sample : pending) {
+        EXPECT_EQ(sample.flags, preview_input_click_target);
+    }
+    ASSERT_EQ(apply_pc_controller_button_edges(edges, pending), PreviewStatus::ok);
+    EXPECT_EQ(apply_pc_controller_button_edges(std::span{edges}.first(1), pending), PreviewStatus::invalid_input);
+    for (const auto& sample : pending) {
+        EXPECT_EQ(sample.flags, preview_input_click_target);
+    }
+    EXPECT_EQ(apply_pc_controller_button_edges({}, {}), PreviewStatus::ok);
+    RecordProperty("controller_edge_bytes", sizeof(PcControllerButtonEdge));
+}
+
 TEST(ClientInputRoutes, EqualBatchesResolveEachOwnerAndRejectStaleWorldWithoutEditorFallback)
 {
     ClientInputFacts base{.category = ClientInputCategory::pointer, .edge = ClientInputEdge::down, .map = ClientInputMap::editor, .target = ClientInputTarget::world, .world_available = true};
@@ -237,6 +271,88 @@ TEST(ClientInputRoutes, EqualBatchesResolveEachOwnerAndRejectStaleWorldWithoutEd
     }
     RecordProperty("input_row_bytes", sizeof(ClientInputFacts));
     RecordProperty("route_row_bytes", sizeof(ClientInputRoute));
+}
+
+TEST(ClientInputRoutes, CapturedWorldPointersKeepTheirOwnerAndBlockedWorldCannotAct)
+{
+    for (const auto map : {ClientInputMap::editor, ClientInputMap::pc}) {
+        const auto native = map == ClientInputMap::editor ? ClientNativeRecipient::editor : ClientNativeRecipient::pc;
+        const auto owner = map == ClientInputMap::editor ? ClientPointerOwner::editor : ClientPointerOwner::pc;
+        for (const auto target : {ClientInputTarget::toolset, ClientInputTarget::command}) {
+            std::array<ClientInputFacts, 4> inputs;
+            inputs.fill({.category = ClientInputCategory::pointer, .edge = ClientInputEdge::motion, .map = map, .target = target, .pointer_owner = owner, .world_available = true});
+            inputs[1].edge = ClientInputEdge::up;
+            inputs[2].command_modal = true;
+            inputs[3].category = ClientInputCategory::key;
+            inputs[3].edge = ClientInputEdge::down;
+            std::array<ClientInputRoute, inputs.size()> outputs{};
+            ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+            EXPECT_EQ(outputs[0].native, native);
+            EXPECT_EQ(outputs[1].native, native);
+            EXPECT_EQ(outputs[2].native, ClientNativeRecipient::ui);
+            EXPECT_EQ(outputs[2].rml, ClientRmlRecipient::command);
+            EXPECT_EQ(outputs[3].native, ClientNativeRecipient::ui);
+            if (map == ClientInputMap::pc) {
+                EXPECT_TRUE(outputs[0].sources.pointer);
+                EXPECT_FALSE(outputs[2].sources.pointer);
+                inputs[0].world_available = false;
+                ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+                EXPECT_EQ(outputs[0].native, ClientNativeRecipient::none);
+                EXPECT_EQ(outputs[0].disposition, ClientInputDisposition::unavailable_world);
+            }
+        }
+        std::array<ClientInputFacts, 3> blocked;
+        blocked.fill({.category = ClientInputCategory::pointer, .edge = ClientInputEdge::wheel, .map = map, .target = ClientInputTarget::world, .world_available = true, .world_input_blocked = true});
+        blocked[1].category = ClientInputCategory::key;
+        blocked[1].edge = ClientInputEdge::down;
+        blocked[2].target = ClientInputTarget::toolset;
+        std::array<ClientInputRoute, blocked.size()> outputs{};
+        ASSERT_TRUE(resolve_client_input_routes(blocked, outputs));
+        EXPECT_EQ(outputs[0].native, ClientNativeRecipient::none);
+        EXPECT_EQ(outputs[1].native, ClientNativeRecipient::none);
+        EXPECT_EQ(outputs[0].disposition, ClientInputDisposition::unavailable_world);
+        EXPECT_EQ(outputs[1].disposition, ClientInputDisposition::unavailable_world);
+        EXPECT_EQ(outputs[2].native, ClientNativeRecipient::ui);
+        for (const auto& output : outputs) {
+            EXPECT_FALSE(output.sources.pointer);
+            EXPECT_FALSE(output.sources.keyboard);
+            EXPECT_FALSE(output.sources.controller);
+        }
+    }
+}
+
+TEST(ClientInputRoutes, MapChangesRejectThePreviousWorldPointerOwner)
+{
+    const std::array inputs{
+        ClientInputFacts{.category = ClientInputCategory::pointer, .edge = ClientInputEdge::motion, .map = ClientInputMap::editor, .pointer_owner = ClientPointerOwner::pc, .world_available = true},
+        ClientInputFacts{.category = ClientInputCategory::pointer, .edge = ClientInputEdge::motion, .map = ClientInputMap::pc, .pointer_owner = ClientPointerOwner::editor, .world_available = true},
+    };
+    std::array<ClientInputRoute, inputs.size()> outputs{};
+    ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+    for (const auto& output : outputs) {
+        EXPECT_EQ(output.disposition, ClientInputDisposition::invalid_input);
+        EXPECT_EQ(output.native, ClientNativeRecipient::none);
+        EXPECT_EQ(output.rml, ClientRmlRecipient::none);
+        EXPECT_FALSE(output.sources.pointer);
+    }
+}
+
+TEST(ClientInputRoutes, TextFocusClaimsKeyboardAndKeepsEligibleControllerEdgesInThePcMap)
+{
+    for (const auto focus : {ClientInputFocus::toolset_text, ClientInputFocus::command_text}) {
+        std::array<ClientInputFacts, 3> inputs;
+        inputs.fill({.category = ClientInputCategory::gamepad, .edge = ClientInputEdge::down, .map = ClientInputMap::pc, .focus = focus, .world_available = true});
+        inputs[1].category = ClientInputCategory::key;
+        inputs[2].command_modal = true;
+        std::array<ClientInputRoute, inputs.size()> outputs{};
+        ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+        EXPECT_EQ(outputs[0].native, ClientNativeRecipient::pc);
+        EXPECT_TRUE(outputs[0].sources.controller);
+        EXPECT_FALSE(outputs[0].sources.keyboard);
+        EXPECT_EQ(outputs[1].native, ClientNativeRecipient::ui);
+        EXPECT_EQ(outputs[2].native, ClientNativeRecipient::ui);
+        EXPECT_FALSE(outputs[2].sources.controller);
+    }
 }
 
 TEST(ClientInputRoutes, InvalidTagsEdgesAndMismatchedSpansClearPreviousActions)

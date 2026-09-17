@@ -722,4 +722,63 @@ bool complete_terminal_command(Rml::ElementDocument* doc, ShellController& shell
     return completion.completed || !completion.candidates.empty();
 }
 
+std::optional<ShellUiClick> capture_shell_ui_click(Rml::Element* hit)
+{
+    if (auto* dock = find_ancestor_with_class(hit, "dock_tab")) {
+        return ShellUiClick{ShellUiClickKind::dock, dock->GetAttribute<Rml::String>("data-widget", "")};
+    }
+    auto* output = find_ancestor_with_class(hit, "output_toggle");
+    if (!output) { return std::nullopt; }
+    ShellUiClick click;
+    const auto& id = output->GetId();
+    if (id == "output_info") {
+        click.value = "info";
+    } else if (id == "output_warn") {
+        click.value = "warn";
+    } else if (id == "output_error") {
+        click.value = "error";
+    } else if (id == "output_script") {
+        click.value = "script";
+    }
+    if (!click.value.empty()) { click.kind = ShellUiClickKind::output_channel; }
+    return click;
+}
+
+std::optional<CommandInvocation> take_shell_ui_click_command(ShellUiClick& click)
+{
+    const auto kind = std::exchange(click.kind, ShellUiClickKind::none);
+    if (click.value.empty()) { return std::nullopt; }
+    CommandInvocation command;
+    if (kind == ShellUiClickKind::dock) {
+        command.command_id = "rollnw.client.dock.activate";
+        command.args.push_back(CommandArg::positional_string("bottom"));
+    } else if (kind == ShellUiClickKind::output_channel) {
+        command.command_id = "rollnw.client.output.channel";
+    } else {
+        return std::nullopt;
+    }
+    command.args.push_back(CommandArg::positional_string(std::move(click.value)));
+    return command;
+}
+
+ShellOutputKeyResult handle_shell_output_key(const SDL_KeyboardEvent& key,
+    Rml::Context* context, ShellViewState& state, ShellController& shell)
+{
+    if (key.repeat || !focused_element_has_id(context, "output_list")
+        || !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI)) || (key.mod & SDL_KMOD_ALT)) { return {}; }
+    if (key.key == SDLK_A) {
+        state.output_selection.anchor = 0;
+        state.output_selection.focus = state.output_selection.text.size();
+        shell.output_dirty = true;
+        return {.handled = true};
+    }
+    if (key.key != SDLK_C) { return {}; }
+    const auto [start, end] = state.output_selection.range();
+    const auto first = std::min(start, state.output_selection.text.size());
+    const auto last = std::min(end, state.output_selection.text.size());
+    ShellOutputKeyResult result{.handled = true};
+    if (first < last) { result.clipboard = state.output_selection.text.substr(first, last - first); }
+    return result;
+}
+
 } // namespace nw::toolset

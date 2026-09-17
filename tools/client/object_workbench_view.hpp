@@ -16,10 +16,13 @@
 #include <string>
 
 namespace Rml {
+class Context;
 class Element;
 class ElementDocument;
 class Event;
 }
+struct SDL_KeyboardEvent;
+
 namespace nw::toolset {
 class WorkspaceState;
 class ToolsetBackend;
@@ -60,6 +63,51 @@ struct ObjectWorkbenchCommandClick {
     std::string tab_id;
     CommandArgs args;
 };
+
+enum class ObjectWorkbenchComboKind : uint8_t { none,
+    sound_open,
+    sound_select,
+    spell_open,
+    spell_select };
+enum class ObjectWorkbenchComboEffect : uint8_t { none,
+    sound_opened,
+    sound_selected,
+    spell_opened,
+    spell_selected };
+// Cold schema 1. Copied property/filter facts and owning UTF-8 payload survive
+// SDK release. One displayed combobox is singular; choice rows remain batches.
+struct ObjectWorkbenchComboClick {
+    ObjectHandle object{};
+    uint64_t module_generation = 0;
+    uint64_t resource_generation = 0;
+    uint64_t mutation_epoch = 0;
+    std::optional<ObjectWorkbenchCommandRow> property;
+    std::optional<uint32_t> source_row;
+    std::optional<int32_t> source_selection;
+    int32_t value = -1;
+    int32_t selected_class = -1;
+    int32_t selected_metamagic = -1;
+    int32_t level = -1;
+    ObjectWorkbenchSurface surface = ObjectWorkbenchSurface::details;
+    CreatureSpellFilterField field = CreatureSpellFilterField::none;
+    CreatureSpellFilterField source_field = CreatureSpellFilterField::none;
+    ObjectWorkbenchComboKind kind = ObjectWorkbenchComboKind::none;
+    bool active = false;
+    bool popup_visible = false;
+    std::string tab_id;
+    std::string query;
+    std::string field_id;
+};
+std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rml::Element* hit,
+    const ObjectWorkbenchViewState&, const WorkspaceState&, uint64_t module_generation,
+    uint64_t resource_generation);
+// Called after SDK release. Consumes once, rejects stale facts, and returns the
+// existing presentation intent; spell-open can render an unavailable choice set.
+ObjectWorkbenchComboEffect apply_object_workbench_combo_click(ObjectWorkbenchComboClick&,
+    Rml::ElementDocument*, ObjectWorkbenchViewState&, const WorkspaceState&, ToolsetBackend&,
+    ShellController&, const CommandContext&);
+bool focus_object_workbench_combo_field(Rml::ElementDocument*, const ObjectWorkbenchComboClick&,
+    const ObjectWorkbenchViewState&, const WorkspaceState&);
 
 // One displayed UI click is a true singleton. A matched invalid control returns
 // a kind=none descriptor so the root preserves its original release/consume path.
@@ -165,6 +213,16 @@ bool commit_object_workbench_sound_volume(ObjectWorkbenchViewState&, const Works
     ToolsetBackend&, ShellController&, const CommandContext&);
 bool commit_object_details_sound_position(Rml::ElementDocument*, ObjectWorkbenchViewState&, const WorkspaceState&,
     ToolsetBackend&, ShellController&, const CommandContext&, int32_t desired);
+
+// One current focused field is a true singleton. Called after shared selector
+// Escape; borrowed event/DOM end at return. Invalid numeric text does no work;
+// matched arrows retain consumption. Command/undo owners are unchanged.
+enum class ObjectWorkbenchFieldKeyEffect : uint8_t { none,
+    handled,
+    content_changed };
+ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_KeyboardEvent&,
+    Rml::Context*, Rml::ElementDocument*, ObjectWorkbenchViewState&, const WorkspaceState&,
+    ToolsetBackend&, ShellController&, const CommandContext&);
 
 // One displayed object's activation resets original scroll/page/surface state;
 // switching creatures retains existing feat/spell queries. Mutation refresh keeps

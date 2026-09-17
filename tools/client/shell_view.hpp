@@ -1,5 +1,7 @@
 #pragma once
 
+#include "command_bus.hpp"
+
 #include <RmlUi/Core/Types.h>
 #include <SDL3/SDL.h>
 
@@ -13,6 +15,7 @@
 
 namespace Rml {
 class Context;
+class Element;
 class ElementDocument;
 }
 
@@ -63,6 +66,28 @@ struct ShellPreviewLayout {
     bool active = false;
     bool placement_pending = false;
 };
+
+enum class ShellUiClickKind : uint8_t { none,
+    dock,
+    output_channel };
+// Schema revision 1, singleton shell click with owning attribute text. No SDK
+// borrow escapes. A matched empty/unknown toggle produces no command.
+struct ShellUiClick {
+    ShellUiClickKind kind = ShellUiClickKind::none;
+    std::string value;
+};
+std::optional<ShellUiClick> capture_shell_ui_click(Rml::Element* hit);
+// Consume once; unsupported nonempty dock values retain backend rejection.
+std::optional<CommandInvocation> take_shell_ui_click_command(ShellUiClick& click);
+
+struct ShellOutputKeyResult {
+    bool handled = false;
+    std::optional<std::string> clipboard;
+};
+// One displayed output's current visible focus and byte selection. Repeat/Alt/
+// unmatched keys reject; selection ranges clamp to the current flattened text.
+ShellOutputKeyResult handle_shell_output_key(const SDL_KeyboardEvent& key,
+    Rml::Context* context, ShellViewState& state, ShellController& shell);
 
 void apply_shell_layout(Rml::ElementDocument* doc, const ShellController& shell, ShellPreviewLayout preview);
 void apply_left_dock_width(Rml::ElementDocument* doc, ShellController& shell,

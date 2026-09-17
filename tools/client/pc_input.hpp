@@ -66,4 +66,20 @@ struct PcPointerAction {
 PreviewStatus apply_pc_pointer_actions(std::span<const PcPointerAction> inputs,
     std::span<PreviewInputSample> pending) noexcept;
 
+enum class PcControllerButton : uint8_t { other,
+    east,
+    back };
+// Schema 1. Physical edge and eligibility from the current routing authority.
+// Caller owns independent contiguous pending rows for this call. Eligible down
+// on East/Back cancels navigation; other/up/disabled edges retain pending state.
+struct PcControllerButtonEdge {
+    PcControllerButton button = PcControllerButton::other;
+    bool down = false;
+    bool enabled = false;
+};
+// Malformed tags or unequal spans clear only cancellation in every output row
+// and reject all; pointer/movement payloads remain owned by their existing paths.
+PreviewStatus apply_pc_controller_button_edges(std::span<const PcControllerButtonEdge> inputs,
+    std::span<PreviewInputSample> pending) noexcept;
+
 } // namespace nw::toolset

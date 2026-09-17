@@ -1,5 +1,6 @@
 #pragma once
 
+#include "command_bus.hpp"
 #include "resource_document.hpp"
 #include "viewport_rect.hpp"
 
@@ -57,6 +58,52 @@ inline constexpr TabScrollStrip kObjectWorkbenchTabScrollStrip{
     "object_workbench_tabs", "object_workbench_tab_track", "object_workbench_tabs_previous",
     "object_workbench_tabs_next", "object_workbench_tab"};
 
+// Cold schema 1. Semantic target IDs and copied source identity outlive SDK
+// release. One displayed Workspace is a singleton; tab rows keep their owner.
+enum class WorkspaceTabClickKind : uint8_t { none,
+    close,
+    activate,
+    close_subtab,
+    activate_subtab };
+struct WorkspaceTabClick {
+    std::string tab_id;
+    std::string subtab_id;
+    std::string active_tab_id;
+    std::string detail;
+    ObjectHandle document{};
+    WorkspaceTabKind tab_kind{};
+    WorkspaceTabClickKind kind = WorkspaceTabClickKind::none;
+};
+std::optional<WorkspaceTabClick> capture_workspace_tab_click(Rml::ElementDocument* doc,
+    Rml::Element* hit, Rml::Vector2f point, const WorkspaceState& workspace);
+// Rechecks live semantic target/source identity and consumes once. Dirty state
+// is deliberately live: existing backend close/save prompts remain authoritative.
+std::optional<CommandInvocation> take_workspace_tab_click_command(WorkspaceTabClick& click,
+    const WorkspaceState& workspace);
+// true means content-only refresh; false requires the existing full refresh.
+bool sync_workspace_tab_click(Rml::ElementDocument* doc, WorkspaceViewState& view,
+    const WorkspaceState& workspace, WorkspaceTabClickKind kind, std::string_view tab_id);
+
+struct TabScrollClick {
+    bool enabled = false;
+    bool forward = false;
+    bool pending = true;
+};
+std::optional<TabScrollClick> capture_tab_scroll_click(Rml::Element* hit,
+    const TabScrollStrip& strip, std::string_view button_class);
+bool apply_tab_scroll_click(TabScrollClick& click, Rml::ElementDocument* doc,
+    const TabScrollStrip& strip, float& scroll_x);
+
+// One displayed area surface; request ownership/cross-editor cancellation stays
+// with composition. A matched unknown attribute carries no surface request.
+enum class AreaWorkspaceSurface : uint8_t { properties,
+    objects,
+    tiles };
+struct AreaWorkspaceSurfaceClick {
+    std::optional<AreaWorkspaceSurface> surface;
+};
+std::optional<AreaWorkspaceSurfaceClick> capture_area_workspace_surface_click(Rml::Element* hit);
+
 enum class WorkspaceViewerViewportKind : uint8_t { area,
     preview };
 
@@ -72,6 +119,11 @@ struct WorkspaceViewerViewportRequest {
 std::string area_rows_markup(std::span<const LoadedAreaEntry> areas);
 std::string recent_projects_markup(std::span<const RecentProjectEntry> projects);
 
+// One displayed viewport is a singleton. Borrow the current tab only for this
+// call; append owning escaped resource metadata and the existing empty prompt.
+// Other tab kinds append nothing. Surface/workbench composition stays outside.
+void append_workspace_viewport_markup(std::string& markup, const WorkspaceTab& tab);
+
 // The workspace has one displayed viewport. Compare before rebuilding its DOM
 // so ordinary Details refreshes do not steal focus from an editor.
 bool area_viewport_changed(Rml::ElementDocument* document, const WorkspaceTab* tab);
@@ -86,6 +138,16 @@ void remember_tab_scroll(Rml::ElementDocument* doc, const TabScrollStrip& strip,
 [[nodiscard]] size_t workspace_tab_target_index_at_point(Rml::ElementDocument* doc,
     Rml::Vector2f point, const std::vector<WorkspaceTab>& tabs,
     std::string_view dragged_tab_id, size_t fallback);
+// One current strip/primary pointer is a singleton. No DOM/event borrow is
+// retained. Nonfinite points cancel; unknown source IDs cannot produce a move.
+// Matched movable controls retain consumption even with a missing ID.
+struct WorkspaceTabDragUpdate {
+    std::optional<CommandInvocation> command;
+    bool handled = false;
+};
+bool begin_workspace_tab_drag(Rml::ElementDocument*, WorkspaceViewState&, Rml::Element* hit, Rml::Vector2f point);
+WorkspaceTabDragUpdate update_workspace_tab_drag(Rml::ElementDocument*, WorkspaceViewState&,
+    const WorkspaceState&, Rml::Vector2f point);
 void clear_workspace_tab_drag(WorkspaceViewState& state);
 void refresh_workspace_tabs(Rml::ElementDocument* doc, WorkspaceViewState& state,
     const WorkspaceState& workspace);
