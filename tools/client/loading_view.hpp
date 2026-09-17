@@ -7,6 +7,8 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -38,9 +40,26 @@ struct ProjectLoadRequest {
     [[nodiscard]] bool active() const noexcept { return !path.empty(); }
 };
 
+// One desktop's cold asynchronous delivery lifetime. Requests must own this
+// record after the desktop dies, so an index into desktop state is insufficient.
+// The callback holds the mutex across SDL error/queue work; closure then makes
+// further client SDL work impossible. A closed record is never reopened.
+struct NativeDialogDeliveryState {
+    std::mutex mutex;
+    bool accepting = true;
+};
+
 // One desktop's native dialog/import/load state. Job and strings are owned;
 // window/context/document borrows never survive a synchronous presentation call.
 struct LoadingViewState {
+    LoadingViewState() = default;
+    ~LoadingViewState();
+    LoadingViewState(const LoadingViewState&) = delete;
+    LoadingViewState& operator=(const LoadingViewState&) = delete;
+    LoadingViewState(LoadingViewState&&) = delete;
+    LoadingViewState& operator=(LoadingViewState&&) = delete;
+
+    std::shared_ptr<NativeDialogDeliveryState> native_dialog_delivery = std::make_shared<NativeDialogDeliveryState>();
     bool module_dialog_open = false;
     Uint32 open_module_dialog_event = 0;
     std::string module_dialog_command;
@@ -54,10 +73,13 @@ struct LoadingViewState {
     uint64_t import_module_generation = 0;
 };
 
-// Callback owns the request, copies SDL's transient selection, then transfers
-// one heap result into the SDL event queue. Failed enqueue destroys the result.
+// In-process schema 1: callback owns event identity and a delivery-lifetime
+// reference; neither borrows desktop/UI state. Null, closed and out-of-range
+// requests are dropped before SDL calls. Callback copies SDL's transient
+// selection and transfers one result; failed enqueue destroys the result.
 struct OpenModuleDialogRequest {
     Uint32 event_type = 0;
+    std::shared_ptr<NativeDialogDeliveryState> delivery;
 };
 
 struct OpenModuleDialogResult {
@@ -67,6 +89,11 @@ struct OpenModuleDialogResult {
 };
 
 void SDLCALL open_module_dialog_callback(void* userdata, const char* const* filelist, int filter);
+
+// Main-thread singleton closure and queued-payload batch disposal. Call before
+// SDL teardown; returns number disposed. Destructor only closes the gate and
+// never calls SDL. Payloads already taken from the queue remain caller-owned.
+[[nodiscard]] size_t close_loading_dialog_delivery(LoadingViewState& state);
 
 struct LoadingDialogSelection {
     std::string command;

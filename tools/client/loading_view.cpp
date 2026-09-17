@@ -84,11 +84,13 @@ std::filesystem::path project_dialog_start_location()
 
 void SDLCALL open_module_dialog_callback(void* userdata, const char* const* filelist, int /*filter*/)
 {
-    auto* request = static_cast<OpenModuleDialogRequest*>(userdata);
-    const Uint32 event_type = request ? request->event_type : 0;
-    delete request;
+    std::unique_ptr<OpenModuleDialogRequest> request{static_cast<OpenModuleDialogRequest*>(userdata)};
+    if (!request || !request->delivery || request->event_type < SDL_EVENT_USER
+        || request->event_type > SDL_EVENT_LAST) { return; }
+    std::lock_guard lock{request->delivery->mutex};
+    if (!request->delivery->accepting) { return; }
 
-    auto* result = new OpenModuleDialogResult{};
+    auto result = std::make_unique<OpenModuleDialogResult>();
     if (!filelist) {
         result->error = SDL_GetError();
     } else if (!filelist[0]) {
@@ -98,11 +100,37 @@ void SDLCALL open_module_dialog_callback(void* userdata, const char* const* file
     }
 
     SDL_Event event{};
-    event.type = event_type;
-    event.user.data1 = result;
-    if (event_type == 0 || !SDL_PushEvent(&event)) {
-        delete result;
+    event.type = request->event_type;
+    event.user.data1 = result.get();
+    if (SDL_PushEvent(&event)) { (void)result.release(); }
+}
+
+LoadingViewState::~LoadingViewState()
+{
+    if (native_dialog_delivery) {
+        std::lock_guard lock{native_dialog_delivery->mutex};
+        native_dialog_delivery->accepting = false;
     }
+}
+
+size_t close_loading_dialog_delivery(LoadingViewState& state)
+{
+    if (state.native_dialog_delivery) {
+        std::lock_guard lock{state.native_dialog_delivery->mutex};
+        state.native_dialog_delivery->accepting = false;
+    }
+    state.native_dialog_delivery.reset();
+    size_t disposed = 0;
+    const auto event_type = std::exchange(state.open_module_dialog_event, 0u);
+    state.module_dialog_open = false;
+    state.module_dialog_command.clear();
+    if (event_type < SDL_EVENT_USER || event_type > SDL_EVENT_LAST || !SDL_WasInit(SDL_INIT_EVENTS)) { return disposed; }
+    SDL_Event event{};
+    while (SDL_PeepEvents(&event, 1, SDL_GETEVENT, event_type, event_type) > 0) {
+        delete static_cast<OpenModuleDialogResult*>(event.user.data1);
+        ++disposed;
+    }
+    return disposed;
 }
 
 void sync_loading_overlay(Rml::ElementDocument* document, const ProjectLoadRequest& load)
@@ -180,7 +208,7 @@ LoadingDialogStatus show_loading_module_dialog(SDL_Window* window, LoadingViewSt
     }
     state.module_dialog_open = true;
     SDL_ShowOpenFileDialog(open_module_dialog_callback,
-        new OpenModuleDialogRequest{state.open_module_dialog_event},
+        new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery},
         window,
         import ? import_filters : filters,
         import ? 1 : static_cast<int>(sizeof(filters) / sizeof(filters[0])),
@@ -217,7 +245,7 @@ LoadingDialogStatus show_loading_project_dialog(SDL_Window* window, LoadingViewS
     SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_TITLE_STRING, title.c_str());
     SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_ACCEPT_STRING, import ? "Select Folder" : "Open Project");
     SDL_ShowFileDialogWithProperties(SDL_FILEDIALOG_OPENFOLDER, open_module_dialog_callback,
-        new OpenModuleDialogRequest{state.open_module_dialog_event},
+        new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery},
         props);
     SDL_DestroyProperties(props);
     return LoadingDialogStatus::started;
@@ -226,11 +254,12 @@ LoadingDialogStatus show_loading_project_dialog(SDL_Window* window, LoadingViewS
 void show_loading_blueprint_directory_dialog(SDL_Window* window, LoadingViewState& state,
     const std::filesystem::path& location)
 {
+    if (state.open_module_dialog_event == 0) { return; }
     state.module_dialog_default_location = location.string();
     state.module_dialog_command = "blueprint.directory";
     state.module_dialog_open = true;
     SDL_ShowOpenFolderDialog(open_module_dialog_callback,
-        new OpenModuleDialogRequest{state.open_module_dialog_event}, window,
+        new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery}, window,
         state.module_dialog_default_location.c_str(), false);
 }
 

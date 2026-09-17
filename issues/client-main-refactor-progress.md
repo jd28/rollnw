@@ -2110,3 +2110,390 @@ input lifetime/error policy, state ownership, existing DTO reuse and stated
 done criteria passed self-check. GPU timestamp accuracy, running overlay feel,
 high DPI and clean LSan remain unverified. Main remains 6,215 lines; C10 native
 routing, C19 resource lifetime and C20 root/final integration remain open.
+
+## C19a client native-result lifetime plan
+
+Tier 1 prerequisite to Tier 2 runtime ownership. Actual producers are the three
+SDL dialog launches in loading_view; one native callback copies a path/cancel/
+thread-local SDL error into one heap result and queues the registered event.
+Unix Zenity uses a detached SDL thread. Root permits clean-workspace quit during
+an open dialog; a callback cannot assume its original owner, SDL events or event
+registration still exist. Output on shutdown must be no later client SDL calls/
+queue publication, plus disposal of already queued owned results. One desktop
+consumer/delivery gate is a true singleton; requests/results are a queued batch.
+ASSUMPTION: callback completion is uncommon relative to frame input — affects
+cold-path ownership/locking, not a speed claim.
+ASSUMPTION: event registration may recycle after SDL restart — affects the
+late-result fixture expectation; verify before deciding that identity policy.
+
+First characterize callback delivery after owner destruction and SDL event
+restart/registration lifetime in the actual dummy SDL fixture, with a real callback thread.
+Then attach each owning request to its desktop's heap delivery record (mutex and
+accepting bit). Callback locks before any SDL error/queue call; shutdown closes
+under that same lock and drains only this owner's registered payload events
+while SDL is live. The permanently closed old record survives pending requests
+and cannot be reopened by SDL initialization. Destructor closes delivery without
+SDL calls; root explicitly drains before SDL_Quit. Unknown/null/invalid requests
+are dropped; failed queue transfer destroys the result. No AppState borrow.
+
+Cost: one shared heap record per desktop, one shared ownership copy per dialog,
+one cold mutex lock per completion/closure, and O(N) queued-payload disposal.
+An array index cannot own this synchronization record after its desktop dies;
+shared lifetime is required by the existing asynchronous callback protocol and
+adds no hot pointer path. Reuse the SDL result queue; no new worker, queue,
+producer registry, global epoch or blocking wait for the native picker.
+Simplification removes the need to assume completion or keep desktop state alive.
+
+Done: failing-before/passing-after late callback after SDL restart,
+queued-result drain, closed/null/invalid request drop, normal/error/cancel delivery
+and repeat consumption, worker/close ordering, normal/sanitized affected checks
+and stable ownership/format review. SDL's own native driver process/toolkit
+cleanup and real native picker behavior remain integration gaps; this guard owns
+client callback SDL work/result payloads, not SDL's internal driver resources.
+The larger startup/resource-owner extraction remains separate. Plan B is retain
+current runtime boundaries until this client callback lifetime contract passes.
+
+## C19a result and self-check
+
+The initial fixture falsified the registration-recycling assumption: IDs were
+32,768 then 32,769 across an actual event/video restart. Vendored SDL_RegisterEvents
+uses a monotonic atomic counter. The corrected late-owner regression then failed
+against production: one orphaned heap result queued for the expired owner after
+SDL restarted. Requests now own their original delivery record; the callback
+locks before client SDL work and drops closed/null/out-of-range requests. Closure
+serializes with publication, resets the consumer's gate/event identity and drains
+its queued results before SDL teardown. Destructor only closes the record and
+calls no SDL. Root invokes closure at the start of normal teardown; closed browse
+APIs cannot launch a new picker. No wait for native completion or AppState borrow.
+
+The three new cases verify actual SDL restart/late worker drop, two queued-result
+disposals, preservation of an unrelated payload, pending record lifetime ending
+once its callback returns, idempotent closure, closed browse rejection, live
+worker error copying, malformed tags/null delivery and existing once-only result
+consumption. All 47 affected cases from 6 suites passed normally in 4,184 ms and
+under ASan/UBSan in 20,607 ms, no skips. Normal/sanitized client/test builds passed
+without warnings; formatting and diff checks passed.
+
+Measured x86-64 LoadingViewState is 312 → 328 bytes; delivery record is 48 bytes
+plus shared-ownership allocation metadata, request is 4 → 24 bytes. One cold
+allocation per desktop and a lock per completion/closure buy lifetime independent
+of desktop destruction. Root and producer keep one owner; no extra worker,
+event queue, registry or generation. Resetting the closed owner reference avoids
+a second destructor lock and releases it immediately when no requests remain.
+Explicit singleton/batch-disposal, cold-pointer justification, native-event range
+and queue transfer/failure contracts passed self-check. Main is 6,216 lines.
+
+This resolves client callback/result ownership without assuming completion at
+shutdown. SDL driver process/toolkit teardown and a real native picker remain
+unverified integration behavior; the guard makes no claim about SDL's internal
+resources. Complete resource acquisition/unwinding, remaining native input and
+root/frame integration remain open; no performance or clean LSan result claimed.
+
+## C19b Rml file adapter plan
+
+Tier 1. Actual UI package input is panel.rml (3,151 bytes), panel.rcss (81,721),
+resource URLs with a ui prefix/query/protocol, and game TGA fallback (representative
+black.tga is 272 bytes). Output is an owned resource/file stream consumed by
+RmlUi's required Open/Read/Seek/Tell/Length/Close protocol. Package/game managers
+are borrowed for the adapter lifetime; resource bytes belong to each open file
+until its single Close. Read transforms a byte batch; SDK lifecycle calls remain
+singular because that external protocol cannot be changed. One adapter is the
+runtime's true singleton. ASSUMPTION: indexed UI resources are the common case
+— affects memory/file partitioning, not a measured rate or optimization.
+
+Move the existing adapter into client_rml_file_interface.hpp/.cpp and keep its
+lookup/normalization, copied bytes, stdio fallback and error behavior. Root still
+owns package/managers/Rml lifetime at this checkpoint; complete acquisition and
+failure cleanup are separate. Null handles/buffers read zero, missing opens fail,
+memory seek rejects invalid origin/negative/past-end offsets, fallback delegates
+stdio. Nonzero SDK tokens must come from Open and remain live until Close.
+
+Cost remains one cold file record allocation, resource-byte ownership, path
+normalization/registry reads and O(bytes) read copies, plus one translation unit.
+The existing cold pointer-sized file token is preserved; replacing it with an
+index requires a new slot/lifetime table and changes the external handle contract
+without an observed need. This is not a pointer-heavy engine hot path. stdio's
+FILE borrow and memcpy's buffer pointers are required by their external APIs.
+No new cache, lookup table, backend, generic file service or whole AppState API.
+
+Simplification makes the actual file boundary directly testable and reuses
+ResourceManager/stdio rather than another loader. Done: actual package URL reads,
+owned bytes surviving provider mutation, TGA fallback, filesystem/file-protocol
+reads, lengths/EOF/valid seeks/null/missing handling, normal/sanitized client/test
+builds and affected checks. Extreme numeric seek behavior is characterized after
+the move if needed, in a separate fix. Full Rml/SDL partial startup and GPU/desktop
+integration remain open; no performance improvement is claimed. Plan B: keep
+resource ownership in root until the separate lifetime contract can be verified.
+
+## C19b Rml file adapter result
+
+Moved all eight adapter methods without changing their normalized method bodies.
+The executable and guarded Rml test target compile the same production source;
+root retains manager/package lifetime. Four new tests use the actual UI files
+and binary TGA fixture, verify URL forms, owned bytes after registry replacement,
+EOF/seek bounds, stdio position preservation and explicit missing/null handling.
+All 54 affected checks from 6 suites passed normally (326 ms) and under
+ASan/UBSan (1,165 ms), no skips. Both builds and formatting/diff checks passed
+without warnings. Main is 6,042 lines.
+
+Self-check: SDK singleton lifecycle and batch-byte reads are documented, existing
+cold file pointers are justified, no lookup/cache/service abstraction was added,
+and file ownership/error contracts have direct tests. No measured performance
+claim. Extreme long offsets remain a separate boundary characterization; partial
+startup, native picker internals, desktop/GPU behavior and full integration remain
+open.
+
+## C19b2 numeric memory seek plan
+
+Tier 1. Input is the SDK's signed long offset/origin and a live owned byte stream
+with size_t position in [0, byte count]; output is either a new bounded position
+or false with unchanged position. Real package seeks are small; the actual API
+also accepts LONG_MIN/MAX. Characterize those boundaries under UBSan before
+changing the existing signed addition. Reject invalid origins and offsets outside
+the stream; keep stdio delegation unchanged. On this x86-64 desktop, bounded
+unsigned arithmetic removes overflow without extra allocation or traversal.
+
+Simplification: compare the displacement with remaining/prefix bytes before
+arithmetic; no clamp, wider integer dependency, cache, table or new state. Seek
+is a singleton SDK stream operation, Read remains the byte-batch transform.
+Done: demonstrate the prior overflow, pass extreme offsets with unchanged cursor,
+retain existing file cases, normal/sanitized builds and checks. No performance
+claim; this separate correctness fix must not alter resource lookup.
+
+## C19b2 numeric memory seek result
+
+The new actual-package test failed before the fix under UBSan: signed overflow
+from 1 + LONG_MAX in the production adapter. Memory seeks now compare positive
+displacements with remaining bytes and negative magnitudes with the prefix before
+updating size_t position; LONG_MIN magnitude is computed without signed negation
+overflow. Invalid origins/out-of-range offsets leave the cursor unchanged, and
+stdio is unchanged. All 5 file tests passed normally and under ASan/UBSan with
+no skips. Both client/test builds passed without warnings; formatting/diff passed.
+Self-check matched the bounded contract, kept batch Read and the SDK singleton
+exception, and added no state or speculative utility. Other C19/C20 work remains
+open; no performance or leak-check claim.
+
+## C19c Rml resource ownership extraction plan
+
+Tier 2 checkpoint. Input is the actual indexed UI directory, borrowed live game
+ResourceManager and SDK renderer/window, five deployed font files and positive
+logical context dimensions. Output is one live Rml singleton, three named context
+borrows and owning font/package storage retained through Rml shutdown. File bytes
+and fonts are cold startup batches; per-frame context access is fixed three slots.
+The common case is the existing successful startup sequence; missing package,
+font or context returns false with the existing diagnostic. No measured rates.
+
+Move package validation, five font loads, document loading and Rml/context
+acquisition into ClientRmlRuntime. Keep the primary-context renderer resize
+between primary and overlay creation, the density override and exact root
+listener/model/geometry/texture shutdown ordering. This commit keeps explicit
+root shutdown; the next separate fix adds failure-safe guards and proves acquired
+resource cleanup. SDK renderer/window/game resources remain external borrows
+and must outlive shutdown. DOM/render interfaces are required cold SDK pointers;
+indices cannot replace the SDK's own identities, and no indexed engine hot path
+is introduced.
+
+Cost: same five font byte arrays, resource registry, copied UI document strings
+and three SDK contexts; one owner and a translation unit add no worker, cache,
+queue or general application service. Runtime is a true process singleton; fonts
+are a fixed five-row batch, documents use the SDK's singleton creation protocol.
+Simplification reuses ResourceManager/FileInterface/stdio and fixed context roles,
+removing root's loader and resource ownership without a whole-state API.
+
+Done: normal/sanitized builds, actual package/font/document initialization and
+affected Rml/input checks with explicit shutdown, unchanged resize/teardown
+ordering and dependency audit. Partial-startup cleanup is deliberately tested
+and fixed separately; real window/Vulkan/native picker/high-DPI remain
+unverified where no fixture exists. Plan B is the narrower Rml owner; SDL/engine
+ownership moves only after feature borrows are detached while still live.
+
+## C19c Rml resource ownership extraction result
+
+ClientRmlRuntime owns the actual StaticDirectory, UI ResourceManager/file adapter,
+five stable font arrays and three fixed context roles. Root borrows the contexts
+and retains its between-context renderer resize, density override and explicit
+successful shutdown sequence. Existing font reader body is unchanged; five
+existing font specifications are traversed once in order, with all five attempted
+as before. Documents still load copied resource bytes with their resource URL.
+No whole-state API, renderer duplication or general loader was introduced.
+
+The new production-owner case loads all five actual font assets, creates the
+three real SDK contexts, verifies overlay density inheritance, loads/layouts/
+renders the actual panel and loads the actual modal document. Missing documents,
+explicit release/shutdown, reset interface/context borrows and idempotent shutdown
+are checked. All 56 affected checks from 7 suites passed normally and under
+ASan/UBSan with no skips. Both builds passed without warnings; format/diff and
+root ordering audit passed. Main is 5,932 lines.
+
+Self-check: owned byte batches remain live through manual Rml shutdown, SDK
+singleton/pointer contracts are documented and errors return explicit results.
+This mechanical checkpoint preserves the existing early-return cleanup gap; the
+next fix adds destructor/failure cleanup separately. SDL/window/engine ownership,
+remaining native input and frame/root coordination are still open; no measured
+speedup, real GPU/desktop or clean LSan result claimed.
+
+## C19d Rml partial-startup cleanup plan
+
+Tier 2 correctness checkpoint. Observed startup can return after Rml initialization
+when any of five fonts fails, after primary context creation, or after either
+overlay context fails. Later returns follow real workbench listener/texture-array
+registration and Smalls/model/document initialization. Output must be zero live
+owned contexts/interfaces, with only acquired models/listeners closed, and font/
+texture/feature buffers still alive during SDK cleanup. Successful teardown
+retains its existing order. SDK default FreeType is enabled in both real builds;
+its disabled-engine Rml::Initialise failure branch is not observable here.
+
+First demonstrate missing-font failure leaves SDK interfaces live after owner
+destruction. Then add owner destructor shutdown, explicit invalid/repeated
+initialization/context rejection, and root scope guards whose reverse declaration
+order removes listeners before their local objects die. A feature guard closes
+native delivery/gamepad, waits for renderer, clears active script ownership,
+releases UI resources and models, shuts down Rml/rendering and clears workspace
+while AppState/texture arrays still live. Guards inspect the owner's reset context
+borrows so normal explicit shutdown does not access destroyed contexts.
+
+Cost is fixed cold scope guards and one existing Rml shutdown; no allocation,
+thread, table, event queue, extra application state or hot-path branch. Simplify
+by reusing scope_exit and idempotent SDK/model cleanup; do not invent a cleanup
+callback graph or failure injection framework. Runtime remains the documented
+SDK singleton and font/file transforms remain batches. Done: prior failing case,
+real incomplete-package/missing and empty-font/primary-only teardown/overlay collision and
+automatic successful cleanup, renderer release evidence, guarded production root
+build and affected normal/sanitizer checks. SDL/window/engine acquisition and
+GPU/root failure injection remain separate/unverified until their owner exists.
+
+## C19d Rml partial-startup cleanup result
+
+The pre-fix missing-font regression failed with all three SDK interface pointers
+still live after ClientRmlRuntime destruction. Destructor now shuts down acquired
+Rml state before member font/provider storage dies. Invalid dimensions, repeated
+live initialization and overlay creation before/after acquisition reject explicitly.
+Root adds reverse-order listener guards and a feature-binding guard; failure
+cleanup runs while AppState/generated-texture arrays and models remain live.
+Normal explicit teardown resets context borrows, so these guards do no SDK work
+on its destroyed contexts. Root's successful sequence remains unchanged.
+
+Six production-owner cases cover actual package/fonts/docs, every missing font
+(including late failures with four live font buffers), empty font, missing and
+incomplete package, zero/negative dimensions, primary-only scope exit, actual
+fps/palette name collisions (including acquired fps before palette failure),
+fresh-owner restart, repeated acquisition rejection and automatic release of
+actual rendered geometry with compiled/released counts equal. All 57 affected
+cases from 7 suites passed normally in 5,779 ms and under ASan/UBSan in 32,134 ms,
+no skips. Both builds were warning-free; format/diff/order checks passed.
+
+Self-check retained fixed singleton/context/font-batch contracts and added no
+general cleanup framework or hot-path work. Main is 5,965 lines; the added guards
+are necessary until final composition owns these registrations. Headless tests
+exercise the production Rml owner, not the complete root startup failure path.
+GPU acquisition and root feature-guard injection, the SDK's disabled-FreeType
+initialization failure branch, SDL/window/kernel acquisition, real native picker,
+high-DPI and full integration remain explicitly unverified/open. No performance
+or clean LSan claim.
+
+## C19e SDL/window extraction plan
+
+Tier 2 checkpoint. Actual process input is copied app version/identifier metadata
+and the existing SDL VIDEO|EVENTS|GAMEPAD initialization. The sole desktop window
+is 1280x720, Vulkan/resizable/maximized; output is its SDK borrow used by renderer,
+Rml and device adapters. SDK errors log and return false. Preserve those flags,
+show/query order and normal kernel-before-window/SDL shutdown order.
+
+Move metadata/video/window acquisition and explicit shutdown into a narrow
+ClientSdlRuntime alongside the existing bootstrap functions. Keep explicit root
+cleanup in this mechanical commit; automatic cleanup and kernel/renderer guards
+are the next separate change. SDK window pointer is required by SDL/Vulkan and
+identifies a true singleton; it is not a pointer-heavy engine hot path.
+
+Cost remains SDK allocation and initialization, one owning window pointer and
+acquisition bit, no new service/configuration/options/thread/cache. Simplification
+reuses SDL and avoids configurable window flags solely for tests. Real dummy-video
+fixtures can prove initialization and the actual fixed Vulkan window failure,
+while a successful Vulkan window is unverified without desktop/GPU support.
+Done: normal/sanitized builds, real dummy/invalid-driver paths and idempotent
+explicit cleanup, related input/loading/Rml checks, unchanged root ordering and
+no whole-state dependencies. Batch semantics do not apply to the single process
+SDL/window lifecycle. Full partial startup, successful Vulkan/native-picker/high
+DPI and final routing/frame integration remain open.
+
+## C19e SDL/window extraction result
+
+ClientSdlRuntime owns the existing process initialization bit and SDL window;
+metadata, VIDEO|EVENTS|GAMEPAD, fixed Vulkan/resizable/maximized 1280x720 creation,
+show and explicit window-before-SDL cleanup moved unchanged. Root still queries
+actual logical/pixel sizes and explicitly stops kernel before desktop shutdown.
+The two real SDK cases prove copied metadata/subsystem flags, dummy driver's
+actual Vulkan-window failure, invalid-driver failure and idempotent cleanup.
+All 28 affected cases from 5 suites passed normally (207 ms) and under ASan/UBSan
+(856 ms), no skips; normal/sanitized builds were warning-free, format/diff passed.
+Main is 5,951 lines.
+
+Self-check: no configurable window flags, worker, registry, whole-state API or
+extra resource copy was added. Required cold SDK pointer and process singleton
+contracts are documented. Automatic SDL/kernel/renderer failure cleanup is the
+next separate change. A successful Vulkan window/renderer acquisition, physical
+devices, native picker and full root/frame/input integration remain unverified/
+open. No performance or clean leak-check result is claimed.
+
+## C19f SDL/kernel/renderer failure cleanup plan
+
+Tier 2 correctness checkpoint. Before the fix a scoped SDL owner that initializes
+real dummy video and fails the fixed Vulkan-window creation leaves all subsystems
+live after destruction. Demonstrate this through the production owner. Then make
+the one acquisition bit mean initialization attempted, so even failed SDL_Init
+is followed by SDL_Quit. Reject repeated live video/window acquisition and window
+creation without video. A default untouched owner calls no SDL cleanup.
+
+Add a narrow kernel lifetime scope over the existing start_client_kernel/services
+shutdown protocol; construction failure invokes existing shutdown and propagates
+the exception. Root constructs the untouched SDL owner before the kernel owner
+and renderer guard: reverse cleanup is feature/Rml, renderer, kernel, window/SDL,
+matching successful teardown. Renderer shutdown already handles its uninitialized
+partition; its scope guard follows successful initialize before swapchain work.
+No additional SDL/window flags/options, registry, services interface or AppState
+is exposed. CLI continues using its existing bootstrap/cleanup.
+
+Cost: the same singleton resources, one attempted bit, fixed cold validity tests
+and stack cleanup. SDK pointers stay external API borrows; no engine hot loop is
+changed. Simplification uses SDK state and existing idempotent shutdown instead
+of separate ready/failed/window states or a cleanup graph. Done: prior failure,
+real dummy/invalid-driver automatic cleanup and restart, repeated/invalid calls,
+actual configured test-server kernel lifetime and native payload disposal before
+kernel/SDL teardown, normal/sanitized builds and affected checks. Successful
+Vulkan/renderer failure injection and native driver internals remain unverified;
+full routing/frame composition is still required.
+
+## C19f SDL/kernel/renderer failure cleanup result
+
+The pre-fix dummy/Vulkan failure test left SDL_WasInit(0) = 25,120 after owner
+destruction. SDL owner destructor now closes its attempted acquisition, even
+a failed SDL_Init; untouched owner does no SDL work. Repeated initialization
+and window creation without owned live video reject before changing metadata/
+SDK state. Same-owner/fresh-owner restart works when its video hint is configured
+again: the first test run exposed the false fixture assumption that SDL_Quit
+preserves hints. No production restart policy was added.
+
+ClientKernelRuntime owns the existing bootstrap/services lifetime and propagates
+constructor errors after existing shutdown. Root declaration order now gives
+feature/Rml → renderer → kernel → window/SDL on early return and success.
+A renderer scope guard covers swapchain/Rml failures after successful renderer
+initialization. The normal feature/Rml/render/workspace shutdown order remains
+explicit, and guards avoid SDK calls on reset context borrows.
+
+Six real SDL cases cover metadata/subsystems, fixed Vulkan-window rejection,
+invalid driver, automatic failure cleanup, untouched-owner preservation of another
+owner's video, repeated/invalid acquisition and restart. The configured dedicated
+server kernel case starts real services, queues and disposes an owned native
+result, verifies runtime/resource services gone while SDL video remains live,
+then verifies zero SDK subsystems after desktop destruction. Original kernel
+configuration is restored for the harness. All 32 affected cases from 5 suites
+passed normally (1,225 ms) and under ASan/UBSan, no skips; builds warning-free,
+format/diff/declaration-order checks passed.
+
+Self-check: one attempted bit replaces ready/failed states, kernel scope adds no
+allocation/interface/options, and SDK singleton/pointer/error contracts remain
+explicit. Successful desktop Vulkan window/swapchain/renderer acquisition, GPU
+failure injection, low-level allocation/constructor-exception injection, native
+driver internals, physical devices/high-DPI and complete root integration remain
+unverified. Remaining native input/one routing authority and final composition/
+integration gates are still required; no performance or clean LSan claim.

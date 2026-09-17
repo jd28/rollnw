@@ -14,6 +14,7 @@
 #include "client_input.hpp"
 #include "client_metrics.hpp"
 #include "client_preferences.hpp"
+#include "client_rml_runtime.hpp"
 #include "client_runtime.hpp"
 #include "client_ui_action.hpp"
 #include "command_view.hpp"
@@ -64,17 +65,16 @@
 #include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/ResourceManager.hpp>
-#include <nw/resources/StaticDirectory.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/util/game_install.hpp>
 #include <nw/util/profile.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
 #include <RmlUi/Core/ElementUtilities.h>
-#include <RmlUi/Core/FileInterface.h>
 #include <RmlUi_Platform_SDL.h>
 
 #include <SDL3/SDL.h>
@@ -147,7 +147,6 @@ using nw::toolset::remember_tab_scroll;
 using nw::toolset::run_project_cli_if_requested;
 using nw::toolset::save_ui_preferences;
 using nw::toolset::ScopedClientGpuTimer;
-using nw::toolset::start_client_kernel;
 using nw::toolset::sync_viewer_fps_overlay;
 using nw::toolset::tab_scroll_target;
 using nw::toolset::to_context_point;
@@ -364,199 +363,6 @@ std::filesystem::path resolve_client_ui_dir()
     }
 
     return {};
-}
-
-struct RmlResourceFile {
-    nw::ByteArray bytes;
-    size_t position = 0;
-    std::FILE* fallback = nullptr;
-};
-
-class ClientRmlFileInterface final : public Rml::FileInterface {
-public:
-    ClientRmlFileInterface(
-        nw::ResourceManager& ui_resources, nw::ResourceManager& game_resources)
-        : ui_resources_(&ui_resources)
-        , game_resources_(&game_resources)
-    {
-    }
-
-    Rml::FileHandle Open(const Rml::String& path) override
-    {
-        if (auto data = demand(path); data.bytes.size()) {
-            auto* file = new RmlResourceFile{};
-            file->bytes = std::move(data.bytes);
-            return reinterpret_cast<Rml::FileHandle>(file);
-        }
-
-        Rml::String fallback_path = path;
-        constexpr std::string_view file_protocol = "file://";
-        if (fallback_path.rfind(file_protocol, 0) == 0) {
-            fallback_path.erase(0, file_protocol.size());
-#if defined(_WIN32)
-            if (fallback_path.size() >= 3 && fallback_path[0] == '/'
-                && fallback_path[2] == ':') {
-                fallback_path.erase(0, 1);
-            }
-#endif
-        }
-        std::replace(fallback_path.begin(), fallback_path.end(), '|', ':');
-        if (auto* fallback = std::fopen(fallback_path.c_str(), "rb")) {
-            auto* file = new RmlResourceFile{};
-            file->fallback = fallback;
-            return reinterpret_cast<Rml::FileHandle>(file);
-        }
-
-        return {};
-    }
-
-    void Close(Rml::FileHandle handle) override
-    {
-        auto* file = reinterpret_cast<RmlResourceFile*>(handle);
-        if (!file) {
-            return;
-        }
-        if (file->fallback) {
-            std::fclose(file->fallback);
-        }
-        delete file;
-    }
-
-    size_t Read(void* buffer, size_t size, Rml::FileHandle handle) override
-    {
-        auto* file = reinterpret_cast<RmlResourceFile*>(handle);
-        if (!file || !buffer || size == 0) {
-            return 0;
-        }
-        if (file->fallback) {
-            return std::fread(buffer, 1, size, file->fallback);
-        }
-
-        const size_t available = file->position < file->bytes.size() ? file->bytes.size() - file->position : 0;
-        const size_t to_read = std::min(size, available);
-        if (to_read > 0) {
-            std::memcpy(buffer, file->bytes.data() + file->position, to_read);
-            file->position += to_read;
-        }
-        return to_read;
-    }
-
-    bool Seek(Rml::FileHandle handle, long offset, int origin) override
-    {
-        auto* file = reinterpret_cast<RmlResourceFile*>(handle);
-        if (!file) {
-            return false;
-        }
-        if (file->fallback) {
-            return std::fseek(file->fallback, offset, origin) == 0;
-        }
-
-        long base = 0;
-        if (origin == SEEK_SET) {
-            base = 0;
-        } else if (origin == SEEK_CUR) {
-            base = static_cast<long>(file->position);
-        } else if (origin == SEEK_END) {
-            base = static_cast<long>(file->bytes.size());
-        } else {
-            return false;
-        }
-
-        const long target = base + offset;
-        if (target < 0 || static_cast<size_t>(target) > file->bytes.size()) {
-            return false;
-        }
-        file->position = static_cast<size_t>(target);
-        return true;
-    }
-
-    size_t Tell(Rml::FileHandle handle) override
-    {
-        auto* file = reinterpret_cast<RmlResourceFile*>(handle);
-        if (!file) {
-            return 0;
-        }
-        if (file->fallback) {
-            const long position = std::ftell(file->fallback);
-            return position >= 0 ? static_cast<size_t>(position) : 0;
-        }
-        return file->position;
-    }
-
-    size_t Length(Rml::FileHandle handle) override
-    {
-        auto* file = reinterpret_cast<RmlResourceFile*>(handle);
-        if (!file) {
-            return 0;
-        }
-        if (file->fallback) {
-            return Rml::FileInterface::Length(handle);
-        }
-        return file->bytes.size();
-    }
-
-private:
-    nw::Resource resource_from_path(Rml::String path) const
-    {
-        std::replace(path.begin(), path.end(), '\\', '/');
-        std::replace(path.begin(), path.end(), '|', ':');
-
-        if (const auto protocol = path.find("://"); protocol != Rml::String::npos) {
-            path.erase(0, protocol + 3);
-        }
-        while (!path.empty() && path.front() == '/') {
-            path.erase(path.begin());
-        }
-        if (const auto query = path.find('?'); query != Rml::String::npos) {
-            path.resize(query);
-        }
-
-        auto resource = nw::Resource::from_path(std::filesystem::path{path}, true);
-        if (resource.valid() && ui_resources_->contains(resource)) {
-            return resource;
-        }
-
-        if (!path.empty() && path.rfind("ui/", 0) != 0) {
-            return nw::Resource::from_path(std::filesystem::path{"ui"} / path, true);
-        }
-
-        return resource;
-    }
-
-    nw::ResourceData demand(const Rml::String& path) const
-    {
-        const nw::Resource resource = resource_from_path(path);
-        if (!resource.valid()) {
-            return {};
-        }
-        auto result = ui_resources_->demand(resource);
-        if (result.bytes.size() || resource.type != nw::ResourceType::tga) {
-            return result;
-        }
-
-        const auto filename = std::filesystem::path{resource.filename()}.filename();
-        const auto game_resource = nw::Resource::from_path(filename);
-        return game_resource.valid() ? game_resources_->demand(game_resource) : nw::ResourceData{};
-    }
-
-    nw::ResourceManager* ui_resources_ = nullptr;
-    nw::ResourceManager* game_resources_ = nullptr;
-};
-
-Rml::ElementDocument* load_rml_document_from_resource(Rml::Context& context,
-    const nw::ResourceManager& resources,
-    nw::Resource resource)
-{
-    auto data = resources.demand(resource);
-    if (!data.bytes.size()) {
-        return nullptr;
-    }
-
-    Rml::String source{
-        reinterpret_cast<const char*>(data.bytes.data()),
-        data.bytes.size(),
-    };
-    return context.LoadDocumentFromMemory(source, resource.filename());
 }
 
 constexpr size_t kInvalidVirtualIndex = std::numeric_limits<size_t>::max();
@@ -2844,33 +2650,19 @@ int main(int argc, char* argv[])
         LOG_F(ERROR, "rollnw-client: failed to find NWN install; set NWN_ROOT and NWN_HOME");
         return 1;
     }
-    start_client_kernel(install.install, install.user);
-
-    SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
-    if (!SDL_SetAppMetadata("rollnw | client", ROLLNW_TOOL_VERSION, ROLLNW_CLIENT_APP_ID)) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_SetAppMetadata failed: %s", SDL_GetError());
-    }
-    SDL_SetAppMetadataProperty(SDL_PROP_APP_METADATA_TYPE_STRING, "application");
-
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init failed: %s", SDL_GetError());
+    nw::toolset::ClientSdlRuntime desktop;
+    nw::toolset::ClientKernelRuntime kernel{install.install, install.user};
+    if (!desktop.initialize_video(ROLLNW_TOOL_VERSION, ROLLNW_CLIENT_APP_ID)) {
         return 1;
     }
-
+    if (!desktop.create_window()) {
+        return 1;
+    }
+    auto* window = desktop.window();
     int width = 1280;
     int height = 720;
     int frame_width = 1280;
     int frame_height = 720;
-
-    SDL_Window* window = SDL_CreateWindow(
-        "rollnw | client",
-        width, height,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
-    if (!window) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateWindow failed: %s", SDL_GetError());
-        return 1;
-    }
-    SDL_ShowWindow(window);
 
     {
         const auto window_size = query_window_size(window);
@@ -2887,6 +2679,7 @@ int main(int argc, char* argv[])
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Renderer init failed");
         return 1;
     }
+    const auto renderer_cleanup = create_scope_exit([&] { renderer.shutdown(); });
 
     uint32_t width_u32 = static_cast<uint32_t>(width);
     uint32_t height_u32 = static_cast<uint32_t>(height);
@@ -2915,105 +2708,19 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    nw::StaticDirectory ui_assets{ui_dir};
-    if (!ui_assets.valid()) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to index rollnw client UI assets: %s", ui_dir.string().c_str());
+    nw::toolset::ClientRmlRuntime rml_runtime{ui_dir, nw::kernel::resman()};
+    if (!rml_runtime.initialize(system_interface, *rml_renderer, client_base_path(), {width, height})) {
         return 1;
     }
-
-    nw::ResourceManager ui_resources{nw::kernel::global_allocator()};
-    if (!ui_resources.add_custom_container(&ui_assets, false)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to add rollnw client UI assets to resource manager: %s", ui_dir.string().c_str());
-        return 1;
-    }
-    ui_resources.build_registry();
-    const nw::Resource panel_rml{nw::Resref{"ui/panel"}, nw::ResourceType::rml};
-    const nw::Resource panel_rcss{nw::Resref{"ui/panel"}, nw::ResourceType::rcss};
-    const nw::Resource command_modals_rml{nw::Resref{"ui/command_modals"}, nw::ResourceType::rml};
-    if (!ui_resources.contains(panel_rml) || !ui_resources.contains(panel_rcss) || !ui_resources.contains(command_modals_rml)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "rollnw client UI resource package is incomplete: %s", ui_dir.string().c_str());
-        return 1;
-    }
-
-    ClientRmlFileInterface rml_file_interface{
-        ui_resources, nw::kernel::resman()};
-    Rml::SetRenderInterface(rml_renderer);
-    Rml::SetSystemInterface(&system_interface);
-    Rml::SetFileInterface(&rml_file_interface);
-    if (!Rml::Initialise()) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Rml::Initialise failed");
-        return 1;
-    }
-
-    // Fonts: load into memory so the buffers stay alive for RmlUi's font engine.
-    // Keep backing buffers alive for the lifetime of the app.
-    std::vector<Rml::byte> font_regular_data;
-    std::vector<Rml::byte> font_medium_data;
-    std::vector<Rml::byte> font_semibold_data;
-    std::vector<Rml::byte> font_bold_data;
-    std::vector<Rml::byte> font_mono_data;
-    auto load_font = [](const char* path, const char* family, Rml::Style::FontWeight weight, std::vector<Rml::byte>& storage) {
-        FILE* f = std::fopen(path, "rb");
-        if (!f) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Font not found: %s", path);
-            return false;
-        }
-        std::fseek(f, 0, SEEK_END);
-        const auto size = std::ftell(f);
-        if (size <= 0) {
-            std::fclose(f);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Font file has invalid size: %s", path);
-            return false;
-        }
-        std::rewind(f);
-        storage.resize(static_cast<size_t>(size));
-        const size_t read = std::fread(storage.data(), 1, static_cast<size_t>(size), f);
-        std::fclose(f);
-        if (read != static_cast<size_t>(size)) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to read full font file: %s", path);
-            storage.clear();
-            return false;
-        }
-
-        return Rml::LoadFontFace(Rml::Span<const Rml::byte>(storage.data(), storage.size()),
-            family, Rml::Style::FontStyle::Normal, weight);
-    };
-    const char* base_path = SDL_GetBasePath();
-    const char* font_dir = (base_path && base_path[0] != '\0') ? base_path : "./";
-    Rml::String font_regular = Rml::String(font_dir) + "Inter-Regular.ttf";
-    Rml::String font_medium = Rml::String(font_dir) + "Inter-Medium.ttf";
-    Rml::String font_semibold = Rml::String(font_dir) + "Inter-SemiBold.ttf";
-    Rml::String font_bold = Rml::String(font_dir) + "Inter-Bold.ttf";
-    Rml::String font_mono = Rml::String(font_dir) + "Cousine-Regular.ttf";
-    constexpr auto ui_font_weight_medium = static_cast<Rml::Style::FontWeight>(500);
-    constexpr auto ui_font_weight_semibold = static_cast<Rml::Style::FontWeight>(600);
-    const bool regular_ok = load_font(font_regular.c_str(), "RollnwSans", Rml::Style::FontWeight::Normal, font_regular_data);
-    const bool medium_ok = load_font(font_medium.c_str(), "RollnwSans", ui_font_weight_medium, font_medium_data);
-    const bool semibold_ok = load_font(font_semibold.c_str(), "RollnwSans", ui_font_weight_semibold, font_semibold_data);
-    const bool bold_ok = load_font(font_bold.c_str(), "RollnwSans", Rml::Style::FontWeight::Bold, font_bold_data);
-    const bool mono_ok = load_font(font_mono.c_str(), "RollnwMono", Rml::Style::FontWeight::Normal, font_mono_data);
-    if (!regular_ok || !medium_ok || !semibold_ok || !bold_ok || !mono_ok) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load required fonts for RmlUI");
-        return 1;
-    }
-    Rml::Context* context = Rml::CreateContext("toolset", Rml::Vector2i(width, height));
-    if (!context) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Rml::CreateContext failed");
-        return 1;
-    }
+    auto* context = rml_runtime.contexts().toolset;
     renderer.on_resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height), context);
-    Rml::Context* fps_context = Rml::CreateContext("viewer_fps", Rml::Vector2i(width, height));
-    if (!fps_context) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Rml::CreateContext failed: viewer_fps");
+    if (!rml_runtime.create_overlay_contexts({width, height})) {
         return 1;
     }
-    fps_context->SetDensityIndependentPixelRatio(context->GetDensityIndependentPixelRatio());
-    Rml::Context* palette_context = Rml::CreateContext("command_palette", Rml::Vector2i(width, height));
-    if (!palette_context) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Rml::CreateContext failed: command_palette");
-        return 1;
-    }
-    palette_context->SetDensityIndependentPixelRatio(context->GetDensityIndependentPixelRatio());
+    auto* fps_context = rml_runtime.contexts().fps;
+    auto* palette_context = rml_runtime.contexts().palette;
+    const nw::Resource panel_rml{nw::Resref{"ui/panel"}, nw::ResourceType::rml};
+    const nw::Resource command_modals_rml{nw::Resref{"ui/command_modals"}, nw::ResourceType::rml};
 
     {
         float dp_ratio = 1.0f;
@@ -3027,6 +2734,23 @@ int main(int argc, char* argv[])
     }
 
     AppState state;
+    // Failed startup unwinds listener guards first, then feature bindings while
+    // their storage is still live. Normal shutdown resets the context borrows.
+    const auto feature_cleanup = create_scope_exit([&] {
+        if (!rml_runtime.contexts().toolset) { return; }
+        (void)nw::toolset::close_loading_dialog_delivery(state.loading);
+        nw::toolset::close_runtime_gamepad(state.runtime_input);
+        renderer.wait_idle();
+        state.smalls.clear_active_object();
+        state.workbench.active_object_tab_id.clear();
+        rml_runtime.release_render_resources();
+        state.backend.shutdown_item_editor_data_model();
+        if (state.rml_smalls_data_model) { state.rml_smalls_data_model->shutdown(); }
+        rml_runtime.shutdown();
+        renderer.set_rml_generated_textures(nullptr, nullptr);
+        renderer.shutdown();
+        state.workspace.clear();
+    });
     {
         int gamepad_count = 0;
         if (SDL_JoystickID* gamepads = SDL_GetGamepads(&gamepad_count)) {
@@ -3041,6 +2765,11 @@ int main(int argc, char* argv[])
         "change", &object_workbench_change_listener, false);
     context->AddEventListener(
         "blur", &object_workbench_change_listener, true);
+    const auto workbench_listener_cleanup = create_scope_exit([&] {
+        if (!rml_runtime.contexts().toolset) { return; }
+        context->RemoveEventListener("change", &object_workbench_change_listener, false);
+        context->RemoveEventListener("blur", &object_workbench_change_listener, true);
+    });
     renderer.set_rml_generated_textures(
         &state.workbench.inventory_view.item_icon_cache.textures,
         &state.area_tile_editor.palette.textures);
@@ -3082,7 +2811,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto* doc = load_rml_document_from_resource(*context, ui_resources, panel_rml);
+    auto* doc = rml_runtime.load_document(*context, panel_rml);
     if (!doc) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: ui/panel.rml");
         return 1;
@@ -3090,8 +2819,18 @@ int main(int argc, char* argv[])
     doc->Show();
     HomeProjectActionListener home_project_action_listener{window, doc, state};
     context->AddEventListener("click", &home_project_action_listener);
+    const auto home_listener_cleanup = create_scope_exit([&] {
+        if (rml_runtime.contexts().toolset) {
+            context->RemoveEventListener("click", &home_project_action_listener);
+        }
+    });
     BlueprintActionListener blueprint_action_listener{window, doc, state};
     palette_context->AddEventListener("click", &blueprint_action_listener);
+    const auto blueprint_listener_cleanup = create_scope_exit([&] {
+        if (rml_runtime.contexts().palette) {
+            palette_context->RemoveEventListener("click", &blueprint_action_listener);
+        }
+    });
     const std::filesystem::path executable_arg{argv[0]};
     state.client_executable = executable_arg.has_parent_path()
         ? std::filesystem::absolute(executable_arg)
@@ -3104,7 +2843,7 @@ int main(int argc, char* argv[])
     palette_doc->Show();
     // The command context renders after the native viewport. Modal UI belongs
     // here; z-index in the main document cannot cover a later native draw.
-    state.command_view.command_overlay_document = load_rml_document_from_resource(*palette_context, ui_resources, command_modals_rml);
+    state.command_view.command_overlay_document = rml_runtime.load_document(*palette_context, command_modals_rml);
     if (!state.command_view.command_overlay_document) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: ui/command_modals.rml");
         return 1;
@@ -6179,6 +5918,7 @@ int main(int argc, char* argv[])
         }
     }
 
+    (void)nw::toolset::close_loading_dialog_delivery(state.loading);
     cancel_project_blueprint_drag(doc, state);
     cancel_area_object_placement(renderer, state);
     stop_play_preview(renderer, system_interface, doc, state);
@@ -6191,8 +5931,7 @@ int main(int argc, char* argv[])
     renderer.wait_idle();
     state.smalls.clear_active_object();
     state.workbench.active_object_tab_id.clear();
-    Rml::ReleaseCompiledGeometry(rml_renderer);
-    Rml::ReleaseTextures(rml_renderer);
+    rml_runtime.release_render_resources();
     context->RemoveEventListener(
         "change", &object_workbench_change_listener, false);
     context->RemoveEventListener(
@@ -6201,15 +5940,9 @@ int main(int argc, char* argv[])
     palette_context->RemoveEventListener("click", &blueprint_action_listener);
     state.backend.shutdown_item_editor_data_model();
     state.rml_smalls_data_model->shutdown();
-    Rml::RemoveContext("command_palette");
-    Rml::RemoveContext("viewer_fps");
-    Rml::RemoveContext("toolset");
-    Rml::Shutdown();
+    rml_runtime.shutdown();
     renderer.shutdown();
     state.workspace.clear();
-    nw::kernel::services().shutdown();
-    SDL_DestroyWindow(window);
-    SDL_Quit();
 
     return 0;
 }

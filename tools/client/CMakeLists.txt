@@ -61,6 +61,8 @@ add_executable(rollnw-client
     client_cli.cpp
     client_preferences.cpp
     client_runtime.cpp
+    client_rml_runtime.cpp
+    client_rml_file_interface.cpp
     command_view.cpp
     client_input.cpp
     client_metrics.cpp

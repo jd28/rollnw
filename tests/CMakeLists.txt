@@ -414,6 +414,12 @@ if(TARGET RmlUi::RmlUi)
     target_sources(rollnw_test PRIVATE
         rollnw_client_input.cpp
         rollnw_client_loading.cpp
+        rollnw_client_rml_files.cpp
+        rollnw_client_sdl_runtime.cpp
+        ../tools/client/client_runtime.cpp
+        rollnw_client_rml_runtime.cpp
+        ../tools/client/client_rml_runtime.cpp
+        ../tools/client/client_rml_file_interface.cpp
         rollnw_client_browser_workspace.cpp
         rollnw_client_runtime_input.cpp
         ../tools/client/runtime_input.cpp

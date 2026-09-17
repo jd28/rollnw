@@ -8,6 +8,7 @@
 
 #include <array>
 #include <memory>
+#include <thread>
 
 using namespace nw::toolset;
 
@@ -31,12 +32,7 @@ protected:
 
     void TearDown() override
     {
-        SDL_Event event{};
-        while (SDL_PeepEvents(&event, 1, SDL_GETEVENT,
-                   state.open_module_dialog_event, state.open_module_dialog_event)
-            > 0) {
-            delete static_cast<OpenModuleDialogResult*>(event.user.data1);
-        }
+        (void)close_loading_dialog_delivery(state);
         if (events_started) { SDL_QuitSubSystem(SDL_INIT_EVENTS); }
         if (video_started) { SDL_QuitSubSystem(SDL_INIT_VIDEO); }
         if (previous_video_hint) {
@@ -68,7 +64,7 @@ TEST_F(ClientLoading, NativePayloadCopiesSelectionAndIsConsumedOnce)
     state.module_dialog_command = "import.module";
     std::string path = "module ; $ with spaces.mod";
     const char* files[] = {path.c_str(), nullptr};
-    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event}, files, 0);
+    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery}, files, 0);
     path = "changed after callback";
     auto event = take_event();
     const auto result = take_loading_dialog_result(state, event);
@@ -84,12 +80,114 @@ TEST_F(ClientLoading, NativePayloadCopiesSelectionAndIsConsumedOnce)
     EXPECT_NE(state.import_status.find("Review"), std::string::npos);
 }
 
+TEST_F(ClientLoading, LateCallbackCannotQueueForAnExpiredOwnerAfterSdlRestart)
+{
+    const auto expired_event_type = state.open_module_dialog_event;
+    auto expired = std::make_unique<LoadingViewState>();
+    expired->open_module_dialog_event = expired_event_type;
+    auto request = std::make_unique<OpenModuleDialogRequest>(OpenModuleDialogRequest{expired->open_module_dialog_event, expired->native_dialog_delivery});
+    expired.reset();
+    (void)close_loading_dialog_delivery(state);
+    SDL_QuitSubSystem(SDL_INIT_EVENTS);
+    events_started = false;
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    video_started = false;
+    ASSERT_EQ(SDL_WasInit(SDL_INIT_EVENTS), 0u);
+    ASSERT_TRUE(SDL_InitSubSystem(SDL_INIT_VIDEO));
+    video_started = true;
+    ASSERT_TRUE(SDL_InitSubSystem(SDL_INIT_EVENTS));
+    events_started = true;
+    LoadingViewState fresh;
+    fresh.open_module_dialog_event = SDL_RegisterEvents(1);
+    ASSERT_NE(fresh.open_module_dialog_event, 0u);
+    ASSERT_NE(fresh.open_module_dialog_event, expired_event_type);
+    const char* files[] = {"expired owner's selection.mod", nullptr};
+    auto* callback_request = request.release();
+    std::thread completion{[&] { open_module_dialog_callback(callback_request, files, 0); }};
+    completion.join();
+    SDL_Event event{};
+    const auto received = SDL_PeepEvents(&event, 1, SDL_GETEVENT,
+        expired_event_type, expired_event_type);
+    EXPECT_EQ(received, 0);
+    if (received == 1) { delete static_cast<OpenModuleDialogResult*>(event.user.data1); }
+    EXPECT_FALSE(fresh.module_dialog_open);
+    EXPECT_EQ(close_loading_dialog_delivery(fresh), 0);
+}
+
+TEST_F(ClientLoading, DeliveryClosureDisposesOnlyItsQueuedPayloadsAndDropsPendingRequests)
+{
+    const auto event_type = state.open_module_dialog_event;
+    std::weak_ptr<NativeDialogDeliveryState> lifetime = state.native_dialog_delivery;
+    state.module_dialog_open = true;
+    state.module_dialog_command = "toolset.open";
+    const char* files[] = {"queued.mod", nullptr};
+    const char* canceled[] = {nullptr};
+    open_module_dialog_callback(new OpenModuleDialogRequest{event_type, state.native_dialog_delivery}, files, 0);
+    open_module_dialog_callback(new OpenModuleDialogRequest{event_type, state.native_dialog_delivery}, canceled, 0);
+    auto pending = std::make_unique<OpenModuleDialogRequest>(OpenModuleDialogRequest{event_type, state.native_dialog_delivery});
+    const auto unrelated_type = SDL_RegisterEvents(1);
+    ASSERT_NE(unrelated_type, 0u);
+    auto unrelated = std::make_unique<OpenModuleDialogResult>();
+    SDL_Event other{};
+    other.type = unrelated_type;
+    other.user.data1 = unrelated.get();
+    ASSERT_TRUE(SDL_PushEvent(&other));
+
+    EXPECT_EQ(close_loading_dialog_delivery(state), 2);
+    EXPECT_EQ(state.open_module_dialog_event, 0u);
+    EXPECT_FALSE(state.module_dialog_open);
+    EXPECT_TRUE(state.module_dialog_command.empty());
+    EXPECT_EQ(state.native_dialog_delivery, nullptr);
+    EXPECT_FALSE(lifetime.expired());
+    auto* request = pending.release();
+    std::thread completion{[&] { open_module_dialog_callback(request, files, 0); }};
+    completion.join();
+    EXPECT_TRUE(lifetime.expired());
+    SDL_Event event{};
+    EXPECT_EQ(SDL_PeepEvents(&event, 1, SDL_GETEVENT, event_type, event_type), 0);
+    ASSERT_EQ(SDL_PeepEvents(&event, 1, SDL_GETEVENT, unrelated_type, unrelated_type), 1);
+    EXPECT_EQ(event.user.data1, unrelated.get());
+    EXPECT_EQ(close_loading_dialog_delivery(state), 0);
+    EXPECT_EQ(show_loading_module_dialog(nullptr, state), LoadingDialogStatus::unavailable);
+    EXPECT_EQ(show_loading_project_dialog(nullptr, state), LoadingDialogStatus::unavailable);
+    show_loading_blueprint_directory_dialog(nullptr, state, "unused");
+    EXPECT_FALSE(state.module_dialog_open);
+    EXPECT_TRUE(state.module_dialog_command.empty());
+}
+
+TEST_F(ClientLoading, LiveWorkerCopiesItsErrorAndMalformedRequestsNeverPublish)
+{
+    state.module_dialog_open = true;
+    state.module_dialog_command = "toolset.open";
+    auto* request = new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery};
+    std::thread completion{[&] {
+        SDL_SetError("worker dialog failure");
+        open_module_dialog_callback(request, nullptr, 0);
+    }};
+    completion.join();
+    auto event = take_event();
+    const auto result = take_loading_dialog_result(state, event);
+    ASSERT_TRUE(result);
+    EXPECT_EQ(result->selection.error, "worker dialog failure");
+    EXPECT_TRUE(result->selection.path.empty());
+    EXPECT_FALSE(result->selection.canceled);
+    EXPECT_EQ(event.user.data1, nullptr);
+    EXPECT_FALSE(take_loading_dialog_result(state, event));
+    const char* files[] = {"unused.mod", nullptr};
+    open_module_dialog_callback(nullptr, files, 0);
+    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event, {}}, files, 0);
+    for (const auto tag : {Uint32{0}, Uint32{SDL_EVENT_QUIT}, UINT32_MAX}) {
+        open_module_dialog_callback(new OpenModuleDialogRequest{tag, state.native_dialog_delivery}, files, 0);
+    }
+    EXPECT_EQ(SDL_PeepEvents(&event, 1, SDL_GETEVENT, state.open_module_dialog_event, state.open_module_dialog_event), 0);
+}
+
 TEST_F(ClientLoading, CancellationNullPayloadAndUnrelatedEventsRetainTheirPolicies)
 {
     state.module_dialog_open = true;
     state.module_dialog_command = "import.destination";
     const char* files[] = {nullptr};
-    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event}, files, 0);
+    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery}, files, 0);
     auto event = take_event();
     auto result = take_loading_dialog_result(state, event);
     ASSERT_TRUE(result);
@@ -128,7 +226,7 @@ TEST_F(ClientLoading, NativeDirectoryResultStillUsesCommandFormGeneration)
     state.module_dialog_open = true;
     state.module_dialog_command = "blueprint.directory";
     const char* files[] = {"selected directory", nullptr};
-    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event}, files, 0);
+    open_module_dialog_callback(new OpenModuleDialogRequest{state.open_module_dialog_event, state.native_dialog_delivery}, files, 0);
     auto event = take_event();
     const auto result = take_loading_dialog_result(state, event);
     ASSERT_TRUE(result);
