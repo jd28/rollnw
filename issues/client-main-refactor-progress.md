@@ -699,7 +699,8 @@ forwarding sites include operation/form gates, visible palette dispatch, early
 workspace mouse-up release and default dispatch. The SDL backend returns whether
 Rml propagation continues; that boolean is not native handling. Mouse-down blurs
 the previous variable input before reacquiring the next target. Root coordinates
-currently pass through unchanged; SDK motion divides by window pixel density.
+currently pass through unchanged; the inspected SDK multiplies motion by window
+pixel density. Non-unit-density agreement remains a later integration check.
 ASSUMPTION: pointer/event and DOM sizes are unmeasured — affects no optimization.
 
 Transform: current finite event → existing native dispatch/blur → explicit
@@ -720,3 +721,1392 @@ DOM replacement. A valid dummy SDL window is required for motion/density tests;
 if unsupported, report the fixture gap rather than using nullptr as a substitute.
 Action identity revalidation, full pure routes and map/owner consolidation remain
 C10b gates and are not claimed complete by this seam.
+
+## C10a result and checkpoint self-check
+
+Every production Rml forwarding site now uses one per-event disposition with
+separate native handling, recipient and before/after-native phase. The adapter
+records forwarding before invoking callbacks, preserves the SDK propagation
+result, and rejects a second forwarding or an already consumed event. Coordinate
+and variable-blur adapters moved without changing valid-coordinate policy.
+Invalid numeric pointer events cancel root gestures, pending pointer input and
+Rml capture before any hit query or unsafe integer conversion.
+
+Normal and combined-sanitizer builds passed. All nine production forwarding,
+validation, runtime-input and visible/focused classification cases passed: 29 ms
+normal and 142 ms sanitized. Four tests used actual hidden SDL dummy windows;
+none skipped. They cover stopped propagation independent of native handling,
+early release before a DOM replacement, fresh targets after blur callbacks and
+cancellation of a malformed release without a delayed click. Characterization
+showed Rml emits a removal blur while replacing an already blurring focused
+input; the fixture records that sequence and performs one replacement. Native
+edit exactly-once behavior is still the C13 gate.
+
+Simplification removed the ambiguous dispatched flag and redundant local release
+flag, retaining one SDK call site. No handler hierarchy, service bundle or
+performance claim was added. Raw numeric error policy and callback lifetimes are
+explicit; non-unit density, native action identity revalidation, pure routing
+and owner dispatch remain C10b integration gates. Formatting/diff checks passed.
+Main is 12,126 lines. C10b and C11–C20 remain outstanding.
+
+## C11 plan: loading state and presentation
+
+Frame: give native browse results, the one subprocess import tracker, pending
+project load and synchronous progress callback their actual loading owner. Root
+retains command prompting, recent-project persistence and workspace refresh until
+their C12 owners exist. Limit: no worker redesign or recursive event dispatch;
+plan B is narrow root adapters for those cross-feature effects.
+
+Observed inputs: one SDL user-event payload with owned path/error/cancellation,
+one active native dialog command/default location, one import job with source
+module/parent destination and module-generation snapshot, and one load request
+with path, command source, initial-presentation flag and close-import flag. Most
+frames have no completion/load; the common path returns immediately. Empty paths
+are rejected, concurrent dialog/import starts are ignored as today, failed import
+keeps the current runtime, and dirty/generation-changed/preview-active work blocks
+auto-opening the imported project. A load waits for its first overlay presentation
+before the synchronous backend call. Stage changes present immediately; repeated
+stages present at most every 32 ms. These stable policies are copied unchanged.
+ASSUMPTION: completion rates and stage durations are unmeasured — affects no policy.
+
+Transform: native callback copies selection into one queued owned payload →
+loading consumes/deletes payload exactly once → import selection or typed root
+command request. Home target → loading-owned action/start → subprocess completion
+→ status and auto-open request under current-work facts. Presented load request →
+backend batch/module loading → synchronous stage callback → current overlay/render
+→ command result; root resolves prompts before clearing the load and refreshing
+workspace. Each protocol states ownership; DOM/window/renderer borrows last only
+the synchronous call. Dialog/import/load are actual singletons in one desktop
+application; underlying import/module transforms remain existing resource batches.
+
+Cost on the desktop main thread: unchanged per-completion string/markup allocation,
+subprocess import I/O, synchronous backend load and existing progress renders.
+Specific renderer/context borrows are necessary for presenting during a blocking
+load, not a new pointer-based simulation path. Simplify: one loading state, one
+owned native-result consumption point and specific current-work facts; reuse
+ProjectImportJob and backend/module progress APIs, omit a generic job/dialog bus.
+
+Done: loading bodies/state take no AppState, callback pumping does not poll or
+redispatch application events, and normal/sanitized native-result, progress markup,
+import, browse-generation and synchronous project-load tests pass. Desktop dialogs,
+graphics progress frames and late-callback shutdown remain explicit fixture/C19
+gaps until their lifecycle integration is verified.
+
+## C11 result and checkpoint self-check
+
+LoadingViewState now owns native dialog command/location/payload routing, import
+selection/job/generation/status and the pending project request. Native initiation,
+selection processing, home controls/actions, import polling/completion policy,
+overlay and synchronous progress presentation moved to loading_view/loading_runtime
+without AppState. The root retains command prompt resolution, recent persistence
+and workspace/shell effects. It still waits for the initial overlay presentation,
+resolves prompts before clearing the load, and polls jobs before SDL dispatch.
+
+Normal and combined-sanitizer builds passed. All 13 loading, real subprocess
+import, browse-generation, synchronous kernel-progress and project replacement
+cases passed: 4,825 ms normal and 26,311 ms sanitized, no skips. New production
+cases verify callback-owned selection copying, one payload deletion, unrelated
+and null event behavior, cancellation, stale directory generations, empty/duplicate
+loads and dirty/generation/preview/dialog/busy-load completion gates. The actual
+command_modals.rml overlay keeps its path/element while updating stage and clears
+on completion; home controls escape inputs and reflect active-dialog state.
+Dummy SDL video confines message-box calls to its unavailable presentation path.
+
+Simplification removed the progress callback's AppState borrow and repeated
+command-overlay visibility synchronization during an unchanged active blocking
+load. Existing backend/import batches and singleton ownership are documented;
+no job framework or performance claim was added. Source inspection confirms
+SDL_PumpEvents without SDL_PollEvent/recursive application dispatch in progress.
+Desktop dialogs, rendered progress frames and queued/late callback shutdown are
+not verified here; the last remains C19. Formatting/diff checks passed. Main is
+11,746 lines. C10b and C12–C20 remain outstanding.
+
+## C12a plan: browser and workspace presentation
+
+Frame: move the browser's project/recent/home-area rows, queries, hover/selection
+and virtual render caches; extend workspace_view with the existing tab strips,
+locked-prefix reorder geometry, home header and viewport request. Root keeps
+content/workbench hydration until C13–C17, and shell layout until C12b. Plan B
+is those small composition adapters, not a public AppState API.
+
+Observed inputs: backend project tree and filtered area rows, bounded recent
+history, contiguous workspace tabs/subtabs and one current DOM viewport. Tree
+rows use 26 px and eight overscan rows; home cards use 190 px/two-row overscan
+and one to four columns. Repeated unchanged windows skip markup replacement.
+Filter forces expanded tree rows, module generation resets home query/window,
+missing documents/elements return without work, tab scroll clamps to content,
+locked leading tabs constrain reorder, and viewport rectangles clamp to frame
+bounds and reject dimensions under eight pixels. Native numeric pointer rejection
+remains the input boundary; existing authored resource validation stays backend.
+ASSUMPTION: project/area/tab counts and UI frequency are unmeasured — affects no optimization.
+
+Transform: backend tree → existing visible flat rows/indices → virtual window
+→ escaped markup and browser highlight state; current tab batch → tab markup
+→ existing DOM synchronization/reorder target; current home facts → header and
+browser/load controls; current viewport DOM/frame bounds → owned resource/rect
+request. Feature state owns vectors/strings/controllers; DOM, backend and tab
+borrows last one synchronous call. These are one displayed browser/home/strip
+and viewport; row/tab transforms remain plural and index based. DOM pointer
+traversal is required by Rml's existing tree/hit APIs, not a new simulation path.
+
+Cost: unchanged tree flatten/filter traversal on refresh, visible-window string
+allocation/render and linear tab synchronization on the desktop main thread.
+Simplify: retain existing render caches and tab-strip helper shared by its two
+actual strips, pass current home/preview facts instead of their full owners,
+and omit a browser/document framework. No performance change is claimed.
+
+Done: moved state/bodies use narrow APIs without AppState; normal/sanitized tree
+filter/window/highlight, tab close/reorder/locked-prefix, home and viewport layout
+checks pass. Full native routing and shared content refresh remain C10b/C17 gates.
+
+## C12a result and checkpoint self-check
+
+BrowserViewState now owns recent/project/home-area rows, queries, selection,
+virtual controllers and rendered windows. WorkspaceViewState owns tab scroll and
+captured tab drag. Browser tree/filter/highlight/hit and home-area presentation,
+workspace tab/subtab/icons/DOM synchronization/reorder geometry, home header and
+owned viewport request moved into browser_view and the existing workspace_view.
+Root retains shell layout and content/workbench composition; no AppState or
+catch-all bundle crosses the new APIs. Home composition reuses its module-open
+fact instead of reading it twice.
+
+Normal and combined-sanitizer builds passed without warnings. All 35 browser,
+workspace, actual project-tree and Rml-template cases passed: 2,653 ms normal and
+12,510 ms sanitized, no skips. Four new headless production cases cover real
+DockerDemo tree filtering, forced expansion and actor-picker title, unchanged
+home/tree windows, generation/query reset, empty areas, frame-clamped/minimum
+viewport geometry, locked-prefix reorder/close synchronization and hidden hits.
+The new span-loaded font fixture initially freed its borrowed bytes after setup;
+the sanitizer exposed the SDK read and the final fixture retains them through
+Rml shutdown. That corrected fixture passed the same full focused matrix.
+
+The fourth case characterizes an existing selection defect: replacing rows keeps
+the selected index but the equality guard skips painting its new DOM highlight.
+It is documented in issues/client-browser-selection-rebuild.md and intentionally
+preserved in this move. A failing desired-behavior regression and separate fix
+must follow before the shell extraction. Simplification retains existing caches
+and shared strip helper, removes root-state borrows and avoids a browser/document
+framework. Row/tab paths remain contiguous/index based, UI singleton/DOM borrow
+exceptions are documented, and no performance claim was made. Formatting/diff
+checks passed. Main is 10,700 lines. C10b, C12b and C13–C20 remain outstanding.
+
+## Browser selection repair plan
+
+Tier 1: input is the retained selected row index and a newly replaced visible DOM
+row batch; output must include the matching selected CSS class. Existing equality
+suppression mistakes unchanged data for unchanged presentation. The production
+characterization confirms the defect; the desired regression changes that final
+assertion to require the highlight. Remove the selected-index guard, keeping the
+already cached virtual-window early return and existing hidden/missing/range
+behavior. Cost is traversal of visible DOM rows on explicit selection presentation
+on the desktop main thread; no speedup is claimed. This removes a branch/invalid
+presentation state without adding a force parameter or another cache. Done:
+the desired regression fails first, then passes with focused normal/sanitized
+browser/workspace/template checks; no feature extraction is mixed into this fix.
+
+## Browser selection repair result and self-check
+
+The desired production regression failed on the missing selected class before
+implementation. Removing the equality guard now paints the current DOM row batch
+while retaining the selected index. Unchanged virtual windows still skip work.
+All 35 focused browser/workspace/project-tree/template cases passed again, with
+no skips: 2,479 ms normal and 13,079 ms combined sanitizer; both builds passed.
+The local defect issue is marked repaired. This adds no state, force option,
+framework or unmeasured performance claim and keeps explicit missing-document
+and index presentation behavior. Formatting/diff checks passed; shell extraction
+may now proceed independently of this small behavior repair.
+
+## C12b plan: shell presentation and preferences history
+
+Frame: move dock layout/resize, output selection/filter/scroll, terminal rendering
+and completion to shell_view; relocate recent-history persistence into the
+existing preferences module. Keep command dispatch and active-content composition
+in root until their owner/routing checkpoints. Limit: preserve valid-input UI
+behavior and the existing shell controller; plan B is narrow root adapters for
+preference writes and cross-feature visibility.
+
+Observed inputs: one desktop's DockLayout and output/terminal row batches, one
+selection byte range, filter text and deferred scroll action, one captured dock
+resize, current preview layout flags and one UI preference file/history. Default
+window dimensions are 1280×720 when querying fails, reserve is 96 px, sizes clamp
+to actual pane/frame constraints. New output preserves selection offsets only
+when old text remains a prefix; changed filters clear selection. UTF-8 hit mapping
+returns byte offsets, missing rows return no hit, hidden output defers scrolling,
+and one grave-toggle TEXT_INPUT is suppressed as before. Logs, filters, selection
+and capture are volatile; pane constraints/DOM IDs and preference schema are stable.
+ASSUMPTION: output lengths/change rates and actual display density are unmeasured
+— affects no optimization or input policy.
+
+Transform: shell rows/filter → visible flattened text/byte offsets → escaped
+markup/highlight → existing deferred follow-tail observation after layout;
+current window/pane/preview facts → layout; primary resize → owned scalar drag
+state → clamped pane dimensions → release/persist. Terminal input/cursor → existing
+backend completion → text/cursor/candidate rows. Recent path → canonicalized
+bounded preference history → existing JSON write. State owns text/scalars/path;
+DOM/context/window/backend borrows are synchronous. One displayed dock/output/
+terminal and preference file are true singletons; row/history transforms stay
+plural and contiguous. Pointer traversal/string-width calls use Rml's actual APIs.
+
+Cost: unchanged output/terminal traversal and string-width/markup work, bounded
+dock math and filesystem canonicalization/history write on the main thread.
+Simplify: reuse ShellController, existing completion/preferences, and current
+preview flags instead of session ownership; leave the current duplicated terminal
+refresh in the mechanical move for the later shared-refresh pass. No generic
+widget/persistence framework or performance claim. Done: normal/sanitized shell,
+layout, output selection/scroll, UTF-8 completion and preference cases pass with
+no AppState in moved bodies. Native dispatch remains C10b; startup cleanup C19.
+
+## C12b result and checkpoint self-check
+
+ShellViewState now owns dock resize scalars, selection text/byte offsets,
+deferred scroll, terminal-toggle suppression and the preferences path. Dock,
+output and terminal presentation/completion moved into shell_view with explicit
+controller/document/window/backend borrows and current preview layout facts.
+Root persists history on the same resize release edge. Recent-project history
+canonicalization/deduplication/bounding moved to client_preferences unchanged.
+No AppState crosses these APIs and the existing ShellController remains owner
+of shell rows and policy. Singleton exceptions and row/metadata ranges are
+documented; DOM pointers are required by the SDK's hit/font APIs.
+
+Normal and combined-sanitizer builds passed. All 19 cases in eight suites passed,
+108 ms normal and 430 ms sanitized, no skips. Six new production cases cover pane
+clamps and captured resize scalars, preview chrome restoration, append-preserved
+selection/filter reset/selection clamping, hidden deferred scrolling, real UTF-8
+glyph hit byte offsets and malformed row metadata, completion preserving Unicode
+arguments/rejecting selected text, one-shot grave suppression, and canonicalized
+bounded history persisted/read back. Font bytes remain live through SDK shutdown
+and aliases are registered before loading the document. Tests acquire no desktop
+capture; real display scaling/capture remain integration gates. Leak checking
+remains excluded for the recorded VM baseline.
+
+Simplification retains controller/completion/persistence implementations, uses
+current preview facts, and removes root feature bodies without a framework or
+performance claim. The intentionally duplicated terminal refresh remains for
+C17. Formatting/diff checks passed. Main is 10,129 lines. C10b, resource/dialog
+content composition and C13–C20 remain outstanding.
+
+## C13 plan: base workbench presentation
+
+Frame: move details/variables snapshots, virtual windows, tooltip/combobox,
+active-tab identity and pending change/blur state to the workbench owner. Keep
+the three existing pure workbench policies in rollnw_client_core; their SDL/Rml
+presentation pair uses the executable/test Rml guard. Root retains cross-feature
+activation orchestration until C17. No engine/rule implementation is replaced.
+
+Observed data: one active tab/object and surface, details/variable row batches
+produced by existing SmallS/snapshot functions, two cached visible virtual ranges,
+sound-position options 0–2, slider projection 0–10/storage 0–127, UTF-8 variable
+text and pending numeric prefixes. Invalid/missing row, non-ready snapshot or
+wrong active tab rejects controls; hidden/inactive surfaces skip presentation.
+Rows and selected object change on mutation/activation; metadata, row heights
+(30/34 px), overscan (8) and DOM IDs are stable. Existing listener suppresses its
+own synchronous Enter-triggered blur and coalesces sound changes until release.
+The pending slider currently has no owner; characterize that defect in this move,
+then require a failing identity regression and separate fix before continuing.
+ASSUMPTION: row volumes/typing rates are unmeasured — affects no cache/optimization.
+
+Transform: current workspace/base state → active identity predicates; existing
+runtime/identity → owned snapshots → visible row batch/markup; change/blur event
+and freshly supplied command context → existing backend command/result batch.
+Document/context borrows last one synchronous call; no AppState crosses the
+feature boundary. Active workbench/tooltip/edit gesture are true singletons;
+rows and command results use existing plural paths. Rml DOM pointers and validated
+engine ObjectHandles retain their SDK/engine identity contracts at cold boundaries.
+
+Cost: unchanged SmallS snapshot generation, visible-window strings and DOM/font
+traversal on the main thread; backend still owns edits/undo. Simplify: reuse
+existing adapters/lists and pass current context instead of preview/root owners;
+leave child clearing/hydration orchestration for its extraction checkpoints.
+Done: narrow feature APIs compile and normal/sanitized details/variables/window,
+Enter/blur, numeric-prefix and pending-slider characterization checks pass. No
+performance claim or generic workbench/widget dispatch framework is introduced.
+
+## C13 result and checkpoint self-check
+
+ObjectWorkbenchViewState now owns details/variables snapshots, virtual lists,
+popup/tooltip, active-tab/surface/strip state, blur suppression and the pending
+sound gesture. object_workbench_view contains the real row adapters, snapshot
+and window/popup presentation and change handling. The three existing pure
+workbench policies remain in rollnw_client_core. Root's listener only supplies
+current command context and feature dependencies; cross-feature child clearing
+and activation remain root orchestration for C14–C17. No AppState enters the
+feature API or implementation.
+
+Both builds passed without warnings. The initial focused matrix passed all 48
+cases in four suites (15,142 ms normal; 83,074 ms combined sanitizer). After adding
+the actual UTF-8 variable-control/window case, all five new workbench cases passed
+(2,682 ms normal; 14,889 ms sanitized). These checks cover existing property-tree/
+variable edits/templates plus cached/stale details and variables windows,
+Enter-triggered reentrant blur committing exactly once, numeric prefix restoration
+and the pending sound defect. UTF-8 form values are checked on the actual controls,
+not against the SDK serializer's choice of attribute escaping.
+
+The baseline characterization confirms a first sound's pending slider changes a
+replacement sound and records undo in its replacement tab. This move preserves
+that behavior; issues/client-sound-slider-owner.md records the concrete regression
+and required separate repair. The slider's unchecked numeric conversion is part
+of that repair, not a verified input boundary in this move. Other row/tab/range
+checks, singleton/DOM/engine identity exceptions and lifetime contracts are
+documented. Simplification removes root bodies and reuses existing snapshot/list/
+backend edit paths without speculative parameters or performance claims.
+Formatting/diff checks passed. Main is 9,281 lines. C10b, shared resource/dialog
+composition and C14–C20 remain outstanding; repair the sound gesture next.
+
+## Sound gesture repair plan
+
+Tier 1: input is a sequence of sound-volume changes and the original object,
+tab/module identity and row/current value; output is at most one existing edit
+for that same still-current target. The production characterization demonstrates
+cross-object/cross-tab corruption. Capture identity in pending state, cancel it
+when clearing/replacing the workbench, and revalidate active object/tab/module,
+ready row/editor/current value before backend dispatch. Reject invalid slider
+floats before rounding and discard pending state so they cannot replay an edge.
+Keep common valid drags coalesced into one edit and existing undo record.
+
+Cost: one owned tab string plus handle/generation in this single cold gesture;
+bounded validation at staging/commit on the main thread. No throughput claim.
+Simplify: use existing handle, module generation, UI selection host and backend
+validation; no transaction queue, new identity registry or alternative edit path.
+Done: the desired replacement-object regression fails before implementation,
+then normal/sanitized replacement/tab, valid coalescing/undo, stale row, clearing
+and non-finite/out-of-range value checks pass with existing workbench cases.
+
+## Sound gesture repair result and self-check
+
+The desired production regression failed first: the replacement sound's volume
+became 89 instead of 0 and its tab gained an undo entry. Pending edits now own
+object/tab/module identity. Staging/commit validate current selection and context,
+ready row/editor/current value; clearing/replacement cancels pending state.
+Non-finite, out-of-range and fractional slider values discard pending state
+before unsafe conversion or command dispatch. Valid changes still coalesce into
+one existing backend edit; undo restores the exact previous volume.
+
+Both builds passed without warnings. All 11 focused cases passed, 5,568 ms normal
+and 31,583 ms sanitized, no skips. Added coverage includes multiple changes/one
+commit, actual undo, stale snapshot row, backend selection changing before snapshot
+refresh, same-object tab changes, clearing, NaN/infinity/extreme/range/fractional
+values and replacement objects. The local defect issue is marked repaired.
+Module-generation validation is present/reviewed; actual reload during a live
+desktop slider gesture and pointer capture were not exercised. Simplification
+retains existing identities/backend batches, moves pending ownership on commit,
+and introduces no queue/registry/alternative edit path or performance claim.
+Formatting/diff checks passed; creature presentation extraction can proceed.
+
+## C14 plan: creature classes, feats and spells
+
+Frame: move the creature presentation snapshots, queries/filters, virtual windows,
+class/spell markup and selector state to creature_workbench_view. Existing SmallS
+providers and backend commands retain rules/edits. Root hydrates the overall
+workbench until inventory/appearance owners are extracted; no shared controller
+or alternative creature editor is introduced.
+
+Observed inputs: SmallS-owned class, feat and spell batches copied into snapshots;
+feat rule IDs/assigned flags, spell IDs/levels/known-or-uses, class/metamagic choices,
+UTF-8 text slices, current query, level -1 (All) or 0–9 and one displayed popup.
+Rows use stable dense match indices; invalid handles/provider data retain their
+existing diagnostics. Invalid level/class/metamagic choice rejects the selection;
+missing/stale active tab returns waiting/unavailable. List height is 30 px with
+8 overscan rows. Snapshots change on activation/mutation/filter choice; queries,
+scroll and popup are volatile. Existing provider fixtures supply actual creatures;
+total row distributions and UI event rates remain unmeasured.
+ASSUMPTION: no performance requirement beyond preserved behavior — no optimization.
+
+Transform: existing runtime/object → owned class/feat/spell snapshots; query/level
+→ dense spell match indices; current workbench target facts → identity checks;
+visible ranges/choices → escaped markup and shared combobox updates. A small
+in-process target protocol carries object, surface, matching-active-tab and area
+header facts rather than the base workbench's row arrays/root state. It contains
+no owning resource or retained DOM pointer and is captured anew for each call.
+One displayed workbench/popup are singleton exceptions; provider/list/filter
+paths operate on existing contiguous batches. SDK DOM borrows are synchronous.
+
+Cost: unchanged provider work/filter traversal and visible-window strings/DOM
+on the main thread, plus bounded scalar target scratch. Simplify: use existing
+providers/controls and cached windows; no registry, rule ownership, callbacks or
+new generality. Done: no AppState in the feature, normal/sanitized real creature
+providers, classes/filters, cached windows, stale-tab and SmallS/Rml suites pass.
+
+## C14 result and self-check
+
+Creature classes, feat/spell snapshots, queries/match indices, filter popup and
+visible-window caches now belong to creature_workbench_view. Target facts are
+copied per synchronous call through the small in-process ObjectWorkbenchTarget
+protocol; no AppState or DOM/resource ownership crosses the interface. Existing
+SmallS providers/backend edits retain rule ownership. Root retains the overall
+multi-surface hydration/activation sequencing until C17.
+
+The initial 42-case matrix passed (11,012 ms normal, 64,435 ms sanitized). Extending
+the popup fixture exposed an independent vendored RmlUi scrollbar destruction
+use-after-free. A plain-document regression failed under ASan before the separate
+repair; its contract/result are in client-rml-scrollbar-lifetime.md. Afterward,
+the final 51-case matrix passed (11,176 ms normal, 62,408 ms sanitized, no skips),
+including actual wizard classes/feats/spells, valid/invalid level/class filters,
+stale tabs, cached row/popup windows, expression bindings, templates and eight
+managed-list cases. Both client/test builds passed. A full SDK rebuild emitted
+nine warnings from unchanged color-parser code; moved client code added none.
+
+Simplification reuses providers, dense indices and shared cached controls; no
+new rule model, registry or callback framework. Existing diagnostics/range
+rejection and singleton/borrow contracts are documented. No performance result
+is claimed. Formatting/diff and feature dependency checks passed. Main is 8,647
+lines. Live desktop filter feel and unavailable graphics remain unverified;
+C10b, resource/dialog composition and C15–C20 remain outstanding.
+
+## C15 plan: inventory, equipment and icon ownership
+
+Frame/data: move the one displayed Creature/Item/Placeable inventory's validated
+snapshot, selected dense source index/page, render cache and generated item icons
+together. Existing SmallS provider owns grid/footprint validation; item/backend
+operations remain authoritative. Actual rows contain uint8 page/row/column/size,
+18 fixed equipment entries for creatures, UTF-8 text slices and generated image
+sources. Repository DockerDemo/pl_agent/item fixtures provide real rows/icons;
+row distributions and live event rates are unmeasured. Common ready inventories
+render the current page's rows and fixed equipment; invalid provider data renders
+its diagnostic and stale tabs render waiting.
+
+Contracts: provider/object/cache → owned rows/text/images; current target facts
+and page/selection → escaped grid/equipment markup; markup → current SDK DOM.
+Text slices last until rebuild. Renderer borrows the stable texture collection
+until unbound before owner destruction. Rebuild clamps bad pages to 0 and drops
+bad selection to -1; provider rejects invalid footprints/handles. Clearing rows
+retains the existing icon cache. Resource generation continues invalidating icons
+through the provider. One displayed page/selection are singleton exceptions;
+providers/images/rows remain batches. DOM borrows last one synchronous call.
+
+Platform/cost: same main-thread SDL/Rml/Vulkan client, 32 px cells, unchanged
+provider/icon work plus linear traversal of inventory rows for page selection;
+no copied texture collection or new registry. Generic managed lists are used by
+sound/spawns/store/item properties and remain shared workbench state until C17.
+ASSUMPTION: no optimization requirement — preserve access/order and report no speedup.
+Simplify: reuse provider, grid markup and generated textures; no alternative
+inventory model or separate creature/item implementation. Done: narrow APIs,
+normal/sanitized real grid/equipment/cache/selection, invalid provider, shared
+list/model and resource-drop checks pass; root bindings retain stable addresses.
+
+## C15 result and self-check
+
+Inventory/equipment rows, page/source-index selection, render cache and generated
+item textures now belong to inventory_workbench_view. Root texture binding and
+resource-drag adapters reference that owner's stable collection/snapshot; no
+texture batch was copied. Generic managed lists remain shared across workbench
+surfaces. SmallS retains layout, footprint and icon materialization policy.
+
+All 38 focused cases passed, 5,532 ms normal and 30,770 ms ASan/UBSan, no skips.
+New production-view fixtures exercised real creature equipment (18 DOM slots),
+selected current-page rows, cached windows, valid selection retained on rebuild,
+invalid page/selection reset, stale tabs, item/placeable grids and rejected 11-cell
+footprints. Repository icon layers produced actual generated sources/textures;
+the collection address/count remained stable through rebuild and row clearing.
+Existing provider, item-model/template, managed-list and resource-drop/undo cases
+passed. Both builds passed without warnings. The final incremental normal build
+was measured at 12.273 s after correcting an explicit invalid-handle fixture
+argument; this is a retry measurement, not a before/after speedup claim.
+
+Simplification reuses validated rows, fixed equipment tables, current page
+rendering and the existing icon cache. No alternative editor/model/registry was
+added. Singleton, SDK borrow and generated-texture lifetime exceptions/range
+policies are documented; no AppState enters the feature API. Formatting/diff and
+dependency checks passed; main is 8,348 lines. Actual Vulkan texture upload,
+desktop grid drag feel and shutdown ordering remain integration/manual coverage
+gaps. C10b, resource/dialog composition and C16–C20 remain outstanding.
+
+## C16 plan: appearance, color and sound selector ownership
+
+Frame/data: move the current selector's five existing appearance catalogs, sound
+catalog, dense matches, query/window/scroll caches, color channel and body-preview
+identity. Existing catalog builders, SmallS visual providers/backend commands
+retain rules and edits. Actual appearance rows contain int32 rule ID/model type
+and owned labels/model/search text; sound rows contain WAV resrefs/names. Invalid
+catalog rows are dropped by providers, unavailable catalogs retain diagnostics.
+Creature colors use the existing 16×11 palette and 24 px input cells; supported
+skin/hair palettes and channel/value bounds are checked before opening. Real
+DockerDemo catalogs and actual creature/door/placeable/sound fixtures are available;
+distributions and pointer rates remain unmeasured.
+
+Transform/contracts: current module/resource generations invalidate existing
+catalogs; object/selector field/query → owned catalog and dense indices; current
+workbench target/ready-detail facts → stale-tab checks; current ranges/colors →
+escaped SDK markup; current selection → existing backend edit; body-preview
+transition restores the old creature before hiding equipment on the new creature.
+Borrowed engine identities are validated by existing operations; DOM lasts one
+synchronous call. Unavailable/stale selectors return false or diagnostic markup;
+invalid color/palette/field parsing rejects. Preview failures preserve the existing
+retry state. One displayed selector/preview are singleton exceptions; catalog,
+filter and visual-row work remains batches.
+
+Platform/cost: unchanged main-thread provider/filter/window work, owned strings,
+existing five catalogs and current preview identity. Renderer-dependent preview
+attachment stays in a separate runtime translation unit, keeping headless provider
+and presentation checks independent. A current ready-details fact is added to
+ObjectWorkbenchTarget because preview policy actually reads it; no row arrays or
+whole base/root owner crosses that boundary.
+ASSUMPTION: no optimization requirement — no measured performance claim.
+Simplify: reuse existing builders/list controls, catalog generations and backend
+edits; no generic selector framework. Done: no AppState dependency, normal/sanitized
+catalog/window/color/stale-tab/sound/combobox/body-provider checks pass; old/new
+preview restoration order is preserved and graphics gaps reported.
+
+## C16 result and self-check
+
+Appearance/color/sound selector state and generations now belong to appearance_view.
+Current module/resource generations and workbench target/ready-detail facts are
+passed explicitly; no AppState/backend borrow is retained. The pure SmallS preview
+row helper is headless-testable; renderer attachment/restoration remains in the
+separate appearance_view_runtime translation unit with the original ordering.
+
+All 42 focused cases passed: 12,816 ms normal and 62,232 ms ASan/UBSan, no skips.
+The extended body-preview assertion was rerun normally (984 ms) and is included
+in the sanitizer matrix. New fixtures exercise real catalog query/window caching,
+injected next-generation invalidation, field parsing, missing color channels,
+actual color/sound backend edits and undo, invalid sound indices and stale tabs.
+Body preview actually changes visual rows while hiding equipment and restores
+models, attachment/kind/slot/part/flags and palette colors. Existing catalog,
+combobox, appearance/body/color/accessory/sound edit and Rml template suites passed.
+Both builds passed without warnings; dependency/format/diff checks passed.
+
+Simplification removes unused state borrows from color rendering and desired-preview
+selection, reuses existing catalogs/providers/backend batches and adds no selector
+framework. Range/diagnostic/stale policies and singleton/borrow lifetimes are
+explicit. No measured performance result is claimed. Actual project reload during
+an open selector and renderer transitions are not exercised by the injected-generation
+or SmallS provider fixtures; desktop selector/preview feel remains unverified.
+Main is 7,396 lines. C10b, shared resource/dialog/content/workbench composition and
+C17–C20 remain outstanding.
+
+## C17a plan: resource and dialog content boundaries
+
+Tier 1 within the Tier 2 refactor. Inputs are the active tab's kind/detail/ID,
+current project path, owned ResourceDocument property/diagnostic batches and one
+cached DialogDocumentSnapshot. Output is the existing resource inspector markup
+or the current dialog snapshot/view. Resource paths come from actual project tabs;
+unknown tab kinds/empty project or detail return unavailable, and existing loaders
+reject escapes/missing/invalid files with diagnostics. Dialog cache identity is
+exact tab ID/source path/nonempty status; repeated current identity preserves
+selection, switching away clears it. Real Agent JSON and alue_ranger GFF fixtures
+are available; row distributions are unmeasured.
+
+Move resource load/markup into existing workspace_view and dialog acquisition
+into existing dialog_view, accepting only project path/current tab. DOM borrows
+last one call, text slices until document replacement. The displayed content is a
+singleton; property/diagnostic/dialog rows remain contiguous batches. Cost stays
+existing synchronous file parsing, row traversal and markup on the main thread.
+Simplify by sharing the already-present escaping helper and removing inspector
+compact mode: its only real caller always supplies false. No new cache/general
+content registry. Done: production resource/dialog selection/cache/path rejection
+and existing document/workspace/template suites pass normally and under ASan/UBSan.
+C17b then consolidates shared content rendering and workbench activation while
+retaining the observed content-only/full-view scroll and popup differences.
+
+## C17a result and self-check
+
+Resource-document acquisition/inspector markup now belongs to existing workspace_view;
+current dialog acquisition/cache identity belongs to existing dialog_view. APIs
+accept only the current project path/tab and owned document batches. Inspector
+compact mode was removed because its only caller always selected ordinary mode.
+The existing workspace escaping helper is reused; no new cache/registry was added.
+
+Both builds passed without warnings. Normal checks verified the 35 existing
+resource/dialog/browser/workspace/template cases plus the final new content case
+(488 ms). The initial new fixture referred to a nonexistent outside file, which
+correctly returned a missing-file diagnostic; creating an actual outside file
+made the path-rejection assertion faithful to the existing loader contract.
+The final combined ASan/UBSan matrix passed all 36 cases in 11,569 ms, no skips.
+Actual Agent JSON inspector markup, ranger GFF acquisition, same-source retained
+selection/storage, cached dialog windows, missing-source diagnostics and tab-away
+clearing were exercised. SDK/engine/lifetime and singleton/batch exceptions and
+unavailable/range behavior are documented. Formatting/diff checks passed; main
+is 7,266 lines. No performance/desktop integration claim; C17b shared refresh,
+C10b input ownership and C18–C20 remain outstanding.
+
+## C17b plan: workbench composition and shared content refresh
+
+Tier 2 continuation. Actual inputs are four existing workbench presentation owners,
+current workspace/tab, current project/module summary, and validated object rows.
+Output is one active workbench's markup/hydration and existing snapshot refreshes.
+One of creature/item/door/placeable templates exists for the displayed object;
+generic workbenches contain details/variables/haks/spawn/sound/store rows. Unknown
+objects keep existing unavailable/diagnostic output. Objects/resources are stable
+between generations; tab/focus/query/page/selection are volatile. Live event and
+mutation distributions are unmeasured.
+ASSUMPTION: repeated same-object refresh is common — affects preservation tests,
+not a speculative cache or performance claim.
+
+Own creature/inventory/appearance states and common managed-list render cache in
+ObjectWorkbenchViewState; remove their separate root owners. Move typed hydration
+and generic markup to that coordinator, preserving child provider ownership and
+stable generated-texture addresses. Area placed-object list remains separately
+scoped. Two actual activation paths share the original snapshot/scroll/page sequence;
+same-object mutation retains feat/spell queries, class/metamagic, page/selection
+where baseline does. Activation also retains existing creature queries: observed
+code resets scroll/page but does not clear queries when switching creatures.
+Do not merge structural/spatial/visual renderer refresh into activation.
+
+Plan conflict: its inventory-only managed render-cache ownership contradicts the
+observed single pass over sound/spawns/store/item-property lists. Common workbench
+ownership costs one existing cache plus the existing host borrow. Partitioning
+would add several caches, ID partition work and new reset cases. Use the smallest
+change: keep one cache in the shared workbench owner; reorder remains input-owned.
+
+Cost on the main-thread desktop platform: unchanged row/provider/string work;
+existing child data moves ownership without duplication. Shared content rendering
+removes one duplicate body. A two-case refresh intent retains observed differences:
+content-only saves/restores appearance scroll and invalidates the spell popup;
+full view updates tabs and omits those operations. One displayed workbench/content
+are singleton exceptions; internal rows/filter/provider edits remain batches.
+SDK DOM borrows are synchronous and reacquired by ID as before.
+
+Simplify: one owner, one activation sequence, one content body, hydration only for
+the actual displayed type; no callback framework or new general services bundle.
+Done: normal/sanitized activation/clear, mutation filter/selection retention,
+generic/typed markup, shared-control and resource-drop checks pass; dependency,
+ordering and source audits confirm one content body and distinct renderer paths.
+Plan B: smaller ownership/hydration move if the common API requires unrelated root
+state. Frame integration/manual graphics gaps stay explicit until C20.
+
+## C17b result and self-check
+
+ObjectWorkbenchViewState owns the three child presentation states and one common
+managed-list cache. Typed hydration and generic markup use those owners plus the
+current Workspace/Backend; feature headers expose no AppState. Stable texture
+cache addresses remain bound through the same application lifetime. Both object
+activation sites use one production activation transform; mutation refresh is
+distinct and rejects a different object. The content-only/full-view wrappers
+share one content body with their original appearance-scroll and spell-popup
+differences. Spatial/visual/structural renderer branches remain separate.
+
+Simplification removed unused root wrappers, repeated feat/spell/inventory clear
+calls after common clear, and terminal refresh/focus immediately after bottom-dock
+refresh already performs them. Hydration selects the one displayed object type.
+No new callback framework, configurable refresh policy, or duplicate cache. The
+one displayed workbench/content and SDK DOM/engine borrows retain the documented
+singleton/external-library exceptions; providers and list rows remain batches.
+
+Final normal and ASan/UBSan client/test builds passed without warnings. The 48-case
+production workbench/appearance/inventory/template/managed-list/resource-drop/content
+matrix passed normally in 16,309 ms and under combined sanitizers in 85,743 ms, no
+skips. Two new cases exercise activation versus mutation query/filter retention,
+stale-object rejection, selector/page resets, clear, typed hydration and generic
+sound-selector composition. Initial compile retries corrected extraction call
+arguments and a new fixture's inventory member name; final builds/checks passed.
+
+Source/order audit confirms one shared content body and distinct renderer mutation
+partitions. Actual root frame refresh counts, Vulkan texture upload and desktop
+control feel remain unverified here; C20 integration remains required. Main is
+6,540 lines (7,266 before this checkpoint). Formatting/diff/dependency checks passed.
+No performance gain or clean LeakSanitizer run is claimed. C10b and C18–C20 remain
+outstanding; the full issue is still in progress.
+
+## Dock captured-resize repair plan
+
+Tier 1, separate behavior repair discovered during C10b numeric-boundary audit.
+Actual input is one captured left/bottom resize's finite start coordinate, integer
+start size and current SDL motion. Each coordinate can be int-representable while
+their difference exceeds int range. Output is the existing constrained dock size;
+nonpositive requested sizes keep the baseline no-op policy. Hardware/platform is
+x86-64 desktop SDL/Rml on the UI thread; long is wider than int here, and narrowing
+a large lround delta before size addition can wrap or cause signed overflow.
+Sizes are bounded by existing dock/window limits; capture/motion is volatile.
+ASSUMPTION: ordinary small deltas dominate — affects preserving their exact rounding,
+not an optimization claim.
+
+Characterize with the production Rml shell fixture and captured scalar state,
+including opposite ±2-billion coordinates and a representable coordinate whose
+addition overflows int. Then compute and round in double, cap positive requests
+before integer conversion, and cancel nonfinite captured inputs before conversion.
+No new resize state/option. Cost is two fixed scalar operations per active resize,
+no allocation; existing clamps/DOM updates remain. Singleton pointer capture is
+intentional. Simplify by sharing the two directions' bounded conversion; do not
+change ordinary/nonpositive resize policy. Done: the regression fails first, then
+normal/sanitized shell cases and client builds pass with explicit numeric policy.
+
+## Dock captured-resize repair result and self-check
+
+The new production shell regression failed before the repair: opposite large
+coordinates left left/bottom sizes at 360/240 instead of their existing 640/624
+limits; NaN retained capture. Active resize now rounds the delta in double, adds
+the integer start size there, and bounds positive requests before narrowing.
+Nonfinite capture/motion cancels the corresponding resize and preserves size.
+Nonpositive requests remain no-ops; the regression verifies negative half-pixel
+rounding and that policy. Rml measured initial sizes also validate/bound before
+integer conversion, using existing fallback for unavailable/nonfinite sizes.
+
+Both final client/test builds passed without warnings. All 13 shell view/input,
+controller and preference cases passed normally in 61 ms and under combined
+ASan/UBSan in 256 ms, no skips. Diff/format checks passed; no new state/option,
+allocation or performance claim. The singleton captured pointer and existing
+SDK/DOM borrows remain; bounded arithmetic removes the unsafe intermediate.
+Actual desktop mouse capture and deliberately corrupted SDK layout sizes were
+not exercised. This independent repair does not complete C10b routing.
+
+## C10b1 plan: flat routes and shared UI eligibility
+
+Tier 2 continuation, bounded checkpoint before moving the remaining native actions.
+Actual inputs are ordered SDL events and freshly captured visible command UI/text
+focus, normalized editor/PC map, current capture, and world-session availability.
+Output is a flat native/UI recipient, forwarding phase/reason and PC held-source
+eligibility. The three contexts/window remain main-thread singletons; SDK callbacks
+can replace markup or change ownership, so capture is per event/call, never cached
+for a frame. Default Rml recipient and held-sampling gates currently repeat UI
+policy. Pointer values must pass the existing raw validator before UI queries.
+Known tags/edges are bounded enums; invalid tags, stale world targets and unequal
+spans clear/reject outputs and cannot fall through to editor.
+ASSUMPTION: pointer motion dominates event volume — affects flat allocation-free
+rows, not a latency claim; actual rates/entropy remain unmeasured.
+
+Use a schema-1 equal-span O(N) pure transform in client core, with no SDL/Rml/DOM
+strings/engine identities in rows. Role normalization maps player/DM to the same
+PC map; F9 remains editor lifecycle and supplies its current map facts. Add a
+production SDL/UI capture adapter and share visible UI/focus/capture facts with
+held sampling. Initially replace modal/default forwarding selection and the held
+source policy, leaving native feature handlers and exact release ordering intact
+for the next independently buildable checkpoints. No new player/DM startup.
+
+Cost on desktop main thread: linear fixed-size rows and O(1) scratch, no allocation;
+SDK visibility/focus queries retain library cost. External DOM/window pointers
+are synchronous SDK borrows, not a replacement indexed DOM. The one held sample
+is a batch of size one over the same pure transform. Simplify by one UI capture
+policy, one role-independent PC recipient and one enum protocol; no registry,
+replay queue, keybinding table or configurable policy.
+
+Done for this checkpoint: actual production capture/resolve/SDK forwarding tests,
+unknown/mismatched/stale batch rejection, visible/hidden UI and focus eligibility
+pass normally/sanitized; renderer-off core tests compile/pass. Native mouse-up
+identity repair/delegation and complete authority remain C10b2+; no claim that
+adding a lookup alone completes input routing. Preserve identity DPI conversion
+and unit-density fixture; nonunit DPI stays manual/unverified.
+
+## C10b1 result and self-check
+
+Schema-1 routing is an equal-span core transform with bounded enums/flags, explicit
+invalid/unavailable dispositions and no SDL/Rml/kernel/string/pointer row members.
+Actual x86-64 row sizes are 12 input bytes and 7 output bytes (test XML properties).
+Unknown tags/edge combinations and stale world facts select no editor fallback;
+mismatched spans clear previous output. Player/DM normalize to the same PC map,
+while editor/F9 lifecycle remains separately owned. PC source eligibility has one
+small shared data header, avoiding navigation/kernel includes in the route header.
+
+The production SDL adapter validates raw pointer input first, then captures current
+visible UI and text focus. Held sampling uses the same UI capture and count-one
+route transform. Default forwarding now resolves its obligation there as well;
+it captures only palette facts it needs, avoiding an added toolset hit/focus
+traversal. Exclusive command handling still precedes default platform/SDK-only
+forwarding (touch and text-editing candidates retain their default path). Native
+feature dispatch remains transitional and is explicitly not claimed consolidated.
+
+Both final client/test builds passed without warnings. All 22 input/route/PC/runtime
+sampling and relevant actual-template cases passed normally in 97 ms and under
+ASan/UBSan in 359 ms, no skips. Renderer-off core/test build passed; all 10 pure
+route/PC cases passed (0 ms reported by harness). Two new SDK cases exercise actual
+visible/hidden production palette markup, capture→resolve→one SDK call, fresh
+visible text focus, capture ownership for both PC roles and real runtime pending
+edge/delta discard without replay. Three new pure cases cover bounded batch
+recipients, forwarding phases, role/source equivalence and malformed/stale data.
+The initial palette fixture lacked its relative panel.rcss; using the filesystem
+fixture's UI directory and persistent real font bytes corrected that fixture.
+
+Simplification: one pure role-independent PC route/source protocol and one UI
+capture policy, no registry/replay/keybinding framework; shared eligibility data
+removes an unnecessary heavyweight include. Borrowed SDK contexts/windows/DOM
+remain synchronous external-library singleton exceptions. No performance gain,
+nonunit-DPI agreement or physical-controller behavior is claimed. Formatting,
+diff and pure-header dependency checks passed. C10b2+ native actions/identity and
+C18–C20 remain required for whole-issue completion.
+
+## C10b2 release-borrow repair plan
+
+Tier 1 repair within the Tier 2 extraction. Patterns: main.cpp:4893 reads a tile
+row's data-key after synchronous SDK mouse-up; the same switch reads scroll DOM
+and creature row iterators afterward. client_input.cpp already owns once-only
+SDK forwarding; existing decimal parsers use from_chars. No existing helper
+captures a native row key around that forwarding boundary.
+
+Actual input is one primary mouse release, its current DOM row and mutable owned
+feature rows. Output is the captured bounded key and existing native action.
+The SDL/Rml desktop UI thread can replace markup synchronously; ordinary keys
+are signed decimal row indices, with negative/invalid/overflow keys rejected by
+the existing range policy. DOM is stable only until dispatch, keys only until
+their feature identity changes. ASSUMPTION: ordinary unchanged-owner clicks
+dominate — affects keeping their path simple, not a performance claim.
+
+Extend client_input.hpp/.cpp with the exact once-only row-release seam and wire
+the tile branch to it; add an actual SDK replacement regression first. Repair by
+parsing before dispatch, copying scroll disabled/direction and creature command
+values before release, and reacquiring the sound field by owned ID afterward.
+No retained DOM/row borrows, new event queue or configurable attribute API.
+The event is a true singleton synchronous SDK operation; downstream edits remain
+existing batches. Cost: fixed scalar copies plus the existing short key/command
+strings on desktop; DOM hit/dispatch retain SDK cost. No speedup is claimed.
+
+Simplify: retain existing SDK adapter and parsers; copy only values actually read
+after dispatch, without copying all DOM attributes. Done: the tile regression
+fails under ASan before repair, then input and affected production feature tests
+pass normally/sanitized, builds and formatting pass. Owner/project/row identity
+guards and native feature delegation remain required following this borrow repair.
+Plan B: a smaller branch-local capture if the seam adds unrelated dependencies.
+
+## C10b2 release-borrow repair result and self-check
+
+The actual SDK replacement regression failed before repair under ASan: the key
+was absent after release removed its row. This fixture did not report an ASan
+memory error; removal invalidated the native read nevertheless. Production tile
+input now parses the bounded key before once-only SDK release. Invalid/overflow
+keys still release the SDK press without a native key; already forwarded input
+rejects before touching the row again. Scroll button disabled/direction and
+creature command values are captured before release. The sound field is
+reacquired by copied ID and matching row after popup synchronization.
+
+Both final client/test builds passed without warnings. The 39-case input/route,
+PC/runtime and affected actual workbench/content matrix passed normally in
+15,865 ms and under ASan/UBSan in 87,891 ms, no skips. After the explicit algorithm
+include, all 13 input/validation/tile-editor/actual-palette cases passed normally
+in 106 ms and sanitized in 461 ms. Two new SDK cases cover DOM replacement,
+malformed keys, bounded conversion and once-only release. The root's scroll,
+sound and creature read-order changes were source-audited; these tests do not
+exercise every root action. Formatting/diff checks passed.
+
+Simplification copies only needed values, retains the existing SDK adapter and
+adds no state, queue or attribute configuration. UI release is the documented
+singleton SDK edge; existing edit/list transforms remain batches. No speedup or
+clean LSan claim. Callback owner/row identity guards and native delegation remain
+required, followed by C18–C20; the whole issue remains in progress.
+
+## C10b3 plan: callback owner identity
+
+Tier 2 continuation. Patterns: Workspace owns one active tab/document/subtab
+(workspace.hpp:37); object_workbench_target copies current display facts
+(object_workbench_view.cpp:925); the native mouse-up seam is synchronous and
+once-only (client_input.cpp:183). Existing mutation epochs deliberately allow an
+unrelated edit's blur before a click. Neither the pure route nor the current
+generational handles capture variable-length tab/resource/subtab identity.
+
+Input is the active Workspace plus current script/display object identities,
+module/resource generations, editor/PC map, preview phase, surfaces and operation
+gates immediately before/after release. Output is one valid/unchanged-owner bit.
+The ordinary case retains owner while blur commits a field or replaces markup.
+Unknown tags, missing tabs, invalid subtab indices and malformed payload sizes
+reject. ASSUMPTION: unchanged-owner releases dominate — affects straight-line
+comparison, not a speed claim. Sources are existing owners; no new authority
+state or frame cache. UI-thread callbacks are synchronous on desktop SDL/Rml;
+all identity data must own its bytes across that callback.
+
+Create client_ui_action.hpp/.cpp in client core: schema-1 fixed header plus one
+owned UTF-8 payload with three bounded lengths for tab/resource/subtab identity.
+Capture the true singleton displayed Workspace; compare equal spans of owner
+records, clearing outputs on size mismatch. Keep pure routing rows unchanged.
+Root supplies live object/map/phase/gate facts and rejects a native continuation
+when callback ownership changes; preserve actions that precede SDK release.
+Tests use actual Workspace transitions during real SDK release and malformed
+batch/identity boundaries. Native row semantics remain feature-owned next.
+
+Cost on the desktop main thread: O(identity bytes) capture/comparison and one
+payload buffer per snapshot on native release only; no pointer-motion work.
+Generational engine IDs retain the existing external table ABI, no DOM pointer
+survives dispatch. Simplify: compare relevant owner identity, not every mutation
+epoch/focus change; one payload, no callback getter, opaque AppState services,
+registry or queue. Done: owner transition/unchanged blur and rejection tests,
+normal/sanitized builds/checks and renderer-off core tests pass. Plan B: smaller
+feature-specific guard if these shared owner facts cancel legitimate clicks.
+
+## C10b3 result and self-check
+
+The core owner protocol has a 72-byte fixed header (48-byte current context)
+on this x86-64 build and one owned UTF-8 payload. Three bounded lengths distinguish
+ambiguous concatenations. Capture rejects absent tabs, invalid subtab indices,
+unknown context/tab tags and overlarge identity payloads. Equal-span comparison
+rejects malformed rows independently; unequal counts clear all previous output.
+No SDK/DOM types, retained root borrow or callback getter enters this module.
+
+All 52 native release continuations use fresh before/after owner checks; the tile
+key seam checks its owner around its own SDK dispatch. A changed owner cancels
+the continuation and clears the armed recent-row index. Existing actions that
+precede release retain their order. The full branch read audit also found a
+sound-catalog key read after release; it now precedes release, using the same
+already-characterized row-key boundary. No old DOM/creature-row borrow is read
+after release in the audited chain; subsequently focused controls are reacquired.
+
+Both final client/test builds passed without warnings. All 34 owner/input/route,
+PC/runtime, actual-template and shell-view cases passed normally in 192 ms and
+under ASan/UBSan in 862 ms, no skips. Renderer-off build passed, and all 14 core
+owner/route/PC cases passed (0 ms harness time). Four new core cases cover actual
+Workspace byte ownership, ambiguous identities, world/mode/generation/gate
+changes and malformed batch contracts. One new SDK case switches the Workspace
+and replaces markup during actual release; the prior replacement regression
+also verifies an unchanged Workspace remains eligible. Initial builds corrected
+the ObjectDocument accessor to its actual object() API; final builds passed.
+
+Simplification compares owner identity rather than focus or all mutation epochs,
+so unrelated blur edits/DOM replacement can proceed; one payload replaces several
+separate string buffers. Capture is a true displayed-Workspace singleton and
+comparison is batch/count-one. Engine IDs remain the existing generational table
+ABI in this cold edge path. Formatting, diff and pure dependency checks passed.
+Root guard placement was source-audited, not exercised through a full application
+frame; native row semantics/feature delegation and C18–C20 remain outstanding.
+No performance gain, desktop control feel or clean LSan result is claimed.
+
+## C10b4 plan: owned variable and Details native commands
+
+Tier 2 continuation. Patterns: six adjacent root branches parse variable/remove/
+type and integer/boolean/door controls; object_workbench_view.cpp already owns
+their rows, decimal parser, change commits and presentation. Existing backend
+commands/SmallS prepare functions own actual edit policy and undo; reuse them.
+
+Inputs are the current clicked DOM control and displayed Workspace/view/provider
+metadata. Output is an owning cold command click with an explicit SDK release
+phase, owner identity, positional CommandArgs and bounded property identity.
+Ordinary valid clicks commit one existing undoable command. Variables/integer
+release before native dispatch; boolean/door actions precede release. Invalid
+integer controls retain the existing consumed/no-release behavior; invalid
+boolean/door controls still release after no action. Missing/stale object/tab/
+module/property identity rejects without edits. Mutable provider rows can change
+across events before the frame's observer rebuild, so a dense row alone is not
+a property identity. ASSUMPTION: unchanged metadata dominates — affects retaining
+the existing actions, not a measured latency claim.
+
+Extend object_workbench_view.hpp/.cpp with capture and one-shot execution APIs;
+root coordinates only the phase/owner release guard. Capture retains no DOM row;
+execution consumes the action before backend callbacks and compares current
+SmallS row propset/field/element/editor identity before dispatching the existing
+command. Backend remains the rule/undo owner. Add actual object/DOM/provider tests
+for single command+undo, malformed input, stale owner and stale dense-row meaning.
+
+Cost: cold owned CommandArgs and identity bytes; Details adds one bounded SmallS
+row batch before the backend's existing policy preparation. No cache/epoch state,
+command protocol extension or duplicate rule implementation; correctness has no
+measured latency target. Singleton UI click/selected object are intentional;
+SmallS row providers and backend edits remain existing batches. Simplify by one
+root phase sequence and existing parsers/commands, with no opaque services or
+action queue. Done: normal/sanitized feature/input checks, exact release phase,
+one undo and stale/malformed no-edit tests pass with source/dependency checks.
+Plan B: fewer control kinds if a shared descriptor requires unrelated state.
+
+## C10b4 result and self-check
+
+The workbench owns capture and one-shot execution for variable add/remove/type,
+integer steps, booleans and door state. The root retains only the common release
+phase/owner guard sequence. Requests contain no DOM/text-slice borrow, use owning
+existing CommandArgs and consume their kind before backend/provider callbacks.
+Stale object/tab/module/context or property metadata rejects without edits/logs.
+Fresh SmallS propset/field/element/editor/value identity guards a dense token;
+existing commands continue owning policy, edit batches, output and undo.
+
+Simplification skips owner-byte capture for unmatched/invalid controls, reserves
+the bounded argument batch once and replaces six root branches with one phase
+sequence. No epoch cache, opaque services, new rule implementation or command
+protocol extension. Details performs the documented extra bounded provider batch;
+this cost has no measured latency target and no speedup is claimed. Selected UI
+click/object are true singletons; row providers and backend edits remain batches.
+
+Both final client/test builds passed without warnings. All 31 actual workbench,
+input/owner/route, relevant template and scrollbar-lifetime cases passed normally
+in 5,994 ms and under ASan/UBSan in 33,707 ms, no skips. Five new feature cases
+verify owned variable arguments after DOM replacement, one undo/repeat rejection,
+live boolean/integer/door edits+undo, replacement-object rejection, a simulated
+stale dense slot with equal value but different live property identity, and
+malformed control phases. The integer fixture initially assumed Sound had a
+spinner row; its actual provider uses a separate volume slider. Inspection of
+the SmallS provider and the corrected actual Door fixture resolved that test.
+
+Formatting/diff/dependency/source checks passed; 115 native root lines were
+removed. Main is 6,452 lines including preserved baseline whitespace. SDK/frame
+integration of this phase coordinator still needs C20; the invalid integer
+consumed/no-release path is retained here and will be characterized separately.
+Other native feature handlers, complete input authority and C18–C20 remain
+outstanding. No desktop control feel, nonunit DPI or clean LSan result is claimed.
+
+## Invalid property release characterization plan
+
+Tier 1, separate repair after C10b4 preserved the old path. Actual input is an
+enabled SDK button press followed by a primary release whose integer row token
+is malformed/stale. The native descriptor consumes that invalid control with no
+SDK release. Output must reject the native edit and clear the prior SDK press
+exactly once. On the UI thread, native consumption suppresses default forwarding;
+the existing phase protocol can state the obligation without new press state.
+ASSUMPTION: valid row tokens dominate — affects the common path, not a speed claim.
+
+Use the production capture descriptor and SDK adapter in the actual dummy-window
+fixture, checking mouse-up count and active pseudo-class before/after rejected
+input. If the regression fails, give invalid integer controls the same before-
+native release obligation as valid ones; retain boolean/door release order.
+Cost is the existing SDK release on this error path, no allocations/state/options.
+UI press/release is the documented singleton edge. Simplify with the existing
+phase tag and once-only adapter. Done: regression fails first, then normal/san
+input/workbench builds and checks pass with no native action or retained press.
+
+## Invalid property release result and self-check
+
+The new real SDL/Rml test failed before the repair: zero SDK mouse-up events,
+no forwarding recipient and the button's active pseudo-class still set. Matched
+integer controls now capture their before-native release phase before validating
+the row. Invalid controls retain no command; the existing once-only adapter
+clears the SDK press without an edit or undo. Boolean/door ordering is preserved.
+
+Both client/test builds passed without warnings. All 32 affected cases passed
+normally in 6,597 ms and under ASan/UBSan in 34,433 ms, no skips. The regression
+checks one mouse-up, a cleared active pseudo-class, no native command/undo and
+repeat-forward rejection. Simplification removes the redundant valid-integer
+phase assignment. No new state, allocation, options or performance claim; the
+documented singleton release and existing error policy satisfy the final check.
+Formatting and diff checks passed. Full-frame integration and the remaining
+C10/C18–C20 work are still outstanding; LSan and desktop/DPI gaps remain.
+
+## C10b5 creature native command plan
+
+Tier 1 within the Tier 2 refactor. The five adjacent native branches in main
+parse class slots, spell/feat IDs and ±1 adjustments from ancestor controls;
+they read current copied SmallS rows and dispatch four existing backend commands.
+Class levels use provider bounds, feats/known spells use booleans, memorized
+spells use nonnegative uses and the selected class/metamagic. Invalid tokens or
+unavailable owners reject. The UI thread releases through synchronous SDK
+callbacks before commands, so copied rows and selected filters can become stale.
+ASSUMPTION: valid rendered controls dominate — affects the common path only.
+
+Patterns/reuse: creature_workbench_view.hpp owns the presentation batches;
+object_workbench.hpp supplies current target facts; toolset_backend.cpp:3079–3231
+already owns class/feat/spell rule preparation and undo. Existing local ancestor
+and from_chars idioms apply; no shared public parsing utility is needed. Extend
+the creature view with a fixed scalar command header plus owned tab ID, one-shot
+capture/execution, and existing release phase. Root keeps phase/owner coordination.
+
+Data flow: hit + current view/target/tab/module -> owned scalar request -> SDK
+release -> fresh target and selected filters -> fresh existing SmallS row batch ->
+matching semantic current value -> existing backend command/result/undo. Preserve
+old valid/error release phases; missing live rows, changed filters/value/owner,
+malformed tags and repeated requests reject before dispatch. No retained DOM or
+text slices; click/selected target are true singletons, provider/edit rows batches.
+
+Cost: cold tab bytes and one fresh bounded provider batch per valid command,
+including the existing provider's text storage; backend still prepares the edit.
+No hot-loop allocations, queue, cache, rule implementation or performance claim.
+Simplify five branches to one phase sequence and build CommandArgs only after
+validation. Modify the paired creature files, main and existing real-object tests.
+Done: actual class/feat/spell command+undo, owned DOM-replacement request, stale
+filter/value/object/module rejection and repeat rejection; normal/sanitized
+affected builds/checks. Plan B is fewer command kinds if unrelated state is needed.
+
+The existing object_mutation_state epoch also invalidates a request if any toolset
+edit committed during release; no new epoch is maintained. This conservatively
+drops even an unrelated edit's concurrent click. Fresh value/selection checks
+add protection against differing live provider data. Class slots have no class
+ID in the current presentation protocol; the epoch guards toolset slot edits
+without choosing policy from labels or extending the provider protocol. Direct
+external writes without mutation notification remain outside this guarantee.
+
+## C10b5 result and self-check
+
+Creature view capture/execution now owns class adjustment, feat toggling, known
+spell toggling and memorized increment/decrement. The root contains one release
+phase sequence for these five controls. Requests own tab bytes and scalar IDs,
+current values and selected class/metamagic; consume kind before provider/backend
+callbacks. Fresh existing provider data, target/tab/module identity and the
+existing mutation epoch reject stale requests without edits or result logging.
+An unavailable increment row still releases as before, but cannot dispatch a
+command. Existing backend commands retain policy, edit storage and undo.
+
+Simplification builds bounded CommandArgs only after validation and removes two
+unused root wrappers. No cache, epoch owner, queue, new rule or broader context
+was introduced. Provider/edit rows retain batch paths; click/selected object are
+documented singletons. Cold DOM/kernel/provider borrows are synchronous, and
+requests retain no pointers/text slices. The documented extra bounded provider
+batch has no measured latency target; no speedup is claimed.
+
+Both final client/test builds passed without warnings after resolving one
+else-if initializer shadow and removing the unused wrappers. All 41 affected
+cases passed normally in 13,929 ms and under ASan/UBSan in 79,017 ms, no skips. Four new
+cases exercise actual class/feat/known/memorized commands, DOM replacement, one
+undo per edit, repeat rejection, memorized decrement then increment into the
+freed live slot, changed filters/owner/module/current-value rejection, actual
+intervening backend mutation and malformed controls. Three existing operation
+tests verify the retained class/spell policy/undo paths.
+
+Formatting, dependency and diff checks passed; 105 root lines were removed and
+main is 6,347 lines. Whole-frame SDK coordination still awaits C20; the epoch's
+conservative unrelated-edit cancellation and unsignaled-write limit are explicit
+above. Native inventory/appearance/tile/shell/workspace input, full routing
+authority and C18–C20 remain outstanding. No desktop/DPI or clean LSan claim.
+
+## C10b6 inventory native action plan
+
+Tier 1. Actual three controls are equipment slots 0..17, contiguous source item
+indices, and pages 0..page_count-1 in the copied InventoryViewSnapshot. Creature,
+Item and Placeable share the grid; only Creature has equipment. Output is
+selection/page state or the existing equip/unequip backend command, followed by
+one requested window sync. The UI thread can replace/reorder rows or change
+selection during SDK release; current code reads equipment/selection afterward.
+ASSUMPTION: valid rendered controls dominate — affects the common path only.
+
+Reuse inventory_workbench_view.hpp state and object_workbench.hpp target facts,
+Inventory.items/pages()/rows()/columns(), equip_item_ptr/inventory_item_ptr, and
+backend commands/toolset mutation epoch. Extend the paired inventory module with
+one scalar header+owned tab identity; root keeps common before-native release
+and the requested window synchronization. Capture item/slot handles and current
+selection/page before release. Execute consumes kind, validates target/tab/module/
+epoch, matching current UI state and live grid dimensions, then checks exact
+live dense item/slot identities before selection or existing backend dispatch.
+Malformed/missing/stale records reject with no edit; preserve prior release
+obligations. Empty equipment with no selection remains a no-command window sync.
+
+Cost: cold tab bytes and bounded indexed live checks (three known owner types,
+18 slots), no extra SmallS projection/icon decoding. Kernel/Rml pointers are
+synchronous cold integration borrows; handle identities protect live generation.
+Click/displayed grid are true singletons; inventory source storage/edit operations
+remain batches. Simplify with existing IDs/generations and commands; no generic
+drag/action service, queue, cache or duplicated policy. Modify inventory pair,
+main, existing real-object tests. Done: actual select/page/equip/unequip effects
+and undo, repeat rejection, stale dense row/slot/selection/owner and malformed
+controls; normal/sanitized affected checks. Plan B is separate equipment/grid
+extractions if one descriptor needs unrelated dependencies. No speed claim.
+
+## C10b6 result and self-check
+
+The inventory view owns capture/apply for equipment slots, source item selection
+and pages. Root supplies common release/owner coordination and performs the
+requested window sync. The owned request captures slot/source item handles,
+page/selection, tab/module identity and the existing toolset mutation epoch.
+Execution consumes kind and rejects mismatching live identity, dimensions,
+selection, page, owner, module or epoch before changes. Live item/slot lookups
+guard even unsignaled source changes; equipment commands retain existing backend
+policy/results/undo. No-selection empty slots request a window sync without a
+command. Explicit invalid tags/ranges/owners return no action.
+
+Simplification uses indexed existing Inventory storage and live handles without
+rebuilding SmallS rows or decoding icons. CommandInvocation/args transfer to the
+backend instead of copying; the initial copy triggered a GCC maybe-uninitialized
+warning in its variant payload. A first build also caught an incorrect command
+field name and explicit ObjectHandle return; actual declarations resolved them.
+No new policy/cache/epoch owner/queue or broad context. Cold kernel/DOM borrows
+are synchronous; click/grid are documented singletons and source/edit data are
+existing batches. No memory/latency speed claim is made.
+
+Final client/test builds passed without warnings. All 36 affected inventory,
+drop/input/owner/route, operation and managed-list cases passed normally in
+8,158 ms and under ASan/UBSan in 47,046 ms, no skips. Four new cases exercise
+select/equip/unequip and two undos restoring exact coordinates/infinite flag;
+page/selection across actual Creature/Item/Placeable grids; an unsignaled live
+swap of distinct handles from identical blueprints; changed selection/module/
+owner and occupied-slot rejection; consumed requests and malformed controls.
+The occupied-slot fixture refreshes only its protocol epoch to isolate the live
+identity check after an actual backend edit; this is not a whole-frame callback.
+
+Formatting/diff/dependency checks passed. Main is 6,305 lines, 42 removed from
+the root. Whole-frame forwarding remains a C20 gap; malformed creature/inventory
+consumed/no-release paths are preserved here for a separate characterization.
+Remaining native features, complete input authority and C18–C20 remain open.
+The existing LSan, physical device, nonunit DPI and desktop limitations remain.
+
+## Rejected creature/inventory release characterization plan
+
+Tier 1 repair, separate from C10b5/b6. Actual malformed creature spell and
+inventory source controls return a matched no-command descriptor with no release
+phase. Root consumes them, suppressing the SDK release of an enabled press.
+Use the real dummy-window fixture and production capture/forwarding functions,
+checking one mouse-up, cleared active pseudo-class and no command/undo for both
+cases. If it fails, matched rejected controls retain the same before-native
+release obligation as valid controls. Valid phases remain unchanged.
+ASSUMPTION: valid rendered tokens dominate — affects common/error partition only.
+Cost is one existing SDK dispatch on the error path; no state/allocation/options.
+Release is a true singleton edge. Simplify by setting the obligation at control
+recognition and removing duplicate phase writes. Done: fail first, then affected
+normal/sanitized builds/tests pass with explicit no-edit and once-only evidence.
+
+## Rejected creature/inventory release result and self-check
+
+Both representative enabled-control cases failed first: zero SDK mouse-ups and
+the active pseudo-class retained after native rejection. Matched creature and
+inventory controls now capture before-native release at recognition, independently
+of token/owner validity. Invalid requests still own no command/tab payload. Root's
+existing phase coordinator and once-only adapter clear the SDK press without an
+edit/undo. Valid release phases are unchanged; unmatched controls remain unclaimed.
+
+All 31 affected cases passed normally in 11,844 ms and under ASan/UBSan in
+66,244 ms, no skips; final client/test builds passed without warnings. The new
+real SDK case checks both rejected controls, one release, cleared active state,
+no command/undo and repeat-forward rejection. Existing malformed-control tests
+also cover all captured control families' obligation. Simplification removes
+four duplicate phase writes and the increment-specific phase branch. No new
+press state, allocation, option or performance claim; singleton/error contracts
+and formatting/diff checks passed. Whole-frame/root and remaining refactor work
+remain open; no desktop/DPI or clean LSan result is claimed.
+
+## C10b7 workbench surface plan
+
+Tier 1. The one workbench tab control carries one of 13 data-surface strings.
+Input is that attribute plus the live displayed object/type and current project;
+output is existing surface/transient-selector state and details invalidation.
+Unknown/unsupported surfaces retain the current surface after the existing
+selector cleanup. Root still releases before action, updates body preview and
+requests content/window refreshes. One active surface/click are true singletons.
+ASSUMPTION: rendered valid surface controls dominate — affects the common path.
+
+Reuse object_workbench.hpp enum, object_workbench_view state, child clear/close
+functions, appearance_catalog_kind, backend project path and existing details
+invalidation. Extend the core pair with a bounded allocation-free name decoder;
+extend the view pair with scalar capture/one-shot apply and the existing SmallS
+selector-close DOM helper. Preserve close-button synchronous dispatch order,
+current type/project checks and no retained DOM borrow after dispatch. Root takes
+only an owned enum request and coordinates SDK/renderer/cross-view refresh.
+
+Cost: 13 fixed decoder rows, one scalar request, existing selector DOM traversal
+and catalog refresh; no new state cache, provider/rule ownership or queue. Move
+only actual surface policy, not refresh orchestration. Simplify repeated string
+branches into a type-gated switch; keep the real capability checks. Modify both
+pairs, main and existing fixtures. Done: actual control capture/DOM replacement,
+surface/selector cleanup and unsupported/unknown/repeat behavior, normal/san
+affected checks and renderer-off decoder build. Plan B: keep fewer view operations
+if one function needs unrelated state. No speedup or new performance target.
+
+## C10b7 result and self-check
+
+The core enum decoder and workbench capture/apply now own surface policy and
+selector cleanup. Root keeps one scalar request, guarded SDK release and the
+existing renderer/cross-view refresh sequence. The shared SmallS close helper
+returns immediately after synchronous dispatch, so replaced nodes are not read.
+Three new actual-control cases verify cleanup order during DOM replacement,
+one-shot consumption, unsupported/unknown/invalid surfaces and real live-type
+capabilities. Haks rejection uses the actual empty project; positive project
+Haks and GPU body-preview integration remain unverified here.
+
+All 60 affected cases passed normally in 28,064 ms and under ASan/UBSan in
+151,477 ms, no skips. Final client/test builds passed without warnings. The
+renderer-disabled client-core/test build passed and all 14 owner/route/PC cases
+passed. Main is 6,229 lines (76 removed this checkpoint). Formatting and diff
+checks passed; feature APIs contain no AppState, retained DOM or new cache.
+Simplification removes repeated string decisions and the obsolete invalidation
+wrapper. Singleton, type/project rejection, selector ordering and original
+refresh contracts remain explicit; no performance or clean LSan claim.
+Remaining native input, metrics/lifetime consolidation and final root are open.
+
+## C10b8 native sound selector plan
+
+Tier 1. Actual inputs are sound_resource_add/back IDs and sound_catalog_row
+nonnegative int32 data-key indices into the existing copied catalog. There is
+one displayed Sound object on its sounds surface and one selector; these are
+true singleton edges. Output is existing selector/query/scroll state or one
+backend replace_sound_resources edit/undo. The SmallS provider retains list
+validation and the 1,024-resource bound. Unknown/malformed/stale requests release
+the SDK press but produce no edit or refresh. ASSUMPTION: valid visible controls
+dominate — affects the common path, not a speed claim.
+
+The platform remains main-thread SDL3/Rml/kernel; synchronous SDK and close
+callbacks can change the tab, catalog/query, object or module. Catalog contents
+are stable within resource generation, while query and live resource values can
+change on any event. Read the existing catalog/target/workspace at capture;
+copy only resource identity, tab/query and existing generations/mutation epoch;
+read current facts again at apply. Borrow DOM only for capture, use indices for
+fresh catalog validation, and retain no renderer/DOM/engine pointer. Root closes
+the shared SmallS selector and coordinates document refresh/window/focus after
+before-native SDK release; appearance_view owns Sound presentation and edits.
+
+Cost: one fixed request header plus owned cold UTF-8 tab/query and one Resref,
+three control ancestor searches, O(M) membership checks for M current match
+indices, existing catalog filtering and backend batch transform. No second catalog, queue, rule logic or whole AppState API.
+Simplification uses the existing sound commit and selector helpers; no new
+provider query, precompute, buffer or general dispatcher. Plan B is a smaller
+selector-only extraction if edit capture requires unrelated state.
+
+Done: actual Rml controls, DOM replacement before apply, resource addition/undo,
+selector opening/closing, malformed/unmatched/repeat requests and stale resource
+identity/query/generation/tab/object/mutation rejection. Run normal/ASan/UBSan
+focused affected cases and check builds, formatting, includes and source diff.
+GPU rendering, physical module reload and desktop control feel remain manual
+coverage gaps; no performance improvement is claimed.
+
+## C10b8 result and self-check
+
+Appearance owns the three native Sound controls through one owning request and
+one consumed apply function. Root keeps before-native SDK release, shared SmallS
+selector dispatch and content/window/focus coordination. Apply rechecks actual
+object/tab/module/resource ownership, the existing mutation epoch, query and
+selected row's copied Resref; stale requests do not edit, log or close selectors.
+The existing 1,024-entry backend batch/undo transform remains authoritative.
+
+Three new actual-control tests cover opening/closing, source DOM replacement,
+addition/undo/repeat, malformed tokens and independent resource/query/catalog/
+module/filter/object/tab/intervening-edit rejection. Initial normal validation
+found a fixture assertion using the new active tab's undo count for the old
+owner; assertions now check the original tab's stack explicitly and verify the
+object and tab switches separately. Final 31 cases from 6 suites passed normally
+in 11,328 ms and under ASan/UBSan in 68,634 ms, no skips. Final normal/sanitized
+client/test builds passed without warnings; diff/format checks passed.
+
+Main is 6,215 lines (14 removed). No new provider, catalog copy, queue, rule logic,
+AppState API or retained DOM pointer. Simplification reuses the current commit
+and close helpers and removes repeated native selector decisions. O(M) match
+membership work and cold string ownership are explicit costs; singleton/error
+contracts are documented. Actual physical module reload, root frame integration,
+desktop/GPU feel, high DPI and clean LSan remain unverified. Remaining refactor
+checkpoints are open; no performance improvement is claimed.
+
+## C18 authoritative metrics plan
+
+Tier 1 within Tier 2. Input is the actual renderer ViewerFrameStats and editor
+ClientGpuFrameStats once per frame plus application CPU timing samples. Output
+is the existing compact/verbose Rml HUD and smoothed timing history. Renderer
+absence retains the last received counters; negative time samples retain their
+previous latest/smoothed values. GPU stats are received after EndFrame, so their
+HUD display remains one frame delayed. One HUD and its histories are true
+singletons. ASSUMPTION: renderer snapshots are usually available — affects
+predictable valid/null branching, not a measured performance requirement.
+
+Observed x86-64 layouts are 704 bytes for ClientMetricsState, 2,872 for
+ViewerFrameStats and 272 for ClientGpuFrameStats; both renderer DTOs are trivially
+copyable. Existing state mirrors 88 counter/status fields individually. Replace
+those mirrors/assignments with two owned last-received existing DTOs, and read
+those DTOs directly in formatting. Keep the actual latest/smoothed timing pairs
+because invalid samples and delayed/absent snapshots require their history.
+Borrow input only during update; no renderer pointer persists across scene or
+runtime teardown. Counters remain the renderer's native ranges/layout; null is
+explicitly retained and negative timing policy is unchanged.
+
+Cost: one HUD record grows by roughly 2.8 KiB (measure final sizeof); each valid
+frame copies 2,872/272 bytes instead of assigning selected scalars. This is a
+memory/copy cost on the desktop UI thread, not a performance improvement. Access
+is linear snapshot copying and scalar formatting; no hot engine-pointer path.
+The wider renderer header increases compile dependencies. The benefit is deleting
+the second counter schema and its maintenance, not runtime speed. A smaller new
+counter DTO would recreate that schema and is not built. Plan B is retain selected
+mirrors only if actual renderer DTO lifetime/shape cannot meet ownership.
+
+Simplification: reuse the existing renderer layouts once rather than maintaining
+field mappings. No approximation, new telemetry cache/queue/table or smoothing
+policy. Done: baseline exact compact/verbose HUD output for representative native
+stats, null snapshot/history independence, negative timing retention, delayed GPU
+semantics, normal/ASan/UBSan builds/checks and explicit size/dependency review.
+No GPU timestamp accuracy, desktop overlay feel or performance claim is included.
+
+## C18 result and self-check
+
+Metrics now stores last-received ViewerFrameStats and ClientGpuFrameStats
+records and reads their counters directly during HUD formatting. Removed 88
+counter/status declarations and 88 per-field update assignments; 64 actual
+latest/smoothed timing floats remain. Input records are borrowed for one update
+only; null updates retain the owned history. No snapshot borrow survives source
+mutation, scene replacement or shutdown. Renderer DTOs remain pointer-free
+counter records with their existing shapes/ranges; their layouts were inspected
+and both are trivially copyable. Smoothing and root frame/GPU update order did
+not change.
+
+The new production golden case passed against the original implementation in
+separate compact/verbose processes before replacement. It exercises nested
+model/skin, area, forward-plus, shadow/submission and delayed GPU counters,
+including a 64-bit draw value above UINT32_MAX, source overwrite, missing
+snapshots, negative timing samples and vanished GPU timers. After replacement,
+the same explicit-mode formatter executable matches the original compact
+162-byte and verbose 1,121-byte outputs exactly. All 34 affected metrics/input/
+Rml-template cases passed normally in 267 ms and under ASan/UBSan in 1,115 ms;
+all 3 metrics cases also passed in separate verbose normal/sanitized processes,
+no skips. Both client/test builds passed without warnings.
+
+Measured x86-64 state grows from 704 to 3,400 bytes (+2,696); the existing DTOs
+are 2,872/272 bytes. This knowingly pays more retained memory and copying for
+one HUD to eliminate a second counter schema and retain the existing null-history
+contract. No trimmed counter DTO, cache/queue, option, approximation or new
+telemetry system was built. Latest Ninja Release compile observations: metrics
+3.550 s and main 14.133 s, versus the early recorded 4.180/22.107 s; sanitizer
+4.643/18.182 s. These concurrent-build observations are not a controlled speed
+comparison. Wider viewer-header dependency and memory/copy cost are explicit.
+
+Removed-counter reference audit, formatting and diff checks passed. Singleton,
+input lifetime/error policy, state ownership, existing DTO reuse and stated
+done criteria passed self-check. GPU timestamp accuracy, running overlay feel,
+high DPI and clean LSan remain unverified. Main remains 6,215 lines; C10 native
+routing, C19 resource lifetime and C20 root/final integration remain open.

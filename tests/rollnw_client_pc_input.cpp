@@ -1,3 +1,4 @@
+#include "client_input_routes.hpp"
 #include "pc_input.hpp"
 
 #include <gtest/gtest.h>
@@ -200,4 +201,114 @@ TEST(ClientPcInput, PointerActionsUseDoorIntentOrNavigationAndReplaceTheLastClic
         EXPECT_EQ(sample.flags, preview_input_cancel);
     }
     EXPECT_EQ(apply_pc_pointer_actions(inputs, {}), PreviewStatus::invalid_input);
+}
+
+TEST(ClientInputRoutes, EqualBatchesResolveEachOwnerAndRejectStaleWorldWithoutEditorFallback)
+{
+    ClientInputFacts base{.category = ClientInputCategory::pointer, .edge = ClientInputEdge::down, .map = ClientInputMap::editor, .target = ClientInputTarget::world, .world_available = true};
+    std::array<ClientInputFacts, 8> inputs;
+    inputs.fill(base);
+    inputs[1].map = ClientInputMap::pc;
+    inputs[2].map = ClientInputMap::pc;
+    inputs[2].world_available = false;
+    inputs[3].target = ClientInputTarget::command;
+    inputs[4].pointer_owner = ClientPointerOwner::toolset;
+    inputs[5].category = ClientInputCategory::key;
+    inputs[5].lifecycle_key = true;
+    inputs[6].command_modal = true;
+    inputs[7].target = ClientInputTarget::toolset;
+    inputs[7].edge = ClientInputEdge::up;
+    inputs[7].release_before_native = true;
+    std::array<ClientInputRoute, inputs.size()> outputs{};
+    ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+    EXPECT_EQ(outputs[0].native, ClientNativeRecipient::editor);
+    EXPECT_EQ(outputs[1].native, ClientNativeRecipient::pc);
+    EXPECT_EQ(outputs[2].native, ClientNativeRecipient::none);
+    EXPECT_EQ(outputs[2].disposition, ClientInputDisposition::unavailable_world);
+    EXPECT_EQ(outputs[3].native, ClientNativeRecipient::ui);
+    EXPECT_EQ(outputs[3].rml, ClientRmlRecipient::command);
+    EXPECT_EQ(outputs[4].native, ClientNativeRecipient::ui);
+    EXPECT_EQ(outputs[5].native, ClientNativeRecipient::lifecycle);
+    EXPECT_EQ(outputs[6].native, ClientNativeRecipient::ui);
+    EXPECT_EQ(outputs[6].rml, ClientRmlRecipient::command);
+    EXPECT_EQ(outputs[7].phase, ClientRmlForwardPhase::before_native);
+    for (size_t i = 0; i < outputs.size() - 1; ++i) {
+        EXPECT_EQ(outputs[i].phase, ClientRmlForwardPhase::after_native);
+    }
+    RecordProperty("input_row_bytes", sizeof(ClientInputFacts));
+    RecordProperty("route_row_bytes", sizeof(ClientInputRoute));
+}
+
+TEST(ClientInputRoutes, InvalidTagsEdgesAndMismatchedSpansClearPreviousActions)
+{
+    ClientInputFacts base{.category = ClientInputCategory::key, .edge = ClientInputEdge::down, .map = ClientInputMap::pc, .world_available = true};
+    std::array<ClientInputFacts, 9> inputs;
+    inputs.fill(base);
+    inputs[0].map = ClientInputMap::invalid;
+    inputs[1].category = static_cast<ClientInputCategory>(255);
+    inputs[2].target = static_cast<ClientInputTarget>(255);
+    inputs[3].focus = static_cast<ClientInputFocus>(255);
+    inputs[4].pointer_owner = static_cast<ClientPointerOwner>(255);
+    inputs[5].edge = ClientInputEdge::wheel;
+    inputs[6].release_before_native = true;
+    inputs[7].pointer_valid = false;
+    inputs[8].pointer_owner = ClientPointerOwner::editor;
+    std::array<ClientInputRoute, inputs.size()> outputs;
+    for (auto& output : outputs) {
+        output.native = ClientNativeRecipient::editor;
+        output.rml = ClientRmlRecipient::toolset;
+        output.sources = {};
+    }
+    ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+    const auto rejected = [](const ClientInputRoute& output) {
+        EXPECT_EQ(output.disposition, ClientInputDisposition::invalid_input);
+        EXPECT_EQ(output.native, ClientNativeRecipient::none);
+        EXPECT_EQ(output.rml, ClientRmlRecipient::none);
+        EXPECT_EQ(output.phase, ClientRmlForwardPhase::none);
+        EXPECT_FALSE(output.sources.keyboard);
+        EXPECT_FALSE(output.sources.controller);
+        EXPECT_FALSE(output.sources.pointer);
+    };
+    for (const auto& output : outputs) {
+        rejected(output);
+    }
+    inputs.fill(base);
+    ASSERT_TRUE(resolve_client_input_routes(inputs, outputs));
+    ASSERT_EQ(outputs.front().native, ClientNativeRecipient::pc);
+    EXPECT_FALSE(resolve_client_input_routes(std::span{inputs}.first(1), outputs));
+    for (const auto& output : outputs) {
+        rejected(output);
+    }
+    EXPECT_TRUE(resolve_client_input_routes({}, {}));
+}
+
+TEST(ClientInputRoutes, RolesUseOnePcMapAndUiClaimsOnlyItsSources)
+{
+    EXPECT_EQ(client_input_map(ClientControlRole::editor, false), ClientInputMap::editor);
+    EXPECT_EQ(client_input_map(ClientControlRole::editor, true), ClientInputMap::pc);
+    EXPECT_EQ(client_input_map(static_cast<ClientControlRole>(255), true), ClientInputMap::invalid);
+    for (const auto role : {ClientControlRole::player, ClientControlRole::dm}) {
+        ClientInputFacts input{.category = ClientInputCategory::held, .map = client_input_map(role, false), .target = ClientInputTarget::world, .world_available = true};
+        std::array<ClientInputRoute, 1> output{};
+        const auto resolve = [&] { EXPECT_TRUE(resolve_client_input_routes({&input, 1}, output)); };
+        resolve();
+        EXPECT_EQ(output[0].native, ClientNativeRecipient::pc);
+        EXPECT_TRUE(output[0].sources.keyboard);
+        EXPECT_TRUE(output[0].sources.controller);
+        EXPECT_TRUE(output[0].sources.pointer);
+        input.focus = ClientInputFocus::toolset_text;
+        resolve();
+        EXPECT_FALSE(output[0].sources.keyboard);
+        EXPECT_TRUE(output[0].sources.controller);
+        EXPECT_TRUE(output[0].sources.pointer);
+        input.pointer_owner = ClientPointerOwner::toolset;
+        resolve();
+        EXPECT_FALSE(output[0].sources.pointer);
+        EXPECT_TRUE(output[0].sources.controller);
+        input.command_modal = true;
+        resolve();
+        EXPECT_FALSE(output[0].sources.keyboard);
+        EXPECT_FALSE(output[0].sources.controller);
+        EXPECT_FALSE(output[0].sources.pointer);
+    }
 }

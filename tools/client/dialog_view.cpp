@@ -1,4 +1,5 @@
 #include "dialog_view.hpp"
+#include "workspace.hpp"
 
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
@@ -397,6 +398,25 @@ bool select_dialog_view_row(DialogViewState& state, int row)
     state.list.set_selected(row);
     state.rendered = false;
     return true;
+}
+
+void ensure_active_dialog_document(DialogViewState& state, const std::filesystem::path& project_dir, const WorkspaceTab* active_tab)
+{
+    if (!active_tab || active_tab->kind != nw::toolset::WorkspaceTabKind::dialog) {
+        if (!state.tab_id.empty()) {
+            nw::toolset::clear_dialog_view(state);
+        }
+        return;
+    }
+
+    const auto source_path = project_dir / active_tab->detail;
+    if (state.tab_id == active_tab->id
+        && state.document.source_path == source_path
+        && state.document.status != nw::toolset::DialogDocumentStatus::empty) {
+        return;
+    }
+
+    nw::toolset::load_dialog_view(state, source_path, active_tab->id);
 }
 
 } // namespace nw::toolset

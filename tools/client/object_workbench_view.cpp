@@ -1,0 +1,1878 @@
+#include "object_workbench_view.hpp"
+#include "command_view.hpp"
+#include "smalls_rmlui.hpp"
+#include "toolset_backend.hpp"
+#include "workspace.hpp"
+#include <RmlUi/Core.h>
+#include <RmlUi/Core/Elements/ElementFormControlInput.h>
+#include <charconv>
+#include <cmath>
+#include <initializer_list>
+#include <limits>
+#include <nw/kernel/Kernel.hpp>
+#include <nw/log.hpp>
+#include <nw/smalls/runtime.hpp>
+#include <utility>
+namespace nw::toolset {
+namespace {
+constexpr int kObjectDetailsRowHeightPx = 30;
+constexpr int kObjectDetailsOverscanRows = 8;
+constexpr int kObjectVariableRowHeightPx = 34;
+constexpr int kObjectVariableOverscanRows = 8;
+std::string escape_html(std::string_view text)
+{
+    std::string out;
+    out.reserve(text.size() + 16);
+    for (const char ch : text) {
+        switch (ch) {
+        case '&':
+            out += "&amp;";
+            break;
+        case '<':
+            out += "&lt;";
+            break;
+        case '>':
+            out += "&gt;";
+            break;
+        case '"':
+            out += "&quot;";
+            break;
+        default:
+            out.push_back(ch);
+            break;
+        }
+    }
+    return out;
+}
+
+Rml::Element* find_el(Rml::ElementDocument* doc, const char* id)
+{
+    return doc ? doc->GetElementById(id) : nullptr;
+}
+
+Rml::Element* find_ancestor_with_class(Rml::Element* element, std::string_view class_name)
+{
+    for (auto* cursor = element; cursor; cursor = cursor->GetParentNode()) {
+        if (cursor->IsClassSet(class_name.data())) {
+            return cursor;
+        }
+    }
+    return nullptr;
+}
+
+std::optional<int32_t> parse_decimal_int32(std::string_view value)
+{
+    if (value.empty()) {
+        return std::nullopt;
+    }
+
+    int32_t result = 0;
+    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
+    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size()) {
+        return std::nullopt;
+    }
+    return result;
+}
+
+class ObjectDetailsListAdapter final : public nw::toolset::VirtualListAdapter {
+public:
+    explicit ObjectDetailsListAdapter(
+        const nw::toolset::ObjectDetailsSnapshot& snapshot)
+        : snapshot_{snapshot}
+    {
+    }
+
+    [[nodiscard]] int size() const override
+    {
+        return static_cast<int>(snapshot_.rows.size());
+    }
+
+    [[nodiscard]] std::string_view row_extra_classes() const override
+    {
+        return "object_details_row";
+    }
+
+    [[nodiscard]] std::string render_row_inner(int index, bool /*selected*/) const override
+    {
+        if (index < 0 || static_cast<size_t>(index) >= snapshot_.rows.size()) {
+            return {};
+        }
+
+        const auto& row = snapshot_.rows[static_cast<size_t>(index)];
+        const bool section = row.kind
+            == nw::toolset::ObjectDetailsRowKind::section;
+        std::string markup;
+        markup.reserve(256);
+        markup += "<div class=\"property_tree_cells";
+        if (section) {
+            markup += " section";
+        } else if ((index & 1) != 0) {
+            markup += " alternate";
+        }
+        markup += "\"><div class=\"property_tree_name\" style=\"padding-left:";
+        markup += section ? "8px;\">" : "22px;\">";
+        markup += "<span class=\"tree_twisty leaf\"></span><span class=\"property_tree_label\">";
+        markup += escape_html(snapshot_.text_view(row.label));
+        markup += "</span></div><div class=\"property_tree_value";
+        const auto value = snapshot_.text_view(row.value);
+        if (!section && value.empty()) {
+            markup += " empty";
+        }
+        markup += "\">";
+        if (!section) {
+            if (row.editor == nw::toolset::ObjectDetailsEditorKind::boolean) {
+                markup += "<span class=\"object_details_boolean\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\"><span class=\"object_details_boolean_box";
+                if (row.edit_value != 0) {
+                    markup += " checked";
+                }
+                markup += "\">";
+                if (row.edit_value != 0) {
+                    markup += "&#10003;";
+                }
+                markup += "</span><span class=\"object_details_boolean_text\">";
+                markup += escape_html(value);
+                markup += "</span></span>";
+            } else if (row.editor == nw::toolset::ObjectDetailsEditorKind::integer) {
+                markup += "<span class=\"object_details_integer_spinner\"><button type=\"button\" "
+                          "class=\"object_details_integer_step\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" data-delta=\"-1\" title=\"Decrease; minimum ";
+                markup += std::to_string(row.edit_min);
+                markup += "\"";
+                if (row.edit_value <= row.edit_min) {
+                    markup += " disabled";
+                }
+                markup += ">-</button><input class=\"object_details_integer\" type=\"text\" maxlength=\"11\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" data-min=\"";
+                markup += std::to_string(row.edit_min);
+                markup += "\" data-max=\"";
+                markup += std::to_string(row.edit_max);
+                markup += "\" value=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" title=\"Valid range: ";
+                markup += std::to_string(row.edit_min);
+                markup += " to ";
+                markup += std::to_string(row.edit_max);
+                markup += ". Use Up/Down to adjust; press Enter to apply.\"/><button type=\"button\" "
+                          "class=\"object_details_integer_step\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" data-delta=\"1\" title=\"Increase; maximum ";
+                markup += std::to_string(row.edit_max);
+                markup += "\"";
+                if (row.edit_value >= row.edit_max) {
+                    markup += " disabled";
+                }
+                markup += ">+</button></span>";
+            } else if (row.editor == nw::toolset::ObjectDetailsEditorKind::door_state) {
+                markup += "<button type=\"button\" class=\"object_details_cycle_state\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" title=\"Cycle authored state: Closed, Open 1, Open 2\">";
+                markup += escape_html(value);
+                markup += "</button>";
+            } else if (row.editor
+                == nw::toolset::ObjectDetailsEditorKind::sound_position) {
+                markup += "<button id=\"object_details_sound_position_field_";
+                markup += std::to_string(index);
+                markup += "\" type=\"button\" class=\"combobox_field "
+                          "object_details_sound_position_field\" data-row=\"";
+                markup += std::to_string(index);
+                markup += "\" data-current=\"";
+                markup += std::to_string(row.edit_value);
+                markup += "\" title=\"Choose sound placement\">"
+                          "<span class=\"combobox_value\">";
+                markup += escape_html(value);
+                markup += "</span><span class=\"combobox_arrow\">"
+                          "<span class=\"combobox_arrow_indicator\"></span>"
+                          "</span></button>";
+            } else if (row.editor
+                == nw::toolset::ObjectDetailsEditorKind::sound_volume) {
+                const auto volume = nw::toolset::sound_volume_editor_value(
+                    row.edit_value);
+                if (!volume) {
+                    markup += "Invalid";
+                } else {
+                    markup += "<span class=\"object_details_sound_volume_control\">"
+                              "<input class=\"object_details_sound_volume\" type=\"range\" "
+                              "min=\"0\" max=\"10\" step=\"1\" data-row=\"";
+                    markup += std::to_string(index);
+                    markup += "\" data-current=\"";
+                    markup += std::to_string(row.edit_value);
+                    markup += "\" value=\"";
+                    markup += std::to_string(*volume);
+                    markup += "\" title=\"Volume: 0 to 10\"/>"
+                              "<span class=\"object_details_sound_volume_value\">";
+                    markup += std::to_string(*volume);
+                    markup += "</span></span>";
+                }
+            } else {
+                markup += escape_html(value.empty() ? std::string_view{"Not set"} : value);
+            }
+        }
+        markup += "</div></div>";
+        return markup;
+    }
+
+private:
+    const nw::toolset::ObjectDetailsSnapshot& snapshot_;
+};
+
+class ObjectVariableListAdapter final : public nw::toolset::VirtualListAdapter {
+public:
+    explicit ObjectVariableListAdapter(
+        const nw::toolset::ObjectVariableSnapshot& snapshot)
+        : snapshot_{snapshot}
+    {
+    }
+
+    [[nodiscard]] int size() const override
+    {
+        return static_cast<int>(snapshot_.rows.size());
+    }
+
+    [[nodiscard]] std::string_view row_extra_classes() const override
+    {
+        return "object_variable_row";
+    }
+
+    [[nodiscard]] std::string render_row_inner(int index, bool /*selected*/) const override
+    {
+        if (index < 0 || static_cast<size_t>(index) >= snapshot_.rows.size()) {
+            return {};
+        }
+
+        const auto& snapshot_row = snapshot_.rows[static_cast<size_t>(index)];
+        const auto& row = snapshot_row.variable;
+        const std::string type = std::to_string(static_cast<uint32_t>(row.type));
+        const bool duplicate = nw::toolset::has_object_variable_warning(
+            snapshot_row.warnings, nw::toolset::ObjectVariableWarning::duplicate_name);
+        const bool looks_integer = nw::toolset::has_object_variable_warning(
+            snapshot_row.warnings, nw::toolset::ObjectVariableWarning::string_looks_integer);
+        const bool looks_floating = nw::toolset::has_object_variable_warning(
+            snapshot_row.warnings, nw::toolset::ObjectVariableWarning::string_looks_floating);
+        const std::string value = nw::toolset::format_object_variable_value(row);
+        std::string markup;
+        markup.reserve(512 + row.name.size() + row.string.size()
+            + (row.type == nw::toolset::ObjectVariableType::string ? 0 : value.size()));
+        markup += "<div class=\"object_variable_cells\"><div class=\"object_variable_field object_variable_name_field";
+        if (duplicate) {
+            markup += " warning_duplicate";
+        }
+        markup += "\">";
+        if (duplicate) {
+            const auto warning = nw::toolset::object_variable_warning_description(
+                nw::toolset::ObjectVariableWarning::duplicate_name);
+            markup += "<span class=\"object_variable_field_warning\" title=\"";
+            markup += escape_html(warning);
+            markup += "\" data-tooltip=\"";
+            markup += escape_html(warning);
+            markup += "\">!</span>";
+        }
+        markup += "<input class=\"object_variable_name\" type=\"text\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        markup += "\" value=\"";
+        markup += escape_html(row.name);
+        markup += "\" title=\"Press Enter to rename\"/></div><button type=\"button\" "
+                  "class=\"object_variable_type\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        markup += "\" title=\"Click to change type\">";
+        markup += nw::toolset::object_variable_type_name(row.type);
+        markup += "</button><div class=\"object_variable_field object_variable_value_field";
+        if (looks_integer || looks_floating) {
+            markup += " warning_type";
+        }
+        markup += "\">";
+        if (looks_integer || looks_floating) {
+            const auto warning = looks_integer
+                ? nw::toolset::ObjectVariableWarning::string_looks_integer
+                : nw::toolset::ObjectVariableWarning::string_looks_floating;
+            markup += "<span class=\"object_variable_field_warning\" title=\"";
+            const auto description = nw::toolset::object_variable_warning_description(warning);
+            markup += escape_html(description);
+            markup += "\" data-tooltip=\"";
+            markup += escape_html(description);
+            markup += "\">!</span>";
+        }
+        markup += "<input class=\"object_variable_value\" type=\"text\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        if (row.type != nw::toolset::ObjectVariableType::string) {
+            markup += "\" data-last-valid=\"";
+            markup += escape_html(value);
+        }
+        markup += "\" value=\"";
+        markup += escape_html(value);
+        markup += "\" title=\"Press Enter to apply\"/></div><button type=\"button\" "
+                  "class=\"object_variable_remove\" data-name=\"";
+        markup += escape_html(row.name);
+        markup += "\" data-type=\"";
+        markup += type;
+        markup += "\" title=\"Remove variable\">&#215;</button></div>";
+        return markup;
+    }
+
+private:
+    const nw::toolset::ObjectVariableSnapshot& snapshot_;
+};
+
+// Object variable text inputs commit on Enter or blur. RmlUi emits Sound
+// volume changes throughout a drag, so retain only the newest slider value and
+// commit it when that input gesture ends.
+class ObjectWorkbenchChangeHandler {
+public:
+    ObjectWorkbenchChangeHandler(ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+        ToolsetBackend& backend, ShellController& shell, const CommandContext& context)
+        : state_{state}
+        , workspace_{workspace}
+        , backend_{backend}
+        , shell_{shell}
+        , context_{context}
+    {
+    }
+
+    void process_event(Rml::Event& event)
+    {
+        if (event == Rml::EventId::Change
+            && stage_sound_volume(event)) {
+            return;
+        }
+        if (event == Rml::EventId::Blur
+            && event.GetTargetElement()
+            && event.GetTargetElement()->IsClassSet(
+                "object_details_sound_volume")) {
+            (void)commit_sound_volume();
+            return;
+        }
+        if (event == Rml::EventId::Change) {
+            if (!event.GetParameter<bool>("linebreak", false)) {
+                reject_invalid_numeric_input(event.GetTargetElement());
+                return;
+            }
+
+            if (commit_input(event.GetTargetElement())) {
+                state_.suppress_blur_commit = true;
+                event.GetTargetElement()->Blur();
+                state_.suppress_blur_commit = false;
+            }
+            return;
+        }
+
+        if (event != Rml::EventId::Blur || state_.suppress_blur_commit) {
+            return;
+        }
+
+        (void)commit_input(event.GetTargetElement());
+    }
+
+    bool commit_sound_volume()
+    {
+        if (!state_.pending_sound_volume) {
+            return false;
+        }
+        const auto pending = std::move(*state_.pending_sound_volume);
+        state_.pending_sound_volume.reset();
+        if (!active_object_details_matches_tab(state_, workspace_)
+            || state_.object_details.object != pending.object
+            || workspace_.active_tab_id() != pending.tab_id
+            || context_.active_tab_id != pending.tab_id
+            || backend_.module_generation() != pending.module_generation
+            || smalls_rmlui_host().active_object() != pending.object
+            || pending.row >= state_.object_details.rows.size()) {
+            return false;
+        }
+        const auto& row = state_.object_details.rows[pending.row];
+        if (row.kind != ObjectDetailsRowKind::value
+            || row.editor != ObjectDetailsEditorKind::sound_volume
+            || row.edit_value != pending.current) {
+            return false;
+        }
+        if (pending.current == pending.desired) {
+            return true;
+        }
+        const std::string row_text = std::to_string(pending.row);
+        const std::string current = std::to_string(pending.current);
+        const std::string desired = std::to_string(pending.desired);
+        const auto result = backend_.execute_command(
+            "object.details.set_integer",
+            {row_text, current, desired},
+            context_);
+        append_command_results(shell_, {&result, 1});
+        return result.ok();
+    }
+
+private:
+    bool stage_sound_volume(Rml::Event& event)
+    {
+        auto* target = event.GetTargetElement();
+        if (!target
+            || !target->IsClassSet("object_details_sound_volume")) {
+            return false;
+        }
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        if (!input) {
+            state_.pending_sound_volume.reset();
+            return true;
+        }
+        const float event_value = event.GetParameter<float>("value", -1.0f);
+        if (!std::isfinite(event_value) || event_value < 0.0f || event_value > 10.0f) {
+            state_.pending_sound_volume.reset();
+            return true;
+        }
+        const int32_t editor_value = static_cast<int32_t>(std::lround(event_value));
+        const auto stored_value = std::abs(
+                                      event_value - static_cast<float>(editor_value))
+                < 0.001f
+            ? nw::toolset::sound_volume_storage_value(editor_value)
+            : std::nullopt;
+        const auto row = parse_decimal_int32(input->GetAttribute<Rml::String>(
+            "data-row", ""));
+        const auto current = parse_decimal_int32(
+            input->GetAttribute<Rml::String>("data-current", ""));
+        if (!stored_value || !row || *row < 0 || !current
+            || !active_object_details_matches_tab(state_, workspace_)
+            || context_.active_tab_id != workspace_.active_tab_id()
+            || smalls_rmlui_host().active_object() != state_.object_details.object
+            || static_cast<size_t>(*row) >= state_.object_details.rows.size()) {
+            state_.pending_sound_volume.reset();
+            return true;
+        }
+        const auto& details_row = state_.object_details.rows[static_cast<size_t>(*row)];
+        if (details_row.kind != ObjectDetailsRowKind::value
+            || details_row.editor
+                != nw::toolset::ObjectDetailsEditorKind::sound_volume
+            || details_row.edit_value != *current) {
+            state_.pending_sound_volume.reset();
+            return true;
+        }
+        state_.pending_sound_volume = PendingSoundVolume{
+            .object = state_.object_details.object,
+            .tab_id = workspace_.active_tab_id(),
+            .module_generation = backend_.module_generation(),
+            .row = static_cast<uint32_t>(*row),
+            .current = *current,
+            .desired = *stored_value,
+        };
+        if (auto* value = input->GetNextSibling(); value
+            && value->IsClassSet("object_details_sound_volume_value")) {
+            value->SetInnerRML(std::to_string(editor_value));
+        }
+        return true;
+    }
+
+    static void reject_invalid_numeric_input(Rml::Element* target)
+    {
+        if (!target || !target->IsClassSet("object_variable_value")) {
+            return;
+        }
+
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        if (!input) {
+            return;
+        }
+
+        const auto type_value = parse_decimal_int32(
+            input->GetAttribute<Rml::String>("data-type", ""));
+        if (!type_value) {
+            return;
+        }
+        const auto type = static_cast<nw::toolset::ObjectVariableType>(*type_value);
+        if (type == nw::toolset::ObjectVariableType::string) {
+            return;
+        }
+
+        const Rml::String value = input->GetValue();
+        if (nw::toolset::valid_object_variable_input_prefix(type, value)) {
+            input->SetAttribute("data-last-valid", value);
+            return;
+        }
+
+        int selection_start = 0;
+        input->GetSelection(&selection_start, nullptr, nullptr);
+        const Rml::String previous = input->GetAttribute<Rml::String>(
+            "data-last-valid", "");
+        const auto rml_character_count = [](const Rml::String& text) {
+            return static_cast<int>(std::min(
+                Rml::StringUtilities::LengthUTF8(text),
+                static_cast<size_t>(std::numeric_limits<int>::max())));
+        };
+        const int value_characters = rml_character_count(value);
+        const int previous_characters = rml_character_count(previous);
+        const int inserted_characters = std::max(
+            value_characters - previous_characters, 0);
+        const int cursor = std::clamp(
+            selection_start - inserted_characters, 0, previous_characters);
+        input->SetValue(previous);
+        input->SetSelectionRange(cursor, cursor);
+    }
+
+    bool commit_input(Rml::Element* target)
+    {
+        const bool rename = target && target->IsClassSet("object_variable_name");
+        const bool set_value = target && target->IsClassSet("object_variable_value");
+        if (!rename && !set_value) {
+            return false;
+        }
+
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        if (!input) {
+            return false;
+        }
+
+        const std::string name = input->GetAttribute<Rml::String>("data-name", "");
+        const std::string type = input->GetAttribute<Rml::String>("data-type", "");
+        const std::string desired = input->GetValue();
+        const auto result = backend_.execute_command(
+            rename ? "object.variables.rename" : "object.variables.set_value",
+            {name, type, desired},
+            context_);
+        append_command_results(shell_, {&result, 1});
+        return result.ok();
+    }
+
+    ObjectWorkbenchViewState& state_;
+    const WorkspaceState& workspace_;
+    ToolsetBackend& backend_;
+    ShellController& shell_;
+    const CommandContext& context_;
+};
+
+void hydrate_creature_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    if (!find_el(doc, "creature_surface_details")) {
+        return;
+    }
+
+    struct CreatureSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        CreatureSurfaceElements{"creature_tab_details", "creature_surface_details",
+            ObjectWorkbenchSurface::details},
+        CreatureSurfaceElements{"creature_tab_sheet", "creature_surface_sheet",
+            ObjectWorkbenchSurface::sheet},
+        CreatureSurfaceElements{"creature_tab_variables", "creature_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        CreatureSurfaceElements{"creature_tab_classes", "creature_surface_classes",
+            ObjectWorkbenchSurface::classes},
+        CreatureSurfaceElements{"creature_tab_appearance", "creature_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+        CreatureSurfaceElements{"creature_tab_feats", "creature_surface_feats",
+            ObjectWorkbenchSurface::feats},
+        CreatureSurfaceElements{"creature_tab_spells", "creature_surface_spells",
+            ObjectWorkbenchSurface::spells},
+        CreatureSurfaceElements{"creature_tab_inventory", "creature_surface_inventory",
+            ObjectWorkbenchSurface::inventory},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+        if (auto* surface = find_el(doc, elements.surface_id)) {
+            surface->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::creature;
+    if (auto* header = find_el(doc, "creature_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "creature_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+
+    std::string markup;
+    switch (state.object_workbench_surface) {
+    case ObjectWorkbenchSurface::classes:
+        append_creature_classes_markup(markup, state.creature_view, object_workbench_target(state, workspace));
+        if (auto* target = find_el(doc, "creature_classes_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    case ObjectWorkbenchSurface::appearance:
+        markup.clear();
+        if (active_color_editor_matches_tab(state.appearance_view, object_workbench_target(state, workspace))) {
+            append_creature_color_selector_markup(markup, state.appearance_view, object_workbench_target(state, workspace));
+        } else if (state.appearance_view.appearance_selector_open) {
+            append_appearance_selector_markup(markup, state.appearance_view);
+        } else {
+            if (auto* main = find_el(doc, "creature_appearance_main")) {
+                main->SetClass("active", true);
+            }
+            if (auto* modal = find_el(doc, "creature_appearance_modal_dynamic")) {
+                modal->SetClass("active", false);
+                modal->SetInnerRML("");
+            }
+            std::string primary_markup;
+            append_appearance_catalog_field_markup(
+                primary_markup, state.appearance_view, AppearanceEditorField::appearance);
+            if (auto* primary = find_el(
+                    doc, "creature_appearance_primary_dynamic")) {
+                primary->SetInnerRML(primary_markup);
+            }
+            std::string secondary_markup;
+            append_creature_accessories_markup(secondary_markup, state.appearance_view, object_workbench_target(state, workspace));
+            append_creature_colors_markup(secondary_markup, object_workbench_target(state, workspace));
+            if (auto* secondary = find_el(
+                    doc, "creature_appearance_secondary_dynamic")) {
+                secondary->SetInnerRML(secondary_markup);
+            }
+            break;
+        }
+        if (auto* main = find_el(doc, "creature_appearance_main")) {
+            main->SetClass("active", false);
+        }
+        if (auto* modal = find_el(doc, "creature_appearance_modal_dynamic")) {
+            modal->SetClass("active", true);
+            modal->SetInnerRML(markup);
+        }
+        break;
+    case ObjectWorkbenchSurface::feats:
+        if (auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(find_el(doc, "creature_feat_search"))) {
+            input->SetValue(state.creature_view.creature_feat_query);
+        }
+        break;
+    case ObjectWorkbenchSurface::spells:
+        append_creature_spell_markup(markup, state.creature_view, object_workbench_target(state, workspace));
+        if (auto* target = find_el(doc, "creature_spells_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    case ObjectWorkbenchSurface::inventory:
+        append_creature_inventory_markup(markup, state.inventory_view, object_workbench_target(state, workspace));
+        if (auto* target = find_el(doc, "creature_inventory_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+        break;
+    default:
+        break;
+    }
+
+    markup.clear();
+    append_creature_workbench_overlay_markup(markup, state.creature_view, object_workbench_target(state, workspace));
+    if (auto* overlays = find_el(doc, "creature_workbench_dynamic_overlays")) {
+        overlays->SetInnerRML(markup);
+    }
+}
+
+void hydrate_item_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    if (!find_el(doc, "item_surface_details")) { return; }
+    const auto surface = state.object_workbench_surface;
+    struct ItemSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        ItemSurfaceElements{"item_tab_details", "item_surface_details",
+            ObjectWorkbenchSurface::details},
+        ItemSurfaceElements{"item_tab_variables", "item_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        ItemSurfaceElements{"item_tab_appearance", "item_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+        ItemSurfaceElements{"item_tab_item_properties", "item_surface_item_properties",
+            ObjectWorkbenchSurface::item_properties},
+        ItemSurfaceElements{"item_tab_inventory", "item_surface_inventory",
+            ObjectWorkbenchSurface::inventory},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", surface == elements.surface);
+        }
+        if (auto* element = find_el(doc, elements.surface_id)) {
+            element->SetClass("active", surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::item;
+    if (auto* header = find_el(doc, "item_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "item_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+}
+
+void hydrate_door_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    if (!find_el(doc, "door_surface_details")) {
+        return;
+    }
+
+    struct DoorSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        DoorSurfaceElements{"door_tab_details", "door_surface_details",
+            ObjectWorkbenchSurface::details},
+        DoorSurfaceElements{"door_tab_variables", "door_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        DoorSurfaceElements{"door_tab_appearance", "door_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+        if (auto* surface = find_el(doc, elements.surface_id)) {
+            surface->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::door;
+    if (auto* header = find_el(doc, "door_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "door_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
+        std::string markup;
+        if (state.appearance_view.appearance_selector_open) {
+            append_appearance_selector_markup(markup, state.appearance_view);
+        } else {
+            append_door_appearance_markup(markup, state.appearance_view);
+        }
+        if (auto* target = find_el(doc, "door_appearance_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+    }
+}
+
+void hydrate_placeable_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    if (!find_el(doc, "placeable_surface_details")) {
+        return;
+    }
+
+    struct PlaceableSurfaceElements {
+        const char* tab_id;
+        const char* surface_id;
+        ObjectWorkbenchSurface surface;
+    };
+    static constexpr std::array surfaces{
+        PlaceableSurfaceElements{"placeable_tab_details", "placeable_surface_details",
+            ObjectWorkbenchSurface::details},
+        PlaceableSurfaceElements{"placeable_tab_variables", "placeable_surface_variables",
+            ObjectWorkbenchSurface::variables},
+        PlaceableSurfaceElements{"placeable_tab_appearance", "placeable_surface_appearance",
+            ObjectWorkbenchSurface::appearance},
+        PlaceableSurfaceElements{"placeable_tab_inventory", "placeable_surface_inventory",
+            ObjectWorkbenchSurface::inventory},
+    };
+    for (const auto& elements : surfaces) {
+        if (auto* tab = find_el(doc, elements.tab_id)) {
+            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+        if (auto* surface = find_el(doc, elements.surface_id)) {
+            surface->SetClass("active", state.object_workbench_surface == elements.surface);
+        }
+    }
+
+    const auto* active_tab = workspace.active_tab();
+    const bool show_header = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type == nw::ObjectType::placeable;
+    if (auto* header = find_el(doc, "placeable_object_header")) {
+        header->SetClass("visible", show_header);
+    }
+    if (show_header) {
+        if (auto* title = find_el(doc, "placeable_object_title")) {
+            title->SetInnerRML(escape_html(
+                nw::toolset::live_object_display_name(state.object_details.object)));
+        }
+    }
+
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::appearance) {
+        std::string markup;
+        if (state.appearance_view.appearance_selector_open) {
+            append_appearance_selector_markup(markup, state.appearance_view);
+        } else {
+            append_placeable_appearance_markup(markup, state.appearance_view);
+        }
+        if (auto* target = find_el(doc, "placeable_appearance_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+    } else if (state.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
+        std::string markup;
+        append_creature_inventory_markup(markup, state.inventory_view, object_workbench_target(state, workspace));
+        if (auto* target = find_el(doc, "placeable_inventory_dynamic")) {
+            target->SetInnerRML(markup);
+        }
+    }
+}
+
+} // namespace
+
+void hide_object_variable_warning_tooltip(
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state)
+{
+    if (state.active_object_variable_warning.empty()) {
+        return;
+    }
+    state.active_object_variable_warning.clear();
+    if (auto* tooltip = find_el(doc, "object_variable_warning_tooltip")) {
+        tooltip->SetProperty("display", "none");
+    }
+}
+
+// One window has one pointer and one transient warning tooltip. This is a true
+// UI singleton; there is no batch of simultaneous hover targets to process.
+void sync_object_variable_warning_tooltip(Rml::ElementDocument* doc,
+    ObjectWorkbenchViewState& state, bool palette_visible,
+    Rml::Element* hit,
+    Rml::Vector2f point,
+    int viewport_width,
+    int viewport_height)
+{
+    auto* warning = state.object_workbench_surface == ObjectWorkbenchSurface::variables
+            && !palette_visible
+        ? find_ancestor_with_class(hit, "object_variable_field_warning")
+        : nullptr;
+    const std::string description = warning
+        ? warning->GetAttribute<Rml::String>("data-tooltip", "")
+        : std::string{};
+    if (description.empty() || viewport_width <= 16 || viewport_height <= 16) {
+        hide_object_variable_warning_tooltip(doc, state);
+        return;
+    }
+
+    auto* tooltip = find_el(doc, "object_variable_warning_tooltip");
+    if (!tooltip) {
+        state.active_object_variable_warning.clear();
+        return;
+    }
+    if (description != state.active_object_variable_warning) {
+        state.active_object_variable_warning = description;
+        tooltip->SetInnerRML(escape_html(description));
+    }
+
+    constexpr int margin = 8;
+    constexpr int pointer_offset = 14;
+    constexpr int preferred_width = 280;
+    constexpr int estimated_height = 54;
+    const int width = std::min(preferred_width, viewport_width - 2 * margin);
+    const int max_left = std::max(margin, viewport_width - width - margin);
+    const int left = std::clamp(
+        static_cast<int>(std::lround(point.x)) + pointer_offset,
+        margin,
+        max_left);
+    int top = static_cast<int>(std::lround(point.y)) + pointer_offset;
+    if (top + estimated_height > viewport_height - margin) {
+        top = static_cast<int>(std::lround(point.y))
+            - estimated_height - pointer_offset;
+    }
+    top = std::clamp(top, margin,
+        std::max(margin, viewport_height - estimated_height - margin));
+
+    tooltip->SetProperty("display", "block");
+    tooltip->SetProperty("width", std::to_string(width) + "px");
+    tooltip->SetProperty("left", std::to_string(left) + "px");
+    tooltip->SetProperty("top", std::to_string(top) + "px");
+}
+
+bool active_tab_has_object_workbench(const nw::toolset::WorkspaceTab* active_tab)
+{
+    return active_tab
+        && (active_tab->kind == nw::toolset::WorkspaceTabKind::preview
+            || active_tab->kind == nw::toolset::WorkspaceTabKind::area
+            || active_tab->kind == nw::toolset::WorkspaceTabKind::home);
+}
+
+ObjectWorkbenchTarget object_workbench_target(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    const auto* tab = workspace.active_tab();
+    return {.object = state.object_details.object,
+        .surface = state.object_workbench_surface,
+        .matches_active_tab = active_tab_has_object_workbench(tab) && state.active_object_tab_id == tab->id,
+        .area_tab = tab && tab->kind == WorkspaceTabKind::area,
+        .details_ready = state.object_details.status == ObjectDetailsStatus::ready};
+}
+
+bool active_object_details_matches_tab(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    const auto* active_tab = workspace.active_tab();
+    return active_tab_has_object_workbench(active_tab)
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.status == nw::toolset::ObjectDetailsStatus::ready;
+}
+
+bool active_object_matches_tab(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    const auto* active_tab = workspace.active_tab();
+    return active_tab_has_object_workbench(active_tab)
+        && state.active_object_tab_id == active_tab->id
+        && state.object_details.object.type != nw::ObjectType::invalid;
+}
+
+size_t active_details_row_count(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    return active_object_details_matches_tab(state, workspace) ? state.object_details.rows.size() : 0;
+}
+
+bool active_object_variables_match_tab(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    const auto* active_tab = workspace.active_tab();
+    return active_tab_has_object_workbench(active_tab)
+        && state.active_object_tab_id == active_tab->id
+        && state.object_variables.object == state.object_details.object
+        && state.object_variables.status
+        == nw::toolset::ObjectVariableSnapshotStatus::ready;
+}
+
+void configure_object_variable_list(ObjectWorkbenchViewState& state)
+{
+    if (state.object_variable_list_configured) {
+        return;
+    }
+    state.object_variable_list.set_row_height(kObjectVariableRowHeightPx);
+    state.object_variable_list.set_overscan(kObjectVariableOverscanRows);
+    state.object_variable_list_configured = true;
+}
+
+void invalidate_object_variable_render(ObjectWorkbenchViewState& state)
+{
+    configure_object_variable_list(state);
+    const size_t row_count = state.object_variables.status
+            == nw::toolset::ObjectVariableSnapshotStatus::ready
+        ? state.object_variables.rows.size()
+        : 0;
+    state.object_variable_list.set_total_rows(static_cast<int>(row_count));
+    state.object_variables_rendered = false;
+}
+
+void configure_details_list(ObjectWorkbenchViewState& state)
+{
+    if (state.details_list_configured) {
+        return;
+    }
+    state.details_list.set_row_height(kObjectDetailsRowHeightPx);
+    state.details_list.set_overscan(kObjectDetailsOverscanRows);
+    state.details_list_configured = true;
+}
+
+void invalidate_details_render(ObjectWorkbenchViewState& state)
+{
+    configure_details_list(state);
+    const auto* snapshot = &state.object_details;
+    const size_t row_count = snapshot->status == nw::toolset::ObjectDetailsStatus::ready
+        ? snapshot->rows.size()
+        : 0;
+    state.details_list.set_total_rows(static_cast<int>(row_count));
+    state.details_rendered = false;
+}
+
+void clear_object_details_combobox_state(ObjectWorkbenchViewState& state)
+{
+    state.object_details_combobox.close();
+    state.object_details_combobox_row.reset();
+    state.object_details_combobox_placement.reset();
+}
+
+void close_object_details_combobox(
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state)
+{
+    if (state.object_details_combobox_row) {
+        const auto field_id = "object_details_sound_position_field_"
+            + std::to_string(*state.object_details_combobox_row);
+        if (auto* field = find_el(doc, field_id.c_str())) {
+            field->SetClass("open", false);
+        }
+    }
+    clear_object_details_combobox_state(state);
+    if (auto* popup = find_el(doc, "object_details_combobox_popup")) {
+        popup->SetClass("active", false);
+        popup->SetInnerRML("");
+    }
+}
+
+bool open_object_details_sound_position_combobox(
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, uint32_t row_index)
+{
+    if (!active_object_details_matches_tab(state, workspace)
+        || row_index >= state.object_details.rows.size()) {
+        return false;
+    }
+    const auto& row = state.object_details.rows[row_index];
+    if (row.kind != nw::toolset::ObjectDetailsRowKind::value
+        || row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
+        || row.edit_value < 0 || row.edit_value > 2) {
+        return false;
+    }
+    if (state.object_details_combobox_row == row_index
+        && state.object_details_combobox.is_active()) {
+        if (state.object_details_combobox.popup_visible()) {
+            state.object_details_combobox.hide_popup();
+        } else {
+            (void)state.object_details_combobox.show_popup();
+        }
+        state.object_details_combobox_placement.reset();
+        return true;
+    }
+
+    std::vector<nw::toolset::VirtualComboBoxItem> options{
+        {.key = 0, .label = "Everywhere"},
+        {.key = 1, .label = "Positional"},
+        {.key = 2, .label = "Random Position"},
+    };
+    close_object_details_combobox(doc, state);
+    if (!state.object_details_combobox.open(
+            std::move(options), row.edit_value)) {
+        return false;
+    }
+    state.object_details_combobox_row = row_index;
+    return true;
+}
+
+bool sync_object_details_combobox(
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
+{
+    if (!state.object_details_combobox.is_active()
+        || !state.object_details_combobox_row) {
+        return false;
+    }
+    const auto row_index = *state.object_details_combobox_row;
+    if (!active_object_details_matches_tab(state, workspace)
+        || row_index >= state.object_details.rows.size()) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+    const auto& row = state.object_details.rows[row_index];
+    const auto selected = state.object_details_combobox.selected_key();
+    if (row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
+        || !selected || *selected < 0 || *selected > 2) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+
+    const auto field_id = "object_details_sound_position_field_"
+        + std::to_string(row_index);
+    auto* field = find_el(doc, field_id.c_str());
+    auto* popup = find_el(doc, "object_details_combobox_popup");
+    auto* workbench = find_el(doc, "object_workbench");
+    if (!field || !popup || !workbench) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+
+    const bool visible = state.object_details_combobox.popup_visible();
+    field->SetClass("open", visible);
+    popup->SetClass("active", visible);
+    if (!visible) {
+        return false;
+    }
+
+    const nw::toolset::VirtualComboBoxRect anchor{
+        .x = static_cast<int>(std::lround(
+            field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft())),
+        .y = static_cast<int>(std::lround(
+            field->GetAbsoluteTop() - workbench->GetAbsoluteTop())),
+        .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
+        .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
+    };
+    const nw::toolset::VirtualComboBoxRect bounds{
+        .width = static_cast<int>(std::lround(workbench->GetClientWidth())),
+        .height = static_cast<int>(std::lround(workbench->GetClientHeight())),
+    };
+    const auto placement = state.object_details_combobox.place_popup(
+        anchor, bounds);
+    if (placement.width <= 0 || placement.height <= 0) {
+        return false;
+    }
+
+    bool changed = false;
+    if (!state.object_details_combobox_placement
+        || *state.object_details_combobox_placement != placement) {
+        popup->SetProperty("left", std::to_string(placement.left) + "px");
+        popup->SetProperty("top", std::to_string(placement.top) + "px");
+        popup->SetProperty("width", std::to_string(placement.width) + "px");
+        popup->SetProperty("height", std::to_string(placement.height) + "px");
+        state.object_details_combobox_placement = placement;
+        changed = true;
+    }
+
+    const int observed_scroll_top = std::max(0,
+        static_cast<int>(std::lround(popup->GetScrollTop())));
+    auto update = state.object_details_combobox.update(
+        placement.height, observed_scroll_top, force);
+    if (update.replace_markup) {
+        popup->SetInnerRML(update.markup);
+    }
+    if (update.set_scroll) {
+        popup->SetScrollTop(static_cast<float>(update.scroll_top));
+    }
+    return changed || update.replace_markup || update.set_scroll;
+}
+
+bool sync_object_variable_window(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
+{
+    if (state.object_workbench_surface != ObjectWorkbenchSurface::variables) {
+        return false;
+    }
+    auto* list = find_el(doc, "object_variable_rows");
+    if (!list) {
+        return false;
+    }
+
+    configure_object_variable_list(state);
+    const int viewport_height = std::max(1,
+        static_cast<int>(std::lround(
+            std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
+    const int scroll_top = std::max(
+        0, static_cast<int>(std::lround(list->GetScrollTop())));
+    state.object_variable_list.set_viewport_height(viewport_height);
+    state.object_variable_list.set_scroll_top(scroll_top);
+    const auto range = state.object_variable_list.compute_range();
+    const int row_count = active_object_variables_match_tab(state, workspace)
+        ? static_cast<int>(state.object_variables.rows.size())
+        : 0;
+    if (!force && state.object_variables_rendered
+        && row_count == state.rendered_object_variable_row_count
+        && range.start == state.rendered_object_variable_range.start
+        && range.end == state.rendered_object_variable_range.end) {
+        return false;
+    }
+
+    std::string markup;
+    if (active_object_matches_tab(state, workspace)
+        && state.object_variables.status
+            != nw::toolset::ObjectVariableSnapshotStatus::ready) {
+        markup = "<div class=\"property_tree_empty error\">";
+        markup += escape_html(state.object_variables.diagnostic.empty()
+                ? std::string_view{"Object variable data is unavailable."}
+                : std::string_view{state.object_variables.diagnostic});
+        markup += "</div>";
+    } else if (!active_object_variables_match_tab(state, workspace)) {
+        markup = "<div class=\"property_tree_empty\">Waiting for a live object.</div>";
+    } else if (state.object_variables.rows.empty()) {
+        markup = "<div class=\"property_tree_empty\">No variables.</div>";
+    } else {
+        markup = nw::toolset::render_virtual_list(
+            state.object_variable_list,
+            ObjectVariableListAdapter{state.object_variables});
+    }
+
+    list->SetInnerRML(markup);
+    list->SetScrollTop(static_cast<float>(scroll_top));
+    if (auto* count = find_el(doc, "object_variable_count")) {
+        count->SetInnerRML(std::to_string(row_count));
+    }
+    state.rendered_object_variable_range = range;
+    state.rendered_object_variable_row_count = row_count;
+    state.object_variables_rendered = true;
+    return true;
+}
+
+bool sync_object_details_window(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
+{
+    const bool variable_changed = sync_object_variable_window(doc, state, workspace, force);
+    if (state.object_workbench_surface != ObjectWorkbenchSurface::details) {
+        const bool combobox_changed = state.object_details_combobox.is_active();
+        if (combobox_changed) {
+            close_object_details_combobox(doc, state);
+        }
+        return variable_changed || combobox_changed;
+    }
+    auto* list = find_el(doc, "property_tree_rows");
+    if (!list) {
+        return false;
+    }
+
+    configure_details_list(state);
+    const int viewport_height = std::max(1,
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
+    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop())));
+    state.details_list.set_viewport_height(viewport_height);
+    state.details_list.set_scroll_top(scroll_top);
+    const auto range = state.details_list.compute_range();
+    const int row_count = static_cast<int>(active_details_row_count(state, workspace));
+
+    if (!force && state.details_rendered
+        && row_count == state.rendered_details_row_count
+        && range.start == state.rendered_details_range.start
+        && range.end == state.rendered_details_range.end) {
+        return variable_changed
+            || sync_object_details_combobox(doc, state, workspace, false);
+    }
+
+    const auto& snapshot = state.object_details;
+    std::string markup;
+    if (active_object_matches_tab(state, workspace)
+        && snapshot.status != nw::toolset::ObjectDetailsStatus::ready) {
+        markup = "<div class=\"property_tree_empty error\">";
+        markup += escape_html(snapshot.diagnostic.empty()
+                ? std::string_view{"Live object Details are unavailable."}
+                : std::string_view{snapshot.diagnostic});
+        markup += "</div>";
+    } else if (!active_object_details_matches_tab(state, workspace)) {
+        markup = "<div class=\"property_tree_empty\">Waiting for the live preview object.</div>";
+    } else if (snapshot.rows.empty()) {
+        markup = "<div class=\"property_tree_empty\">No Details available.</div>";
+    } else {
+        markup = nw::toolset::render_virtual_list(
+            state.details_list,
+            ObjectDetailsListAdapter{snapshot});
+    }
+
+    list->SetInnerRML(markup);
+    list->SetScrollTop(static_cast<float>(scroll_top));
+    if (auto* count = find_el(doc, "property_tree_count")) {
+        count->SetInnerRML(std::to_string(active_details_row_count(state, workspace)));
+    }
+    state.rendered_details_range = range;
+    state.rendered_details_row_count = row_count;
+    state.details_rendered = true;
+    (void)sync_object_details_combobox(doc, state, workspace, true);
+    return true;
+}
+
+void rebuild_object_workbench_snapshots(ObjectWorkbenchViewState& state, nw::ObjectHandle object)
+{
+    if (state.pending_sound_volume
+        && (state.pending_sound_volume->object != object
+            || state.pending_sound_volume->tab_id != state.active_object_tab_id)) {
+        state.pending_sound_volume.reset();
+    }
+    auto& runtime = nw::kernel::runtime();
+    nw::toolset::build_object_details(runtime, object, state.object_details);
+    if (state.object_details.status == nw::toolset::ObjectDetailsStatus::invalid_data) {
+        LOG_F(WARNING, "rollnw-client: %s", state.object_details.diagnostic.c_str());
+    }
+    nw::toolset::snapshot_object_variables(object, state.object_variables);
+    if (state.object_variables.status
+        == nw::toolset::ObjectVariableSnapshotStatus::invalid_data) {
+        LOG_F(WARNING, "rollnw-client: %s",
+            state.object_variables.diagnostic.c_str());
+    }
+    invalidate_details_render(state);
+    invalidate_object_variable_render(state);
+    rebuild_creature_class_presentation(state.creature_view, object);
+}
+
+void clear_object_workbench_snapshots(ObjectWorkbenchViewState& state)
+{
+    state.pending_sound_volume.reset();
+    clear_object_details_combobox_state(state);
+    state.object_details = {};
+    state.object_variables = {};
+    configure_details_list(state);
+    state.details_list.set_total_rows(0);
+    state.details_list.set_scroll_top(0);
+    state.details_rendered = false;
+    configure_object_variable_list(state);
+    state.object_variable_list.set_total_rows(0);
+    state.object_variable_list.set_scroll_top(0);
+    state.object_variables_rendered = false;
+    state.object_workbench_surface = ObjectWorkbenchSurface::details;
+}
+
+bool commit_object_details_sound_position(
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context, int32_t desired)
+{
+    if (!state.object_details_combobox_row
+        || !state.object_details_combobox.select_key(desired)) {
+        return false;
+    }
+    const auto row_index = *state.object_details_combobox_row;
+    if (!active_object_details_matches_tab(state, workspace)
+        || row_index >= state.object_details.rows.size()) {
+        close_object_details_combobox(doc, state);
+        return false;
+    }
+    const auto& row = state.object_details.rows[row_index];
+    if (row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
+        || row.edit_value < 0 || row.edit_value > 2
+        || desired < 0 || desired > 2) {
+        close_object_details_combobox(doc, state);
+        return false;
+    }
+    if (desired == row.edit_value) {
+        close_object_details_combobox(doc, state);
+        return true;
+    }
+
+    const auto result = backend.execute_command(
+        "object.details.set_sound_position",
+        {std::to_string(row_index), std::to_string(row.edit_value),
+            std::to_string(desired)},
+        context);
+    append_command_results(shell, {&result, 1});
+    close_object_details_combobox(doc, state);
+    return result.ok();
+}
+
+void process_object_workbench_change(Rml::Event& event, ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context)
+{
+    ObjectWorkbenchChangeHandler{state, workspace, backend, shell, context}.process_event(event);
+}
+bool commit_object_workbench_sound_volume(ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context)
+{
+    return ObjectWorkbenchChangeHandler{state, workspace, backend, shell, context}.commit_sound_volume();
+}
+
+void hydrate_object_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    switch (state.object_details.object.type) {
+    case ObjectType::creature:
+        hydrate_creature_workbench(doc, state, workspace);
+        break;
+    case ObjectType::item:
+        hydrate_item_workbench(doc, state, workspace);
+        break;
+    case ObjectType::door:
+        hydrate_door_workbench(doc, state, workspace);
+        break;
+    case ObjectType::placeable:
+        hydrate_placeable_workbench(doc, state, workspace);
+        break;
+    default:
+        break;
+    }
+}
+void append_object_workbench_markup(std::string& content_markup, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace, const ToolsetBackend& backend)
+{
+    const auto* active_tab = workspace.active_tab();
+    const bool area_tab = active_tab
+        && active_tab->kind == nw::toolset::WorkspaceTabKind::area;
+    if (state.object_details.object.type == nw::ObjectType::creature) {
+        content_markup += "<template src=\"creature-workbench\"></template>";
+        return;
+    }
+    if (state.object_details.object.type == nw::ObjectType::item) {
+        content_markup += "<template src=\"item-workbench\"></template>";
+        return;
+    }
+    if (state.object_details.object.type == nw::ObjectType::door) {
+        content_markup += "<template src=\"door-workbench\"></template>";
+        return;
+    }
+    if (state.object_details.object.type == nw::ObjectType::placeable) {
+        content_markup += "<template src=\"placeable-workbench\"></template>";
+        return;
+    }
+    const auto object_type = state.object_details.object.type;
+    const bool project_module = object_type == nw::ObjectType::module
+        && !backend.current_project_dir().empty();
+    content_markup += "<div id=\"object_workbench\" class=\"object_workbench\">";
+    if (area_tab && active_object_matches_tab(state, workspace)
+        && state.object_details.object.type != nw::ObjectType::area) {
+        const std::string object_name = nw::toolset::live_object_display_name(
+            state.object_details.object);
+        content_markup += "<div class=\"object_workbench_header area_object_header\">";
+        content_markup += "<button type=\"button\" "
+                          "class=\"area_object_list_back panel_back_button\" "
+                          "title=\"Back to placed objects\">"
+                          "<span class=\"panel_back_icon\"><span class=\"panel_back_head\"></span>"
+                          "<span class=\"panel_back_shaft\"></span></span></button>";
+        content_markup += "<div class=\"object_workbench_title\">";
+        content_markup += escape_html(object_name);
+        content_markup += "</div></div>";
+    }
+    content_markup += "<div id=\"object_workbench_tab_bar\" class=\"object_workbench_tab_bar\">"
+                      "<div id=\"object_workbench_tabs\" class=\"object_workbench_tabs\">"
+                      "<div id=\"object_workbench_tab_track\" class=\"object_workbench_tab_track\">";
+    content_markup += "<div class=\"object_workbench_tab";
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::details) {
+        content_markup += " active";
+    }
+    content_markup += "\" data-surface=\"details\">Details</div>";
+    content_markup += "<div class=\"object_workbench_tab";
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+        content_markup += " active";
+    }
+    content_markup += "\" data-surface=\"variables\">Variables</div>";
+    if (project_module) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"haks\">Haks</div>";
+    }
+    if (object_type == nw::ObjectType::encounter) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::spawns) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"spawns\">Spawns</div>";
+    } else if (object_type == nw::ObjectType::sound) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::sounds) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"sounds\">Sounds</div>";
+    } else if (object_type == nw::ObjectType::store) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"store-inventory\">Inventory</div>";
+    }
+    content_markup += "</div></div>"
+                      "<button id=\"object_workbench_tabs_previous\" "
+                      "class=\"object_workbench_tab_scroll_button disabled\" "
+                      "type=\"button\" title=\"Scroll editor tabs left\">&#x2039;</button>"
+                      "<button id=\"object_workbench_tabs_next\" "
+                      "class=\"object_workbench_tab_scroll_button disabled\" "
+                      "type=\"button\" title=\"Scroll editor tabs right\">&#x203a;</button>"
+                      "</div>";
+
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+        content_markup += "<div class=\"object_variable_toolbar\"><button id=\"object_variable_add\" "
+                          "type=\"button\" title=\"Add integer variable\">Add Variable</button></div>"
+                          "<div class=\"object_variable_header\"><span class=\"object_variable_header_name\">Name</span>"
+                          "<span class=\"object_variable_header_type\">Type</span>"
+                          "<span class=\"object_variable_header_value\">Value</span>"
+                          "<span id=\"object_variable_count\" class=\"property_tree_count\">";
+        content_markup += active_object_variables_match_tab(state, workspace)
+            ? std::to_string(state.object_variables.rows.size())
+            : std::string{"0"};
+        content_markup += "</span></div><div id=\"object_variable_rows\" "
+                          "class=\"object_variable_rows\"><div class=\"property_tree_empty\">"
+                          "Waiting for a live object.</div></div>";
+    } else if (project_module && state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
+        const auto module_summary = backend.project_module_summary();
+        content_markup += "<div class=\"module_hak_list\">";
+        if (!module_summary.ok) {
+            content_markup += "<div class=\"module_hak_empty\">";
+            content_markup += escape_html(module_summary.message.empty()
+                    ? std::string{"Module metadata unavailable."}
+                    : module_summary.message);
+            content_markup += "</div>";
+        } else if (module_summary.haks.empty()) {
+            content_markup += "<div class=\"module_hak_empty\">No module haks.</div>";
+        } else {
+            for (const auto& hak : module_summary.haks) {
+                content_markup += "<div class=\"module_hak_item\"><span class=\"module_hak_name\">";
+                content_markup += escape_html(hak);
+                content_markup += "</span></div>";
+            }
+        }
+        content_markup += "</div>";
+    } else if (object_type == nw::ObjectType::encounter
+        && state.object_workbench_surface == ObjectWorkbenchSurface::spawns) {
+        content_markup += "<div id=\"encounter_spawn_collection\" "
+                          "class=\"data_object_collection smalls_refresh\" "
+                          "onrefresh=\"encounter_spawns_refresh()\">"
+                          "<div class=\"data_collection_header encounter_spawn_header\">"
+                          "<span>Creature</span><span>CR</span><span>Appearance</span><span>Single</span>"
+                          "</div><div class=\"data_collection_summary managed_list_title\" "
+                          "data-list-id=\"data.encounter.spawns\"></div>"
+                          "<div class=\"data_collection_rows encounter_spawn_rows managed_list_rows\" "
+                          "tabindex=\"0\" "
+                          "data-list-id=\"data.encounter.spawns\" "
+                          "data-empty-text=\"This encounter has no spawn entries.\"></div></div>";
+    } else if (object_type == nw::ObjectType::sound
+        && state.object_workbench_surface == ObjectWorkbenchSurface::sounds) {
+        if (state.appearance_view.sound_resource_selector_open) {
+            append_sound_resource_selector_markup(content_markup, state.appearance_view);
+        } else {
+            content_markup += "<div id=\"sound_resource_collection\" "
+                              "class=\"data_object_collection smalls_refresh\" "
+                              "onrefresh=\"sound_resources_refresh()\">"
+                              "<div class=\"data_collection_header sound_resource_header\">"
+                              "<span>Resource</span></div>"
+                              "<div class=\"data_collection_summary managed_list_title\" "
+                              "data-list-id=\"data.sound.resources\"></div>"
+                              "<div id=\"sound_resource_rows\" "
+                              "class=\"data_collection_rows sound_resource_rows managed_list_rows\" "
+                              "tabindex=\"0\" "
+                              "data-list-id=\"data.sound.resources\" "
+                              "data-empty-text=\"This sound object has no sound resources.\"></div>"
+                              "<div class=\"data_collection_action_bar\">"
+                              "<button id=\"sound_resource_add\" type=\"button\" "
+                              "class=\"data_collection_action add\" title=\"Add sound resource\">"
+                              "<span class=\"data_collection_action_mark horizontal\"></span>"
+                              "<span class=\"data_collection_action_mark vertical\"></span>"
+                              "</button></div></div>";
+        }
+    } else if (object_type == nw::ObjectType::store
+        && state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory) {
+        content_markup += "<div id=\"store_inventory_collection\" "
+                          "class=\"data_object_collection smalls_refresh\" "
+                          "onrefresh=\"store_inventory_refresh()\">"
+                          "<div class=\"store_inventory_drop_targets\">"
+                          "<div id=\"store_inventory_drop_0\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"0\">Armor</div>"
+                          "<div id=\"store_inventory_drop_1\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"1\">Misc</div>"
+                          "<div id=\"store_inventory_drop_2\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"2\">Potions</div>"
+                          "<div id=\"store_inventory_drop_3\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"3\">Rings</div>"
+                          "<div id=\"store_inventory_drop_4\" class=\"store_inventory_drop_target\" "
+                          "data-category=\"4\">Weapons</div>"
+                          "</div>"
+                          "<div class=\"data_collection_header store_inventory_header\">"
+                          "<span>Category</span><span>Item</span><span>Resref</span><span>Stack</span>"
+                          "</div><div class=\"data_collection_summary managed_list_title\" "
+                          "data-list-id=\"data.store.inventory\"></div>"
+                          "<div class=\"data_collection_rows store_inventory_rows managed_list_rows\" "
+                          "tabindex=\"0\" "
+                          "data-list-id=\"data.store.inventory\" "
+                          "data-empty-text=\"This store has no inventory items.\"></div></div>";
+    } else {
+        content_markup += "<div class=\"property_tree_header\"><span class=\"property_tree_header_name\">Field</span>";
+        content_markup += "<span class=\"property_tree_header_value\">Value</span>";
+        content_markup += "<span id=\"property_tree_count\" class=\"property_tree_count\">";
+        content_markup += std::to_string(active_details_row_count(state, workspace));
+        content_markup += "</span></div><div id=\"property_tree_rows\" class=\"property_tree_rows\">";
+        content_markup += "<div class=\"property_tree_empty\">Select an object to inspect.</div></div>";
+    }
+    if (object_type == nw::ObjectType::sound) {
+        content_markup += "<div id=\"object_details_combobox_popup\" "
+                          "class=\"combobox_options combobox_popup "
+                          "object_details_combobox_popup\"></div>";
+    }
+    content_markup += "</div>";
+}
+
+void clear_object_workbench_children(ObjectWorkbenchViewState& state)
+{
+    state.creature_view.creature_class_presentation = {};
+    clear_active_creature_feats(state.creature_view);
+    clear_active_creature_spells(state.creature_view);
+    clear_active_creature_inventory(state.inventory_view);
+    clear_active_appearances(state.appearance_view);
+    clear_active_sound_catalog(state.appearance_view);
+}
+
+void activate_object_workbench(ObjectWorkbenchViewState& state, ObjectHandle object, std::string_view tab_id)
+{
+    state.active_object_tab_id = tab_id;
+    state.object_workbench_surface = default_object_workbench_surface();
+    clear_active_appearances(state.appearance_view);
+    clear_active_sound_catalog(state.appearance_view);
+    configure_details_list(state);
+    state.details_list.set_scroll_top(0);
+    rebuild_object_workbench_snapshots(state, object);
+    if (object.type == ObjectType::creature) {
+        configure_creature_feat_list(state.creature_view);
+        state.creature_view.creature_feat_list.set_scroll_top(0);
+        rebuild_active_creature_feats(state.creature_view, object);
+        configure_creature_spell_list(state.creature_view);
+        state.creature_view.creature_spell_list.set_scroll_top(0);
+        rebuild_active_creature_spells(state.creature_view, object);
+        state.inventory_view.creature_inventory_page = 0;
+        state.inventory_view.creature_inventory_selection = -1;
+        rebuild_active_creature_inventory(state.inventory_view, object);
+    } else {
+        clear_active_creature_feats(state.creature_view);
+        clear_active_creature_spells(state.creature_view);
+        if (object_has_grid_inventory(object.type)) {
+            state.inventory_view.creature_inventory_page = 0;
+            state.inventory_view.creature_inventory_selection = -1;
+            rebuild_active_creature_inventory(state.inventory_view, object);
+        } else {
+            clear_active_creature_inventory(state.inventory_view);
+        }
+    }
+}
+
+bool refresh_object_workbench_snapshots(ObjectWorkbenchViewState& state, ObjectHandle object)
+{
+    if (object != state.object_details.object || state.object_details.status != ObjectDetailsStatus::ready) {
+        return false;
+    }
+    rebuild_object_workbench_snapshots(state, object);
+    if (object.type == ObjectType::creature) {
+        const auto selected_class = state.creature_view.creature_spells.selected_class;
+        const auto selected_metamagic = state.creature_view.creature_spells.selected_metamagic;
+        rebuild_active_creature_feats(state.creature_view, object);
+        rebuild_active_creature_spells(state.creature_view, object, selected_class, selected_metamagic);
+        rebuild_active_creature_inventory(state.inventory_view, object);
+    } else if (object_has_grid_inventory(object.type)) {
+        rebuild_active_creature_inventory(state.inventory_view, object);
+    }
+    return true;
+}
+std::optional<ObjectWorkbenchCommandClick> capture_object_workbench_command_click(
+    Rml::Element* hit, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    uint64_t module_generation)
+{
+    ObjectWorkbenchCommandClick click;
+    const auto finish = [&] {
+        if (click.kind != ObjectWorkbenchCommandKind::none) {
+            click.object = state.object_details.object;
+            click.module_generation = module_generation;
+            click.tab_id = workspace.active_tab_id();
+        }
+        return std::move(click);
+    };
+    const auto args = [&](std::initializer_list<std::string> values) {
+        click.args.reserve(values.size());
+        for (const auto& value : values) {
+            click.args.push_back(CommandArg::positional_string(value));
+        }
+    };
+    bool add = false;
+    for (auto* cursor = hit; cursor; cursor = cursor->GetParentNode()) {
+        if (cursor->GetId() == "object_variable_add") {
+            add = true;
+            break;
+        }
+    }
+    if (add) {
+        click.kind = ObjectWorkbenchCommandKind::variable_add;
+        click.release_phase = ClientRmlForwardPhase::before_native;
+        return finish();
+    }
+    if (auto* remove = find_ancestor_with_class(hit, "object_variable_remove")) {
+        click.kind = ObjectWorkbenchCommandKind::variable_remove;
+        click.release_phase = ClientRmlForwardPhase::before_native;
+        args({remove->GetAttribute<Rml::String>("data-name", ""),
+            remove->GetAttribute<Rml::String>("data-type", "")});
+        return finish();
+    }
+    if (auto* type = find_ancestor_with_class(hit, "object_variable_type")) {
+        click.release_phase = ClientRmlForwardPhase::before_native;
+        const auto current_text = type->GetAttribute<Rml::String>("data-type", "");
+        const auto current = parse_decimal_int32(current_text);
+        if (current && *current >= 1 && *current <= 3) {
+            click.kind = ObjectWorkbenchCommandKind::variable_type;
+            args({type->GetAttribute<Rml::String>("data-name", ""), current_text,
+                std::to_string(*current == 3 ? 1 : *current + 1)});
+        }
+        return finish();
+    }
+    auto* control = find_ancestor_with_class(hit, "object_details_integer_step");
+    auto kind = ObjectWorkbenchCommandKind::integer_step;
+    if (!control) {
+        control = find_ancestor_with_class(hit, "object_details_boolean");
+        kind = ObjectWorkbenchCommandKind::boolean;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "object_details_cycle_state");
+        kind = ObjectWorkbenchCommandKind::door_state;
+    }
+    if (!control) { return std::nullopt; }
+    click.release_phase = kind == ObjectWorkbenchCommandKind::integer_step
+        ? ClientRmlForwardPhase::before_native
+        : ClientRmlForwardPhase::after_native;
+    const auto row_index = parse_decimal_int32(control->GetAttribute<Rml::String>("data-row", ""));
+    const auto current = parse_decimal_int32(control->GetAttribute<Rml::String>("data-current", ""));
+    if (!row_index || *row_index < 0 || !current || !active_object_details_matches_tab(state, workspace)
+        || static_cast<size_t>(*row_index) >= state.object_details.rows.size()) {
+        return finish();
+    }
+    const auto& row = state.object_details.rows[static_cast<size_t>(*row_index)];
+    if (row.kind != ObjectDetailsRowKind::value || row.edit_value != *current) { return finish(); }
+    int32_t desired = 0;
+    if (kind == ObjectWorkbenchCommandKind::integer_step) {
+        const auto delta = parse_decimal_int32(control->GetAttribute<Rml::String>("data-delta", ""));
+        if (!delta || (*delta != -1 && *delta != 1) || row.editor != ObjectDetailsEditorKind::integer
+            || (*delta < 0 ? row.edit_value <= row.edit_min : row.edit_value >= row.edit_max)) {
+            return finish();
+        }
+        desired = *current + *delta;
+    } else if (kind == ObjectWorkbenchCommandKind::boolean) {
+        if ((*current != 0 && *current != 1) || row.editor != ObjectDetailsEditorKind::boolean) { return finish(); }
+        desired = 1 - *current;
+    } else {
+        if (*current < 0 || *current > 2 || row.editor != ObjectDetailsEditorKind::door_state) { return finish(); }
+        desired = (*current + 1) % 3;
+    }
+    click.kind = kind;
+    click.property = ObjectWorkbenchCommandRow{
+        .propset_type = row.propset_type,
+        .field_index = row.field_index,
+        .element_index = row.element_index,
+        .row = static_cast<uint32_t>(*row_index),
+        .current = *current,
+        .editor = row.editor,
+    };
+    args({std::to_string(*row_index), std::to_string(*current), std::to_string(desired)});
+    return finish();
+}
+
+bool close_active_smalls_selector(Rml::ElementDocument* document)
+{
+    if (!document) { return false; }
+    Rml::ElementList selectors;
+    document->GetElementsByClassName(selectors, "smalls_selector");
+    for (auto* selector : selectors) {
+        if (!selector->IsClassSet("active")) { continue; }
+        Rml::ElementList close_buttons;
+        selector->GetElementsByClassName(close_buttons, "smalls_selector_close");
+        if (!close_buttons.empty()) { return close_buttons.front()->DispatchEvent("click", {}); }
+    }
+    return false;
+}
+
+std::optional<ObjectWorkbenchSurfaceClick> capture_object_workbench_surface_click(Rml::Element* hit)
+{
+    auto* control = find_ancestor_with_class(hit, "object_workbench_tab");
+    if (!control) { return std::nullopt; }
+    return ObjectWorkbenchSurfaceClick{
+        .surface = object_workbench_surface_from_name(control->GetAttribute<Rml::String>("data-surface", "")),
+    };
+}
+
+bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
+    ObjectWorkbenchViewState& state, Rml::ElementDocument* document, ToolsetBackend& backend)
+{
+    if (!std::exchange(click.pending, false)) { return false; }
+    clear_creature_spell_filter(state.creature_view);
+    clear_color_editor(state.appearance_view);
+    (void)close_active_smalls_selector(document);
+    close_appearance_selector(state.appearance_view);
+    close_sound_resource_selector(state.appearance_view);
+    const auto type = state.object_details.object.type;
+    bool allowed = false;
+    if (click.surface) {
+        switch (*click.surface) {
+        case ObjectWorkbenchSurface::details:
+            allowed = true;
+            break;
+        case ObjectWorkbenchSurface::sheet:
+        case ObjectWorkbenchSurface::classes:
+        case ObjectWorkbenchSurface::feats:
+        case ObjectWorkbenchSurface::spells:
+            allowed = type == ObjectType::creature;
+            break;
+        case ObjectWorkbenchSurface::variables:
+            allowed = type != ObjectType::invalid;
+            break;
+        case ObjectWorkbenchSurface::haks:
+            allowed = type == ObjectType::module && !backend.current_project_dir().empty();
+            break;
+        case ObjectWorkbenchSurface::appearance:
+            allowed = appearance_catalog_kind(type).has_value() || type == ObjectType::door || type == ObjectType::item;
+            break;
+        case ObjectWorkbenchSurface::item_properties:
+            allowed = type == ObjectType::item;
+            break;
+        case ObjectWorkbenchSurface::inventory:
+            allowed = object_has_grid_inventory(type);
+            break;
+        case ObjectWorkbenchSurface::spawns:
+            allowed = type == ObjectType::encounter;
+            break;
+        case ObjectWorkbenchSurface::sounds:
+            allowed = type == ObjectType::sound;
+            break;
+        case ObjectWorkbenchSurface::store_inventory:
+            allowed = type == ObjectType::store;
+            break;
+        default:
+            break;
+        }
+    }
+    if (allowed) {
+        state.object_workbench_surface = *click.surface;
+        if (*click.surface == ObjectWorkbenchSurface::appearance && appearance_catalog_kind(type)) {
+            rebuild_active_appearances(state.appearance_view, backend.module_generation(), state.object_details.object);
+        }
+    }
+    invalidate_details_render(state);
+    return true;
+}
+
+bool execute_object_workbench_command_click(ObjectWorkbenchCommandClick& click,
+    const ObjectWorkbenchViewState& state, const WorkspaceState& workspace, ToolsetBackend& backend,
+    ShellController& shell, const CommandContext& context)
+{
+    const auto kind = std::exchange(click.kind, ObjectWorkbenchCommandKind::none);
+    const auto phase = kind <= ObjectWorkbenchCommandKind::integer_step
+        ? ClientRmlForwardPhase::before_native
+        : ClientRmlForwardPhase::after_native;
+    if (kind == ObjectWorkbenchCommandKind::none
+        || kind > ObjectWorkbenchCommandKind::door_state || click.release_phase != phase
+        || !active_object_matches_tab(state, workspace) || state.object_details.object != click.object
+        || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id
+        || context.workspace != &workspace || backend.module_generation() != click.module_generation
+        || smalls_rmlui_host().active_object() != click.object) {
+        return false;
+    }
+    const char* command = nullptr;
+    size_t arg_count = 3;
+    switch (kind) {
+    case ObjectWorkbenchCommandKind::variable_add:
+        command = "object.variables.add";
+        arg_count = 0;
+        break;
+    case ObjectWorkbenchCommandKind::variable_remove:
+        command = "object.variables.remove";
+        arg_count = 2;
+        break;
+    case ObjectWorkbenchCommandKind::variable_type:
+        command = "object.variables.set_type";
+        break;
+    case ObjectWorkbenchCommandKind::integer_step:
+    case ObjectWorkbenchCommandKind::door_state:
+        command = "object.details.set_integer";
+        break;
+    case ObjectWorkbenchCommandKind::boolean:
+        command = "object.details.set_boolean";
+        break;
+    default:
+        return false;
+    }
+    if (click.args.size() != arg_count) { return false; }
+    const bool details = kind == ObjectWorkbenchCommandKind::integer_step
+        || kind == ObjectWorkbenchCommandKind::boolean || kind == ObjectWorkbenchCommandKind::door_state;
+    if (details) {
+        if (!click.property) { return false; }
+        const auto& property = *click.property;
+        ObjectDetailsSnapshot current;
+        build_object_details(nw::kernel::runtime(), click.object, current);
+        if (current.status != ObjectDetailsStatus::ready || property.row >= current.rows.size()) { return false; }
+        const auto& row = current.rows[property.row];
+        if (row.kind != ObjectDetailsRowKind::value || row.editor != property.editor
+            || row.propset_type != property.propset_type || row.field_index != property.field_index
+            || row.element_index != property.element_index || row.edit_value != property.current) {
+            return false;
+        }
+    }
+    const auto result = backend.execute_command({command, std::move(click.args)}, context);
+    append_command_results(shell, {&result, 1});
+    return result.ok();
+}
+
+} // namespace nw::toolset

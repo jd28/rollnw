@@ -171,6 +171,8 @@ void update_viewer_internal_metrics(ClientMetricsState& state, const nw::render:
         return;
     }
 
+    state.viewer_stats = *stats;
+
     smooth_viewer_metric(state.viewer_fps_tick_seconds, state.viewer_fps_tick_smoothed_seconds, stats->tick_seconds);
     smooth_viewer_metric(state.viewer_fps_setup_seconds, state.viewer_fps_setup_smoothed_seconds, stats->setup_seconds);
     smooth_viewer_metric(state.viewer_fps_shadow_seconds, state.viewer_fps_shadow_smoothed_seconds, stats->shadow_seconds);
@@ -213,88 +215,6 @@ void update_viewer_internal_metrics(ClientMetricsState& state, const nw::render:
         state.viewer_fps_gpu_total_smoothed_seconds,
         stats->gpu_shadow_seconds + stats->gpu_opaque_seconds + stats->gpu_water_seconds
             + stats->gpu_transparent_seconds + stats->gpu_particles_seconds + stats->gpu_debug_seconds);
-    state.viewer_fps_gpu_timer_count = stats->gpu_timer_count;
-    state.viewer_fps_model_count = stats->model_count;
-    state.viewer_fps_particle_system_count = stats->particle_system_count;
-    state.viewer_fps_render_model_animation_sample_input_count = stats->render_model_animation_sample_stats.input_count;
-    state.viewer_fps_render_model_animation_sampled_count = stats->render_model_animation_sample_stats.sampled_count;
-    state.viewer_fps_render_model_animation_disabled_count = stats->render_model_animation_sample_stats.disabled_count;
-    state.viewer_fps_render_model_animation_missing_asset_data_count = stats->render_model_animation_sample_stats.missing_asset_data_count;
-    state.viewer_fps_render_model_animation_invalid_skeleton_count = stats->render_model_animation_sample_stats.invalid_skeleton_count;
-    state.viewer_fps_render_model_animation_failed_sample_count = stats->render_model_animation_sample_stats.failed_sample_count;
-    state.viewer_fps_prepared_model_surface_draw_count = stats->prepared_model_surface_stats.draw_count;
-    state.viewer_fps_prepared_model_surface_render_model_draw_count = stats->prepared_model_surface_stats.render_model_draw_count;
-    state.viewer_fps_prepared_render_model_skin_table_skinned_surface_count = stats->prepared_render_model_skin_table_stats.render_model_skinned_surface_count;
-    state.viewer_fps_prepared_render_model_skin_table_assigned_surface_count = stats->prepared_render_model_skin_table_stats.assigned_surface_count;
-    state.viewer_fps_prepared_render_model_skin_table_entry_count = stats->prepared_render_model_skin_table_stats.table_entry_count;
-    state.viewer_fps_prepared_render_model_skin_table_matrix_count = stats->prepared_render_model_skin_table_stats.matrix_count;
-    state.viewer_fps_prepared_render_model_skin_table_bind_pose_fallback_count = stats->prepared_render_model_skin_table_stats.bind_pose_fallback_surface_count;
-    state.viewer_fps_prepared_render_model_skin_table_invalid_skin_index_count = stats->prepared_render_model_skin_table_stats.invalid_skin_index_count;
-    state.viewer_fps_area_cache_record_count = stats->area_cache_record_count;
-    state.viewer_fps_area_cache_static_record_count = stats->area_cache_static_record_count;
-    state.viewer_fps_area_cache_dynamic_record_count = stats->area_cache_dynamic_record_count;
-    state.viewer_fps_area_cache_opaque_record_count = stats->area_cache_opaque_record_count;
-    state.viewer_fps_area_cache_water_record_count = stats->area_cache_water_record_count;
-    state.viewer_fps_area_cache_transparent_record_count = stats->area_cache_transparent_record_count;
-    state.viewer_fps_area_cache_shadow_caster_record_count = stats->area_cache_shadow_caster_record_count;
-    state.viewer_fps_area_cache_prepared_draw_count = stats->area_cache_prepared_draw_count;
-    state.viewer_fps_area_cache_light_index_count = stats->area_cache_light_index_count;
-    state.viewer_fps_area_cache_max_light_indices_per_record = stats->area_cache_max_light_indices_per_record;
-    state.viewer_fps_area_cache_chunk_count = stats->area_cache_chunk_count;
-    state.viewer_fps_area_cache_nonempty_chunk_count = stats->area_cache_nonempty_chunk_count;
-    state.viewer_fps_area_cache_max_records_per_chunk = stats->area_cache_max_records_per_chunk;
-    state.viewer_fps_area_frame_visible_record_count = stats->area_frame_visible_record_count;
-    state.viewer_fps_area_frame_visible_static_record_count = stats->area_frame_visible_static_record_count;
-    state.viewer_fps_area_frame_visible_dynamic_record_count = stats->area_frame_visible_dynamic_record_count;
-    state.viewer_fps_area_frame_visible_chunk_count = stats->area_frame_visible_chunk_count;
-    state.viewer_fps_area_frame_opaque_record_count = stats->area_frame_opaque_record_count;
-    state.viewer_fps_area_frame_water_record_count = stats->area_frame_water_record_count;
-    state.viewer_fps_area_frame_transparent_record_count = stats->area_frame_transparent_record_count;
-    state.viewer_fps_area_frame_shadow_caster_record_count = stats->area_frame_shadow_caster_record_count;
-    state.viewer_fps_area_frame_visible_prepared_surface_count = stats->area_frame_visible_prepared_surface_count;
-    state.viewer_fps_area_frame_uses_cached_draw_lists = stats->area_frame_uses_cached_draw_lists;
-    state.viewer_fps_local_light_count = stats->local_light_count;
-    state.viewer_fps_local_light_colored_count = stats->local_light_colored_count;
-    state.viewer_fps_local_light_color_max = stats->local_light_color_max;
-    state.viewer_fps_local_light_intensity_max = stats->local_light_intensity_max;
-    state.viewer_fps_local_light_selected_draw_count = stats->local_light_selected_draw_count;
-    state.viewer_fps_local_light_selected_total = stats->local_light_selected_total;
-    state.viewer_fps_local_light_selected_max = stats->local_light_selected_max;
-    state.viewer_fps_local_light_selected_colored_total = stats->local_light_selected_colored_total;
-    state.viewer_fps_local_light_selected_color_max = stats->local_light_selected_color_max;
-    state.viewer_fps_local_light_selected_intensity_max = stats->local_light_selected_intensity_max;
-    state.viewer_fps_forward_plus_light_count = stats->forward_plus_light_count;
-    state.viewer_fps_forward_plus_cluster_count = stats->forward_plus_cluster_count;
-    state.viewer_fps_forward_plus_active_cluster_count = stats->forward_plus_active_cluster_count;
-    state.viewer_fps_forward_plus_cluster_light_index_count = stats->forward_plus_cluster_light_index_count;
-    state.viewer_fps_forward_plus_max_lights_per_cluster = stats->forward_plus_max_lights_per_cluster;
-    state.viewer_fps_forward_plus_overflow_cluster_count = stats->forward_plus_overflow_cluster_count;
-    state.viewer_fps_forward_plus_overflow_light_count = stats->forward_plus_overflow_light_count;
-    state.viewer_fps_forward_plus_upload_bytes = stats->forward_plus_upload_bytes;
-    state.viewer_fps_forward_plus_tile_size = stats->forward_plus_tile_size;
-    state.viewer_fps_forward_plus_depth_slices = stats->forward_plus_depth_slices;
-    state.viewer_fps_shadow_cascade_count = stats->shadow_cascade_count;
-    state.viewer_fps_shadow_resolution = stats->shadow_resolution;
-    state.viewer_fps_shadow_caster_model_count = stats->shadow_caster_model_count;
-    state.viewer_fps_shadow_no_caster_model_count = stats->shadow_no_caster_model_count;
-    state.viewer_fps_shadow_submitted_model_count = stats->shadow_submitted_model_count;
-    state.viewer_fps_shadow_culled_model_count = stats->shadow_culled_model_count;
-    state.viewer_fps_main_pass_count = stats->main_pass_count;
-    state.viewer_fps_draw_count = stats->total_command_stats.draw_count;
-    state.viewer_fps_shadow_draw_count = stats->shadow_command_stats.draw_count;
-    state.viewer_fps_transparent_draw_count = stats->transparent_command_stats.draw_count;
-    state.viewer_fps_particle_draw_count = stats->particle_command_stats.draw_count;
-    state.viewer_fps_indirect_draw_call_count = stats->total_command_stats.indirect_draw_call_count;
-    state.viewer_fps_draw_instance_count = stats->total_command_stats.draw_instance_count;
-    state.viewer_fps_draw_index_count = stats->total_command_stats.draw_index_count;
-    state.viewer_fps_pipeline_bind_count = stats->total_command_stats.pipeline_bind_count;
-    state.viewer_fps_pipeline_bind_skipped_count = stats->total_command_stats.pipeline_bind_skipped_count;
-    state.viewer_fps_resource_bind_count = stats->total_command_stats.resource_bind_count;
-    state.viewer_fps_resource_bind_skipped_count = stats->total_command_stats.resource_bind_skipped_count;
-    state.viewer_fps_uniform_allocation_count = stats->total_command_stats.uniform_allocation_count;
-    state.viewer_fps_uniform_allocation_bytes = stats->total_command_stats.uniform_allocation_bytes;
-    state.viewer_fps_shadows_rendered = stats->shadows_rendered;
-    state.viewer_fps_water_rendered = stats->water_rendered;
 }
 
 void update_client_gpu_metrics(ClientMetricsState& state, const ClientGpuFrameStats* stats)
@@ -302,6 +222,8 @@ void update_client_gpu_metrics(ClientMetricsState& state, const ClientGpuFrameSt
     if (!stats) {
         return;
     }
+
+    state.editor_gpu_stats = *stats;
 
     smooth_viewer_metric(state.viewer_fps_editor_gpu_ui_seconds,
         state.viewer_fps_editor_gpu_ui_smoothed_seconds,
@@ -318,12 +240,6 @@ void update_client_gpu_metrics(ClientMetricsState& state, const ClientGpuFrameSt
     smooth_viewer_metric(state.viewer_fps_editor_gpu_total_seconds,
         state.viewer_fps_editor_gpu_total_smoothed_seconds,
         stats->total_seconds);
-    state.viewer_fps_editor_gpu_timer_count = stats->timer_count;
-    state.viewer_fps_descriptor_allocation_failure_count = stats->command_stats.descriptor_allocation_failure_count;
-    state.viewer_fps_descriptor_ring_capacity_bytes = stats->command_stats.descriptor_ring_capacity_bytes;
-    state.viewer_fps_descriptor_ring_required_bytes = stats->command_stats.descriptor_ring_required_bytes;
-    state.viewer_fps_resource_bind_failure_count = stats->command_stats.resource_bind_failure_count;
-    state.viewer_fps_dropped_draw_count = stats->command_stats.dropped_draw_count;
 }
 
 std::string format_viewer_fps_rml(const ClientMetricsState& state,
@@ -422,14 +338,14 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
     std::snprintf(compact_scene_text,
         sizeof(compact_scene_text),
         "vis %u chunks %u lights %u | draws %llu ind %llu",
-        state.viewer_fps_area_frame_visible_record_count,
-        state.viewer_fps_area_frame_visible_chunk_count,
-        state.viewer_fps_forward_plus_light_count,
-        static_cast<unsigned long long>(state.viewer_fps_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_indirect_draw_call_count));
+        state.viewer_stats.area_frame_visible_record_count,
+        state.viewer_stats.area_frame_visible_chunk_count,
+        state.viewer_stats.forward_plus_light_count,
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.draw_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.indirect_draw_call_count));
 
     std::string compact_result = Rml::StringUtilities::EncodeRml(compact_frame_text);
-    if (state.viewer_fps_gpu_timer_count > 0 || state.viewer_fps_editor_gpu_timer_count > 0) {
+    if (state.viewer_stats.gpu_timer_count > 0 || state.editor_gpu_stats.timer_count > 0) {
         compact_result += "<br/>";
         compact_result += Rml::StringUtilities::EncodeRml(compact_gpu_text);
     }
@@ -488,7 +404,7 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
         static_cast<double>(gpu_transparent_seconds * 1000.0f),
         static_cast<double>(gpu_particles_seconds * 1000.0f),
         static_cast<double>(gpu_debug_seconds * 1000.0f),
-        state.viewer_fps_gpu_timer_count);
+        state.viewer_stats.gpu_timer_count);
 
     char editor_gpu_text[160]{};
     std::snprintf(editor_gpu_text,
@@ -499,7 +415,7 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
         static_cast<double>(editor_gpu_viewport_seconds * 1000.0f),
         static_cast<double>(editor_gpu_overlay_seconds * 1000.0f),
         static_cast<double>(editor_gpu_palette_seconds * 1000.0f),
-        state.viewer_fps_editor_gpu_timer_count);
+        state.editor_gpu_stats.timer_count);
 
     char pass_text[192]{};
     std::snprintf(pass_text,
@@ -508,146 +424,146 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
         static_cast<double>(opaque_seconds * 1000.0f),
         static_cast<double>(water_seconds * 1000.0f),
         static_cast<double>(transparent_seconds * 1000.0f),
-        state.viewer_fps_model_count,
-        state.viewer_fps_particle_system_count,
-        state.viewer_fps_local_light_count,
-        state.viewer_fps_local_light_colored_count,
-        static_cast<double>(state.viewer_fps_local_light_color_max),
-        static_cast<double>(state.viewer_fps_local_light_intensity_max),
-        state.viewer_fps_local_light_selected_draw_count,
-        state.viewer_fps_local_light_selected_total,
-        state.viewer_fps_local_light_selected_max,
-        state.viewer_fps_local_light_selected_colored_total,
-        static_cast<double>(state.viewer_fps_local_light_selected_color_max),
-        static_cast<double>(state.viewer_fps_local_light_selected_intensity_max),
-        state.viewer_fps_shadow_cascade_count,
-        state.viewer_fps_main_pass_count);
+        state.viewer_stats.model_count,
+        state.viewer_stats.particle_system_count,
+        state.viewer_stats.local_light_count,
+        state.viewer_stats.local_light_colored_count,
+        static_cast<double>(state.viewer_stats.local_light_color_max),
+        static_cast<double>(state.viewer_stats.local_light_intensity_max),
+        state.viewer_stats.local_light_selected_draw_count,
+        state.viewer_stats.local_light_selected_total,
+        state.viewer_stats.local_light_selected_max,
+        state.viewer_stats.local_light_selected_colored_total,
+        static_cast<double>(state.viewer_stats.local_light_selected_color_max),
+        static_cast<double>(state.viewer_stats.local_light_selected_intensity_max),
+        state.viewer_stats.shadow_cascade_count,
+        state.viewer_stats.main_pass_count);
 
     char shadow_text[144]{};
     std::snprintf(shadow_text,
         sizeof(shadow_text),
         "shadow res %u casters %u no-caster %u submitted %u culled %u",
-        state.viewer_fps_shadow_resolution,
-        state.viewer_fps_shadow_caster_model_count,
-        state.viewer_fps_shadow_no_caster_model_count,
-        state.viewer_fps_shadow_submitted_model_count,
-        state.viewer_fps_shadow_culled_model_count);
+        state.viewer_stats.shadow_resolution,
+        state.viewer_stats.shadow_caster_model_count,
+        state.viewer_stats.shadow_no_caster_model_count,
+        state.viewer_stats.shadow_submitted_model_count,
+        state.viewer_stats.shadow_culled_model_count);
 
     char render_model_text[256]{};
     std::snprintf(render_model_text,
         sizeof(render_model_text),
         "rmodel samples in %zu ok %zu dis %zu miss %zu badskel %zu fail %zu | surf %u rm %u skin %u assign %u entries %u mats %u bind %u invalid %u",
-        state.viewer_fps_render_model_animation_sample_input_count,
-        state.viewer_fps_render_model_animation_sampled_count,
-        state.viewer_fps_render_model_animation_disabled_count,
-        state.viewer_fps_render_model_animation_missing_asset_data_count,
-        state.viewer_fps_render_model_animation_invalid_skeleton_count,
-        state.viewer_fps_render_model_animation_failed_sample_count,
-        state.viewer_fps_prepared_model_surface_draw_count,
-        state.viewer_fps_prepared_model_surface_render_model_draw_count,
-        state.viewer_fps_prepared_render_model_skin_table_skinned_surface_count,
-        state.viewer_fps_prepared_render_model_skin_table_assigned_surface_count,
-        state.viewer_fps_prepared_render_model_skin_table_entry_count,
-        state.viewer_fps_prepared_render_model_skin_table_matrix_count,
-        state.viewer_fps_prepared_render_model_skin_table_bind_pose_fallback_count,
-        state.viewer_fps_prepared_render_model_skin_table_invalid_skin_index_count);
+        state.viewer_stats.render_model_animation_sample_stats.input_count,
+        state.viewer_stats.render_model_animation_sample_stats.sampled_count,
+        state.viewer_stats.render_model_animation_sample_stats.disabled_count,
+        state.viewer_stats.render_model_animation_sample_stats.missing_asset_data_count,
+        state.viewer_stats.render_model_animation_sample_stats.invalid_skeleton_count,
+        state.viewer_stats.render_model_animation_sample_stats.failed_sample_count,
+        state.viewer_stats.prepared_model_surface_stats.draw_count,
+        state.viewer_stats.prepared_model_surface_stats.render_model_draw_count,
+        state.viewer_stats.prepared_render_model_skin_table_stats.render_model_skinned_surface_count,
+        state.viewer_stats.prepared_render_model_skin_table_stats.assigned_surface_count,
+        state.viewer_stats.prepared_render_model_skin_table_stats.table_entry_count,
+        state.viewer_stats.prepared_render_model_skin_table_stats.matrix_count,
+        state.viewer_stats.prepared_render_model_skin_table_stats.bind_pose_fallback_surface_count,
+        state.viewer_stats.prepared_render_model_skin_table_stats.invalid_skin_index_count);
 
     char area_cache_text[224]{};
     std::snprintf(area_cache_text,
         sizeof(area_cache_text),
         "area cache rec %u static %u dyn %u prep draws %u lights %u max %u chunks %u/%u max %u pass %u/%u/%u sh %u",
-        state.viewer_fps_area_cache_record_count,
-        state.viewer_fps_area_cache_static_record_count,
-        state.viewer_fps_area_cache_dynamic_record_count,
-        state.viewer_fps_area_cache_prepared_draw_count,
-        state.viewer_fps_area_cache_light_index_count,
-        state.viewer_fps_area_cache_max_light_indices_per_record,
-        state.viewer_fps_area_cache_nonempty_chunk_count,
-        state.viewer_fps_area_cache_chunk_count,
-        state.viewer_fps_area_cache_max_records_per_chunk,
-        state.viewer_fps_area_cache_opaque_record_count,
-        state.viewer_fps_area_cache_water_record_count,
-        state.viewer_fps_area_cache_transparent_record_count,
-        state.viewer_fps_area_cache_shadow_caster_record_count);
+        state.viewer_stats.area_cache_record_count,
+        state.viewer_stats.area_cache_static_record_count,
+        state.viewer_stats.area_cache_dynamic_record_count,
+        state.viewer_stats.area_cache_prepared_draw_count,
+        state.viewer_stats.area_cache_light_index_count,
+        state.viewer_stats.area_cache_max_light_indices_per_record,
+        state.viewer_stats.area_cache_nonempty_chunk_count,
+        state.viewer_stats.area_cache_chunk_count,
+        state.viewer_stats.area_cache_max_records_per_chunk,
+        state.viewer_stats.area_cache_opaque_record_count,
+        state.viewer_stats.area_cache_water_record_count,
+        state.viewer_stats.area_cache_transparent_record_count,
+        state.viewer_stats.area_cache_shadow_caster_record_count);
 
     char area_frame_text[224]{};
     std::snprintf(area_frame_text,
         sizeof(area_frame_text),
         "area frame vis %u static %u dyn %u prep surf %u chunks %u lists %u/%u/%u sh %u cached %u",
-        state.viewer_fps_area_frame_visible_record_count,
-        state.viewer_fps_area_frame_visible_static_record_count,
-        state.viewer_fps_area_frame_visible_dynamic_record_count,
-        state.viewer_fps_area_frame_visible_prepared_surface_count,
-        state.viewer_fps_area_frame_visible_chunk_count,
-        state.viewer_fps_area_frame_opaque_record_count,
-        state.viewer_fps_area_frame_water_record_count,
-        state.viewer_fps_area_frame_transparent_record_count,
-        state.viewer_fps_area_frame_shadow_caster_record_count,
-        state.viewer_fps_area_frame_uses_cached_draw_lists ? 1u : 0u);
+        state.viewer_stats.area_frame_visible_record_count,
+        state.viewer_stats.area_frame_visible_static_record_count,
+        state.viewer_stats.area_frame_visible_dynamic_record_count,
+        state.viewer_stats.area_frame_visible_prepared_surface_count,
+        state.viewer_stats.area_frame_visible_chunk_count,
+        state.viewer_stats.area_frame_opaque_record_count,
+        state.viewer_stats.area_frame_water_record_count,
+        state.viewer_stats.area_frame_transparent_record_count,
+        state.viewer_stats.area_frame_shadow_caster_record_count,
+        state.viewer_stats.area_frame_uses_cached_draw_lists ? 1u : 0u);
 
     char forward_plus_text[192]{};
     std::snprintf(forward_plus_text,
         sizeof(forward_plus_text),
         "f+ %s lights %u clusters %u/%u refs %u max %u ov %u/%u upload %.1f KB tile %u z %u dbg %s",
         forward_plus_enabled ? "on" : "off",
-        state.viewer_fps_forward_plus_light_count,
-        state.viewer_fps_forward_plus_active_cluster_count,
-        state.viewer_fps_forward_plus_cluster_count,
-        state.viewer_fps_forward_plus_cluster_light_index_count,
-        state.viewer_fps_forward_plus_max_lights_per_cluster,
-        state.viewer_fps_forward_plus_overflow_cluster_count,
-        state.viewer_fps_forward_plus_overflow_light_count,
-        static_cast<double>(state.viewer_fps_forward_plus_upload_bytes) / 1024.0,
-        state.viewer_fps_forward_plus_tile_size,
-        state.viewer_fps_forward_plus_depth_slices,
+        state.viewer_stats.forward_plus_light_count,
+        state.viewer_stats.forward_plus_active_cluster_count,
+        state.viewer_stats.forward_plus_cluster_count,
+        state.viewer_stats.forward_plus_cluster_light_index_count,
+        state.viewer_stats.forward_plus_max_lights_per_cluster,
+        state.viewer_stats.forward_plus_overflow_cluster_count,
+        state.viewer_stats.forward_plus_overflow_light_count,
+        static_cast<double>(state.viewer_stats.forward_plus_upload_bytes) / 1024.0,
+        state.viewer_stats.forward_plus_tile_size,
+        state.viewer_stats.forward_plus_depth_slices,
         nw::toolset::forward_plus_debug_mode_label(debug_mode));
 
     char submit_text[224]{};
     std::snprintf(submit_text,
         sizeof(submit_text),
         "submit draws %llu ind %llu inst %llu idx %.1fM sh %llu trans %llu ps %llu | pipe %llu/%llu res %llu/%llu ubos %llu %.1f KB desc %.1f/%.1f KB fail %llu/%llu drop %llu",
-        static_cast<unsigned long long>(state.viewer_fps_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_indirect_draw_call_count),
-        static_cast<unsigned long long>(state.viewer_fps_draw_instance_count),
-        static_cast<double>(state.viewer_fps_draw_index_count) / 1000000.0,
-        static_cast<unsigned long long>(state.viewer_fps_shadow_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_transparent_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_particle_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_pipeline_bind_count),
-        static_cast<unsigned long long>(state.viewer_fps_pipeline_bind_skipped_count),
-        static_cast<unsigned long long>(state.viewer_fps_resource_bind_count),
-        static_cast<unsigned long long>(state.viewer_fps_resource_bind_skipped_count),
-        static_cast<unsigned long long>(state.viewer_fps_uniform_allocation_count),
-        static_cast<double>(state.viewer_fps_uniform_allocation_bytes) / 1024.0,
-        static_cast<double>(state.viewer_fps_descriptor_ring_required_bytes) / 1024.0,
-        static_cast<double>(state.viewer_fps_descriptor_ring_capacity_bytes) / 1024.0,
-        static_cast<unsigned long long>(state.viewer_fps_descriptor_allocation_failure_count),
-        static_cast<unsigned long long>(state.viewer_fps_resource_bind_failure_count),
-        static_cast<unsigned long long>(state.viewer_fps_dropped_draw_count));
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.draw_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.indirect_draw_call_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.draw_instance_count),
+        static_cast<double>(state.viewer_stats.total_command_stats.draw_index_count) / 1000000.0,
+        static_cast<unsigned long long>(state.viewer_stats.shadow_command_stats.draw_count),
+        static_cast<unsigned long long>(state.viewer_stats.transparent_command_stats.draw_count),
+        static_cast<unsigned long long>(state.viewer_stats.particle_command_stats.draw_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.pipeline_bind_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.pipeline_bind_skipped_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.resource_bind_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.resource_bind_skipped_count),
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.uniform_allocation_count),
+        static_cast<double>(state.viewer_stats.total_command_stats.uniform_allocation_bytes) / 1024.0,
+        static_cast<double>(state.editor_gpu_stats.command_stats.descriptor_ring_required_bytes) / 1024.0,
+        static_cast<double>(state.editor_gpu_stats.command_stats.descriptor_ring_capacity_bytes) / 1024.0,
+        static_cast<unsigned long long>(state.editor_gpu_stats.command_stats.descriptor_allocation_failure_count),
+        static_cast<unsigned long long>(state.editor_gpu_stats.command_stats.resource_bind_failure_count),
+        static_cast<unsigned long long>(state.editor_gpu_stats.command_stats.dropped_draw_count));
 
     std::string result = Rml::StringUtilities::EncodeRml(frame_text) + "<br/>" + Rml::StringUtilities::EncodeRml(cost_text) + "<br/>"
         + Rml::StringUtilities::EncodeRml(draw_text) + "<br/>" + Rml::StringUtilities::EncodeRml(view_text) + "<br/>" + Rml::StringUtilities::EncodeRml(pass_text)
         + "<br/>" + Rml::StringUtilities::EncodeRml(shadow_text);
-    if (state.viewer_fps_model_count > 0 || state.viewer_fps_render_model_animation_sample_input_count > 0
-        || state.viewer_fps_prepared_model_surface_draw_count > 0) {
+    if (state.viewer_stats.model_count > 0 || state.viewer_stats.render_model_animation_sample_stats.input_count > 0
+        || state.viewer_stats.prepared_model_surface_stats.draw_count > 0) {
         result += "<br/>";
         result += Rml::StringUtilities::EncodeRml(render_model_text);
     }
-    if (state.viewer_fps_gpu_timer_count > 0) {
+    if (state.viewer_stats.gpu_timer_count > 0) {
         result += "<br/>";
         result += Rml::StringUtilities::EncodeRml(gpu_text);
     }
-    if (state.viewer_fps_editor_gpu_timer_count > 0) {
+    if (state.editor_gpu_stats.timer_count > 0) {
         result += "<br/>";
         result += Rml::StringUtilities::EncodeRml(editor_gpu_text);
     }
-    if (state.viewer_fps_area_cache_record_count > 0) {
+    if (state.viewer_stats.area_cache_record_count > 0) {
         result += "<br/>";
         result += Rml::StringUtilities::EncodeRml(area_cache_text);
         result += "<br/>";
         result += Rml::StringUtilities::EncodeRml(area_frame_text);
     }
-    if (state.viewer_fps_forward_plus_cluster_count > 0) {
+    if (state.viewer_stats.forward_plus_cluster_count > 0) {
         result += "<br/>";
         result += Rml::StringUtilities::EncodeRml(forward_plus_text);
     }

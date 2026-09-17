@@ -3,6 +3,7 @@
 #include "renderer.hpp"
 
 #include <nw/render/forward_plus_debug_mode.hpp>
+#include <nw/render/viewer/session.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -15,11 +16,15 @@ class Context;
 
 namespace nw::toolset {
 
-// One application's HUD history. Renderer snapshots are borrowed only during
-// update; this initial extraction preserves the baseline counter/timing fields.
+// One application's HUD history is a true singleton. Inputs are borrowed only
+// during update; owned renderer records retain the last received counters when
+// snapshots are absent. Timing pairs retain valid latest/smoothed samples when
+// negative samples arrive. No renderer borrow survives a frame or teardown.
 Rml::ElementDocument* load_viewer_fps_document(Rml::Context& context);
 
 struct ClientMetricsState {
+    nw::render::viewer::ViewerFrameStats viewer_stats;
+    ClientGpuFrameStats editor_gpu_stats;
     float viewer_fps_frame_seconds = 0.0f;
     float viewer_fps_smoothed_seconds = 0.0f;
     float viewer_fps_work_seconds = 0.0f;
@@ -74,7 +79,6 @@ struct ClientMetricsState {
     float viewer_fps_gpu_debug_smoothed_seconds = 0.0f;
     float viewer_fps_gpu_total_seconds = 0.0f;
     float viewer_fps_gpu_total_smoothed_seconds = 0.0f;
-    uint32_t viewer_fps_gpu_timer_count = 0;
     float viewer_fps_editor_gpu_ui_seconds = 0.0f;
     float viewer_fps_editor_gpu_ui_smoothed_seconds = 0.0f;
     float viewer_fps_editor_gpu_viewport_seconds = 0.0f;
@@ -85,93 +89,6 @@ struct ClientMetricsState {
     float viewer_fps_editor_gpu_palette_smoothed_seconds = 0.0f;
     float viewer_fps_editor_gpu_total_seconds = 0.0f;
     float viewer_fps_editor_gpu_total_smoothed_seconds = 0.0f;
-    uint32_t viewer_fps_editor_gpu_timer_count = 0;
-    uint32_t viewer_fps_model_count = 0;
-    uint32_t viewer_fps_particle_system_count = 0;
-    size_t viewer_fps_render_model_animation_sample_input_count = 0;
-    size_t viewer_fps_render_model_animation_sampled_count = 0;
-    size_t viewer_fps_render_model_animation_disabled_count = 0;
-    size_t viewer_fps_render_model_animation_missing_asset_data_count = 0;
-    size_t viewer_fps_render_model_animation_invalid_skeleton_count = 0;
-    size_t viewer_fps_render_model_animation_failed_sample_count = 0;
-    uint32_t viewer_fps_prepared_model_surface_draw_count = 0;
-    uint32_t viewer_fps_prepared_model_surface_render_model_draw_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_skinned_surface_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_assigned_surface_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_entry_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_matrix_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_bind_pose_fallback_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_invalid_skin_index_count = 0;
-    uint32_t viewer_fps_area_cache_record_count = 0;
-    uint32_t viewer_fps_area_cache_static_record_count = 0;
-    uint32_t viewer_fps_area_cache_dynamic_record_count = 0;
-    uint32_t viewer_fps_area_cache_opaque_record_count = 0;
-    uint32_t viewer_fps_area_cache_water_record_count = 0;
-    uint32_t viewer_fps_area_cache_transparent_record_count = 0;
-    uint32_t viewer_fps_area_cache_shadow_caster_record_count = 0;
-    uint32_t viewer_fps_area_cache_prepared_draw_count = 0;
-    uint32_t viewer_fps_area_cache_light_index_count = 0;
-    uint32_t viewer_fps_area_cache_max_light_indices_per_record = 0;
-    uint32_t viewer_fps_area_cache_chunk_count = 0;
-    uint32_t viewer_fps_area_cache_nonempty_chunk_count = 0;
-    uint32_t viewer_fps_area_cache_max_records_per_chunk = 0;
-    uint32_t viewer_fps_area_frame_visible_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_static_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_dynamic_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_chunk_count = 0;
-    uint32_t viewer_fps_area_frame_opaque_record_count = 0;
-    uint32_t viewer_fps_area_frame_water_record_count = 0;
-    uint32_t viewer_fps_area_frame_transparent_record_count = 0;
-    uint32_t viewer_fps_area_frame_shadow_caster_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_prepared_surface_count = 0;
-    bool viewer_fps_area_frame_uses_cached_draw_lists = false;
-    uint32_t viewer_fps_local_light_count = 0;
-    uint32_t viewer_fps_local_light_colored_count = 0;
-    float viewer_fps_local_light_color_max = 0.0f;
-    float viewer_fps_local_light_intensity_max = 0.0f;
-    uint32_t viewer_fps_local_light_selected_draw_count = 0;
-    uint32_t viewer_fps_local_light_selected_total = 0;
-    uint32_t viewer_fps_local_light_selected_max = 0;
-    uint32_t viewer_fps_local_light_selected_colored_total = 0;
-    float viewer_fps_local_light_selected_color_max = 0.0f;
-    float viewer_fps_local_light_selected_intensity_max = 0.0f;
-    uint32_t viewer_fps_forward_plus_light_count = 0;
-    uint32_t viewer_fps_forward_plus_cluster_count = 0;
-    uint32_t viewer_fps_forward_plus_active_cluster_count = 0;
-    uint32_t viewer_fps_forward_plus_cluster_light_index_count = 0;
-    uint32_t viewer_fps_forward_plus_max_lights_per_cluster = 0;
-    uint32_t viewer_fps_forward_plus_overflow_cluster_count = 0;
-    uint32_t viewer_fps_forward_plus_overflow_light_count = 0;
-    uint32_t viewer_fps_forward_plus_upload_bytes = 0;
-    uint32_t viewer_fps_forward_plus_tile_size = 0;
-    uint32_t viewer_fps_forward_plus_depth_slices = 0;
-    uint32_t viewer_fps_shadow_cascade_count = 0;
-    uint32_t viewer_fps_shadow_resolution = 0;
-    uint32_t viewer_fps_shadow_caster_model_count = 0;
-    uint32_t viewer_fps_shadow_no_caster_model_count = 0;
-    uint32_t viewer_fps_shadow_submitted_model_count = 0;
-    uint32_t viewer_fps_shadow_culled_model_count = 0;
-    uint32_t viewer_fps_main_pass_count = 0;
-    uint64_t viewer_fps_draw_count = 0;
-    uint64_t viewer_fps_shadow_draw_count = 0;
-    uint64_t viewer_fps_transparent_draw_count = 0;
-    uint64_t viewer_fps_particle_draw_count = 0;
-    uint64_t viewer_fps_indirect_draw_call_count = 0;
-    uint64_t viewer_fps_draw_instance_count = 0;
-    uint64_t viewer_fps_draw_index_count = 0;
-    uint64_t viewer_fps_pipeline_bind_count = 0;
-    uint64_t viewer_fps_pipeline_bind_skipped_count = 0;
-    uint64_t viewer_fps_resource_bind_count = 0;
-    uint64_t viewer_fps_resource_bind_skipped_count = 0;
-    uint64_t viewer_fps_uniform_allocation_count = 0;
-    uint64_t viewer_fps_uniform_allocation_bytes = 0;
-    uint64_t viewer_fps_descriptor_allocation_failure_count = 0;
-    uint64_t viewer_fps_descriptor_ring_capacity_bytes = 0;
-    uint64_t viewer_fps_descriptor_ring_required_bytes = 0;
-    uint64_t viewer_fps_resource_bind_failure_count = 0;
-    uint64_t viewer_fps_dropped_draw_count = 0;
-    bool viewer_fps_shadows_rendered = false;
-    bool viewer_fps_water_rendered = false;
 };
 
 // The renderer is the process's shared GPU resource. This scope borrows it

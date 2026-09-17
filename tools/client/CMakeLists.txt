@@ -11,6 +11,8 @@ add_library(rollnw_client_core STATIC
     blueprint_edits.cpp
     blueprint_references.cpp
     blueprint_operations.cpp
+    client_input_routes.cpp
+    client_ui_action.cpp
     command_bus.cpp
     dialog_document.cpp
     dock_layout.cpp
@@ -55,6 +57,7 @@ add_executable(rollnw-client
     blueprint_commands.cpp
     blueprint_reference_commands.cpp
     blueprint_update_job.cpp
+    browser_view.cpp
     client_cli.cpp
     client_preferences.cpp
     client_runtime.cpp
@@ -62,18 +65,26 @@ add_executable(rollnw-client
     client_input.cpp
     client_metrics.cpp
     creature_body_part_editor.cpp
+    creature_workbench_view.cpp
+    inventory_workbench_view.cpp
+    appearance_view.cpp
+    appearance_view_runtime.cpp
     dialog_view.cpp
     item_editor.cpp
     item_editor_data_model.cpp
+    loading_view.cpp
+    loading_runtime.cpp
     viewer_viewport.cpp
     workspace_view.cpp
     main.cpp
+    object_workbench_view.cpp
     play_preview_view.cpp
     play_preview_runtime.cpp
     project_import.cpp
     project_resource_drag.cpp
     runtime_input.cpp
     runtime_input_renderer.cpp
+    shell_view.cpp
     renderer.cpp
     toolset_backend.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_bridge.cpp

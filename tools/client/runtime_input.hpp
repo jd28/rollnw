@@ -28,6 +28,7 @@ struct RuntimeInputState {
 void open_runtime_gamepad(RuntimeInputState& input, uint32_t id);
 void close_runtime_gamepad(RuntimeInputState& input) noexcept;
 void reset_runtime_pending_input(RuntimeInputState& input) noexcept;
+void discard_runtime_pointer_input(RuntimeInputState& input) noexcept;
 void consume_runtime_input_edges(RuntimeInputState& input) noexcept;
 
 // SDL acquisition is a true singleton. Negative elapsed contribution is zero;

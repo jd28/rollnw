@@ -170,4 +170,35 @@ bool save_ui_preferences(const std::filesystem::path& path,
     return true;
 }
 
+void remember_recent_project(const std::filesystem::path& preferences_path, const DockLayout& docks,
+    std::vector<RecentProjectEntry>& recent_projects, const std::filesystem::path& project_dir)
+{
+    if (project_dir.empty()) {
+        return;
+    }
+
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    const fs::path canonical = fs::weakly_canonical(project_dir, ec);
+    const fs::path normalized = ec ? project_dir.lexically_normal() : canonical;
+    const std::string path = normalized.string();
+    if (path.empty()) {
+        return;
+    }
+
+    recent_projects.erase(std::remove_if(recent_projects.begin(), recent_projects.end(), [&path](const nw::toolset::RecentProjectEntry& entry) {
+        return entry.path == path;
+    }),
+        recent_projects.end());
+
+    recent_projects.insert(recent_projects.begin(), nw::toolset::RecentProjectEntry{
+                                                        nw::toolset::project_display_name(normalized),
+                                                        path,
+                                                    });
+    if (recent_projects.size() > nw::toolset::kMaxRecentProjects) {
+        recent_projects.resize(nw::toolset::kMaxRecentProjects);
+    }
+    save_ui_preferences(preferences_path, docks, recent_projects);
+}
+
 } // namespace nw::toolset

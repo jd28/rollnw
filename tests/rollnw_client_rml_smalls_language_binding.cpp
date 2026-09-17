@@ -5,6 +5,7 @@
 #include "client_metrics.hpp"
 #include "command_view.hpp"
 #include "item_editor_data_model.hpp"
+#include "loading_view.hpp"
 #include "object_edits.hpp"
 #include "play_preview_view.hpp"
 #include "project.hpp"
@@ -37,6 +38,7 @@
 #include <nw/smalls/runtime.hpp>
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementScroll.h>
 #include <RmlUi/Core/ElementText.h>
 #include <RmlUi/Core/Elements/ElementFormControl.h>
 
@@ -4899,4 +4901,67 @@ TEST(ClientRmlSmallsBridge, RuntimeReplacementRecreatesListsBeforePublishingObje
 
     bridge.clear_active_object();
     nw::kernel::objects().destroy(second->handle());
+}
+
+TEST(ClientLoadingPresentation, OverlayKeepsTheCurrentPathAndChangesStageWithoutRebuilding)
+{
+    using namespace nw::toolset;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("loading-presentation", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    const auto template_path = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui/command_modals.rml";
+    auto* document = context->LoadDocument(template_path.string());
+    ASSERT_NE(document, nullptr);
+    LoadingViewState state;
+    sync_loading_overlay(document, state.project_load);
+    auto* host = document->GetElementById("project_load_overlay");
+    ASSERT_NE(host, nullptr);
+    EXPECT_FALSE(host->IsClassSet("active"));
+    EXPECT_TRUE(host->GetInnerRML().empty());
+    ASSERT_TRUE(queue_loading_project(state, "project <&>", CommandSource::widget));
+    sync_loading_overlay(document, state.project_load);
+    EXPECT_TRUE(host->IsClassSet("active"));
+    auto* message = document->GetElementById("project_load_message");
+    ASSERT_NE(message, nullptr);
+    EXPECT_NE(host->GetInnerRML().find("project &lt;&amp;&gt;"), std::string::npos);
+    state.project_load.stage = project_load_stage_message(nw::kernel::ModuleLoadProgressStage::load_dependencies);
+    sync_loading_overlay(document, state.project_load);
+    EXPECT_EQ(document->GetElementById("project_load_message"), message);
+    EXPECT_EQ(message->GetInnerRML(), "Loading HAK and TLK dependencies...");
+    EXPECT_FALSE(state.project_load.presented);
+    state.project_load = {};
+    sync_loading_overlay(document, state.project_load);
+    EXPECT_FALSE(host->IsClassSet("active"));
+    EXPECT_TRUE(host->GetInnerRML().empty());
+    sync_loading_overlay(nullptr, state.project_load);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("loading-presentation");
+}
+
+TEST(ClientRmlScrollLifetime, ReplacingAndClosingElementsDetachesScrollbarListenersBeforeChildren)
+{
+    NullRenderInterface renderer;
+    RmlScope scope{renderer};
+    ASSERT_TRUE(scope.initialized());
+    auto* context = Rml::CreateContext("scrollbar-lifetime", {600, 400});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->CreateDocument();
+    ASSERT_NE(document, nullptr);
+    const Rml::String markup = "<div id='scroll' style='width:100px;height:80px;overflow:scroll;'>"
+                               "<div style='width:400px;height:300px;'></div></div>";
+    document->SetInnerRML(markup);
+    document->Show();
+    context->Update();
+    auto* scroll = document->GetElementById("scroll");
+    ASSERT_NE(scroll, nullptr);
+    ASSERT_NE(scroll->GetElementScroll()->GetScrollbar(Rml::ElementScroll::VERTICAL), nullptr);
+    ASSERT_NE(scroll->GetElementScroll()->GetScrollbar(Rml::ElementScroll::HORIZONTAL), nullptr);
+    document->SetInnerRML(markup);
+    context->Update();
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("scrollbar-lifetime");
 }

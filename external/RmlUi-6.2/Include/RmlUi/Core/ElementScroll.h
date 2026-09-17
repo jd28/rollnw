@@ -50,6 +50,10 @@ public:
 	void UpdateProperties();
 
 private:
+	friend class Element;
+	// Detach widget listeners while the element's scrollbar children are still alive.
+	void ReleaseScrollbarWidgets();
+
 	struct Scrollbar {
 		Scrollbar();
 		~Scrollbar();

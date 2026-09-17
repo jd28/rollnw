@@ -18,6 +18,12 @@ ElementScroll::ElementScroll(Element* _element)
 
 ElementScroll::~ElementScroll() {}
 
+void ElementScroll::ReleaseScrollbarWidgets()
+{
+	for (Scrollbar& scrollbar : scrollbars)
+		scrollbar.widget.reset();
+}
+
 void ElementScroll::Update()
 {
 	for (int i = 0; i < 2; i++)

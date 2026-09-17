@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc_input_eligibility.hpp"
 #include "preview_session.hpp"
 
 #include <array>
@@ -19,12 +20,6 @@ enum class PcKey : uint8_t { w,
     up,
     down,
     count };
-
-struct PcSourceEligibility {
-    bool keyboard = true;
-    bool controller = true;
-    bool pointer = true;
-};
 
 struct PcDeviceSample {
     std::array<bool, static_cast<size_t>(PcKey::count)> keys{};

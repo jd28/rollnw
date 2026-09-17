@@ -95,6 +95,8 @@ Element::~Element()
 
 	PluginRegistry::NotifyElementDestroy(this);
 
+	meta->scroll.ReleaseScrollbarWidgets();
+
 	// A simplified version of RemoveChild() for destruction.
 	for (ElementPtr& child : children)
 	{

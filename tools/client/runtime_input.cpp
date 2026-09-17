@@ -45,6 +45,14 @@ void reset_runtime_pending_input(RuntimeInputState& input) noexcept
     input.wheel_zoom = 0.0f;
 }
 
+void discard_runtime_pointer_input(RuntimeInputState& input) noexcept
+{
+    clear_preview_pointer_action(input.pending);
+    input.mouse_look_pixels = {};
+    input.mouse_sample_seconds = 0.0;
+    input.wheel_zoom = 0.0f;
+}
+
 void consume_runtime_input_edges(RuntimeInputState& input) noexcept
 {
     input.pending.flags &= ~(preview_input_click_target | preview_input_cancel | preview_input_click_door);
@@ -59,10 +67,7 @@ PreviewStatus acquire_pc_device_sample(RuntimeInputState& input, double frame_se
     sample = {};
     if (!std::isfinite(frame_seconds)) { return PreviewStatus::invalid_input; }
     if (!eligibility.pointer) {
-        clear_preview_pointer_action(input.pending);
-        input.mouse_look_pixels = {};
-        input.mouse_sample_seconds = 0.0;
-        input.wheel_zoom = 0.0f;
+        discard_runtime_pointer_input(input);
     } else {
         input.mouse_sample_seconds += std::max(0.0, frame_seconds);
     }

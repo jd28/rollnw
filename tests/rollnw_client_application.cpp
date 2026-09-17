@@ -174,6 +174,96 @@ TEST(ClientMetrics, PreservesFrameSmoothingAndRejectsNegativeTimes)
     EXPECT_FLOAT_EQ(metrics.viewer_fps_present_seconds, 0.009f);
 }
 
+TEST(ClientMetrics, PreservesBothHudLayoutsAndOwnsUnavailableSnapshotHistory)
+{
+    ClientMetricsState metrics;
+    nw::render::viewer::ViewerFrameStats viewer;
+    viewer.tick_seconds = .001f;
+    viewer.area_prepare_seconds = .000125f;
+    viewer.total_render_seconds = .009f;
+    viewer.gpu_shadow_seconds = .002f;
+    viewer.gpu_opaque_seconds = .003f;
+    viewer.gpu_timer_count = 2;
+    viewer.model_count = 17;
+    viewer.particle_system_count = 4;
+    viewer.render_model_animation_sample_stats.input_count = 19;
+    viewer.render_model_animation_sample_stats.sampled_count = 18;
+    viewer.prepared_model_surface_stats.draw_count = 21;
+    viewer.prepared_render_model_skin_table_stats.matrix_count = 22;
+    viewer.area_cache_record_count = 23;
+    viewer.area_cache_nonempty_chunk_count = 2;
+    viewer.area_cache_chunk_count = 3;
+    viewer.area_frame_visible_record_count = 24;
+    viewer.area_frame_visible_chunk_count = 2;
+    viewer.area_frame_uses_cached_draw_lists = true;
+    viewer.forward_plus_light_count = 11;
+    viewer.forward_plus_cluster_count = 12;
+    viewer.forward_plus_active_cluster_count = 10;
+    viewer.forward_plus_upload_bytes = 2048;
+    viewer.shadow_resolution = 1024;
+    viewer.shadow_caster_model_count = 13;
+    viewer.main_pass_count = 3;
+    viewer.total_command_stats.draw_count = 4294967299ULL;
+    viewer.total_command_stats.indirect_draw_call_count = 7;
+    viewer.total_command_stats.uniform_allocation_bytes = 3072;
+    viewer.shadow_command_stats.draw_count = 14;
+    viewer.transparent_command_stats.draw_count = 15;
+    viewer.particle_command_stats.draw_count = 16;
+    ClientGpuFrameStats gpu;
+    gpu.ui_seconds = .004f;
+    gpu.viewport_seconds = .008f;
+    gpu.total_seconds = .012f;
+    gpu.timer_count = 4;
+    gpu.command_stats.descriptor_ring_capacity_bytes = 4096;
+    gpu.command_stats.descriptor_ring_required_bytes = 2048;
+    gpu.command_stats.descriptor_allocation_failure_count = 1;
+    gpu.command_stats.resource_bind_failure_count = 2;
+    gpu.command_stats.dropped_draw_count = 3;
+    update_viewer_frame_metrics(metrics, .02f);
+    update_viewer_render_metrics(metrics, .01f, .002f, .003f, .004f, .005f, .006f, .007f, .008f, .009f);
+    update_viewer_internal_metrics(metrics, &viewer);
+    update_client_gpu_metrics(metrics, &gpu);
+    const auto markup = format_viewer_fps_rml(metrics, true, nw::render::ForwardPlusDebugMode::off);
+    const std::string compact = R"RML(50.0 FPS frame 20.0 | view 5.0 ui 4.0 present 9.0 ms<br/>gpu vp 8.00 pass 5.00 ui 4.00 ov 0.00 pal 0.00 ms<br/>vis 24 chunks 2 lights 11 | draws 4294967299 ind 7)RML";
+    const std::string verbose = R"RML(50.0 FPS | frame 20.0 ms<br/>work 10.0 sync 2.0 cpu-draw 3.0 present 9.0 ms<br/>ui 4.0 view 5.0 hud 6.0 overlay 7.0 palette 8.0 ms<br/>view total 9.0 tick 1.0 setup 0.0 prep 0.125 shadow 0.0 particles 0.0 debug 0.0 ms<br/>passes opaque 0.0 water 0.0 trans 0.0 ms | models 17 ps 4 lights 0/0 c0.00 i0.00 lit 0/0/0 lc0 c0.00 i0.00 sh 0 pass 3<br/>shadow res 1024 casters 13 no-caster 0 submitted 0 culled 0<br/>rmodel samples in 19 ok 18 dis 0 miss 0 badskel 0 fail 0 | surf 21 rm 0 skin 0 assign 0 entries 0 mats 22 bind 0 invalid 0<br/>gpu total 5.00 opaque 3.00 shadow 2.00 water 0.00 trans 0.00 ps 0.00 debug 0.00 ms timers 2<br/>gpu editor total 12.00 ui 4.00 viewport 8.00 overlay 0.00 palette 0.00 ms timers 4<br/>area cache rec 23 static 0 dyn 0 prep draws 0 lights 0 max 0 chunks 2/3 max 0 pass 0/0/0 sh 0<br/>area frame vis 24 static 0 dyn 0 prep surf 0 chunks 2 lists 0/0/0 sh 0 cached 1<br/>f+ on lights 11 clusters 10/12 refs 0 max 0 ov 0/0 upload 2.0 KB tile 0 z 0 dbg off<br/>submit draws 4294967299 ind 7 inst 0 idx 0.0M sh 14 trans 15 ps 16 | pipe 0/0 res 0/0 ubos 0 3.0 KB desc 2.0/4.0 KB fail 1/2 drop 3)RML";
+    // The environment-selected layout is cached once per process. Execute this
+    // production case in separate compact/verbose processes; accept both here.
+    EXPECT_TRUE(markup == compact || markup == verbose) << markup;
+    viewer = {};
+    gpu = {};
+    update_viewer_internal_metrics(metrics, nullptr);
+    update_client_gpu_metrics(metrics, nullptr);
+    EXPECT_EQ(format_viewer_fps_rml(metrics, true, nw::render::ForwardPlusDebugMode::off), markup);
+
+    // A present negative timing sample replaces counters but retains the last
+    // valid timing history. The original owned input is no longer available.
+    viewer.tick_seconds = -1.0f;
+    viewer.gpu_shadow_seconds = -1.0f;
+    viewer.gpu_opaque_seconds = -1.0f;
+    viewer.gpu_water_seconds = -1.0f;
+    viewer.gpu_transparent_seconds = -1.0f;
+    viewer.gpu_particles_seconds = -1.0f;
+    viewer.gpu_debug_seconds = -1.0f;
+    gpu.ui_seconds = -1.0f;
+    gpu.viewport_seconds = -1.0f;
+    gpu.total_seconds = -1.0f;
+    update_viewer_internal_metrics(metrics, &viewer);
+    update_client_gpu_metrics(metrics, &gpu);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_tick_seconds, .001f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_tick_smoothed_seconds, .001f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_gpu_shadow_seconds, .002f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_gpu_opaque_seconds, .003f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_gpu_total_seconds, .005f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_editor_gpu_ui_seconds, .004f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_editor_gpu_viewport_seconds, .008f);
+    EXPECT_FLOAT_EQ(metrics.viewer_fps_editor_gpu_total_seconds, .012f);
+    update_viewer_internal_metrics(metrics, nullptr);
+    update_client_gpu_metrics(metrics, nullptr);
+    const auto without_timers = format_viewer_fps_rml(metrics, true, nw::render::ForwardPlusDebugMode::off);
+    EXPECT_EQ(without_timers.find("gpu"), std::string::npos);
+    EXPECT_EQ(without_timers.find("4294967299"), std::string::npos);
+}
+
 TEST(ClientMetrics, KeepsLastCountersWhenDelayedGpuSnapshotIsUnavailable)
 {
     ClientMetricsState metrics;
@@ -183,9 +273,9 @@ TEST(ClientMetrics, KeepsLastCountersWhenDelayedGpuSnapshotIsUnavailable)
     viewer.forward_plus_light_count = 11;
     update_viewer_internal_metrics(metrics, &viewer);
     update_viewer_internal_metrics(metrics, nullptr);
-    EXPECT_EQ(metrics.viewer_fps_model_count, 17u);
-    EXPECT_EQ(metrics.viewer_fps_draw_count, 23u);
-    EXPECT_EQ(metrics.viewer_fps_forward_plus_light_count, 11u);
+    EXPECT_EQ(metrics.viewer_stats.model_count, 17u);
+    EXPECT_EQ(metrics.viewer_stats.total_command_stats.draw_count, 23u);
+    EXPECT_EQ(metrics.viewer_stats.forward_plus_light_count, 11u);
 
     ClientGpuFrameStats gpu;
     gpu.ui_seconds = 0.004f;
@@ -196,8 +286,8 @@ TEST(ClientMetrics, KeepsLastCountersWhenDelayedGpuSnapshotIsUnavailable)
     update_client_gpu_metrics(metrics, nullptr);
     EXPECT_FLOAT_EQ(metrics.viewer_fps_editor_gpu_ui_seconds, 0.004f);
     EXPECT_FLOAT_EQ(metrics.viewer_fps_editor_gpu_viewport_seconds, 0.008f);
-    EXPECT_EQ(metrics.viewer_fps_editor_gpu_timer_count, 4u);
-    EXPECT_EQ(metrics.viewer_fps_dropped_draw_count, 3u);
+    EXPECT_EQ(metrics.editor_gpu_stats.timer_count, 4u);
+    EXPECT_EQ(metrics.editor_gpu_stats.command_stats.dropped_draw_count, 3u);
 
     update_viewer_frame_metrics(metrics, 0.02f);
     const auto markup = format_viewer_fps_rml(metrics, true, nw::render::ForwardPlusDebugMode::off);

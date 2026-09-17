@@ -17,5 +17,9 @@ void load_ui_preferences(const std::filesystem::path& path,
     DockLayout& docks, std::vector<RecentProjectEntry>& recent_projects);
 bool save_ui_preferences(const std::filesystem::path& path,
     const DockLayout& docks, std::span<const RecentProjectEntry> recent_projects);
+// One preference history update: canonicalize the opened project, deduplicate
+// its row, move it first, bound history and persist the existing dock/history.
+void remember_recent_project(const std::filesystem::path& path, const DockLayout& docks,
+    std::vector<RecentProjectEntry>& recent_projects, const std::filesystem::path& project_dir);
 
 } // namespace nw::toolset

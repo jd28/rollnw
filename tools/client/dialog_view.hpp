@@ -14,6 +14,8 @@ namespace nw::toolset {
 
 // The workspace has one active dialog surface, so this state is genuinely
 // singular. The document rows it owns remain a flat batch for virtual display.
+struct WorkspaceTab;
+
 struct DialogViewState {
     DialogDocumentSnapshot document;
     VirtualListController list;
@@ -34,5 +36,9 @@ bool sync_dialog_view(Rml::ElementDocument* document,
     DialogViewState& state,
     bool force);
 [[nodiscard]] bool select_dialog_view_row(DialogViewState& state, int row);
+
+// Cached by exact tab ID/source path/status. Non-dialog tabs clear the current
+// singleton; unchanged identity keeps selection. Load errors remain explicit.
+void ensure_active_dialog_document(DialogViewState& state, const std::filesystem::path& project_dir, const WorkspaceTab* active_tab);
 
 } // namespace nw::toolset
