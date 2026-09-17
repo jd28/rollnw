@@ -40,6 +40,8 @@ protected:
 
     void SetUp() override
     {
+        // CTest shards run cases concurrently; each owns its temporary project.
+        project /= ::testing::UnitTest::GetInstance()->current_test_info()->name();
         ASSERT_NE(kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
         kernel::runtime().add_module_path("stdlib/toolset");
         {

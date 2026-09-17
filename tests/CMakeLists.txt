@@ -203,6 +203,7 @@ add_executable(rollnw_test
     rollnw_client_dialog_document.cpp
     rollnw_client_documents.cpp
     rollnw_client_object_edits.cpp
+    rollnw_client_pc_input.cpp
     rollnw_client_preview.cpp
     rollnw_client_smalls_creature_feats.cpp
     rollnw_client_smalls_creature_inventory.cpp
@@ -410,9 +411,18 @@ target_link_libraries(rollnw_test PRIVATE
 
 if(TARGET RmlUi::RmlUi)
     target_sources(rollnw_test PRIVATE
+        rollnw_client_runtime_input.cpp
+        ../tools/client/runtime_input.cpp
+        ../tools/client/project_resource_drag.cpp
+        ../tools/client/area_object_editor.cpp
+        ../tools/client/area_tile_editor.cpp
         rollnw_client_rml_smalls_data_model.cpp
         rollnw_client_rml_smalls_expression_binding.cpp
         rollnw_client_rml_smalls_language_binding.cpp
+        ../tools/client/play_preview_view.cpp
+        ../tools/client/client_metrics.cpp
+        ../tools/client/command_view.cpp
+        ../tools/client/client_input.cpp
         ../tools/client/creature_body_part_editor.cpp
         ../tools/client/item_editor.cpp
         ../tools/client/item_editor_data_model.cpp
@@ -442,6 +452,8 @@ endif()
 
 if(TARGET rollnw-client)
     target_sources(rollnw_test PRIVATE
+        rollnw_client_application.cpp
+        ../tools/client/client_preferences.cpp
         rollnw_client_project_import.cpp
         rollnw_client_blueprint_jobs.cpp
         ../tools/client/project_import.cpp)

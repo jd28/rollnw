@@ -2,17 +2,28 @@
 #include "area_door_hooks.hpp"
 #include "area_map.hpp"
 #include "area_navigation.hpp"
+#include "area_object_editor.hpp"
 #include "area_regions.hpp"
+#include "area_tile_editor.hpp"
 #include "area_tile_edits.hpp"
 #include "area_tile_interaction.hpp"
 #include "area_tile_palette.hpp"
+#include "client_cli.hpp"
+#include "client_input.hpp"
+#include "client_metrics.hpp"
+#include "client_preferences.hpp"
+#include "client_runtime.hpp"
+#include "command_view.hpp"
 #include "dialog_view.hpp"
 #include "forward_plus_debug.hpp"
 #include "object_document.hpp"
 #include "object_edits.hpp"
+#include "object_workbench.hpp"
+#include "play_preview_view.hpp"
 #include "preview_session.hpp"
 #include "project.hpp"
 #include "project_import.hpp"
+#include "project_resource_drag.hpp"
 #include "renderer.hpp"
 #include "resource_document.hpp"
 #include "rml_managed_list.hpp"
@@ -20,6 +31,7 @@
 #include "rml_smalls_data_model.hpp"
 #include "rml_smalls_language_binding.hpp"
 #include "rollnw_tool_version.hpp"
+#include "runtime_input.hpp"
 #include "shell_controller.hpp"
 #include "smalls_creature_feats.hpp"
 #include "smalls_creature_inventory.hpp"
@@ -61,8 +73,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#include <nlohmann/json.hpp>
-
 #include <absl/container/flat_hash_set.h>
 
 #include <algorithm>
@@ -77,7 +87,6 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -96,6 +105,28 @@
 
 namespace {
 
+using nw::toolset::AreaObjectPlacementPhase;
+using nw::toolset::client_base_path;
+using nw::toolset::data_workbench_only;
+using nw::toolset::default_object_workbench_surface;
+using nw::toolset::editable_area_object;
+using nw::toolset::focused_element_has_id;
+using nw::toolset::focused_text_input;
+using nw::toolset::object_has_grid_inventory;
+using nw::toolset::ObjectWorkbenchSurface;
+using nw::toolset::point_within_element;
+using nw::toolset::ProjectBlueprintDragPhase;
+using nw::toolset::region_blueprint_resource;
+using nw::toolset::run_project_cli_if_requested;
+using nw::toolset::save_ui_preferences;
+using nw::toolset::ScopedClientGpuTimer;
+using nw::toolset::start_client_kernel;
+using nw::toolset::sync_viewer_fps_overlay;
+using nw::toolset::update_client_gpu_metrics;
+using nw::toolset::update_viewer_frame_metrics;
+using nw::toolset::update_viewer_internal_metrics;
+using nw::toolset::update_viewer_render_metrics;
+
 constexpr int kBottomDockViewportReservePx = 96;
 constexpr float kVirtualTreeRowHeightPx = 26.0f;
 constexpr size_t kVirtualTreeOverscanRows = 8;
@@ -112,8 +143,6 @@ constexpr int kAppearanceRowHeightPx = 30;
 constexpr int kAppearanceOverscanRows = 4;
 constexpr int kSoundCatalogRowHeightPx = 34;
 constexpr int kSoundCatalogOverscanRows = 4;
-constexpr int kAreaTilePaletteRowHeightPx = 58;
-constexpr int kAreaTilePaletteOverscanRows = 3;
 constexpr float kManagedListAutoScrollEdgePx = 28.0f;
 constexpr float kManagedListAutoScrollStepPx = 14.0f;
 constexpr int kHomeAreaRowHeightPx = 190;
@@ -125,7 +154,6 @@ constexpr float kWorkspaceTabDragThresholdPx = 5.0f;
 constexpr float kTabScrollStepPx = 48.0f;
 constexpr float kWorkspaceTabAutoScrollEdgePx = 28.0f;
 constexpr float kWorkspaceTabAutoScrollStepPx = 14.0f;
-constexpr float kAreaObjectPlacementOpacity = 0.45f;
 
 struct TabScrollStrip {
     // Each strip names one unique DOM singleton. An input event targets one
@@ -324,23 +352,6 @@ void log_window_metrics(SDL_Window* window, const char* label)
         static_cast<double>(SDL_GetWindowDisplayScale(window)),
         static_cast<double>(SDL_GetWindowPixelDensity(window)),
         static_cast<unsigned long long>(SDL_GetWindowFlags(window)));
-}
-
-std::filesystem::path client_base_path()
-{
-    if (const char* base_path = SDL_GetBasePath(); base_path && base_path[0] != '\0') {
-        return std::filesystem::path{base_path};
-    }
-    std::error_code ec;
-    return std::filesystem::current_path(ec);
-}
-
-void register_smalls_packages()
-{
-    const auto stdlib_path = client_base_path() / "stdlib";
-    auto& runtime = nw::kernel::runtime();
-    runtime.add_module_path(stdlib_path / "core");
-    runtime.add_module_path(stdlib_path / *nw::kernel::config().profile());
 }
 
 bool client_ui_dir_exists(const std::filesystem::path& path)
@@ -570,109 +581,6 @@ Rml::ElementDocument* load_rml_document_from_resource(Rml::Context& context,
     return context.LoadDocumentFromMemory(source, resource.filename());
 }
 
-Rml::ElementDocument* load_viewer_fps_document(Rml::Context& context)
-{
-    static constexpr const char* kFpsOverlayRml = R"RML(
-<rml>
-<head>
-  <style>
-    body {
-      width: 100%;
-      height: 100%;
-      margin: 0px;
-      padding: 0px;
-      background: transparent;
-      font-family: RollnwMono;
-    }
-    #viewer_fps_overlay {
-      position: absolute;
-      display: none;
-      width: 430px;
-      height: 54px;
-      padding: 3px 7px;
-      border: 1px #41505d;
-      background: #101820;
-      color: #e6eef3;
-      font-family: RollnwMono;
-      font-size: 11px;
-      font-weight: normal;
-      line-height: 15px;
-      text-align: right;
-    }
-    #play_preview_viewport_overlay {
-      position: absolute;
-      display: none;
-      width: 320px;
-      height: 50px;
-      padding: 7px 12px 8px 12px;
-      border: 1px #9b835d;
-      border-radius: 3px;
-      background: #0d1217dd;
-      pointer-events: none;
-    }
-    .play_preview_viewport_title {
-      display: block;
-      width: 100%;
-      color: #eadcc3;
-      font-size: 17px;
-      font-weight: bold;
-      line-height: 21px;
-    }
-    .play_preview_viewport_help {
-      display: block;
-      width: 100%;
-      color: #aeb8c3;
-      font-size: 11px;
-      font-weight: normal;
-      line-height: 14px;
-    }
-    .play_preview_viewport_error {
-      display: block;
-      width: 100%;
-      color: #ff9a8a;
-      font-size: 11px;
-      font-weight: normal;
-      line-height: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div id="viewer_fps_overlay">-- FPS</div>
-  <div id="play_preview_viewport_overlay"></div>
-</body>
-</rml>
-)RML";
-
-    return context.LoadDocumentFromMemory(kFpsOverlayRml, "viewer_fps_overlay.rml");
-}
-
-Rml::ElementDocument* load_command_palette_document(Rml::Context& context)
-{
-    static constexpr const char* kCommandPaletteRml = R"RML(
-<rml>
-<head>
-  <link type="text/rcss" href="panel.rcss" />
-  <style>
-    body {
-      background: transparent;
-    }
-  </style>
-</head>
-<body>
-  <div id="command_palette">
-    <input id="command_input" type="text" value="" />
-    <div id="command_list">
-      <div id="command_list_items"></div>
-    </div>
-    <div id="command_details"></div>
-  </div>
-</body>
-</rml>
-)RML";
-
-    return context.LoadDocumentFromMemory(kCommandPaletteRml, "command_palette.rml");
-}
-
 struct ProjectTreeRow {
     nw::toolset::ProjectTreeNode node;
     int depth = 0;
@@ -689,48 +597,6 @@ constexpr int kPltPaletteColumns = 16;
 constexpr int kPltPaletteRows = 11;
 constexpr int kPltPaletteCellPx = 24;
 
-enum class ObjectWorkbenchSurface : uint8_t {
-    details,
-    sheet,
-    variables,
-    haks,
-    classes,
-    appearance,
-    item_properties,
-    feats,
-    spells,
-    inventory,
-    spawns,
-    sounds,
-    store_inventory,
-};
-
-ObjectWorkbenchSurface default_object_workbench_surface()
-{
-    return ObjectWorkbenchSurface::details;
-}
-
-bool data_workbench_only(nw::ObjectType type,
-    ObjectWorkbenchSurface surface) noexcept
-{
-    switch (type) {
-    case nw::ObjectType::sound:
-    case nw::ObjectType::store:
-    case nw::ObjectType::trigger:
-        return true;
-    default:
-        return type == nw::ObjectType::item
-            && surface == ObjectWorkbenchSurface::item_properties;
-    }
-}
-
-bool object_has_grid_inventory(nw::ObjectType type) noexcept
-{
-    return type == nw::ObjectType::creature
-        || type == nw::ObjectType::item
-        || type == nw::ObjectType::placeable;
-}
-
 enum class CreatureSpellFilterField : uint8_t {
     none,
     class_,
@@ -742,115 +608,6 @@ enum class AppearanceEditorField : uint8_t {
     appearance,
     wings,
     tail,
-};
-
-struct AreaObjectDragState {
-    nw::ObjectHandle area{};
-    nw::ObjectSpatialState before;
-    nw::ObjectSpatialState preview;
-    glm::vec3 grab_offset{0.0f};
-    ClientViewportPointerDrag pointer;
-    bool active = false;
-    bool moved = false;
-    bool valid = false;
-    bool encounter_spawn = false;
-    uint32_t encounter_spawn_index = UINT32_MAX;
-    nw::ObjectSpawnPoint spawn_before;
-    nw::ObjectSpawnPoint spawn_preview;
-    std::unique_ptr<nw::toolset::AreaDoorHookSnapshot> door_hooks;
-    int32_t door_hook_type = -2;
-    std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
-    std::string diagnostic;
-};
-
-enum class AreaObjectPlacementPhase : uint8_t {
-    idle,
-    armed,
-    ghost_valid,
-    ghost_invalid,
-};
-
-struct AreaObjectPlacementState {
-    nw::Resource resource;
-    nw::ObjectHandle area{};
-    nw::ObjectHandle object{};
-    nw::ObjectHandle previous_selection{};
-    nw::ObjectSpatialState preview;
-    Rml::Vector2f drag_start;
-    std::string tab_id;
-    AreaObjectPlacementPhase phase = AreaObjectPlacementPhase::idle;
-    bool threshold_crossed = false;
-    bool materialization_failed = false;
-    bool region_drawing = false;
-    bool region_closing_valid = false;
-    std::vector<glm::vec3> region_points;
-    std::optional<glm::vec3> region_hover;
-    std::unique_ptr<nw::toolset::AreaDoorHookSnapshot> door_hooks;
-    int32_t door_hook_type = -2;
-    std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
-    std::string diagnostic;
-
-    [[nodiscard]] bool active() const noexcept
-    {
-        return phase != AreaObjectPlacementPhase::idle;
-    }
-};
-
-enum class ProjectBlueprintDragPhase : uint8_t {
-    idle,
-    armed,
-    target_valid,
-    target_invalid,
-};
-
-enum class ProjectBlueprintDragKind : uint8_t {
-    none,
-    item,
-    encounter_spawn,
-    sound_resource,
-};
-
-enum class ProjectBlueprintDropTargetKind : uint8_t {
-    none,
-    inventory,
-    equipment,
-    encounter_spawns,
-    sound_resources,
-    store_inventory,
-};
-
-struct ProjectBlueprintDropTarget {
-    ProjectBlueprintDropTargetKind kind = ProjectBlueprintDropTargetKind::none;
-    int32_t page = -1;
-    int32_t row = -1;
-    int32_t column = -1;
-    int32_t category = -1;
-    nw::EquipIndex slot = nw::EquipIndex::invalid;
-
-    bool operator==(const ProjectBlueprintDropTarget&) const = default;
-};
-
-struct ProjectBlueprintDragState {
-    std::filesystem::path source_path;
-    nw::Resource resource;
-    nw::ObjectHandle owner{};
-    nw::ObjectHandle item{};
-    std::optional<nw::toolset::EncounterSpawnEdit> encounter_spawn_edit;
-    std::optional<nw::toolset::SoundResourceEdit> sound_resource_edit;
-    Rml::Vector2f drag_start;
-    std::string tab_id;
-    ProjectBlueprintDropTarget target;
-    ProjectBlueprintDragKind kind = ProjectBlueprintDragKind::none;
-    ProjectBlueprintDragPhase phase = ProjectBlueprintDragPhase::idle;
-    int32_t width = 0;
-    int32_t height = 0;
-    bool threshold_crossed = false;
-    bool materialization_failed = false;
-
-    [[nodiscard]] bool active() const noexcept
-    {
-        return phase != ProjectBlueprintDragPhase::idle;
-    }
 };
 
 struct OutputSelectionState {
@@ -886,35 +643,6 @@ enum class AreaWorkspaceSurface : uint8_t {
     tiles,
 };
 
-struct PlayPreviewState {
-    nw::toolset::ToolsetPreviewSession session;
-    nw::toolset::PreviewFixedStepState fixed_step;
-    nw::toolset::PreviewInputSample pending_input;
-    std::array<nw::toolset::PreviewInputSample, 6> tick_inputs{};
-    std::array<nw::ObjectSpatialState, 1> spatial_rows{};
-    std::array<nw::toolset::PreviewActorLocomotion, 1> locomotion_rows{};
-    nw::Resource pending_actor{};
-    nw::ObjectHandle area{};
-    uint64_t module_generation = 0;
-    std::string tab_id;
-    std::string placement_diagnostic;
-    std::string picker_previous_query;
-    SDL_Gamepad* gamepad = nullptr;
-    float mouse_look_x = 0.0f;
-    float mouse_look_y = 0.0f;
-    double mouse_sample_seconds = 0.0;
-    float wheel_zoom = 0.0f;
-    bool selecting_actor = false;
-    bool picker_was_showing_project_tree = false;
-    bool picker_was_showing_areas = false;
-    bool visuals_attached = false;
-
-    bool placement_pending() const noexcept
-    {
-        return pending_actor.valid();
-    }
-};
-
 struct ProjectLoadRequest {
     std::string path;
     std::string stage = "Indexing project files...";
@@ -925,64 +653,14 @@ struct ProjectLoadRequest {
     [[nodiscard]] bool active() const noexcept { return !path.empty(); }
 };
 
-struct AreaTileStrokeState {
-    nw::ObjectHandle area{};
-    nw::Resref tileset;
-    nw::toolset::AreaTileBrush brush;
-    std::string label;
-    uint64_t mutation_epoch = 0;
-    uint64_t resource_generation = 0;
-    int32_t width = 0;
-    int32_t height = 0;
-    nw::toolset::AreaTileCellCoord last_target{};
-    std::vector<uint8_t> visited;
-    std::vector<uint8_t> previewed_tiles;
-    std::vector<uint32_t> tile_indices;
-    std::vector<uint32_t> corner_indices;
-    uint8_t pointer_button = 0;
-    bool active = false;
-    bool has_last_target = false;
-};
-
-struct AreaTileEditorState {
-    nw::toolset::AreaTilePalette palette;
-    nw::toolset::VirtualListController list;
-    nw::toolset::VirtualListRange rendered_range{};
-    AreaTileStrokeState stroke;
-    nw::toolset::AreaTileSelection selection;
-    std::string feedback;
-    std::string query;
-    std::vector<nw::render::viewer::AreaTilePreviewRow> preview_rows;
-    Rml::Vector2f pending_cursor_point{};
-    uint32_t cursor_target_index = UINT32_MAX;
-    // Cached presentation mode, not a second source of keyboard state.
-    nw::toolset::AreaTilePointerModifier cursor_modifier
-        = nw::toolset::AreaTilePointerModifier::none;
-    uint64_t next_random_seed = 1;
-    int rendered_row_count = 0;
-    int32_t selected_row = -1;
-    int32_t group_orientation = 0;
-    bool list_configured = false;
-    bool rendered = false;
-    bool cursor_update_pending = false;
-};
-
 struct AppState {
     nw::toolset::RmlSmallsBridge smalls;
     nw::toolset::ToolsetBackend backend;
     nw::toolset::ShellController shell;
-    PlayPreviewState play_preview;
+    nw::toolset::PlayPreviewState play_preview;
+    nw::toolset::RuntimeInputState runtime_input;
     nw::toolset::WorkspaceState workspace;
-    std::optional<nw::toolset::CommandPrompt> command_form;
-    Rml::ElementDocument* command_overlay_document = nullptr; // Borrowed from the command context.
-    uint64_t command_form_generation = 0;
-    uint64_t rendered_command_form_generation = 0;
-    uint64_t command_form_browse_generation = 0;
-    nw::toolset::VirtualComboBox command_form_combobox;
-    std::optional<size_t> command_form_combobox_field;
-    std::optional<nw::toolset::VirtualComboBoxPopupPlacement> command_form_combobox_placement;
-    size_t blueprint_review_page = 0;
-    std::string blueprint_operation_markup;
+    nw::toolset::CommandViewState command_view;
     nw::toolset::DialogViewState dialog_view;
     nw::toolset::ObjectDetailsSnapshot object_details;
     nw::toolset::VirtualListController details_list;
@@ -1022,7 +700,7 @@ struct AppState {
     nw::toolset::SoundCatalog sound_catalog;
     std::vector<uint32_t> sound_catalog_matches;
     nw::toolset::VirtualListController sound_catalog_list;
-    AreaTileEditorState area_tile_editor;
+    nw::toolset::AreaTileEditorState area_tile_editor;
     AreaWorkspaceSurface area_workspace_surface
         = AreaWorkspaceSurface::properties;
     std::unique_ptr<nw::toolset::RmlSmallsLanguageBinding> rml_smalls_binding;
@@ -1058,7 +736,6 @@ struct AppState {
     std::string last_recent_query;
     uint64_t project_resource_generation = 0;
     std::string home_area_query;
-    std::string last_command_query;
     std::string last_output_filter;
     std::string active_object_variable_warning;
     OutputSelectionState output_selection;
@@ -1073,7 +750,6 @@ struct AppState {
     nw::toolset::ProjectImportJob project_import;
     ProjectLoadRequest project_load;
     uint64_t import_module_generation = 0;
-    std::string command_palette_restore_focus_id;
     std::filesystem::path preferences_path;
 
     float bottom_dock_resize_start_y = 0.0f;
@@ -1093,164 +769,13 @@ struct AppState {
     bool workspace_tab_dragging = false;
     bool viewer_viewport_dragging = false;
     bool viewer_viewport_focused = false;
-    AreaObjectDragState area_object_drag;
-    AreaObjectPlacementState area_object_placement;
-    ProjectBlueprintDragState project_blueprint_drag;
+    nw::toolset::AreaObjectDragState area_object_drag;
+    nw::toolset::AreaObjectPlacementState area_object_placement;
+    nw::toolset::ProjectBlueprintDragState project_blueprint_drag;
     nw::toolset::ManagedListReorderState managed_list_reorder;
     ClientViewportDragMode viewer_viewport_drag_mode = ClientViewportDragMode::look;
     Rml::Vector2f viewer_viewport_last_point;
-    float viewer_fps_frame_seconds = 0.0f;
-    float viewer_fps_smoothed_seconds = 0.0f;
-    float viewer_fps_work_seconds = 0.0f;
-    float viewer_fps_work_smoothed_seconds = 0.0f;
-    float viewer_fps_sync_seconds = 0.0f;
-    float viewer_fps_sync_smoothed_seconds = 0.0f;
-    float viewer_fps_draw_seconds = 0.0f;
-    float viewer_fps_draw_smoothed_seconds = 0.0f;
-    float viewer_fps_ui_seconds = 0.0f;
-    float viewer_fps_ui_smoothed_seconds = 0.0f;
-    float viewer_fps_view_seconds = 0.0f;
-    float viewer_fps_view_smoothed_seconds = 0.0f;
-    float viewer_fps_hud_seconds = 0.0f;
-    float viewer_fps_hud_smoothed_seconds = 0.0f;
-    float viewer_fps_overlay_seconds = 0.0f;
-    float viewer_fps_overlay_smoothed_seconds = 0.0f;
-    float viewer_fps_palette_seconds = 0.0f;
-    float viewer_fps_palette_smoothed_seconds = 0.0f;
-    float viewer_fps_present_seconds = 0.0f;
-    float viewer_fps_present_smoothed_seconds = 0.0f;
-    float viewer_fps_tick_seconds = 0.0f;
-    float viewer_fps_tick_smoothed_seconds = 0.0f;
-    float viewer_fps_setup_seconds = 0.0f;
-    float viewer_fps_setup_smoothed_seconds = 0.0f;
-    float viewer_fps_shadow_seconds = 0.0f;
-    float viewer_fps_shadow_smoothed_seconds = 0.0f;
-    float viewer_fps_opaque_seconds = 0.0f;
-    float viewer_fps_opaque_smoothed_seconds = 0.0f;
-    float viewer_fps_water_seconds = 0.0f;
-    float viewer_fps_water_smoothed_seconds = 0.0f;
-    float viewer_fps_transparent_seconds = 0.0f;
-    float viewer_fps_transparent_smoothed_seconds = 0.0f;
-    float viewer_fps_particles_seconds = 0.0f;
-    float viewer_fps_particles_smoothed_seconds = 0.0f;
-    float viewer_fps_debug_seconds = 0.0f;
-    float viewer_fps_debug_smoothed_seconds = 0.0f;
-    float viewer_fps_area_prepare_seconds = 0.0f;
-    float viewer_fps_area_prepare_smoothed_seconds = 0.0f;
-    float viewer_fps_view_internal_seconds = 0.0f;
-    float viewer_fps_view_internal_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_shadow_seconds = 0.0f;
-    float viewer_fps_gpu_shadow_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_opaque_seconds = 0.0f;
-    float viewer_fps_gpu_opaque_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_water_seconds = 0.0f;
-    float viewer_fps_gpu_water_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_transparent_seconds = 0.0f;
-    float viewer_fps_gpu_transparent_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_particles_seconds = 0.0f;
-    float viewer_fps_gpu_particles_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_debug_seconds = 0.0f;
-    float viewer_fps_gpu_debug_smoothed_seconds = 0.0f;
-    float viewer_fps_gpu_total_seconds = 0.0f;
-    float viewer_fps_gpu_total_smoothed_seconds = 0.0f;
-    uint32_t viewer_fps_gpu_timer_count = 0;
-    float viewer_fps_editor_gpu_ui_seconds = 0.0f;
-    float viewer_fps_editor_gpu_ui_smoothed_seconds = 0.0f;
-    float viewer_fps_editor_gpu_viewport_seconds = 0.0f;
-    float viewer_fps_editor_gpu_viewport_smoothed_seconds = 0.0f;
-    float viewer_fps_editor_gpu_overlay_seconds = 0.0f;
-    float viewer_fps_editor_gpu_overlay_smoothed_seconds = 0.0f;
-    float viewer_fps_editor_gpu_palette_seconds = 0.0f;
-    float viewer_fps_editor_gpu_palette_smoothed_seconds = 0.0f;
-    float viewer_fps_editor_gpu_total_seconds = 0.0f;
-    float viewer_fps_editor_gpu_total_smoothed_seconds = 0.0f;
-    uint32_t viewer_fps_editor_gpu_timer_count = 0;
-    uint32_t viewer_fps_model_count = 0;
-    uint32_t viewer_fps_particle_system_count = 0;
-    size_t viewer_fps_render_model_animation_sample_input_count = 0;
-    size_t viewer_fps_render_model_animation_sampled_count = 0;
-    size_t viewer_fps_render_model_animation_disabled_count = 0;
-    size_t viewer_fps_render_model_animation_missing_asset_data_count = 0;
-    size_t viewer_fps_render_model_animation_invalid_skeleton_count = 0;
-    size_t viewer_fps_render_model_animation_failed_sample_count = 0;
-    uint32_t viewer_fps_prepared_model_surface_draw_count = 0;
-    uint32_t viewer_fps_prepared_model_surface_render_model_draw_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_skinned_surface_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_assigned_surface_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_entry_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_matrix_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_bind_pose_fallback_count = 0;
-    uint32_t viewer_fps_prepared_render_model_skin_table_invalid_skin_index_count = 0;
-    uint32_t viewer_fps_area_cache_record_count = 0;
-    uint32_t viewer_fps_area_cache_static_record_count = 0;
-    uint32_t viewer_fps_area_cache_dynamic_record_count = 0;
-    uint32_t viewer_fps_area_cache_opaque_record_count = 0;
-    uint32_t viewer_fps_area_cache_water_record_count = 0;
-    uint32_t viewer_fps_area_cache_transparent_record_count = 0;
-    uint32_t viewer_fps_area_cache_shadow_caster_record_count = 0;
-    uint32_t viewer_fps_area_cache_prepared_draw_count = 0;
-    uint32_t viewer_fps_area_cache_light_index_count = 0;
-    uint32_t viewer_fps_area_cache_max_light_indices_per_record = 0;
-    uint32_t viewer_fps_area_cache_chunk_count = 0;
-    uint32_t viewer_fps_area_cache_nonempty_chunk_count = 0;
-    uint32_t viewer_fps_area_cache_max_records_per_chunk = 0;
-    uint32_t viewer_fps_area_frame_visible_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_static_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_dynamic_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_chunk_count = 0;
-    uint32_t viewer_fps_area_frame_opaque_record_count = 0;
-    uint32_t viewer_fps_area_frame_water_record_count = 0;
-    uint32_t viewer_fps_area_frame_transparent_record_count = 0;
-    uint32_t viewer_fps_area_frame_shadow_caster_record_count = 0;
-    uint32_t viewer_fps_area_frame_visible_prepared_surface_count = 0;
-    bool viewer_fps_area_frame_uses_cached_draw_lists = false;
-    uint32_t viewer_fps_local_light_count = 0;
-    uint32_t viewer_fps_local_light_colored_count = 0;
-    float viewer_fps_local_light_color_max = 0.0f;
-    float viewer_fps_local_light_intensity_max = 0.0f;
-    uint32_t viewer_fps_local_light_selected_draw_count = 0;
-    uint32_t viewer_fps_local_light_selected_total = 0;
-    uint32_t viewer_fps_local_light_selected_max = 0;
-    uint32_t viewer_fps_local_light_selected_colored_total = 0;
-    float viewer_fps_local_light_selected_color_max = 0.0f;
-    float viewer_fps_local_light_selected_intensity_max = 0.0f;
-    uint32_t viewer_fps_forward_plus_light_count = 0;
-    uint32_t viewer_fps_forward_plus_cluster_count = 0;
-    uint32_t viewer_fps_forward_plus_active_cluster_count = 0;
-    uint32_t viewer_fps_forward_plus_cluster_light_index_count = 0;
-    uint32_t viewer_fps_forward_plus_max_lights_per_cluster = 0;
-    uint32_t viewer_fps_forward_plus_overflow_cluster_count = 0;
-    uint32_t viewer_fps_forward_plus_overflow_light_count = 0;
-    uint32_t viewer_fps_forward_plus_upload_bytes = 0;
-    uint32_t viewer_fps_forward_plus_tile_size = 0;
-    uint32_t viewer_fps_forward_plus_depth_slices = 0;
-    uint32_t viewer_fps_shadow_cascade_count = 0;
-    uint32_t viewer_fps_shadow_resolution = 0;
-    uint32_t viewer_fps_shadow_caster_model_count = 0;
-    uint32_t viewer_fps_shadow_no_caster_model_count = 0;
-    uint32_t viewer_fps_shadow_submitted_model_count = 0;
-    uint32_t viewer_fps_shadow_culled_model_count = 0;
-    uint32_t viewer_fps_main_pass_count = 0;
-    uint64_t viewer_fps_draw_count = 0;
-    uint64_t viewer_fps_shadow_draw_count = 0;
-    uint64_t viewer_fps_transparent_draw_count = 0;
-    uint64_t viewer_fps_particle_draw_count = 0;
-    uint64_t viewer_fps_indirect_draw_call_count = 0;
-    uint64_t viewer_fps_draw_instance_count = 0;
-    uint64_t viewer_fps_draw_index_count = 0;
-    uint64_t viewer_fps_pipeline_bind_count = 0;
-    uint64_t viewer_fps_pipeline_bind_skipped_count = 0;
-    uint64_t viewer_fps_resource_bind_count = 0;
-    uint64_t viewer_fps_resource_bind_skipped_count = 0;
-    uint64_t viewer_fps_uniform_allocation_count = 0;
-    uint64_t viewer_fps_uniform_allocation_bytes = 0;
-    uint64_t viewer_fps_descriptor_allocation_failure_count = 0;
-    uint64_t viewer_fps_descriptor_ring_capacity_bytes = 0;
-    uint64_t viewer_fps_descriptor_ring_required_bytes = 0;
-    uint64_t viewer_fps_resource_bind_failure_count = 0;
-    uint64_t viewer_fps_dropped_draw_count = 0;
-    bool viewer_fps_shadows_rendered = false;
-    bool viewer_fps_water_rendered = false;
+    nw::toolset::ClientMetricsState metrics;
     bool workspace_hover_refresh_pending = false;
     bool workspace_tab_scroll_pending = false;
     bool object_workbench_tab_scroll_pending = false;
@@ -1269,9 +794,6 @@ struct AppState {
     bool sound_catalog_list_configured = false;
     bool sound_catalog_rendered = false;
     bool sound_resource_selector_open = false;
-    bool command_palette_ui_visible = false;
-    bool command_palette_restore_captured = false;
-    bool command_palette_restore_viewport_focus = false;
     Rml::Vector2f workspace_hover_refresh_point;
 
     std::vector<nw::toolset::RecentProjectEntry> recent_projects;
@@ -1286,7 +808,6 @@ struct AppState {
     size_t rendered_project_row_start = kInvalidVirtualIndex;
     size_t rendered_project_row_end = kInvalidVirtualIndex;
     size_t rendered_project_row_count = 0;
-    std::vector<nw::toolset::CommandSpec> commands;
     nw::toolset::VirtualListRange rendered_details_range{};
     int rendered_details_row_count = 0;
     nw::toolset::VirtualListRange rendered_object_variable_range{};
@@ -1322,160 +843,6 @@ nw::toolset::CommandContext command_context(
     AppState& state, nw::toolset::CommandSource source);
 void append_command_result(
     AppState& state, const nw::toolset::CommandResult& result);
-
-std::filesystem::path preferences_path(const char* app_name)
-{
-    char* pref_path = SDL_GetPrefPath("rollnw", app_name);
-    if (!pref_path) {
-        return {};
-    }
-
-    std::filesystem::path path{pref_path};
-    SDL_free(pref_path);
-    return path / "preferences.json";
-}
-
-std::filesystem::path client_preferences_path()
-{
-    return preferences_path("client");
-}
-
-void load_dock_preferences(const nlohmann::json& prefs, nw::toolset::DockLayout& docks)
-{
-    const auto ui = prefs.find("ui");
-    if (ui == prefs.end() || !ui->is_object()) {
-        return;
-    }
-    const auto dock_values = ui->find("docks");
-    if (dock_values == ui->end() || !dock_values->is_object()) {
-        return;
-    }
-
-    for (const nw::toolset::DockRegion region : {nw::toolset::DockRegion::left, nw::toolset::DockRegion::right, nw::toolset::DockRegion::bottom}) {
-        const std::string region_name{nw::toolset::dock_region_name(region)};
-        const auto dock = dock_values->find(region_name);
-        if (dock == dock_values->end() || !dock->is_object()) {
-            continue;
-        }
-
-        auto& pane = docks.pane(region);
-        if (auto it = dock->find("size_px"); it != dock->end() && it->is_number_integer()) {
-            pane.size_px = std::max(0, it->get<int>());
-        }
-        if (auto it = dock->find("visible"); it != dock->end() && it->is_boolean()) {
-            pane.visible = it->get<bool>();
-        }
-        if (auto it = dock->find("active_widget"); it != dock->end() && it->is_string()) {
-            const std::string active_widget = it->get<std::string>();
-            if (docks.contains_widget(region, active_widget)) {
-                pane.active_widget = active_widget;
-            }
-        }
-    }
-}
-
-void write_dock_preferences(nlohmann::json& prefs, const nw::toolset::DockLayout& docks)
-{
-    auto& ui = prefs["ui"];
-    if (!ui.is_object()) {
-        ui = nlohmann::json::object();
-    }
-    auto& dock_values = ui["docks"];
-    if (!dock_values.is_object()) {
-        dock_values = nlohmann::json::object();
-    }
-
-    for (const nw::toolset::DockRegion region : {nw::toolset::DockRegion::left, nw::toolset::DockRegion::right, nw::toolset::DockRegion::bottom}) {
-        const auto& pane = docks.pane(region);
-        auto& dock = dock_values[std::string{nw::toolset::dock_region_name(region)}];
-        dock["visible"] = pane.visible;
-        dock["size_px"] = pane.size_px;
-        dock["active_widget"] = pane.active_widget;
-    }
-}
-
-void load_ui_preferences(AppState& state)
-{
-    state.preferences_path = client_preferences_path();
-    if (state.preferences_path.empty()) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Unable to resolve rollnw client preferences path: %s", SDL_GetError());
-        return;
-    }
-
-    std::ifstream input{state.preferences_path};
-    if (!input) {
-        return;
-    }
-
-    try {
-        nlohmann::json prefs;
-        input >> prefs;
-        if (!prefs.is_object()) {
-            return;
-        }
-        load_dock_preferences(prefs, state.shell.docks);
-        nw::toolset::load_recent_project_preferences(prefs, state.recent_projects);
-    } catch (const std::exception& e) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to read rollnw client preferences: %s", e.what());
-    }
-}
-
-bool save_ui_preferences(const AppState& state)
-{
-    if (state.preferences_path.empty()) {
-        return false;
-    }
-
-    nlohmann::json prefs = nlohmann::json::object();
-    if (std::ifstream input{state.preferences_path}; input) {
-        try {
-            input >> prefs;
-            if (!prefs.is_object()) {
-                prefs = nlohmann::json::object();
-            }
-        } catch (const std::exception&) {
-            prefs = nlohmann::json::object();
-        }
-    }
-
-    write_dock_preferences(prefs, state.shell.docks);
-    nw::toolset::write_recent_project_preferences(prefs, state.recent_projects);
-    prefs.erase("left_dock_width_px");
-    prefs.erase("bottom_dock_height_px");
-    prefs.erase("terminal_height_px");
-
-    std::error_code ec;
-    if (const auto parent = state.preferences_path.parent_path(); !parent.empty()) {
-        std::filesystem::create_directories(parent, ec);
-        if (ec) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to create rollnw client preferences directory: %s", ec.message().c_str());
-            return false;
-        }
-    }
-
-    // Existing preferences use the same atomic replacement as document saves.
-    if (std::filesystem::exists(state.preferences_path, ec)) {
-        std::string error;
-        if (!nw::toolset::save_json_resource_document_atomic(state.preferences_path, prefs, error)) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to save rollnw client preferences: %s", error.c_str());
-            return false;
-        }
-        return true;
-    }
-    std::ofstream output{state.preferences_path};
-    if (!output) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open rollnw client preferences for writing");
-        return false;
-    }
-
-    output << prefs.dump(2) << '\n';
-    output.flush();
-    if (!output) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to write rollnw client preferences");
-        return false;
-    }
-    return true;
-}
 
 int bottom_dock_available_height_px(SDL_Window* window)
 {
@@ -1621,7 +988,7 @@ bool end_bottom_dock_resize(AppState& state)
 
     state.bottom_dock_resizing = false;
     SDL_CaptureMouse(false);
-    save_ui_preferences(state);
+    save_ui_preferences(state.preferences_path, state.shell.docks, state.recent_projects);
     return true;
 }
 
@@ -1679,7 +1046,7 @@ bool end_left_dock_resize(AppState& state)
 
     state.left_dock_resizing = false;
     SDL_CaptureMouse(false);
-    save_ui_preferences(state);
+    save_ui_preferences(state.preferences_path, state.shell.docks, state.recent_projects);
     return true;
 }
 
@@ -1785,7 +1152,7 @@ void remember_recent_project(AppState& state, const std::filesystem::path& proje
     if (state.recent_projects.size() > nw::toolset::kMaxRecentProjects) {
         state.recent_projects.resize(nw::toolset::kMaxRecentProjects);
     }
-    save_ui_preferences(state);
+    save_ui_preferences(state.preferences_path, state.shell.docks, state.recent_projects);
 }
 
 void SDLCALL open_module_dialog_callback(void* userdata, const char* const* filelist, int /*filter*/)
@@ -1947,20 +1314,9 @@ Rml::Element* element_at_mouse(Rml::Context* context, SDL_Window* window, const 
     return context->GetElementAtPoint(Rml::Vector2f{static_cast<float>(mouse.x), static_cast<float>(mouse.y)});
 }
 
-bool point_within_element(Rml::ElementDocument* doc, std::string_view id, Rml::Vector2f point)
-{
-    auto* element = find_el(doc, std::string(id).c_str());
-    return element && element->IsVisible(true)
-        && element->IsPointWithinElement(point);
-}
-
 bool point_within_viewport(ClientViewportRect rect, Rml::Vector2f point)
 {
-    const float left = static_cast<float>(rect.x);
-    const float top = static_cast<float>(rect.y);
-    const float right = left + static_cast<float>(rect.width);
-    const float bottom = top + static_cast<float>(rect.height);
-    return point.x >= left && point.x < right && point.y >= top && point.y < bottom;
+    return rect.contains_point(point.x, point.y);
 }
 
 bool shift_only(SDL_Keymod modifiers) noexcept
@@ -2026,48 +1382,6 @@ bool event_targets_command_palette(
     default:
         return false;
     }
-}
-
-bool focused_text_input(Rml::Context* context)
-{
-    auto* focus = context ? context->GetFocusElement() : nullptr;
-    if (!focus) {
-        return false;
-    }
-
-    if (!focus->IsVisible(true)) {
-        return false;
-    }
-
-    for (auto* cursor = focus; cursor; cursor = cursor->GetParentNode()) {
-        const Rml::String id = cursor->GetId();
-        if (id == "command_input"
-            || id == "terminal_input"
-            || id == "recent_search"
-            || id == "output_filter") {
-            return true;
-        }
-        if (cursor->GetTagName() == "input"
-            || cursor->GetTagName() == "textarea") {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool focused_element_has_id(Rml::Context* context, const char* id)
-{
-    auto* focus = context ? context->GetFocusElement() : nullptr;
-    if (!focus || !id || !focus->IsVisible(true)) {
-        return false;
-    }
-
-    for (auto* cursor = focus; cursor; cursor = cursor->GetParentNode()) {
-        if (cursor->GetId() == id) {
-            return true;
-        }
-    }
-    return false;
 }
 
 bool output_scroll_input(Rml::ElementDocument* doc, Rml::Context* context,
@@ -2203,9 +1517,9 @@ void focus_workspace_viewport(Rml::ElementDocument* doc, AppState& state)
 {
     clear_rml_focus(doc ? doc->GetContext() : nullptr);
     state.viewer_viewport_focused = true;
-    if (state.command_palette_restore_captured) {
-        state.command_palette_restore_focus_id.clear();
-        state.command_palette_restore_viewport_focus = true;
+    if (state.command_view.command_palette_restore_captured) {
+        state.command_view.command_palette_restore_focus_id.clear();
+        state.command_view.command_palette_restore_viewport_focus = true;
     }
 }
 
@@ -2230,17 +1544,6 @@ void blur_focused_object_variable_input(
     if (hit_input != focus) {
         focus->Blur();
     }
-}
-
-std::string focus_restore_id(Rml::Element* focus)
-{
-    for (auto* cursor = focus; cursor; cursor = cursor->GetParentNode()) {
-        const Rml::String id = cursor->GetId();
-        if (!id.empty()) {
-            return id;
-        }
-    }
-    return {};
 }
 
 std::optional<int32_t> parse_decimal_int32(std::string_view value)
@@ -2269,54 +1572,6 @@ std::optional<uint64_t> parse_decimal_uint64(std::string_view value)
         return std::nullopt;
     }
     return result;
-}
-
-void capture_command_palette_focus(Rml::Context* context, AppState& state)
-{
-    if (state.command_palette_restore_captured) {
-        return;
-    }
-
-    state.command_palette_restore_focus_id.clear();
-    state.command_palette_restore_viewport_focus = false;
-    state.command_palette_restore_captured = true;
-
-    if (auto* focus = context ? context->GetFocusElement() : nullptr) {
-        state.command_palette_restore_focus_id = focus_restore_id(focus);
-        return;
-    }
-
-    state.command_palette_restore_viewport_focus = state.viewer_viewport_focused;
-}
-
-void restore_command_palette_focus(Rml::Context* context, Rml::Context* palette_context, Rml::ElementDocument* doc, AppState& state)
-{
-    clear_rml_focus(palette_context);
-
-    if (!state.command_palette_restore_captured) {
-        return;
-    }
-
-    const std::string restore_focus_id = std::move(state.command_palette_restore_focus_id);
-    const bool restore_viewport_focus = state.command_palette_restore_viewport_focus;
-    state.command_palette_restore_focus_id.clear();
-    state.command_palette_restore_viewport_focus = false;
-    state.command_palette_restore_captured = false;
-
-    if (!restore_focus_id.empty()) {
-        if (auto* element = find_el(doc, restore_focus_id.c_str())) {
-            if (element->IsVisible(true)) {
-                element->Focus();
-                state.viewer_viewport_focused = false;
-                return;
-            }
-        }
-    }
-
-    if (restore_viewport_focus) {
-        clear_rml_focus(context);
-        state.viewer_viewport_focused = true;
-    }
 }
 
 bool viewport_mouse_hit_blocked(Rml::ElementDocument* doc, Rml::Element* top_hit, Rml::Vector2f point, const AppState& state)
@@ -3115,41 +2370,6 @@ void refresh_output_view(Rml::ElementDocument* doc, AppState& state)
         if (auto* btn = doc->GetElementById(ids[i])) {
             btn->SetClass("active", state.shell.output_channel_visible(values[i]));
         }
-    }
-}
-
-void refresh_command_palette(Rml::ElementDocument* doc, AppState& state)
-{
-    if (!doc) {
-        return;
-    }
-
-    const std::string query = get_input_value(doc, "command_input");
-    state.commands = state.backend.list_commands(query);
-
-    std::string markup;
-    for (const auto& cmd : state.commands) {
-        markup += "<div class=\"nw_list_row command_item\" data-key=\"";
-        markup += escape_html(cmd.id);
-        markup += "\">";
-        markup += "<div class=\"nw_list_col nw_list_col_id\">" + escape_html(cmd.id) + "</div>";
-        markup += "<div class=\"nw_list_col\">" + escape_html(cmd.title) + "</div>";
-        markup += "<div class=\"nw_list_col nw_list_col_desc\">" + escape_html(cmd.description) + "</div>";
-        markup += "</div>";
-    }
-    if (markup.empty()) {
-        markup = "<div class=\"nw_list_empty\">No matching commands.</div>";
-    }
-
-    if (auto* list = doc->GetElementById("command_list")) {
-        if (auto* items = doc->GetElementById("command_list_items")) {
-            items->SetInnerRML(markup);
-        } else {
-            list->SetInnerRML(markup);
-        }
-    }
-    if (auto* details = doc->GetElementById("command_details")) {
-        details->SetInnerRML(state.commands.empty() ? "" : escape_html(state.commands.front().usage));
     }
 }
 
@@ -5589,292 +4809,15 @@ bool sync_sound_catalog_window(
     return true;
 }
 
-void configure_area_tile_palette_list(AppState& state)
+bool sync_area_tile_palette_window(Rml::ElementDocument* doc, AppState& state, bool force)
 {
-    auto& editor = state.area_tile_editor;
-    if (editor.list_configured) {
-        return;
-    }
-    editor.list.set_row_height(kAreaTilePaletteRowHeightPx);
-    editor.list.set_overscan(kAreaTilePaletteOverscanRows);
-    editor.list_configured = true;
-}
-
-void reset_area_tile_palette_folder_view(AreaTileEditorState& editor)
-{
-    editor.feedback.clear();
-    editor.query.clear();
-    editor.selected_row = -1;
-    editor.list.set_selected(-1);
-    editor.list.set_scroll_top(0);
-    editor.list.set_total_rows(
-        static_cast<int>(editor.palette.matches.size()));
-    editor.rendered = false;
-}
-
-bool rebuild_area_tile_palette(AppState& state, nw::ObjectHandle area)
-{
-    auto& editor = state.area_tile_editor;
-    if (!nw::toolset::build_area_tile_palette(area, editor.palette)) {
-        editor.list.set_total_rows(0);
-        editor.rendered = false;
-        return false;
-    }
-    if (!nw::toolset::filter_area_tile_palette(
-            editor.palette, editor.query)) {
-        editor.list.set_total_rows(0);
-        editor.rendered = false;
-        return false;
-    }
-    configure_area_tile_palette_list(state);
-    editor.list.set_total_rows(
-        static_cast<int>(editor.palette.matches.size()));
-    const auto selected = std::find(
-        editor.palette.matches.begin(), editor.palette.matches.end(),
-        static_cast<uint32_t>(editor.selected_row));
-    if (selected == editor.palette.matches.end()) {
-        editor.selected_row = -1;
-        editor.list.set_selected(-1);
-    } else {
-        editor.list.set_selected(static_cast<int>(
-            std::distance(editor.palette.matches.begin(), selected)));
-    }
-    editor.rendered = false;
-    return true;
-}
-
-class AreaTilePaletteListAdapter final
-    : public nw::toolset::VirtualListAdapter {
-public:
-    explicit AreaTilePaletteListAdapter(
-        const nw::toolset::AreaTilePalette& palette)
-        : palette_{palette}
-    {
-    }
-
-    [[nodiscard]] int size() const override
-    {
-        return static_cast<int>(palette_.matches.size());
-    }
-
-    [[nodiscard]] int row_key(int index) const override
-    {
-        return static_cast<int>(
-            palette_.matches[static_cast<size_t>(index)]);
-    }
-
-    [[nodiscard]] std::string_view row_extra_classes() const override
-    {
-        return "area_tile_palette_row";
-    }
-
-    [[nodiscard]] std::string render_row_inner(
-        int index, bool /*selected*/) const override
-    {
-        const auto& value = row(index);
-        std::string markup;
-        markup.reserve(
-            value.label.size() + value.thumbnail_source.size() + 160);
-        markup += "<div class=\"area_tile_palette_thumbnail";
-        if (value.kind == nw::toolset::AreaTilePaletteRowKind::folder) {
-            markup += " area_tile_palette_folder_indicator\">";
-            markup += "<span class=\"area_tile_palette_folder_glyph\">›</span>";
-        } else {
-            markup += "\">";
-            if (!value.thumbnail_source.empty()) {
-                markup += "<img src=\"";
-                markup += escape_html(value.thumbnail_source);
-                markup += "\"/>";
-            } else {
-                std::string_view glyph;
-                switch (value.brush.kind) {
-                case nw::toolset::AreaTileBrushKind::terrain:
-                    glyph = "T";
-                    break;
-                case nw::toolset::AreaTileBrushKind::crosser:
-                    glyph = "~";
-                    break;
-                case nw::toolset::AreaTileBrushKind::group:
-                    glyph = "F";
-                    break;
-                case nw::toolset::AreaTileBrushKind::eraser:
-                    glyph = "E";
-                    break;
-                case nw::toolset::AreaTileBrushKind::raise:
-                    glyph = "+/-";
-                    break;
-                case nw::toolset::AreaTileBrushKind::lower:
-                    glyph = "-";
-                    break;
-                }
-                markup += "<span class=\"area_tile_palette_action_glyph\">";
-                markup += glyph;
-                markup += "</span>";
-            }
-        }
-        markup += "</div><div class=\"area_tile_palette_text\">"
-                  "<div class=\"area_tile_palette_action_name\">";
-        markup += escape_html(value.label);
-        markup += "</div></div>";
-        return markup;
-    }
-
-private:
-    [[nodiscard]] const nw::toolset::AreaTilePaletteRow& row(
-        int index) const
-    {
-        return palette_.rows[palette_.matches[static_cast<size_t>(index)]];
-    }
-
-    const nw::toolset::AreaTilePalette& palette_;
-};
-
-void sync_area_tile_selection_info(
-    Rml::ElementDocument* doc, const AppState& state, nw::ObjectHandle area_handle)
-{
-    auto* element = find_el(doc, "area_tile_selection_info");
-    if (!element) {
-        return;
-    }
-    const auto& editor = state.area_tile_editor;
-    const auto& selection = editor.selection;
-    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
-    if (!selection.active() || selection.area != area_handle || !area
-        || !area->tileset
-        || selection.source_tile_index >= area->tiles.size()) {
-        element->SetInnerRML("");
-        element->SetClass("visible", false);
-        return;
-    }
-
-    const auto& tile = area->tiles[selection.source_tile_index];
-    const uint32_t x = selection.source_tile_index
-        % static_cast<uint32_t>(area->width);
-    const uint32_t y = selection.source_tile_index
-        / static_cast<uint32_t>(area->width);
-    std::string_view label = "Tileset Group";
-    if (selection.is_group()) {
-        const auto row = std::ranges::find_if(editor.palette.rows,
-            [&selection](const auto& value) {
-                return value.kind
-                    == nw::toolset::AreaTilePaletteRowKind::action
-                    && value.brush.kind
-                    == nw::toolset::AreaTileBrushKind::group
-                    && value.brush.value
-                    == static_cast<int32_t>(selection.group_index);
-            });
-        if (row != editor.palette.rows.end()) {
-            label = row->label;
-        }
-    } else if (tile.id >= 0
-        && static_cast<size_t>(tile.id) < area->tileset->tiles.size()) {
-        label = area->tileset->tiles[static_cast<size_t>(tile.id)].model;
-    } else {
-        label = "Area Tile";
-    }
-
-    std::string markup;
-    markup.reserve(label.size() + 180);
-    markup += "<div class=\"area_tile_selection_title\">Selected ";
-    markup += selection.is_group() ? "Group" : "Tile";
-    markup += "</div><div class=\"area_tile_selection_name\">";
-    markup += escape_html(label);
-    markup += "</div><div class=\"area_tile_selection_meta\">Cell ";
-    markup += std::to_string(x);
-    markup += ", ";
-    markup += std::to_string(y);
-    markup += " · Tile ";
-    markup += std::to_string(tile.id);
-    markup += " · Height ";
-    markup += std::to_string(tile.height);
-    markup += " · Rotation ";
-    markup += std::to_string(tile.orientation * 90);
-    markup += "°";
-    if (selection.is_group()) {
-        markup += " · ";
-        markup += std::to_string(selection.tile_indices.size());
-        markup += " cells";
-    }
-    markup += "</div>";
-    element->SetInnerRML(markup);
-    element->SetClass("visible", true);
-}
-
-bool sync_area_tile_palette_window(
-    Rml::ElementDocument* doc, AppState& state, bool force)
-{
-    auto& editor = state.area_tile_editor;
-    auto* list = find_el(doc, "area_tile_palette_rows");
-    const auto* active_tab = state.workspace.active_tab();
-    const nw::ObjectHandle area = active_tab
-            && active_tab->kind == nw::toolset::WorkspaceTabKind::area
-        ? active_tab->document.object()
+    const auto* tab = state.workspace.active_tab();
+    const nw::ObjectHandle area = tab && tab->kind == nw::toolset::WorkspaceTabKind::area
+        ? tab->document.object()
         : nw::ObjectHandle{};
-    if (state.area_workspace_surface != AreaWorkspaceSurface::tiles
-        || !list || area.type != nw::ObjectType::area) {
-        return false;
-    }
-    if (auto* feedback = find_el(doc, "area_tile_palette_feedback")) {
-        const bool visible = !editor.feedback.empty();
-        feedback->SetInnerRML(
-            visible ? escape_html(editor.feedback) : std::string{});
-        feedback->SetClass("visible", visible);
-    }
-    if (auto* hint = find_el(doc, "area_tile_modifier_hint")) {
-        hint->SetClass("visible",
-            area_tile_pointer_modifier(SDL_GetModState())
-                == nw::toolset::AreaTilePointerModifier::select);
-    }
-    sync_area_tile_selection_info(doc, state, area);
-
-    if (editor.palette.area != area
-        || editor.palette.resource_generation
-            != nw::kernel::resman().generation()) {
-        (void)rebuild_area_tile_palette(state, area);
-        force = true;
-    }
-    configure_area_tile_palette_list(state);
-    const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(
-            list->GetClientHeight(), list->GetOffsetHeight()))));
-    const int scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
-    editor.list.set_viewport_height(viewport_height);
-    editor.list.set_scroll_top(scroll_top);
-    const auto range = editor.list.compute_range();
-    const int row_count = static_cast<int>(editor.palette.matches.size());
-    const bool stable = !force && editor.rendered
-        && list->GetNumChildren() > 0
-        && editor.rendered_row_count == row_count
-        && editor.rendered_range.start == range.start
-        && editor.rendered_range.end == range.end;
-    if (stable) {
-        return false;
-    }
-    (void)nw::toolset::load_area_tile_palette_thumbnails(
-        editor.palette, range.start, range.end);
-
-    std::string markup;
-    if (editor.palette.status
-        != nw::toolset::AreaTilePaletteStatus::ready) {
-        markup = "<div class=\"property_tree_empty error\">";
-        markup += escape_html(editor.palette.diagnostic.empty()
-                ? std::string_view{"Tile palette is unavailable."}
-                : std::string_view{editor.palette.diagnostic});
-        markup += "</div>";
-    } else if (editor.palette.matches.empty()) {
-        markup = "<div class=\"property_tree_empty\">"
-                 "No actions match this filter.</div>";
-    } else {
-        markup = nw::toolset::render_virtual_list(
-            editor.list, AreaTilePaletteListAdapter{editor.palette});
-    }
-    list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
-    editor.rendered_range = range;
-    editor.rendered_row_count = row_count;
-    editor.rendered = true;
-    return true;
+    return nw::toolset::sync_area_tile_palette_window(doc, state.area_tile_editor, area,
+        state.area_workspace_surface == AreaWorkspaceSurface::tiles,
+        area_tile_pointer_modifier(SDL_GetModState()), force);
 }
 
 bool commit_sound_catalog_selection(AppState& state, uint32_t row_index)
@@ -7106,44 +6049,6 @@ void append_object_workbench_markup(std::string& content_markup, const AppState&
     content_markup += "</div>";
 }
 
-void append_area_tile_palette_markup(
-    std::string& content_markup, const AppState& state)
-{
-    const auto& editor = state.area_tile_editor;
-    std::string_view folder_label = "Tiles";
-    if (editor.palette.current_folder < editor.palette.rows.size()) {
-        folder_label
-            = editor.palette.rows[editor.palette.current_folder].label;
-    }
-    content_markup += "<div id=\"area_tile_palette\" "
-                      "class=\"object_workbench area_tile_palette\">"
-                      "<div class=\"object_workbench_header area_tile_palette_header\">";
-    if (editor.palette.current_folder != editor.palette.root_folder) {
-        content_markup += "<button id=\"area_tile_editor_back\" type=\"button\" "
-                          "class=\"panel_back_button\" title=\"Back\">"
-                          "<span class=\"panel_back_icon\"><span class=\"panel_back_head\"></span>"
-                          "<span class=\"panel_back_shaft\"></span></span></button>";
-    }
-    content_markup += "<div class=\"area_tile_palette_heading\">"
-                      "<div class=\"object_workbench_title\">";
-    content_markup += escape_html(folder_label);
-    content_markup += "</div></div></div>"
-                      "<div class=\"area_tile_palette_controls\">"
-                      "<input id=\"area_tile_palette_search\" type=\"text\" value=\"";
-    content_markup += escape_html(editor.query);
-    content_markup += "\" placeholder=\"Find terrain or feature\"/>"
-                      "<div id=\"area_tile_palette_feedback\" "
-                      "class=\"area_tile_palette_feedback\"></div>"
-                      "<div id=\"area_tile_modifier_hint\" "
-                      "class=\"area_tile_modifier_hint\">"
-                      "Left-click selects a tile or group &middot; "
-                      "Right-click cycles its variation</div>"
-                      "</div><div id=\"area_tile_selection_info\" "
-                      "class=\"area_tile_selection_info\"></div>"
-                      "<div id=\"area_tile_palette_rows\" "
-                      "class=\"area_tile_palette_rows\"></div></div>";
-}
-
 void append_workspace_document_markup(std::string& content_markup,
     const nw::toolset::WorkspaceTab& active_tab,
     const AppState& state)
@@ -7193,7 +6098,7 @@ void append_workspace_document_markup(std::string& content_markup,
         }
         content_markup += "</div>";
         if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
-            append_area_tile_palette_markup(content_markup, state);
+            nw::toolset::append_area_tile_palette_markup(content_markup, state.area_tile_editor);
         } else {
             append_object_workbench_markup(content_markup, state);
         }
@@ -7765,139 +6670,46 @@ std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_r
     };
 }
 
-void reset_play_preview_input(PlayPreviewState& preview) noexcept
-{
-    preview.fixed_step = {};
-    preview.pending_input = {};
-    preview.mouse_look_x = 0.0f;
-    preview.mouse_look_y = 0.0f;
-    preview.mouse_sample_seconds = 0.0;
-    preview.wheel_zoom = 0.0f;
-}
-
 void restore_play_preview_picker_shell(Rml::ElementDocument* doc, AppState& state)
 {
-    if (!state.play_preview.selecting_actor) return;
-    state.play_preview.selecting_actor = false;
-    if (state.play_preview.picker_was_showing_project_tree) {
-        state.shell.set_showing_project_tree(true);
-    } else if (state.play_preview.picker_was_showing_areas) {
-        state.shell.set_showing_areas(true);
-    } else {
-        state.shell.set_showing_project_tree(false);
-    }
-    set_input_value(doc, "recent_search", state.play_preview.picker_previous_query);
-    state.play_preview.picker_previous_query.clear();
+    if (!nw::toolset::restore_play_preview_picker_shell(doc, state.play_preview, state.shell)) { return; }
     refresh_recent_list(doc, state);
     focus_workspace_viewport(doc, state);
 }
 
-void stop_play_preview(ClientRenderer& renderer,
-    SystemInterface_SDL& system_interface,
-    Rml::ElementDocument* doc,
-    AppState& state)
+void stop_play_preview(ClientRenderer& renderer, SystemInterface_SDL& system_interface,
+    Rml::ElementDocument* doc, AppState& state)
 {
-    if (state.play_preview.visuals_attached
-        || state.play_preview.session.active()) {
-        if (!renderer.end_toolset_preview_visuals()) {
-            append_output(state, "error", "Failed to remove play-preview visuals");
-        }
-    }
-    state.play_preview.visuals_attached = false;
-    nw::toolset::stop_toolset_preview(state.play_preview.session);
-    state.play_preview.pending_actor = {};
-    state.play_preview.area = nw::ObjectHandle{};
-    state.play_preview.module_generation = 0;
-    state.play_preview.tab_id.clear();
-    state.play_preview.placement_diagnostic.clear();
-    reset_play_preview_input(state.play_preview);
+    nw::toolset::stop_play_preview(renderer, state.play_preview, state.runtime_input, state.shell);
     apply_shell_layout(doc, state);
     system_interface.SetMouseCursor("arrow");
 }
 
-void request_play_preview_actor(Rml::ElementDocument* doc, AppState& state,
-    std::string_view reason)
+void request_play_preview_actor(Rml::ElementDocument* doc, AppState& state, std::string_view reason)
 {
-    if (!reason.empty()) append_output(state, "warn", reason);
-    if (!state.play_preview.selecting_actor) {
-        state.play_preview.selecting_actor = true;
-        state.play_preview.picker_was_showing_project_tree
-            = state.shell.showing_project_tree;
-        state.play_preview.picker_was_showing_areas = state.shell.showing_areas;
-        state.play_preview.picker_previous_query = get_input_value(doc, "recent_search");
-        set_input_value(doc, "recent_search", "");
-        state.shell.set_showing_project_tree(true);
-    }
+    nw::toolset::request_play_preview_actor(doc, state.play_preview, state.shell, reason);
     refresh_recent_list(doc, state);
     state.viewer_viewport_focused = false;
-    if (auto* search = find_el(doc, "recent_search")) search->Focus();
+    if (auto* search = find_el(doc, "recent_search")) { search->Focus(); }
 }
 
-float play_preview_yaw(const ClientViewportRay& ray) noexcept
+bool start_play_preview_from_ray(ClientRenderer& renderer, SystemInterface_SDL& system_interface,
+    Rml::ElementDocument* doc, AppState& state, const ClientViewportRay& ray)
 {
-    const glm::vec2 direction{ray.displacement.x, ray.displacement.y};
-    const float length_squared = glm::dot(direction, direction);
-    if (!std::isfinite(length_squared) || length_squared <= 1.0e-8f) {
-        return 0.0f;
-    }
-    return std::atan2(direction.y, direction.x);
-}
-
-bool start_play_preview_from_ray(ClientRenderer& renderer,
-    SystemInterface_SDL& system_interface,
-    Rml::ElementDocument* doc,
-    AppState& state,
-    const ClientViewportRay& ray)
-{
-    if (!state.play_preview.placement_pending()) return false;
-
-    const nw::toolset::PreviewSessionStartInput input{
-        .area = state.play_preview.area,
-        .actor = state.play_preview.pending_actor,
-        .spawn_ray = {
-            .origin = ray.origin,
-            .displacement = ray.displacement,
-        },
-        .camera = {.yaw = play_preview_yaw(ray)},
-        .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
-    };
-    const auto started = nw::toolset::start_toolset_preview(
-        state.play_preview.session, input);
-    if (!started.ok()) {
-        const std::string diagnostic = started.diagnostic.empty()
-            ? "Play-preview startup failed"
-            : started.diagnostic;
-        state.play_preview.placement_diagnostic = diagnostic;
+    const auto result = nw::toolset::start_play_preview_from_ray(renderer, state.play_preview,
+        state.runtime_input, state.shell, ray);
+    using nw::toolset::PlayPreviewStartStatus;
+    if (result.status == PlayPreviewStartStatus::unavailable) { return false; }
+    if (result.status == PlayPreviewStartStatus::spawn_failed) {
         system_interface.SetMouseCursor("cross");
-        append_output(state, "error", diagnostic);
+        append_output(state, "error", result.message);
         return false;
     }
-
-    const std::array actors{started.actor};
-    if (!renderer.begin_toolset_preview_visuals(
-            actors,
-            nw::toolset::toolset_preview_door_visual_states(
-                state.play_preview.session),
-            state.play_preview.session.camera())) {
-        stop_play_preview(renderer, system_interface, doc, state);
-        append_output(state, "error", "Failed to attach play-preview actor visuals");
-        return false;
-    }
-
-    state.play_preview.pending_actor = {};
-    state.play_preview.placement_diagnostic.clear();
-    state.play_preview.visuals_attached = true;
-    reset_play_preview_input(state.play_preview);
     apply_shell_layout(doc, state);
     system_interface.SetMouseCursor("arrow");
-    append_output(state, "info",
-        started.stats.movement_disabled
-            ? fmt::format(
-                  "Play preview started with {} navigation polygons; this creature's authored movement rate is NOMOVE",
-                  started.stats.navigation_polygon_count)
-            : fmt::format("Play preview started with {} navigation polygons",
-                  started.stats.navigation_polygon_count));
-    return true;
+    const bool started = result.status == PlayPreviewStartStatus::started;
+    append_output(state, started ? "info" : "error", result.message);
+    return started;
 }
 
 bool prepare_play_preview(ClientRenderer& renderer,
@@ -7929,24 +6741,9 @@ bool prepare_play_preview(ClientRenderer& renderer,
         return false;
     }
 
-    std::filesystem::path actor_path = selected_actor;
-    if (actor_path.empty()) {
-        const auto settings = nw::toolset::load_project_preview_settings(
-            project_dir);
-        if (!settings.ok || settings.test_actor.empty()) {
-            request_play_preview_actor(doc, state,
-                settings.message.empty()
-                    ? std::string_view{"Choose a Creature blueprint for play preview"}
-                    : std::string_view{settings.message});
-            return false;
-        }
-        actor_path = settings.test_actor;
-    }
-
-    const nw::Resource actor = nw::Resource::from_path(actor_path, false);
-    if (actor.type != nw::ResourceType::utc || !actor.valid()) {
-        request_play_preview_actor(doc, state,
-            "Play-preview test actor must be a Creature blueprint");
+    const auto resolved = nw::toolset::resolve_play_preview_actor(project_dir, selected_actor);
+    if (!resolved.actor.valid()) {
+        request_play_preview_actor(doc, state, resolved.diagnostic);
         return false;
     }
     if (!renderer.area_viewer_matches_resource(tab->detail)) {
@@ -7959,750 +6756,14 @@ bool prepare_play_preview(ClientRenderer& renderer,
         return false;
     }
 
-    state.play_preview.pending_actor = actor;
-    state.play_preview.area = area;
-    state.play_preview.module_generation = state.backend.module_generation();
-    state.play_preview.tab_id = state.workspace.active_tab_id();
-    state.play_preview.placement_diagnostic.clear();
-    reset_play_preview_input(state.play_preview);
+    nw::toolset::arm_play_preview(state.play_preview, state.runtime_input, resolved.actor,
+        area, state.backend.module_generation(), state.workspace.active_tab_id());
     restore_play_preview_picker_shell(doc, state);
     focus_workspace_viewport(doc, state);
     apply_shell_layout(doc, state);
     system_interface.SetMouseCursor("cross");
     append_output(state, "info", "Click a walkable area surface to start play preview");
     return true;
-}
-
-float normalized_gamepad_axis(SDL_Gamepad* gamepad, SDL_GamepadAxis axis) noexcept
-{
-    if (!gamepad) return 0.0f;
-    const Sint16 value = SDL_GetGamepadAxis(gamepad, axis);
-    return value < 0
-        ? static_cast<float>(value) / 32768.0f
-        : static_cast<float>(value) / 32767.0f;
-}
-
-void open_play_preview_gamepad(PlayPreviewState& preview, SDL_JoystickID id)
-{
-    if (preview.gamepad || id == 0) return;
-    preview.gamepad = SDL_OpenGamepad(id);
-    if (!preview.gamepad) {
-        LOG_F(WARNING, "Play preview: failed to open gamepad: {}", SDL_GetError());
-    }
-}
-
-void close_play_preview_gamepad(PlayPreviewState& preview) noexcept
-{
-    if (!preview.gamepad) return;
-    SDL_CloseGamepad(preview.gamepad);
-    preview.gamepad = nullptr;
-}
-
-nw::toolset::PreviewInputSample sample_play_preview_input(
-    PlayPreviewState& preview, double frame_seconds)
-{
-    preview.mouse_sample_seconds += std::max(0.0, frame_seconds);
-    auto sample = preview.pending_input;
-    const bool* keys = SDL_GetKeyboardState(nullptr);
-    glm::vec2 keyboard{
-        static_cast<float>(keys[SDL_SCANCODE_E]) - static_cast<float>(keys[SDL_SCANCODE_Q]),
-        static_cast<float>(keys[SDL_SCANCODE_W]) - static_cast<float>(keys[SDL_SCANCODE_S]),
-    };
-    sample.turn_axis = static_cast<float>(keys[SDL_SCANCODE_D])
-        - static_cast<float>(keys[SDL_SCANCODE_A]);
-    glm::vec2 gamepad_move{};
-    glm::vec2 gamepad_look{};
-    const glm::vec2 keyboard_look{
-        static_cast<float>(keys[SDL_SCANCODE_RIGHT]) - static_cast<float>(keys[SDL_SCANCODE_LEFT]),
-        static_cast<float>(keys[SDL_SCANCODE_DOWN]) - static_cast<float>(keys[SDL_SCANCODE_UP]),
-    };
-    float gamepad_zoom = 0.0f;
-    if (preview.gamepad) {
-        gamepad_move = nw::toolset::preview_radial_deadzone({
-            normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_LEFTX),
-            -normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_LEFTY),
-        });
-        gamepad_look = nw::toolset::preview_radial_deadzone({
-            normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_RIGHTX),
-            normalized_gamepad_axis(preview.gamepad, SDL_GAMEPAD_AXIS_RIGHTY),
-        });
-        gamepad_zoom = normalized_gamepad_axis(
-                           preview.gamepad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
-            - normalized_gamepad_axis(
-                preview.gamepad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
-        gamepad_zoom += static_cast<float>(SDL_GetGamepadButton(
-                            preview.gamepad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER))
-            - static_cast<float>(SDL_GetGamepadButton(
-                preview.gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER));
-    }
-
-    sample.move_axis = keyboard + gamepad_move;
-    sample.move_axis = glm::clamp(
-        sample.move_axis, glm::vec2{-1.0f}, glm::vec2{1.0f});
-    sample.look_axis = keyboard_look + gamepad_look;
-    constexpr float mouse_radians_per_pixel = 0.0035f;
-    constexpr float look_radians_per_second = 2.5f;
-    if (preview.mouse_sample_seconds > 0.0) {
-        const float mouse_scale = mouse_radians_per_pixel
-            / (look_radians_per_second
-                * static_cast<float>(preview.mouse_sample_seconds));
-        sample.look_axis += glm::vec2{
-            preview.mouse_look_x * mouse_scale,
-            preview.mouse_look_y * mouse_scale,
-        };
-    }
-    sample.zoom_axis = gamepad_zoom;
-    sample.zoom_delta = preview.wheel_zoom;
-    return sample;
-}
-
-void smooth_viewer_metric(float& latest_seconds, float& smoothed_seconds, float sample_seconds)
-{
-    if (sample_seconds < 0.0f) {
-        return;
-    }
-
-    latest_seconds = sample_seconds;
-    if (smoothed_seconds <= 0.0f) {
-        smoothed_seconds = sample_seconds;
-    } else {
-        constexpr float kSmoothing = 0.10f;
-        smoothed_seconds += (sample_seconds - smoothed_seconds) * kSmoothing;
-    }
-}
-
-float display_metric_seconds(float latest_seconds, float smoothed_seconds)
-{
-    return smoothed_seconds > 0.0f ? smoothed_seconds : latest_seconds;
-}
-
-bool viewer_fps_overlay_verbose()
-{
-    static const bool enabled = environment_flag_enabled("ROLLNW_CLIENT_FPS_OVERLAY_VERBOSE");
-    return enabled;
-}
-
-class ScopedClientGpuTimer {
-public:
-    ScopedClientGpuTimer(ClientRenderer& renderer, const char* label)
-        : renderer_{&renderer}
-        , scope_{renderer.begin_gpu_timer(label)}
-    {
-    }
-
-    ~ScopedClientGpuTimer()
-    {
-        if (renderer_ && scope_.valid()) {
-            renderer_->end_gpu_timer(scope_);
-        }
-    }
-
-    ScopedClientGpuTimer(const ScopedClientGpuTimer&) = delete;
-    ScopedClientGpuTimer& operator=(const ScopedClientGpuTimer&) = delete;
-
-private:
-    ClientRenderer* renderer_ = nullptr;
-    ClientGpuTimerScope scope_{};
-};
-
-void update_viewer_frame_metrics(AppState& state, float frame_seconds)
-{
-    if (frame_seconds <= 0.0f) {
-        return;
-    }
-
-    smooth_viewer_metric(state.viewer_fps_frame_seconds, state.viewer_fps_smoothed_seconds, frame_seconds);
-}
-
-void update_viewer_render_metrics(AppState& state,
-    float work_seconds,
-    float sync_seconds,
-    float draw_seconds,
-    float ui_seconds,
-    float view_seconds,
-    float hud_seconds,
-    float overlay_seconds,
-    float palette_seconds,
-    float present_seconds)
-{
-    smooth_viewer_metric(state.viewer_fps_work_seconds, state.viewer_fps_work_smoothed_seconds, work_seconds);
-    smooth_viewer_metric(state.viewer_fps_sync_seconds, state.viewer_fps_sync_smoothed_seconds, sync_seconds);
-    smooth_viewer_metric(state.viewer_fps_draw_seconds, state.viewer_fps_draw_smoothed_seconds, draw_seconds);
-    smooth_viewer_metric(state.viewer_fps_ui_seconds, state.viewer_fps_ui_smoothed_seconds, ui_seconds);
-    smooth_viewer_metric(state.viewer_fps_view_seconds, state.viewer_fps_view_smoothed_seconds, view_seconds);
-    smooth_viewer_metric(state.viewer_fps_hud_seconds, state.viewer_fps_hud_smoothed_seconds, hud_seconds);
-    smooth_viewer_metric(state.viewer_fps_overlay_seconds, state.viewer_fps_overlay_smoothed_seconds, overlay_seconds);
-    smooth_viewer_metric(state.viewer_fps_palette_seconds, state.viewer_fps_palette_smoothed_seconds, palette_seconds);
-    smooth_viewer_metric(state.viewer_fps_present_seconds, state.viewer_fps_present_smoothed_seconds, present_seconds);
-}
-
-void update_viewer_internal_metrics(AppState& state, const nw::render::viewer::ViewerFrameStats* stats)
-{
-    if (!stats) {
-        return;
-    }
-
-    smooth_viewer_metric(state.viewer_fps_tick_seconds, state.viewer_fps_tick_smoothed_seconds, stats->tick_seconds);
-    smooth_viewer_metric(state.viewer_fps_setup_seconds, state.viewer_fps_setup_smoothed_seconds, stats->setup_seconds);
-    smooth_viewer_metric(state.viewer_fps_shadow_seconds, state.viewer_fps_shadow_smoothed_seconds, stats->shadow_seconds);
-    smooth_viewer_metric(state.viewer_fps_opaque_seconds, state.viewer_fps_opaque_smoothed_seconds, stats->opaque_seconds);
-    smooth_viewer_metric(state.viewer_fps_water_seconds, state.viewer_fps_water_smoothed_seconds, stats->water_seconds);
-    smooth_viewer_metric(state.viewer_fps_transparent_seconds,
-        state.viewer_fps_transparent_smoothed_seconds,
-        stats->transparent_seconds);
-    smooth_viewer_metric(state.viewer_fps_particles_seconds,
-        state.viewer_fps_particles_smoothed_seconds,
-        stats->particles_seconds);
-    smooth_viewer_metric(state.viewer_fps_debug_seconds,
-        state.viewer_fps_debug_smoothed_seconds,
-        stats->debug_seconds);
-    smooth_viewer_metric(state.viewer_fps_area_prepare_seconds,
-        state.viewer_fps_area_prepare_smoothed_seconds,
-        stats->area_prepare_seconds);
-    smooth_viewer_metric(state.viewer_fps_view_internal_seconds,
-        state.viewer_fps_view_internal_smoothed_seconds,
-        stats->total_render_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_shadow_seconds,
-        state.viewer_fps_gpu_shadow_smoothed_seconds,
-        stats->gpu_shadow_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_opaque_seconds,
-        state.viewer_fps_gpu_opaque_smoothed_seconds,
-        stats->gpu_opaque_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_water_seconds,
-        state.viewer_fps_gpu_water_smoothed_seconds,
-        stats->gpu_water_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_transparent_seconds,
-        state.viewer_fps_gpu_transparent_smoothed_seconds,
-        stats->gpu_transparent_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_particles_seconds,
-        state.viewer_fps_gpu_particles_smoothed_seconds,
-        stats->gpu_particles_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_debug_seconds,
-        state.viewer_fps_gpu_debug_smoothed_seconds,
-        stats->gpu_debug_seconds);
-    smooth_viewer_metric(state.viewer_fps_gpu_total_seconds,
-        state.viewer_fps_gpu_total_smoothed_seconds,
-        stats->gpu_shadow_seconds + stats->gpu_opaque_seconds + stats->gpu_water_seconds
-            + stats->gpu_transparent_seconds + stats->gpu_particles_seconds + stats->gpu_debug_seconds);
-    state.viewer_fps_gpu_timer_count = stats->gpu_timer_count;
-    state.viewer_fps_model_count = stats->model_count;
-    state.viewer_fps_particle_system_count = stats->particle_system_count;
-    state.viewer_fps_render_model_animation_sample_input_count = stats->render_model_animation_sample_stats.input_count;
-    state.viewer_fps_render_model_animation_sampled_count = stats->render_model_animation_sample_stats.sampled_count;
-    state.viewer_fps_render_model_animation_disabled_count = stats->render_model_animation_sample_stats.disabled_count;
-    state.viewer_fps_render_model_animation_missing_asset_data_count = stats->render_model_animation_sample_stats.missing_asset_data_count;
-    state.viewer_fps_render_model_animation_invalid_skeleton_count = stats->render_model_animation_sample_stats.invalid_skeleton_count;
-    state.viewer_fps_render_model_animation_failed_sample_count = stats->render_model_animation_sample_stats.failed_sample_count;
-    state.viewer_fps_prepared_model_surface_draw_count = stats->prepared_model_surface_stats.draw_count;
-    state.viewer_fps_prepared_model_surface_render_model_draw_count = stats->prepared_model_surface_stats.render_model_draw_count;
-    state.viewer_fps_prepared_render_model_skin_table_skinned_surface_count = stats->prepared_render_model_skin_table_stats.render_model_skinned_surface_count;
-    state.viewer_fps_prepared_render_model_skin_table_assigned_surface_count = stats->prepared_render_model_skin_table_stats.assigned_surface_count;
-    state.viewer_fps_prepared_render_model_skin_table_entry_count = stats->prepared_render_model_skin_table_stats.table_entry_count;
-    state.viewer_fps_prepared_render_model_skin_table_matrix_count = stats->prepared_render_model_skin_table_stats.matrix_count;
-    state.viewer_fps_prepared_render_model_skin_table_bind_pose_fallback_count = stats->prepared_render_model_skin_table_stats.bind_pose_fallback_surface_count;
-    state.viewer_fps_prepared_render_model_skin_table_invalid_skin_index_count = stats->prepared_render_model_skin_table_stats.invalid_skin_index_count;
-    state.viewer_fps_area_cache_record_count = stats->area_cache_record_count;
-    state.viewer_fps_area_cache_static_record_count = stats->area_cache_static_record_count;
-    state.viewer_fps_area_cache_dynamic_record_count = stats->area_cache_dynamic_record_count;
-    state.viewer_fps_area_cache_opaque_record_count = stats->area_cache_opaque_record_count;
-    state.viewer_fps_area_cache_water_record_count = stats->area_cache_water_record_count;
-    state.viewer_fps_area_cache_transparent_record_count = stats->area_cache_transparent_record_count;
-    state.viewer_fps_area_cache_shadow_caster_record_count = stats->area_cache_shadow_caster_record_count;
-    state.viewer_fps_area_cache_prepared_draw_count = stats->area_cache_prepared_draw_count;
-    state.viewer_fps_area_cache_light_index_count = stats->area_cache_light_index_count;
-    state.viewer_fps_area_cache_max_light_indices_per_record = stats->area_cache_max_light_indices_per_record;
-    state.viewer_fps_area_cache_chunk_count = stats->area_cache_chunk_count;
-    state.viewer_fps_area_cache_nonempty_chunk_count = stats->area_cache_nonempty_chunk_count;
-    state.viewer_fps_area_cache_max_records_per_chunk = stats->area_cache_max_records_per_chunk;
-    state.viewer_fps_area_frame_visible_record_count = stats->area_frame_visible_record_count;
-    state.viewer_fps_area_frame_visible_static_record_count = stats->area_frame_visible_static_record_count;
-    state.viewer_fps_area_frame_visible_dynamic_record_count = stats->area_frame_visible_dynamic_record_count;
-    state.viewer_fps_area_frame_visible_chunk_count = stats->area_frame_visible_chunk_count;
-    state.viewer_fps_area_frame_opaque_record_count = stats->area_frame_opaque_record_count;
-    state.viewer_fps_area_frame_water_record_count = stats->area_frame_water_record_count;
-    state.viewer_fps_area_frame_transparent_record_count = stats->area_frame_transparent_record_count;
-    state.viewer_fps_area_frame_shadow_caster_record_count = stats->area_frame_shadow_caster_record_count;
-    state.viewer_fps_area_frame_visible_prepared_surface_count = stats->area_frame_visible_prepared_surface_count;
-    state.viewer_fps_area_frame_uses_cached_draw_lists = stats->area_frame_uses_cached_draw_lists;
-    state.viewer_fps_local_light_count = stats->local_light_count;
-    state.viewer_fps_local_light_colored_count = stats->local_light_colored_count;
-    state.viewer_fps_local_light_color_max = stats->local_light_color_max;
-    state.viewer_fps_local_light_intensity_max = stats->local_light_intensity_max;
-    state.viewer_fps_local_light_selected_draw_count = stats->local_light_selected_draw_count;
-    state.viewer_fps_local_light_selected_total = stats->local_light_selected_total;
-    state.viewer_fps_local_light_selected_max = stats->local_light_selected_max;
-    state.viewer_fps_local_light_selected_colored_total = stats->local_light_selected_colored_total;
-    state.viewer_fps_local_light_selected_color_max = stats->local_light_selected_color_max;
-    state.viewer_fps_local_light_selected_intensity_max = stats->local_light_selected_intensity_max;
-    state.viewer_fps_forward_plus_light_count = stats->forward_plus_light_count;
-    state.viewer_fps_forward_plus_cluster_count = stats->forward_plus_cluster_count;
-    state.viewer_fps_forward_plus_active_cluster_count = stats->forward_plus_active_cluster_count;
-    state.viewer_fps_forward_plus_cluster_light_index_count = stats->forward_plus_cluster_light_index_count;
-    state.viewer_fps_forward_plus_max_lights_per_cluster = stats->forward_plus_max_lights_per_cluster;
-    state.viewer_fps_forward_plus_overflow_cluster_count = stats->forward_plus_overflow_cluster_count;
-    state.viewer_fps_forward_plus_overflow_light_count = stats->forward_plus_overflow_light_count;
-    state.viewer_fps_forward_plus_upload_bytes = stats->forward_plus_upload_bytes;
-    state.viewer_fps_forward_plus_tile_size = stats->forward_plus_tile_size;
-    state.viewer_fps_forward_plus_depth_slices = stats->forward_plus_depth_slices;
-    state.viewer_fps_shadow_cascade_count = stats->shadow_cascade_count;
-    state.viewer_fps_shadow_resolution = stats->shadow_resolution;
-    state.viewer_fps_shadow_caster_model_count = stats->shadow_caster_model_count;
-    state.viewer_fps_shadow_no_caster_model_count = stats->shadow_no_caster_model_count;
-    state.viewer_fps_shadow_submitted_model_count = stats->shadow_submitted_model_count;
-    state.viewer_fps_shadow_culled_model_count = stats->shadow_culled_model_count;
-    state.viewer_fps_main_pass_count = stats->main_pass_count;
-    state.viewer_fps_draw_count = stats->total_command_stats.draw_count;
-    state.viewer_fps_shadow_draw_count = stats->shadow_command_stats.draw_count;
-    state.viewer_fps_transparent_draw_count = stats->transparent_command_stats.draw_count;
-    state.viewer_fps_particle_draw_count = stats->particle_command_stats.draw_count;
-    state.viewer_fps_indirect_draw_call_count = stats->total_command_stats.indirect_draw_call_count;
-    state.viewer_fps_draw_instance_count = stats->total_command_stats.draw_instance_count;
-    state.viewer_fps_draw_index_count = stats->total_command_stats.draw_index_count;
-    state.viewer_fps_pipeline_bind_count = stats->total_command_stats.pipeline_bind_count;
-    state.viewer_fps_pipeline_bind_skipped_count = stats->total_command_stats.pipeline_bind_skipped_count;
-    state.viewer_fps_resource_bind_count = stats->total_command_stats.resource_bind_count;
-    state.viewer_fps_resource_bind_skipped_count = stats->total_command_stats.resource_bind_skipped_count;
-    state.viewer_fps_uniform_allocation_count = stats->total_command_stats.uniform_allocation_count;
-    state.viewer_fps_uniform_allocation_bytes = stats->total_command_stats.uniform_allocation_bytes;
-    state.viewer_fps_shadows_rendered = stats->shadows_rendered;
-    state.viewer_fps_water_rendered = stats->water_rendered;
-}
-
-void update_client_gpu_metrics(AppState& state, const ClientGpuFrameStats* stats)
-{
-    if (!stats) {
-        return;
-    }
-
-    smooth_viewer_metric(state.viewer_fps_editor_gpu_ui_seconds,
-        state.viewer_fps_editor_gpu_ui_smoothed_seconds,
-        stats->ui_seconds);
-    smooth_viewer_metric(state.viewer_fps_editor_gpu_viewport_seconds,
-        state.viewer_fps_editor_gpu_viewport_smoothed_seconds,
-        stats->viewport_seconds);
-    smooth_viewer_metric(state.viewer_fps_editor_gpu_overlay_seconds,
-        state.viewer_fps_editor_gpu_overlay_smoothed_seconds,
-        stats->overlay_seconds);
-    smooth_viewer_metric(state.viewer_fps_editor_gpu_palette_seconds,
-        state.viewer_fps_editor_gpu_palette_smoothed_seconds,
-        stats->palette_seconds);
-    smooth_viewer_metric(state.viewer_fps_editor_gpu_total_seconds,
-        state.viewer_fps_editor_gpu_total_smoothed_seconds,
-        stats->total_seconds);
-    state.viewer_fps_editor_gpu_timer_count = stats->timer_count;
-    state.viewer_fps_descriptor_allocation_failure_count = stats->command_stats.descriptor_allocation_failure_count;
-    state.viewer_fps_descriptor_ring_capacity_bytes = stats->command_stats.descriptor_ring_capacity_bytes;
-    state.viewer_fps_descriptor_ring_required_bytes = stats->command_stats.descriptor_ring_required_bytes;
-    state.viewer_fps_resource_bind_failure_count = stats->command_stats.resource_bind_failure_count;
-    state.viewer_fps_dropped_draw_count = stats->command_stats.dropped_draw_count;
-}
-
-std::string format_viewer_fps_rml(const AppState& state)
-{
-    const float frame_seconds = display_metric_seconds(
-        state.viewer_fps_frame_seconds, state.viewer_fps_smoothed_seconds);
-    if (frame_seconds <= 0.0f) {
-        return "-- FPS";
-    }
-
-    const float work_seconds = display_metric_seconds(
-        state.viewer_fps_work_seconds, state.viewer_fps_work_smoothed_seconds);
-    const float sync_seconds = display_metric_seconds(
-        state.viewer_fps_sync_seconds, state.viewer_fps_sync_smoothed_seconds);
-    const float draw_seconds = display_metric_seconds(
-        state.viewer_fps_draw_seconds, state.viewer_fps_draw_smoothed_seconds);
-    const float ui_seconds = display_metric_seconds(
-        state.viewer_fps_ui_seconds, state.viewer_fps_ui_smoothed_seconds);
-    const float view_seconds = display_metric_seconds(
-        state.viewer_fps_view_seconds, state.viewer_fps_view_smoothed_seconds);
-    const float hud_seconds = display_metric_seconds(
-        state.viewer_fps_hud_seconds, state.viewer_fps_hud_smoothed_seconds);
-    const float overlay_seconds = display_metric_seconds(
-        state.viewer_fps_overlay_seconds, state.viewer_fps_overlay_smoothed_seconds);
-    const float palette_seconds = display_metric_seconds(
-        state.viewer_fps_palette_seconds, state.viewer_fps_palette_smoothed_seconds);
-    const float present_seconds = display_metric_seconds(
-        state.viewer_fps_present_seconds, state.viewer_fps_present_smoothed_seconds);
-    const float tick_seconds = display_metric_seconds(
-        state.viewer_fps_tick_seconds, state.viewer_fps_tick_smoothed_seconds);
-    const float setup_seconds = display_metric_seconds(
-        state.viewer_fps_setup_seconds, state.viewer_fps_setup_smoothed_seconds);
-    const float shadow_seconds = display_metric_seconds(
-        state.viewer_fps_shadow_seconds, state.viewer_fps_shadow_smoothed_seconds);
-    const float opaque_seconds = display_metric_seconds(
-        state.viewer_fps_opaque_seconds, state.viewer_fps_opaque_smoothed_seconds);
-    const float water_seconds = display_metric_seconds(
-        state.viewer_fps_water_seconds, state.viewer_fps_water_smoothed_seconds);
-    const float transparent_seconds = display_metric_seconds(
-        state.viewer_fps_transparent_seconds, state.viewer_fps_transparent_smoothed_seconds);
-    const float particles_seconds = display_metric_seconds(
-        state.viewer_fps_particles_seconds, state.viewer_fps_particles_smoothed_seconds);
-    const float debug_seconds = display_metric_seconds(
-        state.viewer_fps_debug_seconds, state.viewer_fps_debug_smoothed_seconds);
-    const float area_prepare_seconds = display_metric_seconds(
-        state.viewer_fps_area_prepare_seconds, state.viewer_fps_area_prepare_smoothed_seconds);
-    const float view_internal_seconds = display_metric_seconds(
-        state.viewer_fps_view_internal_seconds, state.viewer_fps_view_internal_smoothed_seconds);
-    const float gpu_shadow_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_shadow_seconds, state.viewer_fps_gpu_shadow_smoothed_seconds);
-    const float gpu_opaque_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_opaque_seconds, state.viewer_fps_gpu_opaque_smoothed_seconds);
-    const float gpu_water_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_water_seconds, state.viewer_fps_gpu_water_smoothed_seconds);
-    const float gpu_transparent_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_transparent_seconds, state.viewer_fps_gpu_transparent_smoothed_seconds);
-    const float gpu_particles_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_particles_seconds, state.viewer_fps_gpu_particles_smoothed_seconds);
-    const float gpu_debug_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_debug_seconds, state.viewer_fps_gpu_debug_smoothed_seconds);
-    const float gpu_total_seconds = display_metric_seconds(
-        state.viewer_fps_gpu_total_seconds, state.viewer_fps_gpu_total_smoothed_seconds);
-    const float editor_gpu_ui_seconds = display_metric_seconds(
-        state.viewer_fps_editor_gpu_ui_seconds, state.viewer_fps_editor_gpu_ui_smoothed_seconds);
-    const float editor_gpu_viewport_seconds = display_metric_seconds(
-        state.viewer_fps_editor_gpu_viewport_seconds, state.viewer_fps_editor_gpu_viewport_smoothed_seconds);
-    const float editor_gpu_overlay_seconds = display_metric_seconds(
-        state.viewer_fps_editor_gpu_overlay_seconds, state.viewer_fps_editor_gpu_overlay_smoothed_seconds);
-    const float editor_gpu_palette_seconds = display_metric_seconds(
-        state.viewer_fps_editor_gpu_palette_seconds, state.viewer_fps_editor_gpu_palette_smoothed_seconds);
-    const float editor_gpu_total_seconds = display_metric_seconds(
-        state.viewer_fps_editor_gpu_total_seconds, state.viewer_fps_editor_gpu_total_smoothed_seconds);
-
-    char compact_frame_text[128]{};
-    std::snprintf(compact_frame_text,
-        sizeof(compact_frame_text),
-        "%.1f FPS frame %.1f | view %.1f ui %.1f present %.1f ms",
-        static_cast<double>(1.0f / frame_seconds),
-        static_cast<double>(frame_seconds * 1000.0f),
-        static_cast<double>(view_seconds * 1000.0f),
-        static_cast<double>(ui_seconds * 1000.0f),
-        static_cast<double>(present_seconds * 1000.0f));
-
-    char compact_gpu_text[128]{};
-    std::snprintf(compact_gpu_text,
-        sizeof(compact_gpu_text),
-        "gpu vp %.2f pass %.2f ui %.2f ov %.2f pal %.2f ms",
-        static_cast<double>(editor_gpu_viewport_seconds * 1000.0f),
-        static_cast<double>(gpu_total_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_ui_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_overlay_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_palette_seconds * 1000.0f));
-
-    char compact_scene_text[128]{};
-    std::snprintf(compact_scene_text,
-        sizeof(compact_scene_text),
-        "vis %u chunks %u lights %u | draws %llu ind %llu",
-        state.viewer_fps_area_frame_visible_record_count,
-        state.viewer_fps_area_frame_visible_chunk_count,
-        state.viewer_fps_forward_plus_light_count,
-        static_cast<unsigned long long>(state.viewer_fps_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_indirect_draw_call_count));
-
-    std::string compact_result = escape_html(compact_frame_text);
-    if (state.viewer_fps_gpu_timer_count > 0 || state.viewer_fps_editor_gpu_timer_count > 0) {
-        compact_result += "<br/>";
-        compact_result += escape_html(compact_gpu_text);
-    }
-    compact_result += "<br/>";
-    compact_result += escape_html(compact_scene_text);
-    if (!viewer_fps_overlay_verbose()) {
-        return compact_result;
-    }
-
-    char frame_text[64]{};
-    std::snprintf(frame_text,
-        sizeof(frame_text),
-        "%.1f FPS | frame %.1f ms",
-        static_cast<double>(1.0f / frame_seconds),
-        static_cast<double>(frame_seconds * 1000.0f));
-
-    char cost_text[128]{};
-    std::snprintf(cost_text,
-        sizeof(cost_text),
-        "work %.1f sync %.1f cpu-draw %.1f present %.1f ms",
-        static_cast<double>(work_seconds * 1000.0f),
-        static_cast<double>(sync_seconds * 1000.0f),
-        static_cast<double>(draw_seconds * 1000.0f),
-        static_cast<double>(present_seconds * 1000.0f));
-
-    char draw_text[144]{};
-    std::snprintf(draw_text,
-        sizeof(draw_text),
-        "ui %.1f view %.1f hud %.1f overlay %.1f palette %.1f ms",
-        static_cast<double>(ui_seconds * 1000.0f),
-        static_cast<double>(view_seconds * 1000.0f),
-        static_cast<double>(hud_seconds * 1000.0f),
-        static_cast<double>(overlay_seconds * 1000.0f),
-        static_cast<double>(palette_seconds * 1000.0f));
-
-    char view_text[160]{};
-    std::snprintf(view_text,
-        sizeof(view_text),
-        "view total %.1f tick %.1f setup %.1f prep %.3f shadow %.1f particles %.1f debug %.1f ms",
-        static_cast<double>(view_internal_seconds * 1000.0f),
-        static_cast<double>(tick_seconds * 1000.0f),
-        static_cast<double>(setup_seconds * 1000.0f),
-        static_cast<double>(area_prepare_seconds * 1000.0f),
-        static_cast<double>(shadow_seconds * 1000.0f),
-        static_cast<double>(particles_seconds * 1000.0f),
-        static_cast<double>(debug_seconds * 1000.0f));
-
-    char gpu_text[192]{};
-    std::snprintf(gpu_text,
-        sizeof(gpu_text),
-        "gpu total %.2f opaque %.2f shadow %.2f water %.2f trans %.2f ps %.2f debug %.2f ms timers %u",
-        static_cast<double>(gpu_total_seconds * 1000.0f),
-        static_cast<double>(gpu_opaque_seconds * 1000.0f),
-        static_cast<double>(gpu_shadow_seconds * 1000.0f),
-        static_cast<double>(gpu_water_seconds * 1000.0f),
-        static_cast<double>(gpu_transparent_seconds * 1000.0f),
-        static_cast<double>(gpu_particles_seconds * 1000.0f),
-        static_cast<double>(gpu_debug_seconds * 1000.0f),
-        state.viewer_fps_gpu_timer_count);
-
-    char editor_gpu_text[160]{};
-    std::snprintf(editor_gpu_text,
-        sizeof(editor_gpu_text),
-        "gpu editor total %.2f ui %.2f viewport %.2f overlay %.2f palette %.2f ms timers %u",
-        static_cast<double>(editor_gpu_total_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_ui_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_viewport_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_overlay_seconds * 1000.0f),
-        static_cast<double>(editor_gpu_palette_seconds * 1000.0f),
-        state.viewer_fps_editor_gpu_timer_count);
-
-    char pass_text[192]{};
-    std::snprintf(pass_text,
-        sizeof(pass_text),
-        "passes opaque %.1f water %.1f trans %.1f ms | models %u ps %u lights %u/%u c%.2f i%.2f lit %u/%u/%u lc%u c%.2f i%.2f sh %u pass %u",
-        static_cast<double>(opaque_seconds * 1000.0f),
-        static_cast<double>(water_seconds * 1000.0f),
-        static_cast<double>(transparent_seconds * 1000.0f),
-        state.viewer_fps_model_count,
-        state.viewer_fps_particle_system_count,
-        state.viewer_fps_local_light_count,
-        state.viewer_fps_local_light_colored_count,
-        static_cast<double>(state.viewer_fps_local_light_color_max),
-        static_cast<double>(state.viewer_fps_local_light_intensity_max),
-        state.viewer_fps_local_light_selected_draw_count,
-        state.viewer_fps_local_light_selected_total,
-        state.viewer_fps_local_light_selected_max,
-        state.viewer_fps_local_light_selected_colored_total,
-        static_cast<double>(state.viewer_fps_local_light_selected_color_max),
-        static_cast<double>(state.viewer_fps_local_light_selected_intensity_max),
-        state.viewer_fps_shadow_cascade_count,
-        state.viewer_fps_main_pass_count);
-
-    char shadow_text[144]{};
-    std::snprintf(shadow_text,
-        sizeof(shadow_text),
-        "shadow res %u casters %u no-caster %u submitted %u culled %u",
-        state.viewer_fps_shadow_resolution,
-        state.viewer_fps_shadow_caster_model_count,
-        state.viewer_fps_shadow_no_caster_model_count,
-        state.viewer_fps_shadow_submitted_model_count,
-        state.viewer_fps_shadow_culled_model_count);
-
-    char render_model_text[256]{};
-    std::snprintf(render_model_text,
-        sizeof(render_model_text),
-        "rmodel samples in %zu ok %zu dis %zu miss %zu badskel %zu fail %zu | surf %u rm %u skin %u assign %u entries %u mats %u bind %u invalid %u",
-        state.viewer_fps_render_model_animation_sample_input_count,
-        state.viewer_fps_render_model_animation_sampled_count,
-        state.viewer_fps_render_model_animation_disabled_count,
-        state.viewer_fps_render_model_animation_missing_asset_data_count,
-        state.viewer_fps_render_model_animation_invalid_skeleton_count,
-        state.viewer_fps_render_model_animation_failed_sample_count,
-        state.viewer_fps_prepared_model_surface_draw_count,
-        state.viewer_fps_prepared_model_surface_render_model_draw_count,
-        state.viewer_fps_prepared_render_model_skin_table_skinned_surface_count,
-        state.viewer_fps_prepared_render_model_skin_table_assigned_surface_count,
-        state.viewer_fps_prepared_render_model_skin_table_entry_count,
-        state.viewer_fps_prepared_render_model_skin_table_matrix_count,
-        state.viewer_fps_prepared_render_model_skin_table_bind_pose_fallback_count,
-        state.viewer_fps_prepared_render_model_skin_table_invalid_skin_index_count);
-
-    char area_cache_text[224]{};
-    std::snprintf(area_cache_text,
-        sizeof(area_cache_text),
-        "area cache rec %u static %u dyn %u prep draws %u lights %u max %u chunks %u/%u max %u pass %u/%u/%u sh %u",
-        state.viewer_fps_area_cache_record_count,
-        state.viewer_fps_area_cache_static_record_count,
-        state.viewer_fps_area_cache_dynamic_record_count,
-        state.viewer_fps_area_cache_prepared_draw_count,
-        state.viewer_fps_area_cache_light_index_count,
-        state.viewer_fps_area_cache_max_light_indices_per_record,
-        state.viewer_fps_area_cache_nonempty_chunk_count,
-        state.viewer_fps_area_cache_chunk_count,
-        state.viewer_fps_area_cache_max_records_per_chunk,
-        state.viewer_fps_area_cache_opaque_record_count,
-        state.viewer_fps_area_cache_water_record_count,
-        state.viewer_fps_area_cache_transparent_record_count,
-        state.viewer_fps_area_cache_shadow_caster_record_count);
-
-    char area_frame_text[224]{};
-    std::snprintf(area_frame_text,
-        sizeof(area_frame_text),
-        "area frame vis %u static %u dyn %u prep surf %u chunks %u lists %u/%u/%u sh %u cached %u",
-        state.viewer_fps_area_frame_visible_record_count,
-        state.viewer_fps_area_frame_visible_static_record_count,
-        state.viewer_fps_area_frame_visible_dynamic_record_count,
-        state.viewer_fps_area_frame_visible_prepared_surface_count,
-        state.viewer_fps_area_frame_visible_chunk_count,
-        state.viewer_fps_area_frame_opaque_record_count,
-        state.viewer_fps_area_frame_water_record_count,
-        state.viewer_fps_area_frame_transparent_record_count,
-        state.viewer_fps_area_frame_shadow_caster_record_count,
-        state.viewer_fps_area_frame_uses_cached_draw_lists ? 1u : 0u);
-
-    char forward_plus_text[192]{};
-    std::snprintf(forward_plus_text,
-        sizeof(forward_plus_text),
-        "f+ %s lights %u clusters %u/%u refs %u max %u ov %u/%u upload %.1f KB tile %u z %u dbg %s",
-        state.shell.viewer_forward_plus_enabled ? "on" : "off",
-        state.viewer_fps_forward_plus_light_count,
-        state.viewer_fps_forward_plus_active_cluster_count,
-        state.viewer_fps_forward_plus_cluster_count,
-        state.viewer_fps_forward_plus_cluster_light_index_count,
-        state.viewer_fps_forward_plus_max_lights_per_cluster,
-        state.viewer_fps_forward_plus_overflow_cluster_count,
-        state.viewer_fps_forward_plus_overflow_light_count,
-        static_cast<double>(state.viewer_fps_forward_plus_upload_bytes) / 1024.0,
-        state.viewer_fps_forward_plus_tile_size,
-        state.viewer_fps_forward_plus_depth_slices,
-        nw::toolset::forward_plus_debug_mode_label(state.shell.viewer_forward_plus_debug_mode));
-
-    char submit_text[224]{};
-    std::snprintf(submit_text,
-        sizeof(submit_text),
-        "submit draws %llu ind %llu inst %llu idx %.1fM sh %llu trans %llu ps %llu | pipe %llu/%llu res %llu/%llu ubos %llu %.1f KB desc %.1f/%.1f KB fail %llu/%llu drop %llu",
-        static_cast<unsigned long long>(state.viewer_fps_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_indirect_draw_call_count),
-        static_cast<unsigned long long>(state.viewer_fps_draw_instance_count),
-        static_cast<double>(state.viewer_fps_draw_index_count) / 1000000.0,
-        static_cast<unsigned long long>(state.viewer_fps_shadow_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_transparent_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_particle_draw_count),
-        static_cast<unsigned long long>(state.viewer_fps_pipeline_bind_count),
-        static_cast<unsigned long long>(state.viewer_fps_pipeline_bind_skipped_count),
-        static_cast<unsigned long long>(state.viewer_fps_resource_bind_count),
-        static_cast<unsigned long long>(state.viewer_fps_resource_bind_skipped_count),
-        static_cast<unsigned long long>(state.viewer_fps_uniform_allocation_count),
-        static_cast<double>(state.viewer_fps_uniform_allocation_bytes) / 1024.0,
-        static_cast<double>(state.viewer_fps_descriptor_ring_required_bytes) / 1024.0,
-        static_cast<double>(state.viewer_fps_descriptor_ring_capacity_bytes) / 1024.0,
-        static_cast<unsigned long long>(state.viewer_fps_descriptor_allocation_failure_count),
-        static_cast<unsigned long long>(state.viewer_fps_resource_bind_failure_count),
-        static_cast<unsigned long long>(state.viewer_fps_dropped_draw_count));
-
-    std::string result = escape_html(frame_text) + "<br/>" + escape_html(cost_text) + "<br/>"
-        + escape_html(draw_text) + "<br/>" + escape_html(view_text) + "<br/>" + escape_html(pass_text)
-        + "<br/>" + escape_html(shadow_text);
-    if (state.viewer_fps_model_count > 0 || state.viewer_fps_render_model_animation_sample_input_count > 0
-        || state.viewer_fps_prepared_model_surface_draw_count > 0) {
-        result += "<br/>";
-        result += escape_html(render_model_text);
-    }
-    if (state.viewer_fps_gpu_timer_count > 0) {
-        result += "<br/>";
-        result += escape_html(gpu_text);
-    }
-    if (state.viewer_fps_editor_gpu_timer_count > 0) {
-        result += "<br/>";
-        result += escape_html(editor_gpu_text);
-    }
-    if (state.viewer_fps_area_cache_record_count > 0) {
-        result += "<br/>";
-        result += escape_html(area_cache_text);
-        result += "<br/>";
-        result += escape_html(area_frame_text);
-    }
-    if (state.viewer_fps_forward_plus_cluster_count > 0) {
-        result += "<br/>";
-        result += escape_html(forward_plus_text);
-    }
-    result += "<br/>";
-    result += escape_html(submit_text);
-    return result;
-}
-
-void sync_viewer_fps_overlay(Rml::ElementDocument* fps_doc,
-    const std::optional<WorkspaceViewerViewportRequest>& viewer_viewport,
-    const AppState& state)
-{
-    auto* overlay = find_el(fps_doc, "viewer_fps_overlay");
-    if (!overlay) {
-        return;
-    }
-
-    if (!viewer_viewport || !viewer_viewport->rect.valid()) {
-        overlay->SetProperty("display", "none");
-        return;
-    }
-
-    const bool verbose = viewer_fps_overlay_verbose();
-    const int overlay_width = verbose ? 776 : 446;
-    constexpr int kOverlayMargin = 8;
-    const auto& rect = viewer_viewport->rect;
-    const int rect_width = static_cast<int>(rect.width);
-    const int left = std::max(rect.x + kOverlayMargin, rect.x + rect_width - overlay_width - kOverlayMargin);
-    const int top = rect.y + kOverlayMargin;
-
-    overlay->SetInnerRML(format_viewer_fps_rml(state));
-    overlay->SetProperty("display", "block");
-    overlay->SetProperty("width", std::to_string(verbose ? 760 : 430) + "px");
-    overlay->SetProperty("height", std::to_string(verbose ? 144 : 54) + "px");
-    overlay->SetProperty("left", std::to_string(left) + "px");
-    overlay->SetProperty("top", std::to_string(top) + "px");
-}
-
-void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
-    const std::optional<WorkspaceViewerViewportRequest>& viewer_viewport,
-    const AppState& state)
-{
-    auto* overlay = find_el(fps_doc, "play_preview_viewport_overlay");
-    if (!overlay) return;
-
-    const bool visible = viewer_viewport && viewer_viewport->rect.valid()
-        && (state.play_preview.session.active()
-            || state.play_preview.placement_pending()
-            || state.play_preview.selecting_actor);
-    if (!visible) {
-        overlay->SetProperty("display", "none");
-        return;
-    }
-
-    constexpr int kOverlayMargin = 8;
-    const auto& rect = viewer_viewport->rect;
-    const bool navigation_debug
-        = nw::toolset::toolset_preview_navigation_debug(
-            state.play_preview.session)
-              .enabled;
-    const bool placement_failed = state.play_preview.placement_pending()
-        && !state.play_preview.placement_diagnostic.empty();
-    overlay->SetInnerRML(
-        state.play_preview.selecting_actor
-            ? "<div class=\"play_preview_viewport_title\">Area Preview — Choose Creature</div>"
-              "<div class=\"play_preview_viewport_help\">Select a Creature blueprint in the left panel | F9 or Escape to cancel</div>"
-            : state.play_preview.placement_pending()
-            ? placement_failed
-                ? fmt::format(
-                      "<div class=\"play_preview_viewport_title\">Area Preview</div>"
-                      "<div class=\"play_preview_viewport_error\">{}</div>"
-                      "<div class=\"play_preview_viewport_help\">Click another walkable point | F9 or Escape to cancel</div>",
-                      escape_html(state.play_preview.placement_diagnostic))
-                : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
-                  "<div class=\"play_preview_viewport_help\">Click a walkable point to enter | F9 or Escape to cancel</div>"
-            : navigation_debug
-            ? "<div class=\"play_preview_viewport_title\">Area Preview</div>"
-              "<div class=\"play_preview_viewport_help\">Nav: walkable green | blockers red | route cyan | F8 hide | F9/Escape return</div>"
-            : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
-              "<div class=\"play_preview_viewport_help\">F9 or Escape to return | F8 navigation debug</div>");
-    overlay->SetProperty("display", "block");
-    overlay->SetProperty("width", placement_failed || state.play_preview.selecting_actor ? "500px" : "320px");
-    overlay->SetProperty("height", placement_failed || state.play_preview.selecting_actor ? "66px" : "50px");
-    overlay->SetProperty("left", std::to_string(rect.x + kOverlayMargin) + "px");
-    overlay->SetProperty("top", std::to_string(rect.y + kOverlayMargin) + "px");
 }
 
 void toggle_command_palette(Rml::Context* context,
@@ -8712,26 +6773,17 @@ void toggle_command_palette(Rml::Context* context,
     AppState& state,
     bool visible)
 {
-    const bool was_visible = state.command_palette_ui_visible;
     state.shell.set_command_palette_visible(visible);
-    state.command_palette_ui_visible = visible;
-    if (auto* palette = find_el(palette_doc, "command_palette")) {
-        palette->SetClass("visible", visible);
-    }
+    nw::toolset::set_command_palette_visibility(state.command_view, context,
+        palette_context, doc, palette_doc, state.viewer_viewport_focused, visible);
     if (visible) {
-        if (!was_visible) {
-            capture_command_palette_focus(context, state);
-        }
-        state.viewer_viewport_focused = false;
         if (!ensure_backend_ready(state)) {
             append_output(state, "warn", "Command palette unavailable: backend init failed");
         }
-        refresh_command_palette(palette_doc, state);
+        nw::toolset::refresh_command_palette(palette_doc, state.command_view, state.backend);
         if (auto* input = find_el(palette_doc, "command_input")) {
             input->Focus();
         }
-    } else if (was_visible || state.command_palette_restore_captured) {
-        restore_command_palette_focus(context, palette_context, doc, state);
     }
 }
 
@@ -8764,27 +6816,14 @@ nw::toolset::CommandContext command_context(AppState& state, nw::toolset::Comman
     return context;
 }
 
-std::string command_channel_class(nw::toolset::CommandOutputChannel channel)
-{
-    return std::string(nw::toolset::command_output_channel_name(channel));
-}
-
 void append_command_result(AppState& state, const nw::toolset::CommandResult& result)
 {
-    if (!result.should_log()) {
-        return;
-    }
-    append_output(state, command_channel_class(result.output_channel), result.message);
+    nw::toolset::append_command_results(state.shell, {&result, 1});
 }
 
 void append_terminal_result(AppState& state, const nw::toolset::CommandResult& result)
 {
-    if (!result.should_log()) {
-        return;
-    }
-    const std::string channel = command_channel_class(result.output_channel);
-    append_terminal(state, channel, result.message);
-    append_output(state, channel, result.message);
+    nw::toolset::append_terminal_results(state.shell, {&result, 1});
 }
 
 std::string format_command_candidates(const std::vector<nw::toolset::CommandSpec>& candidates)
@@ -9228,75 +7267,6 @@ bool sync_appearance_body_preview(ClientRenderer& renderer, AppState& state)
     return refresh_active_viewer_object_visual(renderer, desired);
 }
 
-bool editable_area_object(nw::ObjectHandle object) noexcept
-{
-    switch (object.type) {
-    case nw::ObjectType::creature:
-    case nw::ObjectType::door:
-    case nw::ObjectType::encounter:
-    case nw::ObjectType::item:
-    case nw::ObjectType::placeable:
-    case nw::ObjectType::sound:
-    case nw::ObjectType::store:
-    case nw::ObjectType::trigger:
-    case nw::ObjectType::waypoint:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool snap_area_door_preview(
-    nw::ObjectHandle area,
-    nw::ObjectHandle door,
-    glm::vec3 requested_position,
-    std::unique_ptr<nw::toolset::AreaDoorHookSnapshot>& hooks,
-    int32_t& hook_type,
-    nw::ObjectSpatialState& preview,
-    std::string& diagnostic)
-{
-    constexpr int32_t k_unresolved_hook_type = -2;
-    constexpr int32_t k_invalid_hook_type = -3;
-    if (door.type != nw::ObjectType::door) {
-        return true;
-    }
-    if (hook_type == k_unresolved_hook_type) {
-        hook_type = nw::toolset::area_door_hook_type(door)
-                        .value_or(k_invalid_hook_type);
-    }
-    if (hook_type == k_invalid_hook_type) {
-        diagnostic = "Door hook policy is invalid or unavailable";
-        return false;
-    }
-    if (!hooks) {
-        const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
-        if (!live_area) {
-            diagnostic = "Active area is invalid or stale";
-            return false;
-        }
-        try {
-            hooks = std::make_unique<nw::toolset::AreaDoorHookSnapshot>();
-        } catch (const std::bad_alloc&) {
-            diagnostic = "Door-hook snapshot allocation failed";
-            return false;
-        }
-        if (!nw::toolset::build_area_door_hooks(*live_area, *hooks, diagnostic)) {
-            hooks.reset();
-            return false;
-        }
-    }
-    const auto hook = nw::toolset::nearest_area_door_hook(
-        *hooks, requested_position, hook_type, door);
-    if (!hook) {
-        diagnostic = "No compatible unoccupied door hook is available";
-        return false;
-    }
-    preview.position = hook->position;
-    preview.orientation = hook->orientation;
-    diagnostic.clear();
-    return true;
-}
-
 std::string precise_float_text(float value)
 {
     std::array<char, 64> buffer{};
@@ -9306,364 +7276,46 @@ std::string precise_float_text(float value)
     return result.ec == std::errc{} ? std::string{buffer.data(), result.ptr} : std::string{};
 }
 
-void sync_area_object_after_command(
-    ClientRenderer& renderer, AppState& state, const nw::toolset::CommandResult& result)
+void sync_area_object_after_command(ClientRenderer& renderer, AppState& state, const nw::toolset::CommandResult& result)
 {
-    append_command_result(state, result);
-    const auto object = state.smalls.active_object();
-    if (editable_area_object(object)) {
-        renderer.sync_viewer_area_object_spatial(object);
-    }
+    nw::toolset::sync_area_object_after_command(renderer, state.shell, result, state.smalls.active_object());
 }
 
-bool validate_placement_preview(ClientRenderer& renderer,
-    std::unique_ptr<nw::toolset::AreaPlacementNavigation>& navigation,
-    nw::ObjectHandle area, const nw::ObjectSpatialState& spatial,
-    std::string& diagnostic)
+bool begin_area_object_drag(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    const std::array rows{spatial};
-    nw::toolset::AreaPlacementNavigation uncached;
-    if (spatial.owner.type == nw::ObjectType::creature && !navigation) {
-        try {
-            navigation = std::make_unique<nw::toolset::AreaPlacementNavigation>();
-        } catch (const std::bad_alloc&) {
-            diagnostic = "Creature placement navigation allocation failed";
-            return false;
-        }
-    }
-    auto& snapshot = navigation ? *navigation : uncached;
-    const auto result = nw::toolset::validate_area_placements(snapshot, area, rows);
-    diagnostic = result.diagnostic;
-    if (navigation) {
-        const bool enabled = result.status != nw::nav::NavStatus::rejected
-            && nw::toolset::collect_placement_navigation_debug(snapshot);
-        if (!renderer.update_toolset_preview_navigation_debug({
-                .triangles = snapshot.debug_triangles,
-                .revision = snapshot.revision,
-                .enabled = enabled,
-            })) {
-            LOG_F(WARNING, "Creature placement navigation overlay update failed");
-        }
-    }
-    return result.ok();
-}
-
-bool project_area_navigation_point(
-    ClientRenderer& renderer,
-    std::unique_ptr<nw::toolset::AreaPlacementNavigation>& navigation,
-    nw::ObjectHandle area,
-    Rml::Vector2f point,
-    ClientViewportRect viewport,
-    glm::vec3& output,
-    std::string& diagnostic)
-{
-    const auto ray = renderer.viewer_viewport_ray(
-        point.x, point.y, viewport);
-    if (!ray) {
-        diagnostic = "Navigation ray could not be constructed";
-        return false;
-    }
-    if (!navigation) {
-        try {
-            navigation
-                = std::make_unique<nw::toolset::AreaPlacementNavigation>();
-        } catch (const std::bad_alloc&) {
-            diagnostic = "Area navigation allocation failed";
-            return false;
-        }
-    }
-    const std::array inputs{nw::nav::NavRayProjectionInput{
-        .origin = ray->origin,
-        .displacement = ray->displacement,
-    }};
-    std::array<nw::nav::NavRayProjectionResult, 1> projected{};
-    const auto stats = nw::toolset::project_area_navigation_rays(
-        *navigation, area, inputs, projected, diagnostic);
-    if (stats.output_count != 1
-        || projected[0].status != nw::nav::NavStatus::ok) {
-        return false;
-    }
-    output = projected[0].position;
-    return true;
-}
-
-bool begin_area_object_drag(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
-{
-    const nw::ObjectHandle object = renderer.active_viewer_object();
-    if (viewport.kind != WorkspaceViewerViewportKind::area || !editable_area_object(object)) {
-        return false;
-    }
-
-    const auto* spatial = nw::kernel::objects().components().find_spatial(object);
-    if (!spatial) {
-        return false;
-    }
-    const auto surface_point = renderer.viewer_area_surface_point(
-        point.x, point.y, viewport.rect);
-    if (!surface_point) {
-        return false;
-    }
-
-    const uint32_t spawn_index
-        = renderer.active_viewer_area_debug_subindex(object);
-    const auto* geometry = object.type == nw::ObjectType::encounter
-        ? nw::kernel::objects().components().find_geometry(object)
-        : nullptr;
-    const bool encounter_spawn = geometry
-        && spawn_index < geometry->spawn_points.size();
-    const nw::ObjectSpawnPoint spawn = encounter_spawn
-        ? geometry->spawn_points[spawn_index]
-        : nw::ObjectSpawnPoint{};
-    state.area_object_drag = {
-        .area = renderer.area_viewer_object(),
-        .before = *spatial,
-        .preview = *spatial,
-        .grab_offset = spatial->position - *surface_point,
-        .pointer = {viewport.rect, {point.x, point.y}},
-        .active = true,
-        .valid = true,
-        .encounter_spawn = encounter_spawn,
-        .encounter_spawn_index = spawn_index,
-        .spawn_before = spawn,
-        .spawn_preview = spawn,
-    };
-    state.smalls.publish_active_object(object);
+    if (viewport.kind != WorkspaceViewerViewportKind::area
+        || !nw::toolset::begin_area_object_drag(renderer, state.area_object_drag, point, viewport.rect)) { return false; }
+    state.smalls.publish_active_object(state.area_object_drag.before.owner);
     state.active_object_tab_id = state.workspace.active_tab_id();
     return true;
 }
 
-bool update_area_object_drag(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
+bool update_area_object_drag(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    if (!state.area_object_drag.active) {
+    if (viewport.kind != WorkspaceViewerViewportKind::area) {
+        nw::toolset::cancel_area_object_drag(renderer, state.area_object_drag);
         return false;
     }
-    if (viewport.kind != WorkspaceViewerViewportKind::area
-        || renderer.area_viewer_object() != state.area_object_drag.area) {
-        cancel_area_object_drag(renderer, state);
-        return false;
-    }
-    const auto pointer_status = update_viewport_pointer_drag(
-        state.area_object_drag.pointer, {point.x, point.y}, viewport.rect);
-    if (pointer_status == ClientViewportPointerDragStatus::cancelled) {
-        cancel_area_object_drag(renderer, state);
-        return false;
-    }
-    if (pointer_status == ClientViewportPointerDragStatus::pending) return false;
-    auto& drag = state.area_object_drag;
-    if (drag.encounter_spawn) {
-        glm::vec3 position{0.0f};
-        drag.valid = project_area_navigation_point(renderer,
-            drag.navigation, drag.area, point, viewport.rect,
-            position, drag.diagnostic);
-        if (!drag.valid) return false;
-        drag.spawn_preview.position = position;
-        drag.moved = drag.spawn_preview != drag.spawn_before;
-        renderer.update_viewer_area_region_preview(
-            {}, drag.spawn_preview.position, true);
-        return true;
-    }
-
-    const auto surface_point = renderer.viewer_area_surface_point(
-        point.x, point.y, viewport.rect);
-    if (!surface_point) {
-        state.area_object_drag.valid = false;
-        state.area_object_drag.diagnostic = "Placement ray did not hit an area surface";
-        return false;
-    }
-
-    const glm::vec3 position = *surface_point + drag.grab_offset;
-    drag.preview.position = position;
-    const bool snapped = snap_area_door_preview(
-        drag.area,
-        drag.before.owner,
-        position,
-        drag.door_hooks,
-        drag.door_hook_type,
-        drag.preview,
-        drag.diagnostic);
-    drag.moved = drag.preview.position != drag.before.position
-        || drag.preview.orientation != drag.before.orientation;
-    drag.valid = snapped && validate_placement_preview(renderer, drag.navigation, drag.area, drag.preview, drag.diagnostic);
-    if (snapped) {
-        renderer.preview_viewer_area_object_spatial(drag.preview);
-    }
-    return true;
+    return nw::toolset::update_area_object_drag(renderer, state.area_object_drag, point, viewport.rect);
 }
 
 void cancel_area_object_drag(ClientRenderer& renderer, AppState& state)
 {
-    if (!state.area_object_drag.active) {
-        return;
-    }
-    if (state.area_object_drag.navigation) {
-        renderer.update_toolset_preview_navigation_debug({});
-    }
-    if (state.area_object_drag.encounter_spawn) {
-        renderer.update_viewer_area_region_preview(
-            {}, std::nullopt, false);
-    }
-    if (state.area_object_drag.pointer.dragging) {
-        renderer.sync_viewer_area_object_spatial(state.area_object_drag.before.owner);
-    }
-    state.area_object_drag = {};
+    nw::toolset::cancel_area_object_drag(renderer, state.area_object_drag);
 }
 
 void commit_area_object_drag(ClientRenderer& renderer, AppState& state)
 {
-    if (!state.area_object_drag.active) {
-        return;
-    }
-
-    const auto drag = std::move(state.area_object_drag);
-    state.area_object_drag = {};
-    if (drag.navigation) renderer.update_toolset_preview_navigation_debug({});
-    if (drag.encounter_spawn) {
-        renderer.update_viewer_area_region_preview(
-            {}, std::nullopt, false);
-    }
-    if (!drag.pointer.dragging) return;
-    if (!drag.moved || state.smalls.active_object() != drag.before.owner) {
-        renderer.sync_viewer_area_object_spatial(drag.before.owner);
-        return;
-    }
-    if (!drag.valid) {
-        if (!drag.encounter_spawn) {
-            renderer.sync_viewer_area_object_spatial(drag.before.owner);
-        }
-        append_output(state, "warn", drag.diagnostic);
-        return;
-    }
-
-    if (drag.encounter_spawn) {
-        const auto* geometry
-            = nw::kernel::objects().components().find_geometry(
-                drag.before.owner);
-        if (!geometry
-            || drag.encounter_spawn_index
-                >= geometry->spawn_points.size()) {
-            append_output(state, "warn",
-                "Encounter spawn point changed during the drag");
-            return;
-        }
-        std::vector<nw::ObjectSpawnPoint> before{
-            geometry->spawn_points.begin(),
-            geometry->spawn_points.end(),
-        };
-        auto after = before;
-        after[drag.encounter_spawn_index] = drag.spawn_preview;
-        const auto result = state.backend.replace_encounter_spawn_points(
-            {
-                .area = drag.area,
-                .encounter = drag.before.owner,
-                .before = std::move(before),
-                .after = std::move(after),
-            },
-            command_context(state,
-                nw::toolset::CommandSource::renderer));
-        append_command_result(state, result);
-        return;
-    }
-
-    const auto result = state.backend.transform_area_object(
-        {
-            .object = drag.before.owner,
-            .before = {
-                .position = drag.before.position,
-                .orientation = drag.before.orientation,
-                .scale = drag.before.scale,
-            },
-            .after = {
-                .position = drag.preview.position,
-                .orientation = drag.preview.orientation,
-                .scale = drag.preview.scale,
-            },
-            .area = drag.area,
-        },
-        command_context(state, nw::toolset::CommandSource::renderer));
-    sync_area_object_after_command(renderer, state, result);
+    if (!state.area_object_drag.active) { return; }
+    nw::toolset::commit_area_object_drag(renderer, state.area_object_drag,
+        state.smalls.active_object(), state.backend,
+        command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
-bool add_encounter_spawn_point(
-    ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
+bool add_encounter_spawn_point(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    const auto encounter = renderer.active_viewer_object();
-    const auto area = renderer.area_viewer_object();
-    if (encounter.type != nw::ObjectType::encounter
-        || area.type != nw::ObjectType::area) {
-        return false;
-    }
-    std::unique_ptr<nw::toolset::AreaPlacementNavigation> navigation;
-    glm::vec3 position{0.0f};
-    std::string diagnostic;
-    if (!project_area_navigation_point(renderer, navigation, area,
-            point, viewport.rect, position, diagnostic)) {
-        append_output(state, "warn", diagnostic);
-        return true;
-    }
-    const auto* geometry
-        = nw::kernel::objects().components().find_geometry(encounter);
-    std::vector<nw::ObjectSpawnPoint> before;
-    if (geometry) {
-        before.assign(
-            geometry->spawn_points.begin(),
-            geometry->spawn_points.end());
-    }
-    auto after = before;
-    after.push_back({
-        .position = position,
-        .orientation = 0.0f,
-    });
-    const auto result = state.backend.replace_encounter_spawn_points(
-        {
-            .area = area,
-            .encounter = encounter,
-            .before = std::move(before),
-            .after = std::move(after),
-        },
-        command_context(state, nw::toolset::CommandSource::renderer));
-    append_command_result(state, result);
-    return true;
-}
-
-bool delete_selected_encounter_spawn_point(
-    ClientRenderer& renderer, AppState& state)
-{
-    const auto encounter = renderer.active_viewer_object();
-    const auto area = renderer.area_viewer_object();
-    const uint32_t spawn_index
-        = renderer.active_viewer_area_debug_subindex(encounter);
-    const auto* geometry
-        = nw::kernel::objects().components().find_geometry(encounter);
-    if (encounter.type != nw::ObjectType::encounter
-        || area.type != nw::ObjectType::area
-        || !geometry || spawn_index >= geometry->spawn_points.size()) {
-        return false;
-    }
-    std::vector<nw::ObjectSpawnPoint> before{
-        geometry->spawn_points.begin(),
-        geometry->spawn_points.end(),
-    };
-    auto after = before;
-    after.erase(after.begin() + static_cast<ptrdiff_t>(spawn_index));
-    const auto result = state.backend.replace_encounter_spawn_points(
-        {
-            .area = area,
-            .encounter = encounter,
-            .before = std::move(before),
-            .after = std::move(after),
-        },
-        command_context(state, nw::toolset::CommandSource::shortcut));
-    append_command_result(state, result);
-    return true;
+    return nw::toolset::add_encounter_spawn_point(renderer, point, viewport.rect,
+        state.backend, command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
 nw::ObjectHandle active_workspace_area(const AppState& state) noexcept
@@ -9678,11 +7330,17 @@ bool area_tile_editor_action_allowed(const AppState& state) noexcept
 {
     return state.area_workspace_surface == AreaWorkspaceSurface::tiles
         && active_workspace_area(state).type == nw::ObjectType::area
-        && !state.command_form && !state.module_dialog_open
+        && !state.command_view.command_form && !state.module_dialog_open
         && !state.backend.blueprint_operation_active()
         && !state.backend.blueprint_publication_pending()
         && !state.shell.command_palette_visible
         && !state.play_preview.session.active();
+}
+
+std::optional<nw::toolset::AreaTileBrush> selected_area_tile_brush(
+    const AppState& state, uint8_t pointer_button) noexcept
+{
+    return nw::toolset::selected_area_tile_brush(state.area_tile_editor, area_tile_pointer_button(pointer_button));
 }
 
 bool area_tile_stroke_context_valid(const AppState& state) noexcept
@@ -9692,157 +7350,6 @@ bool area_tile_stroke_context_valid(const AppState& state) noexcept
         && active_workspace_area(state) == state.area_tile_editor.stroke.area;
 }
 
-std::optional<nw::toolset::AreaTileBrush> selected_area_tile_brush(
-    const AppState& state, uint8_t pointer_button) noexcept
-{
-    const auto& editor = state.area_tile_editor;
-    if (editor.selected_row < 0
-        || static_cast<size_t>(editor.selected_row)
-            >= editor.palette.rows.size()
-        || editor.palette.rows[static_cast<size_t>(editor.selected_row)].kind
-            != nw::toolset::AreaTilePaletteRowKind::action) {
-        return std::nullopt;
-    }
-    auto brush
-        = editor.palette.rows[static_cast<size_t>(editor.selected_row)].brush;
-    if (brush.kind == nw::toolset::AreaTileBrushKind::group) {
-        brush.orientation = editor.group_orientation;
-    }
-    if (pointer_button == SDL_BUTTON_LEFT) {
-        return brush;
-    }
-    if (pointer_button == SDL_BUTTON_RIGHT
-        && brush.kind == nw::toolset::AreaTileBrushKind::raise) {
-        brush.kind = nw::toolset::AreaTileBrushKind::lower;
-        return brush;
-    }
-    return std::nullopt;
-}
-
-bool area_tile_height_brush(
-    nw::toolset::AreaTileBrush brush) noexcept
-{
-    return brush.kind == nw::toolset::AreaTileBrushKind::raise
-        || brush.kind == nw::toolset::AreaTileBrushKind::lower;
-}
-
-nw::toolset::ObjectEditApplyResult build_area_tile_stroke_edits(
-    nw::ObjectHandle area,
-    std::span<const uint32_t> tile_indices,
-    std::span<const uint32_t> corner_indices,
-    nw::toolset::AreaTileBrush brush,
-    uint64_t seed,
-    nw::toolset::AreaTileEditBatch& output)
-{
-    if (area_tile_height_brush(brush)) {
-        const int32_t delta
-            = brush.kind == nw::toolset::AreaTileBrushKind::raise ? 1 : -1;
-        return nw::toolset::build_area_tile_height_brush_edits(
-            area, corner_indices, delta, seed, output);
-    }
-    return nw::toolset::build_area_tile_brush_edits(
-        area, tile_indices, brush, seed, output);
-}
-
-bool preview_area_tile_stroke(ClientRenderer& renderer,
-    AreaTileEditorState& editor,
-    nw::ObjectHandle area,
-    std::span<const uint32_t> tile_indices,
-    std::span<const uint32_t> corner_indices,
-    nw::toolset::AreaTileBrush brush)
-{
-    nw::toolset::AreaTileEditBatch preview;
-    const auto built = build_area_tile_stroke_edits(area,
-        tile_indices, corner_indices, brush,
-        editor.next_random_seed, preview);
-    editor.feedback = built.ok() ? std::string{} : built.diagnostic;
-    const bool erasing = brush.kind == nw::toolset::AreaTileBrushKind::eraser;
-    const bool erase_empty = erasing
-        && built.status == nw::toolset::ObjectEditStatus::empty;
-    if (erase_empty) {
-        editor.feedback.clear();
-    }
-    try {
-        editor.preview_rows.clear();
-        std::vector<uint32_t> erase_cells;
-        const auto erase_targets = erasing
-            ? nw::toolset::resolve_area_tile_erase_cells(area, tile_indices, erase_cells)
-            : nw::toolset::ObjectEditApplyResult{};
-        if (erasing && !erase_targets.ok()) {
-            editor.feedback = erase_targets.diagnostic;
-            (void)renderer.update_viewer_area_tile_preview(area, {}, false);
-            return false;
-        }
-        if (erasing && erase_targets.ok()) {
-            const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
-            editor.preview_rows.reserve(erase_cells.size());
-            for (const uint32_t tile_index : erase_cells) {
-                const auto& tile = live_area->tiles[tile_index];
-                editor.preview_rows.push_back({
-                    .tile_index = tile_index,
-                    .tile_id = tile.id,
-                    .height = tile.height,
-                    .orientation = tile.orientation,
-                });
-            }
-        } else if (built.ok()) {
-            editor.preview_rows.reserve(preview.rows.size());
-            for (const auto& row : preview.rows) {
-                editor.preview_rows.push_back({
-                    .tile_index = row.tile_index,
-                    .tile_id = row.after.id,
-                    .height = row.after.height,
-                    .orientation = row.after.orientation,
-                });
-            }
-        } else {
-            editor.preview_rows.reserve(tile_indices.size());
-            for (const uint32_t tile_index : tile_indices) {
-                editor.preview_rows.push_back({
-                    .tile_index = tile_index,
-                });
-            }
-        }
-    } catch (const std::bad_alloc&) {
-        editor.feedback = "Tile preview allocation failed";
-        (void)renderer.update_viewer_area_tile_preview(area, {}, false);
-        return false;
-    } catch (const std::length_error&) {
-        editor.feedback = "Tile preview exceeds container capacity";
-        (void)renderer.update_viewer_area_tile_preview(area, {}, false);
-        return false;
-    }
-    (void)renderer.update_viewer_area_tile_preview(
-        area, editor.preview_rows, built.ok() || erase_empty, !erasing);
-    return built.ok() || erase_empty;
-}
-
-bool append_area_tile_height_preview_cells(
-    AreaTileStrokeState& stroke,
-    std::span<const uint32_t> corner_indices) noexcept
-{
-    for (const uint32_t corner_index : corner_indices) {
-        const auto cells = nw::toolset::resolve_area_tile_corner_cell(
-            stroke.width, stroke.height, corner_index);
-        for (uint8_t index = 0; index < cells.count; ++index) {
-            const uint32_t tile_index = cells.tile_indices[index];
-            if (tile_index >= stroke.previewed_tiles.size()
-                || stroke.previewed_tiles[tile_index] != 0) {
-                continue;
-            }
-            try {
-                stroke.tile_indices.push_back(tile_index);
-            } catch (const std::bad_alloc&) {
-                return false;
-            } catch (const std::length_error&) {
-                return false;
-            }
-            stroke.previewed_tiles[tile_index] = 1;
-        }
-    }
-    return true;
-}
-
 void cancel_area_object_placement(ClientRenderer& renderer, AppState& state);
 void cancel_area_tile_stroke(ClientRenderer& renderer, AppState& state);
 bool begin_area_tile_stroke(ClientRenderer& renderer,
@@ -9850,8 +7357,6 @@ bool begin_area_tile_stroke(ClientRenderer& renderer,
     Rml::Vector2f point,
     const WorkspaceViewerViewportRequest& viewport,
     uint8_t pointer_button);
-bool cycle_selected_area_tile_variation(
-    ClientRenderer& renderer, AppState& state);
 
 bool synchronize_area_viewport_structure(
     ClientRenderer& renderer, AppState& state, bool report_failure)
@@ -9878,210 +7383,33 @@ bool synchronize_area_viewport_structure(
     return true;
 }
 
-nw::toolset::AreaTileCellPick pick_area_tile_cell(
-    ClientRenderer& renderer,
-    nw::ObjectHandle area_handle,
-    Rml::Vector2f point,
-    ClientViewportRect viewport,
-    bool use_rendered_geometry)
-{
-    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
-    if (!area || area->width <= 0 || area->height <= 0) {
-        return {};
-    }
-
-    if (use_rendered_geometry) {
-        const auto hit = renderer.viewer_area_tile_hit(
-            point.x, point.y, viewport);
-        if (!hit) {
-            const auto ray = renderer.viewer_viewport_ray(
-                point.x, point.y, viewport);
-            return ray
-                ? nw::toolset::pick_area_tile_cell(*area,
-                      {
-                          .origin = ray->origin,
-                          .direction = ray->displacement,
-                      })
-                : nw::toolset::AreaTileCellPick{};
-        }
-        if (hit->tile_x >= 0 && hit->tile_x < area->width
-            && hit->tile_y >= 0 && hit->tile_y < area->height) {
-            return {
-                .position = hit->position,
-                .distance = hit->distance,
-                .tile_index = static_cast<uint32_t>(hit->tile_y * area->width
-                    + hit->tile_x),
-                .status = nw::toolset::AreaTileCellPickStatus::hit,
-            };
-        }
-        return {};
-    }
-
-    const auto ray = renderer.viewer_viewport_ray(
-        point.x, point.y, viewport);
-    return ray
-        ? nw::toolset::pick_area_tile_cell(*area,
-              {
-                  .origin = ray->origin,
-                  .direction = ray->displacement,
-              })
-        : nw::toolset::AreaTileCellPick{};
-}
-
 void clear_area_tile_selection(ClientRenderer& renderer, AppState& state)
 {
-    auto& editor = state.area_tile_editor;
-    editor.selection = {};
-    if (editor.stroke.active) {
-        return;
-    }
-    editor.preview_rows.clear();
-    editor.cursor_target_index = UINT32_MAX;
-    editor.cursor_modifier = nw::toolset::AreaTilePointerModifier::none;
-    editor.cursor_update_pending = false;
-    (void)renderer.update_viewer_area_tile_preview(
-        active_workspace_area(state), {});
+    nw::toolset::clear_area_tile_selection(renderer, state.area_tile_editor, active_workspace_area(state));
 }
 
-bool update_area_tile_outlines(ClientRenderer& renderer,
-    AppState& state,
-    const nw::toolset::AreaTileSelection& selection)
+bool update_area_tile_selection_preview(ClientRenderer& renderer, AppState& state)
 {
-    auto& editor = state.area_tile_editor;
-    const auto* area = nw::kernel::objects().get<nw::Area>(selection.area);
-    if (!selection.active() || selection.area != active_workspace_area(state)
-        || !area || !area->tileset
-        || std::ranges::any_of(selection.tile_indices,
-            [area](uint32_t tile_index) {
-                return tile_index >= area->tiles.size();
-            })) {
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            active_workspace_area(state), {});
-        return false;
-    }
-
-    try {
-        editor.preview_rows.clear();
-        editor.preview_rows.reserve(selection.tile_indices.size());
-        for (const uint32_t tile_index : selection.tile_indices) {
-            const auto& tile = area->tiles[tile_index];
-            editor.preview_rows.push_back({
-                .tile_index = tile_index,
-                .tile_id = tile.id,
-                .height = tile.height,
-                .orientation = tile.orientation,
-            });
-        }
-    } catch (const std::bad_alloc&) {
-        editor.feedback = "Tile selection highlight allocation failed";
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            selection.area, {});
-        return false;
-    } catch (const std::length_error&) {
-        editor.feedback = "Tile selection highlight exceeds container capacity";
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            selection.area, {});
-        return false;
-    }
-
-    editor.cursor_target_index = UINT32_MAX;
-    editor.cursor_update_pending = false;
-    if (!renderer.update_viewer_area_tile_preview(
-            selection.area, editor.preview_rows, true, false)) {
-        editor.feedback = "Tile selection highlight is unavailable";
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            selection.area, {});
-        return false;
-    }
-    return true;
+    return nw::toolset::update_area_tile_selection_preview(renderer, state.area_tile_editor, active_workspace_area(state));
 }
 
-bool update_area_tile_selection_preview(
-    ClientRenderer& renderer, AppState& state)
+bool select_area_tiles(ClientRenderer& renderer, AppState& state,
+    Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    if (!update_area_tile_outlines(
-            renderer, state, state.area_tile_editor.selection)) {
-        clear_area_tile_selection(renderer, state);
-        return false;
-    }
-    return true;
+    if (viewport.kind != WorkspaceViewerViewportKind::area) { return false; }
+    return nw::toolset::select_area_tiles(renderer, state.area_tile_editor,
+        active_workspace_area(state), point, viewport.rect,
+        area_tile_editor_action_allowed(state), state.shell);
 }
 
-bool set_area_tile_selection(ClientRenderer& renderer,
-    AppState& state,
-    nw::ObjectHandle area,
-    uint32_t tile_index)
+bool cycle_area_tile_at_point(ClientRenderer& renderer, AppState& state,
+    Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    cancel_area_tile_stroke(renderer, state);
-    auto& editor = state.area_tile_editor;
-    editor.selection = {};
-
-    nw::toolset::AreaTileSelection selection;
-    const auto built = nw::toolset::build_area_tile_selection(
-        area, tile_index, selection);
-    if (!built.ok()) {
-        editor.feedback = built.diagnostic;
-        append_output(state,
-            built.status == nw::toolset::ObjectEditStatus::failed
-                ? "error"
-                : "warn",
-            built.diagnostic);
-        return false;
-    }
-    editor.selection = std::move(selection);
-    editor.feedback.clear();
-    (void)update_area_tile_selection_preview(renderer, state);
-    return editor.selection.active();
-}
-
-bool select_area_tiles(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
-{
-    if (!area_tile_editor_action_allowed(state)
-        || viewport.kind != WorkspaceViewerViewportKind::area) {
-        return false;
-    }
-    cancel_area_tile_stroke(renderer, state);
-    const nw::ObjectHandle area = active_workspace_area(state);
-    const auto pick = pick_area_tile_cell(
-        renderer, area, point, viewport.rect, true);
-    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
-        state.area_tile_editor.feedback
-            = "Tile selection target is unavailable";
-        return true;
-    }
-    (void)set_area_tile_selection(
-        renderer, state, area, pick.tile_index);
-    return true;
-}
-
-bool cycle_area_tile_at_point(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
-{
-    if (!area_tile_editor_action_allowed(state)
-        || viewport.kind != WorkspaceViewerViewportKind::area) {
-        return false;
-    }
-    const nw::ObjectHandle area = active_workspace_area(state);
-    const auto pick = pick_area_tile_cell(
-        renderer, area, point, viewport.rect, true);
-    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
-        state.area_tile_editor.feedback
-            = "Tile variation target is unavailable";
-        return true;
-    }
-    if (set_area_tile_selection(renderer, state, area, pick.tile_index)) {
-        (void)cycle_selected_area_tile_variation(renderer, state);
-    }
-    return true;
+    if (viewport.kind != WorkspaceViewerViewportKind::area) { return false; }
+    return nw::toolset::cycle_area_tile_at_point(renderer, state.area_tile_editor,
+        active_workspace_area(state), point, viewport.rect,
+        area_tile_editor_action_allowed(state), state.backend,
+        command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
 bool handle_area_tile_pointer_down(
@@ -10133,37 +7461,12 @@ bool handle_area_tile_pointer_down(
 
 void cancel_area_tile_stroke(ClientRenderer& renderer, AppState& state)
 {
-    auto& editor = state.area_tile_editor;
-    const bool was_active = editor.stroke.active;
-    editor.stroke = {};
-    if (was_active) {
-        (void)SDL_CaptureMouse(false);
-    }
-    editor.preview_rows.clear();
-    editor.cursor_target_index = UINT32_MAX;
-    editor.cursor_modifier = nw::toolset::AreaTilePointerModifier::none;
-    editor.cursor_update_pending = false;
-    (void)renderer.update_viewer_area_tile_preview(
-        active_workspace_area(state), {});
+    nw::toolset::cancel_area_tile_stroke(renderer, state.area_tile_editor, active_workspace_area(state));
 }
 
 bool cancel_area_tile_action(ClientRenderer& renderer, AppState& state)
 {
-    auto& editor = state.area_tile_editor;
-    const bool had_action = editor.stroke.active || editor.selection.active()
-        || editor.selected_row >= 0 || !editor.preview_rows.empty()
-        || editor.cursor_update_pending;
-    if (!had_action) {
-        return false;
-    }
-    cancel_area_tile_stroke(renderer, state);
-    editor.selection = {};
-    editor.selected_row = -1;
-    editor.group_orientation = 0;
-    editor.feedback.clear();
-    editor.list.set_selected(-1);
-    editor.rendered = false;
-    return true;
+    return nw::toolset::cancel_area_tile_action(renderer, state.area_tile_editor, active_workspace_area(state));
 }
 
 bool open_area_tile_editor(ClientRenderer& renderer, AppState& state)
@@ -10180,16 +7483,7 @@ bool open_area_tile_editor(ClientRenderer& renderer, AppState& state)
     (void)renderer.clear_viewer_area_object_selection();
     auto& editor = state.area_tile_editor;
     state.area_workspace_surface = AreaWorkspaceSurface::tiles;
-    editor.feedback.clear();
-    editor.query.clear();
-    editor.preview_rows.clear();
-    editor.selection = {};
-    editor.cursor_target_index = UINT32_MAX;
-    editor.cursor_modifier = nw::toolset::AreaTilePointerModifier::none;
-    editor.cursor_update_pending = false;
-    editor.selected_row = -1;
-    editor.list.set_scroll_top(0);
-    if (!rebuild_area_tile_palette(state, area_handle)) {
+    if (!nw::toolset::reset_area_tile_editor(editor, area_handle)) {
         append_output(state, "error", editor.palette.diagnostic);
     }
     return true;
@@ -10227,173 +7521,14 @@ bool set_area_workspace_surface(ClientRenderer& renderer,
     return true;
 }
 
-bool update_area_tile_cursor(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
+bool update_area_tile_cursor(ClientRenderer& renderer, AppState& state,
+    Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    auto& editor = state.area_tile_editor;
     if (state.area_workspace_surface != AreaWorkspaceSurface::tiles
-        || viewport.kind != WorkspaceViewerViewportKind::area) {
-        return false;
-    }
-
-    const nw::ObjectHandle area_handle = active_workspace_area(state);
-    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
-    if (!area) {
-        return false;
-    }
-    if (!editor.stroke.active
-        && area_tile_pointer_modifier(SDL_GetModState())
-            == nw::toolset::AreaTilePointerModifier::select) {
-        const auto pick = pick_area_tile_cell(
-            renderer, area_handle, point, viewport.rect, true);
-        if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
-            editor.cursor_target_index = UINT32_MAX;
-            editor.preview_rows.clear();
-            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
-            return true;
-        }
-        if (editor.cursor_target_index == pick.tile_index
-            && !editor.preview_rows.empty()) {
-            return true;
-        }
-        nw::toolset::AreaTileSelection hovered;
-        const auto built = nw::toolset::build_area_tile_selection(
-            area_handle, pick.tile_index, hovered);
-        if (!built.ok()) {
-            editor.feedback = built.diagnostic;
-            editor.cursor_target_index = UINT32_MAX;
-            editor.preview_rows.clear();
-            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
-            return true;
-        }
-        if (update_area_tile_outlines(renderer, state, hovered)) {
-            editor.cursor_target_index = pick.tile_index;
-        }
-        return true;
-    }
-    if (!editor.stroke.active && editor.selection.active()) {
-        return true;
-    }
-    const auto pick = pick_area_tile_cell(
-        renderer, area_handle, point, viewport.rect,
-        editor.preview_rows.empty());
-    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
-        editor.cursor_target_index = UINT32_MAX;
-        if (editor.stroke.active) {
-            editor.stroke.has_last_target = false;
-        } else {
-            editor.preview_rows.clear();
-            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
-        }
-        return true;
-    }
-
-    if (!editor.stroke.active) {
-        const auto brush = selected_area_tile_brush(
-            state, SDL_BUTTON_LEFT);
-        if (!brush) {
-            editor.cursor_target_index = UINT32_MAX;
-            editor.preview_rows.clear();
-            (void)renderer.update_viewer_area_tile_preview(area_handle, {});
-            return true;
-        }
-        if (area_tile_height_brush(*brush)) {
-            const uint32_t corner
-                = nw::toolset::pick_area_tile_corner(*area, pick);
-            if (corner == UINT32_MAX) {
-                editor.feedback = "Terrain height target is unavailable";
-                editor.cursor_target_index = UINT32_MAX;
-                editor.preview_rows.clear();
-                (void)renderer.update_viewer_area_tile_preview(
-                    area_handle, {}, false);
-                return true;
-            }
-            if (editor.cursor_target_index == corner
-                && !editor.preview_rows.empty()) {
-                return true;
-            }
-            editor.cursor_target_index = corner;
-            const auto cells = nw::toolset::resolve_area_tile_corner_cell(
-                area->width, area->height, corner);
-            const std::array corners{corner};
-            (void)preview_area_tile_stroke(renderer, editor, area_handle,
-                std::span<const uint32_t>{cells.tile_indices.data(),
-                    cells.count},
-                corners, *brush);
-        } else {
-            if (editor.cursor_target_index == pick.tile_index
-                && !editor.preview_rows.empty()) {
-                return true;
-            }
-            editor.cursor_target_index = pick.tile_index;
-            const std::array cells{pick.tile_index};
-            (void)preview_area_tile_stroke(renderer, editor, area_handle,
-                cells, {}, *brush);
-        }
-        return true;
-    }
-
-    auto& stroke = editor.stroke;
-    if (stroke.brush.kind == nw::toolset::AreaTileBrushKind::group
-        && !stroke.tile_indices.empty()) {
-        return true;
-    }
-    const bool height_brush = area_tile_height_brush(stroke.brush);
-    const uint32_t target_index = height_brush
-        ? nw::toolset::pick_area_tile_corner(*area, pick)
-        : pick.tile_index;
-    if (target_index == UINT32_MAX) {
-        editor.feedback = "Terrain stroke target is unavailable";
-        stroke.has_last_target = false;
-        return true;
-    }
-    const int32_t target_width
-        = height_brush ? stroke.width + 1 : stroke.width;
-    const int32_t target_height
-        = height_brush ? stroke.height + 1 : stroke.height;
-    const nw::toolset::AreaTileCellCoord target{
-        .x = static_cast<int32_t>(
-            target_index % static_cast<uint32_t>(target_width)),
-        .y = static_cast<int32_t>(
-            target_index / static_cast<uint32_t>(target_width)),
-    };
-    auto& target_indices
-        = height_brush ? stroke.corner_indices : stroke.tile_indices;
-    const size_t appended_begin = target_indices.size();
-    const auto appended = nw::toolset::append_area_tile_grid_line(
-        target_width,
-        target_height,
-        stroke.has_last_target ? stroke.last_target : target,
-        target,
-        stroke.visited,
-        target_indices);
-    if (appended.status != nw::toolset::AreaTileLineStatus::success) {
-        editor.feedback = "Tile stroke buffer update failed";
-        append_output(state, "error", "Tile stroke buffer update failed");
-        cancel_area_tile_stroke(renderer, state);
-        return true;
-    }
-    if (appended.appended_count == 0) {
-        stroke.last_target = target;
-        stroke.has_last_target = true;
-        return true;
-    }
-    if (height_brush
-        && !append_area_tile_height_preview_cells(stroke,
-            std::span<const uint32_t>{target_indices}.subspan(
-                appended_begin))) {
-        editor.feedback = "Tile stroke preview allocation failed";
-        append_output(state, "error", editor.feedback);
-        cancel_area_tile_stroke(renderer, state);
-        return true;
-    }
-    stroke.last_target = target;
-    stroke.has_last_target = true;
-    (void)preview_area_tile_stroke(renderer, editor, area_handle,
-        stroke.tile_indices, stroke.corner_indices, stroke.brush);
-    return true;
+        || viewport.kind != WorkspaceViewerViewportKind::area) { return false; }
+    return nw::toolset::update_area_tile_cursor(renderer, state.area_tile_editor,
+        active_workspace_area(state), point, viewport.rect,
+        area_tile_pointer_modifier(SDL_GetModState()), state.shell);
 }
 
 void flush_area_tile_cursor_update(ClientRenderer& renderer,
@@ -10409,23 +7544,8 @@ void flush_area_tile_cursor_update(ClientRenderer& renderer,
         return;
     }
     const auto modifier = area_tile_pointer_modifier(SDL_GetModState());
-    if (!editor.stroke.active && modifier != editor.cursor_modifier) {
-        editor.cursor_modifier = modifier;
-        editor.cursor_target_index = UINT32_MAX;
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            active_workspace_area(state), {});
-        // A modifier transition refreshes even with a stationary pointer.
-        editor.cursor_update_pending = true;
-        if (modifier != nw::toolset::AreaTilePointerModifier::select
-            && editor.selection.active()) {
-            (void)update_area_tile_selection_preview(renderer, state);
-            return;
-        }
-    }
-    if (!editor.cursor_update_pending) {
-        return;
-    }
+    if (!nw::toolset::prepare_area_tile_cursor_update(
+            renderer, editor, active_workspace_area(state), modifier)) { return; }
     float mouse_x = 0.0f;
     float mouse_y = 0.0f;
     (void)SDL_GetMouseState(&mouse_x, &mouse_y);
@@ -10444,1264 +7564,120 @@ void flush_area_tile_cursor_update(ClientRenderer& renderer,
         (void)update_area_tile_cursor(renderer, state, point, *viewport);
         return;
     }
-    editor.cursor_target_index = UINT32_MAX;
-    if (editor.stroke.active) {
-        editor.stroke.has_last_target = false;
-    } else if (modifier == nw::toolset::AreaTilePointerModifier::select
-        || !editor.selection.active()) {
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            active_workspace_area(state), {});
-    }
+    nw::toolset::clear_area_tile_cursor_target(renderer, editor, active_workspace_area(state), modifier);
 }
 
-bool begin_area_tile_stroke(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport,
-    uint8_t pointer_button)
+bool begin_area_tile_stroke(ClientRenderer& renderer, AppState& state,
+    Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport, uint8_t pointer_button)
 {
     auto& editor = state.area_tile_editor;
     editor.cursor_update_pending = false;
-    const auto brush = selected_area_tile_brush(state, pointer_button);
+    const auto brush = nw::toolset::selected_area_tile_brush(editor, area_tile_pointer_button(pointer_button));
     if (!brush) {
         editor.feedback = "Choose a terrain action";
         return false;
     }
     if (area_tile_editor_action_allowed(state)
-        && !synchronize_area_viewport_structure(renderer, state, true)) {
-        return true;
-    }
-    const nw::ObjectHandle area_handle = active_workspace_area(state);
-    const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
-    if (!area_tile_editor_action_allowed(state) || editor.stroke.active || !area
-        || !area->tileset || editor.selected_row < 0
-        || static_cast<size_t>(editor.selected_row)
-            >= editor.palette.rows.size()) {
-        editor.feedback = "Terrain editing is unavailable";
-        return false;
-    }
-
-    const uint64_t tile_count = static_cast<uint64_t>(area->width)
-        * static_cast<uint64_t>(area->height);
-    if (area->width <= 0 || area->height <= 0
-        || area->width == std::numeric_limits<int32_t>::max()
-        || area->height == std::numeric_limits<int32_t>::max()
-        || tile_count != area->tiles.size()
-        || tile_count > std::numeric_limits<uint32_t>::max()) {
-        editor.feedback = "Area tile grid is malformed";
-        append_output(state, "error", "Area tile grid is malformed");
-        return true;
-    }
-    const bool height_brush = area_tile_height_brush(*brush);
-    const uint64_t target_count = height_brush
-        ? static_cast<uint64_t>(area->width + 1)
-            * static_cast<uint64_t>(area->height + 1)
-        : tile_count;
-    if (target_count > std::numeric_limits<uint32_t>::max()) {
-        editor.feedback = "Area height grid exceeds the supported index range";
-        append_output(state, "error", editor.feedback);
-        return true;
-    }
-    try {
-        const auto& palette_row
-            = editor.palette.rows[static_cast<size_t>(editor.selected_row)];
-        editor.stroke = {
-            .area = area_handle,
-            .tileset = area->tileset_resref,
-            .brush = *brush,
-            .label = palette_row.label,
-            .mutation_epoch = nw::toolset::object_mutation_state().epoch,
-            .resource_generation = nw::kernel::resman().generation(),
-            .width = area->width,
-            .height = area->height,
-            .visited = std::vector<uint8_t>(
-                static_cast<size_t>(target_count), 0),
-            .previewed_tiles = height_brush
-                ? std::vector<uint8_t>(static_cast<size_t>(tile_count), 0)
-                : std::vector<uint8_t>{},
-            .pointer_button = pointer_button,
-            .active = true,
-        };
-        editor.stroke.tile_indices.reserve(
-            static_cast<size_t>(tile_count));
-        if (height_brush) {
-            editor.stroke.corner_indices.reserve(
-                static_cast<size_t>(target_count));
-        }
-        editor.feedback.clear();
-        (void)SDL_CaptureMouse(true);
-    } catch (const std::bad_alloc&) {
-        editor.stroke = {};
-        editor.feedback = "Tile stroke allocation failed";
-        append_output(state, "error", "Tile stroke allocation failed");
-        return true;
-    } catch (const std::length_error&) {
-        editor.stroke = {};
-        editor.feedback = "Tile stroke exceeds container capacity";
-        append_output(state, "error", "Tile stroke exceeds container capacity");
-        return true;
-    }
-    (void)update_area_tile_cursor(renderer, state, point, viewport);
-    if (editor.stroke.active
-        && (height_brush ? editor.stroke.corner_indices.empty()
-                         : editor.stroke.tile_indices.empty())) {
-        cancel_area_tile_stroke(renderer, state);
-    }
-    return true;
+        && !synchronize_area_viewport_structure(renderer, state, true)) { return true; }
+    return nw::toolset::begin_area_tile_stroke(renderer, editor,
+        active_workspace_area(state), point, viewport.rect, pointer_button, *brush,
+        area_tile_pointer_modifier(SDL_GetModState()), area_tile_editor_action_allowed(state), state.shell);
 }
 
 void commit_area_tile_stroke(ClientRenderer& renderer, AppState& state)
 {
-    auto& editor = state.area_tile_editor;
-    if (!editor.stroke.active) {
-        return;
-    }
-    if (!area_tile_stroke_context_valid(state)
-        || state.stale_area_viewport == editor.stroke.area) {
-        cancel_area_tile_stroke(renderer, state);
-        return;
-    }
-    auto stroke = std::move(editor.stroke);
-    editor.stroke = {};
-    (void)SDL_CaptureMouse(false);
-    (void)renderer.update_viewer_area_tile_preview(stroke.area, {});
-    editor.preview_rows.clear();
-    editor.cursor_target_index = UINT32_MAX;
-    editor.cursor_update_pending = false;
-    const auto* area = nw::kernel::objects().get<nw::Area>(stroke.area);
-    if (!area || active_workspace_area(state) != stroke.area
-        || area->tileset_resref != stroke.tileset
-        || area->width != stroke.width || area->height != stroke.height
-        || nw::kernel::resman().generation() != stroke.resource_generation
-        || nw::toolset::object_mutation_state().epoch
-            != stroke.mutation_epoch) {
-        editor.feedback = "Tile stroke was cancelled because its area changed";
-        append_output(state, "warn", "Tile stroke was cancelled because its area changed");
-        return;
-    }
-    nw::toolset::AreaTileEditBatch edit;
-    const auto built = build_area_tile_stroke_edits(stroke.area,
-        stroke.tile_indices, stroke.corner_indices, stroke.brush,
-        editor.next_random_seed++, edit);
-    if (!built.ok()) {
-        if (stroke.brush.kind == nw::toolset::AreaTileBrushKind::eraser
-            && built.status == nw::toolset::ObjectEditStatus::empty) {
-            editor.feedback = "Nothing to erase here";
-            return;
-        }
-        editor.feedback = built.diagnostic;
-        (void)preview_area_tile_stroke(renderer, editor, stroke.area,
-            stroke.tile_indices, stroke.corner_indices, stroke.brush);
-        append_output(state,
-            built.status == nw::toolset::ObjectEditStatus::failed
-                ? "error"
-                : "warn",
-            built.diagnostic);
-        return;
-    }
-    const size_t target_count = area_tile_height_brush(stroke.brush)
-        ? stroke.corner_indices.size()
-        : stroke.tile_indices.size();
-    const auto result = state.backend.edit_area_tiles(
-        std::move(edit),
-        target_count == 1 ? stroke.label : stroke.label + " stroke",
-        command_context(state, nw::toolset::CommandSource::renderer));
-    editor.feedback = result.ok() ? std::string{} : result.message;
-    append_command_result(state, result);
+    if (!state.area_tile_editor.stroke.active) { return; }
+    nw::toolset::commit_area_tile_stroke(renderer, state.area_tile_editor,
+        active_workspace_area(state), area_tile_editor_action_allowed(state),
+        state.stale_area_viewport == state.area_tile_editor.stroke.area, state.backend,
+        command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
-bool cycle_selected_area_tile_variation(
-    ClientRenderer& renderer, AppState& state)
+void arm_area_object_placement(ClientRenderer& renderer, AppState& state, nw::Resource resource, Rml::Vector2f point)
 {
-    auto& editor = state.area_tile_editor;
-    if (!area_tile_editor_action_allowed(state)
-        || !editor.selection.active()) {
-        return false;
-    }
-    if (editor.selection.is_group()) {
-        editor.feedback
-            = "Placed groups do not expose interchangeable group variations";
-        return true;
-    }
-    cancel_area_tile_stroke(renderer, state);
-    const nw::ObjectHandle area = editor.selection.area;
-    const std::array cells{editor.selection.source_tile_index};
-    nw::toolset::AreaTileEditBatch edit;
-    const auto built = nw::toolset::build_area_tile_variation_edits(
-        area, cells, edit);
-    if (!built.ok()) {
-        editor.feedback = built.diagnostic;
-        append_output(state,
-            built.status == nw::toolset::ObjectEditStatus::failed
-                ? "error"
-                : "warn",
-            built.diagnostic);
-        (void)update_area_tile_selection_preview(renderer, state);
-        return true;
-    }
-    const auto result = state.backend.edit_area_tiles(std::move(edit),
-        "Cycle tile variation",
-        command_context(state, nw::toolset::CommandSource::renderer));
-    editor.feedback = result.ok() ? std::string{} : result.message;
-    append_command_result(state, result);
-    (void)update_area_tile_selection_preview(renderer, state);
-    return true;
-}
-
-bool placement_blueprint_resource(const nw::Resource& resource) noexcept
-{
-    return resource.valid()
-        && (resource.type == nw::ResourceType::utc
-            || resource.type == nw::ResourceType::utd
-            || resource.type == nw::ResourceType::ute
-            || resource.type == nw::ResourceType::utp
-            || resource.type == nw::ResourceType::uti
-            || resource.type == nw::ResourceType::utm
-            || resource.type == nw::ResourceType::uts
-            || resource.type == nw::ResourceType::utt
-            || resource.type == nw::ResourceType::utw);
-}
-
-bool region_blueprint_resource(const nw::Resource& resource) noexcept
-{
-    return resource.type == nw::ResourceType::ute
-        || resource.type == nw::ResourceType::utt;
-}
-
-bool area_object_placement_position_valid(nw::ObjectHandle area, glm::vec3 position)
-{
-    constexpr float k_tile_size = 10.0f;
-    if (area.type != nw::ObjectType::area) {
-        return false;
-    }
-    const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
-    return live_area && live_area->width > 0 && live_area->height > 0
-        && std::isfinite(position.x) && std::isfinite(position.y) && std::isfinite(position.z)
-        && position.x >= 0.0f
-        && position.x <= static_cast<float>(live_area->width) * k_tile_size
-        && position.y >= 0.0f
-        && position.y <= static_cast<float>(live_area->height) * k_tile_size;
-}
-
-void arm_area_object_placement(ClientRenderer& renderer,
-    AppState& state,
-    nw::Resource resource,
-    Rml::Vector2f point)
-{
-    if (!placement_blueprint_resource(resource)) {
-        return;
-    }
-
-    const auto previous_selection = renderer.active_viewer_object();
-    state.area_object_placement = {
-        .resource = std::move(resource),
-        .previous_selection = previous_selection,
-        .drag_start = point,
-        .tab_id = state.workspace.active_tab_id(),
-        .phase = AreaObjectPlacementPhase::armed,
-    };
+    nw::toolset::arm_area_object_placement(renderer, state.area_object_placement,
+        std::move(resource), point, state.workspace.active_tab_id());
 }
 
 void cancel_area_object_placement(ClientRenderer& renderer, AppState& state)
 {
-    if (!state.area_object_placement.active()) {
-        return;
-    }
-
-    const auto placement = std::move(state.area_object_placement);
-    state.area_object_placement = {};
-    if (region_blueprint_resource(placement.resource)) {
-        renderer.update_viewer_area_region_preview(
-            {}, std::nullopt, false);
-    }
-    if (placement.navigation) renderer.update_toolset_preview_navigation_debug({});
-    if (nw::kernel::objects().valid(placement.object)) {
-        nw::kernel::objects().destroy(placement.object);
-    }
-    if (placement.object.type != nw::ObjectType::invalid
-        && renderer.area_viewer_object() == placement.area) {
-        const auto selected = nw::kernel::objects().valid(placement.previous_selection)
-            ? placement.previous_selection
-            : nw::ObjectHandle{};
-        if (!renderer.rebuild_live_viewer_area(placement.area, selected)) {
-            append_output(state, "error", "Area object placement cancellation rebuild failed");
-        }
-    }
+    nw::toolset::cancel_area_object_placement(renderer, state.area_object_placement, state.shell);
 }
 
-bool update_area_region_placement(
-    ClientRenderer& renderer,
-    AreaObjectPlacementState& placement,
-    nw::ObjectHandle area,
-    Rml::Vector2f point,
-    ClientViewportRect viewport)
+bool update_area_object_placement(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const std::optional<WorkspaceViewerViewportRequest>& viewport)
 {
-    glm::vec3 projected{0.0f};
-    if (!project_area_navigation_point(renderer,
-            placement.navigation, area, point, viewport,
-            projected, placement.diagnostic)) {
-        placement.region_hover.reset();
-        placement.region_closing_valid = false;
-        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-        renderer.update_viewer_area_region_preview(
-            placement.region_points, std::nullopt, false);
-        return true;
-    }
-
-    const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
-    std::vector<glm::vec3> candidate = placement.region_points;
-    candidate.push_back(projected);
-    std::string path_diagnostic;
-    const bool open_valid = live_area
-        && nw::toolset::validate_area_region_path(
-            live_area->width, live_area->height,
-            candidate, false, path_diagnostic);
-    std::string close_diagnostic;
-    placement.region_closing_valid = open_valid && candidate.size() >= 3
-        && nw::toolset::validate_area_region_path(
-            live_area->width, live_area->height,
-            candidate, true, close_diagnostic);
-    placement.region_hover = projected;
-    placement.area = area;
-    placement.phase = open_valid
-        ? AreaObjectPlacementPhase::ghost_valid
-        : AreaObjectPlacementPhase::ghost_invalid;
-    placement.diagnostic = open_valid
-        ? close_diagnostic
-        : path_diagnostic;
-    if (!renderer.update_viewer_area_region_preview(
-            placement.region_points,
-            placement.region_hover,
-            placement.region_closing_valid)) {
-        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-        placement.diagnostic = "Region preview construction failed";
-    }
-    return true;
+    const std::optional<ClientViewportRect> area_viewport = viewport && viewport->kind == WorkspaceViewerViewportKind::area
+        ? std::optional<ClientViewportRect>{viewport->rect}
+        : std::nullopt;
+    return nw::toolset::update_area_object_placement(renderer, state.area_object_placement,
+        point, area_viewport, state.workspace.active_tab_id(), state.pressed_recent_index, state.shell);
 }
 
-bool update_area_object_placement(ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const std::optional<WorkspaceViewerViewportRequest>& viewport)
+bool accept_area_region_point(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    auto& placement = state.area_object_placement;
-    if (!placement.active()) {
-        return false;
-    }
-
-    const float dx = point.x - placement.drag_start.x;
-    const float dy = point.y - placement.drag_start.y;
-    if (!placement.threshold_crossed
-        && std::abs(dx) < kWorkspaceTabDragThresholdPx
-        && std::abs(dy) < kWorkspaceTabDragThresholdPx) {
-        return false;
-    }
-    placement.threshold_crossed = true;
-    state.pressed_recent_index = -1;
-
-    if (!viewport || viewport->kind != WorkspaceViewerViewportKind::area
-        || !point_within_viewport(viewport->rect, point)) {
-        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-        if (region_blueprint_resource(placement.resource)) {
-            placement.region_hover.reset();
-            placement.region_closing_valid = false;
-            renderer.update_viewer_area_region_preview(
-                placement.region_points, std::nullopt, false);
-        }
-        return true;
-    }
-
-    const auto area = renderer.area_viewer_object();
-    if (area.type != nw::ObjectType::area || !nw::kernel::objects().valid(area)
-        || state.workspace.active_tab_id() != placement.tab_id) {
-        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-        placement.region_hover.reset();
-        placement.region_closing_valid = false;
-        return true;
-    }
-    if (placement.area.type != nw::ObjectType::invalid && placement.area != area) {
-        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-        placement.region_hover.reset();
-        placement.region_closing_valid = false;
-        return true;
-    }
-
-    if (region_blueprint_resource(placement.resource)
-        && placement.object.type == nw::ObjectType::invalid) {
-        return update_area_region_placement(
-            renderer, placement, area, point, viewport->rect);
-    }
-
-    const auto surface_point = renderer.viewer_area_surface_point(
-        point.x, point.y, viewport->rect);
-    if (!surface_point) {
-        placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-        placement.diagnostic = "Placement ray did not hit an area surface";
-        return true;
-    }
-    const bool valid_position = area_object_placement_position_valid(area, *surface_point);
-    if (placement.object.type == nw::ObjectType::invalid) {
-        if (!valid_position || placement.materialization_failed) {
-            placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-            return true;
-        }
-
-        const std::array placement_rows{nw::toolset::AreaObjectBlueprintPlacement{
-            .resource = placement.resource,
-            .transform = {
-                .position = *surface_point,
-                .orientation = {1.0f, 0.0f, 0.0f},
-                .scale = {1.0f, 1.0f, 1.0f},
-            },
-        }};
-        auto loaded = nw::toolset::load_area_object_blueprints(area, placement_rows);
-        if (!loaded.ok() || loaded.objects.size() != 1) {
-            placement.materialization_failed = true;
-            placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-            append_output(state,
-                loaded.status == nw::toolset::AreaObjectBlueprintLoadStatus::failed ? "error" : "warn",
-                loaded.diagnostic.empty() ? "Area object placement load failed" : loaded.diagnostic);
-            return true;
-        }
-
-        placement.area = area;
-        placement.object = loaded.objects.front();
-        const std::array objects{placement.object};
-        if (!renderer.append_viewer_area_object_previews(objects, kAreaObjectPlacementOpacity)) {
-            nw::kernel::objects().destroy(placement.object);
-            placement.object = nw::ObjectHandle{};
-            placement.materialization_failed = true;
-            placement.phase = AreaObjectPlacementPhase::ghost_invalid;
-            append_output(state, "error", "Area object placement preview construction failed");
-            return true;
-        }
-        const auto* spatial = nw::kernel::objects().components().find_spatial(placement.object);
-        if (!spatial) {
-            cancel_area_object_placement(renderer, state);
-            return true;
-        }
-        placement.preview = *spatial;
-    }
-
-    placement.preview.position = *surface_point;
-    const bool snapped = snap_area_door_preview(
-        area,
-        placement.object,
-        *surface_point,
-        placement.door_hooks,
-        placement.door_hook_type,
-        placement.preview,
-        placement.diagnostic);
-    if (snapped && !renderer.preview_viewer_area_object_spatial(placement.preview)) {
-        append_output(state, "error", "Area object placement preview update failed");
-        cancel_area_object_placement(renderer, state);
-        return true;
-    }
-    const bool admitted = snapped && validate_placement_preview(renderer, placement.navigation, area, placement.preview, placement.diagnostic);
-    placement.phase = valid_position && snapped && admitted
-        ? AreaObjectPlacementPhase::ghost_valid
-        : AreaObjectPlacementPhase::ghost_invalid;
-    return true;
-}
-
-bool accept_area_region_point(
-    ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
-{
-    auto& placement = state.area_object_placement;
-    if (!placement.region_drawing
-        || !update_area_region_placement(
-            renderer, placement, placement.area, point, viewport.rect)
-        || placement.phase != AreaObjectPlacementPhase::ghost_valid
-        || !placement.region_hover) {
-        if (!placement.diagnostic.empty()) {
-            append_output(state, "warn", placement.diagnostic);
-        }
-        return false;
-    }
-    placement.region_points.push_back(*placement.region_hover);
-    placement.region_hover.reset();
-    placement.region_closing_valid = false;
-    placement.diagnostic.clear();
-    renderer.update_viewer_area_region_preview(
-        placement.region_points, std::nullopt, false);
-    return true;
+    return nw::toolset::accept_area_region_point(renderer, state.area_object_placement,
+        point, viewport.rect, state.shell);
 }
 
 void commit_area_object_placement(
     ClientRenderer& renderer, AppState& state);
 
-bool complete_area_region_placement(
-    ClientRenderer& renderer,
-    AppState& state,
-    Rml::Vector2f point,
-    const WorkspaceViewerViewportRequest& viewport)
+bool complete_area_region_placement(ClientRenderer& renderer, AppState& state, Rml::Vector2f point, const WorkspaceViewerViewportRequest& viewport)
 {
-    auto& placement = state.area_object_placement;
-    if (!placement.region_drawing
-        || !update_area_region_placement(
-            renderer, placement, placement.area, point, viewport.rect)
-        || !placement.region_hover) {
-        return false;
-    }
-
-    std::vector<glm::vec3> world_points = placement.region_points;
-    const glm::vec3 final_delta = world_points.empty()
-        ? glm::vec3{1.0f}
-        : world_points.back() - *placement.region_hover;
-    if (world_points.empty()
-        || glm::dot(final_delta, final_delta) > 1.0e-8f) {
-        world_points.push_back(*placement.region_hover);
-    }
-    const auto* area = nw::kernel::objects().get<nw::Area>(placement.area);
-    nw::toolset::AreaRegionGeometry geometry;
-    if (!area || !nw::toolset::build_area_region_geometry(area->width, area->height, world_points, geometry, placement.diagnostic)) {
-        append_output(state, "warn", placement.diagnostic);
-        return false;
-    }
-
-    const std::array placement_rows{
-        nw::toolset::AreaObjectBlueprintPlacement{
-            .resource = placement.resource,
-            .transform = {
-                .position = geometry.root_position,
-                .orientation = {1.0f, 0.0f, 0.0f},
-                .scale = {1.0f, 1.0f, 1.0f},
-            },
-            .geometry_points = geometry.local_points,
-        },
-    };
-    auto loaded = nw::toolset::load_area_object_blueprints(
-        placement.area, placement_rows);
-    if (!loaded.ok() || loaded.objects.size() != 1) {
-        placement.diagnostic = loaded.diagnostic.empty()
-            ? "Area region placement load failed"
-            : std::move(loaded.diagnostic);
-        append_output(state,
-            loaded.status
-                    == nw::toolset::AreaObjectBlueprintLoadStatus::failed
-                ? "error"
-                : "warn",
-            placement.diagnostic);
-        return false;
-    }
-    placement.object = loaded.objects.front();
-    const auto* spatial = nw::kernel::objects().components().find_spatial(
-        placement.object);
-    if (!spatial) {
-        nw::kernel::objects().destroy(placement.object);
-        placement.object = nw::ObjectHandle{};
-        append_output(state, "error",
-            "Area region placement has no spatial state");
-        return false;
-    }
-    placement.preview = *spatial;
-    placement.phase = AreaObjectPlacementPhase::ghost_valid;
-    renderer.update_viewer_area_region_preview({}, std::nullopt, false);
-    const std::array objects{placement.object};
-    if (!renderer.append_viewer_area_object_previews(
-            objects, kAreaObjectPlacementOpacity)) {
-        nw::kernel::objects().destroy(placement.object);
-        placement.object = nw::ObjectHandle{};
-        append_output(state, "error",
-            "Area region preview construction failed");
-        return false;
-    }
-    commit_area_object_placement(renderer, state);
-    return true;
+    return nw::toolset::complete_area_region_placement(renderer, state.area_object_placement,
+        point, viewport.rect, state.backend, command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
 void commit_area_object_placement(ClientRenderer& renderer, AppState& state)
 {
-    if (!state.area_object_placement.active()) {
-        return;
-    }
-    if (state.area_object_placement.phase != AreaObjectPlacementPhase::ghost_valid
-        || !nw::kernel::objects().valid(state.area_object_placement.object)) {
-        if (!state.area_object_placement.diagnostic.empty()) {
-            append_output(state, "warn", state.area_object_placement.diagnostic);
-        }
-        cancel_area_object_placement(renderer, state);
-        return;
-    }
-
-    const auto placement = std::move(state.area_object_placement);
-    state.area_object_placement = {};
-    if (placement.navigation) renderer.update_toolset_preview_navigation_debug({});
-    auto& components = nw::kernel::objects().components();
-    const auto* current_spatial = components.find_spatial(placement.object);
-    const nw::ObjectSpatialState before = current_spatial
-        ? *current_spatial
-        : nw::ObjectSpatialState{};
-    if (!current_spatial
-        || !components.set_position(placement.object, placement.preview.position)
-        || !components.set_orientation(
-            placement.object, placement.preview.orientation)) {
-        if (current_spatial) {
-            components.set_position(placement.object, before.position);
-            components.set_orientation(placement.object, before.orientation);
-        }
-        if (nw::kernel::objects().valid(placement.object)) {
-            nw::kernel::objects().destroy(placement.object);
-        }
-        const auto selected = nw::kernel::objects().valid(placement.previous_selection)
-            ? placement.previous_selection
-            : nw::ObjectHandle{};
-        if (!renderer.rebuild_live_viewer_area(placement.area, selected)) {
-            append_output(state, "error", "Area object placement rollback rebuild failed");
-        }
-        append_output(state, "error", "Area object placement spatial commit failed");
-        return;
-    }
-
-    const std::array objects{placement.object};
-    auto result = state.backend.place_area_objects(
-        placement.area,
-        objects,
-        command_context(state, nw::toolset::CommandSource::renderer));
-    append_command_result(state, result);
-    if (!result.ok()) {
-        if (nw::kernel::objects().valid(placement.object)) {
-            nw::kernel::objects().destroy(placement.object);
-        }
-        const auto selected = nw::kernel::objects().valid(placement.previous_selection)
-            ? placement.previous_selection
-            : nw::ObjectHandle{};
-        if (!renderer.rebuild_live_viewer_area(placement.area, selected)) {
-            append_output(state, "error", "Area object placement rollback rebuild failed");
-        }
-    }
+    if (!state.area_object_placement.active()) { return; }
+    nw::toolset::commit_area_object_placement(renderer, state.area_object_placement,
+        state.backend, command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
-bool project_blueprint_drag_resource(const nw::Resource& resource,
-    const std::filesystem::path& source_path,
-    nw::ResourceType::type type) noexcept
+nw::toolset::ProjectResourceDragContext project_resource_drag_context(const AppState& state)
 {
-    return resource.valid()
-        && resource.type == type
-        && source_path.extension() == ".json";
+    return {
+        .active_tab_id = state.workspace.active_tab_id(),
+        .details_object = state.object_details.object,
+        .inventory_object = state.creature_inventory.object,
+        .surface = state.object_workbench_surface,
+        .object_matches_tab = active_object_matches_tab(state),
+        .inventory_matches_tab = active_creature_inventory_matches_tab(state),
+    };
 }
 
-void clear_project_blueprint_drop_visuals(Rml::ElementDocument* doc,
-    const ProjectBlueprintDragState& drag)
+bool arm_project_blueprint_drag(AppState& state, const nw::Resource& resource,
+    const std::filesystem::path& source_path, Rml::Vector2f point)
 {
-    if (auto* target = find_el(doc, "creature_inventory_drop_target")) {
-        target->SetProperty("display", "none");
-        target->SetClass("valid", false);
-        target->SetClass("invalid", false);
-    }
-    if (drag.target.kind == ProjectBlueprintDropTargetKind::equipment
-        && static_cast<uint32_t>(drag.target.slot) < 18) {
-        const std::string id = "creature_equipment_slot_"
-            + std::to_string(static_cast<uint32_t>(drag.target.slot));
-        if (auto* slot = find_el(doc, id.c_str())) {
-            slot->SetClass("drop_valid", false);
-            slot->SetClass("drop_invalid", false);
-        }
-    }
-    if (auto* spawns = find_el(doc, "encounter_spawn_collection")) {
-        spawns->SetClass("drop_valid", false);
-        spawns->SetClass("drop_invalid", false);
-    }
-    if (auto* sounds = find_el(doc, "sound_resource_collection")) {
-        sounds->SetClass("drop_valid", false);
-        sounds->SetClass("drop_invalid", false);
-    }
-    for (int32_t category = 0; category < 5; ++category) {
-        const std::string id = "store_inventory_drop_" + std::to_string(category);
-        if (auto* target = find_el(doc, id.c_str())) {
-            target->SetClass("drop_valid", false);
-            target->SetClass("drop_invalid", false);
-        }
-    }
-}
-
-void set_project_blueprint_drop_target(Rml::ElementDocument* doc,
-    ProjectBlueprintDragState& drag,
-    ProjectBlueprintDropTarget target,
-    bool valid)
-{
-    clear_project_blueprint_drop_visuals(doc, drag);
-    drag.target = target;
-    drag.phase = valid
-        ? ProjectBlueprintDragPhase::target_valid
-        : ProjectBlueprintDragPhase::target_invalid;
-
-    if (target.kind == ProjectBlueprintDropTargetKind::inventory) {
-        if (auto* overlay = find_el(doc, "creature_inventory_drop_target")) {
-            const int top = (target.row - drag.height + 1) * kCreatureInventoryCellPx;
-            overlay->SetProperty("display", "block");
-            overlay->SetProperty("left",
-                std::to_string(target.column * kCreatureInventoryCellPx) + "px");
-            overlay->SetProperty("top", std::to_string(top) + "px");
-            overlay->SetProperty("width",
-                std::to_string(drag.width * kCreatureInventoryCellPx) + "px");
-            overlay->SetProperty("height",
-                std::to_string(drag.height * kCreatureInventoryCellPx) + "px");
-            overlay->SetClass("valid", valid);
-            overlay->SetClass("invalid", !valid);
-        }
-    } else if (target.kind == ProjectBlueprintDropTargetKind::equipment
-        && static_cast<uint32_t>(target.slot) < 18) {
-        const std::string id = "creature_equipment_slot_"
-            + std::to_string(static_cast<uint32_t>(target.slot));
-        if (auto* slot = find_el(doc, id.c_str())) {
-            slot->SetClass("drop_valid", valid);
-            slot->SetClass("drop_invalid", !valid);
-        }
-    } else if (target.kind == ProjectBlueprintDropTargetKind::encounter_spawns) {
-        if (auto* spawns = find_el(doc, "encounter_spawn_collection")) {
-            spawns->SetClass("drop_valid", valid);
-            spawns->SetClass("drop_invalid", !valid);
-        }
-    } else if (target.kind == ProjectBlueprintDropTargetKind::sound_resources) {
-        if (auto* sounds = find_el(doc, "sound_resource_collection")) {
-            sounds->SetClass("drop_valid", valid);
-            sounds->SetClass("drop_invalid", !valid);
-        }
-    } else if (target.kind == ProjectBlueprintDropTargetKind::store_inventory
-        && target.category >= 0 && target.category < 5) {
-        const std::string id = "store_inventory_drop_"
-            + std::to_string(target.category);
-        if (auto* store_target = find_el(doc, id.c_str())) {
-            store_target->SetClass("drop_valid", valid);
-            store_target->SetClass("drop_invalid", !valid);
-        }
-    }
-}
-
-bool arm_project_blueprint_drag(AppState& state,
-    const nw::Resource& resource,
-    const std::filesystem::path& source_path,
-    Rml::Vector2f point)
-{
-    if (project_blueprint_drag_resource(
-            resource, source_path, nw::ResourceType::uti)
-        && state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory
-        && active_object_matches_tab(state)
-        && state.object_details.object.type == nw::ObjectType::store) {
-        state.project_blueprint_drag = {
-            .source_path = source_path,
-            .resource = resource,
-            .owner = state.object_details.object,
-            .drag_start = point,
-            .tab_id = state.workspace.active_tab_id(),
-            .kind = ProjectBlueprintDragKind::item,
-            .phase = ProjectBlueprintDragPhase::armed,
-        };
-        return true;
-    }
-
-    if (project_blueprint_drag_resource(
-            resource, source_path, nw::ResourceType::uti)
-        && state.object_workbench_surface == ObjectWorkbenchSurface::inventory
-        && active_creature_inventory_matches_tab(state)) {
-        state.project_blueprint_drag = {
-            .source_path = source_path,
-            .resource = resource,
-            .owner = state.creature_inventory.object,
-            .drag_start = point,
-            .tab_id = state.workspace.active_tab_id(),
-            .kind = ProjectBlueprintDragKind::item,
-            .phase = ProjectBlueprintDragPhase::armed,
-        };
-        return true;
-    }
-
-    if (project_blueprint_drag_resource(
-            resource, source_path, nw::ResourceType::utc)
-        && state.object_workbench_surface == ObjectWorkbenchSurface::spawns
-        && active_object_matches_tab(state)
-        && state.object_details.object.type == nw::ObjectType::encounter) {
-        state.project_blueprint_drag = {
-            .source_path = source_path,
-            .resource = resource,
-            .owner = state.object_details.object,
-            .drag_start = point,
-            .tab_id = state.workspace.active_tab_id(),
-            .kind = ProjectBlueprintDragKind::encounter_spawn,
-            .phase = ProjectBlueprintDragPhase::armed,
-        };
-        return true;
-    }
-
-    if (resource.valid()
-        && resource.type == nw::ResourceType::wav
-        && state.object_workbench_surface == ObjectWorkbenchSurface::sounds
-        && active_object_matches_tab(state)
-        && state.object_details.object.type == nw::ObjectType::sound) {
-        state.project_blueprint_drag = {
-            .source_path = source_path,
-            .resource = resource,
-            .owner = state.object_details.object,
-            .drag_start = point,
-            .tab_id = state.workspace.active_tab_id(),
-            .kind = ProjectBlueprintDragKind::sound_resource,
-            .phase = ProjectBlueprintDragPhase::armed,
-        };
-        return true;
-    }
-
-    return false;
+    return nw::toolset::arm_project_blueprint_drag(state.project_blueprint_drag,
+        project_resource_drag_context(state), resource, source_path, point);
 }
 
 bool project_blueprint_drag_context_matches(const AppState& state)
 {
-    const auto& drag = state.project_blueprint_drag;
-    if (!drag.active() || state.workspace.active_tab_id() != drag.tab_id) {
-        return false;
-    }
-    switch (drag.kind) {
-    case ProjectBlueprintDragKind::item:
-        if (drag.owner.type == nw::ObjectType::store) {
-            return state.object_workbench_surface
-                == ObjectWorkbenchSurface::store_inventory
-                && state.object_details.object == drag.owner
-                && active_object_matches_tab(state);
-        }
-        return state.object_workbench_surface == ObjectWorkbenchSurface::inventory
-            && state.creature_inventory.object == drag.owner
-            && active_creature_inventory_matches_tab(state);
-    case ProjectBlueprintDragKind::encounter_spawn:
-        return state.object_workbench_surface == ObjectWorkbenchSurface::spawns
-            && state.object_details.object == drag.owner
-            && active_object_matches_tab(state);
-    case ProjectBlueprintDragKind::sound_resource:
-        return state.object_workbench_surface == ObjectWorkbenchSurface::sounds
-            && state.object_details.object == drag.owner
-            && active_object_matches_tab(state);
-    default:
-        return false;
-    }
+    return nw::toolset::project_blueprint_drag_context_matches(state.project_blueprint_drag,
+        project_resource_drag_context(state));
 }
 
 void cancel_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
 {
-    if (!state.project_blueprint_drag.active()) {
-        return;
-    }
-    clear_project_blueprint_drop_visuals(doc, state.project_blueprint_drag);
-    const auto item = state.project_blueprint_drag.item;
-    state.project_blueprint_drag = {};
-    if (nw::kernel::objects().valid(item)) {
-        nw::kernel::objects().destroy(item);
-    }
+    nw::toolset::cancel_project_blueprint_drag(doc, state.project_blueprint_drag);
 }
 
-bool materialize_project_blueprint_drag(AppState& state)
+bool update_project_blueprint_drag(Rml::Context* context, Rml::ElementDocument* doc,
+    AppState& state, Rml::Vector2f point)
 {
-    auto& drag = state.project_blueprint_drag;
-    if (drag.kind == ProjectBlueprintDragKind::sound_resource) {
-        if (drag.sound_resource_edit) {
-            return true;
-        }
-        if (drag.materialization_failed) {
-            return false;
-        }
-
-        if (!drag.resource.valid()
-            || drag.resource.type != nw::ResourceType::wav
-            || drag.resource.resref.empty()) {
-            drag.materialization_failed = true;
-            append_output(state, "error",
-                "Sound resource drag source or target list is invalid or full");
-            return false;
-        }
-
-        const std::array additions{drag.resource.resref};
-        drag.sound_resource_edit = nw::toolset::make_sound_resource_additions(
-            nw::kernel::runtime(), drag.owner, additions);
-        if (!drag.sound_resource_edit) {
-            drag.materialization_failed = true;
-            append_output(state, "error",
-                "Sound resource drag source or target list is invalid or full");
-            return false;
-        }
-        return true;
-    }
-
-    if (drag.kind == ProjectBlueprintDragKind::encounter_spawn) {
-        if (drag.encounter_spawn_edit) {
-            return true;
-        }
-        if (drag.materialization_failed) {
-            return false;
-        }
-
-        std::ifstream input{drag.source_path};
-        input >> std::ws;
-        if (!input || input.peek() != '{') {
-            drag.materialization_failed = true;
-            append_output(state, "warn",
-                "Encounter spawn drag requires an authored component/propset JSON Creature blueprint");
-            return false;
-        }
-
-        auto* creature = nw::kernel::objects().load_file<nw::Creature>(
-            drag.source_path);
-        if (!creature) {
-            drag.materialization_failed = true;
-            append_output(state, "error",
-                "Encounter spawn Creature blueprint could not be loaded");
-            return false;
-        }
-
-        const std::array creature_handles{creature->handle()};
-        auto rows = nw::toolset::make_encounter_spawn_records(
-            nw::kernel::runtime(), creature_handles);
-        nw::kernel::objects().destroy(creature->handle());
-        auto before = nw::toolset::snapshot_encounter_spawns(
-            nw::kernel::runtime(), drag.owner);
-        if (!rows || rows->size() != 1 || !before || before->size() >= 1024) {
-            drag.materialization_failed = true;
-            append_output(state, "error",
-                "Encounter spawn drag source or target list is invalid or full");
-            return false;
-        }
-
-        auto after = *before;
-        after.push_back(std::move(rows->front()));
-        drag.encounter_spawn_edit = nw::toolset::EncounterSpawnEdit{
-            .encounter = drag.owner,
-            .before = std::move(*before),
-            .after = std::move(after),
-        };
-        return true;
-    }
-
-    if (drag.kind != ProjectBlueprintDragKind::item) {
-        return false;
-    }
-    if (drag.item.type == nw::ObjectType::item) {
-        return true;
-    }
-    if (drag.materialization_failed) {
-        return false;
-    }
-
-    std::ifstream input{drag.source_path};
-    input >> std::ws;
-    if (!input || input.peek() != '{') {
-        drag.materialization_failed = true;
-        append_output(state, "warn", "Item drag requires an authored component/propset JSON blueprint");
-        return false;
-    }
-
-    auto* item = nw::kernel::objects().load_file<nw::Item>(drag.source_path);
-    const auto* layout = item
-        ? nw::kernel::objects().components().find_item_layout(item->handle())
-        : nullptr;
-    if (!item || !layout || layout->inventory_width <= 0
-        || layout->inventory_height <= 0
-        || layout->inventory_width > nw::Inventory::max_columns
-        || layout->inventory_height > nw::Inventory::max_rows) {
-        if (item) {
-            nw::kernel::objects().destroy(item->handle());
-        }
-        drag.materialization_failed = true;
-        append_output(state, "error", "Item drag blueprint has no valid inventory footprint");
-        return false;
-    }
-
-    drag.item = item->handle();
-    drag.width = layout->inventory_width;
-    drag.height = layout->inventory_height;
-    return true;
-}
-
-bool update_project_blueprint_drag(Rml::Context* context,
-    Rml::ElementDocument* doc,
-    AppState& state,
-    Rml::Vector2f point)
-{
-    auto& drag = state.project_blueprint_drag;
-    if (!drag.active()) {
-        return false;
-    }
-
-    const float dx = point.x - drag.drag_start.x;
-    const float dy = point.y - drag.drag_start.y;
-    if (!drag.threshold_crossed
-        && std::abs(dx) < kWorkspaceTabDragThresholdPx
-        && std::abs(dy) < kWorkspaceTabDragThresholdPx) {
-        return false;
-    }
-    drag.threshold_crossed = true;
-    state.pressed_recent_index = -1;
-
-    if (!project_blueprint_drag_context_matches(state)) {
-        set_project_blueprint_drop_target(doc, drag, {}, false);
-        return true;
-    }
-
-    if (drag.kind == ProjectBlueprintDragKind::encounter_spawn) {
-        if (!materialize_project_blueprint_drag(state)) {
-            set_project_blueprint_drop_target(doc, drag, {}, false);
-            return true;
-        }
-        auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
-        const bool over_spawn_collection = find_ancestor_with_id(hit, "encounter_spawn_collection") != nullptr;
-        const ProjectBlueprintDropTarget target{
-            .kind = over_spawn_collection
-                ? ProjectBlueprintDropTargetKind::encounter_spawns
-                : ProjectBlueprintDropTargetKind::none,
-        };
-        if (target == drag.target
-            && (drag.phase == ProjectBlueprintDragPhase::target_valid
-                || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
-            return true;
-        }
-        set_project_blueprint_drop_target(doc, drag, target, over_spawn_collection);
-        return true;
-    }
-
-    if (drag.kind == ProjectBlueprintDragKind::sound_resource) {
-        if (!materialize_project_blueprint_drag(state)) {
-            set_project_blueprint_drop_target(doc, drag, {}, false);
-            return true;
-        }
-        auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
-        const bool over_sound_collection = find_ancestor_with_id(hit, "sound_resource_collection") != nullptr;
-        const ProjectBlueprintDropTarget target{
-            .kind = over_sound_collection
-                ? ProjectBlueprintDropTargetKind::sound_resources
-                : ProjectBlueprintDropTargetKind::none,
-        };
-        if (target == drag.target
-            && (drag.phase == ProjectBlueprintDragPhase::target_valid
-                || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
-            return true;
-        }
-        set_project_blueprint_drop_target(doc, drag, target, over_sound_collection);
-        return true;
-    }
-
-    if (!materialize_project_blueprint_drag(state)) {
-        set_project_blueprint_drop_target(doc, drag, {}, false);
-        return true;
-    }
-
-    if (drag.owner.type == nw::ObjectType::store) {
-        auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
-        auto* store_target = find_ancestor_with_class(
-            hit, "store_inventory_drop_target");
-        const auto category = store_target
-            ? parse_decimal_int32(
-                  store_target->GetAttribute<Rml::String>("data-category", ""))
-            : std::nullopt;
-        ProjectBlueprintDropTarget target{
-            .kind = category
-                    && *category >= 0 && *category < 5
-                ? ProjectBlueprintDropTargetKind::store_inventory
-                : ProjectBlueprintDropTargetKind::none,
-            .category = category.value_or(-1),
-        };
-
-        auto* store = nw::kernel::objects().get<nw::Store>(drag.owner);
-        nw::Inventory* inventory = nullptr;
-        if (store && category) {
-            switch (*category) {
-            case 0:
-                inventory = &store->inventory().armor;
-                break;
-            case 1:
-                inventory = &store->inventory().miscellaneous;
-                break;
-            case 2:
-                inventory = &store->inventory().potions;
-                break;
-            case 3:
-                inventory = &store->inventory().rings;
-                break;
-            case 4:
-                inventory = &store->inventory().weapons;
-                break;
-            default:
-                break;
-            }
-        }
-        const bool valid = inventory
-            && inventory->items.size() < inventory->items.capacity();
-        if (target == drag.target
-            && (drag.phase == ProjectBlueprintDragPhase::target_valid
-                || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
-            return true;
-        }
-        set_project_blueprint_drop_target(doc, drag, target, valid);
-        return true;
-    }
-
-    auto* creature = drag.owner.type == nw::ObjectType::creature
-        ? nw::kernel::objects().get<nw::Creature>(drag.owner)
-        : nullptr;
-    auto* owner_item = drag.owner.type == nw::ObjectType::item
-        ? nw::kernel::objects().get<nw::Item>(drag.owner)
-        : nullptr;
-    auto* owner_placeable = drag.owner.type == nw::ObjectType::placeable
-        ? nw::kernel::objects().get<nw::Placeable>(drag.owner)
-        : nullptr;
-    nw::Inventory* inventory = creature ? &creature->inventory()
-        : owner_item                    ? &owner_item->inventory()
-        : owner_placeable               ? &owner_placeable->inventory()
-                                        : nullptr;
-    if (!inventory) {
-        set_project_blueprint_drop_target(doc, drag, {}, false);
-        return true;
-    }
-
-    auto* hit = context ? context->GetElementAtPoint(point) : nullptr;
-    if (creature) {
-        if (auto* equipment = find_ancestor_with_class(hit, "creature_equipment_slot")) {
-            const auto slot_value = parse_decimal_int32(
-                equipment->GetAttribute<Rml::String>("data-slot", ""));
-            ProjectBlueprintDropTarget target;
-            target.kind = ProjectBlueprintDropTargetKind::equipment;
-            if (slot_value && *slot_value >= 0 && *slot_value < 18) {
-                target.slot = static_cast<nw::EquipIndex>(*slot_value);
-            }
-            if (target == drag.target
-                && (drag.phase == ProjectBlueprintDragPhase::target_valid
-                    || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
-                return true;
-            }
-            const auto* layout = nw::kernel::objects().components().find_item_layout(drag.item);
-            auto* item = nw::kernel::objects().get<nw::Item>(drag.item);
-            const bool valid = static_cast<uint32_t>(target.slot) < 18
-                && item && layout
-                && !nw::get_equipped_item(creature, target.slot)
-                && nw::toolset::can_place_creature_item_in_slot(drag.item, target.slot)
-                && creature->inventory().find_slot(
-                                            layout->inventory_width, layout->inventory_height)
-                        .page
-                    >= 0;
-            set_project_blueprint_drop_target(doc, drag, target, valid);
-            return true;
-        }
-    }
-
-    auto* board = find_el(doc, "creature_inventory_board");
-    if (!board || !board->IsVisible(true)
-        || !board->IsPointWithinElement(point)) {
-        set_project_blueprint_drop_target(doc, drag, {}, false);
-        return true;
-    }
-
-    const float left = board->GetAbsoluteLeft() + board->GetClientLeft();
-    const float top = board->GetAbsoluteTop() + board->GetClientTop();
-    const int column = static_cast<int>((point.x - left) / kCreatureInventoryCellPx);
-    const int visual_row = static_cast<int>((point.y - top) / kCreatureInventoryCellPx);
-    ProjectBlueprintDropTarget target{
-        .kind = ProjectBlueprintDropTargetKind::inventory,
-        .page = state.creature_inventory_page,
-        .row = visual_row + drag.height - 1,
-        .column = column,
-    };
-    if (target == drag.target
-        && (drag.phase == ProjectBlueprintDragPhase::target_valid
-            || drag.phase == ProjectBlueprintDragPhase::target_invalid)) {
-        return true;
-    }
-    const bool in_bounds = target.page >= 0
-        && target.page < inventory->pages()
-        && visual_row >= 0
-        && visual_row + drag.height <= inventory->rows()
-        && column >= 0
-        && column + drag.width <= inventory->columns();
-    const bool valid = in_bounds
-        && inventory->check_available(
-            target.page, target.row, target.column, drag.width, drag.height);
-    set_project_blueprint_drop_target(doc, drag, target, valid);
-    return true;
+    return nw::toolset::update_project_blueprint_drag(context, doc, state.project_blueprint_drag,
+        project_resource_drag_context(state), point, state.creature_inventory_page,
+        state.pressed_recent_index, state.shell);
 }
 
 void commit_project_blueprint_drag(Rml::ElementDocument* doc, AppState& state)
 {
-    if (!state.project_blueprint_drag.active()) {
-        return;
-    }
-    if (state.project_blueprint_drag.phase != ProjectBlueprintDragPhase::target_valid) {
-        cancel_project_blueprint_drag(doc, state);
-        return;
-    }
-
-    clear_project_blueprint_drop_visuals(doc, state.project_blueprint_drag);
-    auto drag = std::move(state.project_blueprint_drag);
-    state.project_blueprint_drag = {};
-    if (drag.kind == ProjectBlueprintDragKind::encounter_spawn) {
-        if (!drag.encounter_spawn_edit
-            || drag.target.kind != ProjectBlueprintDropTargetKind::encounter_spawns) {
-            return;
-        }
-        auto result = state.backend.replace_encounter_spawns(
-            std::move(*drag.encounter_spawn_edit),
-            command_context(state, nw::toolset::CommandSource::renderer));
-        append_command_result(state, result);
-        return;
-    }
-    if (drag.kind == ProjectBlueprintDragKind::sound_resource) {
-        if (!drag.sound_resource_edit
-            || drag.target.kind != ProjectBlueprintDropTargetKind::sound_resources) {
-            return;
-        }
-        auto result = state.backend.replace_sound_resources(
-            std::move(*drag.sound_resource_edit),
-            "Add sound resource",
-            command_context(state, nw::toolset::CommandSource::renderer));
-        append_command_result(state, result);
-        return;
-    }
-
-    if (drag.kind != ProjectBlueprintDragKind::item
-        || !nw::kernel::objects().valid(drag.item)) {
-        return;
-    }
-    const auto destroy_unowned_item = [&drag]() {
-        if (nw::kernel::objects().valid(drag.item)) {
-            nw::kernel::objects().destroy(drag.item);
-        }
-    };
-    if (drag.target.kind == ProjectBlueprintDropTargetKind::store_inventory) {
-        if (drag.target.category < 0 || drag.target.category >= 5) {
-            destroy_unowned_item();
-            return;
-        }
-        const std::array placements{nw::toolset::StoreItemPlacement{
-            .item = drag.item,
-            .category = static_cast<nw::toolset::StoreInventoryCategory>(
-                drag.target.category),
-        }};
-        auto result = state.backend.place_store_items(
-            drag.owner,
-            placements,
-            command_context(state, nw::toolset::CommandSource::renderer));
-        if (result.status != nw::toolset::CommandStatus::success) {
-            destroy_unowned_item();
-        }
-        append_command_result(state, result);
-        return;
-    }
-    nw::toolset::ItemPlacement placement{
-        .item = drag.item,
-        .target = drag.target.kind == ProjectBlueprintDropTargetKind::equipment
-            ? nw::toolset::ItemPlacementTarget::equipment
-            : nw::toolset::ItemPlacementTarget::inventory,
-        .page = drag.target.page,
-        .row = drag.target.row,
-        .column = drag.target.column,
-        .slot = drag.target.slot,
-    };
-    const std::array placements{placement};
-    auto result = state.backend.place_items(
-        drag.owner,
-        placements,
-        command_context(state, nw::toolset::CommandSource::renderer));
-    if (result.status != nw::toolset::CommandStatus::success) {
-        destroy_unowned_item();
-    }
-    append_command_result(state, result);
+    if (!state.project_blueprint_drag.active()) { return; }
+    nw::toolset::commit_project_blueprint_drag(doc, state.project_blueprint_drag,
+        state.backend, command_context(state, nw::toolset::CommandSource::renderer), state.shell);
 }
 
 bool handle_area_tile_key(ClientRenderer& renderer,
@@ -11720,46 +7696,14 @@ bool handle_area_tile_key(ClientRenderer& renderer,
         || !area_tile_editor_action_allowed(state)) {
         return false;
     }
-    auto& editor = state.area_tile_editor;
-    if (editor.stroke.active) {
-        return true;
-    }
-    const auto brush = selected_area_tile_brush(state, SDL_BUTTON_LEFT);
-    if (!brush) {
-        editor.feedback = "Choose a terrain action";
+    const auto viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
+    const std::optional<ClientViewportRect> area_viewport = viewport && viewport->kind == WorkspaceViewerViewportKind::area
+        ? std::optional<ClientViewportRect>{viewport->rect}
+        : std::nullopt;
+    if (nw::toolset::rotate_area_tile_group(renderer, state.area_tile_editor,
+            active_workspace_area(state), area_viewport, area_tile_pointer_modifier(SDL_GetModState()), state.shell)) {
         sync_area_tile_palette_window(doc, state, true);
-        return true;
     }
-    if (brush->kind != nw::toolset::AreaTileBrushKind::group) {
-        editor.feedback = "Only tileset features have a manual rotation";
-        sync_area_tile_palette_window(doc, state, true);
-        return true;
-    }
-    editor.group_orientation = (editor.group_orientation + 1) % 4;
-    editor.feedback = "Feature rotation: "
-        + std::to_string(editor.group_orientation * 90) + " degrees";
-    const std::string feedback = editor.feedback;
-    const bool has_cursor_point = editor.cursor_update_pending
-        || editor.cursor_target_index != UINT32_MAX;
-    const Rml::Vector2f cursor_point = editor.pending_cursor_point;
-    editor.cursor_target_index = UINT32_MAX;
-    editor.cursor_update_pending = false;
-    const auto viewport = active_workspace_viewer_viewport_request(
-        doc, state, frame_width, frame_height);
-    if (viewport && viewport->kind == WorkspaceViewerViewportKind::area
-        && has_cursor_point
-        && point_within_viewport(viewport->rect, cursor_point)) {
-        (void)update_area_tile_cursor(
-            renderer, state, cursor_point, *viewport);
-    } else {
-        editor.preview_rows.clear();
-        (void)renderer.update_viewer_area_tile_preview(
-            active_workspace_area(state), {});
-    }
-    if (editor.feedback.empty()) {
-        editor.feedback = feedback;
-    }
-    sync_area_tile_palette_window(doc, state, true);
     return true;
 }
 
@@ -11788,43 +7732,57 @@ bool handle_area_object_key(ClientRenderer& renderer,
     if (!synchronize_area_viewport_structure(renderer, state, true)) {
         return true;
     }
-    const auto object = renderer.active_viewer_object();
-    if (!editable_area_object(object)) { return false; }
-
-    if (key.key == SDLK_DELETE
-        && delete_selected_encounter_spawn_point(renderer, state)) {
-        return true;
-    }
-    if (key.key == SDLK_DELETE) {
-        const auto result = dispatch_command(state,
-            "area.object.delete", {}, nw::toolset::CommandSource::shortcut);
-        append_command_result(state, result);
-        return true;
-    }
-    const auto result = dispatch_command(state,
-        "object.transform.randomize_orientation", {}, nw::toolset::CommandSource::shortcut);
-    sync_area_object_after_command(renderer, state, result);
-    return true;
+    const auto action = key.key == SDLK_DELETE
+        ? nw::toolset::AreaObjectEditKey::remove
+        : nw::toolset::AreaObjectEditKey::randomize_orientation;
+    return nw::toolset::handle_area_object_edit_key(renderer, action, state.backend,
+        command_context(state, nw::toolset::CommandSource::shortcut), state.shell, state.smalls.active_object());
 }
 
 void sync_command_overlay_visibility(AppState& state)
 {
-    auto* doc = state.command_overlay_document;
-    if (!doc) { return; }
-    const bool active = state.command_form || state.project_load.active()
-        || state.backend.blueprint_operation_active()
-        || state.backend.blueprint_publication_pending();
-    if (active && !doc->IsVisible()) {
-        doc->Show(Rml::ModalFlag::Modal);
-    } else if (!active && doc->IsVisible()) {
-        doc->Hide();
-    }
+    nw::toolset::sync_command_overlay_visibility(state.command_view,
+        state.project_load.active(), state.backend.blueprint_operation_active()
+            || state.backend.blueprint_publication_pending());
+}
+
+void close_command_form_combobox(AppState& state)
+{
+    nw::toolset::close_command_form_combobox(state.command_view);
+}
+
+bool open_command_form_combobox(AppState& state, size_t field_index)
+{
+    return nw::toolset::open_command_form_combobox(state.command_view, field_index);
+}
+
+void sync_command_form_combobox(AppState& state, bool force = false)
+{
+    nw::toolset::sync_command_form_combobox(state.command_view, force);
+}
+
+void sync_command_form(AppState& state, bool force = false)
+{
+    nw::toolset::sync_command_form(state.command_view, state.backend,
+        state.project_load.active(), force);
+}
+
+bool commit_command_form_combobox(AppState& state, int32_t choice_index)
+{
+    return nw::toolset::commit_command_form_combobox(state.command_view,
+        state.backend, state.project_load.active(), choice_index);
+}
+
+void sync_blueprint_operation(AppState& state)
+{
+    nw::toolset::sync_blueprint_operation(state.command_view, state.backend,
+        state.project_load.active());
 }
 
 void sync_project_load_overlay(AppState& state)
 {
     sync_command_overlay_visibility(state);
-    auto* host = find_el(state.command_overlay_document,
+    auto* host = find_el(state.command_view.command_overlay_document,
         "project_load_overlay");
     if (!host) { return; }
     host->SetClass("active", state.project_load.active());
@@ -11833,7 +7791,7 @@ void sync_project_load_overlay(AppState& state)
         return;
     }
 
-    auto* message = find_el(state.command_overlay_document,
+    auto* message = find_el(state.command_view.command_overlay_document,
         "project_load_message");
     if (!message) {
         std::string markup
@@ -11845,7 +7803,7 @@ void sync_project_load_overlay(AppState& state)
         markup += escape_html(state.project_load.path);
         markup += "</div></div>";
         host->SetInnerRML(markup);
-        message = find_el(state.command_overlay_document,
+        message = find_el(state.command_view.command_overlay_document,
             "project_load_message");
     }
     if (message) {
@@ -11867,441 +7825,6 @@ bool queue_project_open(AppState& state, std::string path,
     return true;
 }
 
-void close_command_form_combobox(AppState& state)
-{
-    if (state.command_form_combobox_field) {
-        const auto id = "command_form_field_"
-            + std::to_string(*state.command_form_combobox_field);
-        if (auto* field = find_el(
-                state.command_overlay_document, id.c_str())) {
-            field->SetClass("open", false);
-        }
-    }
-    state.command_form_combobox.close();
-    state.command_form_combobox_field.reset();
-    state.command_form_combobox_placement.reset();
-    if (auto* popup = find_el(state.command_overlay_document,
-            "command_form_combobox_popup")) {
-        popup->SetClass("active", false);
-        popup->SetInnerRML("");
-    }
-}
-
-bool open_command_form_combobox(AppState& state, size_t field_index)
-{
-    if (!state.command_form
-        || field_index >= state.command_form->fields.size()) {
-        return false;
-    }
-    const auto& field = state.command_form->fields[field_index];
-    if (field.choices.empty()
-        || field.choices.size()
-            > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
-        return false;
-    }
-    if (state.command_form_combobox_field == field_index
-        && state.command_form_combobox.is_active()) {
-        if (state.command_form_combobox.popup_visible()) {
-            state.command_form_combobox.hide_popup();
-        } else {
-            (void)state.command_form_combobox.show_popup();
-        }
-        state.command_form_combobox_placement.reset();
-        return true;
-    }
-
-    absl::flat_hash_set<std::string_view> values;
-    values.reserve(field.choices.size());
-    std::vector<nw::toolset::VirtualComboBoxItem> options;
-    options.reserve(field.choices.size());
-    int32_t selected = -1;
-    for (size_t index = 0; index < field.choices.size(); ++index) {
-        const auto& choice = field.choices[index];
-        if (choice.value.empty() || !values.insert(choice.value).second) {
-            return false;
-        }
-        const auto key = static_cast<int32_t>(index);
-        options.push_back({key, choice.label, {}});
-        if (choice.value == field.value) { selected = key; }
-    }
-    if (selected < 0) { return false; }
-
-    close_command_form_combobox(state);
-    if (!state.command_form_combobox.open(
-            std::move(options), selected)) {
-        return false;
-    }
-    state.command_form_combobox_field = field_index;
-    state.command_form_combobox_placement.reset();
-    return true;
-}
-
-void sync_command_form_combobox(AppState& state, bool force = false)
-{
-    auto* doc = state.command_overlay_document;
-    auto* popup = find_el(doc, "command_form_combobox_popup");
-    if (!popup || !state.command_form
-        || !state.command_form_combobox_field
-        || !state.command_form_combobox.is_active()) {
-        return;
-    }
-    const auto field_index = *state.command_form_combobox_field;
-    if (field_index >= state.command_form->fields.size()) {
-        close_command_form_combobox(state);
-        return;
-    }
-    const auto field_id = "command_form_field_"
-        + std::to_string(field_index);
-    auto* field = find_el(doc, field_id.c_str());
-    auto* bounds = find_el(doc, "command_form_overlay");
-    if (!field || !bounds) {
-        close_command_form_combobox(state);
-        return;
-    }
-
-    const bool visible = state.command_form_combobox.popup_visible();
-    field->SetClass("open", visible);
-    popup->SetClass("active", visible);
-    if (!visible) { return; }
-
-    const nw::toolset::VirtualComboBoxRect anchor{
-        .x = static_cast<int>(std::lround(
-            field->GetAbsoluteLeft() - bounds->GetAbsoluteLeft())),
-        .y = static_cast<int>(std::lround(
-            field->GetAbsoluteTop() - bounds->GetAbsoluteTop())),
-        .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
-        .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
-    };
-    const nw::toolset::VirtualComboBoxRect bounds_rect{
-        .width = static_cast<int>(std::lround(std::max(
-            bounds->GetClientWidth(), bounds->GetOffsetWidth()))),
-        .height = static_cast<int>(std::lround(std::max(
-            bounds->GetClientHeight(), bounds->GetOffsetHeight()))),
-    };
-    const auto placement = state.command_form_combobox.place_popup(
-        anchor, bounds_rect);
-    if (placement.width <= 0 || placement.height <= 0) { return; }
-    if (!state.command_form_combobox_placement
-        || *state.command_form_combobox_placement != placement) {
-        popup->SetProperty("left", std::to_string(placement.left) + "px");
-        popup->SetProperty("top", std::to_string(placement.top) + "px");
-        popup->SetProperty("width", std::to_string(placement.width) + "px");
-        popup->SetProperty("height", std::to_string(placement.height) + "px");
-        state.command_form_combobox_placement = placement;
-    }
-
-    const int observed_scroll_top = std::max(0,
-        static_cast<int>(std::lround(popup->GetScrollTop())));
-    auto update = state.command_form_combobox.update(
-        placement.height, observed_scroll_top, force);
-    if (update.replace_markup) {
-        popup->SetInnerRML(update.markup);
-    }
-    if (update.set_scroll) {
-        popup->SetScrollTop(static_cast<float>(update.scroll_top));
-    }
-}
-
-void sync_command_form(AppState& state, bool force = false)
-{
-    sync_command_overlay_visibility(state);
-    auto* doc = state.command_overlay_document;
-    auto* host = find_el(doc, "command_form_overlay");
-    if (!host) { return; }
-    const bool rendered = state.rendered_command_form_generation != state.command_form_generation;
-    if (rendered) {
-        close_command_form_combobox(state);
-        state.rendered_command_form_generation = state.command_form_generation;
-        host->SetClass("active", bool(state.command_form));
-        if (!state.command_form) {
-            host->SetInnerRML("");
-            return;
-        }
-        const auto& form = *state.command_form;
-        std::optional<size_t> close_action;
-        if (form.action_list) {
-            const auto cancel = std::ranges::find(
-                form.actions, std::string{"cancel"},
-                &nw::toolset::CommandPromptAction::id);
-            if (cancel != form.actions.end()) {
-                close_action = static_cast<size_t>(
-                    std::distance(form.actions.begin(), cancel));
-            }
-        }
-        std::string markup = "<div class=\"command_form";
-        if (form.action_list) { markup += " command_form_action_picker"; }
-        markup += "\">";
-        if (close_action) {
-            markup += "<div class=\"command_form_title_row\"><div class=\"command_form_title\">"
-                + escape_html(form.title)
-                + "</div><button type=\"button\" class=\"command_form_action command_form_close\" title=\"Close\" id=\"command_form_action_"
-                + std::to_string(*close_action) + "\" data-index=\""
-                + std::to_string(*close_action)
-                + "\"><span class=\"command_form_close_glyph\">&#215;</span></button></div>";
-        } else {
-            markup += "<div class=\"command_form_title\">"
-                + escape_html(form.title) + "</div>";
-        }
-        markup += "<div class=\"command_form_message\">"
-            + escape_html(form.message) + "</div>";
-        for (size_t index = 0; index < form.fields.size(); ++index) {
-            const auto& field = form.fields[index];
-            const auto id = "command_form_field_" + std::to_string(index);
-            markup += "<div class=\"command_form_row\"><label for=\"" + id + "\">" + escape_html(field.label) + "</label>";
-            if (field.choices.empty()) {
-                markup += "<input type=\"text\" id=\"" + id + "\" value=\"" + escape_html(field.value) + "\"/>";
-            } else {
-                const auto selected = std::ranges::find(
-                    field.choices, field.value,
-                    &nw::toolset::CommandPromptChoice::value);
-                markup += "<button type=\"button\" id=\"" + id
-                    + "\" class=\"combobox_field command_form_choice_field\" data-field=\""
-                    + std::to_string(index)
-                    + "\"><span class=\"combobox_value\">";
-                if (selected != field.choices.end()) {
-                    markup += escape_html(selected->label);
-                }
-                markup += "</span><span class=\"combobox_arrow\"><span class=\"combobox_arrow_indicator\"></span></span></button>";
-            }
-            if (field.directory) { markup += "<button class=\"command_form_browse\">Browse...</button>"; }
-            markup += "</div>";
-        }
-        const bool has_feedback = !form.fields.empty() || !form.detail.empty() || !form.file_suffix.empty();
-        if (has_feedback) {
-            markup += "<div class=\"command_form_feedback\"><div id=\"command_form_filename\"></div><div id=\"command_form_detail\">"
-                + escape_html(form.detail) + "</div><div id=\"command_form_error\"></div></div>";
-        }
-        markup += "<div class=\"command_form_actions";
-        if (form.action_list) { markup += " command_form_action_list"; }
-        markup += "\">";
-        for (size_t index = 0; index < form.actions.size(); ++index) {
-            if (close_action && *close_action == index) { continue; }
-            markup += "<button class=\"command_form_action "
-                + std::string{index == 0 ? "command_form_action_primary" : "command_form_action_secondary"}
-                + "\" id=\"command_form_action_" + std::to_string(index)
-                + "\" data-index=\"" + std::to_string(index) + "\">" + escape_html(form.actions[index].label) + "</button>";
-        }
-        markup += "</div></div><div id=\"command_form_combobox_popup\" class=\"combobox_options combobox_popup command_form_combobox_popup\"></div>";
-        host->SetInnerRML(markup);
-        if (auto* input = find_el(doc, "command_form_field_0")) { input->Focus(); }
-    }
-    if (!state.command_form) { return; }
-    auto& form = *state.command_form;
-    bool changed = false;
-    bool complete = true;
-    for (size_t index = 0; index < form.fields.size(); ++index) {
-        auto& field = form.fields[index];
-        if (field.choices.empty()) {
-            const auto id = "command_form_field_" + std::to_string(index);
-            const auto value = get_input_value(doc, id.c_str());
-            changed |= field.value != value;
-            field.value = value;
-        }
-        const auto selected = std::ranges::find(
-            field.choices, field.value,
-            &nw::toolset::CommandPromptChoice::value);
-        complete &= (!field.required || !field.value.empty())
-            && (field.choices.empty() || selected != field.choices.end());
-    }
-    if (!changed && !rendered && !force) {
-        sync_command_form_combobox(state);
-        return;
-    }
-    if (changed) { form.detail.clear(); }
-    std::string diagnostic;
-    std::string filename;
-    if (!form.file_suffix.empty() && form.fields.size() >= 2) {
-        std::string normalized;
-        if (nw::toolset::validate_blueprint_resref(form.fields[0].value, normalized, diagnostic)) {
-            const std::array destinations{nw::toolset::BlueprintDestination{
-                nw::Resource::from_filename(normalized + form.file_suffix), form.fields[1].value}};
-            const auto result = nw::toolset::validate_blueprint_destinations(state.backend.current_project_dir(), destinations);
-            diagnostic = result[0].error;
-            if (!result[0].target.empty()) { filename = result[0].target.lexically_relative(state.backend.current_project_dir()).generic_string(); }
-        }
-    }
-    if (auto* target = find_el(doc, "command_form_filename")) { target->SetInnerRML(escape_html(filename)); }
-    if (auto* detail = find_el(doc, "command_form_detail")) { detail->SetInnerRML(escape_html(form.detail)); }
-    if (auto* error = find_el(doc, "command_form_error")) { error->SetInnerRML(escape_html(diagnostic)); }
-    if (auto* button = find_el(doc, "command_form_action_0")) {
-        const bool enabled = complete && diagnostic.empty();
-        button->SetClass("disabled", !enabled);
-        if (enabled) {
-            button->RemoveAttribute("disabled");
-        } else {
-            button->SetAttribute("disabled", true);
-        }
-    }
-    sync_command_form_combobox(state, force);
-}
-
-bool commit_command_form_combobox(AppState& state, int32_t choice_index)
-{
-    if (!state.command_form || !state.command_form_combobox_field
-        || choice_index < 0) {
-        return false;
-    }
-    const auto field_index = *state.command_form_combobox_field;
-    if (field_index >= state.command_form->fields.size()) { return false; }
-    auto& field = state.command_form->fields[field_index];
-    const auto index = static_cast<size_t>(choice_index);
-    if (index >= field.choices.size()
-        || !state.command_form_combobox.select_key(choice_index)) {
-        return false;
-    }
-
-    field.value = field.choices[index].value;
-    state.command_form->detail.clear();
-    const auto field_id = "command_form_field_" + std::to_string(field_index);
-    auto* field_element = find_el(
-        state.command_overlay_document, field_id.c_str());
-    if (field_element) {
-        if (auto* value = find_ancestor_with_class(
-                field_element->GetChild(0), "combobox_value")) {
-            value->SetInnerRML(escape_html(field.choices[index].label));
-        }
-    }
-    close_command_form_combobox(state);
-    sync_command_form(state, true);
-    if (field_element) { field_element->Focus(); }
-    return true;
-}
-
-void sync_blueprint_operation(AppState& state)
-{
-    sync_command_overlay_visibility(state);
-    auto* doc = state.command_overlay_document;
-    auto* host = find_el(doc, "blueprint_operation_overlay");
-    if (!host) { return; }
-    host->SetClass("active", (state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()));
-    if (!(state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending())) {
-        if (!state.blueprint_operation_markup.empty()) {
-            host->SetInnerRML("");
-            state.blueprint_operation_markup.clear();
-        }
-        state.blueprint_review_page = 0;
-        return;
-    }
-    const nw::toolset::BlueprintOperationProgress publication{.stage = "finalizing", .detail = "Blueprint saved; retry resource and document publication before editing.", .error = "Publication is pending"};
-    const auto& progress = state.backend.blueprint_publication_pending() ? publication : state.backend.blueprint_progress();
-    const auto& documents = state.backend.blueprint_updated_documents();
-    const bool ready = progress.stage == "ready" && !state.backend.blueprint_worker_active();
-    const bool restore = progress.stage == "restore_ready" || progress.stage == "recovery";
-    const bool complete = progress.stage == "complete" || progress.stage == "failed";
-    std::string label = progress.stage;
-    const std::array<std::pair<const char*, const char*>, 16> labels{{std::pair{"starting", "Starting"}, {"resolving", "Resolving blueprint dependencies"},
-        {"preparing_live", "Preparing live instances"},
-        {"discovering", "Finding documents"}, {"scanning", "Scanning documents"}, {"preparing", "Preparing replacements"},
-        {"ready", "Review replacements"}, {"checking", "Checking for changes"}, {"saving", "Saving documents"},
-        {"saved", "Finalizing"}, {"finalizing", "Finalizing"}, {"restore_ready", "Review restoration"},
-        {"restoring", "Restoring original files"}, {"recovery", "Recovery required"}, {"failed", "Update stopped"}, {"complete", "Complete"}}};
-    for (const auto& [stage, title] : labels) {
-        if (progress.stage == stage) {
-            label = title;
-            break;
-        }
-    }
-    std::string markup = "<div class=\"command_form\"><div class=\"command_form_title\">Update Blueprint References</div><div class=\"blueprint_operation_stage\">"
-        + escape_html(label) + "</div>";
-    if (!ready && !restore && !complete) {
-        markup += "<div class=\"home_import_progress\"><div class=\"";
-        if (progress.total) {
-            const auto percent = 100.0 * static_cast<double>(progress.completed) / static_cast<double>(progress.total);
-            markup += "blueprint_progress_fill\" style=\"width:" + std::to_string(std::clamp(percent, 0.0, 100.0)) + "%\"></div></div>";
-            markup += "<div class=\"blueprint_operation_progress_text\">" + std::to_string(progress.completed) + " / " + std::to_string(progress.total) + " " + escape_html(progress.unit) + "</div>";
-        } else {
-            markup += "home_import_progress_fill\"></div></div>";
-        }
-    }
-    markup += "<div class=\"blueprint_operation_detail\">" + escape_html(progress.detail) + "</div>";
-    if (ready || complete) {
-        markup += "<div class=\"blueprint_operation_summary\">" + std::to_string(progress.instances) + " instances, " + std::to_string(documents.size()) + " changed documents";
-        if (progress.covered) { markup += "; " + std::to_string(progress.covered) + " nested matches covered by a parent replacement"; }
-        if (progress.reference_uses) { markup += "; " + std::to_string(progress.reference_uses) + " blueprint reference uses already point to this blueprint"; }
-        markup += "</div>";
-    }
-    if (ready || restore) {
-        constexpr size_t page_size = 20;
-        const auto pages = std::max(size_t{1}, (documents.size() + page_size - 1) / page_size);
-        state.blueprint_review_page = std::min(state.blueprint_review_page, pages - 1);
-        const auto start = state.blueprint_review_page * page_size;
-        markup += "<div class=\"blueprint_review_documents\">";
-        for (size_t index = start; index < std::min(documents.size(), start + page_size); ++index) {
-            markup += "<div>" + escape_html(documents[index].lexically_relative(state.backend.current_project_dir()).generic_string()) + "</div>";
-        }
-        markup += "</div>";
-        if (pages > 1) {
-            markup += "<div class=\"blueprint_operation_page_actions\"><button class=\"blueprint_operation_page\" data-delta=\"-1\">Previous</button><span>"
-                + std::to_string(state.blueprint_review_page + 1) + " / " + std::to_string(pages)
-                + "</span><button class=\"blueprint_operation_page\" data-delta=\"1\">Next</button></div>";
-        }
-    }
-    if (!progress.error.empty()) { markup += "<div class=\"blueprint_operation_error\">" + escape_html(progress.error) + "</div>"; }
-    const auto button = [&](const char* command, const char* title, bool primary) {
-        markup += std::string{"<button class=\"blueprint_authoring_action command_form_action "}
-            + (primary ? "command_form_action_primary" : "command_form_action_secondary")
-            + "\" data-command=\"" + command + "\">" + title + "</button>";
-    };
-    markup += "<div class=\"command_form_actions\">";
-    if (ready && !documents.empty()) { button("blueprint.references.apply", "Update Instances", true); }
-    if (restore) { button("blueprint.references.restore_apply", "Restore Original Files", true); }
-    if (progress.stage == "finalizing" && !progress.error.empty()) { button(state.backend.blueprint_publication_pending() ? "blueprint.refresh" : "blueprint.references.retry", "Retry Publication", true); }
-    if (progress.stage == "finalizing" && !progress.error.empty() && !state.backend.blueprint_publication_pending()) { button("blueprint.references.restore_apply", "Restore Original Files", false); }
-    if (progress.stage != "recovery" && progress.stage != "finalizing" && progress.stage != "restoring") {
-        button("blueprint.references.cancel", complete || (ready && documents.empty()) ? "Close" : "Cancel", false);
-    }
-    markup += "</div></div>";
-    if (markup != state.blueprint_operation_markup) {
-        state.blueprint_operation_markup = markup;
-        host->SetInnerRML(markup);
-        host->Focus();
-    }
-}
-
-std::optional<nw::toolset::CommandPromptAction> show_command_prompt(
-    SDL_Window* window, const nw::toolset::CommandPrompt& prompt)
-{
-    std::vector<SDL_MessageBoxButtonData> buttons;
-    buttons.reserve(prompt.actions.size());
-    for (size_t i = 0; i < prompt.actions.size(); ++i) {
-        SDL_MessageBoxButtonFlags flags = 0;
-        if (prompt.actions[i].id == "save") {
-            flags |= SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
-        }
-        if (prompt.actions[i].id == "cancel") {
-            flags |= SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-        }
-        buttons.push_back(SDL_MessageBoxButtonData{
-            .flags = flags,
-            .buttonID = static_cast<int>(i),
-            .text = prompt.actions[i].label.c_str(),
-        });
-    }
-
-    std::string message = prompt.message;
-    if (!prompt.detail.empty()) {
-        message += "\n\n";
-        message += prompt.detail;
-    }
-    const SDL_MessageBoxData message_box{
-        .flags = SDL_MESSAGEBOX_WARNING | SDL_MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT,
-        .window = window,
-        .title = prompt.title.c_str(),
-        .message = message.c_str(),
-        .numbuttons = static_cast<int>(buttons.size()),
-        .buttons = buttons.data(),
-        .colorScheme = nullptr,
-    };
-
-    int button_id = -1;
-    if (!SDL_ShowMessageBox(&message_box, &button_id)
-        || button_id < 0
-        || static_cast<size_t>(button_id) >= prompt.actions.size()) {
-        return std::nullopt;
-    }
-    return prompt.actions[static_cast<size_t>(button_id)];
-}
-
 nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
     AppState& state,
     nw::toolset::CommandResult result,
@@ -12311,16 +7834,10 @@ nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
     bool prompted = false;
     while (result.prompt) {
         prompted = true;
-        if (!result.prompt->fields.empty()
-            || result.prompt->id.starts_with("blueprint.")) {
-            state.command_form = std::move(*result.prompt);
-            ++state.command_form_generation;
-            result.prompt.reset();
-            result.status = nw::toolset::CommandStatus::noop;
-            result.output_channel = nw::toolset::CommandOutputChannel::none;
+        if (nw::toolset::take_command_form_prompt(state.command_view, result)) {
             break;
         }
-        const auto action = show_command_prompt(window, *result.prompt);
+        const auto action = nw::toolset::show_command_prompt(window, *result.prompt);
         if (!action || action->command_id.empty()) {
             result = {};
             result.status = nw::toolset::CommandStatus::noop;
@@ -12492,13 +8009,8 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
     delete result;
 
     if (command == "blueprint.directory") {
-        if (state.command_form && state.command_form_browse_generation == state.command_form_generation) {
-            if (!error.empty()) {
-                state.command_form->detail = error;
-            } else if (!canceled && state.command_form->fields.size() >= 2) {
-                state.command_form->fields[1].value = path;
-            }
-            ++state.command_form_generation;
+        if (nw::toolset::apply_command_form_directory_result(
+                state.command_view, path, error, canceled)) {
             sync_command_form(state);
         }
         return;
@@ -12569,31 +8081,14 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
 
 void run_command_form_action(SDL_Window* window, Rml::ElementDocument* doc, AppState& state, size_t index)
 {
-    if (!state.command_form || index >= state.command_form->actions.size() || state.module_dialog_open) { return; }
-    sync_command_form(state, true);
-    const auto button_id = "command_form_action_" + std::to_string(index);
-    if (auto* button = find_el(state.command_overlay_document, button_id.c_str()); button && button->HasAttribute("disabled")) { return; }
-    auto action = state.command_form->actions[index];
-    if (action.id != "cancel") {
-        for (size_t field = 0; field < state.command_form->fields.size(); ++field) {
-            const auto& prompt_field = state.command_form->fields[field];
-            if (prompt_field.choices.empty()) {
-                const auto id = "command_form_field_" + std::to_string(field);
-                action.args.push_back(get_input_value(
-                    state.command_overlay_document, id.c_str()));
-            } else {
-                action.args.push_back(prompt_field.value);
-            }
-        }
-    }
-    close_command_form_combobox(state);
-    state.command_form.reset();
-    ++state.command_form_generation;
+    const auto action = nw::toolset::take_command_form_action(state.command_view,
+        state.backend, state.project_load.active(), state.module_dialog_open, index);
+    if (!action) { return; }
     std::vector<std::string_view> args;
-    for (const auto& argument : action.args) {
+    for (const auto& argument : action->args) {
         args.push_back(argument);
     }
-    (void)dispatch_command_flow(window, state, action.command_id, std::move(args), nw::toolset::CommandSource::widget);
+    (void)dispatch_command_flow(window, state, action->command_id, std::move(args), nw::toolset::CommandSource::widget);
     refresh_recent_list(doc, state);
     refresh_workspace_view(doc, state);
     sync_command_form(state);
@@ -12610,56 +8105,36 @@ public:
 
     void ProcessEvent(Rml::Event& event) override
     {
-        if (auto* page_button = find_ancestor_with_class(event.GetTargetElement(), "blueprint_operation_page")) {
-            const auto delta = parse_decimal_int32(page_button->GetAttribute<Rml::String>("data-delta", ""));
-            if (delta && *delta < 0 && state_.blueprint_review_page) {
-                --state_.blueprint_review_page;
-            } else if (delta && *delta > 0) {
-                ++state_.blueprint_review_page;
-            }
-            sync_blueprint_operation(state_);
-        } else if (auto* option = find_ancestor_with_class(
-                       event.GetTargetElement(), "combobox_option")) {
-            const auto key = parse_decimal_int32(
-                option->GetAttribute<Rml::String>("data-key", ""));
-            if (key) { (void)commit_command_form_combobox(state_, *key); }
-        } else if (auto* field = find_ancestor_with_class(
-                       event.GetTargetElement(), "command_form_choice_field")) {
-            const auto index = parse_decimal_int32(
-                field->GetAttribute<Rml::String>("data-field", ""));
-            if (index && *index >= 0
-                && open_command_form_combobox(
-                    state_, static_cast<size_t>(*index))) {
-                sync_command_form_combobox(state_, true);
-                field->Focus();
-            }
-        } else if (auto* button = find_ancestor_with_class(event.GetTargetElement(), "blueprint_authoring_action")) {
-            const auto command = button->GetAttribute<Rml::String>("data-command", "");
-            (void)dispatch_command_flow(window_, state_, command, {}, nw::toolset::CommandSource::widget);
+        const auto action = nw::toolset::handle_command_overlay_target(
+            state_.command_view, state_.backend, state_.project_load.active(), event.GetTargetElement());
+        switch (action.kind) {
+        case nw::toolset::CommandOverlayActionKind::dispatch:
+            (void)dispatch_command_flow(window_, state_, action.command_id, {}, nw::toolset::CommandSource::widget);
             refresh_recent_list(document_, state_);
             refresh_workspace_view(document_, state_);
             sync_command_form(state_);
             sync_blueprint_operation(state_);
-        } else if (auto* action = find_ancestor_with_class(event.GetTargetElement(), "command_form_action")) {
-            const auto index = parse_decimal_int32(action->GetAttribute<Rml::String>("data-index", ""));
-            if (index && *index >= 0) { run_command_form_action(window_, document_, state_, static_cast<size_t>(*index)); }
-        } else if (find_ancestor_with_class(event.GetTargetElement(), "command_form_browse")) {
-            if (!state_.command_form || state_.module_dialog_open || state_.open_module_dialog_event == 0) { return; }
+            break;
+        case nw::toolset::CommandOverlayActionKind::submit:
+            run_command_form_action(window_, document_, state_, action.form_action_index);
+            break;
+        case nw::toolset::CommandOverlayActionKind::browse_directory: {
+            if (!state_.command_view.command_form || state_.command_view.command_form->fields.size() < 2 || state_.module_dialog_open || state_.open_module_dialog_event == 0) { return; }
             close_command_form_combobox(state_);
             sync_command_form(state_);
-            const auto chosen = std::filesystem::path{state_.command_form->fields[1].value};
+            const auto chosen = std::filesystem::path{state_.command_view.command_form->fields[1].value};
             state_.module_dialog_default_location = (chosen.is_absolute() ? chosen : state_.backend.current_project_dir() / chosen).string();
             state_.module_dialog_command = "blueprint.directory";
-            state_.command_form_browse_generation = state_.command_form_generation;
+            state_.command_view.command_form_browse_generation = state_.command_view.command_form_generation;
             state_.module_dialog_open = true;
             SDL_ShowOpenFolderDialog(open_module_dialog_callback,
                 new OpenModuleDialogRequest{state_.open_module_dialog_event}, window_,
                 state_.module_dialog_default_location.c_str(), false);
-        } else if (state_.command_form_combobox.is_active()
-            && !nw::toolset::combobox_contains_element(
-                event.GetTargetElement())) {
-            close_command_form_combobox(state_);
-        } else {
+            break;
+        }
+        case nw::toolset::CommandOverlayActionKind::handled:
+            break;
+        case nw::toolset::CommandOverlayActionKind::none:
             return;
         }
         event.StopPropagation();
@@ -12913,178 +8388,13 @@ void clear_inactive_object(AppState& state)
     state.active_object_tab_id.clear();
 }
 
-void print_cli_usage(std::ostream& out)
-{
-    out << "Usage:\n"
-        << "  rollnw-client --version\n"
-        << "  rollnw-client --build-info\n"
-        << "  rollnw-client init <project-dir>\n"
-        << "  rollnw-client import (--json|--legacy) <module.mod> [project-dir]\n";
-}
-
-std::filesystem::path default_import_project_dir(const std::filesystem::path& module_path)
-{
-    std::error_code ec;
-    const auto cwd = std::filesystem::current_path(ec);
-    const auto base = cwd.empty() ? std::filesystem::path{"."} : cwd;
-    return base / module_path.stem();
-}
-
-int run_project_init_cli(int argc, char* argv[])
-{
-    if (argc != 3) {
-        print_cli_usage(std::cerr);
-        return 2;
-    }
-
-    const auto result = nw::toolset::initialize_project(std::filesystem::path{argv[2]});
-    (result.ok ? std::cout : std::cerr) << result.message << '\n';
-    return result.ok ? 0 : 1;
-}
-
-void start_client_kernel(const std::filesystem::path& install, const std::filesystem::path& user)
-{
-    nw::kernel::config().set_paths(install, user);
-    nw::ConfigOptions options;
-    options.profile = "nwn1";
-    options.init_module = "";
-    nw::kernel::config().initialize(std::move(options));
-    nw::kernel::config().set_init_module("");
-    nw::kernel::services().create();
-    register_smalls_packages();
-    nw::kernel::services().start();
-}
-
-bool ensure_project_import_kernel(nw::toolset::ProjectImportFormat format, std::ostream& err)
-{
-    if (format != nw::toolset::ProjectImportFormat::json) {
-        return true;
-    }
-
-    if (nw::kernel::services().get<nw::kernel::Rules>()) {
-        return true;
-    }
-
-    const auto install = nw::probe_nwn_install(nw::GameVersion::vEE);
-    if (install.install.empty()) {
-        err << "rollnw-client: failed to find NWN install; set NWN_ROOT and NWN_HOME\n";
-        return false;
-    }
-
-    try {
-        start_client_kernel(install.install, install.user);
-    } catch (const std::exception& e) {
-        err << "rollnw-client: failed to initialize import services: " << e.what() << '\n';
-        return false;
-    }
-
-    return true;
-}
-
-int run_project_import_cli(int argc, char* argv[])
-{
-    nw::toolset::ProjectImportOptions options;
-    bool json = false;
-    bool legacy = false;
-    std::vector<std::string_view> positional;
-    for (int i = 2; i < argc; ++i) {
-        const std::string_view arg{argv[i]};
-        if (arg == "--json") {
-            json = true;
-            options.format = nw::toolset::ProjectImportFormat::json;
-        } else if (arg == "--legacy") {
-            legacy = true;
-            options.format = nw::toolset::ProjectImportFormat::legacy;
-        } else if (!arg.empty() && arg.front() == '-') {
-            print_cli_usage(std::cerr);
-            return 2;
-        } else {
-            positional.push_back(arg);
-        }
-    }
-
-    if (json == legacy || positional.empty() || positional.size() > 2) {
-        print_cli_usage(std::cerr);
-        return 2;
-    }
-
-    const std::filesystem::path module_path{positional[0]};
-    const std::filesystem::path project_dir = positional.size() == 2
-        ? std::filesystem::path{positional[1]}
-        : default_import_project_dir(module_path);
-
-    if (!ensure_project_import_kernel(options.format, std::cerr)) {
-        return 1;
-    }
-
-    const auto result = nw::toolset::import_module_project(module_path, project_dir, options);
-    (result.ok ? std::cout : std::cerr) << result.message << '\n';
-    return result.ok ? 0 : 1;
-}
-
-int run_project_cli_if_requested(int argc, char* argv[])
-{
-    if (argc <= 1) {
-        return -1;
-    }
-
-    const std::string_view command{argv[1]};
-    if (command == "blueprint-update") {
-        if (argc != 4) { return 2; }
-        try {
-            const std::filesystem::path operation{argv[2]};
-            const std::string_view phase{argv[3]};
-            if (phase != "restore") {
-                std::ifstream input{operation / "request.json"};
-                const auto request = nlohmann::json::parse(input);
-                if (request.at("version") != 1 || request.at("profile") != "nwn1") {
-                    std::cerr << "Unsupported blueprint worker configuration\n";
-                    return 1;
-                }
-                start_client_kernel(request.at("install").get<std::string>(), request.at("user").get<std::string>());
-                const std::filesystem::path project{request.at("project").get<std::string>()};
-                const auto options = nw::kernel::module_load_options_for_project(project);
-                if (!nw::kernel::load_module(project, false, options)) {
-                    std::cerr << "Cannot load blueprint operation project\n";
-                    return 1;
-                }
-            }
-            std::string error;
-            if (!nw::toolset::run_blueprint_update_operation(operation, phase, error)) {
-                std::cerr << error << '\n';
-                return 1;
-            }
-            return 0;
-        } catch (const std::exception& ex) {
-            std::cerr << ex.what() << '\n';
-            return 1;
-        }
-    }
-    if (command == "init") {
-        return run_project_init_cli(argc, argv);
-    }
-    if (command == "import") {
-        return run_project_import_cli(argc, argv);
-    }
-    if (command == "--help" || command == "-h" || command == "help") {
-        print_cli_usage(std::cout);
-        return 0;
-    }
-    return -1;
-}
-
 } // namespace
 
 // ---------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
-    if (argc == 2 && std::string_view{argv[1]} == "--version") {
-        std::cout << ROLLNW_TOOL_NAME " " ROLLNW_TOOL_VERSION "\n";
-        return 0;
-    }
-    if (argc == 2 && std::string_view{argv[1]} == "--build-info") {
-        std::cout << ROLLNW_TOOL_BUILD_INFO "\n";
+    if (nw::toolset::print_client_build_info_if_requested(argc, argv)) {
         return 0;
     }
     loguru::g_stderr_verbosity = loguru::Verbosity_WARNING;
@@ -13287,7 +8597,7 @@ int main(int argc, char* argv[])
         int gamepad_count = 0;
         if (SDL_JoystickID* gamepads = SDL_GetGamepads(&gamepad_count)) {
             if (gamepad_count > 0) {
-                open_play_preview_gamepad(state.play_preview, gamepads[0]);
+                nw::toolset::open_runtime_gamepad(state.runtime_input, gamepads[0]);
             }
             SDL_free(gamepads);
         }
@@ -13352,7 +8662,7 @@ int main(int argc, char* argv[])
     state.client_executable = executable_arg.has_parent_path()
         ? std::filesystem::absolute(executable_arg)
         : client_base_path() / executable_arg;
-    auto* palette_doc = load_command_palette_document(*palette_context);
+    auto* palette_doc = nw::toolset::load_command_palette_document(*palette_context);
     if (!palette_doc) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: command_palette.rml");
         return 1;
@@ -13360,19 +8670,20 @@ int main(int argc, char* argv[])
     palette_doc->Show();
     // The command context renders after the native viewport. Modal UI belongs
     // here; z-index in the main document cannot cover a later native draw.
-    state.command_overlay_document = load_rml_document_from_resource(*palette_context, ui_resources, command_modals_rml);
-    if (!state.command_overlay_document) {
+    state.command_view.command_overlay_document = load_rml_document_from_resource(*palette_context, ui_resources, command_modals_rml);
+    if (!state.command_view.command_overlay_document) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: ui/command_modals.rml");
         return 1;
     }
-    auto* fps_doc = load_viewer_fps_document(*fps_context);
+    auto* fps_doc = nw::toolset::load_viewer_fps_document(*fps_context);
     if (!fps_doc) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: viewer_fps_overlay.rml");
         return 1;
     }
     fps_doc->Show();
 
-    load_ui_preferences(state);
+    state.preferences_path = nw::toolset::client_preferences_path();
+    nw::toolset::load_ui_preferences(state.preferences_path, state.shell.docks, state.recent_projects);
     state.workspace.ensure_default_tabs("Home", true);
     apply_bottom_dock_height(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::bottom).size_px);
     apply_left_dock_width(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::left).size_px);
@@ -13387,7 +8698,7 @@ int main(int argc, char* argv[])
 
     refresh_recent_list(doc, state);
     refresh_workspace_view(doc, state);
-    refresh_command_palette(palette_doc, state);
+    nw::toolset::refresh_command_palette(palette_doc, state.command_view, state.backend);
     refresh_bottom_dock_view(doc, state);
     refresh_output_view(doc, state);
     state.shell.output_dirty = false;
@@ -13428,7 +8739,7 @@ int main(int argc, char* argv[])
         const Uint64 raw_frame_delta_ms = frame_start_ms >= last_frame_ms ? frame_start_ms - last_frame_ms : 0;
         last_frame_ms = frame_start_ms;
         const int32_t frame_delta_ms = static_cast<int32_t>(std::min<Uint64>(raw_frame_delta_ms, 100));
-        update_viewer_frame_metrics(state, raw_frame_delta_seconds);
+        update_viewer_frame_metrics(state.metrics, raw_frame_delta_seconds);
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -13474,7 +8785,7 @@ int main(int argc, char* argv[])
                     continue;
                 }
             }
-            if (state.command_form) {
+            if (state.command_view.command_form) {
                 if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) {
                     auto* focused_choice = find_ancestor_with_class(
                         palette_context->GetFocusElement(),
@@ -13488,26 +8799,26 @@ int main(int argc, char* argv[])
                                   "data-field", ""))
                         : std::nullopt;
                     if (event.key.key == SDLK_ESCAPE
-                        && state.command_form_combobox.is_active()) {
+                        && state.command_view.command_form_combobox.is_active()) {
                         close_command_form_combobox(state);
                         continue;
                     }
                     if (event.key.key == SDLK_TAB
-                        && state.command_form_combobox.is_active()) {
+                        && state.command_view.command_form_combobox.is_active()) {
                         close_command_form_combobox(state);
                     }
                     if (focused_field && *focused_field >= 0
                         && (event.key.key == SDLK_UP
                             || event.key.key == SDLK_DOWN)) {
                         const auto field_index = static_cast<size_t>(*focused_field);
-                        if (state.command_form_combobox_field != field_index
-                            || !state.command_form_combobox.is_active()) {
+                        if (state.command_view.command_form_combobox_field != field_index
+                            || !state.command_view.command_form_combobox.is_active()) {
                             (void)open_command_form_combobox(
                                 state, field_index);
-                        } else if (!state.command_form_combobox.popup_visible()) {
-                            (void)state.command_form_combobox.show_popup();
+                        } else if (!state.command_view.command_form_combobox.popup_visible()) {
+                            (void)state.command_view.command_form_combobox.show_popup();
                         }
-                        (void)state.command_form_combobox.move_selection(
+                        (void)state.command_view.command_form_combobox.move_selection(
                             event.key.key == SDLK_UP ? -1 : 1);
                         sync_command_form_combobox(state, true);
                         continue;
@@ -13516,17 +8827,17 @@ int main(int argc, char* argv[])
                         && (event.key.key == SDLK_RETURN
                             || event.key.key == SDLK_KP_ENTER)) {
                         const auto field_index = static_cast<size_t>(*focused_field);
-                        if (state.command_form_combobox_field != field_index
-                            || !state.command_form_combobox.is_active()) {
+                        if (state.command_view.command_form_combobox_field != field_index
+                            || !state.command_view.command_form_combobox.is_active()) {
                             if (open_command_form_combobox(
                                     state, field_index)) {
                                 sync_command_form_combobox(state, true);
                             }
-                        } else if (!state.command_form_combobox.popup_visible()) {
-                            (void)state.command_form_combobox.show_popup();
+                        } else if (!state.command_view.command_form_combobox.popup_visible()) {
+                            (void)state.command_view.command_form_combobox.show_popup();
                             sync_command_form_combobox(state, true);
                         } else if (const auto selected
-                            = state.command_form_combobox.selected_key()) {
+                            = state.command_view.command_form_combobox.selected_key()) {
                             (void)commit_command_form_combobox(
                                 state, *selected);
                         }
@@ -13534,12 +8845,12 @@ int main(int argc, char* argv[])
                     }
                     std::optional<size_t> action_index;
                     if (event.key.key == SDLK_ESCAPE) {
-                        const auto cancel = std::find_if(state.command_form->actions.begin(), state.command_form->actions.end(), [](const auto& action) { return action.id == "cancel"; });
-                        if (cancel != state.command_form->actions.end()) {
-                            action_index = static_cast<size_t>(std::distance(state.command_form->actions.begin(), cancel));
+                        const auto cancel = std::find_if(state.command_view.command_form->actions.begin(), state.command_view.command_form->actions.end(), [](const auto& action) { return action.id == "cancel"; });
+                        if (cancel != state.command_view.command_form->actions.end()) {
+                            action_index = static_cast<size_t>(std::distance(state.command_view.command_form->actions.begin(), cancel));
                         }
                     } else if (event.key.key == SDLK_RETURN
-                        && !state.command_form->actions.empty()) {
+                        && !state.command_view.command_form->actions.empty()) {
                         action_index = 0;
                     }
                     if (action_index) {
@@ -13604,25 +8915,7 @@ int main(int argc, char* argv[])
                     } else if (!event.key.repeat
                         && event.key.key == SDLK_F8
                         && state.play_preview.session.active()) {
-                        const bool enabled
-                            = !nw::toolset::toolset_preview_navigation_debug(
-                                state.play_preview.session)
-                                   .enabled;
-                        const auto status
-                            = nw::toolset::set_toolset_preview_navigation_debug(
-                                state.play_preview.session, enabled);
-                        const bool render_ok = status == nw::toolset::PreviewStatus::ok
-                            && renderer.update_toolset_preview_navigation_debug(
-                                nw::toolset::toolset_preview_navigation_debug(
-                                    state.play_preview.session));
-                        append_output(
-                            state,
-                            render_ok ? "info" : "error",
-                            render_ok
-                                ? (enabled
-                                          ? "Navigation debug enabled"
-                                          : "Navigation debug disabled")
-                                : "Failed to update navigation debug geometry");
+                        nw::toolset::toggle_play_preview_navigation_debug(renderer, state.play_preview, state.shell);
                     }
                     dispatched_to_rml = true;
                     break;
@@ -13922,9 +9215,9 @@ int main(int argc, char* argv[])
                 if (state.shell.command_palette_visible
                     && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
                     && focused_element_has_id(palette_context, "command_input")) {
-                    refresh_command_palette(palette_doc, state);
-                    if (!state.commands.empty()) {
-                        execute_palette_command(window, context, palette_context, doc, palette_doc, state, state.commands.front().id);
+                    nw::toolset::refresh_command_palette(palette_doc, state.command_view, state.backend);
+                    if (!state.command_view.commands.empty()) {
+                        execute_palette_command(window, context, palette_context, doc, palette_doc, state, state.command_view.commands.front().id);
                     }
                     dispatched_to_rml = true;
                     break;
@@ -14196,14 +9489,14 @@ int main(int argc, char* argv[])
                 }
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
-                open_play_preview_gamepad(
-                    state.play_preview, event.gdevice.which);
+                nw::toolset::open_runtime_gamepad(
+                    state.runtime_input, event.gdevice.which);
                 break;
             case SDL_EVENT_GAMEPAD_REMOVED:
-                if (state.play_preview.gamepad
-                    && SDL_GetGamepadID(state.play_preview.gamepad)
+                if (state.runtime_input.gamepad
+                    && SDL_GetGamepadID(state.runtime_input.gamepad.get())
                         == event.gdevice.which) {
-                    close_play_preview_gamepad(state.play_preview);
+                    nw::toolset::close_runtime_gamepad(state.runtime_input);
                     if (state.play_preview.session.active()) {
                         append_output(state, "warn",
                             "Play-preview controller disconnected");
@@ -14214,7 +9507,7 @@ int main(int argc, char* argv[])
                 if (state.play_preview.session.active()
                     && (event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST
                         || event.gbutton.button == SDL_GAMEPAD_BUTTON_BACK)) {
-                    state.play_preview.pending_input.flags
+                    state.runtime_input.pending.flags
                         |= nw::toolset::preview_input_cancel;
                 }
                 break;
@@ -14349,8 +9642,8 @@ int main(int argc, char* argv[])
                             if (event.button.button == SDL_BUTTON_LEFT
                                 && state.play_preview.placement_pending()) {
                                 if (const auto ray
-                                    = renderer.viewer_viewport_ray(
-                                        point.x, point.y, viewer_viewport->rect)) {
+                                    = nw::toolset::acquire_runtime_viewport_ray(renderer,
+                                        {point.x, point.y}, viewer_viewport->rect)) {
                                     (void)start_play_preview_from_ray(renderer,
                                         system_interface, doc, state, *ray);
                                 } else {
@@ -14361,48 +9654,8 @@ int main(int argc, char* argv[])
                                         state.play_preview.placement_diagnostic);
                                 }
                             } else if (event.button.button == SDL_BUTTON_LEFT) {
-                                nw::toolset::clear_preview_pointer_action(
-                                    state.play_preview.pending_input);
-                                const auto door_hit
-                                    = renderer.viewer_area_door_hit(
-                                        point.x,
-                                        point.y,
-                                        viewer_viewport->rect,
-                                        nw::toolset::toolset_preview_door_handles(
-                                            state.play_preview.session));
-                                const auto door_states
-                                    = nw::toolset::toolset_preview_door_visual_states(
-                                        state.play_preview.session);
-                                const bool door_requires_interaction = door_hit
-                                    && nw::toolset::preview_door_requires_interaction(
-                                        door_states, door_hit->door_index);
-                                if (door_requires_interaction) {
-                                    (void)nw::toolset::set_preview_click_door(
-                                        state.play_preview.pending_input,
-                                        door_hit->door_index,
-                                        door_hit->bounds_min,
-                                        door_hit->bounds_max);
-                                } else if (const auto ray
-                                    = renderer.viewer_viewport_ray(
-                                        point.x, point.y,
-                                        viewer_viewport->rect)) {
-                                    const std::array projection_inputs{
-                                        nw::nav::NavRayProjectionInput{
-                                            .origin = ray->origin,
-                                            .displacement = ray->displacement,
-                                        },
-                                    };
-                                    std::array<nw::nav::NavRayProjectionResult, 1> projected{};
-                                    nw::toolset::project_toolset_preview_rays(
-                                        state.play_preview.session,
-                                        projection_inputs,
-                                        projected);
-                                    if (projected[0].status == nw::nav::NavStatus::ok) {
-                                        (void)nw::toolset::set_preview_click_target(
-                                            state.play_preview.pending_input,
-                                            projected[0].position);
-                                    }
-                                }
+                                nw::toolset::apply_play_preview_pointer_action(renderer, state.play_preview,
+                                    state.runtime_input, {point.x, point.y}, viewer_viewport->rect);
                             } else if (event.button.button == SDL_BUTTON_RIGHT
                                 || event.button.button == SDL_BUTTON_MIDDLE) {
                                 state.viewer_viewport_dragging = true;
@@ -14626,8 +9879,8 @@ int main(int argc, char* argv[])
                     state.viewer_viewport_last_point = point;
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height)) {
                         if (state.play_preview.session.active()) {
-                            state.play_preview.mouse_look_x += dx;
-                            state.play_preview.mouse_look_y += dy;
+                            state.runtime_input.mouse_look_pixels.x += dx;
+                            state.runtime_input.mouse_look_pixels.y += dy;
                         } else {
                             renderer.drag_viewer_viewport(
                                 state.viewer_viewport_drag_mode, dx, dy,
@@ -14709,22 +9962,8 @@ int main(int argc, char* argv[])
                         && point_within_viewport(viewer_viewport->rect, point)
                         && !viewport_mouse_hit_blocked(
                             doc, top_hit, point, state)) {
-                        const auto door_hit = state.play_preview.session.active()
-                            ? renderer.viewer_area_door_hit(
-                                  point.x, point.y, viewer_viewport->rect,
-                                  nw::toolset::toolset_preview_door_handles(
-                                      state.play_preview.session))
-                            : std::nullopt;
-                        const bool door_requires_interaction = door_hit
-                            && nw::toolset::preview_door_requires_interaction(
-                                nw::toolset::toolset_preview_door_visual_states(
-                                    state.play_preview.session),
-                                door_hit->door_index);
-                        system_interface.SetMouseCursor(
-                            state.play_preview.placement_pending()
-                                ? "cross"
-                                : door_requires_interaction ? "pointer"
-                                                            : "arrow");
+                        system_interface.SetMouseCursor(nw::toolset::play_preview_pointer_cursor(
+                            renderer, state.play_preview, {point.x, point.y}, viewer_viewport->rect));
                         dispatched_to_rml = true;
                         break;
                     }
@@ -14843,7 +10082,7 @@ int main(int argc, char* argv[])
                     if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
                         viewer_viewport && point_within_viewport(viewer_viewport->rect, point)) {
                         if (state.play_preview.session.active()) {
-                            state.play_preview.wheel_zoom += event.wheel.y;
+                            state.runtime_input.wheel_zoom += event.wheel.y;
                             dispatched_to_rml = true;
                             break;
                         }
@@ -15182,7 +10421,7 @@ int main(int argc, char* argv[])
                                     editor.palette)) {
                                 cancel_area_tile_stroke(renderer, state);
                                 clear_area_tile_selection(renderer, state);
-                                reset_area_tile_palette_folder_view(editor);
+                                nw::toolset::reset_area_tile_palette_folder_view(editor);
                                 refresh_workspace_content(doc, state);
                                 sync_area_tile_palette_window(doc, state, true);
                             } else {
@@ -15210,7 +10449,7 @@ int main(int argc, char* argv[])
                                         cancel_area_tile_stroke(renderer, state);
                                         clear_area_tile_selection(
                                             renderer, state);
-                                        reset_area_tile_palette_folder_view(
+                                        nw::toolset::reset_area_tile_palette_folder_view(
                                             editor);
                                         refresh_workspace_content(doc, state);
                                         sync_area_tile_palette_window(
@@ -15988,7 +11227,7 @@ int main(int argc, char* argv[])
                                 auto previous = state.recent_projects;
                                 const std::array indices{static_cast<size_t>(*index)};
                                 if (nw::toolset::forget_recent_projects(state.recent_projects, indices)
-                                    && !save_ui_preferences(state)) {
+                                    && !save_ui_preferences(state.preferences_path, state.shell.docks, state.recent_projects)) {
                                     state.recent_projects = std::move(previous);
                                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to remove recent project",
                                         "Could not save preferences. The project was kept in the recent list.", window);
@@ -16515,11 +11754,8 @@ int main(int argc, char* argv[])
             render_project_tree_window(doc, state, false);
         }
 
-        const std::string command_query = get_input_value(palette_doc, "command_input");
-        if (state.shell.command_palette_visible && command_query != state.last_command_query) {
-            state.last_command_query = command_query;
-            refresh_command_palette(palette_doc, state);
-        }
+        nw::toolset::refresh_command_palette_query(palette_doc, state.command_view,
+            state.backend, state.shell.command_palette_visible);
 
         const std::string output_filter = get_input_value(doc, "output_filter");
         if (output_filter != state.last_output_filter) {
@@ -16643,56 +11879,29 @@ int main(int argc, char* argv[])
             stop_play_preview(renderer, system_interface, doc, state);
         }
         if (state.play_preview.session.active()) {
-            const auto frame_sample = sample_play_preview_input(
-                state.play_preview, raw_frame_delta_seconds);
-            const auto fixed_stats = nw::toolset::build_preview_tick_samples(
-                state.play_preview.fixed_step,
-                raw_frame_delta_seconds,
-                frame_sample,
-                state.play_preview.tick_inputs);
-            if (fixed_stats.status != nw::toolset::PreviewStatus::ok) {
-                append_output(state, "error",
-                    "Play-preview input sampling failed");
-                stop_play_preview(renderer, system_interface, doc, state);
-            } else if (fixed_stats.tick_count > 0) {
-                const auto tick_stats = nw::toolset::tick_toolset_preview(
-                    state.play_preview.session,
-                    std::span{state.play_preview.tick_inputs}.first(
-                        fixed_stats.tick_count),
-                    state.play_preview.spatial_rows,
-                    state.play_preview.locomotion_rows);
-                const bool tick_ok
-                    = tick_stats.status == nw::toolset::PreviewStatus::ok;
-                const bool visual_ok = tick_ok
-                    && renderer.update_toolset_preview_visuals(
-                        std::span{state.play_preview.spatial_rows}.first(
-                            tick_stats.output_count),
-                        std::span{state.play_preview.locomotion_rows}.first(
-                            tick_stats.output_count),
-                        nw::toolset::toolset_preview_door_visual_states(
-                            state.play_preview.session),
-                        state.play_preview.session.camera());
-                const auto navigation_debug
-                    = nw::toolset::toolset_preview_navigation_debug(
-                        state.play_preview.session);
-                const bool navigation_debug_ok = !navigation_debug.enabled
-                    || renderer.update_toolset_preview_navigation_debug(
-                        navigation_debug);
-                state.play_preview.pending_input.flags
-                    &= ~(nw::toolset::preview_input_click_target
-                        | nw::toolset::preview_input_cancel
-                        | nw::toolset::preview_input_click_door);
-                state.play_preview.mouse_look_x = 0.0f;
-                state.play_preview.mouse_look_y = 0.0f;
-                state.play_preview.mouse_sample_seconds = 0.0;
-                state.play_preview.wheel_zoom = 0.0f;
-                if (!tick_ok || !visual_ok || !navigation_debug_ok) {
-                    append_output(state, "error",
-                        !tick_ok         ? "Play-preview simulation failed"
-                            : !visual_ok ? "Failed to update play-preview visuals"
-                                         : "Failed to update navigation debug geometry");
-                    stop_play_preview(renderer, system_interface, doc, state);
-                }
+            // Capture ownership after UI callbacks/layout, rather than physical
+            // key-down disposition: SDL held keys can outlive a claimed event.
+            const auto visible = [](Rml::ElementDocument* document, const char* id) {
+                auto* element = find_el(document, id);
+                return element && element->IsVisible(true);
+            };
+            const bool modal = state.module_dialog_open || state.project_load.active()
+                || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()
+                || visible(state.command_view.command_overlay_document, "command_form_overlay")
+                || visible(palette_doc, "command_palette");
+            const bool ui_pointer_gesture = state.bottom_dock_resizing || state.left_dock_resizing
+                || state.output_selection.dragging || state.workspace_tab_dragging
+                || state.managed_list_reorder.active() || state.project_blueprint_drag.active();
+            const nw::toolset::PcSourceEligibility eligibility{
+                .keyboard = !modal && !focused_text_input(context) && !focused_text_input(palette_context),
+                .controller = !modal,
+                .pointer = !modal && (state.viewer_viewport_dragging || !ui_pointer_gesture),
+            };
+            if (nw::toolset::update_play_preview_frame(renderer, state.play_preview,
+                    state.runtime_input, state.shell, static_cast<double>(raw_frame_delta_seconds), eligibility)
+                == nw::toolset::PreviewStatus::invalid_input) {
+                apply_shell_layout(doc, state);
+                system_interface.SetMouseCursor("arrow");
             }
         }
         auto* viewer_tab = state.workspace.active_tab();
@@ -16847,10 +12056,13 @@ int main(int argc, char* argv[])
             append_output(state, "error", "Failed to synchronize the active creature Appearance preview");
         }
         const Uint64 view_end_counter = SDL_GetPerformanceCounter();
-        update_viewer_internal_metrics(state, renderer.last_viewer_frame_stats());
+        update_viewer_internal_metrics(state.metrics, renderer.last_viewer_frame_stats());
         const Uint64 overlay_start_counter = view_end_counter;
-        sync_viewer_fps_overlay(fps_doc, viewer_viewport, state);
-        sync_play_preview_viewport_overlay(fps_doc, viewer_viewport, state);
+        sync_viewer_fps_overlay(fps_doc,
+            viewer_viewport ? viewer_viewport->rect : ClientViewportRect{}, state.metrics,
+            state.shell.viewer_forward_plus_enabled, state.shell.viewer_forward_plus_debug_mode);
+        nw::toolset::sync_play_preview_viewport_overlay(fps_doc,
+            viewer_viewport ? std::optional{viewer_viewport->rect} : std::nullopt, state.play_preview);
         {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerOverlay};
             fps_context->Update();
@@ -16858,7 +12070,7 @@ int main(int argc, char* argv[])
         }
         const Uint64 overlay_end_counter = SDL_GetPerformanceCounter();
         Uint64 palette_end_counter = overlay_end_counter;
-        if (state.shell.command_palette_visible || state.command_form
+        if (state.shell.command_palette_visible || state.command_view.command_form
             || state.project_load.active()
             || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()) {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerPalette};
@@ -16871,9 +12083,9 @@ int main(int argc, char* argv[])
         }
         const Uint64 present_start_counter = palette_end_counter;
         renderer.end_frame();
-        update_client_gpu_metrics(state, renderer.last_gpu_frame_stats());
+        update_client_gpu_metrics(state.metrics, renderer.last_gpu_frame_stats());
         const Uint64 present_end_counter = SDL_GetPerformanceCounter();
-        update_viewer_render_metrics(state,
+        update_viewer_render_metrics(state.metrics,
             seconds_between_performance_counters(frame_start_counter, present_end_counter),
             seconds_between_performance_counters(begin_frame_start_counter, draw_start_counter),
             seconds_between_performance_counters(draw_start_counter, present_start_counter),
@@ -16893,7 +12105,7 @@ int main(int argc, char* argv[])
     cancel_project_blueprint_drag(doc, state);
     cancel_area_object_placement(renderer, state);
     stop_play_preview(renderer, system_interface, doc, state);
-    close_play_preview_gamepad(state.play_preview);
+    nw::toolset::close_runtime_gamepad(state.runtime_input);
     if (state.appearance_body_preview_object.type != nw::ObjectType::invalid
         && nw::kernel::objects().valid(state.appearance_body_preview_object)) {
         (void)update_appearance_preview_rows(state.appearance_body_preview_object, true);

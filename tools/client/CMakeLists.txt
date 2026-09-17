@@ -17,6 +17,8 @@ add_library(rollnw_client_core STATIC
     forward_plus_debug.cpp
     object_document.cpp
     object_edits.cpp
+    object_workbench.cpp
+    pc_input.cpp
     preview_session.cpp
     project.cpp
     resource_document.cpp
@@ -46,9 +48,19 @@ set(RMLUI_BACKENDS_DIR "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Backends")
 set(RMLUI_INCLUDE_DIR  "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Include")
 
 add_executable(rollnw-client
+    area_object_editor.cpp
+    area_object_editor_runtime.cpp
+    area_tile_editor.cpp
+    area_tile_editor_runtime.cpp
     blueprint_commands.cpp
     blueprint_reference_commands.cpp
     blueprint_update_job.cpp
+    client_cli.cpp
+    client_preferences.cpp
+    client_runtime.cpp
+    command_view.cpp
+    client_input.cpp
+    client_metrics.cpp
     creature_body_part_editor.cpp
     dialog_view.cpp
     item_editor.cpp
@@ -56,7 +68,12 @@ add_executable(rollnw-client
     viewer_viewport.cpp
     workspace_view.cpp
     main.cpp
+    play_preview_view.cpp
+    play_preview_runtime.cpp
     project_import.cpp
+    project_resource_drag.cpp
+    runtime_input.cpp
+    runtime_input_renderer.cpp
     renderer.cpp
     toolset_backend.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_smalls_bridge.cpp

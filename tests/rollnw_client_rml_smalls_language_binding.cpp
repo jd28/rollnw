@@ -1,11 +1,19 @@
 #include "appearance_catalog.hpp"
+#include "area_object_editor.hpp"
+#include "area_tile_editor.hpp"
+#include "client_input.hpp"
+#include "client_metrics.hpp"
+#include "command_view.hpp"
 #include "item_editor_data_model.hpp"
 #include "object_edits.hpp"
+#include "play_preview_view.hpp"
 #include "project.hpp"
+#include "project_resource_drag.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "rml_smalls_language_binding.hpp"
 #include "script_commands.hpp"
+#include "shell_controller.hpp"
 #include "smalls_rmlui.hpp"
 #include "smalls_ui_v1.hpp"
 #include "toolset_backend.hpp"
@@ -14,6 +22,7 @@
 #include "workspace_view.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/TilesetRegistry.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
@@ -29,6 +38,7 @@
 
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/ElementText.h>
+#include <RmlUi/Core/Elements/ElementFormControl.h>
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -108,6 +118,11 @@ public:
 
 private:
     std::filesystem::path previous_;
+};
+
+class ScriptCommandHostReset {
+public:
+    ~ScriptCommandHostReset() { nw::toolset::script_command_host().bind(nullptr, nullptr); }
 };
 
 bool diagnostic_contains(const nw::toolset::RmlSmallsLanguageBinding& binding, std::string_view needle)
@@ -236,6 +251,162 @@ TEST(ClientRmlTemplates, PlayPreviewHidesPersistentShellChrome)
     document->Close();
     context->Update();
     Rml::RemoveContext("play-preview-shell-visibility-test");
+}
+
+TEST(ClientPlayPreviewView, SpawnYawAndActorResolutionKeepTheExistingPolicy)
+{
+    using namespace nw::toolset;
+    EXPECT_FLOAT_EQ(play_preview_yaw({.displacement = {1, 0, -1}}), 0);
+    EXPECT_NEAR(play_preview_yaw({.displacement = {0, 1, -1}}), 1.5707963268f, 1e-6f);
+    EXPECT_NEAR(play_preview_yaw({.displacement = {0, -1, -1}}), -1.5707963268f, 1e-6f);
+    EXPECT_NEAR(play_preview_yaw({.displacement = {-1, 0, -1}}), 3.1415926536f, 1e-6f);
+    EXPECT_EQ(play_preview_yaw({.displacement = {0, 0, -1}}), 0);
+    EXPECT_EQ(play_preview_yaw({.displacement = {std::numeric_limits<float>::infinity(), 1, -1}}), 0);
+    EXPECT_EQ(play_preview_yaw({.displacement = {1e-5f, 1e-5f, -1}}), 0);
+    const auto valid = resolve_play_preview_actor({}, "test_data/user/development/pl_agent_001.utc");
+    EXPECT_EQ(valid.actor, (nw::Resource{std::string_view{"pl_agent_001"}, nw::ResourceType::utc}));
+    EXPECT_TRUE(valid.diagnostic.empty());
+    const auto invalid = resolve_play_preview_actor({}, "test_data/user/development/cloth028.uti");
+    EXPECT_FALSE(invalid.actor.valid());
+    EXPECT_EQ(invalid.diagnostic, "Play-preview test actor must be a Creature blueprint");
+    const auto missing = resolve_play_preview_actor({}, {});
+    EXPECT_FALSE(missing.actor.valid());
+    EXPECT_FALSE(missing.diagnostic.empty());
+}
+
+TEST(ClientPlayPreviewView, RepeatedActorPickerPreservesAndRestoresTheOriginalShellQuery)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("preview-picker", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/panel.rml");
+    ASSERT_NE(document, nullptr);
+    auto* search = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("recent_search"));
+    ASSERT_NE(search, nullptr);
+    search->SetValue("Original query");
+    ShellController shell;
+    shell.set_showing_areas(true);
+    PlayPreviewState preview;
+    request_play_preview_actor(document, preview, shell, "Choose actor");
+    EXPECT_TRUE(preview.selecting_actor);
+    EXPECT_TRUE(shell.showing_project_tree);
+    EXPECT_FALSE(shell.showing_areas);
+    EXPECT_TRUE(search->GetValue().empty());
+    search->SetValue("Picker query");
+    request_play_preview_actor(document, preview, shell, {});
+    EXPECT_EQ(preview.picker_previous_query, "Original query");
+    EXPECT_EQ(search->GetValue(), "Picker query");
+    ASSERT_TRUE(restore_play_preview_picker_shell(document, preview, shell));
+    EXPECT_FALSE(preview.selecting_actor);
+    EXPECT_TRUE(shell.showing_areas);
+    EXPECT_FALSE(shell.showing_project_tree);
+    EXPECT_EQ(search->GetValue(), "Original query");
+    EXPECT_FALSE(restore_play_preview_picker_shell(document, preview, shell));
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("preview-picker");
+}
+
+TEST(ClientPlayPreviewView, OverlayUsesCurrentViewportPickerPlacementAndDetachedSessionStates)
+{
+    using namespace nw::toolset;
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    PlayPreviewState preview;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("preview-overlay", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = load_viewer_fps_document(*context);
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    const std::optional viewport{ClientViewportRect{.x = 12, .y = 24, .width = 800, .height = 600}};
+    auto* overlay = document->GetElementById("play_preview_viewport_overlay");
+    ASSERT_NE(overlay, nullptr);
+    sync_play_preview_viewport_overlay(document, viewport, preview);
+    context->Update();
+    EXPECT_FALSE(overlay->IsVisible(true));
+    preview.selecting_actor = true;
+    sync_play_preview_viewport_overlay(document, viewport, preview);
+    context->Update();
+    EXPECT_TRUE(overlay->IsVisible(true));
+    EXPECT_NE(overlay->GetInnerRML().find("Choose Creature"), std::string::npos);
+    EXPECT_FLOAT_EQ(overlay->GetAbsoluteLeft(), 20);
+    EXPECT_FLOAT_EQ(overlay->GetAbsoluteTop(), 32);
+    preview.selecting_actor = false;
+    preview.pending_actor = nw::Resource{std::string_view{"pl_agent_001"}, nw::ResourceType::utc};
+    preview.placement_diagnostic = "Bad <spawn> & point";
+    sync_play_preview_viewport_overlay(document, viewport, preview);
+    EXPECT_NE(overlay->GetInnerRML().find("Bad &lt;spawn&gt; &amp; point"), std::string::npos);
+    sync_play_preview_viewport_overlay(document, std::nullopt, preview);
+    context->Update();
+    EXPECT_FALSE(overlay->IsVisible(true));
+    ASSERT_TRUE(start_toolset_preview(preview.session, {.area = area->handle(), .actor = preview.pending_actor, .spawn_position = module->entry_position}).ok());
+    preview.pending_actor = {};
+    sync_play_preview_viewport_overlay(document, viewport, preview);
+    EXPECT_NE(overlay->GetInnerRML().find("F8 navigation debug"), std::string::npos);
+    ASSERT_EQ(set_toolset_preview_navigation_debug(preview.session, true), PreviewStatus::ok);
+    sync_play_preview_viewport_overlay(document, viewport, preview);
+    EXPECT_NE(overlay->GetInnerRML().find("Nav: walkable green"), std::string::npos);
+    stop_toolset_preview(preview.session);
+    sync_play_preview_viewport_overlay(document, viewport, preview);
+    context->Update();
+    EXPECT_FALSE(overlay->IsVisible(true));
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("preview-overlay");
+}
+
+TEST(ClientRmlTemplates, InputClassificationExcludesHiddenPanelsAndFocus)
+{
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(Rml::LoadFontFace("tools/client/assets/fonts/inter/Inter-Regular.ttf"));
+    auto* context = Rml::CreateContext("input-visibility", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/panel.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    auto* panel = document->GetElementById("panel");
+    auto* search = document->GetElementById("recent_search");
+    ASSERT_NE(panel, nullptr);
+    ASSERT_NE(search, nullptr);
+    panel->SetProperty("display", "flex");
+    context->Update();
+    const Rml::Vector2f point{search->GetAbsoluteLeft() + 2.0f,
+        search->GetAbsoluteTop() + 2.0f};
+    ASSERT_TRUE(search->Focus());
+    EXPECT_TRUE(nw::toolset::point_within_element(document, "panel", point));
+    EXPECT_TRUE(nw::toolset::focused_text_input(context));
+    EXPECT_TRUE(nw::toolset::focused_element_has_id(context, "recent_search"));
+
+    panel->SetProperty("display", "none");
+    context->Update();
+    EXPECT_FALSE(nw::toolset::point_within_element(document, "panel", point));
+    EXPECT_FALSE(nw::toolset::focused_text_input(context));
+    EXPECT_FALSE(nw::toolset::focused_element_has_id(context, "recent_search"));
+
+    panel->SetProperty("display", "flex");
+    context->Update();
+    ASSERT_TRUE(search->Focus());
+    EXPECT_TRUE(nw::toolset::point_within_element(document, "panel", point));
+    EXPECT_TRUE(nw::toolset::focused_text_input(context));
+    EXPECT_FALSE(nw::toolset::point_within_element(document, "missing", point));
+    EXPECT_FALSE(nw::toolset::point_within_element(nullptr, "panel", point));
+    EXPECT_FALSE(nw::toolset::focused_text_input(nullptr));
+    EXPECT_FALSE(nw::toolset::focused_element_has_id(context, nullptr));
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("input-visibility");
 }
 
 TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
@@ -1490,6 +1661,628 @@ TEST(ClientRmlTemplates, BlueprintModalsKeepVisibleControlsInsideTheCommandOverl
     context->Update();
     EXPECT_FALSE(form->IsVisible(true));
     EXPECT_FALSE(progress->IsVisible(true));
+}
+
+TEST(ClientRmlTemplates, CommandFormRefreshPreservesInputAndInvalidatesGenerationPopup)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("command-form-refresh", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/command_modals.rml");
+    ASSERT_NE(document, nullptr);
+    ToolsetBackend backend;
+    CommandViewState state;
+    state.command_overlay_document = document;
+    state.command_form = CommandPrompt{
+        .title = "Title <&>",
+        .message = "Message",
+        .actions = {{"create", "Create"}, {"cancel", "Cancel"}},
+        .fields = {
+            {.label = "Name", .value = "initial"},
+            {.label = "Choice", .value = "first", .choices = {{"first", "First"}, {"second", "Second <&>"}}},
+        },
+    };
+    ++state.command_form_generation;
+    sync_command_form(state, backend, false);
+    context->Update();
+    ASSERT_TRUE(document->IsVisible());
+    auto* name = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("command_form_field_0"));
+    ASSERT_NE(name, nullptr);
+    name->SetValue("edited");
+    ASSERT_TRUE(name->Focus());
+    sync_command_form(state, backend, false);
+    EXPECT_EQ(state.command_form->fields[0].value, "edited");
+    EXPECT_EQ(document->GetElementById("command_form_field_0"), name);
+    EXPECT_EQ(context->GetFocusElement(), name);
+    EXPECT_NE(document->GetElementById("command_form_overlay")->GetInnerRML().find("Title &lt;&amp;&gt;"), std::string::npos);
+
+    ASSERT_TRUE(open_command_form_combobox(state, 1));
+    EXPECT_FALSE(commit_command_form_combobox(state, backend, false, -1));
+    EXPECT_FALSE(commit_command_form_combobox(state, backend, false, 2));
+    EXPECT_EQ(state.command_form->fields[1].value, "first");
+    ASSERT_TRUE(commit_command_form_combobox(state, backend, false, 1));
+    EXPECT_EQ(state.command_form->fields[1].value, "second");
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    EXPECT_NE(document->GetElementById("command_form_field_1")->GetInnerRML().find("Second &lt;&amp;&gt;"), std::string::npos);
+    ASSERT_TRUE(open_command_form_combobox(state, 1));
+    state.command_form = CommandPrompt{.title = "Replacement", .actions = {{"cancel", "Cancel"}}};
+    ++state.command_form_generation;
+    sync_command_form(state, backend, false);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    EXPECT_FALSE(state.command_form_combobox_field);
+    EXPECT_EQ(document->GetElementById("command_form_field_0"), nullptr);
+    EXPECT_FALSE(open_command_form_combobox(state, 0));
+    state.command_form.reset();
+    ++state.command_form_generation;
+    sync_command_form(state, backend, false);
+    EXPECT_FALSE(document->IsVisible());
+    EXPECT_TRUE(document->GetElementById("command_form_overlay")->GetInnerRML().empty());
+    sync_command_overlay_visibility(state, true, false);
+    EXPECT_TRUE(document->IsVisible());
+    sync_command_overlay_visibility(state, false, true);
+    EXPECT_TRUE(document->IsVisible());
+    sync_command_overlay_visibility(state, false, false);
+    EXPECT_FALSE(document->IsVisible());
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("command-form-refresh");
+}
+
+TEST(ClientRmlTemplates, CommandFormRejectsMalformedChoicesWithoutDiscardingCurrentPopup)
+{
+    using namespace nw::toolset;
+    CommandViewState state;
+    state.command_form = CommandPrompt{.fields = {
+                                           {.value = "one", .choices = {{"one", "One"}, {"two", "Two"}}},
+                                           {.value = "duplicate", .choices = {{"duplicate", "First"}, {"duplicate", "Second"}}},
+                                           {.value = "missing", .choices = {{"other", "Other"}}},
+                                           {.value = "", .choices = {{"", "Empty"}}},
+                                       }};
+    ASSERT_TRUE(open_command_form_combobox(state, 0));
+    EXPECT_FALSE(open_command_form_combobox(state, 1));
+    EXPECT_FALSE(open_command_form_combobox(state, 2));
+    EXPECT_FALSE(open_command_form_combobox(state, 3));
+    EXPECT_FALSE(open_command_form_combobox(state, 4));
+    EXPECT_EQ(state.command_form_combobox_field, 0u);
+    EXPECT_TRUE(state.command_form_combobox.is_active());
+    close_command_form_combobox(state);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+}
+
+TEST(ClientRmlTemplates, CommandPaletteRetainsOriginalFocusAcrossRepeatedOpen)
+{
+    using namespace nw::toolset;
+    CurrentPathScope ui_root{std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui"};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("palette-main-focus", {1200, 700});
+    auto* palette_context = Rml::CreateContext("palette-focus", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    ASSERT_NE(palette_context, nullptr);
+    auto* document = context->LoadDocument("panel.rml");
+    auto* palette_document = load_command_palette_document(*palette_context);
+    ASSERT_NE(document, nullptr);
+    ASSERT_NE(palette_document, nullptr);
+    document->Show();
+    palette_document->Show();
+    document->GetElementById("panel")->SetProperty("display", "flex");
+    context->Update();
+    auto* search = document->GetElementById("recent_search");
+    ASSERT_NE(search, nullptr);
+    ASSERT_TRUE(search->Focus());
+    CommandViewState state;
+    bool viewport_focused = false;
+    set_command_palette_visibility(state, context, palette_context, document, palette_document, viewport_focused, true);
+    palette_context->Update();
+    ASSERT_TRUE(palette_document->GetElementById("command_input")->Focus());
+    EXPECT_EQ(state.command_palette_restore_focus_id, "recent_search");
+    ASSERT_TRUE(document->GetElementById("output_filter")->Focus());
+    set_command_palette_visibility(state, context, palette_context, document, palette_document, viewport_focused, true);
+    EXPECT_EQ(state.command_palette_restore_focus_id, "recent_search");
+    set_command_palette_visibility(state, context, palette_context, document, palette_document, viewport_focused, false);
+    EXPECT_EQ(context->GetFocusElement(), search);
+    EXPECT_FALSE(focused_element_has_id(palette_context, "command_input"));
+    EXPECT_FALSE(viewport_focused);
+    EXPECT_FALSE(state.command_palette_restore_captured);
+    EXPECT_TRUE(state.command_palette_restore_focus_id.empty());
+
+    // A hidden or replaced input must not receive restored keyboard ownership.
+    for (const bool hidden : {true, false}) {
+        ASSERT_TRUE(search->Focus());
+        set_command_palette_visibility(state, context, palette_context, document, palette_document, viewport_focused, true);
+        search->Blur();
+        if (hidden) {
+            search->SetProperty("display", "none");
+        } else {
+            search->SetId("replacement_search");
+        }
+        context->Update();
+        set_command_palette_visibility(state, context, palette_context, document, palette_document, viewport_focused, false);
+        EXPECT_NE(context->GetFocusElement(), search);
+        EXPECT_FALSE(viewport_focused);
+        EXPECT_FALSE(state.command_palette_restore_captured);
+        search->RemoveProperty("display");
+        search->SetId("recent_search");
+        context->Update();
+    }
+    document->Close();
+    palette_document->Close();
+    context->Update();
+    palette_context->Update();
+    Rml::RemoveContext("palette-focus");
+    Rml::RemoveContext("palette-main-focus");
+}
+
+TEST(ClientRmlTemplates, CommandPaletteRestoresViewportAndRefreshesBackendMatches)
+{
+    using namespace nw::toolset;
+    CurrentPathScope ui_root{std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui"};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("palette-matches", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = load_command_palette_document(*context);
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    CommandViewState state;
+    bool viewport_focused = true;
+    set_command_palette_visibility(state, nullptr, context, nullptr, document, viewport_focused, true);
+    EXPECT_FALSE(viewport_focused);
+    ShellController shell;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    ScriptCommandHostReset script_host;
+    backend.bind(nullptr, &shell, &workspace);
+    refresh_command_palette(document, state, backend);
+    const auto expected = backend.list_commands("");
+    ASSERT_FALSE(expected.empty());
+    ASSERT_EQ(state.commands.size(), expected.size());
+    EXPECT_EQ(state.commands.front().id, expected.front().id);
+    EXPECT_NE(document->GetElementById("command_list_items")->GetInnerRML().find(expected.front().id), std::string::npos);
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("command_input"));
+    ASSERT_NE(input, nullptr);
+    input->SetValue("no-such-command-987654321");
+    refresh_command_palette_query(document, state, backend, false);
+    EXPECT_EQ(state.commands.size(), expected.size());
+    refresh_command_palette_query(document, state, backend, true);
+    EXPECT_TRUE(state.commands.empty());
+    EXPECT_EQ(document->GetElementById("command_list_items")->GetInnerRML(), "<div class=\"nw_list_empty\">No matching commands.</div>");
+    EXPECT_TRUE(document->GetElementById("command_details")->GetInnerRML().empty());
+    set_command_palette_visibility(state, nullptr, context, nullptr, document, viewport_focused, false);
+    EXPECT_TRUE(viewport_focused);
+    set_command_palette_visibility(state, nullptr, nullptr, nullptr, nullptr, viewport_focused, false);
+    EXPECT_TRUE(viewport_focused);
+    refresh_command_palette(nullptr, state, backend);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("palette-matches");
+}
+
+TEST(ClientRmlTemplates, CommandSubmissionOwnsArgumentsAndRejectsDisabledActions)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("command-submit", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/command_modals.rml");
+    ASSERT_NE(document, nullptr);
+    ToolsetBackend backend;
+    CommandViewState state;
+    state.command_overlay_document = document;
+    CommandResult result{.prompt = CommandPrompt{
+                             .actions = {{"create", "Create", "example.create", {"fixed"}}, {"cancel", "Cancel", "example.cancel", {"cancel-fixed"}}},
+                             .fields = {{.label = "Name", .value = ""}, {.label = "Choice", .value = "first", .choices = {{"first", "First"}, {"second", "Second"}}}},
+                         }};
+    ASSERT_TRUE(take_command_form_prompt(state, result));
+    EXPECT_FALSE(result.prompt);
+    EXPECT_EQ(result.status, CommandStatus::noop);
+    EXPECT_FALSE(result.should_log());
+    sync_command_form(state, backend, false);
+    EXPECT_FALSE(take_command_form_action(state, backend, false, false, 0));
+    EXPECT_FALSE(take_command_form_action(state, backend, false, false, 2));
+    EXPECT_FALSE(take_command_form_action(state, backend, false, true, 1));
+    ASSERT_TRUE(state.command_form);
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("command_form_field_0"));
+    ASSERT_NE(input, nullptr);
+    input->SetValue("edited <&>");
+    auto* choice = document->GetElementById("command_form_field_1");
+    ASSERT_NE(choice, nullptr);
+    choice->SetAttribute("data-field", "invalid");
+    EXPECT_EQ(handle_command_overlay_target(state, backend, false, choice).kind, CommandOverlayActionKind::handled);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    choice->SetAttribute("data-field", "1");
+    EXPECT_EQ(handle_command_overlay_target(state, backend, false, choice->GetChild(0)).kind, CommandOverlayActionKind::handled);
+    EXPECT_TRUE(state.command_form_combobox.is_active());
+    EXPECT_EQ(handle_command_overlay_target(state, backend, false, document->GetElementById("command_form_overlay")).kind, CommandOverlayActionKind::handled);
+    EXPECT_FALSE(state.command_form_combobox.is_active());
+    const auto submit = handle_command_overlay_target(state, backend, false, document->GetElementById("command_form_action_0"));
+    EXPECT_EQ(submit.kind, CommandOverlayActionKind::submit);
+    EXPECT_EQ(submit.form_action_index, 0u);
+    const auto action = take_command_form_action(state, backend, false, false, submit.form_action_index);
+    ASSERT_TRUE(action);
+    EXPECT_EQ(action->command_id, "example.create");
+    EXPECT_EQ(action->args, (std::vector<std::string>{"fixed", "edited <&>", "first"}));
+    EXPECT_FALSE(state.command_form);
+    sync_command_form(state, backend, false);
+    EXPECT_TRUE(document->GetElementById("command_form_overlay")->GetInnerRML().empty());
+    EXPECT_EQ(action->args[1], "edited <&>");
+    state.command_form = CommandPrompt{.actions = {{"create", "Create", "example.create"}, {"cancel", "Cancel", "example.cancel", {"cancel-fixed"}}}, .fields = {{.value = ""}}};
+    ++state.command_form_generation;
+    const auto cancel = take_command_form_action(state, backend, false, false, 1);
+    ASSERT_TRUE(cancel);
+    EXPECT_EQ(cancel->args, (std::vector<std::string>{"cancel-fixed"}));
+    EXPECT_EQ(handle_command_overlay_target(state, backend, false, nullptr).kind, CommandOverlayActionKind::none);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("command-submit");
+}
+
+TEST(ClientCommandView, BrowseResultsRejectStaleGenerationsAndPreserveCancellation)
+{
+    using namespace nw::toolset;
+    CommandViewState state;
+    state.command_form = CommandPrompt{.fields = {{.value = "name"}, {.value = "old-directory"}}};
+    state.command_form_generation = 3;
+    state.command_form_browse_generation = 2;
+    EXPECT_FALSE(apply_command_form_directory_result(state, "late-directory", "", false));
+    EXPECT_EQ(state.command_form->fields[1].value, "old-directory");
+    state.command_form_browse_generation = 3;
+    ASSERT_TRUE(apply_command_form_directory_result(state, "chosen-directory", "", false));
+    EXPECT_EQ(state.command_form->fields[1].value, "chosen-directory");
+    EXPECT_EQ(state.command_form_generation, 4u);
+    state.command_form_browse_generation = 4;
+    ASSERT_TRUE(apply_command_form_directory_result(state, "ignored", "", true));
+    EXPECT_EQ(state.command_form->fields[1].value, "chosen-directory");
+    state.command_form_browse_generation = 5;
+    ASSERT_TRUE(apply_command_form_directory_result(state, "ignored", "dialog failed", false));
+    EXPECT_EQ(state.command_form->detail, "dialog failed");
+    EXPECT_EQ(state.command_form->fields[1].value, "chosen-directory");
+    state.command_form.reset();
+    EXPECT_FALSE(apply_command_form_directory_result(state, "ignored", "", false));
+    CommandResult native{.prompt = CommandPrompt{.id = "save"}};
+    EXPECT_FALSE(take_command_form_prompt(state, native));
+    EXPECT_TRUE(native.prompt);
+    native.prompt->id = "blueprint.confirm";
+    EXPECT_TRUE(take_command_form_prompt(state, native));
+    EXPECT_EQ(state.command_form->id, "blueprint.confirm");
+}
+
+TEST(ClientCommandView, ResultBatchesPreserveChannelsAndSuppressUnloggedResults)
+{
+    using namespace nw::toolset;
+    ShellController shell;
+    const std::array results{
+        CommandResult{.message = "first", .output_channel = CommandOutputChannel::warn},
+        CommandResult{.message = "hidden", .output_channel = CommandOutputChannel::none},
+        CommandResult{.status = CommandStatus::failed, .message = "failed", .output_channel = CommandOutputChannel::error},
+    };
+    append_command_results(shell, results);
+    ASSERT_EQ(shell.output_lines.size(), 2u);
+    EXPECT_EQ(shell.output_lines[0], (std::pair<std::string, std::string>{"warn", "first"}));
+    EXPECT_EQ(shell.output_lines[1], (std::pair<std::string, std::string>{"error", "failed"}));
+    EXPECT_TRUE(shell.terminal_lines.empty());
+    append_terminal_results(shell, results);
+    EXPECT_EQ(shell.output_lines.size(), 4u);
+    ASSERT_EQ(shell.terminal_lines.size(), 2u);
+    EXPECT_EQ(shell.terminal_lines[0], shell.output_lines[0]);
+    EXPECT_EQ(shell.terminal_lines[1], shell.output_lines[1]);
+}
+
+TEST(ClientRmlTemplates, TilePaletteUsesLiveTilesetAndPreservesStableVirtualRows)
+{
+    using namespace nw::toolset;
+    auto* tileset = nw::kernel::tilesets().load("ttr01");
+    ASSERT_NE(tileset, nullptr);
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    ObjectDocument owner;
+    ASSERT_TRUE(owner.adopt(area->handle()));
+    area->tileset = tileset;
+    area->tileset_resref = "ttr01";
+    area->width = 1;
+    area->height = 1;
+    area->tiles = {{.id = 0}};
+    AreaTileEditorState editor;
+    ASSERT_TRUE(reset_area_tile_editor(editor, area->handle()));
+    ASSERT_EQ(editor.palette.matches.size(), 3u);
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("tile-palette-view", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/panel.rml");
+    ASSERT_NE(document, nullptr);
+    std::string markup;
+    append_area_tile_palette_markup(markup, editor);
+    document->GetElementById("workspace_content")->SetInnerRML(markup);
+    document->Show();
+    context->Update();
+    ASSERT_TRUE(sync_area_tile_palette_window(document, editor, area->handle(), true, AreaTilePointerModifier::none, true));
+    auto* rows = document->GetElementById("area_tile_palette_rows");
+    ASSERT_NE(rows, nullptr);
+    auto* first_row = rows->GetChild(0);
+    ASSERT_NE(first_row, nullptr);
+    EXPECT_FALSE(sync_area_tile_palette_window(document, editor, area->handle(), true, AreaTilePointerModifier::none, false));
+    EXPECT_EQ(rows->GetChild(0), first_row);
+    EXPECT_FALSE(sync_area_tile_palette_window(document, editor, area->handle(), false, AreaTilePointerModifier::none, true));
+    EXPECT_FALSE(sync_area_tile_palette_window(nullptr, editor, area->handle(), true, AreaTilePointerModifier::none, true));
+
+    editor.query = "no-such-tile-action-987654321";
+    ASSERT_TRUE(rebuild_area_tile_palette(editor, area->handle()));
+    EXPECT_TRUE(editor.palette.matches.empty());
+    ASSERT_TRUE(sync_area_tile_palette_window(document, editor, area->handle(), true, AreaTilePointerModifier::select, false));
+    EXPECT_NE(rows->GetInnerRML().find("No actions match this filter."), std::string::npos);
+    EXPECT_TRUE(document->GetElementById("area_tile_modifier_hint")->IsClassSet("visible"));
+    ASSERT_TRUE(build_area_tile_selection(area->handle(), 0, editor.selection).ok());
+    sync_area_tile_selection_info(document, editor, area->handle());
+    EXPECT_TRUE(document->GetElementById("area_tile_selection_info")->IsClassSet("visible"));
+    area->width = 0;
+    sync_area_tile_selection_info(document, editor, area->handle());
+    EXPECT_FALSE(document->GetElementById("area_tile_selection_info")->IsClassSet("visible"));
+    area->width = 1;
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("tile-palette-view");
+}
+
+class ClientResourceDrag : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        directory = std::filesystem::absolute(std::filesystem::path{"tmp/client_resource_drag"}
+            / ::testing::UnitTest::GetInstance()->current_test_info()->name());
+        std::filesystem::remove_all(directory);
+        std::filesystem::create_directories(directory);
+        ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+        auto* creature = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+        ASSERT_NE(creature, nullptr);
+        ASSERT_TRUE(owner.adopt(creature->handle()));
+        auto* item = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+        ASSERT_NE(item, nullptr);
+        nw::toolset::ObjectDocument source_owner;
+        ASSERT_TRUE(source_owner.adopt(item->handle()));
+        source = directory / "drag-item.uti.json";
+        std::ofstream{source} << "{}";
+        std::string error;
+        ASSERT_TRUE(nw::toolset::save_live_blueprint_json_atomic(item->handle(), source, error)) << error;
+        workspace.open_tab("preview:drag", "Drag owner", nw::toolset::WorkspaceTabKind::preview);
+        view = {
+            .active_tab_id = workspace.active_tab_id(),
+            .inventory_object = creature->handle(),
+            .surface = nw::toolset::ObjectWorkbenchSurface::inventory,
+            .inventory_matches_tab = true,
+        };
+        backend.bind(nullptr, &shell, &workspace);
+    }
+
+    void TearDown() override
+    {
+        nw::toolset::cancel_project_blueprint_drag(nullptr, drag);
+        nw::toolset::script_command_host().bind(nullptr, nullptr);
+        workspace.clear();
+        owner.reset();
+        std::filesystem::remove_all(directory);
+    }
+
+    std::filesystem::path directory;
+    std::filesystem::path source;
+    nw::toolset::ObjectDocument owner;
+    nw::toolset::WorkspaceState workspace;
+    nw::toolset::ShellController shell;
+    nw::toolset::ToolsetBackend backend;
+    nw::toolset::ProjectResourceDragContext view;
+    nw::toolset::ProjectBlueprintDragState drag;
+    int pressed_row = 7;
+};
+
+TEST_F(ClientResourceDrag, JitterDoesNotMaterializeAndContextSwitchCancelsTheTarget)
+{
+    using namespace nw::toolset;
+    const auto resource = nw::Resource::from_filename(source.filename().string());
+    ASSERT_TRUE(arm_project_blueprint_drag(drag, view, resource, source, {100, 200}));
+    EXPECT_FALSE(update_project_blueprint_drag(nullptr, nullptr, drag, view, {104, 204}, 0, pressed_row, shell));
+    EXPECT_EQ(pressed_row, 7);
+    EXPECT_EQ(drag.item.type, nw::ObjectType::invalid);
+    EXPECT_FALSE(drag.threshold_crossed);
+    ASSERT_TRUE(update_project_blueprint_drag(nullptr, nullptr, drag, view, {105, 200}, 0, pressed_row, shell));
+    EXPECT_EQ(pressed_row, -1);
+    const auto item = drag.item;
+    ASSERT_TRUE(nw::kernel::objects().valid(item));
+    EXPECT_EQ(drag.phase, ProjectBlueprintDragPhase::target_invalid);
+    EXPECT_TRUE(project_blueprint_drag_context_matches(drag, view));
+    auto stale_view = view;
+    stale_view.active_tab_id = "other-tab";
+    EXPECT_FALSE(project_blueprint_drag_context_matches(drag, stale_view));
+    ASSERT_TRUE(update_project_blueprint_drag(nullptr, nullptr, drag, stale_view, {105, 200}, 0, pressed_row, shell));
+    EXPECT_EQ(drag.target.kind, ProjectBlueprintDropTargetKind::none);
+    EXPECT_EQ(drag.phase, ProjectBlueprintDragPhase::target_invalid);
+    cancel_project_blueprint_drag(nullptr, drag);
+    EXPECT_FALSE(nw::kernel::objects().valid(item));
+    EXPECT_FALSE(drag.active());
+}
+
+TEST_F(ClientResourceDrag, MalformedSourcesAreNotRetriedUntilAnotherArm)
+{
+    using namespace nw::toolset;
+    const auto resource = nw::Resource::from_filename(source.filename().string());
+    std::ifstream original_file{source};
+    const std::string original{std::istreambuf_iterator<char>{original_file}, {}};
+    original_file.close();
+    {
+        std::ofstream invalid{source};
+        invalid << "invalid-json";
+    }
+    ASSERT_TRUE(arm_project_blueprint_drag(drag, view, resource, source, {0, 0}));
+    ASSERT_TRUE(update_project_blueprint_drag(nullptr, nullptr, drag, view, {5, 0}, 0, pressed_row, shell));
+    EXPECT_TRUE(drag.materialization_failed);
+    const auto logged = shell.output_lines.size();
+    {
+        std::ofstream restored{source};
+        restored << original;
+    }
+    ASSERT_TRUE(update_project_blueprint_drag(nullptr, nullptr, drag, view, {6, 0}, 0, pressed_row, shell));
+    EXPECT_EQ(drag.item.type, nw::ObjectType::invalid);
+    EXPECT_EQ(shell.output_lines.size(), logged);
+    cancel_project_blueprint_drag(nullptr, drag);
+    ASSERT_TRUE(arm_project_blueprint_drag(drag, view, resource, source, {0, 0}));
+    ASSERT_TRUE(update_project_blueprint_drag(nullptr, nullptr, drag, view, {5, 0}, 0, pressed_row, shell));
+    EXPECT_TRUE(nw::kernel::objects().valid(drag.item));
+}
+
+TEST_F(ClientResourceDrag, InventoryCommitTransfersTheTemporaryItemAndUndoRetainsIt)
+{
+    using namespace nw::toolset;
+    auto* creature = nw::kernel::objects().get<nw::Creature>(view.inventory_object);
+    ASSERT_NE(creature, nullptr);
+    const auto before_count = creature->inventory().items.size();
+    const auto resource = nw::Resource::from_filename(source.filename().string());
+    ASSERT_TRUE(arm_project_blueprint_drag(drag, view, resource, source, {0, 0}));
+    ASSERT_TRUE(update_project_blueprint_drag(nullptr, nullptr, drag, view, {5, 0}, 0, pressed_row, shell));
+    const auto item = drag.item;
+    ASSERT_TRUE(nw::kernel::objects().valid(item));
+    const auto slot = creature->inventory().find_slot(drag.width, drag.height);
+    ASSERT_GE(slot.page, 0);
+
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("resource-drop", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/panel.rml");
+    ASSERT_NE(document, nullptr);
+    document->GetElementById("workspace_content")->SetInnerRML("<div id='creature_inventory_board' class='creature_inventory_board' style='width:" + std::to_string(creature->inventory().columns() * 32) + "px;height:" + std::to_string(creature->inventory().rows() * 32) + "px;'><div id='creature_inventory_drop_target' class='creature_inventory_drop_target'></div></div>");
+    document->Show();
+    context->Update();
+    auto* board = document->GetElementById("creature_inventory_board");
+    ASSERT_NE(board, nullptr);
+    const Rml::Vector2f point{
+        board->GetAbsoluteLeft() + board->GetClientLeft() + static_cast<float>(slot.col * 32 + 16),
+        board->GetAbsoluteTop() + board->GetClientTop() + static_cast<float>((slot.row - drag.height + 1) * 32 + 16)};
+    ASSERT_TRUE(update_project_blueprint_drag(context, document, drag, view, point, slot.page, pressed_row, shell));
+    ASSERT_EQ(drag.phase, ProjectBlueprintDragPhase::target_valid);
+    EXPECT_TRUE(document->GetElementById("creature_inventory_drop_target")->IsClassSet("valid"));
+    CommandContext command_context{
+        .active_tab_id = workspace.active_tab_id(),
+        .source = CommandSource::renderer,
+        .workspace = &workspace};
+    commit_project_blueprint_drag(document, drag, backend, command_context, shell);
+    EXPECT_FALSE(drag.active());
+    EXPECT_TRUE(nw::kernel::objects().valid(item));
+    EXPECT_EQ(creature->inventory().items.size(), before_count + 1);
+    ASSERT_EQ(workspace.undo_count(), 1u);
+    ASSERT_TRUE(workspace.undo(command_context).ok());
+    EXPECT_EQ(creature->inventory().items.size(), before_count);
+    EXPECT_TRUE(nw::kernel::objects().valid(item));
+    ASSERT_TRUE(workspace.redo(command_context).ok());
+    EXPECT_EQ(creature->inventory().items.size(), before_count + 1);
+    cancel_project_blueprint_drag(document, drag);
+    EXPECT_TRUE(nw::kernel::objects().valid(item));
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("resource-drop");
+}
+
+TEST(ClientAreaObjectEditor, PlacementBoundsRejectNonfiniteOutOfRangeAndStaleAreas)
+{
+    using namespace nw::toolset;
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    ObjectDocument owner;
+    ASSERT_TRUE(owner.adopt(area->handle()));
+    area->width = 2;
+    area->height = 3;
+    const auto handle = area->handle();
+    EXPECT_TRUE(area_object_placement_position_valid(handle, {0, 0, 0}));
+    EXPECT_TRUE(area_object_placement_position_valid(handle, {20, 30, -100}));
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float inf = std::numeric_limits<float>::infinity();
+    for (const glm::vec3 point : {glm::vec3{-1, 0, 0}, glm::vec3{0, -1, 0},
+             glm::vec3{21, 0, 0}, glm::vec3{0, 31, 0}, glm::vec3{nan, 0, 0},
+             glm::vec3{0, nan, 0}, glm::vec3{0, 0, nan}, glm::vec3{inf, 0, 0},
+             glm::vec3{0, inf, 0}, glm::vec3{0, 0, inf}}) {
+        EXPECT_FALSE(area_object_placement_position_valid(handle, point));
+    }
+    area->width = 0;
+    EXPECT_FALSE(area_object_placement_position_valid(handle, {0, 0, 0}));
+    owner.reset();
+    EXPECT_FALSE(area_object_placement_position_valid(handle, {0, 0, 0}));
+    EXPECT_FALSE(area_object_placement_position_valid(nw::ObjectHandle{}, {0, 0, 0}));
+}
+
+TEST(ClientAreaTileEditor, BrushSelectionAndRotationInvalidateStationaryCursor)
+{
+    using namespace nw::toolset;
+    AreaTileEditorState editor;
+    editor.palette.rows = {
+        {.kind = AreaTilePaletteRowKind::folder},
+        {.kind = AreaTilePaletteRowKind::action, .brush = {.kind = AreaTileBrushKind::group, .value = 1}},
+        {.kind = AreaTilePaletteRowKind::action, .brush = {.kind = AreaTileBrushKind::raise}},
+    };
+    EXPECT_FALSE(selected_area_tile_brush(editor, AreaTilePointerButton::primary));
+    EXPECT_FALSE(rotate_area_tile_group_orientation(editor));
+    editor.selected_row = 0;
+    EXPECT_FALSE(selected_area_tile_brush(editor, AreaTilePointerButton::primary));
+    editor.selected_row = 1;
+    EXPECT_FALSE(selected_area_tile_brush(editor, AreaTilePointerButton::secondary));
+    EXPECT_FALSE(selected_area_tile_brush(editor, static_cast<AreaTilePointerButton>(255)));
+    for (int32_t rotation = 1; rotation <= 4; ++rotation) {
+        editor.cursor_target_index = 5;
+        editor.cursor_update_pending = true;
+        editor.pending_cursor_point = {100, 200};
+        ASSERT_TRUE(rotate_area_tile_group_orientation(editor));
+        EXPECT_EQ(editor.group_orientation, rotation % 4);
+        EXPECT_EQ(editor.cursor_target_index, UINT32_MAX);
+        EXPECT_FALSE(editor.cursor_update_pending);
+        EXPECT_EQ(editor.pending_cursor_point, (Rml::Vector2f{100, 200}));
+        EXPECT_EQ(selected_area_tile_brush(editor, AreaTilePointerButton::primary)->orientation, rotation % 4);
+    }
+    editor.stroke.active = true;
+    EXPECT_FALSE(rotate_area_tile_group_orientation(editor));
+    EXPECT_EQ(editor.group_orientation, 0);
+    editor.stroke.active = false;
+    editor.selected_row = 2;
+    ASSERT_TRUE(selected_area_tile_brush(editor, AreaTilePointerButton::secondary));
+    EXPECT_EQ(selected_area_tile_brush(editor, AreaTilePointerButton::secondary)->kind, AreaTileBrushKind::lower);
+    EXPECT_FALSE(rotate_area_tile_group_orientation(editor));
+    editor.selected_row = 3;
+    EXPECT_FALSE(selected_area_tile_brush(editor, AreaTilePointerButton::primary));
+}
+
+TEST(ClientAreaTileEditor, HeightPreviewCellsRemainUniqueAcrossOverlappingCorners)
+{
+    using namespace nw::toolset;
+    AreaTileStrokeState stroke;
+    stroke.width = 2;
+    stroke.height = 2;
+    stroke.previewed_tiles.resize(4);
+    const std::array corners{0u, 4u, 8u, UINT32_MAX};
+    ASSERT_TRUE(append_area_tile_height_preview_cells(stroke, corners));
+    EXPECT_EQ(stroke.tile_indices, (std::vector<uint32_t>{0, 1, 2, 3}));
+    EXPECT_EQ(stroke.previewed_tiles, (std::vector<uint8_t>{1, 1, 1, 1}));
+    ASSERT_TRUE(append_area_tile_height_preview_cells(stroke, corners));
+    EXPECT_EQ(stroke.tile_indices.size(), 4u);
+}
+
+TEST(ClientAreaTileEditor, ViewportContainsPointsWithTheExistingHalfOpenEdges)
+{
+    const ClientViewportRect rect{.x = -10, .y = 20, .width = 100, .height = 50};
+    EXPECT_TRUE(rect.contains_point(-10, 20));
+    EXPECT_TRUE(rect.contains_point(89, 69));
+    EXPECT_FALSE(rect.contains_point(90, 69));
+    EXPECT_FALSE(rect.contains_point(89, 70));
+    EXPECT_FALSE(rect.contains_point(-11, 20));
+    EXPECT_FALSE(ClientViewportRect{}.contains_point(0, 0));
 }
 
 TEST(ClientRmlTemplates, ImportPanelShowsPathsActionsAndBusyBarWithinBounds)

@@ -22,6 +22,15 @@ struct ClientViewportRect {
     {
         return width > 0 && height > 0;
     }
+
+    [[nodiscard]] bool contains_point(float point_x, float point_y) const noexcept
+    {
+        const float left = static_cast<float>(x);
+        const float top = static_cast<float>(y);
+        const float right = left + static_cast<float>(width);
+        const float bottom = top + static_cast<float>(height);
+        return point_x >= left && point_x < right && point_y >= top && point_y < bottom;
+    }
 };
 
 struct ClientViewportRay {
