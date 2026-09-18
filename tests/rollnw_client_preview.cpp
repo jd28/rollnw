@@ -316,6 +316,46 @@ TEST(ClientPreview, StartsAndTargetsFromNavigationRays)
     EXPECT_NEAR(results[0].position.y, module->entry_position.y, 0.01f);
 }
 
+TEST(ClientPreview, StartsFromNavigationRaysOutsideAreaBounds)
+{
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+
+    const auto target = module->entry_position;
+    const float max_x = static_cast<float>(area->width) * nw::nav::nav_tile_size;
+    const float max_y = static_cast<float>(area->height) * nw::nav::nav_tile_size;
+    const std::array origins{
+        glm::vec3{-10.0f, target.y, target.z + 10.0f},
+        glm::vec3{max_x + 10.0f, target.y, target.z + 10.0f},
+        glm::vec3{target.x, -10.0f, target.z + 10.0f},
+        glm::vec3{target.x, max_y + 10.0f, target.z + 10.0f},
+    };
+    const auto authored_creature_count = area->creatures.size();
+    nw::toolset::ToolsetPreviewSession session;
+    for (size_t index = 0; index < origins.size(); ++index) {
+        SCOPED_TRACE(index);
+        const auto started = nw::toolset::start_toolset_preview(session, {
+                                                                             .area = area->handle(),
+                                                                             .actor = {nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+                                                                             .spawn_ray = {
+                                                                                 .origin = origins[index],
+                                                                                 .displacement = (target - origins[index]) * 2.0f,
+                                                                             },
+                                                                             .spawn_source = nw::toolset::PreviewSessionStartInput::SpawnSource::navigation_ray,
+                                                                         });
+        ASSERT_TRUE(started.ok()) << started.diagnostic;
+        const auto* spatial = nw::kernel::objects().components().find_spatial(started.actor);
+        ASSERT_NE(spatial, nullptr);
+        EXPECT_NEAR(spatial->position.x, target.x, 0.25f);
+        EXPECT_NEAR(spatial->position.y, target.y, 0.25f);
+        EXPECT_EQ(area->creatures.size(), authored_creature_count);
+        nw::toolset::stop_toolset_preview(session);
+        EXPECT_FALSE(nw::kernel::objects().valid(started.actor));
+    }
+}
+
 TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
 {
     auto* module = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
@@ -476,6 +516,9 @@ TEST(ClientPreview, RestartsAfterRejectedPlacementRay)
 
     const auto rejected = nw::toolset::start_toolset_preview(session, start);
     EXPECT_FALSE(rejected.ok());
+    EXPECT_EQ(rejected.status, nw::toolset::PreviewStatus::navigation_failed);
+    EXPECT_EQ(rejected.diagnostic,
+        "Preview placement ray did not hit walkable navigation geometry");
     EXPECT_FALSE(session.active());
 
     start.spawn_ray.origin = module->entry_position

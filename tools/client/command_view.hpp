@@ -48,7 +48,8 @@ struct CommandViewState {
 
 // The root sets shell visibility before this call, then initializes the backend,
 // refreshes matches, and focuses the palette input when opening. Capturing focus
-// is idempotent until close; hidden/missing restore IDs are ignored.
+// is idempotent until close; hidden/missing restore IDs are ignored. Visibility
+// changes are resolved before returning so input routing needs no later frame.
 [[nodiscard]] Rml::ElementDocument* load_command_palette_document(Rml::Context& context);
 void set_command_palette_visibility(CommandViewState& state, Rml::Context* context,
     Rml::Context* palette_context, Rml::ElementDocument* document,

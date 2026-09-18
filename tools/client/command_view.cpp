@@ -162,8 +162,12 @@ void set_command_palette_visibility(CommandViewState& state, Rml::Context* conte
 {
     const bool was_visible = state.command_palette_ui_visible;
     state.command_palette_ui_visible = visible;
-    if (auto* palette = find_el(palette_document, "command_palette")) {
+    if (auto* palette = find_el(palette_document, "command_palette");
+        palette && palette->IsClassSet("visible") != visible) {
         palette->SetClass("visible", visible);
+        // Input routing reads visibility before another frame. Closed palettes
+        // skip command-context updates, so resolve the class change here.
+        palette_document->UpdateDocument();
     }
     if (visible) {
         if (!was_visible) {

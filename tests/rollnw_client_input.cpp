@@ -799,7 +799,6 @@ TEST_F(ClientInput, VisiblePaletteRoutesThroughProductionCaptureResolveAndSdkOnc
     CommandViewState view;
     bool viewport_focused = false;
     set_command_palette_visibility(view, context, command_context, document, palette, viewport_focused, true);
-    command_context->Update();
     auto* box = palette->GetElementById("command_palette");
     ASSERT_TRUE(box->IsVisible(true));
     SDL_Event event{};
@@ -824,7 +823,8 @@ TEST_F(ClientInput, VisiblePaletteRoutesThroughProductionCaptureResolveAndSdkOnc
     EXPECT_TRUE(forward_client_input(dispatch, forward_route.rml, forward_route.phase, command_context, window, event).performed);
     EXPECT_FALSE(forward_client_input(dispatch, forward_route.rml, forward_route.phase, command_context, window, event).performed);
     set_command_palette_visibility(view, context, command_context, document, palette, viewport_focused, false);
-    command_context->Update();
+    // The frame loop skips the command context after the palette closes.
+    ASSERT_FALSE(box->IsVisible(true));
     route = resolve(capture_client_input_facts(event, window, context, command_context, palette, nullptr, owner));
     EXPECT_EQ(route.rml, ClientRmlRecipient::toolset);
     EXPECT_EQ(resolve_client_forward_route(event, window, palette, owner.map).rml, ClientRmlRecipient::toolset);
@@ -832,6 +832,55 @@ TEST_F(ClientInput, VisiblePaletteRoutesThroughProductionCaptureResolveAndSdkOnc
     EXPECT_TRUE(route.sources.keyboard);
     EXPECT_TRUE(route.sources.controller);
     EXPECT_TRUE(route.sources.pointer);
+
+    WorkspaceTab tab;
+    tab.kind = WorkspaceTabKind::area;
+    tab.detail = "area";
+    std::string markup;
+    append_workspace_viewport_markup(markup, tab);
+    document->GetElementById("workspace_content")->SetInnerRML("<div class='workspace_preview_body' style='position:absolute;left:100px;top:100px;width:500px;height:300px;'>" + markup + "</div>");
+    context->Update();
+    auto* viewport = document->GetElementById("workspace_viewer_viewport");
+    ASSERT_NE(viewport, nullptr);
+    const Rml::Vector2f point{viewport->GetAbsoluteLeft() + 20, viewport->GetAbsoluteTop() + 20};
+    for (const auto map : {ClientInputMap::editor, ClientInputMap::pc}) {
+        const ClientInputOwnership ownership{.map = map, .world_available = true};
+        for (const auto type : {SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_EVENT_MOUSE_MOTION, SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_KEY_DOWN}) {
+            SDL_Event world_event{};
+            world_event.type = type;
+            if (type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+                world_event.button.button = SDL_BUTTON_LEFT;
+                world_event.button.x = point.x;
+                world_event.button.y = point.y;
+            } else if (type == SDL_EVENT_MOUSE_MOTION) {
+                world_event.motion.x = point.x;
+                world_event.motion.y = point.y;
+            } else if (type == SDL_EVENT_MOUSE_WHEEL) {
+                world_event.wheel.mouse_x = point.x;
+                world_event.wheel.mouse_y = point.y;
+                world_event.wheel.y = 1;
+            } else {
+                world_event.key.key = SDLK_W;
+            }
+            const auto facts = capture_client_input_facts(world_event, window, context, command_context, palette, nullptr, ownership);
+            EXPECT_FALSE(facts.world_input_blocked);
+            const auto world_route = resolve(facts);
+            EXPECT_EQ(world_route.native, map == ClientInputMap::editor ? ClientNativeRecipient::editor : ClientNativeRecipient::pc);
+            if (map == ClientInputMap::pc) {
+                EXPECT_TRUE(world_route.sources.keyboard);
+                EXPECT_TRUE(world_route.sources.pointer);
+            } else if (type == SDL_EVENT_KEY_DOWN) {
+                const std::array inputs{EditorKeyInput{
+                    .facts = facts,
+                    .key = SDLK_W,
+                    .viewport = EditorViewportKind::area,
+                    .viewport_focused = true}};
+                std::array<EditorKeyAction, 1> actions{};
+                ASSERT_TRUE(resolve_editor_key_actions(inputs, actions));
+                EXPECT_EQ(actions[0].kind, EditorKeyActionKind::camera);
+            }
+        }
+    }
 }
 
 TEST_F(ClientInput, HeldEligibilityUsesFreshVisibleFocusAndCaptureForBothPcRoles)

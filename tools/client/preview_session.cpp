@@ -508,7 +508,10 @@ PreviewSessionStartResult start_toolset_preview(
     glm::vec3 spawn_position
         = input.spawn_source == PreviewSessionStartInput::SpawnSource::position
         ? input.spawn_position
-        : input.spawn_ray.origin;
+        : glm::vec3{0.0f};
+    // Load the detached actor inside the area to obtain its clearance. A
+    // placement ray can start outside the area; its navigation hit is applied
+    // after the radius-class world is built.
     const glm::vec3 spawn_facing{
         std::cos(input.camera.yaw),
         std::sin(input.camera.yaw),
