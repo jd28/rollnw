@@ -2,6 +2,7 @@
 
 #include "../util/game_install.hpp"
 
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -15,6 +16,9 @@ struct ConfigOptions {
     std::string combat_policy_module;
     std::string effects_policy_module;
     std::string init_module;
+    /// Game-service package root, owned across service recreation. Relative
+    /// roots resolve against cwd; applications may supply an absolute root.
+    std::filesystem::path stdlib_path = "stdlib";
 };
 
 namespace kernel {

@@ -1047,7 +1047,7 @@ issues or scattering TODOs through moved code:
   accepted on 2026-09-17; detailed high-DPI/controller/GPU coverage was not
   itemized. The desktop validation issue retains the targeted coverage checklist.
 - CLI cwd package policy: existing duplicate roots/reload loss are observed and
-  scoped in [client-cli-package-paths.md](../client-cli-package-paths.md).
+  scoped in [client-cli-package-paths.md](client-cli-package-paths.md).
 
 Stop and reduce scope if the proposed feature API needs the whole AppState,
 requires a new general event bus, cannot preserve early release/blur ordering,
@@ -1083,4 +1083,4 @@ User manual testing was accepted on 2026-09-17, closing
 [client-main-refactor-desktop-validation.md](client-main-refactor-desktop-validation.md).
 Skipped automated GPU tests remain recorded as skipped;
 existing cwd-dependent import bootstrap behavior is tracked in
-[client-cli-package-paths.md](../client-cli-package-paths.md).
+[client-cli-package-paths.md](client-cli-package-paths.md).

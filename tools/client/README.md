@@ -64,6 +64,12 @@ Quote paths that contain spaces. If `project-dir` is omitted, the client creates
 a directory named after the module in the current working directory. For
 example, importing `example.mod` without a destination writes to `./example`.
 
+The client loads its `core` and `nwn1` packages from `stdlib/` beside the
+executable, including after module or project replacement. The executable and
+its packaged stdlib can be launched from any working directory; copies of those
+packages in the working directory do not override them. Relative module and
+destination paths still resolve against the caller's working directory.
+
 The JSON import creates `rollnw.json`, converts supported module resources to
 JSON, combines each area's ARE/GIT/GIC resources into one CAF file under
 `shared/areas/`, and generates area maps under `.rollnw/cache/area_maps/`.

@@ -112,9 +112,14 @@ int run_project_import_cli(int argc, char* argv[])
         return 1;
     }
 
-    const auto result = nw::toolset::import_module_project(module_path, project_dir, options);
-    (result.ok ? std::cout : std::cerr) << result.message << '\n';
-    return result.ok ? 0 : 1;
+    try {
+        const auto result = nw::toolset::import_module_project(module_path, project_dir, options);
+        (result.ok ? std::cout : std::cerr) << result.message << '\n';
+        return result.ok ? 0 : 1;
+    } catch (const std::exception& error) {
+        std::cerr << "rollnw-client: failed to import module: " << error.what() << '\n';
+        return 1;
+    }
 }
 
 } // namespace

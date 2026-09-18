@@ -4374,7 +4374,7 @@ cwd and executable package roots coincide. Earlier cwd=build/tests exposed dupli
 package rejection (exit 1); cwd=repository root exposed loss of executable-only
 packages on module reload (SIGABRT). Baseline start_client_kernel/package registration
 and kernel creation source are identical for these paths. This existing bootstrap
-policy is scoped separately in [client-cli-package-paths.md](../client-cli-package-paths.md);
+policy is scoped separately in [client-cli-package-paths.md](client-cli-package-paths.md);
 it is not counted as a successful import from arbitrary directories. No desktop
 client or GUI automation was launched.
 

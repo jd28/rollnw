@@ -9,13 +9,17 @@
 #include <nw/rules/combat.hpp>
 #include <nw/rules/combat_scheduler.hpp>
 #include <nw/serialization/gff_conversion.hpp>
+#include <nw/smalls/runtime.hpp>
 #include <nw/util/scope_exit.hpp>
 
 #include <nowide/cstdlib.hpp>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace std::literals;
@@ -220,6 +224,133 @@ TEST(Kernel, ConfigProfileOption)
 
     options.profile = "";
     EXPECT_THROW(config.initialize(options), std::invalid_argument);
+}
+
+TEST(Kernel, ConfigStdlibRootRejectsEmptyPaths)
+{
+    nw::kernel::Config config;
+    config.set_paths(".", ".");
+    nw::ConfigOptions options;
+    options.profile = "nwn1";
+    config.initialize(options);
+    EXPECT_EQ(config.options().stdlib_path, "stdlib");
+    for (const auto& root : {std::filesystem::path{"relative packages"}, std::filesystem::absolute("tmp/packages with spaces")}) {
+        options.stdlib_path = root;
+        config.initialize(options);
+        EXPECT_EQ(config.options().stdlib_path, root);
+    }
+    options.stdlib_path.clear();
+    EXPECT_THROW(config.initialize(options), std::invalid_argument);
+    EXPECT_FALSE(config.options().stdlib_path.empty());
+}
+
+TEST(Kernel, ConfiguredPackageRootSurvivesServiceAndModuleRecreation)
+{
+    namespace fs = std::filesystem;
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const auto previous_options = config.options();
+    const auto restore = create_scope_exit([&] {
+        services.shutdown();
+        config.initialize(previous_options);
+    });
+    const auto root = fs::absolute("tmp/kernel_package_recreation/stdlib with spaces");
+    fs::remove_all(root.parent_path());
+    fs::create_directories(root.parent_path());
+    fs::copy("stdlib", root, fs::copy_options::recursive);
+    services.shutdown();
+    auto options = previous_options;
+    options.stdlib_path = root;
+    config.initialize(options);
+    const auto verify_roots = [&] {
+        const auto& runtime = nw::kernel::runtime();
+        EXPECT_EQ(runtime.module_paths(), (nw::Vector<fs::path>{fs::canonical(root / "core"), fs::canonical(root / "nwn1")}));
+        EXPECT_EQ(nw::kernel::runtime().select_package_directory("nwn1"), fs::canonical(root / "nwn1"));
+    };
+    const auto initial_generation = services.generation();
+    ASSERT_NO_THROW(services.start());
+    verify_roots();
+    services.shutdown();
+    ASSERT_NO_THROW(services.start());
+    verify_roots();
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    verify_roots();
+    EXPECT_EQ(nw::kernel::load_module("test_data/user/modules/does_not_exist.mod", false), nullptr);
+    verify_roots();
+    nw::kernel::unload_module();
+    verify_roots();
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    verify_roots();
+    EXPECT_GT(services.generation(), initial_generation + 5);
+}
+
+TEST(Kernel, DefaultPackageRootsStillRejectDistinctProfileProviders)
+{
+    namespace fs = std::filesystem;
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const auto previous_options = config.options();
+    const auto restore = create_scope_exit([&] {
+        services.shutdown();
+        config.initialize(previous_options);
+    });
+    services.shutdown();
+    nw::ConfigOptions options;
+    options.profile = "nwn1";
+    config.initialize(options);
+    services.create();
+    auto& runtime = nw::kernel::runtime();
+    EXPECT_EQ(runtime.module_paths(), (nw::Vector<fs::path>{fs::canonical("stdlib/core"), fs::canonical("stdlib/nwn1")}));
+    runtime.add_module_path(fs::absolute("stdlib/nwn1"));
+    EXPECT_EQ(runtime.module_paths().size(), 2u);
+    const auto duplicate = fs::absolute("tmp/kernel_duplicate_package/nwn1");
+    fs::remove_all(duplicate.parent_path());
+    fs::create_directories(duplicate);
+    fs::copy_file("stdlib/nwn1/package.json", duplicate / "package.json");
+    runtime.add_module_path(duplicate);
+    try {
+        runtime.select_package_directory("nwn1");
+        FAIL() << "Distinct profile providers were accepted";
+    } catch (const std::runtime_error& error) {
+        EXPECT_NE(std::string_view{error.what()}.find("multiple directories provide selected package"), std::string_view::npos);
+    }
+}
+
+TEST(Kernel, ConfiguredPackageRootRejectsMissingAndMalformedPackages)
+{
+    namespace fs = std::filesystem;
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const auto previous_options = config.options();
+    const auto restore = create_scope_exit([&] {
+        services.shutdown();
+        config.initialize(previous_options);
+    });
+    const auto root = fs::absolute("tmp/kernel_invalid_package_root");
+    fs::remove_all(root);
+    fs::create_directories(root / "malformed/nwn1");
+    std::ofstream{root / "file"} << "Not a package directory";
+    const std::array cases{
+        std::pair{root / "missing", "was not found"},
+        std::pair{root / "file", "was not found"},
+        std::pair{root / "malformed", "has no package.json"},
+    };
+    auto options = previous_options;
+    for (const auto& [path, expected] : cases) {
+        SCOPED_TRACE(path.string());
+        services.shutdown();
+        options.stdlib_path = path;
+        config.initialize(options);
+        services.create();
+        try {
+            nw::kernel::runtime().select_package_directory("nwn1");
+            FAIL() << "Missing or malformed package root was accepted";
+        } catch (const std::runtime_error& error) {
+            const auto message = std::string_view{error.what()};
+            EXPECT_NE(message.find(expected), std::string_view::npos)
+                << error.what();
+        }
+    }
 }
 
 TEST(Kernel, GameServicesRequireExplicitProfile)

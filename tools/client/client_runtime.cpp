@@ -1,7 +1,6 @@
 #include "client_runtime.hpp"
 
 #include <nw/kernel/Kernel.hpp>
-#include <nw/smalls/runtime.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -9,6 +8,7 @@
 #include <array>
 #include <cctype>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -38,14 +38,6 @@ bool client_ui_dir_exists(const std::filesystem::path& path)
         && fs::exists(path / "package.json", ec)
         && fs::exists(path / "panel.rml", ec)
         && fs::exists(path / "panel.rcss", ec);
-}
-
-void register_smalls_packages()
-{
-    const auto stdlib_path = client_base_path() / "stdlib";
-    auto& runtime = nw::kernel::runtime();
-    runtime.add_module_path(stdlib_path / "core");
-    runtime.add_module_path(stdlib_path / *nw::kernel::config().profile());
 }
 
 } // namespace
@@ -135,10 +127,15 @@ void start_client_kernel(const std::filesystem::path& install, const std::filesy
     nw::ConfigOptions options;
     options.profile = "nwn1";
     options.init_module = "";
+    const char* base_path = SDL_GetBasePath();
+    if (!base_path || base_path[0] == '\0'
+        || !std::filesystem::path{base_path}.is_absolute()) {
+        throw std::runtime_error("rollnw-client: failed to resolve executable package root");
+    }
+    options.stdlib_path = std::filesystem::path{base_path} / "stdlib";
     nw::kernel::config().initialize(std::move(options));
     nw::kernel::config().set_init_module("");
     nw::kernel::services().create();
-    register_smalls_packages();
     nw::kernel::services().start();
 }
 

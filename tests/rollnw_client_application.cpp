@@ -1,8 +1,11 @@
 #include "../tools/client/client_frame.hpp"
 #include "../tools/client/client_metrics.hpp"
 #include "../tools/client/client_preferences.hpp"
+#include "test_nwn_root.hpp"
 
+#include <nw/formats/Image.hpp>
 #include <nw/render/viewer/session.hpp>
+#include <nw/resources/Erf.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -19,19 +22,31 @@ namespace nw::toolset {
 
 class ClientCli : public ::testing::Test {
 protected:
-    std::string run(std::initializer_list<const char*> arguments, int expected_exit)
+    std::string run(std::initializer_list<const char*> arguments, int expected_exit,
+        const std::filesystem::path& working_directory = {})
     {
         std::vector<const char*> args{ROLLNW_TEST_CLIENT_EXECUTABLE};
         args.insert(args.end(), arguments);
         args.push_back(nullptr);
         std::unique_ptr<SDL_Environment, decltype(&SDL_DestroyEnvironment)> environment{
             SDL_CreateEnvironment(true), SDL_DestroyEnvironment};
+        const auto install = nw::test::dedicated_server_root();
+        EXPECT_TRUE(install.has_value());
+        if (!install) { return {}; }
+        const auto install_text = install->string();
+        const auto user_text = std::filesystem::absolute("test_data/user").string();
+        const auto directory_text = working_directory.string();
         const auto properties = SDL_CreateProperties();
         const bool configured = environment && properties
             && SDL_SetEnvironmentVariable(environment.get(), "SDL_VIDEODRIVER", "client-cli-invalid-driver", true)
+            && SDL_SetEnvironmentVariable(environment.get(), "NWN_ROOT", install_text.c_str(), true)
+            && SDL_SetEnvironmentVariable(environment.get(), "NWN_HOME", user_text.c_str(), true)
             && SDL_SetPointerProperty(properties, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, args.data())
             && SDL_SetPointerProperty(properties, SDL_PROP_PROCESS_CREATE_ENVIRONMENT_POINTER, environment.get())
-            && SDL_SetNumberProperty(properties, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_APP);
+            && (working_directory.empty()
+                || SDL_SetStringProperty(properties, SDL_PROP_PROCESS_CREATE_WORKING_DIRECTORY_STRING, directory_text.c_str()))
+            && SDL_SetNumberProperty(properties, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_APP)
+            && SDL_SetBooleanProperty(properties, SDL_PROP_PROCESS_CREATE_STDERR_TO_STDOUT_BOOLEAN, true);
         std::unique_ptr<SDL_Process, decltype(&SDL_DestroyProcess)> process{
             configured ? SDL_CreateProcessWithProperties(properties) : nullptr, SDL_DestroyProcess};
         SDL_DestroyProperties(properties);
@@ -69,6 +84,88 @@ TEST_F(ClientCli, InitializesProjectWithLiteralSpacesWithoutVideo)
     EXPECT_TRUE(run({"init", text.c_str()}, 0).starts_with("Initialized rollnw client project:"));
     EXPECT_TRUE(is_project_directory(path));
     EXPECT_TRUE(run({"init", text.c_str()}, 0).starts_with("rollnw client project already initialized:"));
+}
+
+TEST_F(ClientCli, ImportsProjectsFromDifferentWorkingDirectoriesWithoutVideo)
+{
+    namespace fs = std::filesystem;
+    const auto root = fs::absolute("tmp/client_cli_import_directories");
+    fs::remove_all(root);
+    fs::create_directories(root / "unrelated");
+    const auto module_path = root / "module ; $ with spaces.mod";
+    nw::Erf source{"test_data/user/modules/DockerDemo.mod"};
+    ASSERT_TRUE(source.valid());
+    ASSERT_TRUE(source.add("test_data/user/development/nw_chicken.utc"));
+    ASSERT_TRUE(source.save_as(module_path));
+    const auto module = module_path.string();
+    const std::array directories{
+        fs::path{ROLLNW_TEST_SOURCE_DIR},
+        fs::path{ROLLNW_TEST_CLIENT_EXECUTABLE}.parent_path(),
+        fs::current_path(),
+        root / "unrelated",
+    };
+    for (size_t index = 0; index < directories.size(); ++index) {
+        SCOPED_TRACE(directories[index].string());
+        const auto destination = root / std::to_string(index);
+        const auto destination_text = destination.string();
+        run({"import", "--json", module.c_str(), destination_text.c_str()}, 0, directories[index]);
+        EXPECT_TRUE(is_project_directory(destination));
+        EXPECT_TRUE(fs::is_regular_file(destination / "shared/module.ifo.json"));
+        EXPECT_TRUE(fs::is_regular_file(destination / "shared/areas/start.caf.json"));
+        EXPECT_TRUE(fs::is_regular_file(destination / ".rollnw/cache/area_maps/start.png"));
+        nlohmann::json module_data;
+        std::ifstream{destination / "shared/module.ifo.json"} >> module_data;
+        EXPECT_EQ(module_data["$type"], "IFO");
+        nlohmann::json area;
+        std::ifstream{destination / "shared/areas/start.caf.json"} >> area;
+        EXPECT_EQ(area["$type"], "CAF");
+        EXPECT_EQ(area["tiles"].size(), 16u);
+        nlohmann::json blueprint;
+        std::ifstream{destination / "shared/blueprints/creatures/nw_chicken.utc.json"} >> blueprint;
+        EXPECT_EQ(blueprint["nwn1.propsets.CreatureAppearance"]["appearance"], 31);
+        EXPECT_EQ(blueprint["object"]["resref"], "nw_chicken");
+        nw::Image map{destination / ".rollnw/cache/area_maps/start.png"};
+        ASSERT_TRUE(map.valid());
+        EXPECT_EQ(map.width(), 128u);
+        EXPECT_EQ(map.height(), 128u);
+        const auto legacy = root / ("legacy_" + std::to_string(index));
+        const auto legacy_text = legacy.string();
+        run({"import", "--legacy", module.c_str(), legacy_text.c_str()}, 0, directories[index]);
+        EXPECT_TRUE(is_project_directory(legacy));
+        EXPECT_TRUE(fs::is_regular_file(legacy / "shared/module.ifo"));
+        EXPECT_TRUE(fs::is_regular_file(legacy / "shared/areas/start.are"));
+        EXPECT_TRUE(fs::is_regular_file(legacy / "shared/blueprints/creatures/nw_chicken.utc"));
+    }
+}
+
+TEST_F(ClientCli, ImportsRelativePathsAndDefaultDestinationsWithoutChangingWorkingDirectory)
+{
+    namespace fs = std::filesystem;
+    const auto original_directory = fs::current_path();
+    const auto root = fs::absolute("tmp/client_cli_relative_imports");
+    fs::remove_all(root);
+    fs::create_directories(root / "sources");
+    fs::copy_file("test_data/user/modules/DockerDemo.mod", root / "sources/module ; $ with spaces.mod");
+    run({"import", "--json", "sources/module ; $ with spaces.mod", "explicit project ; $"}, 0, root);
+    EXPECT_TRUE(is_project_directory(root / "explicit project ; $"));
+    run({"import", "--json", "sources/module ; $ with spaces.mod"}, 0, root);
+    EXPECT_TRUE(is_project_directory(root / "module ; $ with spaces"));
+    EXPECT_EQ(fs::current_path(), original_directory);
+}
+
+TEST_F(ClientCli, ImportFailuresReturnOperationalOrUsageExitsWithoutVideo)
+{
+    namespace fs = std::filesystem;
+    const auto root = fs::absolute("tmp/client_cli_import_failures");
+    fs::remove_all(root);
+    fs::create_directories(root);
+    std::ofstream{root / "invalid.mod"} << "Not a module";
+    for (const auto* format : {"--json", "--legacy"}) {
+        EXPECT_NE(run({"import", format, "missing.mod", "project"}, 1, root).find("Module file does not exist"), std::string::npos);
+        run({"import", format, "invalid.mod", "project"}, 1, root);
+    }
+    run({"import", "--json", "--legacy", "missing.mod"}, 2, root);
+    EXPECT_FALSE(fs::exists(root / "project"));
 }
 
 class ClientPreferences : public ::testing::Test {

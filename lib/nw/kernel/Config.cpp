@@ -27,6 +27,9 @@ bool valid_profile_root(std::string_view value)
 
 void Config::initialize(ConfigOptions options)
 {
+    if (options.stdlib_path.empty()) {
+        throw std::invalid_argument("stdlib package root must not be empty");
+    }
     if (options.profile && !valid_profile_root(*options.profile)) {
         throw std::invalid_argument("profile root must match [a-z_][a-z0-9_]*");
     }

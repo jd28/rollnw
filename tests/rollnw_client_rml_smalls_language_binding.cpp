@@ -38,11 +38,13 @@
 #include <nw/objects/Store.hpp>
 #include <nw/serialization/Serialization.hpp>
 #include <nw/smalls/runtime.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/ElementScroll.h>
 #include <RmlUi/Core/ElementText.h>
 #include <RmlUi/Core/Elements/ElementFormControl.h>
+#include <SDL3/SDL.h>
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -53,6 +55,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -5020,6 +5023,97 @@ TEST(ClientRmlSmallsBridge, AreaOpeningReusesPinnedTabWithSaveDiscardAndCancel)
     EXPECT_FALSE(workspace.tabs()[1].movable);
     EXPECT_FALSE(workspace.move_tab("area", 2));
     EXPECT_FALSE(workspace.request_close_tab("area", true).closed());
+}
+
+TEST(ClientRmlSmallsBridge, ConfiguredPackagesSurviveBootstrapAndRepeatedProjectOpens)
+{
+    using namespace nw::toolset;
+    namespace fs = std::filesystem;
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const auto previous_options = config.options();
+    const auto install = config.install_path();
+    const auto user = config.user_path();
+    const auto restore = create_scope_exit([&] {
+        services.shutdown();
+        config.set_paths(install, user);
+        config.initialize(previous_options);
+    });
+    const auto root = fs::absolute("tmp/bridge_configured_packages");
+    fs::remove_all(root);
+    fs::create_directories(root);
+    const auto packages = root / "stdlib with spaces";
+    fs::copy("stdlib", packages, fs::copy_options::recursive);
+    services.shutdown();
+    auto options = previous_options;
+    options.stdlib_path = packages;
+    config.initialize(options);
+    services.start();
+    const auto verify_root = [&] {
+        EXPECT_EQ(config.options().stdlib_path, packages);
+        EXPECT_EQ(nw::kernel::runtime().select_package_directory("nwn1"), fs::canonical(packages / "nwn1"));
+        const auto& paths = nw::kernel::runtime().module_paths();
+        EXPECT_EQ(std::count_if(paths.begin(), paths.end(), [](const fs::path& path) {
+            return path.filename() == "nwn1";
+        }),
+            1);
+    };
+    RmlSmallsBridge bridge;
+    ShellController shell;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, &shell, &workspace);
+    const auto unbind = create_scope_exit([] { script_command_host().bind(nullptr, nullptr); });
+    ASSERT_TRUE(backend.initialize());
+    verify_root();
+    for (int index = 0; index < 2; ++index) {
+        const auto project = root / std::to_string(index);
+        const auto imported = import_module_project("test_data/user/modules/DockerDemo.mod", project, {ProjectImportFormat::json});
+        ASSERT_TRUE(imported.ok) << imported.message;
+        const auto opened = backend.open_project(project.string());
+        ASSERT_TRUE(opened.ok()) << opened.message;
+        ASSERT_TRUE(backend.initialize());
+        EXPECT_EQ(backend.current_project_dir(), project);
+        verify_root();
+    }
+}
+
+TEST(ClientRmlSmallsBridge, BootstrapsMissingKernelAndRetainsPackagesOnReload)
+{
+    auto& services = nw::kernel::services();
+    auto& config = nw::kernel::config();
+    const auto previous_options = config.options();
+    const auto install = config.install_path();
+    const auto user = config.user_path();
+    const auto* root_value = SDL_getenv_unsafe("NWN_ROOT");
+    const std::optional<std::string> previous_root = root_value
+        ? std::optional<std::string>{root_value}
+        : std::nullopt;
+    const auto restore = create_scope_exit([&] {
+        if (previous_root) {
+            SDL_setenv_unsafe("NWN_ROOT", previous_root->c_str(), 1);
+        } else {
+            SDL_unsetenv_unsafe("NWN_ROOT");
+        }
+        services.shutdown();
+        config.set_paths(install, user);
+        config.initialize(previous_options);
+    });
+    const auto install_text = std::filesystem::absolute(install).string();
+    ASSERT_EQ(SDL_setenv_unsafe("NWN_ROOT", install_text.c_str(), 1), 0);
+    services.shutdown();
+    nw::toolset::RmlSmallsBridge bridge;
+    nw::toolset::WorkspaceState workspace;
+    nw::toolset::ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    const auto unbind = create_scope_exit([] { nw::toolset::script_command_host().bind(nullptr, nullptr); });
+    ASSERT_TRUE(backend.initialize());
+    const auto root = config.options().stdlib_path;
+    EXPECT_TRUE(root.is_absolute());
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    ASSERT_TRUE(backend.initialize());
+    EXPECT_EQ(config.options().stdlib_path, root);
+    EXPECT_EQ(nw::kernel::runtime().select_package_directory("nwn1"), std::filesystem::canonical(root / "nwn1"));
 }
 
 TEST(ClientRmlSmallsBridge, RuntimeReplacementRecreatesListsBeforePublishingObject)

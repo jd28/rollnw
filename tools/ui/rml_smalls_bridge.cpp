@@ -34,7 +34,6 @@ namespace nw::toolset {
 namespace {
 
 std::mutex g_smalls_init_mutex;
-bool g_kernel_started = false;
 bool g_kernel_failed = false;
 bool g_paths_registered = false;
 bool g_toolset_module_loaded = false;
@@ -405,19 +404,6 @@ nw::smalls::Script* load_toolset_module(nw::smalls::Runtime& rt,
     return (script && script->errors() == 0) ? script : nullptr;
 }
 
-void add_smalls_paths(nw::smalls::Runtime& rt, const std::filesystem::path& smalls_scripts)
-{
-    rt.add_module_path(smalls_scripts / "core");
-    rt.add_module_path(smalls_scripts / "nwn1");
-
-    if (const std::filesystem::path toolset_scripts = resolve_toolset_scripts_path(smalls_scripts); !toolset_scripts.empty()) {
-        rt.add_module_path(toolset_scripts);
-        return;
-    }
-
-    LOG_F(WARNING, "Smalls bridge did not find toolset scripts for stdlib root '{}'", smalls_scripts.string());
-}
-
 std::filesystem::path validate_smalls_scripts_root(const std::filesystem::path& root)
 {
     namespace fs = std::filesystem;
@@ -521,14 +507,16 @@ bool RmlSmallsBridge::initialize()
     }
 
     try {
-        const std::filesystem::path smalls_scripts = resolve_smalls_scripts_path();
+        const std::filesystem::path smalls_scripts = services.get<nw::smalls::Runtime>()
+            ? nw::kernel::config().options().stdlib_path
+            : resolve_smalls_scripts_path();
         if (smalls_scripts.empty()) {
             initialized_ = false;
             return false;
         }
         const std::filesystem::path toolset_scripts = resolve_toolset_scripts_path(smalls_scripts);
 
-        if (!g_kernel_started) {
+        if (!services.get<nw::smalls::Runtime>()) {
             const auto install = nw::probe_nwn_install(nw::GameVersion::vEE);
             if (install.install.empty()) {
                 g_kernel_failed = true;
@@ -540,15 +528,12 @@ bool RmlSmallsBridge::initialize()
             nw::ConfigOptions config_options;
             config_options.profile = "nwn1";
             config_options.init_module = "";
+            config_options.stdlib_path = smalls_scripts;
             nw::kernel::config().initialize(std::move(config_options));
             nw::kernel::config().set_init_module("");
             services.create();
-            auto& rt = nw::kernel::runtime();
-            add_smalls_paths(rt, smalls_scripts);
-            g_paths_registered = true;
-            services.start();
-            g_kernel_started = true;
         }
+        services.start();
 
         auto& rt = nw::kernel::runtime();
         const uint64_t runtime_generation = services.generation();
@@ -570,7 +555,11 @@ bool RmlSmallsBridge::initialize()
         }
 
         if (!g_paths_registered) {
-            add_smalls_paths(rt, smalls_scripts);
+            if (!toolset_scripts.empty()) {
+                rt.add_module_path(toolset_scripts);
+            } else {
+                LOG_F(WARNING, "Smalls bridge did not find toolset scripts for stdlib root '{}'", smalls_scripts.string());
+            }
             g_paths_registered = true;
         }
 
