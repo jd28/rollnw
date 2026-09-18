@@ -1762,6 +1762,90 @@ TEST(RenderViewerPreparedDraws, GroundItemsConsumeLiveSpatialRowsInGameAndToolse
     }
 }
 
+TEST(RenderViewerPreparedDraws, EncounterSpawnsPreserveEquippedAnimationPolicy)
+{
+    namespace viewer = nw::render::viewer;
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) {
+        GTEST_SKIP() << "viewer shader roots unavailable";
+    }
+
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{.shader_roots = shader_roots}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+
+    const auto check_equipped_models = [&session](size_t spawn_count) {
+        const auto* scene = session->scene();
+        ASSERT_NE(scene, nullptr);
+        ASSERT_EQ(scene->model_attachments.size(), spawn_count * 3u);
+        size_t animated_equipment_count = 0;
+        for (const auto& binding : scene->model_attachments) {
+            const auto* owner = scene->model_instances.get(binding.owner_instance_handle);
+            ASSERT_NE(owner, nullptr);
+            EXPECT_TRUE(owner->scene_animation_enabled);
+            EXPECT_TRUE(owner->animation.enabled);
+
+            const auto* child = scene->model_instances.get(binding.child_instance_handle);
+            ASSERT_NE(child, nullptr);
+            ASSERT_LT(child->render_model_index, scene->static_models.size());
+            const auto& model = scene->static_models[child->render_model_index];
+            ASSERT_TRUE(model);
+            SCOPED_TRACE(model->name);
+            EXPECT_FALSE(child->scene_animation_enabled);
+            EXPECT_FALSE(child->animation.enabled);
+            EXPECT_FALSE(child->animation.backend);
+            EXPECT_FLOAT_EQ(child->animation.time, 0.0f);
+
+            if (!model->animations.empty()) {
+                ++animated_equipment_count;
+                ASSERT_EQ(model->animations.size(), 1u);
+                EXPECT_EQ(model->animations.front().name, "bowshot");
+            }
+            for (size_t node_index = 0; node_index < model->nodes.size(); ++node_index) {
+                glm::mat4 world{1.0f};
+                ASSERT_TRUE(nw::render::model_instance_node_world_transform(
+                    *child, static_cast<int32_t>(node_index), world));
+                EXPECT_LT(max_abs_matrix_delta(world,
+                              child->root_transform * model->nodes[node_index].world_transform),
+                    1.0e-5f);
+            }
+        }
+        EXPECT_EQ(animated_equipment_count, spawn_count * 2u);
+    };
+
+    ASSERT_TRUE(session->load_object_file(
+        "test_data/renderer/equipped_bow/pause_test_arch.utc.json"sv));
+    check_equipped_models(1);
+
+    ASSERT_TRUE(session->load_object_file(
+        "test_data/renderer/equipped_bow/pause_test_enc.ute.json"sv));
+    const auto encounter = session->active_object();
+    ASSERT_EQ(encounter.type, nw::ObjectType::encounter);
+    check_equipped_models(2);
+
+    constexpr viewer::ViewerViewport viewport{
+        .x = 0,
+        .y = 0,
+        .width = 256,
+        .height = 256,
+    };
+    std::string failure;
+    ASSERT_TRUE(session->select_animation("walk"));
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure, 500)) << failure;
+    check_equipped_models(2);
+
+    ASSERT_TRUE(session->rebuild_live_object(encounter));
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure, 500)) << failure;
+    check_equipped_models(2);
+}
+
 TEST(RenderViewerPreparedDraws, EncounterBlueprintPreviewsAndRebuildsSpawnGroup)
 {
     namespace viewer = nw::render::viewer;

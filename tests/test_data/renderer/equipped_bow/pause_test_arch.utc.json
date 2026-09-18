@@ -1,0 +1,251 @@
+{
+  "components": {
+    "equipment": {
+      "righthand": "pause_test_bow"
+    },
+    "inventory": [],
+    "locals": {
+      "ES_Spawn": {
+        "string": "vj_dim_aura"
+      }
+    }
+  },
+  "nwn1.propsets.CreatureAppearance": {
+    "appearance": 23,
+    "body_part_belt": 0,
+    "body_part_bicep_left": 1,
+    "body_part_bicep_right": 1,
+    "body_part_foot_left": 1,
+    "body_part_foot_right": 1,
+    "body_part_forearm_left": 1,
+    "body_part_forearm_right": 1,
+    "body_part_hand_left": 1,
+    "body_part_hand_right": 1,
+    "body_part_head": 4,
+    "body_part_neck": 1,
+    "body_part_pelvis": 1,
+    "body_part_robe": 0,
+    "body_part_shin_left": 1,
+    "body_part_shin_right": 1,
+    "body_part_shoulder_left": 0,
+    "body_part_shoulder_right": 0,
+    "body_part_thigh_left": 1,
+    "body_part_thigh_right": 1,
+    "body_part_torso": 1,
+    "color_hair": 1,
+    "color_skin": 60,
+    "color_tattoo1": 1,
+    "color_tattoo2": 1,
+    "phenotype": 0,
+    "portrait": "",
+    "portrait_id": 2163,
+    "tail": 0,
+    "wings": 0
+  },
+  "nwn1.propsets.CreatureDescriptor": {
+    "conversation": "",
+    "decay_time": 5000,
+    "deity": "",
+    "description": {
+      "strings": [
+        {
+          "lang": 0,
+          "string": "Corrupted orc."
+        }
+      ],
+      "strref": 4294967295
+    },
+    "name_first": {
+      "strings": [
+        {
+          "lang": 0,
+          "string": "Dimlight Bowman"
+        }
+      ],
+      "strref": 4294967295
+    },
+    "name_last": {
+      "strings": [
+        {
+          "lang": 0,
+          "string": ""
+        }
+      ],
+      "strref": 4294967295
+    },
+    "on_attacked": "mon_ai_5attacked",
+    "on_blocked": "mon_ai_13blocked",
+    "on_conversation": "mon_ai_4conv",
+    "on_damaged": "mon_ai_6dmged",
+    "on_death": "mon_ai_7death",
+    "on_disturbed": "mon_ai_8disturb",
+    "on_endround": "mon_ai_3ocre",
+    "on_heartbeat": "mon_ai_1hb",
+    "on_perceived": "mon_ai_2percep",
+    "on_rested": "mon_ai_10rest",
+    "on_spawn": "mon_ai_9spawn",
+    "on_spell_cast_at": "mon_ai_11spcast",
+    "on_user_defined": "mon_ai_12ud",
+    "soundset": 82,
+    "subrace": ""
+  },
+  "nwn1.propsets.CreatureHealth": {
+    "faction_id": 1,
+    "hp": 800,
+    "hp_base_for_max": 800,
+    "hp_current": 800,
+    "hp_max": 1220,
+    "hp_temp": 0,
+    "starting_package": 125
+  },
+  "nwn1.propsets.CreatureLevels": {
+    "class_levels": [
+      10,
+      50,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "classes": [
+      1,
+      29,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    "levelup_classes": [],
+    "walkrate": 7,
+    "xp": 0
+  },
+  "nwn1.propsets.CreatureStats": {
+    "abilities": [
+      26,
+      90,
+      24,
+      20,
+      20,
+      30
+    ],
+    "ac_natural_bonus": 10,
+    "bodybag": 0,
+    "chunk_death": 0,
+    "cr": 399.0,
+    "cr_adjust": 0,
+    "disarmable": 0,
+    "feats": [
+      3,
+      24,
+      27,
+      30,
+      63,
+      101,
+      139,
+      206,
+      212,
+      228,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      256,
+      354,
+      377,
+      378,
+      408,
+      423,
+      424,
+      450,
+      452,
+      453,
+      454,
+      494,
+      507,
+      584,
+      631,
+      669,
+      721,
+      752,
+      754,
+      755,
+      756,
+      757,
+      870,
+      871,
+      884,
+      961,
+      963,
+      964,
+      968,
+      977,
+      987,
+      1059
+    ],
+    "gender": 0,
+    "good_evil": 100,
+    "immortal": 0,
+    "interruptable": 0,
+    "lawful_chaotic": 0,
+    "lootable": 0,
+    "pc": 0,
+    "perception_range": 10,
+    "plot": 0,
+    "race": 24,
+    "save_fort": 0,
+    "save_reflex": 0,
+    "save_will": 0,
+    "skills": [
+      0,
+      60,
+      0,
+      60,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      60,
+      0,
+      0,
+      0,
+      0,
+      60,
+      60,
+      0,
+      0,
+      0,
+      60,
+      0,
+      0,
+      0,
+      80,
+      80,
+      0
+    ],
+    "special_abilities": []
+  },
+  "object": {
+    "comment": "",
+    "name": {
+      "strref": 4294967295,
+      "strings": [
+        {
+          "lang": 0,
+          "string": "Pause test archer"
+        }
+      ]
+    },
+    "palette_id": 0,
+    "resref": "pause_test_arch",
+    "tag": "pause_test_arch"
+  }
+}

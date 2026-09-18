@@ -2928,6 +2928,7 @@ static void move_render_model_runtime_state(
     }
 
     target_instance->visible = source_instance->visible;
+    target_instance->scene_animation_enabled = source_instance->scene_animation_enabled;
     target_instance->root_transform = source_instance->root_transform;
     target_instance->current_bounds = source_instance->current_bounds;
     target_instance->shadow = source_instance->shadow;

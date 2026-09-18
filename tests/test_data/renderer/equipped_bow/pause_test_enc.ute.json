@@ -1,0 +1,52 @@
+{
+  "components": {
+    "locals": {}
+  },
+  "nwn1.propsets.EncounterState": {
+    "active": 1,
+    "creatures": [
+      {
+        "appearance": 23,
+        "cr": 399.0,
+        "resref": "pause_test_arch",
+        "single_spawn": 0
+      },
+      {
+        "appearance": 23,
+        "cr": 399.0,
+        "resref": "pause_test_arch",
+        "single_spawn": 0
+      }
+    ],
+    "creatures_max": 2,
+    "creatures_recommended": 2,
+    "difficulty": 0,
+    "difficulty_index": 3,
+    "faction": 1,
+    "on_entered": "",
+    "on_exhausted": "",
+    "on_exit": "",
+    "on_heartbeat": "",
+    "on_user_defined": "",
+    "player_only": 1,
+    "reset": 1,
+    "reset_time": 600,
+    "respawns": -1,
+    "spawn_option": 0
+  },
+  "object": {
+    "comment": "",
+    "name": {
+      "strref": 4294967295,
+      "strings": [
+        {
+          "lang": 0,
+          "string": "Pause test encounter"
+        }
+      ]
+    },
+    "palette_id": 0,
+    "resref": "pause_test_enc",
+    "tag": "pause_test_enc"
+  }
+}

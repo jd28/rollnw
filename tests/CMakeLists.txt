@@ -163,6 +163,10 @@ add_custom_target(copy-files2 ALL
     ${CMAKE_CURRENT_BINARY_DIR}/test_data
 
     COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_data/renderer/equipped_bow
+    ${CMAKE_CURRENT_BINARY_DIR}/test_data/user/development/equipped_bow
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_BINARY_DIR}/generated_test_data
     ${CMAKE_CURRENT_BINARY_DIR}/test_data
 
