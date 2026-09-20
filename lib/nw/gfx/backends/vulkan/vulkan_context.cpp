@@ -1601,7 +1601,7 @@ GpuTimerScope cmd_begin_gpu_timer(CommandList* cmd_ptr, const char* label)
     };
     vkCmdWriteTimestamp2(
         cmd->buffer,
-        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         ctx->frames[cmd->pool_index].timestamp_query_pool,
         start_query);
     return GpuTimerScope{timer_index};
@@ -1624,7 +1624,7 @@ void cmd_end_gpu_timer(CommandList* cmd_ptr, GpuTimerScope scope)
 
     vkCmdWriteTimestamp2(
         cmd->buffer,
-        VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         ctx->frames[cmd->pool_index].timestamp_query_pool,
         timer.end_query);
     timer.ended = true;

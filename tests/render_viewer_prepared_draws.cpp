@@ -6,6 +6,7 @@
 #include "../tools/ui/smalls_creature_properties.hpp"
 
 #include <nw/formats/Image.hpp>
+#include <nw/formats/Tileset.hpp>
 #include <nw/gfx/gfx.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
@@ -26,6 +27,7 @@
 #include <nw/render/viewer/preview_nwn_creature.hpp>
 #include <nw/render/viewer/preview_object.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
+#include <nw/render/viewer/scene_lights.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/serialization/Gff.hpp>
@@ -3112,14 +3114,34 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
 
     const auto surface_ranges = scene->area_render_scene->surface_ranges();
     const auto surface_triangles = scene->area_render_scene->surface_triangles();
+    const auto surface_instances = scene->area_render_scene->surface_instances();
     ASSERT_FALSE(surface_ranges.empty());
     ASSERT_FALSE(surface_triangles.empty());
+    ASSERT_EQ(surface_instances.size(), scene->static_models.size());
     EXPECT_EQ(scene->area_render_scene->stats().surface_range_count, surface_ranges.size());
     EXPECT_EQ(scene->area_render_scene->stats().surface_triangle_count, surface_triangles.size());
-    const auto& surface_triangle = surface_triangles[surface_ranges.front().first_triangle];
-    const glm::vec3 surface_centroid = (surface_triangle.v0 + surface_triangle.v1 + surface_triangle.v2) / 3.0f;
+    EXPECT_EQ(scene->area_render_scene->stats().surface_instance_count,
+        tile_record_count);
+    const auto surface_instance = std::find_if(
+        surface_instances.begin(), surface_instances.end(),
+        [surface_ranges](const viewer::AreaSurfaceInstance& instance) {
+            return instance.geometry_index < surface_ranges.size()
+                && surface_ranges[instance.geometry_index].triangle_count > 0u;
+        });
+    ASSERT_NE(surface_instance, surface_instances.end());
+    const auto& surface_range
+        = surface_ranges[surface_instance->geometry_index];
+    const auto& surface_triangle
+        = surface_triangles[surface_range.first_triangle];
+    const glm::vec3 local_centroid
+        = (surface_triangle.v0 + surface_triangle.v1
+              + surface_triangle.v2)
+        / 3.0f;
+    const glm::vec3 surface_centroid
+        = surface_instance->root * glm::vec4{local_centroid, 1.0f};
     const viewer::ViewerRay surface_ray{
-        .origin = {surface_centroid.x, surface_centroid.y, surface_ranges.front().bounds.max.z + 100.0f},
+        .origin = {surface_centroid.x, surface_centroid.y,
+            surface_instance->bounds.max.z + 100.0f},
         .direction = {0.0f, 0.0f, -1.0f},
     };
     const auto surface_hit = scene->area_render_scene->trace_surface(surface_ray);
@@ -3387,6 +3409,369 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     EXPECT_FALSE(nw::kernel::objects().valid(area_handle));
 }
 
+TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
+{
+    namespace viewer = nw::render::viewer;
+    const auto make_model
+        = [](std::span<const nw::render::MaterialMode> modes) {
+              auto model
+                  = std::make_shared<nw::render::RenderModel>();
+              model->bounds = {
+                  .min = {0.0f, 0.0f, 0.0f},
+                  .max = {10.0f, 10.0f, 1.0f},
+              };
+              for (const auto mode : modes) {
+                  nw::render::Material material;
+                  material.alpha_mode = mode;
+                  model->materials.push_back(material);
+                  nw::render::Primitive primitive;
+                  primitive.vertex_count = 3u;
+                  primitive.index_count = 3u;
+                  primitive.material = static_cast<uint32_t>(
+                      model->materials.size() - 1u);
+                  primitive.bounds = model->bounds;
+                  primitive.skinned = true;
+                  model->primitives.push_back(primitive);
+              }
+              return model;
+          };
+
+    const std::array initial_modes{
+        nw::render::MaterialMode::opaque,
+        nw::render::MaterialMode::transparent,
+    };
+    const std::array replacement_modes{
+        nw::render::MaterialMode::cutout,
+        nw::render::MaterialMode::water,
+    };
+    const std::array fallback_modes{
+        nw::render::MaterialMode::opaque,
+        nw::render::MaterialMode::cutout,
+        nw::render::MaterialMode::transparent,
+    };
+    const std::array second_replacement_modes{
+        nw::render::MaterialMode::opaque,
+        nw::render::MaterialMode::water,
+    };
+    const auto initial_model = make_model(initial_modes);
+    const auto replacement_model = make_model(replacement_modes);
+    const auto fallback_model = make_model(fallback_modes);
+    const auto second_replacement_model
+        = make_model(second_replacement_modes);
+
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.area_width = 2;
+    scene.area_height = 1;
+    for (int16_t x = 0; x < 2; ++x) {
+        scene.add(initial_model);
+        const uint32_t model_index
+            = static_cast<uint32_t>(scene.static_models.size() - 1u);
+        auto* instance = scene.static_model_instance(model_index);
+        ASSERT_NE(instance, nullptr);
+        const glm::vec3 translation{
+            static_cast<float>(x) * 10.0f, 0.0f, 0.0f};
+        instance->root_transform[3]
+            = glm::vec4{translation, 1.0f};
+        instance->current_bounds = {
+            .min = initial_model->bounds.min + translation,
+            .max = initial_model->bounds.max + translation,
+        };
+        instance->scene_animation_enabled = false;
+        scene.static_area_model_info[model_index] = {
+            .kind = nw::ObjectType::tile,
+            .tile_x = x,
+            .tile_y = 0,
+            .static_candidate = true,
+        };
+    }
+
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+    scene.static_models[0] = replacement_model;
+    const std::array changed_model_indices{0u};
+    ASSERT_TRUE(records.rebuild_tile_records(
+        scene, changed_model_indices));
+    const auto incremental_draws
+        = records.prepared_model_draw_list().draws;
+    const std::vector<nw::render::PreparedModelSurfaceDraw>
+        incremental_surfaces(
+            records.prepared_model_surface_draws().draws.begin(),
+            records.prepared_model_surface_draws().draws.end());
+    const std::vector<uint32_t> incremental_surface_indices(
+        records.prepared_surface_indices().begin(),
+        records.prepared_surface_indices().end());
+    const auto incremental_stats = records.stats();
+
+    records.rebuild(scene);
+    const auto& rebuilt_draws
+        = records.prepared_model_draw_list().draws;
+    ASSERT_EQ(incremental_draws.size(), rebuilt_draws.size());
+    for (size_t index = 0; index < rebuilt_draws.size(); ++index) {
+        EXPECT_EQ(incremental_draws[index].instance,
+            rebuilt_draws[index].instance);
+        EXPECT_EQ(incremental_draws[index].instance_source_index,
+            rebuilt_draws[index].instance_source_index);
+        EXPECT_EQ(incremental_draws[index].source_draw_index,
+            rebuilt_draws[index].source_draw_index);
+        EXPECT_EQ(incremental_draws[index].material_index,
+            rebuilt_draws[index].material_index);
+        EXPECT_EQ(incremental_draws[index].material_mode,
+            rebuilt_draws[index].material_mode);
+        EXPECT_EQ(incremental_draws[index].world,
+            rebuilt_draws[index].world);
+        EXPECT_EQ(incremental_draws[index].bounds.min,
+            rebuilt_draws[index].bounds.min);
+        EXPECT_EQ(incremental_draws[index].bounds.max,
+            rebuilt_draws[index].bounds.max);
+    }
+    const auto& rebuilt_surfaces
+        = records.prepared_model_surface_draws().draws;
+    ASSERT_EQ(incremental_surfaces.size(),
+        rebuilt_surfaces.size());
+    for (size_t index = 0;
+        index < rebuilt_surfaces.size(); ++index) {
+        EXPECT_EQ(incremental_surfaces[index].range_index,
+            rebuilt_surfaces[index].range_index);
+        EXPECT_EQ(incremental_surfaces[index].draw_index,
+            rebuilt_surfaces[index].draw_index);
+        EXPECT_EQ(incremental_surfaces[index].handle_index,
+            rebuilt_surfaces[index].handle_index);
+        EXPECT_EQ(incremental_surfaces[index].material_mode,
+            rebuilt_surfaces[index].material_mode);
+        EXPECT_EQ(incremental_surfaces[index].world,
+            rebuilt_surfaces[index].world);
+        EXPECT_EQ(incremental_surfaces[index].bounds.min,
+            rebuilt_surfaces[index].bounds.min);
+        EXPECT_EQ(incremental_surfaces[index].bounds.max,
+            rebuilt_surfaces[index].bounds.max);
+    }
+    const std::vector<uint32_t> rebuilt_surface_indices(
+        records.prepared_surface_indices().begin(),
+        records.prepared_surface_indices().end());
+    EXPECT_EQ(incremental_surface_indices,
+        rebuilt_surface_indices);
+    EXPECT_EQ(incremental_stats.record_count,
+        records.stats().record_count);
+    EXPECT_EQ(incremental_stats.prepared_draw_count,
+        records.stats().prepared_draw_count);
+    EXPECT_EQ(incremental_stats.opaque_cutout_record_count,
+        records.stats().opaque_cutout_record_count);
+    EXPECT_EQ(incremental_stats.water_record_count,
+        records.stats().water_record_count);
+    EXPECT_EQ(incremental_stats.transparent_record_count,
+        records.stats().transparent_record_count);
+
+    scene.static_models[0] = initial_model;
+    ASSERT_TRUE(records.rebuild_tile_records(
+        scene, changed_model_indices));
+    EXPECT_EQ(records.stats().surface_range_count, 2u);
+    scene.static_models[0] = replacement_model;
+    ASSERT_TRUE(records.rebuild_tile_records(
+        scene, changed_model_indices));
+    EXPECT_EQ(records.stats().surface_range_count, 2u);
+    scene.static_models[0] = second_replacement_model;
+    ASSERT_TRUE(records.rebuild_tile_records(
+        scene, changed_model_indices));
+    EXPECT_EQ(records.stats().surface_range_count, 3u);
+    ASSERT_TRUE(records.rebuild_tile_records(
+        scene, changed_model_indices));
+    EXPECT_EQ(records.stats().surface_range_count, 2u);
+
+    scene.static_models[0] = fallback_model;
+    ASSERT_TRUE(records.rebuild_tile_records(
+        scene, changed_model_indices));
+    EXPECT_EQ(records.prepared_model_draws_for_record(0u).size(),
+        fallback_modes.size());
+}
+
+TEST(RenderViewerPreparedDraws, AreaStableLightRefreshMatchesFullRebuild)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.area_width = 2;
+    scene.area_height = 2;
+    auto model = std::make_shared<nw::render::RenderModel>();
+    model->bounds = {
+        .min = {0.0f, 0.0f, 0.0f},
+        .max = {10.0f, 10.0f, 1.0f},
+    };
+    for (int16_t y = 0; y < 2; ++y) {
+        for (int16_t x = 0; x < 2; ++x) {
+            scene.add(model);
+            const uint32_t model_index
+                = static_cast<uint32_t>(scene.static_models.size() - 1u);
+            auto* instance = scene.static_model_instance(model_index);
+            ASSERT_NE(instance, nullptr);
+            const glm::vec3 translation{
+                static_cast<float>(x) * 10.0f,
+                static_cast<float>(y) * 10.0f,
+                0.0f,
+            };
+            instance->root_transform[3]
+                = glm::vec4{translation, 1.0f};
+            instance->current_bounds = {
+                .min = model->bounds.min + translation,
+                .max = model->bounds.max + translation,
+            };
+            instance->scene_animation_enabled = false;
+            scene.static_area_model_info[model_index] = {
+                .kind = nw::ObjectType::tile,
+                .tile_x = x,
+                .tile_y = y,
+                .static_candidate = true,
+            };
+            const glm::vec3 center
+                = translation + glm::vec3{5.0f, 5.0f, 1.0f};
+            scene.local_lights.push_back({
+                .position = center,
+                .radius = 7.0f,
+                .source = viewer::SceneLocalLightSource::tile_model,
+                .model_index = model_index,
+            });
+            scene.render_local_lights.push_back({
+                .position = center,
+                .radius = 7.0f,
+            });
+            scene.local_lights.push_back({
+                .position = center + glm::vec3{2.0f, 0.0f, 0.0f},
+                .radius = 4.0f,
+                .source = viewer::SceneLocalLightSource::tile_model,
+                .model_index = model_index,
+            });
+            scene.render_local_lights.push_back({
+                .position = center + glm::vec3{2.0f, 0.0f, 0.0f},
+                .radius = 4.0f,
+            });
+        }
+    }
+
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+    const uint64_t static_generation
+        = records.static_cache_generation();
+    const uint64_t light_generation
+        = records.light_cache_generation();
+    const uint64_t tile_generation
+        = records.tile_cache_generation();
+
+    auto* changed_instance = scene.static_model_instance(0u);
+    ASSERT_NE(changed_instance, nullptr);
+    changed_instance->root_transform[3].z = 2.0f;
+    changed_instance->current_bounds.min.z += 2.0f;
+    changed_instance->current_bounds.max.z += 2.0f;
+    scene.local_lights[0].position = {15.0f, 15.0f, 1.0f};
+    scene.render_local_lights[0].position = {15.0f, 15.0f, 1.0f};
+    const std::array changed_models{0u};
+    const std::array changed_lights{0u};
+    ASSERT_TRUE(records.rebuild_tile_records_with_stable_light_rows(
+        scene, changed_models, {}, changed_lights));
+    EXPECT_EQ(records.static_cache_generation(), static_generation);
+    EXPECT_EQ(records.light_cache_generation(), light_generation + 1u);
+    EXPECT_EQ(records.tile_cache_generation(), tile_generation + 1u);
+
+    std::array<std::vector<uint32_t>, 4> incremental_record_lights;
+    std::array<std::vector<uint32_t>, 4> incremental_chunk_lights;
+    for (uint32_t index = 0; index < 4u; ++index) {
+        const auto record_lights = records.light_indices_for_record(index);
+        incremental_record_lights[index].assign(
+            record_lights.begin(), record_lights.end());
+        const auto chunk_lights = records.light_indices_for_chunk(index);
+        incremental_chunk_lights[index].assign(
+            chunk_lights.begin(), chunk_lights.end());
+    }
+    const auto incremental_stats = records.stats();
+
+    records.rebuild(scene);
+    for (uint32_t index = 0; index < 4u; ++index) {
+        const auto record_lights = records.light_indices_for_record(index);
+        EXPECT_EQ(incremental_record_lights[index],
+            std::vector<uint32_t>(record_lights.begin(),
+                record_lights.end()));
+        const auto chunk_lights = records.light_indices_for_chunk(index);
+        EXPECT_EQ(incremental_chunk_lights[index],
+            std::vector<uint32_t>(chunk_lights.begin(),
+                chunk_lights.end()));
+    }
+    EXPECT_EQ(incremental_stats.light_index_count,
+        records.stats().light_index_count);
+    EXPECT_EQ(incremental_stats.max_light_indices_per_record,
+        records.stats().max_light_indices_per_record);
+    EXPECT_EQ(incremental_stats.chunk_light_index_count,
+        records.stats().chunk_light_index_count);
+    EXPECT_EQ(incremental_stats.max_light_indices_per_chunk,
+        records.stats().max_light_indices_per_chunk);
+}
+
+TEST(RenderViewerPreparedDraws, TileLightBatchRetainsRowsUntilCountChanges)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    auto model = std::make_shared<nw::render::RenderModel>();
+    model->bounds = {
+        .min = {0.0f, 0.0f, 0.0f},
+        .max = {10.0f, 10.0f, 1.0f},
+    };
+    model->nodes.push_back({});
+    model->lights.push_back({
+        .node = 0u,
+        .color = {1.0f, 1.0f, 1.0f},
+        .radius = 8.0f,
+        .external_color_slot = 0u,
+    });
+    model->lights.push_back({
+        .node = 0u,
+        .color = {1.0f, 1.0f, 1.0f},
+        .radius = 4.0f,
+        .external_color_slot = 1u,
+    });
+    scene.add(model);
+    auto* instance = scene.static_model_instance(0u);
+    ASSERT_NE(instance, nullptr);
+    instance->scene_animation_enabled = false;
+    nw::render::publish_render_model_static_node_world_transforms(
+        *instance, *model);
+    scene.static_area_model_info[0] = {
+        .kind = nw::ObjectType::tile,
+        .tile_x = 0,
+        .tile_y = 0,
+        .static_candidate = true,
+    };
+    nw::AreaTile tile;
+    tile.mainlight1 = 4;
+    tile.mainlight2 = 8;
+    ASSERT_EQ(viewer::append_tile_render_model_lights(
+                  scene, 0u, tile, 0, 0),
+        2u);
+    ASSERT_EQ(scene.local_lights.size(), 2u);
+    ASSERT_EQ(scene.render_local_lights.size(), 2u);
+    const glm::vec3 first_color = scene.local_lights[0].color;
+
+    tile.mainlight1 = 12;
+    const std::array model_indices{0u};
+    const std::array tiles{tile};
+    std::vector<uint32_t> changed_light_indices;
+    EXPECT_EQ(viewer::refresh_scene_tile_model_lights(scene,
+                  model_indices, tiles, changed_light_indices),
+        viewer::SceneTileLightRefreshStatus::stable_rows);
+    EXPECT_EQ(changed_light_indices,
+        (std::vector<uint32_t>{0u, 1u}));
+    EXPECT_EQ(scene.local_lights.size(), 2u);
+    EXPECT_NE(scene.local_lights[0].color, first_color);
+
+    model->lights.pop_back();
+    EXPECT_EQ(viewer::refresh_scene_tile_model_lights(scene,
+                  model_indices, tiles, changed_light_indices),
+        viewer::SceneTileLightRefreshStatus::reindexed_rows);
+    EXPECT_TRUE(changed_light_indices.empty());
+    EXPECT_EQ(scene.local_lights.size(), 1u);
+    EXPECT_EQ(scene.render_local_lights.size(), 1u);
+}
+
 TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
 {
     namespace viewer = nw::render::viewer;
@@ -3406,12 +3791,12 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
     auto* scene = session->scene();
     ASSERT_NE(scene, nullptr);
     ASSERT_NE(scene->area_render_scene, nullptr);
-    const auto* area
+    auto* area
         = nw::kernel::objects().get<nw::Area>(scene->root_object);
     ASSERT_NE(area, nullptr);
     ASSERT_NE(area->tileset, nullptr);
 
-    std::array<uint32_t, 2> target_cells{UINT32_MAX, UINT32_MAX};
+    std::array<uint32_t, 3> target_cells{UINT32_MAX, UINT32_MAX, UINT32_MAX};
     size_t target_count = 0;
     for (uint32_t index = 0;
         index < scene->area_tile_model_indices.size()
@@ -3425,22 +3810,72 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
     ASSERT_EQ(target_count, target_cells.size());
     const int32_t preview_tile_id = area->tiles[target_cells[0]].id;
     ASSERT_GE(preview_tile_id, 0);
+    ASSERT_LT(static_cast<size_t>(preview_tile_id), area->tileset->tiles.size());
+    const auto& preview_tile_model
+        = area->tileset->tiles[static_cast<size_t>(preview_tile_id)].model;
+    int32_t alternate_preview_tile_id = -1;
+    for (const auto& tile : area->tiles) {
+        if (tile.id < 0
+            || static_cast<size_t>(tile.id) >= area->tileset->tiles.size()) {
+            continue;
+        }
+        const auto& model
+            = area->tileset->tiles[static_cast<size_t>(tile.id)].model;
+        if (!model.empty() && model != preview_tile_model) {
+            alternate_preview_tile_id = tile.id;
+            break;
+        }
+    }
+    ASSERT_GE(alternate_preview_tile_id, 0);
 
     const size_t original_model_count = scene->static_models.size();
+    const uint32_t original_record_count
+        = scene->area_render_scene->stats().record_count;
+    const uint64_t original_cache_generation
+        = scene->area_render_scene->static_cache_generation();
+    const uint64_t original_light_cache_generation
+        = scene->area_render_scene->light_cache_generation();
+    const auto tile_preview_suppressed = [&](uint32_t tile_index) {
+        const uint32_t model_index
+            = scene->area_tile_model_indices[tile_index];
+        const uint32_t record_index = scene->area_render_scene
+                                          ->record_index_for_render_model(
+                                              model_index);
+        return record_index
+            < scene->area_render_scene->flags().size()
+            && (scene->area_render_scene->flags()[record_index]
+                   & viewer::AreaRenderScene::RecordFlag::preview_suppressed)
+            != 0u;
+    };
     viewer::AreaTilePreviewLease lease;
-    const std::array first{viewer::AreaTilePreviewRow{
-        .tile_index = target_cells[0],
-        .tile_id = preview_tile_id,
-    }};
+    const std::array first{
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[0],
+            .tile_id = preview_tile_id,
+        },
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[1],
+            .tile_id = preview_tile_id,
+        },
+    };
     const auto appended = viewer::update_area_tile_previews(
         *scene, *device.preview_resources(), first, lease);
     ASSERT_TRUE(appended.ok()) << appended.diagnostic;
     ASSERT_TRUE(lease.active);
-    ASSERT_EQ(lease.preview_model_indices.size(), 1u);
-    EXPECT_EQ(scene->static_models.size(), original_model_count + 1u);
+    ASSERT_EQ(lease.preview_model_indices.size(), 2u);
+    EXPECT_EQ(scene->static_models.size(), original_model_count + 2u);
+    EXPECT_EQ(scene->area_render_scene->stats().record_count,
+        original_record_count + 2u);
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        original_cache_generation);
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        original_light_cache_generation);
     const uint32_t preview_model_index = lease.preview_model_indices[0];
-    const auto preview_handle
-        = scene->static_model_instance_handles[preview_model_index];
+    const auto preview_model_indices = lease.preview_model_indices;
+    const std::array preview_handles{
+        scene->static_model_instance_handles.at(preview_model_indices.at(0)),
+        scene->static_model_instance_handles.at(preview_model_indices.at(1)),
+    };
     const auto preview_root
         = scene->static_model_instance(preview_model_index)->root_transform;
     const uint32_t preview_record = scene->area_render_scene
@@ -3455,29 +3890,86 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
     EXPECT_NE(scene->area_render_scene->flags()[preview_record]
             & viewer::AreaRenderScene::RecordFlag::render_enabled,
         0u);
-    EXPECT_FALSE(scene->static_model_instance(
-                          scene->area_tile_model_indices[target_cells[0]])
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[0]])
             ->visible);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[1]])
+            ->visible);
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[0]));
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[1]));
 
-    const std::array second{viewer::AreaTilePreviewRow{
-        .tile_index = target_cells[1],
-        .tile_id = preview_tile_id,
-    }};
+    const std::array second{
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[1],
+            .tile_id = preview_tile_id,
+        },
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[2],
+            .tile_id = preview_tile_id,
+        },
+    };
     const auto repositioned = viewer::update_area_tile_previews(
         *scene, *device.preview_resources(), second, lease);
     ASSERT_TRUE(repositioned.ok()) << repositioned.diagnostic;
-    ASSERT_EQ(lease.preview_model_indices.size(), 1u);
-    EXPECT_EQ(lease.preview_model_indices[0], preview_model_index);
-    EXPECT_EQ(scene->static_model_instance_handles[preview_model_index],
-        preview_handle);
+    ASSERT_EQ(lease.preview_model_indices, preview_model_indices);
+    EXPECT_EQ(scene->static_model_instance_handles[preview_model_indices[0]],
+        preview_handles[0]);
+    EXPECT_EQ(scene->static_model_instance_handles[preview_model_indices[1]],
+        preview_handles[1]);
     EXPECT_NE(scene->static_model_instance(preview_model_index)->root_transform,
         preview_root);
     EXPECT_TRUE(scene->static_model_instance(
                          scene->area_tile_model_indices[target_cells[0]])
             ->visible);
-    EXPECT_FALSE(scene->static_model_instance(
-                          scene->area_tile_model_indices[target_cells[1]])
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[1]])
             ->visible);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[2]])
+            ->visible);
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[0]));
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[1]));
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[2]));
+    const auto retained_model = scene->static_models[preview_model_index];
+    const std::array changed_model{
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[0],
+            .tile_id = alternate_preview_tile_id,
+        },
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[2],
+            .tile_id = preview_tile_id,
+        },
+    };
+    const auto replaced = viewer::update_area_tile_previews(
+        *scene, *device.preview_resources(), changed_model, lease);
+    ASSERT_TRUE(replaced.ok()) << replaced.diagnostic;
+    ASSERT_EQ(lease.preview_model_indices, preview_model_indices);
+    EXPECT_EQ(scene->static_model_instance_handles[preview_model_indices[0]],
+        preview_handles[0]);
+    EXPECT_EQ(scene->static_model_instance_handles[preview_model_indices[1]],
+        preview_handles[1]);
+    EXPECT_NE(scene->static_models[preview_model_index], retained_model);
+    EXPECT_EQ(scene->static_models.size(), original_model_count + 2u);
+    EXPECT_EQ(scene->area_render_scene->stats().record_count,
+        original_record_count + 2u);
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        original_cache_generation);
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        original_light_cache_generation);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[0]])
+            ->visible);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[1]])
+            ->visible);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[2]])
+            ->visible);
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[0]));
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[1]));
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[2]));
     std::string render_failure;
     EXPECT_TRUE(render_viewer_frame(gfx.context, *session,
         viewer::ViewerViewport{0, 0, 256, 256}, render_failure, 100))
@@ -3486,13 +3978,153 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
     const auto restored = viewer::restore_area_tile_previews(*scene, lease);
     ASSERT_TRUE(restored.ok()) << restored.diagnostic;
     EXPECT_FALSE(lease.active);
+    ASSERT_EQ(lease.retained_models.size(), 2u);
     EXPECT_EQ(scene->static_models.size(), original_model_count);
+    EXPECT_EQ(scene->area_render_scene->stats().record_count,
+        original_record_count);
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        original_cache_generation);
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        original_light_cache_generation);
     EXPECT_TRUE(scene->static_model_instance(
                          scene->area_tile_model_indices[target_cells[0]])
             ->visible);
     EXPECT_TRUE(scene->static_model_instance(
                          scene->area_tile_model_indices[target_cells[1]])
             ->visible);
+    EXPECT_TRUE(scene->static_model_instance(
+                         scene->area_tile_model_indices[target_cells[2]])
+            ->visible);
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[0]));
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[1]));
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[2]));
+
+    const std::array void_preview{
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[0],
+            .tile_id = nw::kAreaTileVoidId,
+        },
+        viewer::AreaTilePreviewRow{
+            .tile_index = target_cells[1],
+            .tile_id = nw::kAreaTileVoidId,
+        },
+    };
+    viewer::AreaTilePreviewLease void_lease;
+    const auto voided = viewer::update_area_tile_previews(
+        *scene, *device.preview_resources(), void_preview, void_lease);
+    ASSERT_TRUE(voided.ok()) << voided.diagnostic;
+    EXPECT_TRUE(void_lease.active);
+    EXPECT_TRUE(void_lease.preview_objects.empty());
+    EXPECT_TRUE(void_lease.preview_model_indices.empty());
+    EXPECT_EQ(void_lease.suppressed_tile_model_indices.size(), 2u);
+    EXPECT_EQ(scene->static_models.size(), original_model_count);
+    EXPECT_EQ(scene->area_render_scene->stats().record_count,
+        original_record_count);
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[0]));
+    EXPECT_TRUE(tile_preview_suppressed(target_cells[1]));
+
+    const auto void_restored
+        = viewer::restore_area_tile_previews(*scene, void_lease);
+    ASSERT_TRUE(void_restored.ok()) << void_restored.diagnostic;
+    EXPECT_FALSE(void_lease.active);
+    EXPECT_TRUE(void_lease.retained_models.empty());
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[0]));
+    EXPECT_FALSE(tile_preview_suppressed(target_cells[1]));
+
+    const uint32_t committed_tile_index = target_cells[0];
+    const uint32_t committed_model_index
+        = scene->area_tile_model_indices[committed_tile_index];
+    const auto rotated_model_before
+        = scene->static_models[committed_model_index];
+    auto* rotated_instance
+        = scene->static_model_instance(committed_model_index);
+    ASSERT_NE(rotated_instance, nullptr);
+    rotated_instance->animation.time = 17.25f;
+    const nw::AreaTile rotated_tile_before
+        = area->tiles[committed_tile_index];
+    area->tiles[committed_tile_index].orientation
+        = (rotated_tile_before.orientation + 1) % 4;
+    const std::array rotated_tiles{committed_tile_index};
+    const auto rotated = session->refresh_live_area_tiles(
+        scene->root_object, rotated_tiles);
+    ASSERT_TRUE(rotated.ok()) << rotated.diagnostic;
+    EXPECT_EQ(scene->static_models[committed_model_index],
+        rotated_model_before);
+    rotated_instance
+        = scene->static_model_instance(committed_model_index);
+    ASSERT_NE(rotated_instance, nullptr);
+    EXPECT_FLOAT_EQ(rotated_instance->animation.time, 17.25f);
+    EXPECT_EQ(scene->static_area_model_info[committed_model_index]
+                  .tile_orientation,
+        static_cast<uint8_t>(
+            area->tiles[committed_tile_index].orientation));
+
+    area->tiles[committed_tile_index] = rotated_tile_before;
+    const auto rotation_undone = session->refresh_live_area_tiles(
+        scene->root_object, rotated_tiles);
+    ASSERT_TRUE(rotation_undone.ok())
+        << rotation_undone.diagnostic;
+    EXPECT_EQ(scene->static_models[committed_model_index],
+        rotated_model_before);
+    rotated_instance
+        = scene->static_model_instance(committed_model_index);
+    ASSERT_NE(rotated_instance, nullptr);
+    EXPECT_FLOAT_EQ(rotated_instance->animation.time, 17.25f);
+
+    const auto committed_instance_handle
+        = scene->static_model_instance_handles[committed_model_index];
+    const auto committed_model_before
+        = scene->static_models[committed_model_index];
+    const nw::AreaTile committed_tile_before
+        = area->tiles[committed_tile_index];
+    const uint64_t tile_cache_generation
+        = scene->area_render_scene->tile_cache_generation();
+    const uint64_t committed_light_cache_generation
+        = scene->area_render_scene->light_cache_generation();
+    area->tiles[committed_tile_index].id
+        = alternate_preview_tile_id;
+    area->tiles[committed_tile_index].orientation
+        = (committed_tile_before.orientation + 1) % 4;
+    const std::array committed_tiles{committed_tile_index};
+    const auto committed = session->refresh_live_area_tiles(
+        scene->root_object, committed_tiles);
+    ASSERT_TRUE(committed.ok()) << committed.diagnostic;
+    EXPECT_EQ(scene->static_models.size(), original_model_count);
+    EXPECT_EQ(scene->area_render_scene->stats().record_count,
+        original_record_count);
+    EXPECT_EQ(scene->static_model_instance_handles[committed_model_index],
+        committed_instance_handle);
+    EXPECT_NE(scene->static_models[committed_model_index],
+        committed_model_before);
+    EXPECT_NE(std::find(lease.retained_models.begin(),
+                  lease.retained_models.end(),
+                  scene->static_models[committed_model_index]),
+        lease.retained_models.end());
+    EXPECT_EQ(scene->static_area_model_info[committed_model_index]
+                  .tile_orientation,
+        static_cast<uint8_t>(
+            area->tiles[committed_tile_index].orientation));
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        original_cache_generation);
+    EXPECT_EQ(scene->area_render_scene->tile_cache_generation(),
+        tile_cache_generation + 1u);
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        committed_light_cache_generation + 1u);
+
+    area->tiles[committed_tile_index] = committed_tile_before;
+    const auto undone = session->refresh_live_area_tiles(
+        scene->root_object, committed_tiles);
+    ASSERT_TRUE(undone.ok()) << undone.diagnostic;
+    EXPECT_EQ(scene->static_model_instance_handles[committed_model_index],
+        committed_instance_handle);
+    EXPECT_EQ(scene->static_models[committed_model_index],
+        committed_model_before);
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        original_cache_generation);
+    EXPECT_EQ(scene->area_render_scene->tile_cache_generation(),
+        tile_cache_generation + 2u);
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        committed_light_cache_generation + 2u);
 }
 
 TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRemoveAsBatch)
@@ -3523,6 +4155,7 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
 
     auto session = device.make_session();
     ASSERT_TRUE(session);
+    session->set_preview_scene_load_options({.area_object_editing = true});
     ASSERT_TRUE(session->load_area(area_resref.view()));
 
     auto* scene = session->scene();
@@ -3530,6 +4163,11 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
     const auto editor_selection = scene->active_object;
     const size_t baseline_model_count = scene->static_models.size();
     const size_t baseline_record_count = scene->area_render_scene->kinds().size();
+    const uint64_t baseline_cache_generation
+        = scene->area_render_scene->static_cache_generation();
+    const uint64_t baseline_light_cache_generation
+        = scene->area_render_scene->light_cache_generation();
+    const size_t baseline_light_count = scene->local_lights.size();
 
     auto* creature = nw::kernel::objects().load<nw::Creature>("nw_chicken"sv);
     ASSERT_NE(creature, nullptr);
@@ -3559,6 +4197,12 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
     EXPECT_EQ(scene->active_object, editor_selection);
     EXPECT_EQ(scene->static_models.size(), baseline_model_count + append.model_count);
     EXPECT_GT(scene->area_render_scene->kinds().size(), baseline_record_count);
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        baseline_cache_generation);
+    const bool appended_lights
+        = scene->local_lights.size() != baseline_light_count;
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        baseline_light_cache_generation + (appended_lights ? 1u : 0u));
 
     bool found_transient_record = false;
     const auto record_objects = scene->area_render_scene->object_handles();
@@ -3666,4 +4310,8 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
     EXPECT_EQ(scene->active_object, editor_selection);
     EXPECT_EQ(scene->static_models.size(), baseline_model_count);
     EXPECT_EQ(scene->area_render_scene->kinds().size(), baseline_record_count);
+    EXPECT_EQ(scene->area_render_scene->static_cache_generation(),
+        baseline_cache_generation);
+    EXPECT_EQ(scene->area_render_scene->light_cache_generation(),
+        baseline_light_cache_generation + (appended_lights ? 2u : 0u));
 }

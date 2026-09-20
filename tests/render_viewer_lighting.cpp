@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <limits>
 #include <memory>
@@ -1140,7 +1141,7 @@ TEST(RenderAreaVisibility, RenderModelAreaRecordUsesCommonInstanceState)
     EXPECT_NEAR(frame.shadow_caster_bounds().max.x, 12.0f, 1.0e-5f);
 }
 
-TEST(RenderAreaVisibility, VisibleRenderModelHandlesUseAreaFrameRecords)
+TEST(RenderAreaVisibility, VisibleDynamicRenderModelHandlesExcludeCachedStaticRecords)
 {
     namespace viewer = nw::render::viewer;
 
@@ -1185,10 +1186,11 @@ TEST(RenderAreaVisibility, VisibleRenderModelHandlesUseAreaFrameRecords)
     ASSERT_TRUE(frame.record_visible(visible_render_model_record));
     ASSERT_FALSE(frame.record_visible(hidden_render_model_record));
 
-    const auto frame_handles = frame.visible_render_model_instance_handles();
-    ASSERT_EQ(frame_handles.size(), 2u);
-    EXPECT_TRUE(frame_handles[0] == scene.static_model_instance_handles[0]);
-    EXPECT_TRUE(frame_handles[1] == scene.static_model_instance_handles[1]);
+    const auto frame_handles
+        = frame.visible_dynamic_render_model_instance_handles();
+    ASSERT_EQ(frame_handles.size(), 1u);
+    EXPECT_TRUE(frame_handles[0]
+        == scene.static_model_instance_handles[1]);
 }
 
 TEST(RenderAreaVisibility, AreaStaticRecordsExposeCommonPreparedDraws)
@@ -1249,6 +1251,14 @@ TEST(RenderAreaVisibility, AreaStaticRecordsExposeCommonPreparedDraws)
     EXPECT_EQ(list.stats.render_model_draw_count, 1u);
     EXPECT_EQ(list.stats.material_fallback_draw_count, 1u);
     EXPECT_EQ(list.stats.render_model_material_fallback_draw_count, 1u);
+    const auto& materials = area_scene.prepared_surface_materials();
+    EXPECT_EQ(materials.cutout_count, 1u);
+    EXPECT_EQ(materials.total(), 1u);
+    const auto& bindings
+        = area_scene.prepared_surface_material_bindings();
+    EXPECT_EQ(bindings.surface_count, 1u);
+    EXPECT_EQ(bindings.bound_surface_count, 1u);
+    EXPECT_EQ(bindings.material_fallback_count, 1u);
 
     const auto& ranges = area_scene.prepared_model_draw_ranges();
     ASSERT_EQ(ranges.ranges.size(), 1u);
@@ -1711,6 +1721,52 @@ TEST(RenderAreaVisibility, SortedStaticSurfaceListHeuristicAvoidsMostlyOccludedS
     EXPECT_TRUE(viewer::should_use_sorted_area_static_surface_lists(5000u, 10000u));
     EXPECT_TRUE(viewer::should_use_sorted_area_static_surface_lists(6000u, 10000u));
     EXPECT_TRUE(viewer::should_use_sorted_area_static_surface_lists(4096u, 4096u));
+}
+
+TEST(RenderAreaVisibility, TilePreviewSuppressionRetainsLargeCachedSurfaceStream)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.area_width = 2;
+    scene.area_height = 1;
+
+    auto common = make_area_mesh_model();
+    common->primitives.resize(4096u, common->primitives.front());
+    scene.add(std::move(common));
+    scene.static_area_model_info.back() = viewer::AreaRenderSourceInfo{
+        .kind = nw::ObjectType::tile,
+        .tile_x = 0,
+        .tile_y = 0,
+        .static_candidate = true,
+    };
+    add_static_area_mesh_model(
+        scene, nw::render::MaterialMode::opaque, 1u);
+
+    viewer::AreaRenderScene area_scene;
+    area_scene.rebuild(scene);
+    ASSERT_EQ(
+        area_scene.prepared_model_surface_draws().draws.size(), 4097u);
+    const std::array<uint32_t, 1> suppressed_models{1u};
+    ASSERT_TRUE(area_scene.set_tile_preview_suppressed_models(
+        suppressed_models));
+    ASSERT_TRUE(scene.static_model_instance(1u)->visible);
+
+    viewer::AreaRenderFrame frame;
+    prepare_area_frame(area_scene, frame, {});
+    EXPECT_TRUE(frame.uses_cached_draw_lists());
+    EXPECT_TRUE(frame.filters_cached_draw_records());
+    EXPECT_EQ(frame.stats().visible_prepared_surface_count, 4096u);
+    EXPECT_EQ(frame.visible_prepared_surface_indices().size(), 4097u);
+    EXPECT_FALSE(frame.record_visible(
+        area_scene.record_index_for_render_model(1u)));
+
+    ASSERT_TRUE(area_scene.set_tile_preview_suppressed_models({}));
+    prepare_area_frame(area_scene, frame, {});
+    EXPECT_TRUE(frame.uses_cached_draw_lists());
+    EXPECT_FALSE(frame.filters_cached_draw_records());
+    EXPECT_EQ(frame.stats().visible_prepared_surface_count, 4097u);
 }
 
 TEST(RenderViewerTileLight, ParsesSlotSuffixes)

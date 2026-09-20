@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -54,6 +55,29 @@ struct AreaSurfaceRange {
     uint32_t triangle_count = 0;
 };
 
+struct AreaSurfaceInstance {
+    nw::render::Bounds bounds{};
+    glm::mat4 root{1.0f};
+    glm::mat4 inverse_root{1.0f};
+    uint32_t geometry_index = kInvalidAreaRenderRecordIndex;
+};
+
+struct AreaSurfaceInstanceUpdate {
+    nw::render::Bounds bounds{};
+    glm::mat4 root{1.0f};
+    uint32_t model_index = kInvalidAreaRenderRecordIndex;
+    uint32_t geometry_index = kInvalidAreaRenderRecordIndex;
+};
+
+// Dense instance rows are indexed by stable PreviewScene model index. Updates
+// must be strictly increasing, in range, and reference a valid geometry row.
+// Finite rigid yaw/translation roots are inverted once here. The complete
+// batch validates before any row is written.
+[[nodiscard]] bool update_area_surface_instances(
+    std::span<const AreaSurfaceInstanceUpdate> updates,
+    uint32_t geometry_count,
+    std::span<AreaSurfaceInstance> instances) noexcept;
+
 enum class AreaSurfaceHitStatus : uint8_t {
     hit,
     miss,
@@ -68,19 +92,16 @@ struct AreaSurfaceHit {
     AreaSurfaceHitStatus status = AreaSurfaceHitStatus::invalid_input;
 };
 
-// Batch ray trace over prevalidated, upward-facing area surface triangles.
-// Ranges partition contiguous triangle rows by stable tile model. Rays are
-// normalized once per row; malformed columns or non-finite rays fail loudly.
-void trace_area_surfaces(
+// Batch trace against shared model-local geometry and dense placed-tile rows.
+// Geometry ranges and triangles are borrowed immutable arrays; instances own
+// world bounds and rigid transforms. hits must match rays in length. Malformed
+// protocols produce invalid_input rows without partial results.
+void trace_area_surface_instances(
     std::span<const ViewerRay> rays,
-    std::span<const AreaSurfaceRange> ranges,
+    std::span<const AreaSurfaceRange> geometries,
     std::span<const AreaSurfaceTriangle> triangles,
+    std::span<const AreaSurfaceInstance> instances,
     std::span<AreaSurfaceHit> hits) noexcept;
-
-[[nodiscard]] AreaSurfaceHit trace_area_surface(
-    const ViewerRay& ray,
-    std::span<const AreaSurfaceRange> ranges,
-    std::span<const AreaSurfaceTriangle> triangles) noexcept;
 
 enum class AreaObjectSelectionStatus : uint8_t {
     hit,
@@ -217,6 +238,7 @@ struct AreaRenderSceneStats {
     uint32_t shadow_caster_record_count = 0;
     uint32_t prepared_draw_count = 0;
     uint32_t surface_range_count = 0;
+    uint32_t surface_instance_count = 0;
     uint32_t surface_triangle_count = 0;
     uint32_t surface_bytes = 0;
     uint32_t max_prepared_draws_per_record = 0;
@@ -251,6 +273,16 @@ struct AreaRenderFrameStats {
     bool uses_cached_draw_lists = false;
 };
 
+// CPU phase timings for the most recent stable tile-record batch refresh.
+// The cache owns this diagnostic row until the next refresh or full rebuild.
+struct AreaTileRecordRefreshStats {
+    float prepare_seconds = 0.0f;
+    float draw_splice_seconds = 0.0f;
+    float surface_protocol_seconds = 0.0f;
+    float summary_seconds = 0.0f;
+    bool variable_draw_counts = false;
+};
+
 struct AreaRenderCullContext {
     glm::mat4 view_projection{1.0f};
     std::span<const uint8_t> visible_chunk_mask;
@@ -277,6 +309,7 @@ public:
         render_enabled = 1u << 0u,
         static_candidate = 1u << 1u,
         shadow_caster = 1u << 2u,
+        preview_suppressed = 1u << 3u,
     };
 
     void clear();
@@ -287,10 +320,70 @@ public:
     // prepared draw payload is cached. Stale or mismatched handles are dropped
     // from frame selection by clearing render/shadow flags.
     void refresh_runtime_records(const PreviewScene& scene);
+    // Rebuilds the current batch of non-static, unchunked model records while
+    // retaining the authored static prefix, prepared draws, chunks, and tile
+    // surface cache. PreviewScene owns the input for the call; this cache owns
+    // the output until its next update. Every static prefix model must retain
+    // its index, instance handle, pass mask, source, and chunk. All following
+    // models must be dynamic and unchunked. A mismatched batch rejects without
+    // mutation so the caller can use rebuild(). Light topology refresh is paid
+    // only by edits that can add, remove, or replace authored model lights.
+    [[nodiscard]] bool rebuild_dynamic_records(
+        const PreviewScene& scene, bool light_topology_changed);
+    // Rebuilds authored record/draw/light metadata after a sorted batch of
+    // stable tile model rows changed. Each changed tile updates one dense
+    // bounds/transform row. A newly referenced model extracts one shared local
+    // geometry row for the whole batch. Invalid or stale protocols reject so
+    // the caller can use rebuild().
+    [[nodiscard]] bool rebuild_tile_records(
+        const PreviewScene& scene,
+        std::span<const uint32_t> model_indices);
+    // Same stable tile-row transform when the caller replaced local-light
+    // rows in place. replaced_model_indices is the sorted subset whose model
+    // assets changed; repeated assets share one local geometry row.
+    // changed_light_indices is the complete sorted set of stable light rows
+    // whose bounds may have changed. Any count/order mismatch rejects before
+    // using the protocol.
+    [[nodiscard]] bool rebuild_tile_records_with_stable_light_rows(
+        const PreviewScene& scene,
+        std::span<const uint32_t> model_indices,
+        std::span<const uint32_t> replaced_model_indices,
+        std::span<const uint32_t> changed_light_indices);
+    [[nodiscard]] bool append_tile_preview_records(
+        const PreviewScene& scene,
+        std::span<const uint32_t> model_indices);
+    [[nodiscard]] bool refresh_tile_preview_records(
+        const PreviewScene& scene,
+        std::span<const uint32_t> model_indices);
+    [[nodiscard]] bool remove_tile_preview_records(
+        std::span<const uint32_t> model_indices);
+    // Batch transform for the current tile-preview coverage. Input is a
+    // borrowed model-index span; every index must map to one scene-owned
+    // static record. Output replaces the cache-owned record-index batch and
+    // its suppression flag bits until the next call or rebuild. Invalid input
+    // rejects the complete batch without changing the previous output.
+    [[nodiscard]] bool set_tile_preview_suppressed_models(
+        std::span<const uint32_t> model_indices);
     void refresh_light_indices(const PreviewScene& scene);
 
     [[nodiscard]] bool empty() const noexcept { return model_indices_.empty(); }
     [[nodiscard]] const AreaRenderSceneStats& stats() const noexcept { return stats_; }
+    [[nodiscard]] uint64_t static_cache_generation() const noexcept
+    {
+        return static_cache_generation_;
+    }
+    [[nodiscard]] uint64_t light_cache_generation() const noexcept
+    {
+        return light_cache_generation_;
+    }
+    [[nodiscard]] uint64_t tile_cache_generation() const noexcept
+    {
+        return tile_cache_generation_;
+    }
+    [[nodiscard]] const AreaTileRecordRefreshStats& last_tile_record_refresh_stats() const noexcept
+    {
+        return last_tile_record_refresh_stats_;
+    }
     [[nodiscard]] bool has_scene_bounds() const noexcept { return has_scene_bounds_; }
     [[nodiscard]] const nw::render::Bounds& scene_bounds() const noexcept { return scene_bounds_; }
     [[nodiscard]] std::span<const uint32_t> model_indices() const noexcept { return model_indices_; }
@@ -317,12 +410,10 @@ public:
     [[nodiscard]] std::span<const uint32_t> chunk_record_indices() const noexcept { return chunk_record_indices_; }
     [[nodiscard]] std::span<const nw::render::Bounds> chunk_bounds() const noexcept { return chunk_bounds_; }
     [[nodiscard]] std::span<const uint8_t> chunk_has_bounds() const noexcept { return chunk_has_bounds_; }
-    [[nodiscard]] std::span<const AreaSurfaceRange> surface_ranges() const noexcept { return surface_ranges_; }
-    [[nodiscard]] std::span<const AreaSurfaceTriangle> surface_triangles() const noexcept { return surface_triangles_; }
-    [[nodiscard]] AreaSurfaceHit trace_surface(const ViewerRay& ray) const noexcept
-    {
-        return trace_area_surface(ray, surface_ranges_, surface_triangles_);
-    }
+    [[nodiscard]] std::span<const AreaSurfaceRange> surface_ranges() const noexcept { return surface_geometry_ranges_; }
+    [[nodiscard]] std::span<const AreaSurfaceTriangle> surface_triangles() const noexcept { return surface_geometry_triangles_; }
+    [[nodiscard]] std::span<const AreaSurfaceInstance> surface_instances() const noexcept { return surface_instances_; }
+    [[nodiscard]] AreaSurfaceHit trace_surface(const ViewerRay& ray) const noexcept;
     [[nodiscard]] const nw::render::PreparedModelDrawList& prepared_model_draw_list() const noexcept
     {
         return prepared_model_draws_;
@@ -334,6 +425,14 @@ public:
     [[nodiscard]] const nw::render::PreparedModelSurfaceDrawList& prepared_model_surface_draws() const noexcept
     {
         return prepared_model_surface_draws_;
+    }
+    [[nodiscard]] const nw::render::PreparedModelSurfaceMaterialStats& prepared_surface_materials() const noexcept
+    {
+        return prepared_surface_materials_;
+    }
+    [[nodiscard]] const nw::render::PreparedModelSurfaceMaterialBindingStats& prepared_surface_material_bindings() const noexcept
+    {
+        return prepared_surface_material_bindings_;
     }
     [[nodiscard]] std::span<const nw::render::PreparedModelDraw> prepared_model_draws_for_record(
         uint32_t record_index) const noexcept;
@@ -358,6 +457,31 @@ public:
     [[nodiscard]] std::span<const uint32_t> light_indices_for_chunk(uint32_t chunk_id) const noexcept;
 
 private:
+    void rebuild_records(const PreviewScene& scene,
+        bool build_surface_cache, bool build_light_cache);
+    [[nodiscard]] bool rebuild_tile_records_impl(
+        const PreviewScene& scene,
+        std::span<const uint32_t> model_indices,
+        std::span<const uint32_t> replaced_model_indices,
+        std::span<const uint32_t> changed_light_indices,
+        bool stable_light_rows);
+    [[nodiscard]] bool refresh_stable_tile_record_rows(
+        const PreviewScene& scene,
+        std::span<const uint32_t> model_indices,
+        bool surface_protocol_changed);
+    void rebuild_record_summaries(const PreviewScene& scene);
+    void refresh_record_bounds_summaries() noexcept;
+    void refresh_prepared_surface_protocol_stats() noexcept;
+    void refresh_surface_stats() noexcept;
+    [[nodiscard]] bool rebuild_stable_light_indices(
+        const PreviewScene& scene,
+        std::span<const uint32_t> old_offsets,
+        std::span<const uint32_t> old_indices,
+        std::span<const uint32_t> changed_model_indices,
+        std::span<const uint32_t> changed_light_indices);
+    void rebuild_dynamic_light_indices(const PreviewScene& scene);
+    void rebuild_chunk_light_indices();
+
     std::vector<uint32_t> model_indices_;
     std::vector<uint32_t> render_model_record_indices_;
     std::vector<nw::render::ModelInstanceHandle> model_instance_handles_;
@@ -365,6 +489,7 @@ private:
     std::vector<glm::mat4> root_transforms_;
     std::vector<uint8_t> pass_masks_;
     std::vector<uint8_t> flags_;
+    std::vector<uint32_t> preview_suppressed_record_indices_;
     std::vector<uint32_t> chunk_ids_;
     std::vector<nw::ObjectType> kinds_;
     std::vector<nw::ObjectHandle> object_handles_;
@@ -374,11 +499,16 @@ private:
     std::vector<uint8_t> chunk_has_bounds_;
     std::vector<uint32_t> chunk_offsets_;
     std::vector<uint32_t> chunk_record_indices_;
-    std::vector<AreaSurfaceRange> surface_ranges_;
-    std::vector<AreaSurfaceTriangle> surface_triangles_;
+    std::vector<std::shared_ptr<nw::render::RenderModel>> surface_geometry_models_;
+    std::vector<uint32_t> surface_geometry_use_counts_;
+    std::vector<AreaSurfaceRange> surface_geometry_ranges_;
+    std::vector<AreaSurfaceTriangle> surface_geometry_triangles_;
+    std::vector<AreaSurfaceInstance> surface_instances_;
     nw::render::PreparedModelDrawList prepared_model_draws_;
     nw::render::PreparedModelDrawRangeList prepared_model_draw_ranges_;
     nw::render::PreparedModelSurfaceDrawList prepared_model_surface_draws_;
+    nw::render::PreparedModelSurfaceMaterialStats prepared_surface_materials_{};
+    nw::render::PreparedModelSurfaceMaterialBindingStats prepared_surface_material_bindings_{};
     std::vector<uint32_t> prepared_surface_offsets_;
     std::vector<uint32_t> prepared_surface_indices_;
     std::array<uint32_t, 5> prepared_surface_pass_offsets_{};
@@ -389,7 +519,12 @@ private:
     std::vector<uint32_t> chunk_light_indices_;
     nw::render::Bounds scene_bounds_{};
     AreaRenderSceneStats stats_{};
+    AreaTileRecordRefreshStats last_tile_record_refresh_stats_{};
+    uint64_t static_cache_generation_ = 0;
+    uint64_t light_cache_generation_ = 0;
+    uint64_t tile_cache_generation_ = 0;
     bool has_scene_bounds_ = false;
+    bool surface_cache_complete_ = false;
 };
 
 // The active viewport selection is a true singleton. Tile hits retain their
@@ -424,9 +559,9 @@ public:
     {
         return shadow_caster_record_indices_;
     }
-    [[nodiscard]] std::span<const nw::render::ModelInstanceHandle> visible_render_model_instance_handles() const noexcept
+    [[nodiscard]] std::span<const nw::render::ModelInstanceHandle> visible_dynamic_render_model_instance_handles() const noexcept
     {
-        return visible_render_model_instance_handles_;
+        return visible_dynamic_render_model_instance_handles_;
     }
     [[nodiscard]] std::span<const uint32_t> visible_light_indices() const noexcept
     {
@@ -443,6 +578,10 @@ public:
     [[nodiscard]] std::span<const uint32_t> visible_water_prepared_surface_indices() const noexcept;
     [[nodiscard]] std::span<const uint32_t> visible_transparent_prepared_surface_indices() const noexcept;
     [[nodiscard]] bool uses_cached_draw_lists() const noexcept { return cached_draw_scene_ != nullptr; }
+    [[nodiscard]] bool filters_cached_draw_records() const noexcept
+    {
+        return filters_cached_draw_records_;
+    }
     [[nodiscard]] bool record_visible(uint32_t record_index) const noexcept
     {
         return record_index < record_marks_.size()
@@ -461,7 +600,7 @@ private:
     std::vector<uint32_t> water_record_indices_;
     std::vector<uint32_t> transparent_record_indices_;
     std::vector<uint32_t> shadow_caster_record_indices_;
-    std::vector<nw::render::ModelInstanceHandle> visible_render_model_instance_handles_;
+    std::vector<nw::render::ModelInstanceHandle> visible_dynamic_render_model_instance_handles_;
     std::vector<uint32_t> visible_light_indices_;
     std::vector<uint32_t> visible_prepared_surface_indices_;
     std::array<uint32_t, 5> visible_prepared_surface_pass_offsets_{};
@@ -478,6 +617,7 @@ private:
     bool has_visible_bounds_ = false;
     bool has_shadow_caster_bounds_ = false;
     bool filtered_light_indices_valid_ = false;
+    bool filters_cached_draw_records_ = false;
 };
 
 [[nodiscard]] std::string_view area_render_record_kind_label(nw::ObjectType kind) noexcept;

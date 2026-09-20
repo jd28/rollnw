@@ -38,6 +38,35 @@ void render_prepared_render_model_surfaces(const ModelRenderContext& render_ctx,
     const ModelMaterialOverrideStore* material_overrides = nullptr,
     PreparedRenderModelSurfaceSubmissionStats* stats = nullptr,
     PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
+// Submits a batch of unskinned surface poses for one validated model primitive
+// and material. prototype supplies the immutable primitive/material payload;
+// instances is caller-owned transient frame data. Empty, translucent, skinned,
+// out-of-range, or mismatched input is rejected without a draw.
+void render_prepared_render_model_surface_instances(
+    const ModelRenderContext& render_ctx,
+    nw::gfx::CommandList* cmd,
+    const RenderModel& model,
+    const PreparedModelSurfaceDraw& prototype,
+    std::span<const PreparedModelSurfaceInstance> instances,
+    const RenderContext& ctx,
+    RenderPassSelection pass,
+    const ModelMaterialOverrideStore* material_overrides = nullptr,
+    PreparedRenderModelSurfaceSubmissionStats* stats = nullptr);
+// Same batch protocol with instance rows already stored in one caller-owned
+// frame allocation. first_instance selects this primitive's contiguous rows;
+// invalid or out-of-range spans are rejected without a draw.
+void render_prepared_render_model_surface_instances(
+    const ModelRenderContext& render_ctx,
+    nw::gfx::CommandList* cmd,
+    const RenderModel& model,
+    const PreparedModelSurfaceDraw& prototype,
+    nw::gfx::StorageSpan instance_storage,
+    uint32_t first_instance,
+    uint32_t instance_count,
+    const RenderContext& ctx,
+    RenderPassSelection pass,
+    const ModelMaterialOverrideStore* material_overrides = nullptr,
+    PreparedRenderModelSurfaceSubmissionStats* stats = nullptr);
 void render_prepared_render_model_shadow_surfaces(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
     const RenderModel& model, std::span<const PreparedModelSurfaceDraw> surfaces,
     uint32_t range_index, const glm::mat4& light_view, const glm::mat4& light_projection,

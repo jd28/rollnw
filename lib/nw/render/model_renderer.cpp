@@ -277,6 +277,34 @@ Lighting render_model_lighting(const RenderContext& ctx)
     return lighting;
 }
 
+SurfaceConstants make_render_model_surface_constants(
+    const Material& material, const RenderContext& ctx) noexcept
+{
+    SurfaceConstants surf{};
+    surf.albedo = material.albedo;
+    surf.roughness = material.roughness;
+    surf.metallic = material.metallic;
+    surf.specular_strength = material.specular_strength;
+    surf.normal_scale = material.normal_scale;
+    surf.occlusion_strength = material.occlusion_strength;
+    surf.ibl_strength
+        = ctx.static_pbr_ibl_strength * material.ibl_strength;
+    surf.exposure
+        = ctx.static_pbr_exposure * material.exposure;
+    surf.emissive = glm::vec4(material.emissive, 0.0f);
+    surf.albedo_index = material.albedo_index;
+    surf.normal_index = material.normal_index;
+    surf.surface_index = material.surface_index;
+    surf.emissive_index = material.emissive_index;
+    surf.alpha_mode = static_cast<uint32_t>(
+        material.alpha_mode);
+    surf.alpha_cutoff = material.alpha_cutoff;
+    surf.double_sided = material.double_sided ? 1u : 0u;
+    surf.color_key_threshold = material.color_key_threshold;
+    apply_render_model_material_plt_constants(surf, material);
+    return surf;
+}
+
 bool render_render_model_primitive(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
     const RenderModel& model,
     const Primitive& prim,
@@ -323,25 +351,8 @@ bool render_render_model_primitive(const ModelRenderContext& render_ctx, nw::gfx
     sc.model = world;
     sc.normal_matrix = normal_matrix;
 
-    SurfaceConstants surf{};
-    surf.albedo = material.albedo;
-    surf.roughness = material.roughness;
-    surf.metallic = material.metallic;
-    surf.specular_strength = material.specular_strength;
-    surf.normal_scale = material.normal_scale;
-    surf.occlusion_strength = material.occlusion_strength;
-    surf.ibl_strength = ctx.static_pbr_ibl_strength * material.ibl_strength;
-    surf.exposure = ctx.static_pbr_exposure * material.exposure;
-    surf.emissive = glm::vec4(material.emissive, 0.0f);
-    surf.albedo_index = material.albedo_index;
-    surf.normal_index = material.normal_index;
-    surf.surface_index = material.surface_index;
-    surf.emissive_index = material.emissive_index;
-    surf.alpha_mode = static_cast<uint32_t>(material.alpha_mode);
-    surf.alpha_cutoff = material.alpha_cutoff;
-    surf.double_sided = material.double_sided ? 1u : 0u;
-    surf.color_key_threshold = material.color_key_threshold;
-    apply_render_model_material_plt_constants(surf, material);
+    const SurfaceConstants surf
+        = make_render_model_surface_constants(material, ctx);
 
     auto scene_uniforms = nw::gfx::allocate_uniform_span(render_ctx.gfx, sizeof(SceneConstants));
     auto surface_uniforms = nw::gfx::allocate_uniform_span(render_ctx.gfx, sizeof(SurfaceConstants));
@@ -705,6 +716,226 @@ void render_prepared_render_model_surfaces(const ModelRenderContext& render_ctx,
             packets.stats.invalid_surface_count,
             packets.stats.skin_bindings);
     }
+}
+
+void render_prepared_render_model_surface_instances(
+    const ModelRenderContext& render_ctx,
+    nw::gfx::CommandList* cmd,
+    const RenderModel& model,
+    const PreparedModelSurfaceDraw& prototype,
+    std::span<const PreparedModelSurfaceInstance> instances,
+    const RenderContext& ctx,
+    RenderPassSelection pass,
+    const ModelMaterialOverrideStore* material_overrides,
+    PreparedRenderModelSurfaceSubmissionStats* stats)
+{
+    const uint32_t logical_surface_count
+        = static_cast<uint32_t>(std::min<size_t>(
+            instances.size(),
+            std::numeric_limits<uint32_t>::max()));
+    const auto record_result = [&](uint32_t submitted,
+                                   uint32_t invalid) {
+        if (stats) {
+            add_prepared_render_model_surface_submission_stats(
+                *stats, pass, submitted, invalid, {});
+        }
+    };
+
+    if (instances.empty()) {
+        return;
+    }
+    if (instances.size() > std::numeric_limits<uint32_t>::max()
+        || instances.size()
+            > std::numeric_limits<uint32_t>::max()
+                / sizeof(PreparedModelSurfaceInstance)
+        || prototype.instance_source_index
+            == kInvalidPreparedModelDrawIndex
+        || prototype.source_draw_index
+            >= model.primitives.size()
+        || prototype.skinned
+        || is_translucent_material(prototype.material_mode)
+        || !render_model_material_visible_in_pass(
+            prototype.material_mode, pass)) {
+        record_result(0u, logical_surface_count);
+        return;
+    }
+    if (!render_ctx.gfx || !render_ctx.gpu || !cmd) {
+        record_result(0u, 0u);
+        return;
+    }
+
+    const auto& primitive
+        = model.primitives[prototype.source_draw_index];
+    const auto* material = prepared_surface_material(
+        model, primitive, prototype, material_overrides);
+    if (!material || primitive.skinned
+        || !primitive.vertices.valid()
+        || !primitive.indices.valid()
+        || primitive.index_count == 0u
+        || primitive.material >= model.materials.size()
+        || prototype.material_index != primitive.material
+        || prototype.skin_index != primitive.skin
+        || prototype.material_mode != material->alpha_mode
+        || prototype.material_uses_fallback
+            != material->material_uses_fallback
+        || prototype.material_payload
+            != prepared_render_model_material_payload_kind(
+                *material)) {
+        record_result(0u, logical_surface_count);
+        return;
+    }
+
+    const auto pipeline = model_pipeline_for(render_ctx,
+        ModelPipelineMeshKind::pbr_static_instanced,
+        material->alpha_mode, ModelPipelinePass::color,
+        material->lighting_model);
+    if (!pipeline.valid()) {
+        record_result(0u, 0u);
+        return;
+    }
+
+    const uint32_t instance_bytes = static_cast<uint32_t>(
+        instances.size()
+        * sizeof(PreparedModelSurfaceInstance));
+    const auto instance_storage
+        = render_ctx.gpu->upload_frame_storage(cmd,
+            instances.data(), instance_bytes, 64u);
+    if (!instance_storage.buffer.valid()) {
+        record_result(0u, 0u);
+        return;
+    }
+
+    render_prepared_render_model_surface_instances(
+        render_ctx, cmd, model, prototype,
+        instance_storage, 0u, logical_surface_count,
+        ctx, pass, material_overrides, stats);
+}
+
+void render_prepared_render_model_surface_instances(
+    const ModelRenderContext& render_ctx,
+    nw::gfx::CommandList* cmd,
+    const RenderModel& model,
+    const PreparedModelSurfaceDraw& prototype,
+    nw::gfx::StorageSpan instance_storage,
+    uint32_t first_instance,
+    uint32_t instance_count,
+    const RenderContext& ctx,
+    RenderPassSelection pass,
+    const ModelMaterialOverrideStore* material_overrides,
+    PreparedRenderModelSurfaceSubmissionStats* stats)
+{
+    const auto record_result = [&](uint32_t submitted,
+                                   uint32_t invalid) {
+        if (stats) {
+            add_prepared_render_model_surface_submission_stats(
+                *stats, pass, submitted, invalid, {});
+        }
+    };
+
+    if (instance_count == 0u) {
+        return;
+    }
+    const uint32_t storage_instance_count
+        = instance_storage.size
+        / sizeof(PreparedModelSurfaceInstance);
+    if (!instance_storage.buffer.valid()
+        || instance_storage.size
+                % sizeof(PreparedModelSurfaceInstance)
+            != 0u
+        || first_instance > storage_instance_count
+        || instance_count
+            > storage_instance_count - first_instance
+        || prototype.instance_source_index
+            == kInvalidPreparedModelDrawIndex
+        || prototype.source_draw_index
+            >= model.primitives.size()
+        || prototype.skinned
+        || is_translucent_material(prototype.material_mode)
+        || !render_model_material_visible_in_pass(
+            prototype.material_mode, pass)) {
+        record_result(0u, instance_count);
+        return;
+    }
+    if (!render_ctx.gfx || !render_ctx.gpu || !cmd) {
+        record_result(0u, 0u);
+        return;
+    }
+
+    const auto& primitive
+        = model.primitives[prototype.source_draw_index];
+    const auto* material = prepared_surface_material(
+        model, primitive, prototype, material_overrides);
+    if (!material || primitive.skinned
+        || !primitive.vertices.valid()
+        || !primitive.indices.valid()
+        || primitive.index_count == 0u
+        || primitive.material >= model.materials.size()
+        || prototype.material_index != primitive.material
+        || prototype.skin_index != primitive.skin
+        || prototype.material_mode != material->alpha_mode
+        || prototype.material_uses_fallback
+            != material->material_uses_fallback
+        || prototype.material_payload
+            != prepared_render_model_material_payload_kind(
+                *material)) {
+        record_result(0u, instance_count);
+        return;
+    }
+
+    const auto pipeline = model_pipeline_for(render_ctx,
+        ModelPipelineMeshKind::pbr_static_instanced,
+        material->alpha_mode, ModelPipelinePass::color,
+        material->lighting_model);
+    if (!pipeline.valid()) {
+        record_result(0u, 0u);
+        return;
+    }
+
+    SceneConstants scene_constants
+        = make_scene_constants(ctx, render_model_lighting(ctx));
+    apply_render_model_shadow_scene_constants(
+        render_ctx, ctx, scene_constants);
+    scene_constants.model = primitive.transform;
+    scene_constants.normal_matrix
+        = make_normal_matrix(primitive.transform);
+    const SurfaceConstants surface_constants
+        = make_render_model_surface_constants(*material, ctx);
+
+    auto scene_uniforms = nw::gfx::allocate_uniform_span(
+        render_ctx.gfx, sizeof(SceneConstants));
+    auto surface_uniforms = nw::gfx::allocate_uniform_span(
+        render_ctx.gfx, sizeof(SurfaceConstants));
+    if (!scene_uniforms.data || !surface_uniforms.data) {
+        record_result(0u, 0u);
+        return;
+    }
+    std::memcpy(scene_uniforms.data, &scene_constants,
+        sizeof(scene_constants));
+    std::memcpy(surface_uniforms.data, &surface_constants,
+        sizeof(surface_constants));
+
+    const nw::gfx::StorageSpan dummy_storage{
+        render_ctx.gpu->dummy_storage_buffer()};
+    const auto forward_plus_bindings
+        = make_forward_plus_storage_bindings(
+            ctx.forward_plus, dummy_storage);
+    nw::gfx::cmd_bind_pipeline(cmd, pipeline);
+    nw::gfx::cmd_bind_vertex_buffer(
+        cmd, primitive.vertices, sizeof(Vertex));
+    nw::gfx::cmd_bind_index_buffer(
+        cmd, primitive.indices, primitive.index_stride);
+    nw::gfx::cmd_bind_resources(cmd, pipeline,
+        scene_uniforms,
+        plt_palette_storage(render_ctx, dummy_storage),
+        instance_storage,
+        forward_plus_bindings.cluster_headers,
+        forward_plus_bindings.cluster_light_indices,
+        forward_plus_bindings.lights,
+        surface_uniforms);
+    nw::gfx::cmd_draw_indexed_base_instance(cmd,
+        primitive.index_count, first_instance,
+        instance_count);
+    record_result(instance_count, 0u);
 }
 
 void render_prepared_render_model_shadow_surfaces(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,

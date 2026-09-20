@@ -219,6 +219,9 @@ public:
     bool load_object_file(const std::filesystem::path& path);
     bool rebuild_live_area(
         nw::ObjectHandle area, nw::ObjectHandle selected_object = nw::ObjectHandle{});
+    [[nodiscard]] AreaTransientVisualResult refresh_live_area_tiles(
+        nw::ObjectHandle area,
+        std::span<const uint32_t> tile_indices);
     bool rebuild_live_object(nw::ObjectHandle object);
     [[nodiscard]] ObjectVisualRefreshResult refresh_live_object_visuals(
         std::span<const nw::ObjectHandle> objects);

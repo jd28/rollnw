@@ -404,6 +404,13 @@ bool ClientRendererNwgfx::rebuild_live_viewer_area(
     return viewer_viewport_ && viewer_viewport_->rebuild_live_area(area, selected_object);
 }
 
+bool ClientRendererNwgfx::refresh_live_viewer_area_tiles(
+    nw::ObjectHandle area, std::span<const uint32_t> tile_indices)
+{
+    return viewer_viewport_
+        && viewer_viewport_->refresh_live_area_tiles(area, tile_indices);
+}
+
 bool ClientRendererNwgfx::rebuild_live_viewer_object(nw::ObjectHandle object)
 {
     return viewer_viewport_ && viewer_viewport_->rebuild_live_object(object);

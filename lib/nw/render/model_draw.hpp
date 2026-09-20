@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <limits>
 #include <span>
+#include <type_traits>
 #include <vector>
 
 namespace nw::render {
@@ -145,6 +146,19 @@ struct PreparedModelSurfaceDraw {
     glm::mat4 normal_matrix{1.0f};
     Bounds bounds{};
 };
+
+// Flat GPU instance row for one unskinned static model root. Primitive-local
+// transforms remain shared model data in the draw constants, so every
+// primitive reuses the same instance rows. The HLSL storage layout is two
+// consecutive float4x4 values. Rows are transient frame data.
+struct PreparedModelSurfaceInstance {
+    glm::mat4 root{1.0f};
+    glm::mat4 root_normal_matrix{1.0f};
+};
+
+static_assert(sizeof(PreparedModelSurfaceInstance)
+    == sizeof(glm::mat4) * 2u);
+static_assert(std::is_trivially_copyable_v<PreparedModelSurfaceInstance>);
 
 struct PreparedModelSurfaceDrawStats {
     uint32_t range_count = 0;

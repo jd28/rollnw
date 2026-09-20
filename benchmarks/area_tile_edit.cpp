@@ -28,6 +28,8 @@ AreaDimensions area_dimensions(int64_t tile_count)
         return {.width = 8, .height = 8};
     case 512:
         return {.width = 32, .height = 16};
+    case 1024:
+        return {.width = 32, .height = 32};
     default:
         return {};
     }
@@ -71,7 +73,8 @@ void BM_area_tile_pick(benchmark::State& state)
     state.SetItemsProcessed(
         state.iterations() * static_cast<int64_t>(area.tiles.size()));
 }
-BENCHMARK(BM_area_tile_pick)->Arg(64)->Arg(512);
+BENCHMARK(BM_area_tile_pick)->Arg(64)->Arg(512)->Arg(1024);
+
 
 void run_area_tile_apply(
     benchmark::State& state, bool with_door_hooks)
@@ -146,7 +149,10 @@ BENCHMARK(BM_area_tile_apply)
     ->Args({64, 64})
     ->Args({512, 1})
     ->Args({512, 64})
-    ->Args({512, 512});
+    ->Args({512, 512})
+    ->Args({1024, 1})
+    ->Args({1024, 64})
+    ->Args({1024, 1024});
 
 void BM_area_tile_apply_with_hooks(benchmark::State& state)
 {
@@ -156,7 +162,9 @@ BENCHMARK(BM_area_tile_apply_with_hooks)
     ->Args({64, 1})
     ->Args({64, 64})
     ->Args({512, 1})
-    ->Args({512, 512});
+    ->Args({512, 512})
+    ->Args({1024, 1})
+    ->Args({1024, 1024});
 
 void BM_area_tile_brush_build(benchmark::State& state)
 {
@@ -209,7 +217,9 @@ BENCHMARK(BM_area_tile_brush_build)
     ->Args({64, 1})
     ->Args({64, 64})
     ->Args({512, 1})
-    ->Args({512, 512});
+    ->Args({512, 512})
+    ->Args({1024, 1})
+    ->Args({1024, 1024});
 
 void BM_area_tile_height_brush_build(benchmark::State& state)
 {
@@ -257,6 +267,8 @@ BENCHMARK(BM_area_tile_height_brush_build)
     ->Args({64, 1})
     ->Args({64, 81})
     ->Args({512, 1})
-    ->Args({512, 561});
+    ->Args({512, 561})
+    ->Args({1024, 1})
+    ->Args({1024, 1089});
 
 } // namespace

@@ -9,6 +9,7 @@
 namespace nw::render::viewer {
 
 struct PreviewScene;
+class AreaRenderFrame;
 
 struct PreviewPreparedModelDraws {
     nw::render::PreparedModelDrawList common;
@@ -83,6 +84,22 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
     std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
     const nw::render::RenderContext& ctx,
     nw::render::RenderPassSelection pass,
+    const nw::render::PreparedRenderModelSkinTable* skin_table = nullptr,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
+// Submits a caller-owned flat batch of indices into stable prepared surfaces.
+// The index stream is pass ordered and may contain many instances of a shared
+// RenderModel. Invalid indices and source rows are dropped and counted; input
+// storage must outlive this call. This avoids rebuilding cached area surfaces
+// into transient per-frame draw records.
+nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_model_surface_draw_indices(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
+    std::span<const uint32_t> surface_indices,
+    const nw::render::RenderContext& ctx,
+    nw::render::RenderPassSelection pass,
+    const AreaRenderFrame* visibility_filter,
     const nw::render::PreparedRenderModelSkinTable* skin_table = nullptr,
     nw::render::PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
 PreviewPreparedModelDrawValidation validate_prepared_model_draws(

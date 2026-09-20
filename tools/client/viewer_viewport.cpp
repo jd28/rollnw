@@ -1238,6 +1238,22 @@ struct ClientViewerViewport::Impl {
         return session && session->refresh_live_object_visual(object);
     }
 
+    bool refresh_live_area_tiles(
+        nw::ObjectHandle area,
+        std::span<const uint32_t> tile_indices)
+    {
+        if (!session || area_tile_preview_lease.active) {
+            return false;
+        }
+        const auto refreshed
+            = session->refresh_live_area_tiles(area, tile_indices);
+        if (!refreshed.ok()) {
+            LOG_F(ERROR, "Client live tile refresh: {}",
+                refreshed.diagnostic);
+        }
+        return refreshed.ok();
+    }
+
     bool clear_area_object_selection() noexcept
     {
         return session && session->clear_area_object_selection();
@@ -1663,6 +1679,13 @@ bool ClientViewerViewport::rebuild_live_area(
     nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
     return impl_ && impl_->rebuild_live_area(area, selected_object);
+}
+
+bool ClientViewerViewport::refresh_live_area_tiles(
+    nw::ObjectHandle area, std::span<const uint32_t> tile_indices)
+{
+    return impl_
+        && impl_->refresh_live_area_tiles(area, tile_indices);
 }
 
 bool ClientViewerViewport::rebuild_live_object(nw::ObjectHandle object)

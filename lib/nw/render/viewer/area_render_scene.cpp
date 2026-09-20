@@ -9,11 +9,14 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <optional>
+#include <tuple>
 
 namespace nw::render::viewer {
 namespace {
@@ -135,26 +138,6 @@ bool upward_surface_normal(
     return finite_vec3(normal);
 }
 
-bool valid_surface_protocol(
-    std::span<const AreaSurfaceRange> ranges,
-    std::span<const AreaSurfaceTriangle> triangles) noexcept
-{
-    if (ranges.size() > std::numeric_limits<uint32_t>::max()
-        || triangles.size() > std::numeric_limits<uint32_t>::max()) {
-        return false;
-    }
-    for (const auto& range : ranges) {
-        const uint64_t triangle_end = static_cast<uint64_t>(range.first_triangle)
-            + static_cast<uint64_t>(range.triangle_count);
-        if (range.triangle_count == 0
-            || triangle_end > triangles.size()
-            || !finite_ordered_bounds(range.bounds)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void expand_bounds_with_point(
     nw::render::Bounds& bounds, const glm::vec3& point, bool& initialized) noexcept
 {
@@ -213,6 +196,7 @@ bool append_tile_surface_range(
     const nw::render::RenderModel& model,
     const nw::render::ModelInstance* instance,
     const glm::mat4& root,
+    const glm::mat4& output_from_world,
     std::vector<AreaSurfaceRange>& ranges,
     std::vector<AreaSurfaceTriangle>& triangles)
 {
@@ -245,8 +229,9 @@ bool append_tile_surface_range(
             return false;
         }
 
-        const glm::mat4 world = nw::render::model_instance_primitive_world_transform(
-            instance, root, primitive);
+        const glm::mat4 world = output_from_world
+            * nw::render::model_instance_primitive_world_transform(
+                instance, root, primitive);
         bool appended = false;
         if (primitive.index_stride == sizeof(uint16_t)) {
             appended = append_upward_surface_triangles(
@@ -353,6 +338,23 @@ bool render_model_casts_shadow(const nw::render::RenderModel& model) noexcept
     return summary.casts_shadow;
 }
 
+bool local_light_affects_bounds(
+    const nw::render::LocalLight& light,
+    const nw::render::Bounds& bounds) noexcept
+{
+    if (light.radius <= 1.0e-4f) {
+        return false;
+    }
+    const glm::vec3 closest
+        = glm::clamp(light.position, bounds.min, bounds.max);
+    glm::vec3 delta = light.position - closest;
+    if (light.contribution
+        == nw::render::LocalLightContribution::ambient) {
+        delta.z *= std::clamp(light.vertical_scale, 0.0f, 1.0f);
+    }
+    return glm::dot(delta, delta) < light.radius * light.radius;
+}
+
 void collect_local_light_indices_for_bounds(
     std::vector<uint32_t>& indices,
     std::span<const nw::render::LocalLight> lights,
@@ -362,18 +364,7 @@ void collect_local_light_indices_for_bounds(
         if (light_index > std::numeric_limits<uint32_t>::max()) {
             break;
         }
-
-        const auto& light = lights[light_index];
-        if (light.radius <= 1.0e-4f) {
-            continue;
-        }
-
-        const glm::vec3 closest = glm::clamp(light.position, bounds.min, bounds.max);
-        glm::vec3 delta = light.position - closest;
-        if (light.contribution == nw::render::LocalLightContribution::ambient) {
-            delta.z *= std::clamp(light.vertical_scale, 0.0f, 1.0f);
-        }
-        if (glm::dot(delta, delta) < light.radius * light.radius) {
+        if (local_light_affects_bounds(lights[light_index], bounds)) {
             indices.push_back(static_cast<uint32_t>(light_index));
         }
     }
@@ -469,13 +460,104 @@ void rebuild_prepared_surface_indices(
     rebuild_prepared_surface_pass_offsets(offsets, indices, surfaces);
 }
 
-void append_area_visible_render_model_handle(
+bool rebuild_area_prepared_surface_indices(
+    std::vector<uint32_t>& indices,
+    std::array<uint32_t, 5>& offsets,
+    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
+    std::span<const uint32_t> surface_offsets,
+    std::span<const uint32_t> model_indices)
+{
+    if (surface_offsets.size() != model_indices.size() + 1u
+        || surface_offsets.empty()
+        || surface_offsets.front() != 0u
+        || surface_offsets.back() != surfaces.size()) {
+        return false;
+    }
+
+    std::array<uint32_t, 8> bucket_counts{};
+    for (size_t record_index = 0;
+        record_index < model_indices.size(); ++record_index) {
+        if ((record_index > 0u
+                && model_indices[record_index - 1u]
+                    >= model_indices[record_index])
+            || surface_offsets[record_index]
+                > surface_offsets[record_index + 1u]
+            || surface_offsets[record_index + 1u]
+                > surfaces.size()) {
+            return false;
+        }
+        for (uint32_t surface_index
+            = surface_offsets[record_index];
+            surface_index < surface_offsets[record_index + 1u];
+            ++surface_index) {
+            const auto& surface = surfaces[surface_index];
+            const uint32_t pass
+                = nw::render::prepared_model_surface_pass_index(
+                    surface.material_mode);
+            if (pass >= 4u
+                || surface.instance_source_index
+                    != model_indices[record_index]) {
+                return false;
+            }
+            ++bucket_counts[pass * 2u
+                + (surface.skinned ? 1u : 0u)];
+        }
+    }
+
+    std::array<uint32_t, 8> bucket_offsets{};
+    uint32_t cursor = 0u;
+    for (uint32_t bucket = 0u;
+        bucket < bucket_counts.size(); ++bucket) {
+        bucket_offsets[bucket] = cursor;
+        cursor += bucket_counts[bucket];
+    }
+    if (cursor != surfaces.size()) {
+        return false;
+    }
+
+    indices.resize(surfaces.size());
+    auto write_offsets = bucket_offsets;
+    std::vector<uint32_t> record_indices;
+    for (size_t record_index = 0;
+        record_index < model_indices.size(); ++record_index) {
+        record_indices.clear();
+        const uint32_t begin = surface_offsets[record_index];
+        const uint32_t end = surface_offsets[record_index + 1u];
+        record_indices.reserve(end - begin);
+        for (uint32_t surface_index = begin;
+            surface_index < end; ++surface_index) {
+            record_indices.push_back(surface_index);
+        }
+        sort_prepared_surface_indices(record_indices, surfaces);
+        for (const uint32_t surface_index : record_indices) {
+            const auto& surface = surfaces[surface_index];
+            const uint32_t pass
+                = nw::render::prepared_model_surface_pass_index(
+                    surface.material_mode);
+            const uint32_t bucket = pass * 2u
+                + (surface.skinned ? 1u : 0u);
+            indices[write_offsets[bucket]++] = surface_index;
+        }
+    }
+
+    for (uint32_t pass = 0u; pass < 4u; ++pass) {
+        offsets[pass] = bucket_offsets[pass * 2u];
+    }
+    offsets[4] = cursor;
+    return true;
+}
+
+void append_area_visible_dynamic_render_model_handle(
     std::vector<nw::render::ModelInstanceHandle>& out,
     const AreaRenderScene& scene,
     uint32_t record_index)
 {
     const auto handles = scene.model_instance_handles();
-    if (record_index >= handles.size()) {
+    const auto flags = scene.flags();
+    if (record_index >= handles.size()
+        || record_index >= flags.size()
+        || has_flag(flags[record_index],
+            AreaRenderScene::RecordFlag::static_candidate)) {
         return;
     }
 
@@ -583,6 +665,13 @@ void count_kind(AreaRenderSceneStats& stats, nw::ObjectType kind) noexcept
     default:
         ++stats.unknown_record_count;
         break;
+    }
+}
+
+void decrement_count(uint32_t& value) noexcept
+{
+    if (value > 0) {
+        --value;
     }
 }
 
@@ -982,7 +1071,12 @@ AreaObjectSelection select_area_object_geometry(
     const bool select_tiles = options.target == AreaObjectSelectionTarget::tile;
 
     for (uint32_t record_index = 0; record_index < bounds.size(); ++record_index) {
-        if ((flags[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u) {
+        if ((flags[record_index]
+                & AreaRenderScene::RecordFlag::render_enabled)
+                == 0u
+            || (flags[record_index]
+                   & AreaRenderScene::RecordFlag::preview_suppressed)
+                != 0u) {
             continue;
         }
         const bool tile_record = kinds[record_index] == nw::ObjectType::tile
@@ -1073,64 +1167,251 @@ AreaObjectSelection select_area_object_geometry(
     return miss;
 }
 
+bool finite_mat4(const glm::mat4& value) noexcept
+{
+    for (glm::length_t column = 0; column < 4; ++column) {
+        for (glm::length_t row = 0; row < 4; ++row) {
+            if (!std::isfinite(value[column][row])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool rigid_yaw_transform(const glm::mat4& value) noexcept
+{
+    constexpr float kEpsilon = 1.0e-4f;
+    if (!finite_mat4(value)) {
+        return false;
+    }
+
+    const glm::vec2 x_axis{value[0]};
+    const glm::vec2 y_axis{value[1]};
+    return std::abs(glm::dot(x_axis, x_axis) - 1.0f) <= kEpsilon
+        && std::abs(glm::dot(y_axis, y_axis) - 1.0f) <= kEpsilon
+        && std::abs(glm::dot(x_axis, y_axis)) <= kEpsilon
+        && std::abs(value[0].z) <= kEpsilon
+        && std::abs(value[1].z) <= kEpsilon
+        && std::abs(value[2].x) <= kEpsilon
+        && std::abs(value[2].y) <= kEpsilon
+        && std::abs(value[2].z - 1.0f) <= kEpsilon
+        && std::abs(value[0].w) <= kEpsilon
+        && std::abs(value[1].w) <= kEpsilon
+        && std::abs(value[2].w) <= kEpsilon
+        && std::abs(value[3].w - 1.0f) <= kEpsilon
+        && std::abs(glm::determinant(glm::mat2{value}) - 1.0f)
+        <= kEpsilon;
+}
+
+bool valid_area_surface_geometry_protocol(
+    std::span<const AreaSurfaceRange> geometries,
+    std::span<const AreaSurfaceTriangle> triangles) noexcept
+{
+    if (geometries.size() > std::numeric_limits<uint32_t>::max()
+        || triangles.size() > std::numeric_limits<uint32_t>::max()) {
+        return false;
+    }
+
+    uint64_t triangle_offset = 0u;
+    for (const auto& geometry : geometries) {
+        if (geometry.first_triangle != triangle_offset) {
+            return false;
+        }
+        triangle_offset += geometry.triangle_count;
+        if (triangle_offset > triangles.size()
+            || (geometry.triangle_count != 0u
+                && !finite_ordered_bounds(geometry.bounds))) {
+            return false;
+        }
+    }
+    return triangle_offset == triangles.size();
+}
+
+bool valid_area_surface_instance_protocol(
+    std::span<const AreaSurfaceRange> geometries,
+    std::span<const AreaSurfaceTriangle> triangles,
+    std::span<const AreaSurfaceInstance> instances) noexcept
+{
+    if (!valid_area_surface_geometry_protocol(geometries, triangles)) {
+        return false;
+    }
+    for (const auto& instance : instances) {
+        if (instance.geometry_index == kInvalidAreaRenderRecordIndex) {
+            continue;
+        }
+        if (instance.geometry_index >= geometries.size()
+            || !finite_ordered_bounds(instance.bounds)
+            || !rigid_yaw_transform(instance.root)
+            || !rigid_yaw_transform(instance.inverse_root)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+uint32_t find_area_surface_geometry(
+    std::span<const std::shared_ptr<nw::render::RenderModel>> models,
+    const std::shared_ptr<nw::render::RenderModel>& model) noexcept
+{
+    const auto found = std::find(models.begin(), models.end(), model);
+    return found == models.end()
+        ? kInvalidAreaRenderRecordIndex
+        : static_cast<uint32_t>(std::distance(models.begin(), found));
+}
+
+bool append_area_surface_geometry(
+    const std::shared_ptr<nw::render::RenderModel>& model,
+    const nw::render::ModelInstance* instance,
+    std::vector<std::shared_ptr<nw::render::RenderModel>>& models,
+    std::vector<uint32_t>& use_counts,
+    std::vector<AreaSurfaceRange>& geometries,
+    std::vector<AreaSurfaceTriangle>& triangles,
+    uint32_t& geometry_index)
+{
+    geometry_index = kInvalidAreaRenderRecordIndex;
+    if (!model || !instance
+        || models.size() != use_counts.size()
+        || models.size() != geometries.size()
+        || models.size() >= std::numeric_limits<uint32_t>::max()
+        || !rigid_yaw_transform(instance->root_transform)) {
+        return false;
+    }
+
+    const size_t triangle_begin = triangles.size();
+    const size_t range_begin = geometries.size();
+    const glm::mat4 local_from_world
+        = glm::inverse(instance->root_transform);
+    if (!rigid_yaw_transform(local_from_world)
+        || !append_tile_surface_range(
+            *model, instance, instance->root_transform,
+            local_from_world, geometries, triangles)) {
+        triangles.resize(triangle_begin);
+        geometries.resize(range_begin);
+        return false;
+    }
+    if (geometries.size() == range_begin) {
+        geometries.push_back({
+            .first_triangle = static_cast<uint32_t>(triangle_begin),
+        });
+    }
+
+    geometry_index = static_cast<uint32_t>(models.size());
+    models.push_back(model);
+    use_counts.push_back(0u);
+    return true;
+}
+
 } // namespace
 
-void trace_area_surfaces(
+bool update_area_surface_instances(
+    std::span<const AreaSurfaceInstanceUpdate> updates,
+    uint32_t geometry_count,
+    std::span<AreaSurfaceInstance> instances) noexcept
+{
+    for (size_t index = 0; index < updates.size(); ++index) {
+        const auto& update = updates[index];
+        if ((index > 0
+                && updates[index - 1].model_index
+                    >= update.model_index)
+            || update.model_index >= instances.size()
+            || update.geometry_index >= geometry_count
+            || !finite_ordered_bounds(update.bounds)
+            || !rigid_yaw_transform(update.root)
+            || !rigid_yaw_transform(glm::inverse(update.root))) {
+            return false;
+        }
+    }
+
+    for (const auto& update : updates) {
+        instances[update.model_index] = {
+            .bounds = update.bounds,
+            .root = update.root,
+            .inverse_root = glm::inverse(update.root),
+            .geometry_index = update.geometry_index,
+        };
+    }
+    return true;
+}
+
+void trace_area_surface_instances(
     std::span<const ViewerRay> rays,
-    std::span<const AreaSurfaceRange> ranges,
+    std::span<const AreaSurfaceRange> geometries,
     std::span<const AreaSurfaceTriangle> triangles,
+    std::span<const AreaSurfaceInstance> instances,
     std::span<AreaSurfaceHit> hits) noexcept
 {
     std::fill(hits.begin(), hits.end(), AreaSurfaceHit{});
     if (rays.size() != hits.size()
-        || !valid_surface_protocol(ranges, triangles)) {
+        || !valid_area_surface_instance_protocol(
+            geometries, triangles, instances)) {
         return;
     }
 
     for (size_t ray_index = 0; ray_index < rays.size(); ++ray_index) {
         const auto& input_ray = rays[ray_index];
         auto& result = hits[ray_index];
-        if (!finite_vec3(input_ray.origin) || !finite_vec3(input_ray.direction)) {
+        if (!finite_vec3(input_ray.origin)
+            || !finite_vec3(input_ray.direction)) {
+            continue;
+        }
+        const float direction_length = glm::length(input_ray.direction);
+        if (!std::isfinite(direction_length)
+            || direction_length <= 1.0e-8f) {
             continue;
         }
 
-        const float direction_length = glm::length(input_ray.direction);
-        if (!std::isfinite(direction_length) || direction_length <= 1.0e-8f) {
-            continue;
-        }
-        const ViewerRay ray{
+        const ViewerRay world_ray{
             .origin = input_ray.origin,
             .direction = input_ray.direction / direction_length,
         };
-
         result.status = AreaSurfaceHitStatus::miss;
         float nearest_distance = std::numeric_limits<float>::infinity();
-        for (uint32_t range_index = 0; range_index < ranges.size(); ++range_index) {
-            const auto& range = ranges[range_index];
-            const uint64_t triangle_end = static_cast<uint64_t>(range.first_triangle)
-                + static_cast<uint64_t>(range.triangle_count);
-            const auto bounds_distance = ray_bounds_intersection(ray, range.bounds);
-            if (!bounds_distance || *bounds_distance > nearest_distance) {
+        for (const auto& instance : instances) {
+            if (instance.geometry_index
+                    == kInvalidAreaRenderRecordIndex
+                || !ray_bounds_intersection(world_ray, instance.bounds)) {
                 continue;
             }
-            for (uint32_t triangle_index = range.first_triangle;
-                triangle_index < triangle_end;
-                ++triangle_index) {
-                const auto distance = ray_triangle_intersection(ray, triangles[triangle_index]);
+
+            const auto& geometry
+                = geometries[instance.geometry_index];
+            if (geometry.triangle_count == 0u) {
+                continue;
+            }
+            const ViewerRay local_ray{
+                .origin = glm::vec3(instance.inverse_root
+                    * glm::vec4(world_ray.origin, 1.0f)),
+                .direction = glm::vec3(instance.inverse_root
+                    * glm::vec4(world_ray.direction, 0.0f)),
+            };
+            const uint32_t triangle_end
+                = geometry.first_triangle + geometry.triangle_count;
+            for (uint32_t triangle_index = geometry.first_triangle;
+                triangle_index < triangle_end; ++triangle_index) {
+                const auto distance = ray_triangle_intersection(
+                    local_ray, triangles[triangle_index]);
                 if (!distance || *distance >= nearest_distance) {
                     continue;
                 }
-                glm::vec3 normal{0.0f};
-                if (!upward_surface_normal(triangles[triangle_index], normal)) {
+                glm::vec3 local_normal{0.0f};
+                if (!upward_surface_normal(
+                        triangles[triangle_index], local_normal)) {
+                    continue;
+                }
+                const glm::vec3 world_normal = glm::normalize(
+                    glm::mat3(instance.root) * local_normal);
+                if (!finite_vec3(world_normal)) {
                     continue;
                 }
 
                 nearest_distance = *distance;
                 result = {
-                    .position = ray.origin + ray.direction * nearest_distance,
-                    .normal = normal,
+                    .position = world_ray.origin
+                        + world_ray.direction * nearest_distance,
+                    .normal = world_normal,
                     .distance = nearest_distance,
-                    .range_index = range_index,
+                    .range_index = instance.geometry_index,
                     .status = AreaSurfaceHitStatus::hit,
                 };
             }
@@ -1138,14 +1419,14 @@ void trace_area_surfaces(
     }
 }
 
-AreaSurfaceHit trace_area_surface(
-    const ViewerRay& ray,
-    std::span<const AreaSurfaceRange> ranges,
-    std::span<const AreaSurfaceTriangle> triangles) noexcept
+AreaSurfaceHit AreaRenderScene::trace_surface(
+    const ViewerRay& ray) const noexcept
 {
     AreaSurfaceHit result;
-    trace_area_surfaces(
-        std::span<const ViewerRay>{&ray, 1u}, ranges, triangles,
+    trace_area_surface_instances(
+        std::span<const ViewerRay>{&ray, 1u},
+        surface_geometry_ranges_, surface_geometry_triangles_,
+        surface_instances_,
         std::span<AreaSurfaceHit>{&result, 1u});
     return result;
 }
@@ -1203,7 +1484,12 @@ std::optional<nw::render::Bounds> area_tile_selection_bounds(
         || records.kinds()[record_index] != nw::ObjectType::tile
         || records.tile_xs()[record_index] != selection.tile_x
         || records.tile_ys()[record_index] != selection.tile_y
-        || (records.flags()[record_index] & AreaRenderScene::RecordFlag::render_enabled) == 0u) {
+        || (records.flags()[record_index]
+               & AreaRenderScene::RecordFlag::render_enabled)
+            == 0u
+        || (records.flags()[record_index]
+               & AreaRenderScene::RecordFlag::preview_suppressed)
+            != 0u) {
         return std::nullopt;
     }
 
@@ -1371,6 +1657,7 @@ void AreaRenderScene::clear()
     root_transforms_.clear();
     pass_masks_.clear();
     flags_.clear();
+    preview_suppressed_record_indices_.clear();
     chunk_ids_.clear();
     kinds_.clear();
     object_handles_.clear();
@@ -1380,11 +1667,16 @@ void AreaRenderScene::clear()
     chunk_has_bounds_.clear();
     chunk_offsets_.clear();
     chunk_record_indices_.clear();
-    surface_ranges_.clear();
-    surface_triangles_.clear();
+    surface_geometry_models_.clear();
+    surface_geometry_use_counts_.clear();
+    surface_geometry_ranges_.clear();
+    surface_geometry_triangles_.clear();
+    surface_instances_.clear();
     prepared_model_draws_.clear();
     prepared_model_draw_ranges_.clear();
     prepared_model_surface_draws_.clear();
+    prepared_surface_materials_ = {};
+    prepared_surface_material_bindings_ = {};
     prepared_surface_offsets_.clear();
     prepared_surface_indices_.clear();
     prepared_surface_pass_offsets_.fill(0u);
@@ -1395,10 +1687,21 @@ void AreaRenderScene::clear()
     chunk_light_indices_.clear();
     scene_bounds_ = {};
     stats_ = {};
+    last_tile_record_refresh_stats_ = {};
     has_scene_bounds_ = false;
+    surface_cache_complete_ = false;
 }
 
 void AreaRenderScene::rebuild(const PreviewScene& scene)
+{
+    ++static_cache_generation_;
+    rebuild_records(scene, true, true);
+}
+
+void AreaRenderScene::rebuild_records(
+    const PreviewScene& scene,
+    bool build_surface_cache,
+    bool build_light_cache)
 {
     clear();
     stats_.chunk_width = scene.area_width > 0 ? static_cast<uint32_t>(scene.area_width) : 0u;
@@ -1426,6 +1729,11 @@ void AreaRenderScene::rebuild(const PreviewScene& scene)
     chunk_has_bounds_.resize(stats_.chunk_count, 0u);
     uint32_t chunked_record_count = 0;
     bool surface_cache_valid = true;
+    std::vector<AreaSurfaceInstanceUpdate> surface_updates;
+    if (build_surface_cache) {
+        surface_instances_.resize(scene.static_models.size());
+        surface_updates.reserve(scene.static_models.size());
+    }
 
     for (size_t i = 0; i < scene.static_models.size(); ++i) {
         const auto& model_ptr = scene.static_models[i];
@@ -1506,15 +1814,29 @@ void AreaRenderScene::rebuild(const PreviewScene& scene)
         tile_xs_.push_back(info.tile_x);
         tile_ys_.push_back(info.tile_y);
 
-        if (surface_cache_valid
+        if (build_surface_cache
+            && surface_cache_valid
             && info.kind == nw::ObjectType::tile
             && (flags & RecordFlag::render_enabled) != 0u) {
-            surface_cache_valid = append_tile_surface_range(
-                model,
-                instance,
-                root_transforms_.back(),
-                surface_ranges_,
-                surface_triangles_);
+            uint32_t geometry_index = find_area_surface_geometry(
+                surface_geometry_models_, model_ptr);
+            if (geometry_index == kInvalidAreaRenderRecordIndex) {
+                surface_cache_valid = append_area_surface_geometry(
+                    model_ptr, instance,
+                    surface_geometry_models_,
+                    surface_geometry_use_counts_,
+                    surface_geometry_ranges_,
+                    surface_geometry_triangles_,
+                    geometry_index);
+            }
+            if (surface_cache_valid) {
+                surface_updates.push_back({
+                    .bounds = current_bounds,
+                    .root = instance->root_transform,
+                    .model_index = saturating_count(i),
+                    .geometry_index = geometry_index,
+                });
+            }
         }
 
         ++prepared_model_draws_.stats.handle_count;
@@ -1543,15 +1865,25 @@ void AreaRenderScene::rebuild(const PreviewScene& scene)
     stats_.record_count = saturating_count(model_indices_.size());
     stats_.object_handle_bytes = saturating_count(object_handles_.size() * sizeof(nw::ObjectHandle));
     stats_.prepared_draw_count = saturating_count(prepared_model_draws_.draws.size());
-    if (!surface_cache_valid) {
-        surface_ranges_.clear();
-        surface_triangles_.clear();
+    if (surface_cache_valid && build_surface_cache) {
+        surface_cache_valid = update_area_surface_instances(
+            surface_updates,
+            saturating_count(surface_geometry_ranges_.size()),
+            surface_instances_);
     }
-    stats_.surface_range_count = saturating_count(surface_ranges_.size());
-    stats_.surface_triangle_count = saturating_count(surface_triangles_.size());
-    stats_.surface_bytes = saturating_count(
-        surface_ranges_.size() * sizeof(AreaSurfaceRange)
-        + surface_triangles_.size() * sizeof(AreaSurfaceTriangle));
+    if (surface_cache_valid) {
+        for (const auto& update : surface_updates) {
+            ++surface_geometry_use_counts_[update.geometry_index];
+        }
+    } else {
+        surface_geometry_models_.clear();
+        surface_geometry_use_counts_.clear();
+        surface_geometry_ranges_.clear();
+        surface_geometry_triangles_.clear();
+        surface_instances_.clear();
+    }
+    surface_cache_complete_ = build_surface_cache && surface_cache_valid;
+    refresh_surface_stats();
     chunk_offsets_.resize(static_cast<size_t>(stats_.chunk_count) + 1u, 0u);
     for (uint32_t chunk_id = 0; chunk_id < stats_.chunk_count; ++chunk_id) {
         const uint32_t count = chunk_counts[chunk_id];
@@ -1573,7 +1905,9 @@ void AreaRenderScene::rebuild(const PreviewScene& scene)
         chunk_record_indices_[write_index] = record_index;
     }
 
-    refresh_light_indices(scene);
+    if (build_light_cache) {
+        refresh_light_indices(scene);
+    }
     nw::render::collect_prepared_model_draw_ranges(prepared_model_draw_ranges_, prepared_model_draws_);
     nw::render::collect_prepared_model_surface_draws(
         prepared_model_surface_draws_,
@@ -1594,7 +1928,1013 @@ void AreaRenderScene::rebuild(const PreviewScene& scene)
     const std::span<const nw::render::PreparedModelSurfaceDraw> prepared_surfaces{
         prepared_model_surface_draws_.draws.data(),
         prepared_model_surface_draws_.draws.size()};
-    rebuild_prepared_surface_indices(prepared_surface_indices_, prepared_surface_pass_offsets_, prepared_surfaces);
+    if (!rebuild_area_prepared_surface_indices(
+            prepared_surface_indices_,
+            prepared_surface_pass_offsets_, prepared_surfaces,
+            prepared_surface_offsets_, model_indices_)) {
+        rebuild_prepared_surface_indices(
+            prepared_surface_indices_,
+            prepared_surface_pass_offsets_, prepared_surfaces);
+    }
+    refresh_prepared_surface_protocol_stats();
+}
+
+bool AreaRenderScene::rebuild_tile_records(
+    const PreviewScene& scene,
+    std::span<const uint32_t> model_indices)
+{
+    return rebuild_tile_records_impl(
+        scene, model_indices, model_indices, {}, false);
+}
+
+bool AreaRenderScene::rebuild_tile_records_with_stable_light_rows(
+    const PreviewScene& scene,
+    std::span<const uint32_t> model_indices,
+    std::span<const uint32_t> replaced_model_indices,
+    std::span<const uint32_t> changed_light_indices)
+{
+    return rebuild_tile_records_impl(
+        scene, model_indices, replaced_model_indices,
+        changed_light_indices, true);
+}
+
+bool AreaRenderScene::rebuild_tile_records_impl(
+    const PreviewScene& scene,
+    std::span<const uint32_t> model_indices,
+    std::span<const uint32_t> replaced_model_indices,
+    std::span<const uint32_t> changed_light_indices,
+    bool stable_light_rows)
+{
+    if (model_indices.empty() || !surface_cache_complete_
+        || surface_geometry_models_.size()
+            != surface_geometry_use_counts_.size()
+        || surface_geometry_models_.size()
+            != surface_geometry_ranges_.size()
+        || !valid_area_surface_geometry_protocol(
+            surface_geometry_ranges_, surface_geometry_triangles_)
+        || surface_instances_.size() != scene.static_models.size()
+        || scene.static_model_instance_handles.size()
+            != scene.static_models.size()
+        || scene.static_area_model_info.size()
+            != scene.static_models.size()) {
+        return false;
+    }
+    for (size_t index = 0; index < model_indices.size(); ++index) {
+        const uint32_t model_index = model_indices[index];
+        if ((index > 0 && model_indices[index - 1] >= model_index)
+            || model_index >= scene.static_models.size()
+            || !scene.static_models[model_index]
+            || model_index >= render_model_record_indices_.size()) {
+            return false;
+        }
+        const uint32_t record_index
+            = render_model_record_indices_[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        if (record_index >= model_indices_.size()
+            || record_index >= root_transforms_.size()
+            || model_indices_[record_index] != model_index
+            || !instance || !instance->visible
+            || instance->render_model_index != model_index
+            || instance->scene_animation_enabled
+            || info.kind != nw::ObjectType::tile
+            || !info.static_candidate
+            || info.tile_x < 0 || info.tile_y < 0
+            || !has_flag(flags_[record_index], RecordFlag::static_candidate)
+            || chunk_ids_[record_index] == kInvalidChunkId
+            || !finite_ordered_bounds(instance->current_bounds)
+            || !rigid_yaw_transform(instance->root_transform)
+            || surface_instances_[model_index].geometry_index
+                >= surface_geometry_models_.size()
+            || surface_geometry_use_counts_[surface_instances_[model_index].geometry_index] == 0u) {
+            return false;
+        }
+    }
+    size_t changed_index = 0;
+    for (size_t index = 0;
+        index < replaced_model_indices.size(); ++index) {
+        const uint32_t model_index = replaced_model_indices[index];
+        while (changed_index < model_indices.size()
+            && model_indices[changed_index] < model_index) {
+            ++changed_index;
+        }
+        if ((index > 0
+                && replaced_model_indices[index - 1] >= model_index)
+            || changed_index == model_indices.size()
+            || model_indices[changed_index] != model_index) {
+            return false;
+        }
+    }
+    if (stable_light_rows) {
+        if (scene.render_local_lights.size() != stats_.local_light_count
+            || light_index_offsets_.size()
+                != model_indices_.size() + 1u
+            || light_index_offsets_.back() != light_indices_.size()) {
+            return false;
+        }
+        for (size_t index = 0;
+            index < changed_light_indices.size(); ++index) {
+            if ((index > 0
+                    && changed_light_indices[index - 1]
+                        >= changed_light_indices[index])
+                || changed_light_indices[index]
+                    >= scene.render_local_lights.size()) {
+                return false;
+            }
+        }
+    }
+
+    // Model assets have no stable asset index in PreviewScene. Pointer
+    // identity is paid only while resolving the small unique-geometry table;
+    // placed tiles and the trace path remain dense index-addressed rows.
+    std::vector<std::shared_ptr<nw::render::RenderModel>> pending_models;
+    std::vector<uint32_t> pending_use_counts;
+    std::vector<AreaSurfaceRange> pending_geometries;
+    std::vector<AreaSurfaceTriangle> pending_triangles;
+    std::vector<AreaSurfaceInstanceUpdate> surface_updates;
+    pending_models.reserve(replaced_model_indices.size());
+    pending_use_counts.reserve(replaced_model_indices.size());
+    pending_geometries.reserve(replaced_model_indices.size());
+    surface_updates.reserve(model_indices.size());
+    for (const uint32_t model_index : model_indices) {
+        const auto& model = scene.static_models[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        uint32_t geometry_index = find_area_surface_geometry(
+            surface_geometry_models_, model);
+        if (geometry_index == kInvalidAreaRenderRecordIndex) {
+            uint32_t pending_index = find_area_surface_geometry(
+                pending_models, model);
+            if (pending_index == kInvalidAreaRenderRecordIndex
+                && !append_area_surface_geometry(
+                    model, instance,
+                    pending_models, pending_use_counts,
+                    pending_geometries, pending_triangles,
+                    pending_index)) {
+                return false;
+            }
+            if (surface_geometry_models_.size()
+                > std::numeric_limits<uint32_t>::max()
+                    - pending_index) {
+                return false;
+            }
+            geometry_index = static_cast<uint32_t>(
+                                 surface_geometry_models_.size())
+                + pending_index;
+        }
+        surface_updates.push_back({
+            .bounds = instance->current_bounds,
+            .root = instance->root_transform,
+            .model_index = model_index,
+            .geometry_index = geometry_index,
+        });
+    }
+
+    const uint32_t resulting_geometry_count = saturating_count(
+        surface_geometry_models_.size() + pending_models.size());
+    const uint32_t triangle_base
+        = saturating_count(surface_geometry_triangles_.size());
+    if (resulting_geometry_count == kInvalidAreaRenderRecordIndex
+        || triangle_base == kInvalidAreaRenderRecordIndex
+        || pending_triangles.size()
+            > std::numeric_limits<uint32_t>::max() - triangle_base) {
+        return false;
+    }
+    for (auto& geometry : pending_geometries) {
+        geometry.first_triangle += triangle_base;
+    }
+
+    std::vector<uint32_t> old_light_offsets;
+    std::vector<uint32_t> old_light_indices;
+    bool rebuilt_all_record_rows = false;
+    if (!refresh_stable_tile_record_rows(scene, model_indices,
+            !replaced_model_indices.empty())) {
+        auto surface_models = std::move(surface_geometry_models_);
+        auto surface_use_counts
+            = std::move(surface_geometry_use_counts_);
+        auto surface_ranges = std::move(surface_geometry_ranges_);
+        auto surface_triangles
+            = std::move(surface_geometry_triangles_);
+        auto surface_instances = std::move(surface_instances_);
+        rebuild_records(scene, false, true);
+        surface_geometry_models_ = std::move(surface_models);
+        surface_geometry_use_counts_
+            = std::move(surface_use_counts);
+        surface_geometry_ranges_ = std::move(surface_ranges);
+        surface_geometry_triangles_
+            = std::move(surface_triangles);
+        surface_instances_ = std::move(surface_instances);
+        surface_cache_complete_ = true;
+        ++static_cache_generation_;
+        rebuilt_all_record_rows = true;
+    }
+    if (stable_light_rows && !rebuilt_all_record_rows) {
+        old_light_offsets = std::move(light_index_offsets_);
+        old_light_indices = std::move(light_indices_);
+    } else if (!rebuilt_all_record_rows) {
+        refresh_light_indices(scene);
+    }
+
+    std::vector<uint32_t> previous_use_counts
+        = surface_geometry_use_counts_;
+    previous_use_counts.resize(resulting_geometry_count, 0u);
+    surface_geometry_models_.insert(
+        surface_geometry_models_.end(),
+        std::make_move_iterator(pending_models.begin()),
+        std::make_move_iterator(pending_models.end()));
+    surface_geometry_use_counts_.insert(
+        surface_geometry_use_counts_.end(),
+        pending_use_counts.begin(), pending_use_counts.end());
+    surface_geometry_ranges_.insert(
+        surface_geometry_ranges_.end(),
+        pending_geometries.begin(), pending_geometries.end());
+    surface_geometry_triangles_.insert(
+        surface_geometry_triangles_.end(),
+        pending_triangles.begin(), pending_triangles.end());
+
+    for (const auto& update : surface_updates) {
+        --surface_geometry_use_counts_[surface_instances_[update.model_index].geometry_index];
+    }
+    if (!update_area_surface_instances(
+            surface_updates, resulting_geometry_count,
+            surface_instances_)) {
+        return false;
+    }
+    for (const auto& update : surface_updates) {
+        ++surface_geometry_use_counts_[update.geometry_index];
+    }
+
+    // Keep the geometry displaced by this batch for the immediate undo/redo
+    // path. A zero-use row retained by an older batch is stale and is removed,
+    // bounding inactive storage by the unique geometries displaced by one
+    // edit batch.
+    bool has_stale_inactive_geometry = false;
+    for (uint32_t geometry_index = 0;
+        geometry_index < surface_geometry_use_counts_.size();
+        ++geometry_index) {
+        if (surface_geometry_use_counts_[geometry_index] == 0u
+            && previous_use_counts[geometry_index] == 0u) {
+            has_stale_inactive_geometry = true;
+            break;
+        }
+    }
+    if (has_stale_inactive_geometry) {
+        std::vector<uint32_t> remap(
+            surface_geometry_models_.size(),
+            kInvalidAreaRenderRecordIndex);
+        std::vector<std::shared_ptr<nw::render::RenderModel>> live_models;
+        std::vector<uint32_t> live_use_counts;
+        std::vector<AreaSurfaceRange> live_geometries;
+        std::vector<AreaSurfaceTriangle> live_triangles;
+        live_models.reserve(surface_geometry_models_.size());
+        live_use_counts.reserve(surface_geometry_models_.size());
+        live_geometries.reserve(surface_geometry_models_.size());
+        live_triangles.reserve(surface_geometry_triangles_.size());
+        for (uint32_t geometry_index = 0;
+            geometry_index < surface_geometry_models_.size();
+            ++geometry_index) {
+            if (surface_geometry_use_counts_[geometry_index] == 0u
+                && previous_use_counts[geometry_index] == 0u) {
+                continue;
+            }
+            remap[geometry_index]
+                = static_cast<uint32_t>(live_models.size());
+            const auto& source
+                = surface_geometry_ranges_[geometry_index];
+            AreaSurfaceRange geometry = source;
+            geometry.first_triangle
+                = static_cast<uint32_t>(live_triangles.size());
+            live_models.push_back(
+                std::move(surface_geometry_models_[geometry_index]));
+            live_use_counts.push_back(
+                surface_geometry_use_counts_[geometry_index]);
+            live_geometries.push_back(geometry);
+            live_triangles.insert(live_triangles.end(),
+                surface_geometry_triangles_.begin()
+                    + source.first_triangle,
+                surface_geometry_triangles_.begin()
+                    + source.first_triangle + source.triangle_count);
+        }
+        for (auto& instance : surface_instances_) {
+            if (instance.geometry_index
+                != kInvalidAreaRenderRecordIndex) {
+                instance.geometry_index = remap[instance.geometry_index];
+            }
+        }
+        surface_geometry_models_ = std::move(live_models);
+        surface_geometry_use_counts_ = std::move(live_use_counts);
+        surface_geometry_ranges_ = std::move(live_geometries);
+        surface_geometry_triangles_ = std::move(live_triangles);
+    }
+
+    surface_cache_complete_ = true;
+    refresh_surface_stats();
+    if (stable_light_rows && !rebuilt_all_record_rows
+        && !rebuild_stable_light_indices(scene,
+            old_light_offsets, old_light_indices,
+            model_indices, changed_light_indices)) {
+        return false;
+    }
+    ++tile_cache_generation_;
+    return true;
+}
+
+bool AreaRenderScene::refresh_stable_tile_record_rows(
+    const PreviewScene& scene,
+    std::span<const uint32_t> changed_model_indices,
+    bool surface_protocol_changed)
+{
+    using RefreshClock = std::chrono::steady_clock;
+    const auto refresh_begin = RefreshClock::now();
+    const auto elapsed = [](RefreshClock::time_point begin,
+                             RefreshClock::time_point end) noexcept {
+        return std::chrono::duration<float>(end - begin).count();
+    };
+    last_tile_record_refresh_stats_ = {};
+    const size_t record_count = model_indices_.size();
+    const size_t surface_count
+        = prepared_model_surface_draws_.draws.size();
+    if (record_count == 0u
+        || model_instance_handles_.size() != record_count
+        || bounds_.size() != record_count
+        || root_transforms_.size() != record_count
+        || pass_masks_.size() != record_count
+        || flags_.size() != record_count
+        || chunk_ids_.size() != record_count
+        || kinds_.size() != record_count
+        || object_handles_.size() != record_count
+        || tile_xs_.size() != record_count
+        || tile_ys_.size() != record_count
+        || prepared_model_draws_.instance_offsets.size()
+            != record_count + 1u
+        || prepared_surface_offsets_.size() != record_count + 1u
+        || prepared_model_draws_.instance_offsets.front() != 0u
+        || prepared_model_draws_.instance_offsets.back()
+            != prepared_model_draws_.draws.size()
+        || prepared_surface_offsets_.front() != 0u
+        || prepared_surface_offsets_.back() != surface_count
+        || prepared_surface_indices_.size() != surface_count) {
+        return false;
+    }
+
+    struct ReplacementRow {
+        uint32_t model_index = kInvalidAreaRenderRecordIndex;
+        uint32_t record_index = kInvalidAreaRenderRecordIndex;
+        uint32_t draw_begin = 0u;
+        uint32_t draw_count = 0u;
+        uint32_t replacement_begin = 0u;
+        uint32_t replacement_count = 0u;
+        uint32_t surface_begin = 0u;
+        uint32_t range_index = kInvalidAreaRenderRecordIndex;
+    };
+    std::vector<ReplacementRow> rows;
+    rows.reserve(changed_model_indices.size());
+    nw::render::PreparedModelDrawList replacement_draws;
+    replacement_draws.draws.reserve(
+        changed_model_indices.size() * 16u);
+    bool variable_draw_counts = false;
+
+    for (const uint32_t model_index : changed_model_indices) {
+        const uint32_t record_index
+            = render_model_record_indices_[model_index];
+        if (!rows.empty()
+            && rows.back().record_index >= record_index) {
+            return false;
+        }
+        const uint32_t draw_begin
+            = prepared_model_draws_.instance_offsets[record_index];
+        const uint32_t draw_end
+            = prepared_model_draws_.instance_offsets[record_index + 1u];
+        const uint32_t surface_begin
+            = prepared_surface_offsets_[record_index];
+        const uint32_t surface_end
+            = prepared_surface_offsets_[record_index + 1u];
+        if (draw_begin > draw_end
+            || draw_end > prepared_model_draws_.draws.size()
+            || surface_begin > surface_end
+            || surface_end > surface_count
+            || draw_end - draw_begin
+                != surface_end - surface_begin) {
+            return false;
+        }
+
+        const auto* instance = scene.static_model_instance(model_index);
+        const size_t replacement_begin
+            = replacement_draws.draws.size();
+        append_prepared_render_model_draws(replacement_draws,
+            scene.static_model_instance_handles[model_index],
+            *instance, *scene.static_models[model_index],
+            scene.material_overrides);
+        const size_t replacement_count
+            = replacement_draws.draws.size() - replacement_begin;
+        if (replacement_begin > std::numeric_limits<uint32_t>::max()
+            || replacement_count
+                > std::numeric_limits<uint32_t>::max()) {
+            return false;
+        }
+        variable_draw_counts = variable_draw_counts
+            || replacement_count != draw_end - draw_begin;
+
+        uint32_t range_index = kInvalidAreaRenderRecordIndex;
+        if (surface_begin != surface_end) {
+            range_index = prepared_model_surface_draws_
+                              .draws[surface_begin]
+                              .range_index;
+            if (range_index
+                >= prepared_model_draw_ranges_.ranges.size()) {
+                return false;
+            }
+            const auto& range
+                = prepared_model_draw_ranges_.ranges[range_index];
+            if (range.handle_index != record_index
+                || range.draw_begin != draw_begin
+                || range.draw_count != draw_end - draw_begin) {
+                return false;
+            }
+        }
+        rows.push_back({
+            .model_index = model_index,
+            .record_index = record_index,
+            .draw_begin = draw_begin,
+            .draw_count = draw_end - draw_begin,
+            .replacement_begin
+            = static_cast<uint32_t>(replacement_begin),
+            .replacement_count
+            = static_cast<uint32_t>(replacement_count),
+            .surface_begin = surface_begin,
+            .range_index = range_index,
+        });
+    }
+
+    for (const auto& row : rows) {
+        const auto* instance
+            = scene.static_model_instance(row.model_index);
+        const auto& info
+            = scene.static_area_model_info[row.model_index];
+        if (area_chunk_id(scene, info, instance->current_bounds)
+            != chunk_ids_[row.record_index]) {
+            return false;
+        }
+    }
+
+    last_tile_record_refresh_stats_.prepare_seconds
+        = elapsed(refresh_begin, RefreshClock::now());
+    last_tile_record_refresh_stats_.variable_draw_counts
+        = variable_draw_counts;
+
+    if (variable_draw_counts) {
+        uint64_t next_draw_count
+            = prepared_model_draws_.draws.size();
+        for (const auto& row : rows) {
+            next_draw_count += row.replacement_count;
+            next_draw_count -= row.draw_count;
+        }
+        if (next_draw_count
+            > std::numeric_limits<uint32_t>::max()) {
+            return false;
+        }
+
+        const auto draw_splice_begin = RefreshClock::now();
+        nw::render::PreparedModelDrawList next_draws;
+        next_draws.draws.reserve(
+            static_cast<size_t>(next_draw_count));
+        next_draws.instance_offsets.reserve(record_count + 1u);
+        next_draws.instance_offsets.push_back(0u);
+        size_t replacement_row = 0u;
+        for (uint32_t record_index = 0u;
+            record_index < record_count; ++record_index) {
+            if (replacement_row < rows.size()
+                && rows[replacement_row].record_index
+                    == record_index) {
+                const auto& row = rows[replacement_row++];
+                next_draws.draws.insert(
+                    next_draws.draws.end(),
+                    replacement_draws.draws.begin()
+                        + row.replacement_begin,
+                    replacement_draws.draws.begin()
+                        + row.replacement_begin
+                        + row.replacement_count);
+            } else {
+                const uint32_t begin
+                    = prepared_model_draws_
+                          .instance_offsets[record_index];
+                const uint32_t end
+                    = prepared_model_draws_
+                          .instance_offsets[record_index + 1u];
+                next_draws.draws.insert(next_draws.draws.end(),
+                    prepared_model_draws_.draws.begin() + begin,
+                    prepared_model_draws_.draws.begin() + end);
+            }
+            next_draws.instance_offsets.push_back(
+                saturating_count(next_draws.draws.size()));
+        }
+        if (replacement_row != rows.size()
+            || next_draws.draws.size() != next_draw_count) {
+            return false;
+        }
+        last_tile_record_refresh_stats_.draw_splice_seconds
+            = elapsed(draw_splice_begin, RefreshClock::now());
+
+        const auto surface_protocol_begin = RefreshClock::now();
+        nw::render::PreparedModelDrawRangeList next_ranges;
+        nw::render::PreparedModelSurfaceDrawList next_surfaces;
+        nw::render::collect_prepared_model_draw_ranges(
+            next_ranges, next_draws);
+        nw::render::collect_prepared_model_surface_draws(
+            next_surfaces, next_draws, next_ranges);
+        if (!next_ranges.stats.valid()
+            || !next_surfaces.stats.valid()
+            || next_ranges.stats.draw_count
+                != next_draws.draws.size()
+            || next_surfaces.draws.size()
+                != next_draws.draws.size()) {
+            return false;
+        }
+
+        std::vector<uint32_t> next_surface_offsets(
+            record_count + 1u, 0u);
+        size_t next_surface_cursor = 0u;
+        for (uint32_t record_index = 0u;
+            record_index < record_count; ++record_index) {
+            next_surface_offsets[record_index]
+                = saturating_count(next_surface_cursor);
+            while (next_surface_cursor
+                    < next_surfaces.draws.size()
+                && next_surfaces
+                        .draws[next_surface_cursor]
+                        .handle_index
+                    == record_index) {
+                ++next_surface_cursor;
+            }
+        }
+        next_surface_offsets.back()
+            = saturating_count(next_surface_cursor);
+        if (next_surface_cursor
+            != next_surfaces.draws.size()) {
+            return false;
+        }
+
+        std::vector<uint32_t> next_surface_indices;
+        std::array<uint32_t, 5> next_pass_offsets{};
+        if (!rebuild_area_prepared_surface_indices(
+                next_surface_indices, next_pass_offsets,
+                next_surfaces.draws, next_surface_offsets,
+                model_indices_)) {
+            return false;
+        }
+
+        prepared_model_draws_ = std::move(next_draws);
+        prepared_model_draw_ranges_ = std::move(next_ranges);
+        prepared_model_surface_draws_
+            = std::move(next_surfaces);
+        prepared_surface_offsets_
+            = std::move(next_surface_offsets);
+        prepared_surface_indices_
+            = std::move(next_surface_indices);
+        prepared_surface_pass_offsets_ = next_pass_offsets;
+        last_tile_record_refresh_stats_.surface_protocol_seconds
+            = elapsed(surface_protocol_begin,
+                RefreshClock::now());
+
+        for (const auto& row : rows) {
+            const auto* instance
+                = scene.static_model_instance(row.model_index);
+            const auto& info
+                = scene.static_area_model_info[row.model_index];
+            model_instance_handles_[row.record_index]
+                = scene.static_model_instance_handles[row.model_index];
+            bounds_[row.record_index] = instance->current_bounds;
+            root_transforms_[row.record_index]
+                = instance->root_transform;
+            pass_masks_[row.record_index]
+                = render_model_pass_mask(
+                    *scene.static_models[row.model_index]);
+            flags_[row.record_index]
+                = static_cast<uint8_t>(RecordFlag::render_enabled)
+                | static_cast<uint8_t>(RecordFlag::static_candidate);
+            if (instance->shadow.casts_shadow) {
+                flags_[row.record_index]
+                    |= static_cast<uint8_t>(
+                        RecordFlag::shadow_caster);
+            }
+            kinds_[row.record_index] = info.kind;
+            object_handles_[row.record_index] = info.object;
+            tile_xs_[row.record_index] = info.tile_x;
+            tile_ys_[row.record_index] = info.tile_y;
+        }
+
+        const auto summary_begin = RefreshClock::now();
+        rebuild_record_summaries(scene);
+        last_tile_record_refresh_stats_.summary_seconds
+            = elapsed(summary_begin, RefreshClock::now());
+        return true;
+    }
+
+    const auto surface_protocol_begin = RefreshClock::now();
+    std::vector<uint8_t> surface_marks(surface_count, 0u);
+    bool surface_sort_changed = false;
+    for (const auto& row : rows) {
+        for (uint32_t surface_index = row.surface_begin;
+            surface_index
+            < row.surface_begin + row.draw_count;
+            ++surface_index) {
+            surface_marks[surface_index] = 1u;
+        }
+    }
+
+    for (const uint32_t surface_index : prepared_surface_indices_) {
+        if (surface_index >= surface_count
+            || (surface_marks[surface_index] & 2u) != 0u) {
+            return false;
+        }
+        surface_marks[surface_index] |= 2u;
+    }
+
+    size_t replacement_offset = 0u;
+    std::vector<uint32_t> changed_surface_indices;
+    for (const auto& row : rows) {
+        const auto* instance
+            = scene.static_model_instance(row.model_index);
+        const auto& info
+            = scene.static_area_model_info[row.model_index];
+
+        model_instance_handles_[row.record_index]
+            = scene.static_model_instance_handles[row.model_index];
+        bounds_[row.record_index] = instance->current_bounds;
+        root_transforms_[row.record_index]
+            = instance->root_transform;
+        pass_masks_[row.record_index]
+            = render_model_pass_mask(
+                *scene.static_models[row.model_index]);
+        flags_[row.record_index]
+            = static_cast<uint8_t>(RecordFlag::render_enabled)
+            | static_cast<uint8_t>(RecordFlag::static_candidate);
+        if (instance->shadow.casts_shadow) {
+            flags_[row.record_index]
+                |= static_cast<uint8_t>(RecordFlag::shadow_caster);
+        }
+        kinds_[row.record_index] = info.kind;
+        object_handles_[row.record_index] = info.object;
+        tile_xs_[row.record_index] = info.tile_x;
+        tile_ys_[row.record_index] = info.tile_y;
+
+        if (row.draw_count != 0u) {
+            auto& range
+                = prepared_model_draw_ranges_.ranges[row.range_index];
+            range.instance
+                = scene.static_model_instance_handles[row.model_index];
+            range.instance_source_index = row.model_index;
+        }
+        for (uint32_t draw_offset = 0u;
+            draw_offset < row.draw_count; ++draw_offset) {
+            const uint32_t draw_index
+                = row.draw_begin + draw_offset;
+            const uint32_t surface_index
+                = row.surface_begin + draw_offset;
+            const auto& replacement
+                = replacement_draws.draws[replacement_offset++];
+            auto& surface
+                = prepared_model_surface_draws_.draws[surface_index];
+            const auto old_sort_key = std::tuple{
+                surface.material_mode,
+                surface.skinned,
+                surface.instance_source_index,
+                surface.material_index,
+                surface.material_override,
+                surface.skin_index,
+                surface.range_index,
+                surface.source_draw_index,
+                surface.handle_index,
+            };
+            prepared_model_draws_.draws[draw_index]
+                = replacement;
+            surface = {
+                .instance = replacement.instance,
+                .range_index = row.range_index,
+                .draw_index = draw_index,
+                .handle_index = row.record_index,
+                .instance_source_index
+                = replacement.instance_source_index,
+                .source_draw_index = replacement.source_draw_index,
+                .material_index = replacement.material_index,
+                .material_override
+                = replacement.material_override,
+                .skin_index = replacement.skin_index,
+                .skin_table_index
+                = nw::render::kInvalidPreparedModelDrawIndex,
+                .material_mode = replacement.material_mode,
+                .material_uses_fallback
+                = replacement.material_uses_fallback,
+                .material_payload = replacement.material_payload,
+                .skinned = replacement.skinned,
+                .casts_shadow
+                = replacement.instance_casts_shadow
+                    && replacement.primitive_casts_shadow
+                    && nw::render::prepared_model_surface_casts_shadow(
+                        replacement.material_mode),
+                .world = replacement.world,
+                .normal_matrix = replacement.normal_matrix,
+                .bounds = replacement.bounds,
+            };
+            const auto new_sort_key = std::tuple{
+                surface.material_mode,
+                surface.skinned,
+                surface.instance_source_index,
+                surface.material_index,
+                surface.material_override,
+                surface.skin_index,
+                surface.range_index,
+                surface.source_draw_index,
+                surface.handle_index,
+            };
+            surface_sort_changed
+                = surface_sort_changed
+                || old_sort_key != new_sort_key;
+            changed_surface_indices.push_back(surface_index);
+        }
+    }
+
+    if (surface_sort_changed) {
+        std::vector<uint32_t> unchanged_surface_indices;
+        unchanged_surface_indices.reserve(
+            surface_count - changed_surface_indices.size());
+        for (const uint32_t surface_index :
+            prepared_surface_indices_) {
+            if ((surface_marks[surface_index] & 1u) == 0u) {
+                unchanged_surface_indices.push_back(surface_index);
+            }
+        }
+        const auto surfaces = std::span<
+            const nw::render::PreparedModelSurfaceDraw>{
+            prepared_model_surface_draws_.draws.data(),
+            prepared_model_surface_draws_.draws.size()};
+        const auto less = [surfaces](uint32_t lhs,
+                              uint32_t rhs) noexcept {
+            return prepared_surface_index_less(
+                surfaces, lhs, rhs);
+        };
+        std::sort(changed_surface_indices.begin(),
+            changed_surface_indices.end(), less);
+        std::vector<uint32_t> merged_surface_indices;
+        merged_surface_indices.reserve(surface_count);
+        std::merge(unchanged_surface_indices.begin(),
+            unchanged_surface_indices.end(),
+            changed_surface_indices.begin(),
+            changed_surface_indices.end(),
+            std::back_inserter(merged_surface_indices), less);
+        prepared_surface_indices_
+            = std::move(merged_surface_indices);
+        rebuild_prepared_surface_pass_offsets(
+            prepared_surface_pass_offsets_,
+            prepared_surface_indices_, surfaces);
+    }
+    last_tile_record_refresh_stats_.surface_protocol_seconds
+        = elapsed(surface_protocol_begin, RefreshClock::now());
+
+    const auto summary_begin = RefreshClock::now();
+    if (surface_protocol_changed) {
+        rebuild_record_summaries(scene);
+    } else {
+        refresh_record_bounds_summaries();
+    }
+    last_tile_record_refresh_stats_.summary_seconds
+        = elapsed(summary_begin, RefreshClock::now());
+    return true;
+}
+
+void AreaRenderScene::rebuild_record_summaries(
+    const PreviewScene& scene)
+{
+    stats_.record_count = saturating_count(model_indices_.size());
+    stats_.static_record_count = 0u;
+    stats_.dynamic_record_count = 0u;
+    stats_.disabled_record_count = 0u;
+    stats_.tile_record_count = 0u;
+    stats_.creature_record_count = 0u;
+    stats_.door_record_count = 0u;
+    stats_.item_record_count = 0u;
+    stats_.placeable_record_count = 0u;
+    stats_.waypoint_record_count = 0u;
+    stats_.unknown_record_count = 0u;
+    stats_.selectable_object_record_count = 0u;
+    stats_.object_handle_bytes = saturating_count(
+        object_handles_.size() * sizeof(nw::ObjectHandle));
+    stats_.opaque_cutout_record_count = 0u;
+    stats_.water_record_count = 0u;
+    stats_.transparent_record_count = 0u;
+    stats_.shadow_caster_record_count = 0u;
+    stats_.prepared_draw_count
+        = saturating_count(prepared_model_draws_.draws.size());
+    stats_.max_prepared_draws_per_record = 0u;
+    prepared_model_draws_.stats = {};
+    prepared_model_draw_ranges_.stats = {};
+    prepared_model_surface_draws_.stats = {};
+    scene_bounds_ = {};
+    has_scene_bounds_ = false;
+    std::fill(chunk_has_bounds_.begin(),
+        chunk_has_bounds_.end(), 0u);
+
+    for (uint32_t record_index = 0u;
+        record_index < model_indices_.size(); ++record_index) {
+        const uint8_t flags = flags_[record_index];
+        const uint8_t pass_mask = pass_masks_[record_index];
+        if (has_flag(flags, RecordFlag::static_candidate)) {
+            ++stats_.static_record_count;
+        } else {
+            ++stats_.dynamic_record_count;
+        }
+        if (!has_flag(flags, RecordFlag::render_enabled)) {
+            ++stats_.disabled_record_count;
+        }
+        if (has_flag(flags, RecordFlag::shadow_caster)) {
+            ++stats_.shadow_caster_record_count;
+        }
+        if (has_opaque_cutout_pass(pass_mask)) {
+            ++stats_.opaque_cutout_record_count;
+        }
+        if (has_water_pass(pass_mask)) {
+            ++stats_.water_record_count;
+        }
+        if (has_transparent_pass(pass_mask)) {
+            ++stats_.transparent_record_count;
+        }
+        count_kind(stats_, kinds_[record_index]);
+        if (has_flag(flags, RecordFlag::render_enabled)
+            && object_matches_record_kind(kinds_[record_index],
+                object_handles_[record_index])
+            && nw::kernel::objects().valid(
+                object_handles_[record_index])) {
+            ++stats_.selectable_object_record_count;
+        }
+        expand_bounds(scene_bounds_, bounds_[record_index],
+            has_scene_bounds_);
+        const uint32_t chunk_id = chunk_ids_[record_index];
+        if (chunk_id < chunk_bounds_.size()) {
+            bool chunk_initialized
+                = chunk_has_bounds_[chunk_id] != 0u;
+            expand_bounds(chunk_bounds_[chunk_id],
+                bounds_[record_index], chunk_initialized);
+            chunk_has_bounds_[chunk_id]
+                = chunk_initialized ? 1u : 0u;
+        }
+
+        const uint32_t draw_begin
+            = prepared_model_draws_.instance_offsets[record_index];
+        const uint32_t draw_end
+            = prepared_model_draws_.instance_offsets[record_index + 1u];
+        stats_.max_prepared_draws_per_record = std::max(
+            stats_.max_prepared_draws_per_record,
+            draw_end - draw_begin);
+        ++prepared_model_draws_.stats.handle_count;
+        const uint32_t model_index = model_indices_[record_index];
+        const auto* instance
+            = scene.model_instances.get(
+                model_instance_handles_[record_index]);
+        if (!instance) {
+            ++prepared_model_draws_.stats.stale_handle_count;
+            continue;
+        }
+        if (instance->visible) {
+            ++prepared_model_draws_.stats.visible_instance_count;
+        } else {
+            ++prepared_model_draws_.stats.hidden_instance_count;
+        }
+        if (!instance->visible
+            || !has_flag(flags, RecordFlag::static_candidate)) {
+            continue;
+        }
+        if (model_index >= scene.static_models.size()
+            || !scene.static_models[model_index]) {
+            ++prepared_model_draws_.stats.missing_asset_count;
+            continue;
+        }
+        ++prepared_model_draws_.stats.render_model_instance_count;
+        const auto& model = *scene.static_models[model_index];
+        for (const auto& primitive : model.primitives) {
+            if (primitive.index_count == 0u
+                || primitive.material >= model.materials.size()) {
+                ++prepared_model_draws_.stats.invalid_draw_count;
+                continue;
+            }
+            ++prepared_model_draws_.stats.render_model_draw_count;
+            nw::render::ModelMaterialOverrideHandle override_handle;
+            if (primitive.material
+                < instance->material_override_handles.size()) {
+                override_handle = instance
+                                      ->material_override_handles[primitive.material];
+                if (override_handle.valid()
+                    && scene.material_overrides.valid(
+                        override_handle)) {
+                    ++prepared_model_draws_.stats
+                          .material_override_draw_count;
+                } else if (override_handle.valid()) {
+                    ++prepared_model_draws_.stats
+                          .invalid_material_override_handle_count;
+                    override_handle = {};
+                }
+            }
+            const auto* material_override
+                = scene.material_overrides.get(override_handle);
+            const auto& material = material_override
+                ? material_override->material
+                : model.materials[primitive.material];
+            if (material.material_uses_fallback) {
+                ++prepared_model_draws_.stats
+                      .material_fallback_draw_count;
+                ++prepared_model_draws_.stats
+                      .render_model_material_fallback_draw_count;
+            }
+        }
+    }
+
+    prepared_model_draw_ranges_.stats.handle_count
+        = saturating_count(model_indices_.size());
+    prepared_model_draw_ranges_.stats.range_count
+        = saturating_count(
+            prepared_model_draw_ranges_.ranges.size());
+    prepared_model_draw_ranges_.stats.render_model_range_count
+        = prepared_model_draw_ranges_.stats.range_count;
+    prepared_model_draw_ranges_.stats.empty_range_count
+        = prepared_model_draw_ranges_.stats.handle_count
+        - prepared_model_draw_ranges_.stats.range_count;
+    prepared_model_draw_ranges_.stats.draw_count
+        = saturating_count(prepared_model_draws_.draws.size());
+
+    prepared_model_surface_draws_.stats.range_count
+        = saturating_count(
+            prepared_model_draw_ranges_.ranges.size());
+    prepared_model_surface_draws_.stats.draw_count
+        = saturating_count(
+            prepared_model_surface_draws_.draws.size());
+    prepared_model_surface_draws_.stats.render_model_draw_count
+        = prepared_model_surface_draws_.stats.draw_count;
+    for (const auto& surface :
+        prepared_model_surface_draws_.draws) {
+        if (surface.casts_shadow) {
+            ++prepared_model_surface_draws_.stats
+                  .shadow_caster_draw_count;
+        }
+    }
+    refresh_prepared_surface_protocol_stats();
+}
+
+void AreaRenderScene::refresh_record_bounds_summaries() noexcept
+{
+    scene_bounds_ = {};
+    has_scene_bounds_ = false;
+    std::fill(chunk_has_bounds_.begin(),
+        chunk_has_bounds_.end(), 0u);
+    const size_t record_count
+        = std::min(bounds_.size(), chunk_ids_.size());
+    for (size_t record_index = 0u;
+        record_index < record_count; ++record_index) {
+        expand_bounds(scene_bounds_, bounds_[record_index],
+            has_scene_bounds_);
+        const uint32_t chunk_id = chunk_ids_[record_index];
+        if (chunk_id >= chunk_bounds_.size()) {
+            continue;
+        }
+        bool initialized = chunk_has_bounds_[chunk_id] != 0u;
+        expand_bounds(chunk_bounds_[chunk_id],
+            bounds_[record_index], initialized);
+        chunk_has_bounds_[chunk_id]
+            = initialized ? 1u : 0u;
+    }
+}
+
+void AreaRenderScene::refresh_prepared_surface_protocol_stats() noexcept
+{
+    const std::span<const nw::render::PreparedModelSurfaceDraw>
+        surfaces{prepared_model_surface_draws_.draws.data(),
+            prepared_model_surface_draws_.draws.size()};
+    prepared_surface_materials_
+        = nw::render::prepared_model_surface_material_stats(surfaces);
+    prepared_surface_material_bindings_
+        = nw::render::validate_prepared_model_surface_material_bindings(
+            surfaces, prepared_model_draws_,
+            prepared_model_draw_ranges_);
+}
+
+void AreaRenderScene::refresh_surface_stats() noexcept
+{
+    stats_.surface_range_count
+        = saturating_count(surface_geometry_ranges_.size());
+    stats_.surface_instance_count = 0u;
+    for (const auto& instance : surface_instances_) {
+        stats_.surface_instance_count += instance.geometry_index
+                != kInvalidAreaRenderRecordIndex
+            ? 1u
+            : 0u;
+    }
+    stats_.surface_triangle_count
+        = saturating_count(surface_geometry_triangles_.size());
+    stats_.surface_bytes = saturating_count(
+        surface_geometry_models_.size()
+            * sizeof(std::shared_ptr<nw::render::RenderModel>)
+        + surface_geometry_use_counts_.size() * sizeof(uint32_t)
+        + surface_geometry_ranges_.size() * sizeof(AreaSurfaceRange)
+        + surface_geometry_triangles_.size()
+            * sizeof(AreaSurfaceTriangle)
+        + surface_instances_.size() * sizeof(AreaSurfaceInstance));
 }
 
 void AreaRenderScene::refresh_runtime_records(const PreviewScene& scene)
@@ -1629,21 +2969,556 @@ void AreaRenderScene::refresh_runtime_records(const PreviewScene& scene)
     }
 }
 
-void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
+bool AreaRenderScene::rebuild_dynamic_records(
+    const PreviewScene& scene, bool light_topology_changed)
 {
-    light_index_offsets_.clear();
-    light_indices_.clear();
-    dynamic_light_indices_.clear();
-    chunk_light_index_offsets_.clear();
-    chunk_light_indices_.clear();
-    stats_.local_light_count = saturating_count(scene.render_local_lights.size());
-    stats_.light_index_count = 0;
-    stats_.dynamic_light_count = 0;
-    stats_.max_light_indices_per_record = 0;
-    stats_.chunk_light_index_count = 0;
-    stats_.max_light_indices_per_chunk = 0;
+    const size_t old_record_count = model_indices_.size();
+    if (scene.static_models.size() > std::numeric_limits<uint32_t>::max()
+        || scene.static_model_instance_handles.size() != scene.static_models.size()
+        || scene.static_area_model_info.size() != scene.static_models.size()
+        || render_model_record_indices_.size() != old_record_count
+        || model_instance_handles_.size() != old_record_count
+        || bounds_.size() != old_record_count
+        || root_transforms_.size() != old_record_count
+        || pass_masks_.size() != old_record_count
+        || flags_.size() != old_record_count
+        || chunk_ids_.size() != old_record_count
+        || kinds_.size() != old_record_count
+        || object_handles_.size() != old_record_count
+        || tile_xs_.size() != old_record_count
+        || tile_ys_.size() != old_record_count
+        || prepared_model_draws_.instance_offsets.size() != old_record_count + 1u
+        || prepared_surface_offsets_.size() != old_record_count + 1u
+        || light_index_offsets_.size() != old_record_count + 1u
+        || surface_instances_.size() != old_record_count) {
+        return false;
+    }
+
+    size_t static_record_count = 0;
+    while (static_record_count < old_record_count
+        && has_flag(flags_[static_record_count], RecordFlag::static_candidate)) {
+        ++static_record_count;
+    }
+    if (static_record_count > scene.static_models.size()) {
+        return false;
+    }
+    for (size_t record_index = static_record_count;
+        record_index < old_record_count;
+        ++record_index) {
+        if (has_flag(flags_[record_index], RecordFlag::static_candidate)
+            || chunk_ids_[record_index] != kInvalidChunkId
+            || !prepared_model_draws_for_record(
+                saturating_count(record_index))
+                .empty()) {
+            return false;
+        }
+    }
+    if (prepared_model_draws_.instance_offsets[static_record_count]
+            != prepared_model_draws_.draws.size()
+        || prepared_surface_offsets_[static_record_count]
+            != prepared_model_surface_draws_.draws.size()
+        || light_index_offsets_[static_record_count]
+            != light_indices_.size()) {
+        return false;
+    }
+
+    for (size_t model_index = 0;
+        model_index < scene.static_models.size();
+        ++model_index) {
+        const auto& model = scene.static_models[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        if (!model || !instance) {
+            return false;
+        }
+        if (model_index < static_record_count) {
+            if (model_indices_[model_index] != model_index
+                || render_model_record_indices_[model_index] != model_index
+                || model_instance_handles_[model_index]
+                    != scene.static_model_instance_handles[model_index]
+                || pass_masks_[model_index] != render_model_pass_mask(*model)
+                || !info.static_candidate
+                || kinds_[model_index] != info.kind
+                || object_handles_[model_index] != info.object
+                || tile_xs_[model_index] != info.tile_x
+                || tile_ys_[model_index] != info.tile_y
+                || chunk_ids_[model_index]
+                    != area_chunk_id(scene, info, instance->current_bounds)) {
+                return false;
+            }
+        } else if (info.static_candidate
+            || area_chunk_id(scene, info, instance->current_bounds)
+                != kInvalidChunkId) {
+            return false;
+        }
+    }
+
+    prepared_model_draws_.instance_offsets.resize(static_record_count + 1u);
+    prepared_surface_offsets_.resize(static_record_count + 1u);
+    light_index_offsets_.resize(static_record_count + 1u);
+    model_indices_.clear();
+    model_instance_handles_.clear();
+    bounds_.clear();
+    root_transforms_.clear();
+    pass_masks_.clear();
+    flags_.clear();
+    chunk_ids_.clear();
+    kinds_.clear();
+    object_handles_.clear();
+    tile_xs_.clear();
+    tile_ys_.clear();
+    render_model_record_indices_.assign(
+        scene.static_models.size(), kInvalidAreaRenderRecordIndex);
+
+    const size_t record_capacity = scene.static_models.size();
+    model_indices_.reserve(record_capacity);
+    model_instance_handles_.reserve(record_capacity);
+    bounds_.reserve(record_capacity);
+    root_transforms_.reserve(record_capacity);
+    pass_masks_.reserve(record_capacity);
+    flags_.reserve(record_capacity);
+    chunk_ids_.reserve(record_capacity);
+    kinds_.reserve(record_capacity);
+    object_handles_.reserve(record_capacity);
+    tile_xs_.reserve(record_capacity);
+    tile_ys_.reserve(record_capacity);
+    prepared_model_draws_.instance_offsets.reserve(record_capacity + 1u);
+    prepared_surface_offsets_.reserve(record_capacity + 1u);
+    light_index_offsets_.reserve(record_capacity + 1u);
+
+    stats_.record_count = 0;
+    stats_.static_record_count = 0;
+    stats_.dynamic_record_count = 0;
+    stats_.disabled_record_count = 0;
+    stats_.tile_record_count = 0;
+    stats_.creature_record_count = 0;
+    stats_.door_record_count = 0;
+    stats_.item_record_count = 0;
+    stats_.placeable_record_count = 0;
+    stats_.waypoint_record_count = 0;
+    stats_.unknown_record_count = 0;
+    stats_.selectable_object_record_count = 0;
+    stats_.object_handle_bytes = 0;
+    stats_.opaque_cutout_record_count = 0;
+    stats_.water_record_count = 0;
+    stats_.transparent_record_count = 0;
+    stats_.shadow_caster_record_count = 0;
+    prepared_model_draws_.stats.handle_count = 0;
+    prepared_model_draws_.stats.visible_instance_count = 0;
+    prepared_model_draws_.stats.hidden_instance_count = 0;
+    prepared_model_draws_.stats.stale_handle_count = 0;
+    scene_bounds_ = {};
+    has_scene_bounds_ = false;
+
+    for (size_t model_index = 0;
+        model_index < scene.static_models.size();
+        ++model_index) {
+        const auto& model = *scene.static_models[model_index];
+        const auto instance_handle
+            = scene.static_model_instance_handles[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        const uint32_t record_index = saturating_count(model_indices_.size());
+        const uint8_t pass_mask = render_model_pass_mask(model);
+        const bool model_static = model_index < static_record_count;
+        uint8_t flags = 0;
+        if (instance->visible) {
+            flags |= RecordFlag::render_enabled;
+            ++prepared_model_draws_.stats.visible_instance_count;
+        } else {
+            ++stats_.disabled_record_count;
+            ++prepared_model_draws_.stats.hidden_instance_count;
+        }
+        if (model_static) {
+            flags |= RecordFlag::static_candidate;
+            ++stats_.static_record_count;
+        } else {
+            ++stats_.dynamic_record_count;
+        }
+        if (instance->shadow.casts_shadow) {
+            flags |= RecordFlag::shadow_caster;
+            ++stats_.shadow_caster_record_count;
+        }
+        if (has_opaque_cutout_pass(pass_mask)) {
+            ++stats_.opaque_cutout_record_count;
+        }
+        if (has_water_pass(pass_mask)) {
+            ++stats_.water_record_count;
+        }
+        if (has_transparent_pass(pass_mask)) {
+            ++stats_.transparent_record_count;
+        }
+        count_kind(stats_, info.kind);
+
+        model_indices_.push_back(saturating_count(model_index));
+        render_model_record_indices_[model_index] = record_index;
+        model_instance_handles_.push_back(instance_handle);
+        bounds_.push_back(instance->current_bounds);
+        root_transforms_.push_back(instance->root_transform);
+        pass_masks_.push_back(pass_mask);
+        flags_.push_back(flags);
+        chunk_ids_.push_back(model_static
+                ? area_chunk_id(scene, info, instance->current_bounds)
+                : kInvalidChunkId);
+        kinds_.push_back(info.kind);
+        object_handles_.push_back(info.object);
+        tile_xs_.push_back(info.tile_x);
+        tile_ys_.push_back(info.tile_y);
+        if ((flags & RecordFlag::render_enabled) != 0u
+            && object_matches_record_kind(info.kind, info.object)
+            && nw::kernel::objects().valid(info.object)) {
+            ++stats_.selectable_object_record_count;
+        }
+        expand_bounds(scene_bounds_, instance->current_bounds, has_scene_bounds_);
+        ++prepared_model_draws_.stats.handle_count;
+
+        if (!model_static) {
+            prepared_model_draws_.instance_offsets.push_back(
+                prepared_model_draws_.instance_offsets.back());
+            prepared_surface_offsets_.push_back(
+                prepared_surface_offsets_.back());
+            light_index_offsets_.push_back(light_index_offsets_.back());
+        }
+    }
+
+    stats_.record_count = saturating_count(model_indices_.size());
+    stats_.object_handle_bytes = saturating_count(
+        object_handles_.size() * sizeof(nw::ObjectHandle));
+    surface_instances_.resize(scene.static_models.size());
+    refresh_surface_stats();
+    if (light_topology_changed) {
+        refresh_light_indices(scene);
+    }
+    return true;
+}
+
+bool AreaRenderScene::append_tile_preview_records(
+    const PreviewScene& scene,
+    std::span<const uint32_t> model_indices)
+{
+    if (model_indices.empty()) {
+        return true;
+    }
 
     const size_t record_count = model_indices_.size();
+    const size_t first_model_index = render_model_record_indices_.size();
+    if (record_count > std::numeric_limits<uint32_t>::max()
+        || model_indices.size() > std::numeric_limits<uint32_t>::max() - record_count
+        || first_model_index > std::numeric_limits<uint32_t>::max()
+        || model_indices.size() > std::numeric_limits<uint32_t>::max() - first_model_index
+        || model_instance_handles_.size() != record_count
+        || bounds_.size() != record_count
+        || root_transforms_.size() != record_count
+        || pass_masks_.size() != record_count
+        || flags_.size() != record_count
+        || chunk_ids_.size() != record_count
+        || kinds_.size() != record_count
+        || object_handles_.size() != record_count
+        || tile_xs_.size() != record_count
+        || tile_ys_.size() != record_count
+        || prepared_model_draws_.instance_offsets.size() != record_count + 1u
+        || prepared_surface_offsets_.size() != record_count + 1u
+        || light_index_offsets_.size() != record_count + 1u
+        || surface_instances_.size() != first_model_index
+        || first_model_index + model_indices.size() > scene.static_models.size()
+        || first_model_index + model_indices.size() > scene.static_model_instance_handles.size()
+        || first_model_index + model_indices.size() > scene.static_area_model_info.size()) {
+        return false;
+    }
+
+    for (size_t index = 0; index < model_indices.size(); ++index) {
+        const uint32_t model_index = model_indices[index];
+        const size_t expected_model_index = first_model_index + index;
+        if (model_index != expected_model_index
+            || !scene.static_models[model_index]) {
+            return false;
+        }
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        if (!instance || info.kind != nw::ObjectType::invalid
+            || info.static_candidate
+            || area_chunk_id(scene, info, instance->current_bounds) != kInvalidChunkId) {
+            return false;
+        }
+    }
+
+    model_indices_.reserve(record_count + model_indices.size());
+    render_model_record_indices_.reserve(first_model_index + model_indices.size());
+    model_instance_handles_.reserve(record_count + model_indices.size());
+    bounds_.reserve(record_count + model_indices.size());
+    root_transforms_.reserve(record_count + model_indices.size());
+    pass_masks_.reserve(record_count + model_indices.size());
+    flags_.reserve(record_count + model_indices.size());
+    chunk_ids_.reserve(record_count + model_indices.size());
+    kinds_.reserve(record_count + model_indices.size());
+    object_handles_.reserve(record_count + model_indices.size());
+    tile_xs_.reserve(record_count + model_indices.size());
+    tile_ys_.reserve(record_count + model_indices.size());
+    prepared_model_draws_.instance_offsets.reserve(record_count + model_indices.size() + 1u);
+    prepared_surface_offsets_.reserve(record_count + model_indices.size() + 1u);
+    light_index_offsets_.reserve(record_count + model_indices.size() + 1u);
+
+    for (const uint32_t model_index : model_indices) {
+        const auto& model = *scene.static_models[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        const uint32_t record_index = saturating_count(model_indices_.size());
+        const uint8_t pass_mask = render_model_pass_mask(model);
+        uint8_t flags = 0;
+        if (instance->visible) {
+            flags |= RecordFlag::render_enabled;
+            ++prepared_model_draws_.stats.visible_instance_count;
+        } else {
+            ++stats_.disabled_record_count;
+            ++prepared_model_draws_.stats.hidden_instance_count;
+        }
+        if (instance->shadow.casts_shadow) {
+            flags |= RecordFlag::shadow_caster;
+            ++stats_.shadow_caster_record_count;
+        }
+        if (has_opaque_cutout_pass(pass_mask)) {
+            ++stats_.opaque_cutout_record_count;
+        }
+        if (has_water_pass(pass_mask)) {
+            ++stats_.water_record_count;
+        }
+        if (has_transparent_pass(pass_mask)) {
+            ++stats_.transparent_record_count;
+        }
+
+        model_indices_.push_back(model_index);
+        render_model_record_indices_.push_back(record_index);
+        model_instance_handles_.push_back(scene.static_model_instance_handles[model_index]);
+        bounds_.push_back(instance->current_bounds);
+        root_transforms_.push_back(instance->root_transform);
+        pass_masks_.push_back(pass_mask);
+        flags_.push_back(flags);
+        chunk_ids_.push_back(kInvalidChunkId);
+        kinds_.push_back(info.kind);
+        object_handles_.push_back(info.object);
+        tile_xs_.push_back(info.tile_x);
+        tile_ys_.push_back(info.tile_y);
+        prepared_model_draws_.instance_offsets.push_back(
+            prepared_model_draws_.instance_offsets.back());
+        prepared_surface_offsets_.push_back(prepared_surface_offsets_.back());
+        light_index_offsets_.push_back(light_index_offsets_.back());
+        expand_bounds(scene_bounds_, instance->current_bounds, has_scene_bounds_);
+        count_kind(stats_, info.kind);
+        ++stats_.dynamic_record_count;
+        ++prepared_model_draws_.stats.handle_count;
+    }
+
+    stats_.record_count = saturating_count(model_indices_.size());
+    stats_.object_handle_bytes = saturating_count(
+        object_handles_.size() * sizeof(nw::ObjectHandle));
+    surface_instances_.resize(first_model_index + model_indices.size());
+    refresh_surface_stats();
+    nw::render::collect_prepared_model_draw_ranges(
+        prepared_model_draw_ranges_, prepared_model_draws_);
+    return true;
+}
+
+bool AreaRenderScene::refresh_tile_preview_records(
+    const PreviewScene& scene,
+    std::span<const uint32_t> model_indices)
+{
+    for (const uint32_t model_index : model_indices) {
+        if (model_index >= render_model_record_indices_.size()
+            || model_index >= scene.static_models.size()
+            || model_index >= scene.static_area_model_info.size()
+            || !scene.static_models[model_index]) {
+            return false;
+        }
+        const uint32_t record_index = render_model_record_indices_[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        if (record_index >= model_indices_.size()
+            || model_indices_[record_index] != model_index
+            || !instance
+            || has_flag(flags_[record_index], RecordFlag::static_candidate)
+            || chunk_ids_[record_index] != kInvalidChunkId
+            || !prepared_model_draws_for_record(record_index).empty()
+            || kinds_[record_index] != nw::ObjectType::invalid
+            || scene.static_area_model_info[model_index].kind
+                != nw::ObjectType::invalid
+            || scene.static_area_model_info[model_index].static_candidate
+            || area_chunk_id(scene,
+                   scene.static_area_model_info[model_index],
+                   instance->current_bounds)
+                != kInvalidChunkId) {
+            return false;
+        }
+    }
+
+    for (const uint32_t model_index : model_indices) {
+        const uint32_t record_index = render_model_record_indices_[model_index];
+        const auto& model = *scene.static_models[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        const uint8_t old_pass_mask = pass_masks_[record_index];
+        const uint8_t new_pass_mask = render_model_pass_mask(model);
+        if (has_opaque_cutout_pass(old_pass_mask)) {
+            decrement_count(stats_.opaque_cutout_record_count);
+        }
+        if (has_water_pass(old_pass_mask)) {
+            decrement_count(stats_.water_record_count);
+        }
+        if (has_transparent_pass(old_pass_mask)) {
+            decrement_count(stats_.transparent_record_count);
+        }
+        if (has_flag(flags_[record_index], RecordFlag::shadow_caster)) {
+            decrement_count(stats_.shadow_caster_record_count);
+        }
+        if (has_opaque_cutout_pass(new_pass_mask)) {
+            ++stats_.opaque_cutout_record_count;
+        }
+        if (has_water_pass(new_pass_mask)) {
+            ++stats_.water_record_count;
+        }
+        if (has_transparent_pass(new_pass_mask)) {
+            ++stats_.transparent_record_count;
+        }
+        if (instance->shadow.casts_shadow) {
+            ++stats_.shadow_caster_record_count;
+        }
+
+        model_instance_handles_[record_index]
+            = scene.static_model_instance_handles[model_index];
+        bounds_[record_index] = instance->current_bounds;
+        root_transforms_[record_index] = instance->root_transform;
+        pass_masks_[record_index] = new_pass_mask;
+        set_flag(flags_[record_index], RecordFlag::render_enabled, instance->visible);
+        set_flag(flags_[record_index], RecordFlag::shadow_caster, instance->shadow.casts_shadow);
+        kinds_[record_index] = info.kind;
+        object_handles_[record_index] = info.object;
+        tile_xs_[record_index] = info.tile_x;
+        tile_ys_[record_index] = info.tile_y;
+        expand_bounds(scene_bounds_, instance->current_bounds, has_scene_bounds_);
+    }
+    return true;
+}
+
+bool AreaRenderScene::remove_tile_preview_records(
+    std::span<const uint32_t> model_indices)
+{
+    if (model_indices.empty()) {
+        return true;
+    }
+    if (model_indices.size() > model_indices_.size()
+        || model_indices.size() > render_model_record_indices_.size()
+        || surface_instances_.size()
+            != render_model_record_indices_.size()) {
+        return false;
+    }
+
+    const size_t first_record_index = model_indices_.size() - model_indices.size();
+    const size_t first_model_index = render_model_record_indices_.size() - model_indices.size();
+    for (size_t index = 0; index < model_indices.size(); ++index) {
+        const uint32_t model_index = model_indices[index];
+        const size_t record_index = first_record_index + index;
+        if (model_index != first_model_index + index
+            || model_indices_[record_index] != model_index
+            || render_model_record_indices_[model_index] != record_index
+            || has_flag(flags_[record_index], RecordFlag::static_candidate)
+            || kinds_[record_index] != nw::ObjectType::invalid
+            || chunk_ids_[record_index] != kInvalidChunkId
+            || !prepared_model_draws_for_record(saturating_count(record_index)).empty()) {
+            return false;
+        }
+    }
+
+    for (size_t record_index = first_record_index;
+        record_index < model_indices_.size();
+        ++record_index) {
+        const uint8_t pass_mask = pass_masks_[record_index];
+        if (has_opaque_cutout_pass(pass_mask)) {
+            decrement_count(stats_.opaque_cutout_record_count);
+        }
+        if (has_water_pass(pass_mask)) {
+            decrement_count(stats_.water_record_count);
+        }
+        if (has_transparent_pass(pass_mask)) {
+            decrement_count(stats_.transparent_record_count);
+        }
+        if (has_flag(flags_[record_index], RecordFlag::shadow_caster)) {
+            decrement_count(stats_.shadow_caster_record_count);
+        }
+        if (!has_flag(flags_[record_index], RecordFlag::render_enabled)) {
+            decrement_count(stats_.disabled_record_count);
+            decrement_count(prepared_model_draws_.stats.hidden_instance_count);
+        } else {
+            decrement_count(prepared_model_draws_.stats.visible_instance_count);
+        }
+        decrement_count(stats_.unknown_record_count);
+        decrement_count(stats_.dynamic_record_count);
+        decrement_count(prepared_model_draws_.stats.handle_count);
+    }
+
+    model_indices_.resize(first_record_index);
+    render_model_record_indices_.resize(first_model_index);
+    model_instance_handles_.resize(first_record_index);
+    bounds_.resize(first_record_index);
+    root_transforms_.resize(first_record_index);
+    pass_masks_.resize(first_record_index);
+    flags_.resize(first_record_index);
+    chunk_ids_.resize(first_record_index);
+    kinds_.resize(first_record_index);
+    object_handles_.resize(first_record_index);
+    tile_xs_.resize(first_record_index);
+    tile_ys_.resize(first_record_index);
+    prepared_model_draws_.instance_offsets.resize(first_record_index + 1u);
+    prepared_surface_offsets_.resize(first_record_index + 1u);
+    light_index_offsets_.resize(first_record_index + 1u);
+    stats_.record_count = saturating_count(first_record_index);
+    stats_.object_handle_bytes = saturating_count(
+        object_handles_.size() * sizeof(nw::ObjectHandle));
+    surface_instances_.resize(first_model_index);
+    refresh_surface_stats();
+    nw::render::collect_prepared_model_draw_ranges(
+        prepared_model_draw_ranges_, prepared_model_draws_);
+    return true;
+}
+
+bool AreaRenderScene::set_tile_preview_suppressed_models(
+    std::span<const uint32_t> model_indices)
+{
+    for (const uint32_t model_index : model_indices) {
+        if (model_index >= render_model_record_indices_.size()) {
+            return false;
+        }
+        const uint32_t record_index
+            = render_model_record_indices_[model_index];
+        if (record_index >= model_indices_.size()
+            || model_indices_[record_index] != model_index
+            || !has_flag(flags_[record_index],
+                RecordFlag::static_candidate)) {
+            return false;
+        }
+    }
+
+    for (const uint32_t record_index :
+        preview_suppressed_record_indices_) {
+        if (record_index < flags_.size()) {
+            set_flag(flags_[record_index],
+                RecordFlag::preview_suppressed, false);
+        }
+    }
+    preview_suppressed_record_indices_.clear();
+    preview_suppressed_record_indices_.reserve(
+        model_indices.size());
+    for (const uint32_t model_index : model_indices) {
+        const uint32_t record_index
+            = render_model_record_indices_[model_index];
+        set_flag(flags_[record_index],
+            RecordFlag::preview_suppressed, true);
+        preview_suppressed_record_indices_.push_back(record_index);
+    }
+    return true;
+}
+
+void AreaRenderScene::rebuild_dynamic_light_indices(
+    const PreviewScene& scene)
+{
+    dynamic_light_indices_.clear();
     dynamic_light_indices_.reserve(scene.local_lights.size());
     for (size_t light_index = 0; light_index < scene.local_lights.size(); ++light_index) {
         const auto& light = scene.local_lights[light_index];
@@ -1652,6 +3527,188 @@ void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
         }
     }
     stats_.dynamic_light_count = saturating_count(dynamic_light_indices_.size());
+}
+
+void AreaRenderScene::rebuild_chunk_light_indices()
+{
+    chunk_light_index_offsets_.clear();
+    chunk_light_indices_.clear();
+    stats_.chunk_light_index_count = 0;
+    stats_.max_light_indices_per_chunk = 0;
+
+    chunk_light_index_offsets_.resize(
+        static_cast<size_t>(stats_.chunk_count) + 1u, 0u);
+    if (stats_.chunk_count > 0 && stats_.local_light_count > 0) {
+        std::vector<uint32_t> light_marks(stats_.local_light_count, 0u);
+        uint32_t light_generation = 1;
+        chunk_light_indices_.reserve(light_indices_.size());
+        for (uint32_t chunk_id = 0; chunk_id < stats_.chunk_count;
+            ++chunk_id) {
+            if (light_generation
+                == std::numeric_limits<uint32_t>::max()) {
+                std::fill(light_marks.begin(), light_marks.end(), 0u);
+                light_generation = 1;
+            }
+            ++light_generation;
+
+            const uint32_t begin = chunk_offsets_[chunk_id];
+            const uint32_t end = chunk_offsets_[static_cast<size_t>(chunk_id) + 1u];
+            const uint32_t clamped_end = std::min<uint32_t>(end,
+                saturating_count(chunk_record_indices_.size()));
+            const size_t chunk_light_begin
+                = chunk_light_indices_.size();
+            for (uint32_t offset = begin; offset < clamped_end; ++offset) {
+                for (const uint32_t light_index :
+                    light_indices_for_record(
+                        chunk_record_indices_[offset])) {
+                    if (light_index >= light_marks.size()
+                        || light_marks[light_index]
+                            == light_generation) {
+                        continue;
+                    }
+                    light_marks[light_index] = light_generation;
+                    chunk_light_indices_.push_back(light_index);
+                }
+            }
+            stats_.max_light_indices_per_chunk = std::max(
+                stats_.max_light_indices_per_chunk,
+                saturating_count(chunk_light_indices_.size()
+                    - chunk_light_begin));
+            chunk_light_index_offsets_[static_cast<size_t>(chunk_id) + 1u]
+                = saturating_count(chunk_light_indices_.size());
+        }
+    }
+    stats_.chunk_light_index_count
+        = saturating_count(chunk_light_indices_.size());
+}
+
+bool AreaRenderScene::rebuild_stable_light_indices(
+    const PreviewScene& scene,
+    std::span<const uint32_t> old_offsets,
+    std::span<const uint32_t> old_indices,
+    std::span<const uint32_t> changed_model_indices,
+    std::span<const uint32_t> changed_light_indices)
+{
+    const size_t record_count = model_indices_.size();
+    if (old_offsets.size() != record_count + 1u
+        || old_offsets.back() != old_indices.size()) {
+        return false;
+    }
+
+    ++light_cache_generation_;
+    light_index_offsets_.clear();
+    light_indices_.clear();
+    stats_.local_light_count
+        = saturating_count(scene.render_local_lights.size());
+    stats_.light_index_count = 0;
+    stats_.max_light_indices_per_record = 0;
+    rebuild_dynamic_light_indices(scene);
+
+    light_index_offsets_.reserve(record_count + 1u);
+    light_index_offsets_.push_back(0u);
+    light_indices_.reserve(old_indices.size());
+    for (size_t record_index = 0; record_index < record_count;
+        ++record_index) {
+        const uint32_t old_begin = old_offsets[record_index];
+        const uint32_t old_end = old_offsets[record_index + 1u];
+        if (old_begin > old_end || old_end > old_indices.size()) {
+            return false;
+        }
+
+        const bool static_record
+            = record_index < flags_.size()
+            && record_index < bounds_.size()
+            && has_flag(flags_[record_index],
+                AreaRenderScene::RecordFlag::static_candidate);
+        const bool changed_record = static_record
+            && std::binary_search(changed_model_indices.begin(),
+                changed_model_indices.end(),
+                model_indices_[record_index]);
+        const size_t light_index_begin = light_indices_.size();
+        if (changed_record) {
+            collect_local_light_indices_for_bounds(light_indices_,
+                scene.render_local_lights, bounds_[record_index]);
+        } else if (static_record) {
+            size_t old_offset = old_begin;
+            size_t changed_offset = 0;
+            uint32_t previous_old = 0u;
+            bool has_previous_old = false;
+            while (old_offset < old_end
+                || changed_offset < changed_light_indices.size()) {
+                const uint32_t old_light
+                    = old_offset < old_end
+                    ? old_indices[old_offset]
+                    : std::numeric_limits<uint32_t>::max();
+                const uint32_t changed_light
+                    = changed_offset < changed_light_indices.size()
+                    ? changed_light_indices[changed_offset]
+                    : std::numeric_limits<uint32_t>::max();
+                if (old_offset < old_end
+                    && (old_light >= scene.render_local_lights.size()
+                        || (has_previous_old
+                            && previous_old >= old_light))) {
+                    return false;
+                }
+
+                if (old_light < changed_light) {
+                    light_indices_.push_back(old_light);
+                    previous_old = old_light;
+                    has_previous_old = true;
+                    ++old_offset;
+                    continue;
+                }
+
+                if (changed_light < old_light) {
+                    if (local_light_affects_bounds(
+                            scene.render_local_lights[changed_light],
+                            bounds_[record_index])) {
+                        light_indices_.push_back(changed_light);
+                    }
+                    ++changed_offset;
+                    continue;
+                }
+
+                if (old_offset < old_end) {
+                    previous_old = old_light;
+                    has_previous_old = true;
+                    ++old_offset;
+                }
+                if (changed_offset < changed_light_indices.size()) {
+                    if (local_light_affects_bounds(
+                            scene.render_local_lights[changed_light],
+                            bounds_[record_index])) {
+                        light_indices_.push_back(changed_light);
+                    }
+                    ++changed_offset;
+                }
+            }
+        }
+
+        const uint32_t light_index_count = saturating_count(
+            light_indices_.size() - light_index_begin);
+        stats_.max_light_indices_per_record = std::max(
+            stats_.max_light_indices_per_record,
+            light_index_count);
+        light_index_offsets_.push_back(
+            saturating_count(light_indices_.size()));
+    }
+    stats_.light_index_count = saturating_count(light_indices_.size());
+    rebuild_chunk_light_indices();
+    return true;
+}
+
+void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
+{
+    ++light_cache_generation_;
+    light_index_offsets_.clear();
+    light_indices_.clear();
+    stats_.local_light_count
+        = saturating_count(scene.render_local_lights.size());
+    stats_.light_index_count = 0;
+    stats_.max_light_indices_per_record = 0;
+    rebuild_dynamic_light_indices(scene);
+
+    const size_t record_count = model_indices_.size();
 
     light_index_offsets_.reserve(record_count + 1u);
     light_index_offsets_.push_back(0);
@@ -1672,39 +3729,7 @@ void AreaRenderScene::refresh_light_indices(const PreviewScene& scene)
         light_index_offsets_.push_back(saturating_count(light_indices_.size()));
     }
     stats_.light_index_count = saturating_count(light_indices_.size());
-
-    chunk_light_index_offsets_.resize(static_cast<size_t>(stats_.chunk_count) + 1u, 0u);
-    if (stats_.chunk_count > 0 && stats_.local_light_count > 0) {
-        std::vector<uint32_t> light_marks(stats_.local_light_count, 0u);
-        uint32_t light_generation = 1;
-        chunk_light_indices_.reserve(light_indices_.size());
-        for (uint32_t chunk_id = 0; chunk_id < stats_.chunk_count; ++chunk_id) {
-            if (light_generation == std::numeric_limits<uint32_t>::max()) {
-                std::fill(light_marks.begin(), light_marks.end(), 0u);
-                light_generation = 1;
-            }
-            ++light_generation;
-
-            const uint32_t begin = chunk_offsets_[chunk_id];
-            const uint32_t end = chunk_offsets_[static_cast<size_t>(chunk_id) + 1u];
-            const uint32_t clamped_end = std::min<uint32_t>(end, saturating_count(chunk_record_indices_.size()));
-            const size_t chunk_light_begin = chunk_light_indices_.size();
-            for (uint32_t offset = begin; offset < clamped_end; ++offset) {
-                for (const uint32_t light_index : light_indices_for_record(chunk_record_indices_[offset])) {
-                    if (light_index >= light_marks.size() || light_marks[light_index] == light_generation) {
-                        continue;
-                    }
-                    light_marks[light_index] = light_generation;
-                    chunk_light_indices_.push_back(light_index);
-                }
-            }
-            stats_.max_light_indices_per_chunk = std::max(
-                stats_.max_light_indices_per_chunk,
-                saturating_count(chunk_light_indices_.size() - chunk_light_begin));
-            chunk_light_index_offsets_[static_cast<size_t>(chunk_id) + 1u] = saturating_count(chunk_light_indices_.size());
-        }
-    }
-    stats_.chunk_light_index_count = saturating_count(chunk_light_indices_.size());
+    rebuild_chunk_light_indices();
 }
 
 std::span<const nw::render::PreparedModelDraw> AreaRenderScene::prepared_model_draws_for_record(
@@ -1867,7 +3892,7 @@ void AreaRenderFrame::clear()
     water_record_indices_.clear();
     transparent_record_indices_.clear();
     shadow_caster_record_indices_.clear();
-    visible_render_model_instance_handles_.clear();
+    visible_dynamic_render_model_instance_handles_.clear();
     visible_light_indices_.clear();
     visible_prepared_surface_indices_.clear();
     visible_prepared_surface_pass_offsets_.fill(0u);
@@ -1884,6 +3909,7 @@ void AreaRenderFrame::clear()
     has_visible_bounds_ = false;
     has_shadow_caster_bounds_ = false;
     filtered_light_indices_valid_ = false;
+    filters_cached_draw_records_ = false;
 }
 
 void AreaRenderFrame::reserve_for_scene(const AreaRenderScene& scene)
@@ -1895,7 +3921,7 @@ void AreaRenderFrame::reserve_for_scene(const AreaRenderScene& scene)
     water_record_indices_.reserve(record_count);
     transparent_record_indices_.reserve(record_count);
     shadow_caster_record_indices_.reserve(record_count);
-    visible_render_model_instance_handles_.reserve(record_count);
+    visible_dynamic_render_model_instance_handles_.reserve(record_count);
     visible_light_indices_.reserve(scene.stats().local_light_count);
     const size_t prepared_surface_count = scene.prepared_model_surface_draws().draws.size();
     visible_prepared_surface_indices_.reserve(prepared_surface_count);
@@ -1973,7 +3999,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
     frame.water_record_indices_.clear();
     frame.transparent_record_indices_.clear();
     frame.shadow_caster_record_indices_.clear();
-    frame.visible_render_model_instance_handles_.clear();
+    frame.visible_dynamic_render_model_instance_handles_.clear();
     frame.visible_light_indices_.clear();
     frame.visible_prepared_surface_indices_.clear();
     frame.visible_prepared_surface_pass_offsets_.fill(0u);
@@ -1983,6 +4009,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
     frame.has_visible_bounds_ = false;
     frame.has_shadow_caster_bounds_ = false;
     frame.filtered_light_indices_valid_ = false;
+    frame.filters_cached_draw_records_ = false;
     frame.stats_ = {};
 
     if (frame.record_mark_generation_ == std::numeric_limits<uint32_t>::max()) {
@@ -2032,7 +4059,10 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
         if (record_index >= record_indices.size() || record_index >= flags.size() || record_index >= chunk_ids.size()) {
             return;
         }
-        if (!has_flag(flags[record_index], AreaRenderScene::RecordFlag::render_enabled)) {
+        if (!has_flag(flags[record_index],
+                AreaRenderScene::RecordFlag::render_enabled)
+            || has_flag(flags[record_index],
+                AreaRenderScene::RecordFlag::preview_suppressed)) {
             return;
         }
 
@@ -2111,11 +4141,22 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
     }
 
     frame.stats_.visible_record_count = saturating_count(frame.visible_record_indices_.size());
-    const bool use_cached_draw_lists = scene.stats().disabled_record_count == 0
-        && frame.stats_.visible_static_record_count == scene.stats().static_record_count;
+    const bool all_static_records_visible
+        = scene.stats().disabled_record_count == 0
+        && frame.stats_.visible_static_record_count
+            == scene.stats().static_record_count;
+    const bool filter_cached_draw_records
+        = !all_static_records_visible
+        && should_use_sorted_area_static_surface_lists(
+            frame.stats_.visible_prepared_surface_count,
+            saturating_count(prepared_surfaces.size()));
+    const bool use_cached_draw_lists
+        = all_static_records_visible || filter_cached_draw_records;
     frame.stats_.uses_cached_draw_lists = use_cached_draw_lists;
     if (use_cached_draw_lists) {
         frame.cached_draw_scene_ = &scene;
+        frame.filters_cached_draw_records_
+            = filter_cached_draw_records;
     }
     const bool use_sorted_visible_surfaces = !use_cached_draw_lists
         && should_use_sorted_area_static_surface_lists(
@@ -2167,8 +4208,8 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
         }
 
         const uint8_t pass_mask = pass_masks[record_index];
-        append_area_visible_render_model_handle(
-            frame.visible_render_model_instance_handles_,
+        append_area_visible_dynamic_render_model_handle(
+            frame.visible_dynamic_render_model_instance_handles_,
             scene,
             record_index);
         if (has_opaque_cutout_pass(pass_mask)) {

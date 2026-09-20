@@ -338,6 +338,8 @@ bool ClientRenderer::append_viewer_area_object_previews(
     }
 #endif
 
+    (void)objects;
+    (void)opacity;
     return false;
 }
 
@@ -474,6 +476,25 @@ bool ClientRenderer::rebuild_live_viewer_area(
     case Backend::none:
         break;
     }
+    (void)area;
+    (void)selected_object;
+    return false;
+}
+
+bool ClientRenderer::refresh_live_viewer_area_tiles(
+    nw::ObjectHandle area, std::span<const uint32_t> tile_indices)
+{
+    switch (backend_) {
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    case Backend::nwgfx:
+        return nwgfx_.refresh_live_viewer_area_tiles(
+            area, tile_indices);
+#endif
+    case Backend::none:
+        break;
+    }
+    (void)area;
+    (void)tile_indices;
     return false;
 }
 
@@ -487,6 +508,7 @@ bool ClientRenderer::rebuild_live_viewer_object(nw::ObjectHandle object)
     case Backend::none:
         break;
     }
+    (void)object;
     return false;
 }
 
@@ -500,6 +522,7 @@ bool ClientRenderer::refresh_live_viewer_object_visual(nw::ObjectHandle object)
     case Backend::none:
         break;
     }
+    (void)object;
     return false;
 }
 
@@ -626,6 +649,7 @@ bool ClientRenderer::area_viewer_matches_resource(
         return nwgfx_.area_viewer_matches_resource(area_resource);
     }
 #endif
+    (void)area_resource;
     return false;
 }
 

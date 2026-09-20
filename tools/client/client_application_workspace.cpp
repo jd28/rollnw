@@ -42,8 +42,17 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                     == AreaWorkspaceSurface::objects
                 ? mutation.object
                 : nw::ObjectHandle{};
-            const bool rebuilt = renderer.rebuild_live_viewer_area(
-                mutation.area, selected);
+            bool rebuilt = mutation.kind
+                    == nw::toolset::ObjectMutationKind::area_tiles
+                && mutation.area_structure_epoch
+                    == state.observed_area_structure_epoch + 1u
+                && !mutation.area_tile_indices.empty()
+                && renderer.refresh_live_viewer_area_tiles(
+                    mutation.area, mutation.area_tile_indices);
+            if (!rebuilt) {
+                rebuilt = renderer.rebuild_live_viewer_area(
+                    mutation.area, selected);
+            }
             if (!rebuilt) {
                 state.stale_area_viewport = mutation.area;
                 append_output(state, "error", "Failed to rebuild the live area viewport after structural edit");

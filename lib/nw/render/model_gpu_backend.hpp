@@ -16,6 +16,7 @@ namespace nw::render {
 
 enum class ModelPipelineMeshKind : uint8_t {
     pbr_static,
+    pbr_static_instanced,
     pbr_skinned,
 };
 
@@ -39,6 +40,8 @@ class ModelGpuBackend {
         static_water,
         pbr_static_shadow,
         pbr_static_shadow_cutout,
+        pbr_static_instanced_opaque,
+        pbr_static_instanced_cutout,
         pbr_skinned_opaque,
         pbr_skinned_cutout,
         pbr_skinned_transparent,
@@ -47,6 +50,8 @@ class ModelGpuBackend {
         nwn_static_opaque,
         nwn_static_cutout,
         nwn_static_transparent,
+        nwn_static_instanced_opaque,
+        nwn_static_instanced_cutout,
         nwn_skinned_opaque,
         nwn_skinned_cutout,
         nwn_skinned_transparent,
@@ -66,6 +71,8 @@ public:
     nw::gfx::StorageSpan upload_bones(nw::gfx::CommandList* cmd, const glm::mat4* bones, uint32_t count);
     nw::gfx::StorageSpan upload_frame_storage(
         nw::gfx::CommandList* cmd, const void* data, uint32_t size, uint32_t alignment = 64);
+    MappedStorageSpan allocate_mapped_frame_storage(
+        nw::gfx::CommandList* cmd, uint32_t size, uint32_t alignment = 64);
 
     nw::gfx::Handle<nw::gfx::Texture> fallback_texture() const { return fallback_texture_; }
     nw::gfx::Handle<nw::gfx::Texture> default_albedo_texture() const { return default_albedo_; }

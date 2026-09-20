@@ -398,94 +398,102 @@ TEST(RenderViewerAreaSelection, PointerSelectionRejectsMalformedBatchesAndCoordi
         EXPECT_EQ(hit.status, viewer::AreaObjectSelectionStatus::invalid_input);
 }
 
-TEST(RenderViewerAreaSelection, TracesNearestRaisedAndSlopedSurfacesInBatches)
+TEST(RenderViewerAreaSelection, UpdatesSharedSurfaceInstanceRowsAtomically)
+{
+    std::array<viewer::AreaSurfaceInstance, 3> instances;
+    glm::mat4 translated{1.0f};
+    translated[3] = {10.0f, 20.0f, 3.0f, 1.0f};
+    const std::array updates{
+        viewer::AreaSurfaceInstanceUpdate{
+            .bounds = {.min = {0.0f, 0.0f, 0.0f},
+                .max = {1.0f, 1.0f, 1.0f}},
+            .root = glm::mat4{1.0f},
+            .model_index = 0u,
+            .geometry_index = 1u,
+        },
+        viewer::AreaSurfaceInstanceUpdate{
+            .bounds = {.min = {10.0f, 20.0f, 3.0f},
+                .max = {11.0f, 21.0f, 4.0f}},
+            .root = translated,
+            .model_index = 2u,
+            .geometry_index = 0u,
+        },
+    };
+    ASSERT_TRUE(viewer::update_area_surface_instances(
+        updates, 2u, instances));
+    EXPECT_EQ(instances[0].geometry_index, 1u);
+    EXPECT_EQ(instances[1].geometry_index,
+        viewer::kInvalidAreaRenderRecordIndex);
+    EXPECT_EQ(instances[2].geometry_index, 0u);
+    EXPECT_EQ(instances[2].inverse_root * translated,
+        glm::mat4{1.0f});
+
+    const auto retained = instances;
+    auto invalid_updates = updates;
+    invalid_updates[1].root[0].z = 0.5f;
+    EXPECT_FALSE(viewer::update_area_surface_instances(
+        invalid_updates, 2u, instances));
+    EXPECT_EQ(instances[0].root, retained[0].root);
+    EXPECT_EQ(instances[2].root, retained[2].root);
+}
+
+TEST(RenderViewerAreaSelection, TracesPlacedRowsAgainstSharedLocalGeometry)
 {
     const std::array triangles{
         viewer::AreaSurfaceTriangle{
-            .v0 = {0.0f, 0.0f, 2.0f},
-            .v1 = {2.0f, 0.0f, 2.0f},
-            .v2 = {0.0f, 2.0f, 2.0f},
-        },
-        viewer::AreaSurfaceTriangle{
-            .v0 = {0.0f, 0.0f, 4.0f},
-            .v1 = {2.0f, 0.0f, 4.0f},
-            .v2 = {0.0f, 2.0f, 4.0f},
-        },
-        viewer::AreaSurfaceTriangle{
-            .v0 = {10.0f, 0.0f, 1.0f},
-            .v1 = {12.0f, 0.0f, 1.0f},
-            .v2 = {10.0f, 2.0f, 3.0f},
+            .v0 = {0.0f, 0.0f, 0.0f},
+            .v1 = {2.0f, 0.0f, 0.0f},
+            .v2 = {0.0f, 2.0f, 0.0f},
         },
     };
-    const std::array ranges{
+    const std::array geometries{
         viewer::AreaSurfaceRange{
-            .bounds = {.min = {0.0f, 0.0f, 2.0f}, .max = {2.0f, 2.0f, 4.0f}},
-            .first_triangle = 0,
-            .triangle_count = 2,
-        },
-        viewer::AreaSurfaceRange{
-            .bounds = {.min = {10.0f, 0.0f, 1.0f}, .max = {12.0f, 2.0f, 3.0f}},
-            .first_triangle = 2,
-            .triangle_count = 1,
+            .bounds = {.min = {0.0f, 0.0f, 0.0f},
+                .max = {2.0f, 2.0f, 0.0f}},
+            .first_triangle = 0u,
+            .triangle_count = 1u,
         },
     };
+    std::array<viewer::AreaSurfaceInstance, 2> instances;
+    glm::mat4 translated{1.0f};
+    translated[3] = {10.0f, 20.0f, 3.0f, 1.0f};
+    const std::array updates{
+        viewer::AreaSurfaceInstanceUpdate{
+            .bounds = {.min = {0.0f, 0.0f, 0.0f},
+                .max = {2.0f, 2.0f, 1.0f}},
+            .root = glm::mat4{1.0f},
+            .model_index = 0u,
+            .geometry_index = 0u,
+        },
+        viewer::AreaSurfaceInstanceUpdate{
+            .bounds = {.min = {10.0f, 20.0f, 3.0f},
+                .max = {12.0f, 22.0f, 4.0f}},
+            .root = translated,
+            .model_index = 1u,
+            .geometry_index = 0u,
+        },
+    };
+    ASSERT_TRUE(viewer::update_area_surface_instances(
+        updates, 1u, instances));
+
     const std::array rays{
         viewer::ViewerRay{
-            .origin = {0.5f, 0.5f, 10.0f},
-            .direction = {0.0f, 0.0f, -2.0f},
+            .origin = {0.5f, 0.5f, 5.0f},
+            .direction = {0.0f, 0.0f, -1.0f},
         },
         viewer::ViewerRay{
-            .origin = {10.5f, 0.5f, 10.0f},
+            .origin = {10.5f, 20.5f, 8.0f},
             .direction = {0.0f, 0.0f, -1.0f},
         },
     };
     std::array<viewer::AreaSurfaceHit, 2> hits;
-    viewer::trace_area_surfaces(rays, ranges, triangles, hits);
-
+    viewer::trace_area_surface_instances(
+        rays, geometries, triangles, instances, hits);
     ASSERT_EQ(hits[0].status, viewer::AreaSurfaceHitStatus::hit);
-    EXPECT_EQ(hits[0].range_index, 0u);
-    EXPECT_NEAR(hits[0].position.z, 4.0f, 1.0e-5f);
-    EXPECT_NEAR(hits[0].distance, 6.0f, 1.0e-5f);
-    EXPECT_EQ(hits[0].normal, glm::vec3(0.0f, 0.0f, 1.0f));
-
+    EXPECT_NEAR(hits[0].position.z, 0.0f, 1.0e-5f);
     ASSERT_EQ(hits[1].status, viewer::AreaSurfaceHitStatus::hit);
-    EXPECT_EQ(hits[1].range_index, 1u);
-    EXPECT_NEAR(hits[1].position.z, 1.5f, 1.0e-5f);
-    EXPECT_GT(hits[1].normal.z, 0.0f);
-}
-
-TEST(RenderViewerAreaSelection, ReportsSurfaceMissesAndInvalidProtocols)
-{
-    const std::array triangles{
-        viewer::AreaSurfaceTriangle{
-            .v0 = {0.0f, 0.0f, 2.0f},
-            .v1 = {2.0f, 0.0f, 2.0f},
-            .v2 = {0.0f, 2.0f, 2.0f},
-        },
-    };
-    std::array ranges{
-        viewer::AreaSurfaceRange{
-            .bounds = {.min = {0.0f, 0.0f, 2.0f}, .max = {2.0f, 2.0f, 2.0f}},
-            .first_triangle = 0,
-            .triangle_count = 1,
-        },
-    };
-
-    viewer::ViewerRay ray{
-        .origin = {5.0f, 5.0f, 10.0f},
-        .direction = {0.0f, 0.0f, -1.0f},
-    };
-    EXPECT_EQ(viewer::trace_area_surface(ray, ranges, triangles).status,
-        viewer::AreaSurfaceHitStatus::miss);
-
-    ray.direction = {};
-    EXPECT_EQ(viewer::trace_area_surface(ray, ranges, triangles).status,
-        viewer::AreaSurfaceHitStatus::invalid_input);
-
-    ray.direction = {0.0f, 0.0f, -1.0f};
-    ranges[0].triangle_count = 2;
-    EXPECT_EQ(viewer::trace_area_surface(ray, ranges, triangles).status,
-        viewer::AreaSurfaceHitStatus::invalid_input);
+    EXPECT_NEAR(hits[1].position.z, 3.0f, 1.0e-5f);
+    EXPECT_EQ(hits[1].range_index, 0u);
 }
 
 TEST(RenderViewerAreaSelection, UpdatesAllSceneRootsForOneSpatialRow)

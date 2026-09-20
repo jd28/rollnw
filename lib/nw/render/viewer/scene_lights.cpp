@@ -351,11 +351,12 @@ bool scene_light_model_node_position(
         && std::isfinite(out_position.z);
 }
 
-size_t append_render_model_light_rows(
-    PreviewScene& scene,
+template <typename AppendLight>
+size_t visit_render_model_light_rows(
     const nw::render::RenderModel& model,
     const nw::render::ModelInstance& instance,
-    SceneModelLightAppendOptions options)
+    SceneModelLightAppendOptions options,
+    AppendLight&& append_light)
 {
     options.root_transform = instance.root_transform;
     size_t result = 0;
@@ -373,18 +374,37 @@ size_t append_render_model_light_rows(
             }
         }
         const auto scene_light = scene_local_light_from_render_model_light(light, node_world, options);
-        append_scene_local_light(scene, scene_light);
-        if (viewer_tile_light_debug_shapes_enabled()) {
-            const size_t first_debug_index = scene.debug_shape_indices.size();
-            append_debug_light_marker(scene, scene_light);
-            append_debug_shape_range(scene, DebugShapeCategory::general, first_debug_index);
-        }
+        append_light(scene_light);
         ++result;
     }
     return result;
 }
 
+size_t append_render_model_light_rows(
+    PreviewScene& scene,
+    const nw::render::RenderModel& model,
+    const nw::render::ModelInstance& instance,
+    SceneModelLightAppendOptions options)
+{
+    return visit_render_model_light_rows(model, instance, options,
+        [&scene](const SceneLocalLight& scene_light) {
+            append_scene_local_light(scene, scene_light);
+            if (viewer_tile_light_debug_shapes_enabled()) {
+                const size_t first_debug_index
+                    = scene.debug_shape_indices.size();
+                append_debug_light_marker(scene, scene_light);
+                append_debug_shape_range(scene,
+                    DebugShapeCategory::general, first_debug_index);
+            }
+        });
+}
+
 } // namespace
+
+bool scene_light_debug_markers_enabled() noexcept
+{
+    return viewer_tile_light_debug_shapes_enabled();
+}
 
 SceneLocalLightTuning scene_local_light_tuning(const PreviewScene& scene) noexcept
 {
@@ -529,6 +549,150 @@ size_t append_tile_render_model_lights(
                                                                         .model_index = static_cast<uint32_t>(model_index),
                                                                         .tuning = scene_local_light_tuning(scene),
                                                                     });
+}
+
+SceneTileLightRefreshStatus refresh_scene_tile_model_lights(
+    PreviewScene& scene,
+    std::span<const uint32_t> model_indices,
+    std::span<const nw::AreaTile> tiles,
+    std::vector<uint32_t>& changed_light_indices)
+{
+    changed_light_indices.clear();
+    if (model_indices.empty() || model_indices.size() != tiles.size()) {
+        return SceneTileLightRefreshStatus::invalid;
+    }
+
+    std::vector<size_t> replacement_offsets(model_indices.size() + 1u, 0u);
+    std::vector<SceneLocalLight> replacement_rows;
+    for (size_t batch_index = 0;
+        batch_index < model_indices.size(); ++batch_index) {
+        const uint32_t model_index = model_indices[batch_index];
+        if ((batch_index > 0
+                && model_indices[batch_index - 1] >= model_index)
+            || model_index >= scene.static_models.size()
+            || model_index >= scene.static_area_model_info.size()
+            || !scene.static_models[model_index]) {
+            return SceneTileLightRefreshStatus::invalid;
+        }
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& info = scene.static_area_model_info[model_index];
+        if (!instance || !instance->visible
+            || info.kind != nw::ObjectType::tile
+            || info.tile_x < 0 || info.tile_y < 0) {
+            return SceneTileLightRefreshStatus::invalid;
+        }
+
+        const auto& tile = tiles[batch_index];
+        const SceneTileLightSlots slots = scene_tile_light_slots(tile);
+        visit_render_model_light_rows(
+            *scene.static_models[model_index], *instance,
+            SceneModelLightAppendOptions{
+                .tile_slots = slots,
+                .tile_x = info.tile_x,
+                .tile_y = info.tile_y,
+                .tile_orientation = static_cast<uint8_t>(
+                    std::clamp(tile.orientation, 0, 255)),
+                .source = SceneLocalLightSource::tile_model,
+                .model_index = model_index,
+                .tuning = scene_local_light_tuning(scene),
+            },
+            [&replacement_rows](const SceneLocalLight& light) {
+                replacement_rows.push_back(light);
+            });
+        replacement_offsets[batch_index + 1u]
+            = replacement_rows.size();
+    }
+
+    std::vector<size_t> existing_counts(model_indices.size(), 0u);
+    const auto affected_batch_index
+        = [&model_indices](const SceneLocalLight& light) {
+              if (light.source != SceneLocalLightSource::tile_model) {
+                  return model_indices.size();
+              }
+              const auto found = std::lower_bound(model_indices.begin(),
+                  model_indices.end(), light.model_index);
+              if (found == model_indices.end()
+                  || *found != light.model_index) {
+                  return model_indices.size();
+              }
+              return static_cast<size_t>(
+                  std::distance(model_indices.begin(), found));
+          };
+    for (const auto& light : scene.local_lights) {
+        const size_t batch_index = affected_batch_index(light);
+        if (batch_index < existing_counts.size()) {
+            ++existing_counts[batch_index];
+        }
+    }
+
+    std::vector<size_t> existing_offsets(model_indices.size() + 1u, 0u);
+    bool stable_rows = true;
+    for (size_t batch_index = 0;
+        batch_index < model_indices.size(); ++batch_index) {
+        existing_offsets[batch_index + 1u]
+            = existing_offsets[batch_index]
+            + existing_counts[batch_index];
+        stable_rows = stable_rows
+            && existing_counts[batch_index]
+                == replacement_offsets[batch_index + 1u]
+                    - replacement_offsets[batch_index];
+    }
+
+    if (stable_rows) {
+        if (scene.render_local_lights.size()
+            != scene.local_lights.size()) {
+            refresh_scene_local_light_render_data(scene);
+        }
+        std::vector<size_t> existing_indices(existing_offsets.back(), 0u);
+        auto write_offsets = existing_offsets;
+        for (size_t light_index = 0;
+            light_index < scene.local_lights.size(); ++light_index) {
+            const size_t batch_index
+                = affected_batch_index(scene.local_lights[light_index]);
+            if (batch_index < model_indices.size()) {
+                existing_indices[write_offsets[batch_index]++]
+                    = light_index;
+            }
+        }
+
+        changed_light_indices.reserve(existing_indices.size());
+        for (size_t batch_index = 0;
+            batch_index < model_indices.size(); ++batch_index) {
+            const size_t existing_begin
+                = existing_offsets[batch_index];
+            const size_t replacement_begin
+                = replacement_offsets[batch_index];
+            for (size_t row = 0;
+                row < existing_counts[batch_index]; ++row) {
+                const size_t light_index
+                    = existing_indices[existing_begin + row];
+                if (light_index > std::numeric_limits<uint32_t>::max()) {
+                    return SceneTileLightRefreshStatus::invalid;
+                }
+                const auto& replacement
+                    = replacement_rows[replacement_begin + row];
+                scene.local_lights[light_index] = replacement;
+                scene.render_local_lights[light_index]
+                    = render_local_light_from_scene_light(replacement);
+                changed_light_indices.push_back(
+                    static_cast<uint32_t>(light_index));
+            }
+        }
+        std::sort(changed_light_indices.begin(),
+            changed_light_indices.end());
+        return SceneTileLightRefreshStatus::stable_rows;
+    }
+
+    std::erase_if(scene.local_lights,
+        [&affected_batch_index, &model_indices](
+            const SceneLocalLight& light) {
+            return affected_batch_index(light) < model_indices.size();
+        });
+    scene.local_lights.insert(scene.local_lights.end(),
+        replacement_rows.begin(), replacement_rows.end());
+    refresh_scene_local_light_render_data(scene);
+    scene.invalidate_runtime_update_indices();
+    return SceneTileLightRefreshStatus::reindexed_rows;
 }
 
 void refresh_scene_local_light_render_data(PreviewScene& scene)

@@ -318,6 +318,69 @@ void add_prepared_surface_submission_stats(
         source.render_model.skin_bindings.invalid_table_range_surface_count);
 }
 
+void add_prepared_surface_material_stats(
+    nw::render::PreparedModelSurfaceMaterialStats& target,
+    const nw::render::PreparedModelSurfaceMaterialStats& source) noexcept
+{
+    add_saturating(target.opaque_count, source.opaque_count);
+    add_saturating(target.cutout_count, source.cutout_count);
+    add_saturating(target.water_count, source.water_count);
+    add_saturating(target.transparent_count,
+        source.transparent_count);
+    add_saturating(target.invalid_mode_count,
+        source.invalid_mode_count);
+}
+
+void add_prepared_surface_draw_stats(
+    nw::render::PreparedModelSurfaceDrawStats& target,
+    const nw::render::PreparedModelSurfaceDrawStats& source) noexcept
+{
+    add_saturating(target.range_count, source.range_count);
+    add_saturating(target.draw_count, source.draw_count);
+    add_saturating(target.render_model_draw_count,
+        source.render_model_draw_count);
+    add_saturating(target.shadow_caster_draw_count,
+        source.shadow_caster_draw_count);
+    add_saturating(target.invalid_range_count,
+        source.invalid_range_count);
+    add_saturating(target.range_mismatch_count,
+        source.range_mismatch_count);
+}
+
+void add_prepared_surface_material_binding_stats(
+    nw::render::PreparedModelSurfaceMaterialBindingStats& target,
+    const nw::render::PreparedModelSurfaceMaterialBindingStats& source) noexcept
+{
+    add_saturating(target.surface_count, source.surface_count);
+    add_saturating(target.bound_surface_count,
+        source.bound_surface_count);
+    add_saturating(target.invalid_range_count,
+        source.invalid_range_count);
+    add_saturating(target.invalid_draw_index_count,
+        source.invalid_draw_index_count);
+    add_saturating(target.range_mismatch_count,
+        source.range_mismatch_count);
+    add_saturating(target.payload_mismatch_count,
+        source.payload_mismatch_count);
+    add_saturating(target.material_mismatch_count,
+        source.material_mismatch_count);
+    add_saturating(target.material_fallback_count,
+        source.material_fallback_count);
+    add_saturating(target.render_model_material_fallback_count,
+        source.render_model_material_fallback_count);
+    add_saturating(target.fallback_material_payload_count,
+        source.fallback_material_payload_count);
+    add_saturating(
+        target.render_model_fallback_material_payload_count,
+        source.render_model_fallback_material_payload_count);
+    add_saturating(target.material_override_surface_count,
+        source.material_override_surface_count);
+    add_saturating(target.shadow_mismatch_count,
+        source.shadow_mismatch_count);
+    add_prepared_surface_material_stats(
+        target.materials, source.materials);
+}
+
 void apply_gpu_timer_result(ViewerFrameStats& stats, const nw::gfx::GpuTimerResult& result)
 {
     if (!result.available || !result.label) {
@@ -399,10 +462,14 @@ void accumulate_selected_surface_lights(
     const AreaRenderScene& area_scene,
     std::span<const uint32_t> surface_indices,
     std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    std::span<const nw::render::LocalLight> lights) noexcept
+    std::span<const nw::render::LocalLight> lights,
+    const AreaRenderFrame* visibility_filter) noexcept
 {
     for (const uint32_t surface_index : surface_indices) {
-        if (surface_index < surfaces.size()) {
+        if (surface_index < surfaces.size()
+            && (!visibility_filter
+                || visibility_filter->record_visible(
+                    surfaces[surface_index].handle_index))) {
             accumulate_selected_surface_lights(stats, area_scene, surfaces[surface_index], lights);
         }
     }
@@ -728,6 +795,23 @@ bool ViewerSession::rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle se
     LOG_F(INFO, "Viewer session: rebuilt live area '{}' records={} in {}ms",
         loaded_source_, record_count, rebuild_ms.count());
     return true;
+}
+
+AreaTransientVisualResult ViewerSession::refresh_live_area_tiles(
+    nw::ObjectHandle area,
+    std::span<const uint32_t> tile_indices)
+{
+    if (!preview_resources_ || !scene_
+        || scene_kind_ != ViewerSceneKind::area
+        || scene_->root_object != area) {
+        return {
+            .status = AreaTransientVisualStatus::invalid_input,
+            .diagnostic
+            = "Viewer session does not contain the requested live area",
+        };
+    }
+    return nw::render::viewer::refresh_live_area_tiles(
+        *scene_, *preview_resources_, tile_indices);
 }
 
 bool ViewerSession::rebuild_live_object(nw::ObjectHandle object)
@@ -1418,13 +1502,40 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.area_frame_uses_cached_draw_lists = area_frame_stats.uses_cached_draw_lists;
         frame_stats.area_prepare_seconds = elapsed_seconds(area_prepare_start, Clock::now());
         if (collect_area_visible_prepared_model_draws) {
-            const auto visible_render_model_handles = area_render_frame->visible_render_model_instance_handles();
+            const auto visible_render_model_handles
+                = area_render_frame
+                      ->visible_dynamic_render_model_instance_handles();
             collect_prepared_model_surface_draws(
                 prepared_model_draws_,
                 prepared_model_surfaces_,
                 *scene_,
                 visible_render_model_handles);
             apply_prepared_model_draw_stats();
+            const auto& cached_draws
+                = area_render_scene->prepared_model_draw_list();
+            const auto& cached_surfaces
+                = area_render_scene->prepared_model_surface_draws();
+            add_saturating(
+                frame_stats.prepared_render_model_draw_count,
+                cached_draws.stats.render_model_draw_count);
+            add_saturating(
+                frame_stats.prepared_model_draw_material_fallback_count,
+                cached_draws.stats.material_fallback_draw_count);
+            add_saturating(
+                frame_stats
+                    .prepared_model_draw_render_model_material_fallback_count,
+                cached_draws.stats
+                    .render_model_material_fallback_draw_count);
+            add_prepared_surface_draw_stats(
+                frame_stats.prepared_model_surface_stats,
+                cached_surfaces.stats);
+            add_prepared_surface_material_stats(
+                frame_stats.prepared_model_surface_materials,
+                area_render_scene->prepared_surface_materials());
+            add_prepared_surface_material_binding_stats(
+                frame_stats.prepared_model_surface_material_bindings,
+                area_render_scene
+                    ->prepared_surface_material_bindings());
             if (validate_prepared_model_draws_this_frame) {
                 frame_stats.prepared_model_draw_validation_enabled = true;
                 frame_stats.prepared_model_draw_validation = validate_prepared_model_draws(
@@ -1435,30 +1546,38 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         }
         const auto lights = std::span<const nw::render::LocalLight>{render_context.local_lights};
         const auto& surfaces = area_render_scene->prepared_model_surface_draws().draws;
+        const auto* cached_visibility_filter
+            = area_render_frame->filters_cached_draw_records()
+            ? area_render_frame
+            : nullptr;
         accumulate_selected_surface_lights(
             frame_stats,
             *area_render_scene,
             area_render_frame->visible_opaque_prepared_surface_indices(),
             surfaces,
-            lights);
+            lights,
+            cached_visibility_filter);
         accumulate_selected_surface_lights(
             frame_stats,
             *area_render_scene,
             area_render_frame->visible_cutout_prepared_surface_indices(),
             surfaces,
-            lights);
+            lights,
+            cached_visibility_filter);
         accumulate_selected_surface_lights(
             frame_stats,
             *area_render_scene,
             area_render_frame->visible_water_prepared_surface_indices(),
             surfaces,
-            lights);
+            lights,
+            cached_visibility_filter);
         accumulate_selected_surface_lights(
             frame_stats,
             *area_render_scene,
             area_render_frame->visible_transparent_prepared_surface_indices(),
             surfaces,
-            lights);
+            lights,
+            cached_visibility_filter);
     }
     auto& render_service = nw::render::render_service();
     // Select shadow-casting local lights and assign atlas slots before Forward+
@@ -1589,20 +1708,59 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
 
     const auto render_scene_pass = [&](const nw::render::RenderContext& pass_context,
                                        nw::render::RenderPassSelection pass) {
-        const std::span<const nw::render::PreparedModelSurfaceDraw> surfaces{
+        const std::span<const nw::render::PreparedModelSurfaceDraw> dynamic_surfaces{
             prepared_model_surfaces_.draws.data(),
             prepared_model_surfaces_.draws.size()};
         const auto* render_model_skin_table = &prepared_model_surfaces_.render_model_skins;
         PreviewPreparedModelSurfaceSubmissionStats submission_stats{};
-        submission_stats.render_model = render_prepared_render_model_surface_draws(
-            render_model_ctx,
-            command_list,
-            *scene_,
-            surfaces,
-            pass_context,
-            pass,
-            render_model_skin_table,
-            &prepared_model_surfaces_.render_model_surface_packets);
+        if (area_render_scene && area_render_frame) {
+            const auto& cached
+                = area_render_scene->prepared_model_surface_draws();
+            const std::span<const nw::render::PreparedModelSurfaceDraw>
+                cached_surfaces{cached.draws.data(), cached.draws.size()};
+            std::span<const uint32_t> cached_indices;
+            switch (pass) {
+            case nw::render::RenderPassSelection::opaque_cutout:
+                cached_indices = area_render_frame
+                                     ->visible_opaque_cutout_prepared_surface_indices();
+                break;
+            case nw::render::RenderPassSelection::water:
+                cached_indices = area_render_frame
+                                     ->visible_water_prepared_surface_indices();
+                break;
+            case nw::render::RenderPassSelection::transparent:
+                cached_indices = area_render_frame
+                                     ->visible_transparent_prepared_surface_indices();
+                break;
+            case nw::render::RenderPassSelection::all:
+                cached_indices = area_render_frame
+                                     ->visible_prepared_surface_indices();
+                break;
+            }
+            submission_stats.render_model
+                = render_prepared_render_model_surface_draw_indices(
+                    render_model_ctx, command_list, *scene_,
+                    cached_surfaces, cached_indices,
+                    pass_context, pass,
+                    area_render_frame->filters_cached_draw_records()
+                        ? area_render_frame
+                        : nullptr,
+                    &cached.render_model_skins,
+                    &prepared_model_surfaces_.render_model_surface_packets);
+            add_prepared_surface_submission_stats(
+                frame_stats, submission_stats);
+        }
+        submission_stats = {};
+        submission_stats.render_model
+            = render_prepared_render_model_surface_draws(
+                render_model_ctx,
+                command_list,
+                *scene_,
+                dynamic_surfaces,
+                pass_context,
+                pass,
+                render_model_skin_table,
+                &prepared_model_surfaces_.render_model_surface_packets);
         add_prepared_surface_submission_stats(frame_stats, submission_stats);
     };
 
