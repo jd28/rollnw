@@ -1,5 +1,7 @@
 #include "area_tile_brush.hpp"
 
+#include "area_door_hooks.hpp"
+
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
@@ -200,6 +202,9 @@ bool decode_area_topology(
                     * static_cast<size_t>(area.width)
                 + static_cast<size_t>(x);
             const auto& row = area.tiles[index];
+            if (area_tile_is_void(row)) {
+                continue;
+            }
             if (row.id < 0
                 || static_cast<size_t>(row.id)
                     >= area.tileset->tile_topologies.size()
@@ -515,14 +520,21 @@ bool set_terrain_cells(const Area& area,
         return false;
     }
     for (const uint32_t tile_index : cells) {
+        const auto& current = area.tiles[tile_index];
+        const bool filling_void = area_tile_is_void(current);
         const int32_t x = static_cast<int32_t>(
             tile_index % static_cast<uint32_t>(area.width));
         const int32_t y = static_cast<int32_t>(
             tile_index / static_cast<uint32_t>(area.width));
         const std::array<std::array<int32_t, 2>, 4> corners{{{x, y + 1}, {x + 1, y + 1}, {x, y}, {x + 1, y}}};
         for (const auto& position : corners) {
-            topology.corner_terrains[corner_index(topology, position[0], position[1])]
-                = terrain;
+            const size_t index
+                = corner_index(topology, position[0], position[1]);
+            topology.corner_terrains[index] = terrain;
+            if (filling_void
+                && topology.corner_heights[index] == unset_height) {
+                topology.corner_heights[index] = current.height;
+            }
             mark_corner_incident(
                 topology, position[0], position[1], affected);
         }
@@ -543,6 +555,148 @@ bool set_terrain_cells(const Area& area,
     return true;
 }
 
+void build_placed_group_cell_mask(
+    const Area& area, std::vector<uint8_t>& output);
+
+bool corner_touches_unselected_group(const AreaTopology& topology,
+    int32_t x,
+    int32_t y,
+    std::span<const uint8_t> selected,
+    std::span<const uint8_t> group_cells) noexcept
+{
+    for (int32_t cell_y = y - 1; cell_y <= y; ++cell_y) {
+        for (int32_t cell_x = x - 1; cell_x <= x; ++cell_x) {
+            if (cell_x < 0 || cell_x >= topology.width || cell_y < 0
+                || cell_y >= topology.height) {
+                continue;
+            }
+            const size_t tile_index
+                = static_cast<size_t>(cell_y)
+                    * static_cast<size_t>(topology.width)
+                + static_cast<size_t>(cell_x);
+            if (selected[tile_index] == 0
+                && group_cells[tile_index] != 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool horizontal_edge_touches_unselected_group(const AreaTopology& topology,
+    int32_t x,
+    int32_t y,
+    std::span<const uint8_t> selected,
+    std::span<const uint8_t> group_cells) noexcept
+{
+    for (const int32_t cell_y : {y - 1, y}) {
+        if (cell_y < 0 || cell_y >= topology.height) {
+            continue;
+        }
+        const size_t tile_index
+            = static_cast<size_t>(cell_y)
+                * static_cast<size_t>(topology.width)
+            + static_cast<size_t>(x);
+        if (selected[tile_index] == 0 && group_cells[tile_index] != 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool vertical_edge_touches_unselected_group(const AreaTopology& topology,
+    int32_t x,
+    int32_t y,
+    std::span<const uint8_t> selected,
+    std::span<const uint8_t> group_cells) noexcept
+{
+    for (const int32_t cell_x : {x - 1, x}) {
+        if (cell_x < 0 || cell_x >= topology.width) {
+            continue;
+        }
+        const size_t tile_index
+            = static_cast<size_t>(y)
+                * static_cast<size_t>(topology.width)
+            + static_cast<size_t>(cell_x);
+        if (selected[tile_index] == 0 && group_cells[tile_index] != 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool set_eraser_cells(const Area& area,
+    std::span<const uint32_t> cells,
+    int32_t terrain,
+    AreaTopology& topology,
+    std::vector<uint8_t>& affected,
+    std::vector<uint8_t>& fit_flags)
+{
+    if (terrain < 0
+        || static_cast<size_t>(terrain) >= area.tileset->terrains.size()) {
+        return false;
+    }
+
+    std::vector<uint8_t> selected(area.tiles.size(), 0);
+    for (const uint32_t tile_index : cells) {
+        selected[tile_index] = 1;
+    }
+    std::vector<uint8_t> group_cells;
+    build_placed_group_cell_mask(area, group_cells);
+
+    for (const uint32_t tile_index : cells) {
+        const int32_t x = static_cast<int32_t>(
+            tile_index % static_cast<uint32_t>(area.width));
+        const int32_t y = static_cast<int32_t>(
+            tile_index / static_cast<uint32_t>(area.width));
+        const std::array<std::array<int32_t, 2>, 4> corners{{{x, y + 1}, {x + 1, y + 1}, {x, y}, {x + 1, y}}};
+        for (const auto& position : corners) {
+            if (corner_touches_unselected_group(topology,
+                    position[0], position[1], selected, group_cells)) {
+                continue;
+            }
+            topology.corner_terrains[corner_index(
+                topology, position[0], position[1])]
+                = terrain;
+            mark_corner_incident(
+                topology, position[0], position[1], affected);
+        }
+
+        if (!horizontal_edge_touches_unselected_group(
+                topology, x, y + 1, selected, group_cells)) {
+            topology.horizontal_crossers[horizontal_edge_index(
+                topology, x, y + 1)]
+                = -1;
+            mark_horizontal_edge_incident(topology, x, y + 1, affected);
+        }
+        if (!vertical_edge_touches_unselected_group(
+                topology, x + 1, y, selected, group_cells)) {
+            topology.vertical_crossers[vertical_edge_index(
+                topology, x + 1, y)]
+                = -1;
+            mark_vertical_edge_incident(topology, x + 1, y, affected);
+        }
+        if (!horizontal_edge_touches_unselected_group(
+                topology, x, y, selected, group_cells)) {
+            topology.horizontal_crossers[horizontal_edge_index(
+                topology, x, y)]
+                = -1;
+            mark_horizontal_edge_incident(topology, x, y, affected);
+        }
+        if (!vertical_edge_touches_unselected_group(
+                topology, x, y, selected, group_cells)) {
+            topology.vertical_crossers[vertical_edge_index(
+                topology, x, y)]
+                = -1;
+            mark_vertical_edge_incident(topology, x, y, affected);
+        }
+        affected[tile_index] = 1;
+        fit_flags[tile_index]
+            |= fit_force | fit_replace_group | fit_canonical;
+    }
+    return true;
+}
+
 bool change_corner_heights(const Area& area,
     std::span<const uint32_t> corners,
     int32_t delta,
@@ -557,7 +711,8 @@ bool change_corner_heights(const Area& area,
             return false;
         }
         const int64_t value = topology.corner_heights[index];
-        if ((delta > 0 && value == std::numeric_limits<int64_t>::max())
+        if (value == unset_height
+            || (delta > 0 && value == std::numeric_limits<int64_t>::max())
             || (delta < 0
                 && value == std::numeric_limits<int64_t>::min())) {
             return false;
@@ -915,6 +1070,39 @@ bool expand_group_replacement_cells(const Area& area,
     return true;
 }
 
+void build_placed_group_cell_mask(
+    const Area& area, std::vector<uint8_t>& output)
+{
+    output.assign(area.tiles.size(), 0);
+    for (uint32_t tile_index = 0; tile_index < area.tiles.size();
+        ++tile_index) {
+        const auto& tile = area.tiles[tile_index];
+        const bool grouped = tile.id >= 0
+            && static_cast<size_t>(tile.id)
+                < area.tileset->grouped_tiles.size()
+            && area.tileset->grouped_tiles[static_cast<size_t>(tile.id)] != 0;
+        if (!grouped || output[tile_index] != 0) {
+            continue;
+        }
+
+        output[tile_index] = 1;
+        PlacedGroupFootprint footprint;
+        std::string diagnostic;
+        if (!resolve_placed_group(area, tile_index, footprint, diagnostic)) {
+            continue;
+        }
+        for (uint32_t row = 0; row < footprint.rows; ++row) {
+            for (uint32_t column = 0; column < footprint.columns; ++column) {
+                const uint32_t area_index = static_cast<uint32_t>(
+                    (footprint.anchor_y + static_cast<int32_t>(row))
+                        * area.width
+                    + footprint.anchor_x + static_cast<int32_t>(column));
+                output[area_index] = 1;
+            }
+        }
+    }
+}
+
 bool overlay_group(const Area& area,
     uint32_t anchor_index,
     int32_t group_index,
@@ -1096,6 +1284,10 @@ ObjectEditApplyResult fit_area_tile_edits(ObjectHandle area_handle,
         if (affected[tile_index] == 0) {
             continue;
         }
+        if (area_tile_is_void(area.tiles[tile_index])
+            && fit_flags[tile_index] == 0) {
+            continue;
+        }
         TileChoice choice = fixed[tile_index];
         if (choice.id >= 0) {
             const int32_t x = static_cast<int32_t>(
@@ -1179,6 +1371,36 @@ ObjectEditApplyResult fit_area_tile_edits(ObjectHandle area_handle,
     };
 }
 
+bool append_area_tile_target_doors(const Area& area,
+    std::span<const uint32_t> targets,
+    AreaTileEraseEditBatch& output,
+    std::string& diagnostic)
+{
+    if (area.doors.empty()) {
+        return true;
+    }
+    AreaDoorHookSnapshot hooks;
+    if (!build_area_door_hooks(area, hooks, diagnostic)) {
+        return false;
+    }
+    for (const auto& row : output.tiles.rows) {
+        if (!std::ranges::binary_search(targets, row.tile_index)) {
+            continue;
+        }
+        for (uint32_t index = hooks.tile_offsets[row.tile_index];
+            index < hooks.tile_offsets[row.tile_index + 1]; ++index) {
+            if (hooks.hooks[index].occupant.type == ObjectType::door) {
+                output.doors.push_back(hooks.hooks[index].occupant);
+            }
+        }
+    }
+    std::ranges::sort(output.doors);
+    output.doors.erase(
+        std::unique(output.doors.begin(), output.doors.end()),
+        output.doors.end());
+    return true;
+}
+
 } // namespace
 
 ObjectEditApplyResult resolve_area_tile_erase_cells(ObjectHandle area_handle,
@@ -1214,6 +1436,118 @@ ObjectEditApplyResult resolve_area_tile_erase_cells(ObjectHandle area_handle,
         output.clear();
         return brush_result(ObjectEditStatus::failed,
             "Area tile eraser targets exceed container capacity");
+    }
+}
+
+ObjectEditApplyResult build_area_tile_erase_edits(ObjectHandle area_handle,
+    std::span<const uint32_t> cells, int32_t terrain, uint64_t seed,
+    AreaTileEraseEditBatch& output)
+{
+    output = {};
+    const auto* area = kernel::objects().get<Area>(area_handle);
+    if (!area || !area->tileset) {
+        return brush_result(ObjectEditStatus::invalid_batch,
+            "Area eraser target is invalid or stale");
+    }
+    try {
+        AreaTileEraseEditBatch candidate;
+        std::vector<uint32_t> targets;
+        auto resolved = resolve_area_tile_erase_cells(area_handle, cells, targets);
+        if (!resolved.ok()) { return resolved; }
+        const auto built = build_area_tile_brush_edits(area_handle, targets,
+            {.kind = AreaTileBrushKind::eraser, .value = terrain},
+            seed, candidate.tiles);
+        if (!built.ok()) {
+            return built.status == ObjectEditStatus::empty
+                ? brush_result(ObjectEditStatus::empty, "Nothing to erase here")
+                : built;
+        }
+
+        std::string diagnostic;
+        if (!append_area_tile_target_doors(
+                *area, targets, candidate, diagnostic)) {
+            return brush_result(ObjectEditStatus::invalid_batch,
+                std::move(diagnostic));
+        }
+        const auto validated = area_tile_edit_detail::validate_area_tile_edits(
+            candidate.tiles, ObjectEditDirection::forward, candidate.doors);
+        if (!validated.ok()) { return validated; }
+        output = std::move(candidate);
+        return {
+            .status = ObjectEditStatus::success,
+            .applied_count = static_cast<uint32_t>(
+                output.tiles.rows.size() + output.doors.size()),
+        };
+    } catch (const std::bad_alloc&) {
+        return brush_result(ObjectEditStatus::failed, "Area eraser allocation failed");
+    } catch (const std::length_error&) {
+        return brush_result(ObjectEditStatus::failed, "Area eraser exceeds container capacity");
+    }
+}
+
+ObjectEditApplyResult build_area_tile_void_edits(ObjectHandle area_handle,
+    std::span<const uint32_t> cells,
+    AreaTileEraseEditBatch& output)
+{
+    output = {};
+    const auto* area = kernel::objects().get<Area>(area_handle);
+    if (!area || !area->tileset) {
+        return brush_result(ObjectEditStatus::invalid_batch,
+            "Area void target is invalid or stale");
+    }
+    try {
+        AreaTileEraseEditBatch candidate;
+        candidate.tiles.area = area_handle;
+        std::vector<uint32_t> targets;
+        auto resolved
+            = resolve_area_tile_erase_cells(area_handle, cells, targets);
+        if (!resolved.ok()) {
+            return resolved;
+        }
+        candidate.tiles.rows.reserve(targets.size());
+        for (const uint32_t tile_index : targets) {
+            const auto& current = area->tiles[tile_index];
+            if (area_tile_is_void(current)) {
+                continue;
+            }
+            AreaTile after{
+                .id = kAreaTileVoidId,
+                .height = current.height,
+            };
+            candidate.tiles.rows.push_back({
+                .tile_index = tile_index,
+                .before = current,
+                .after = after,
+            });
+        }
+        if (candidate.tiles.rows.empty()) {
+            return brush_result(ObjectEditStatus::empty,
+                "Nothing to void here");
+        }
+
+        std::string diagnostic;
+        if (!append_area_tile_target_doors(
+                *area, targets, candidate, diagnostic)) {
+            return brush_result(ObjectEditStatus::invalid_batch,
+                std::move(diagnostic));
+        }
+        const auto validated = area_tile_edit_detail::validate_area_tile_edits(
+            candidate.tiles, ObjectEditDirection::forward, candidate.doors);
+        if (!validated.ok()) {
+            return validated;
+        }
+        output = std::move(candidate);
+        return {
+            .status = ObjectEditStatus::success,
+            .applied_count = static_cast<uint32_t>(
+                output.tiles.rows.size() + output.doors.size()),
+        };
+    } catch (const std::bad_alloc&) {
+        return brush_result(ObjectEditStatus::failed,
+            "Area void allocation failed");
+    } catch (const std::length_error&) {
+        return brush_result(ObjectEditStatus::failed,
+            "Area void exceeds container capacity");
     }
 }
 
@@ -1374,15 +1708,15 @@ ObjectEditApplyResult build_area_tile_brush_edits(
                 return brush_result(ObjectEditStatus::invalid_batch,
                     std::move(diagnostic));
             }
-            for (const uint32_t tile_index : eraser_cells) {
-                fit_flags[tile_index] |= fit_force | fit_replace_group | fit_canonical;
-            }
-            if (!set_terrain_cells(*area, eraser_cells, brush.value,
+            if (!set_eraser_cells(*area, eraser_cells, brush.value,
                     topology, affected, fit_flags)) {
                 return brush_result(ObjectEditStatus::invalid_batch,
                     "Eraser terrain is outside the SET terrain catalog");
             }
             break;
+        case AreaTileBrushKind::void_tile:
+            return brush_result(ObjectEditStatus::invalid_batch,
+                "Void tiles require the structural tile edit path");
         case AreaTileBrushKind::raise:
         case AreaTileBrushKind::lower:
             return brush_result(ObjectEditStatus::invalid_batch,

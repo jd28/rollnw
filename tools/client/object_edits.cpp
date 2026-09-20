@@ -3,6 +3,7 @@
 #include "area_door_hooks.hpp"
 #include "area_navigation.hpp"
 #include "area_regions.hpp"
+#include "area_tile_edits.hpp"
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>
@@ -48,6 +49,7 @@ namespace nw::toolset {
 namespace {
 
 ObjectMutationState g_mutation_state;
+std::vector<uint32_t> g_area_tile_mutation_indices;
 
 constexpr size_t k_area_object_kind_count = 9;
 using AreaMembershipCounts = std::array<size_t, k_area_object_kind_count>;
@@ -952,7 +954,8 @@ ObjectEditApplyResult validate_membership_state(
 }
 
 ObjectEditApplyResult apply_membership_state(
-    AreaObjectMembershipState& state, ObjectEditDirection direction)
+    AreaObjectMembershipState& state, ObjectEditDirection direction,
+    bool publish = true)
 {
     auto validation = validate_membership_state(state, direction);
     if (!validation.ok()) {
@@ -1036,6 +1039,10 @@ ObjectEditApplyResult apply_membership_state(
             erase_area_object(*area, *it);
             it->attached = false;
         }
+    }
+
+    if (!publish) {
+        return {ObjectEditStatus::success, static_cast<uint32_t>(state.rows.size()), {}};
     }
 
     ++g_mutation_state.epoch;
@@ -2635,6 +2642,44 @@ std::shared_ptr<AreaObjectMembershipState> make_delete_membership_state(
     }
     std::sort(state->rows.begin(), state->rows.end(), membership_row_less);
     return state;
+}
+
+struct AreaTileEraseState {
+    AreaTileEraseEditBatch batch;
+    std::shared_ptr<AreaObjectMembershipState> membership;
+};
+
+ObjectEditApplyResult apply_area_tile_erase_edits(
+    AreaTileEraseState& state, ObjectEditDirection direction)
+{
+    if (!state.batch.tiles.rows.empty()) {
+        auto validated = area_tile_edit_detail::validate_area_tile_edits(
+            state.batch.tiles, direction, state.batch.doors);
+        if (!validated.ok()) { return validated; }
+    }
+    // Membership validates counts/indices and reserves restoration capacity
+    // before changing any data. Tile writes below cannot allocate or fail.
+    auto applied = apply_membership_state(*state.membership, direction, false);
+    if (!applied.ok()) { return applied; }
+    const auto changed = area_tile_edit_detail::write_area_tile_edits(state.batch.tiles, direction);
+    const auto selection = direction == ObjectEditDirection::inverse
+        ? state.membership->attached_selection
+        : ObjectHandle{};
+    publish_area_structure_changes(state.batch.tiles.area, selection);
+    return {.status = ObjectEditStatus::success,
+        .applied_count = changed + static_cast<uint32_t>(state.batch.doors.size())};
+}
+
+CommandResult replay_area_tile_erase_edits(AreaTileEraseState& state,
+    ObjectEditDirection direction, std::string label, CommandContext& context)
+{
+    const auto applied = apply_area_tile_erase_edits(state, direction);
+    if (!applied.ok()) {
+        return command_edit_result(CommandStatus::failed, applied.diagnostic,
+            CommandOutputChannel::error);
+    }
+    mark_context_dirty(context);
+    return command_edit_result(CommandStatus::success, std::move(label), CommandOutputChannel::none);
 }
 
 std::shared_ptr<AreaObjectMembershipState> make_duplicate_membership_state(
@@ -5850,6 +5895,68 @@ CommandResult delete_area_objects(
         make_delete_membership_state(area, objects), std::move(label), context);
 }
 
+CommandResult commit_area_tile_erase_edits(
+    AreaTileEraseEditBatch batch, std::string label, CommandContext& context)
+{
+    if (batch.tiles.rows.empty()) {
+        return command_edit_result(CommandStatus::rejected,
+            "Area eraser requires at least one tile change",
+            CommandOutputChannel::warn);
+    }
+    if (batch.doors.empty()) {
+        return commit_area_tile_edits(std::move(batch.tiles), std::move(label), context);
+    }
+    const auto area = batch.tiles.area;
+    if (context.workspace) {
+        const auto* tab = context.workspace->active_tab();
+        if (!tab || tab->kind != WorkspaceTabKind::area || tab->document.object() != area) {
+            return command_edit_result(CommandStatus::rejected,
+                "Erasing is only available for the displayed area", CommandOutputChannel::warn);
+        }
+    }
+    std::shared_ptr<AreaTileEraseState> state;
+    std::shared_ptr<CommandUndoAction> action;
+    try {
+        if (std::ranges::any_of(batch.doors, [](ObjectHandle door) {
+                return door.type != ObjectType::door;
+            })) {
+            return command_edit_result(CommandStatus::rejected,
+                "Area eraser can only remove doors", CommandOutputChannel::warn);
+        }
+        auto validated = validate_area_object_command(area, batch.doors, context);
+        if (!validated.ok()) { return validated; }
+        state = std::make_shared<AreaTileEraseState>();
+        state->membership = make_delete_membership_state(area, batch.doors);
+        state->batch = std::move(batch);
+        action = std::make_shared<CommandUndoAction>();
+        action->label = label;
+        action->undo = [state, undo_label = "Undo " + label](CommandContext& undo_context) {
+            return replay_area_tile_erase_edits(*state, ObjectEditDirection::inverse,
+                undo_label, undo_context);
+        };
+        action->redo = [state, redo_label = "Redo " + label](CommandContext& redo_context) {
+            return replay_area_tile_erase_edits(*state, ObjectEditDirection::forward,
+                redo_label, redo_context);
+        };
+    } catch (const std::bad_alloc&) {
+        return command_edit_result(CommandStatus::failed,
+            "Area eraser undo allocation failed", CommandOutputChannel::error);
+    } catch (const std::length_error&) {
+        return command_edit_result(CommandStatus::failed,
+            "Area eraser undo exceeds container capacity", CommandOutputChannel::error);
+    }
+    const auto applied = apply_area_tile_erase_edits(*state, ObjectEditDirection::forward);
+    if (!applied.ok()) {
+        const bool failed = applied.status == ObjectEditStatus::failed;
+        return command_edit_result(failed ? CommandStatus::failed : CommandStatus::rejected,
+            applied.diagnostic, failed ? CommandOutputChannel::error : CommandOutputChannel::warn);
+    }
+    mark_context_dirty(context);
+    auto result = command_edit_result(CommandStatus::success, std::move(label), CommandOutputChannel::none);
+    result.undo_action = std::move(action);
+    return result;
+}
+
 AreaObjectBlueprintLoadResult load_area_object_blueprints(
     ObjectHandle area,
     std::span<const AreaObjectBlueprintPlacement> placements)
@@ -6176,7 +6283,12 @@ std::vector<int32_t> editable_creature_class_levels(
 
 ObjectMutationState object_mutation_state() noexcept
 {
-    return g_mutation_state;
+    auto result = g_mutation_state;
+    result.area_tile_indices
+        = result.kind == ObjectMutationKind::area_tiles
+        ? std::span<const uint32_t>{g_area_tile_mutation_indices}
+        : std::span<const uint32_t>{};
+    return result;
 }
 
 void publish_area_structure_changes(ObjectHandle area, ObjectHandle selection) noexcept
@@ -6187,6 +6299,31 @@ void publish_area_structure_changes(ObjectHandle area, ObjectHandle selection) n
     g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
     g_mutation_state.area = area;
     g_mutation_state.object = selection;
+}
+
+void publish_area_tile_changes(
+    ObjectHandle area, std::span<const AreaTileEditRow> rows) noexcept
+{
+    try {
+        g_area_tile_mutation_indices.clear();
+        g_area_tile_mutation_indices.reserve(rows.size());
+        for (const auto& row : rows) {
+            g_area_tile_mutation_indices.push_back(row.tile_index);
+        }
+    } catch (const std::bad_alloc&) {
+        publish_area_structure_changes(area, ObjectHandle{});
+        return;
+    } catch (const std::length_error&) {
+        publish_area_structure_changes(area, ObjectHandle{});
+        return;
+    }
+
+    ++g_mutation_state.epoch;
+    ++g_mutation_state.area_structure_epoch;
+    g_mutation_state.kind = ObjectMutationKind::area_tiles;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.area = area;
+    g_mutation_state.object = ObjectHandle{};
 }
 
 } // namespace nw::toolset

@@ -91,6 +91,7 @@ NavAdjacencyStats build_nav_geometry_adjacency(
 
 struct NavAreaGeometryStats {
     size_t tile_count = 0;
+    size_t void_tile_count = 0;
     size_t wok_tile_count = 0;
     size_t empty_wok_tile_count = 0;
     size_t fallback_tile_count = 0;

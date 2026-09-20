@@ -219,10 +219,10 @@ bool open_area_tile_editor(ClientRenderer& renderer, ClientApplicationState& sta
     cancel_area_object_drag(renderer, state);
     (void)renderer.clear_viewer_area_object_selection();
     auto& editor = state.area_tile_editor;
-    state.area_workspace_surface = AreaWorkspaceSurface::tiles;
     if (!nw::toolset::reset_area_tile_editor(editor, area_handle)) {
         append_output(state, "error", editor.palette.diagnostic);
     }
+    state.area_workspace_surface = AreaWorkspaceSurface::tiles;
     return true;
 }
 
@@ -283,11 +283,7 @@ void flush_area_tile_cursor_update(ClientRenderer& renderer,
     const auto modifier = area_tile_pointer_modifier(SDL_GetModState());
     if (!nw::toolset::prepare_area_tile_cursor_update(
             renderer, editor, active_workspace_area(state), modifier)) { return; }
-    float mouse_x = 0.0f;
-    float mouse_y = 0.0f;
-    (void)SDL_GetMouseState(&mouse_x, &mouse_y);
-    const Rml::Vector2f point = to_context_point(window, mouse_x, mouse_y);
-    editor.pending_cursor_point = point;
+    const Rml::Vector2f point = editor.pending_cursor_point;
     editor.cursor_update_pending = false;
     const auto viewport = active_workspace_viewer_viewport_request(
         doc, state, frame_width, frame_height);
@@ -312,6 +308,7 @@ bool begin_area_tile_stroke(ClientRenderer& renderer, ClientApplicationState& st
     const auto brush = nw::toolset::selected_area_tile_brush(editor, area_tile_pointer_button(pointer_button));
     if (!brush) {
         editor.feedback = "Choose a terrain action";
+        append_output(state, "warn", editor.feedback);
         return false;
     }
     if (area_tile_editor_action_allowed(state)

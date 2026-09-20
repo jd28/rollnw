@@ -74,14 +74,24 @@ bool valid_area_shape(const Area& area, uint32_t& tile_count) noexcept
 
 bool valid_tile_row(const Area& area, const AreaTile& tile) noexcept
 {
-    if (!area.tileset || tile.id < 0
-        || static_cast<size_t>(tile.id) >= area.tileset->tiles.size()
-        || tile.orientation < 0 || tile.orientation >= 4) {
+    if (!area.tileset) {
         return false;
     }
     const float world_z = static_cast<float>(tile.height)
         * area.tileset->tile_height;
-    return std::isfinite(world_z);
+    if (!std::isfinite(world_z)) {
+        return false;
+    }
+    if (area_tile_is_void(tile)) {
+        return tile.orientation == 0
+            && tile.animloop1 == 0 && tile.animloop2 == 0
+            && tile.animloop3 == 0 && tile.mainlight1 == 0
+            && tile.mainlight2 == 0 && tile.srclight1 == 0
+            && tile.srclight2 == 0;
+    }
+    return tile.id >= 0
+        && static_cast<size_t>(tile.id) < area.tileset->tiles.size()
+        && tile.orientation >= 0 && tile.orientation < 4;
 }
 
 bool row_changes_spatial_tile_data(const AreaTileEditRow& row) noexcept
@@ -94,15 +104,21 @@ bool row_changes_spatial_tile_data(const AreaTileEditRow& row) noexcept
 ObjectEditApplyResult validate_occupied_hooks(
     const Area& area,
     const AreaTileEditBatch& batch,
-    ObjectEditDirection direction)
+    ObjectEditDirection direction,
+    std::span<const ObjectHandle> removed_doors)
 {
-    const auto has_affected_door_hooks = [&area](const AreaTileEditRow& row) {
-        return row_changes_spatial_tile_data(row)
-            && (!area.tileset->tiles[static_cast<size_t>(row.before.id)]
-                    .door_slots.empty()
-                || !area.tileset->tiles[static_cast<size_t>(row.after.id)]
-                    .door_slots.empty());
+    const auto has_door_hooks = [&area](const AreaTile& tile) {
+        return !area_tile_is_void(tile)
+            && tile.id >= 0
+            && static_cast<size_t>(tile.id) < area.tileset->tiles.size()
+            && !area.tileset->tiles[static_cast<size_t>(tile.id)]
+                    .door_slots.empty();
     };
+    const auto has_affected_door_hooks
+        = [&has_door_hooks](const AreaTileEditRow& row) {
+              return row_changes_spatial_tile_data(row)
+                  && (has_door_hooks(row.before) || has_door_hooks(row.after));
+          };
     if (std::none_of(batch.rows.begin(), batch.rows.end(),
             has_affected_door_hooks)) {
         return tile_result(ObjectEditStatus::success);
@@ -110,7 +126,7 @@ ObjectEditApplyResult validate_occupied_hooks(
 
     AreaDoorHookSnapshot current_hooks;
     std::string diagnostic;
-    if (!build_area_door_hooks(area, current_hooks, diagnostic)) {
+    if (!build_area_door_hooks(area, area.tiles, current_hooks, diagnostic, removed_doors)) {
         return tile_result(ObjectEditStatus::invalid_batch,
             diagnostic.empty()
                 ? "Area door hooks are unavailable"
@@ -138,7 +154,7 @@ ObjectEditApplyResult validate_occupied_hooks(
 
     AreaDoorHookSnapshot candidate_hooks;
     if (!build_area_door_hooks(
-            area, candidate_tiles, candidate_hooks, diagnostic)) {
+            area, candidate_tiles, candidate_hooks, diagnostic, removed_doors)) {
         return tile_result(ObjectEditStatus::invalid_batch,
             diagnostic.empty()
                 ? "Candidate area door hooks are unavailable"
@@ -173,8 +189,11 @@ ObjectEditApplyResult validate_occupied_hooks(
     return tile_result(ObjectEditStatus::success);
 }
 
-ObjectEditApplyResult validate_area_tile_edits(
-    const AreaTileEditBatch& batch, ObjectEditDirection direction)
+} // namespace
+
+ObjectEditApplyResult area_tile_edit_detail::validate_area_tile_edits(
+    const AreaTileEditBatch& batch, ObjectEditDirection direction,
+    std::span<const ObjectHandle> removed_doors)
 {
     if (batch.rows.empty()) {
         return tile_result(ObjectEditStatus::empty,
@@ -223,8 +242,10 @@ ObjectEditApplyResult validate_area_tile_edits(
                     + " snapshot is outside the tileset or transform range");
         }
     }
-    return validate_occupied_hooks(*area, batch, direction);
+    return validate_occupied_hooks(*area, batch, direction, removed_doors);
 }
+
+namespace {
 
 void mark_context_dirty(CommandContext& context)
 {
@@ -272,11 +293,27 @@ bool area_tile_rows_equal(
 ObjectEditApplyResult apply_area_tile_edits(
     const AreaTileEditBatch& batch, ObjectEditDirection direction)
 {
-    auto validation = validate_area_tile_edits(batch, direction);
+    auto validation = area_tile_edit_detail::validate_area_tile_edits(batch, direction);
     if (!validation.ok()) {
         return validation;
     }
 
+    const uint32_t changed_count = area_tile_edit_detail::write_area_tile_edits(batch, direction);
+    if (changed_count == 0) {
+        return tile_result(ObjectEditStatus::empty,
+            "Area tile edit contains no changes");
+    }
+
+    publish_area_tile_changes(batch.area, batch.rows);
+    return {
+        .status = ObjectEditStatus::success,
+        .applied_count = changed_count,
+    };
+}
+
+uint32_t area_tile_edit_detail::write_area_tile_edits(
+    const AreaTileEditBatch& batch, ObjectEditDirection direction)
+{
     auto* area = kernel::objects().get<Area>(batch.area);
     uint32_t changed_count = 0;
     for (const auto& edit : batch.rows) {
@@ -286,16 +323,7 @@ ObjectEditApplyResult apply_area_tile_edits(
             ++changed_count;
         }
     }
-    if (changed_count == 0) {
-        return tile_result(ObjectEditStatus::empty,
-            "Area tile edit contains no changes");
-    }
-
-    publish_area_structure_changes(batch.area, ObjectHandle{});
-    return {
-        .status = ObjectEditStatus::success,
-        .applied_count = changed_count,
-    };
+    return changed_count;
 }
 
 CommandResult commit_area_tile_edits(

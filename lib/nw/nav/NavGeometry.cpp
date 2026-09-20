@@ -411,6 +411,10 @@ NavAreaGeometryStats build_area_tile_nav_geometry(
             }
 
             const auto& tile = area.tiles[tile_index];
+            if (area_tile_is_void(tile)) {
+                ++stats.void_tile_count;
+                continue;
+            }
             if (tile.id < 0 || static_cast<size_t>(tile.id) >= area.tileset->tiles.size()) {
                 ++stats.rejected_tile_count;
                 continue;

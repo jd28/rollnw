@@ -96,6 +96,9 @@ public:
                 case nw::toolset::AreaTileBrushKind::eraser:
                     glyph = "E";
                     break;
+                case nw::toolset::AreaTileBrushKind::void_tile:
+                    glyph = "V";
+                    break;
                 case nw::toolset::AreaTileBrushKind::raise:
                     glyph = "+/-";
                     break;
@@ -356,12 +359,6 @@ bool sync_area_tile_palette_window(
     if (!tiles_visible || !list || area.type != ObjectType::area) {
         return false;
     }
-    if (auto* feedback = find_el(doc, "area_tile_palette_feedback")) {
-        const bool visible = !editor.feedback.empty();
-        feedback->SetInnerRML(
-            visible ? Rml::StringUtilities::EncodeRml(editor.feedback) : std::string{});
-        feedback->SetClass("visible", visible);
-    }
     if (auto* hint = find_el(doc, "area_tile_modifier_hint")) {
         hint->SetClass("visible",
             modifier
@@ -444,8 +441,6 @@ void append_area_tile_palette_markup(
                       "<input id=\"area_tile_palette_search\" type=\"text\" value=\"";
     content_markup += Rml::StringUtilities::EncodeRml(editor.query);
     content_markup += "\" placeholder=\"Find terrain or feature\"/>"
-                      "<div id=\"area_tile_palette_feedback\" "
-                      "class=\"area_tile_palette_feedback\"></div>"
                       "<div id=\"area_tile_modifier_hint\" "
                       "class=\"area_tile_modifier_hint\">"
                       "Left-click selects a tile or group &middot; "

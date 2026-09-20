@@ -1,3 +1,4 @@
+#include "area_door_hooks.hpp"
 #include "area_tile_editor.hpp"
 #include "command_view.hpp"
 #include "renderer.hpp"
@@ -5,6 +6,7 @@
 #include "toolset_backend.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/objects/Door.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
@@ -20,6 +22,12 @@ namespace nw::toolset {
 
 namespace {
 
+bool area_tile_removal_brush(AreaTileBrushKind kind) noexcept
+{
+    return kind == AreaTileBrushKind::eraser
+        || kind == AreaTileBrushKind::void_tile;
+}
+
 bool preview_area_tile_stroke(ClientRenderer& renderer,
     AreaTileEditorState& editor,
     nw::ObjectHandle area,
@@ -28,22 +36,45 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
     nw::toolset::AreaTileBrush brush)
 {
     nw::toolset::AreaTileEditBatch preview;
-    const auto built = build_area_tile_stroke_edits(area,
-        tile_indices, corner_indices, brush,
-        editor.next_random_seed, preview);
-    editor.feedback = built.ok() ? std::string{} : built.diagnostic;
+    nw::toolset::AreaTileEraseEditBatch removal_preview;
     const bool erasing = brush.kind == nw::toolset::AreaTileBrushKind::eraser;
-    const bool erase_empty = erasing
-        && built.status == nw::toolset::ObjectEditStatus::empty;
-    if (erase_empty) {
-        editor.feedback.clear();
+    const bool voiding
+        = brush.kind == nw::toolset::AreaTileBrushKind::void_tile;
+    auto built = erasing
+        ? build_area_tile_erase_edits(area, tile_indices, brush.value,
+              editor.next_random_seed, removal_preview)
+        : voiding
+        ? build_area_tile_void_edits(
+              area, tile_indices, removal_preview)
+        : build_area_tile_stroke_edits(area, tile_indices, corner_indices,
+              brush, editor.next_random_seed, preview);
+    if (built.ok() && !area_tile_removal_brush(brush.kind)) {
+        built = area_tile_edit_detail::validate_area_tile_edits(
+            preview, ObjectEditDirection::forward);
+    }
+    editor.feedback = built.ok() ? std::string{} : built.diagnostic;
+    if (!built.ok()) {
+        try {
+            editor.preview_rows.clear();
+            editor.preview_rows.reserve(tile_indices.size());
+            for (const uint32_t tile_index : tile_indices) {
+                editor.preview_rows.push_back({.tile_index = tile_index});
+            }
+        } catch (const std::bad_alloc&) {
+            editor.preview_rows.clear();
+        } catch (const std::length_error&) {
+            editor.preview_rows.clear();
+        }
+        (void)renderer.update_viewer_area_tile_preview(
+            area, editor.preview_rows, false, false);
+        return false;
     }
     try {
         editor.preview_rows.clear();
         std::vector<uint32_t> erase_cells;
         const auto erase_targets = erasing
             ? nw::toolset::resolve_area_tile_erase_cells(area, tile_indices, erase_cells)
-            : nw::toolset::ObjectEditApplyResult{};
+            : nw::toolset::ObjectEditApplyResult{.status = ObjectEditStatus::success};
         if (erasing && !erase_targets.ok()) {
             editor.feedback = erase_targets.diagnostic;
             (void)renderer.update_viewer_area_tile_preview(area, {}, false);
@@ -61,21 +92,16 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
                     .orientation = tile.orientation,
                 });
             }
-        } else if (built.ok()) {
-            editor.preview_rows.reserve(preview.rows.size());
-            for (const auto& row : preview.rows) {
+        } else {
+            const auto& rows
+                = voiding ? removal_preview.tiles.rows : preview.rows;
+            editor.preview_rows.reserve(rows.size());
+            for (const auto& row : rows) {
                 editor.preview_rows.push_back({
                     .tile_index = row.tile_index,
                     .tile_id = row.after.id,
                     .height = row.after.height,
                     .orientation = row.after.orientation,
-                });
-            }
-        } else {
-            editor.preview_rows.reserve(tile_indices.size());
-            for (const uint32_t tile_index : tile_indices) {
-                editor.preview_rows.push_back({
-                    .tile_index = tile_index,
                 });
             }
         }
@@ -89,49 +115,54 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
         return false;
     }
     (void)renderer.update_viewer_area_tile_preview(
-        area, editor.preview_rows, built.ok() || erase_empty, !erasing);
-    return built.ok() || erase_empty;
+        area, editor.preview_rows, true, !erasing);
+    return true;
+}
+
+struct AreaEraseDoorTilePick {
+    std::optional<uint32_t> tile_index;
+    std::string diagnostic;
+};
+
+AreaEraseDoorTilePick pick_area_erase_door_tile(ClientRenderer& renderer,
+    const Area& area, Rml::Vector2f point, ClientViewportRect viewport)
+{
+    std::vector<ObjectHandle> doors;
+    doors.reserve(area.doors.size());
+    for (const auto* door : area.doors) {
+        if (door) { doors.push_back(door->handle()); }
+    }
+    const auto hit = renderer.viewer_area_door_hit(point.x, point.y, viewport, doors);
+    if (!hit) { return {}; }
+    AreaDoorHookSnapshot hooks;
+    AreaEraseDoorTilePick result;
+    if (!build_area_door_hooks(area, hooks, result.diagnostic)) {
+        if (result.diagnostic.empty()) {
+            result.diagnostic = "Area door hooks are unavailable";
+        }
+        return result;
+    }
+    result.tile_index = area_door_hook_tile(hooks, hit->door);
+    if (!result.tile_index) {
+        result.diagnostic = "The door is not attached to one area tile hook";
+    }
+    return result;
 }
 
 nw::toolset::AreaTileCellPick pick_area_tile_cell(
     ClientRenderer& renderer,
     nw::ObjectHandle area_handle,
     Rml::Vector2f point,
-    ClientViewportRect viewport,
-    bool use_rendered_geometry)
+    ClientViewportRect viewport)
 {
     const auto* area = nw::kernel::objects().get<nw::Area>(area_handle);
     if (!area || area->width <= 0 || area->height <= 0) {
         return {};
     }
 
-    if (use_rendered_geometry) {
-        const auto hit = renderer.viewer_area_tile_hit(
-            point.x, point.y, viewport);
-        if (!hit) {
-            const auto ray = renderer.viewer_viewport_ray(
-                point.x, point.y, viewport);
-            return ray
-                ? nw::toolset::pick_area_tile_cell(*area,
-                      {
-                          .origin = ray->origin,
-                          .direction = ray->displacement,
-                      })
-                : nw::toolset::AreaTileCellPick{};
-        }
-        if (hit->tile_x >= 0 && hit->tile_x < area->width
-            && hit->tile_y >= 0 && hit->tile_y < area->height) {
-            return {
-                .position = hit->position,
-                .distance = hit->distance,
-                .tile_index = static_cast<uint32_t>(hit->tile_y * area->width
-                    + hit->tile_x),
-                .status = nw::toolset::AreaTileCellPickStatus::hit,
-            };
-        }
-        return {};
-    }
-
+    // SET geometry can cross cell bounds. Every tile-mode operation therefore
+    // uses the coordinate grid, rather than the rendered model owner, as its
+    // target authority.
     const auto ray = renderer.viewer_viewport_ray(
         point.x, point.y, viewport);
     return ray
@@ -287,7 +318,7 @@ bool select_area_tiles(ClientRenderer& renderer, AreaTileEditorState& editor, Ob
     cancel_area_tile_stroke(renderer, editor, active_area);
     const nw::ObjectHandle area = active_area;
     const auto pick = pick_area_tile_cell(
-        renderer, area, point, viewport, true);
+        renderer, area, point, viewport);
     if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
         editor.feedback
             = "Tile selection target is unavailable";
@@ -305,7 +336,7 @@ bool cycle_area_tile_at_point(ClientRenderer& renderer, AreaTileEditorState& edi
     }
     const nw::ObjectHandle area = active_area;
     const auto pick = pick_area_tile_cell(
-        renderer, area, point, viewport, true);
+        renderer, area, point, viewport);
     if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
         editor.feedback
             = "Tile variation target is unavailable";
@@ -361,7 +392,7 @@ bool update_area_tile_cursor(ClientRenderer& renderer, AreaTileEditorState& edit
         && modifier
             == nw::toolset::AreaTilePointerModifier::select) {
         const auto pick = pick_area_tile_cell(
-            renderer, area_handle, point, viewport, true);
+            renderer, area_handle, point, viewport);
         if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
             editor.cursor_target_index = UINT32_MAX;
             editor.preview_rows.clear();
@@ -390,12 +421,54 @@ bool update_area_tile_cursor(ClientRenderer& renderer, AreaTileEditorState& edit
     if (!editor.stroke.active && editor.selection.active()) {
         return true;
     }
-    const auto pick = pick_area_tile_cell(
-        renderer, area_handle, point, viewport,
-        editor.preview_rows.empty());
+    const auto brush = editor.stroke.active
+        ? std::optional{editor.stroke.brush}
+        : selected_area_tile_brush(editor, AreaTilePointerButton::primary);
+    nw::toolset::AreaTileCellPick pick;
+    if (brush && area_tile_removal_brush(brush->kind)) {
+        try {
+            const auto door = pick_area_erase_door_tile(
+                renderer, *area, point, viewport);
+            if (door.tile_index) {
+                pick = {
+                    .tile_index = *door.tile_index,
+                    .status = nw::toolset::AreaTileCellPickStatus::hit,
+                };
+            } else if (!door.diagnostic.empty()) {
+                editor.cursor_target_index = UINT32_MAX;
+                editor.feedback = door.diagnostic;
+                editor.preview_rows.clear();
+                (void)renderer.update_viewer_area_tile_preview(
+                    area_handle, {}, false);
+                if (editor.stroke.active) {
+                    editor.stroke.has_last_target = false;
+                }
+                return true;
+            }
+        } catch (const std::bad_alloc&) {
+            editor.feedback = "Door eraser target allocation failed";
+            if (editor.stroke.active) {
+                shell.append_output("error", editor.feedback);
+                cancel_area_tile_stroke(renderer, editor, active_area);
+            }
+            return true;
+        } catch (const std::length_error&) {
+            editor.feedback = "Door eraser targets exceed container capacity";
+            if (editor.stroke.active) {
+                shell.append_output("error", editor.feedback);
+                cancel_area_tile_stroke(renderer, editor, active_area);
+            }
+            return true;
+        }
+    }
+    if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
+        pick = pick_area_tile_cell(
+            renderer, area_handle, point, viewport);
+    }
     if (pick.status != nw::toolset::AreaTileCellPickStatus::hit) {
         editor.cursor_target_index = UINT32_MAX;
         if (editor.stroke.active) {
+            editor.feedback = "Tile placement target is outside the area or unavailable";
             editor.stroke.has_last_target = false;
         } else {
             editor.preview_rows.clear();
@@ -405,8 +478,6 @@ bool update_area_tile_cursor(ClientRenderer& renderer, AreaTileEditorState& edit
     }
 
     if (!editor.stroke.active) {
-        const auto brush = selected_area_tile_brush(
-            editor, AreaTilePointerButton::primary);
         if (!brush) {
             editor.cursor_target_index = UINT32_MAX;
             editor.preview_rows.clear();
@@ -519,6 +590,7 @@ bool begin_area_tile_stroke(ClientRenderer& renderer, AreaTileEditorState& edito
         || static_cast<size_t>(editor.selected_row)
             >= editor.palette.rows.size()) {
         editor.feedback = "Terrain editing is unavailable";
+        shell.append_output("warn", editor.feedback);
         return false;
     }
 
@@ -586,6 +658,7 @@ bool begin_area_tile_stroke(ClientRenderer& renderer, AreaTileEditorState& edito
     if (editor.stroke.active
         && (height_brush ? editor.stroke.corner_indices.empty()
                          : editor.stroke.tile_indices.empty())) {
+        shell.append_output("warn", editor.feedback.empty() ? "Tile placement target is unavailable" : editor.feedback);
         cancel_area_tile_stroke(renderer, editor, active_area);
     }
     return true;
@@ -620,13 +693,23 @@ void commit_area_tile_stroke(ClientRenderer& renderer, AreaTileEditorState& edit
         return;
     }
     nw::toolset::AreaTileEditBatch edit;
-    const auto built = build_area_tile_stroke_edits(stroke.area,
-        stroke.tile_indices, stroke.corner_indices, stroke.brush,
-        editor.next_random_seed++, edit);
+    AreaTileEraseEditBatch removal_edit;
+    const bool erasing = stroke.brush.kind == AreaTileBrushKind::eraser;
+    const bool voiding
+        = stroke.brush.kind == AreaTileBrushKind::void_tile;
+    const auto built = erasing
+        ? build_area_tile_erase_edits(stroke.area, stroke.tile_indices,
+              stroke.brush.value, editor.next_random_seed++, removal_edit)
+        : voiding
+        ? build_area_tile_void_edits(
+              stroke.area, stroke.tile_indices, removal_edit)
+        : build_area_tile_stroke_edits(stroke.area,
+              stroke.tile_indices, stroke.corner_indices, stroke.brush,
+              editor.next_random_seed++, edit);
     if (!built.ok()) {
-        if (stroke.brush.kind == nw::toolset::AreaTileBrushKind::eraser
+        if (area_tile_removal_brush(stroke.brush.kind)
             && built.status == nw::toolset::ObjectEditStatus::empty) {
-            editor.feedback = "Nothing to erase here";
+            editor.feedback = built.diagnostic;
             return;
         }
         editor.feedback = built.diagnostic;
@@ -642,10 +725,10 @@ void commit_area_tile_stroke(ClientRenderer& renderer, AreaTileEditorState& edit
     const size_t target_count = area_tile_height_brush(stroke.brush)
         ? stroke.corner_indices.size()
         : stroke.tile_indices.size();
-    const auto result = backend.edit_area_tiles(
-        std::move(edit),
-        target_count == 1 ? stroke.label : stroke.label + " stroke",
-        context);
+    const auto label = target_count == 1 ? stroke.label : stroke.label + " stroke";
+    const auto result = area_tile_removal_brush(stroke.brush.kind)
+        ? backend.erase_area_tiles(std::move(removal_edit), label, context)
+        : backend.edit_area_tiles(std::move(edit), label, context);
     editor.feedback = result.ok() ? std::string{} : result.message;
     append_command_results(shell, {&result, 1});
 }
@@ -659,6 +742,7 @@ bool cycle_selected_area_tile_variation(ClientRenderer& renderer, AreaTileEditor
     if (editor.selection.is_group()) {
         editor.feedback
             = "Placed groups do not expose interchangeable group variations";
+        shell.append_output("warn", editor.feedback);
         return true;
     }
     cancel_area_tile_stroke(renderer, editor, active_area);
@@ -731,6 +815,7 @@ bool rotate_area_tile_group(ClientRenderer& renderer, AreaTileEditorState& edito
         || editor.cursor_target_index != UINT32_MAX;
     const Rml::Vector2f cursor_point = editor.pending_cursor_point;
     if (!nw::toolset::rotate_area_tile_group_orientation(editor)) {
+        shell.append_output("warn", editor.feedback);
         return true;
     }
     const std::string feedback = editor.feedback;

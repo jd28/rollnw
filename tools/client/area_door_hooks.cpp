@@ -23,11 +23,12 @@ bool finite(glm::vec3 value) noexcept
         && std::isfinite(value.z);
 }
 
-ObjectHandle hook_occupant(const Area& area, glm::vec3 position) noexcept
+ObjectHandle hook_occupant(const Area& area, glm::vec3 position,
+    std::span<const ObjectHandle> removed_doors) noexcept
 {
     constexpr float occupied_distance_squared = 0.05f * 0.05f;
     for (const auto* door : area.doors) {
-        if (!door) {
+        if (!door || std::ranges::find(removed_doors, door->handle()) != removed_doors.end()) {
             continue;
         }
         const auto* spatial = kernel::objects().components().find_spatial(
@@ -53,7 +54,8 @@ bool build_area_door_hooks(
     const Area& area,
     std::span<const AreaTile> tiles,
     AreaDoorHookSnapshot& output,
-    std::string& diagnostic)
+    std::string& diagnostic,
+    std::span<const ObjectHandle> removed_doors)
 {
     output = {};
     diagnostic.clear();
@@ -116,7 +118,7 @@ bool build_area_door_hooks(
                         output.hooks.push_back({
                             .position = position,
                             .orientation = orientation,
-                            .occupant = hook_occupant(area, position),
+                            .occupant = hook_occupant(area, position, removed_doors),
                             .type = slot.type,
                             .tile_index = tile_index,
                             .slot_index = slot_index,
@@ -137,6 +139,30 @@ bool build_area_door_hooks(
         return false;
     }
     return true;
+}
+
+std::optional<uint32_t> area_door_hook_tile(
+    const AreaDoorHookSnapshot& snapshot, ObjectHandle door) noexcept
+{
+    if (snapshot.area.type != ObjectType::area
+        || door.type != ObjectType::door
+        || snapshot.width <= 0 || snapshot.height <= 0) {
+        return std::nullopt;
+    }
+    const uint64_t tile_count = static_cast<uint64_t>(snapshot.width)
+        * static_cast<uint64_t>(snapshot.height);
+    if (tile_count > UINT32_MAX
+        || snapshot.tile_offsets.size() != tile_count + 1u) {
+        return std::nullopt;
+    }
+    std::optional<uint32_t> result;
+    for (const auto& hook : snapshot.hooks) {
+        if (hook.occupant != door) { continue; }
+        if (hook.tile_index >= tile_count) { return std::nullopt; }
+        if (result && *result != hook.tile_index) { return std::nullopt; }
+        result = hook.tile_index;
+    }
+    return result;
 }
 
 std::optional<AreaDoorHook> nearest_area_door_hook(

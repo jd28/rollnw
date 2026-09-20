@@ -23,6 +23,9 @@ struct Runtime;
 
 namespace nw::toolset {
 
+struct AreaTileEraseEditBatch;
+struct AreaTileEditRow;
+
 enum class ObjectEditKind : uint8_t {
     propset_int,
     propset_int_element,
@@ -435,6 +438,7 @@ enum class ObjectMutationKind : uint8_t {
     properties,
     spatial,
     visual,
+    area_tiles,
     structure,
 };
 
@@ -452,6 +456,9 @@ struct ObjectMutationState {
     ObjectVisualMutationKind visual_kind = ObjectVisualMutationKind::none;
     ObjectHandle object{};
     ObjectHandle area{};
+    // Borrowed sorted tile indices for area_tiles. The rows remain valid until
+    // the next editor mutation publication on the main thread.
+    std::span<const uint32_t> area_tile_indices;
 };
 
 struct AreaObjectBlueprintPlacement {
@@ -615,6 +622,12 @@ struct AreaObjectBlueprintLoadResult {
     std::string label,
     CommandContext& context);
 
+// One erase transaction owns tile rows and detached Door lifetime through the
+// existing membership undo data. Forward/inverse preflight rejects the entire
+// batch before writes; direct-door batches contain no tile rows.
+[[nodiscard]] CommandResult commit_area_tile_erase_edits(
+    AreaTileEraseEditBatch batch, std::string label, CommandContext& context);
+
 [[nodiscard]] AreaObjectBlueprintLoadResult load_area_object_blueprints(
     ObjectHandle area,
     std::span<const AreaObjectBlueprintPlacement> placements);
@@ -683,5 +696,11 @@ creature_body_part_editor_snapshot(
 
 // Publishes structural changes in the singleton live editor area after a batch.
 void publish_area_structure_changes(ObjectHandle area, ObjectHandle selection) noexcept;
+
+// Publishes a tile-only mutation. Allocation failure deliberately degrades to
+// a generic structural mutation so viewport correctness never depends on the
+// incremental path.
+void publish_area_tile_changes(
+    ObjectHandle area, std::span<const AreaTileEditRow> rows) noexcept;
 
 } // namespace nw::toolset

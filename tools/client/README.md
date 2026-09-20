@@ -282,9 +282,21 @@ groups. A selected action keeps its exact world-space preview while the camera
 moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
 Eraser removes a complete placed group when its SET footprint can be identified;
 incomplete or ambiguous groups are rejected without changing the area.
+Neighboring placed groups are fixed boundaries: erasing one group may refit
+ordinary transition tiles around it, but never widens the removal to another
+group.
+When a door is under the pointer, Eraser targets the tile that owns its SET hook
+and expands that tile to its complete placed group. Doors attached to hooks on
+tiles that change are removed with those tiles; Eraser never creates a door-only
+operation. Each erase stroke is one undoable operation, and undo restores the
+original tiles and doors together.
 Overlapping group placement replaces the complete intersected groups and refits
 their uncovered cells to the SET's default terrain. Eraser previews outline the
 complete removal target without swapping in ground variations.
+The hover preview consumes the latest queued mouse position used by button input.
+An invalid tile operation removes the substituted tile preview and leaves a red
+cell indicator. Failed placement attempts are recorded in **Output**; hover
+checks do not add messages or change the palette list's layout.
 Holding Shift outlines the tile or complete placed group under the pointer,
 changes the viewport cursor to a pointer, and shows the selection/variation
 controls above the tile palette. Selection and variation do not require a

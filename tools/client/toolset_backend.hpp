@@ -82,6 +82,8 @@ public:
         ObjectTransformEdit edit, CommandContext context);
     CommandResult edit_area_tiles(
         AreaTileEditBatch edit, std::string label, CommandContext context);
+    CommandResult erase_area_tiles(
+        AreaTileEraseEditBatch edit, std::string label, CommandContext context);
     CommandResult place_creature_items(ObjectHandle creature,
         std::span<const ItemPlacement> placements,
         CommandContext context);

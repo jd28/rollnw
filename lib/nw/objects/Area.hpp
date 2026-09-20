@@ -74,6 +74,18 @@ struct AreaTile {
     uint8_t srclight2 = 0;
 };
 
+// Area tiles are a dense, row-major width * height coordinate protocol. A
+// void row keeps its coordinate and editing-plane height but contributes no
+// render model, door hooks, or navigation geometry. Other negative IDs are
+// invalid input.
+inline constexpr int32_t kAreaTileVoidId = -1;
+
+[[nodiscard]] constexpr bool area_tile_is_void(
+    const AreaTile& tile) noexcept
+{
+    return tile.id == kAreaTileVoidId;
+}
+
 struct Area : public ObjectBase {
     Area();
     Area(MemoryResource* allocator);

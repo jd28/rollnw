@@ -456,6 +456,33 @@ TEST(NavGeometry, ExtractsRealNwnTileWokFromDedicatedServer)
     EXPECT_TRUE(geometry.valid());
 }
 
+TEST(NavGeometry, VoidTilesContributeNoNavigationGeometry)
+{
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    tileset.tiles.push_back({"tall_a01_01"});
+
+    nw::Area area;
+    area.width = 2;
+    area.height = 1;
+    area.tileset = &tileset;
+    area.tiles = {
+        nw::AreaTile{.id = 0},
+        nw::AreaTile{.id = nw::kAreaTileVoidId},
+    };
+
+    nw::nav::NavGeometry geometry;
+    const auto stats = nw::nav::build_area_tile_nav_geometry(
+        area, nw::kernel::resman(), geometry);
+
+    EXPECT_EQ(stats.tile_count, 2u);
+    EXPECT_EQ(stats.void_tile_count, 1u);
+    EXPECT_EQ(stats.wok_tile_count, 1u);
+    EXPECT_EQ(stats.rejected_tile_count, 0u);
+    EXPECT_TRUE(std::ranges::all_of(geometry.owner,
+        [](uint32_t owner) { return owner == 0u; }));
+}
+
 TEST(NavGeometry, ParsesRepeatedTileWalkmeshOnce)
 {
     nw::Tileset tileset;

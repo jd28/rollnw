@@ -45,12 +45,19 @@ struct AreaDoorHookSnapshot {
 
 // Builds the same snapshot against a complete candidate tile array without
 // mutating the Area. This is used to reject structural edits that would make
-// their own inverse unsafe.
+// their own inverse unsafe. Removed doors are omitted from occupancy when
+// preflighting a combined erase, so another door at the same hook still blocks.
 [[nodiscard]] bool build_area_door_hooks(
     const Area& area,
     std::span<const AreaTile> tiles,
     AreaDoorHookSnapshot& output,
-    std::string& diagnostic);
+    std::string& diagnostic,
+    std::span<const ObjectHandle> removed_doors = {});
+
+// Returns the one tile whose current hooks contain door. Repeated slots on the
+// same tile are accepted; no match or matches on different tiles return empty.
+[[nodiscard]] std::optional<uint32_t> area_door_hook_tile(
+    const AreaDoorHookSnapshot& snapshot, ObjectHandle door) noexcept;
 
 // Searches the pointer tile and its eight neighbors. Nonnegative types must match
 // exactly; k_area_door_any_hook_type accepts any hook. Occupied hooks are rejected

@@ -1401,19 +1401,6 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   color: #e7ebef;
   box-sizing: border-box;
 }
-.area_tile_palette_feedback {
-  display: none;
-  margin-top: 7px;
-  padding: 6px 8px;
-  border: 1px #71423e;
-  border-radius: 2px;
-  background: #2a1c1d;
-  color: #ee9f9f;
-  font-size: 11px;
-}
-.area_tile_palette_feedback.visible {
-  display: block;
-}
 .area_tile_modifier_hint {
   display: none;
   margin-top: 7px;

@@ -15,6 +15,7 @@ enum class AreaTileBrushKind : uint8_t {
     crosser,
     group,
     eraser,
+    void_tile,
     raise,
     lower,
 };
@@ -47,14 +48,32 @@ struct AreaTileSelection {
 };
 
 // Expands a borrowed batch of unique area indices into sorted, owned eraser
-// targets, including every cell of intersected placed groups. Does not fit or
-// change tiles. Invalid indices, incomplete/ambiguous groups, and allocation
-// failures return an empty output. Input and output storage must not alias.
-// Scratch memory is O(area cells); work includes existing SET group resolution.
+// targets, including every cell of groups intersected by the picked cells.
+// Neighboring groups are fixed boundaries and are never added implicitly. Does
+// not fit or change tiles. Invalid indices, incomplete/ambiguous groups, and
+// allocation failures return an empty output. Input and output storage must not
+// alias. Scratch memory is O(area cells); work includes existing SET group
+// resolution.
 [[nodiscard]] ObjectEditApplyResult resolve_area_tile_erase_cells(
     ObjectHandle area,
     std::span<const uint32_t> input,
     std::vector<uint32_t>& output);
+
+// Builds an owned erase batch from unique picked cells. Expands only intersected
+// groups, preserves neighboring group boundaries while fitting ordinary
+// transition tiles, and includes doors attached to changed target tiles. Empty
+// or invalid input clears the complete output.
+[[nodiscard]] ObjectEditApplyResult build_area_tile_erase_edits(ObjectHandle area,
+    std::span<const uint32_t> cells, int32_t terrain, uint64_t seed,
+    AreaTileEraseEditBatch& output);
+
+// Builds one atomic void batch from unique picked cells. Intersected SET
+// groups are expanded to their complete footprint, occupied doors are removed,
+// and every resulting row keeps its editing-plane height with id == -1.
+[[nodiscard]] ObjectEditApplyResult build_area_tile_void_edits(
+    ObjectHandle area,
+    std::span<const uint32_t> cells,
+    AreaTileEraseEditBatch& output);
 
 // Resolves one picked cell into a complete authoring selection. Incomplete or
 // ambiguous placed groups are rejected atomically; output is empty on failure.

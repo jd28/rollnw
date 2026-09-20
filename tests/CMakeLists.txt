@@ -439,6 +439,8 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/area_object_editor.cpp
         ../tools/client/area_commands.cpp
         ../tools/client/area_tile_editor.cpp
+        ../tools/client/area_tile_editor_runtime.cpp
+        ../tools/client/renderer.cpp
         rollnw_client_rml_smalls_data_model.cpp
         rollnw_client_rml_smalls_expression_binding.cpp
         rollnw_client_rml_smalls_language_binding.cpp

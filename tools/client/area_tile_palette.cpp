@@ -365,6 +365,10 @@ bool build_area_tile_palette(ObjectHandle area_handle, AreaTilePalette& output)
             output.diagnostic = "Tileset palette contains no usable actions";
             return false;
         }
+        root_children.push_back(append_palette_row(output, *area->tileset,
+            output.root_folder,
+            {.kind = AreaTileBrushKind::void_tile},
+            "Void Tiles", "Tools", "void"));
         if (output.child_rows.size()
             > std::numeric_limits<uint32_t>::max() - root_children.size()) {
             throw std::length_error{"Tile palette child limit exceeded"};

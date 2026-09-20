@@ -422,6 +422,7 @@ ClientEventFlow process_client_pointer_motion(SDL_Event& event, ClientInputDispa
                         viewer_viewport->rect);
                     if (state.area_workspace_surface
                         == AreaWorkspaceSurface::tiles) {
+                        state.area_tile_editor.pending_cursor_point = point;
                         state.area_tile_editor.cursor_update_pending = true;
                     }
                 } else {
@@ -623,7 +624,10 @@ ClientEventFlow process_client_pointer_wheel(SDL_Event& event, ClientInputDispat
                 const auto& action = wheel_actions[0];
                 if (action.kind == nw::toolset::EditorWheelActionKind::camera_zoom) {
                     renderer.zoom_viewer_viewport(action.amount, viewer_viewport->rect);
-                    if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) { state.area_tile_editor.cursor_update_pending = true; }
+                    if (state.area_workspace_surface == AreaWorkspaceSurface::tiles) {
+                        state.area_tile_editor.pending_cursor_point = point;
+                        state.area_tile_editor.cursor_update_pending = true;
+                    }
                 } else {
                     if (auto result = nw::toolset::apply_area_object_wheel_action(action, state.backend,
                             command_context(state, nw::toolset::CommandSource::renderer), object)) {

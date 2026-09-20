@@ -12,6 +12,7 @@
 #include "play_preview_view.hpp"
 #include "project.hpp"
 #include "project_resource_drag.hpp"
+#include "renderer.hpp"
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "rml_smalls_language_binding.hpp"
@@ -36,6 +37,7 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Store.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/serialization/Serialization.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <nw/util/scope_exit.hpp>
@@ -2218,7 +2220,7 @@ TEST(ClientRmlTemplates, TilePaletteUsesLiveTilesetAndPreservesStableVirtualRows
     area->tiles = {{.id = 0}};
     AreaTileEditorState editor;
     ASSERT_TRUE(reset_area_tile_editor(editor, area->handle()));
-    ASSERT_EQ(editor.palette.matches.size(), 3u);
+    ASSERT_EQ(editor.palette.matches.size(), 4u);
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
     NullRenderInterface renderer;
     RmlScope rml{renderer};
@@ -2237,6 +2239,16 @@ TEST(ClientRmlTemplates, TilePaletteUsesLiveTilesetAndPreservesStableVirtualRows
     ASSERT_NE(rows, nullptr);
     auto* first_row = rows->GetChild(0);
     ASSERT_NE(first_row, nullptr);
+    const auto list_position = rows->GetAbsoluteOffset();
+    const auto list_height = rows->GetClientHeight();
+    editor.feedback = "Tileset group does not fit at the selected cell.\nAnother detail.";
+    EXPECT_FALSE(sync_area_tile_palette_window(document, editor, area->handle(), true, AreaTilePointerModifier::none, false));
+    context->Update();
+    EXPECT_EQ(rows->GetAbsoluteOffset(), list_position);
+    EXPECT_EQ(rows->GetClientHeight(), list_height);
+    EXPECT_EQ(rows->GetChild(0), first_row);
+    EXPECT_EQ(document->GetElementById("area_tile_palette_feedback"), nullptr);
+    editor.feedback.clear();
     EXPECT_FALSE(sync_area_tile_palette_window(document, editor, area->handle(), true, AreaTilePointerModifier::none, false));
     EXPECT_EQ(rows->GetChild(0), first_row);
     EXPECT_FALSE(sync_area_tile_palette_window(document, editor, area->handle(), false, AreaTilePointerModifier::none, true));
@@ -2443,6 +2455,111 @@ TEST(ClientAreaObjectEditor, PlacementBoundsRejectNonfiniteOutOfRangeAndStaleAre
     owner.reset();
     EXPECT_FALSE(area_object_placement_position_valid(handle, {0, 0, 0}));
     EXPECT_FALSE(area_object_placement_position_valid(nw::ObjectHandle{}, {0, 0, 0}));
+}
+
+TEST(ClientAreaTileEditor, FailedPlacementPersistsInOutputAfterPointerMoves)
+{
+    using namespace nw::toolset;
+    auto* tileset = nw::kernel::tilesets().load("ttr01");
+    ASSERT_NE(tileset, nullptr);
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    ObjectDocument owner;
+    ASSERT_TRUE(owner.adopt(area->handle()));
+    area->tileset = tileset;
+    area->tileset_resref = "ttr01";
+    area->width = 1;
+    area->height = 1;
+    area->tiles = {{.id = 20}};
+    AreaTileEditorState editor;
+    ASSERT_TRUE(reset_area_tile_editor(editor, area->handle()));
+    editor.stroke = {.area = area->handle(), .tileset = area->tileset_resref, .brush = {.kind = AreaTileBrushKind::group, .value = 41}, .label = "Place group", .mutation_epoch = object_mutation_state().epoch, .resource_generation = nw::kernel::resman().generation(), .width = 1, .height = 1, .tile_indices = {0}, .active = true};
+    ClientRenderer renderer;
+    ToolsetBackend backend;
+    CommandContext context;
+    ShellController shell;
+    commit_area_tile_stroke(renderer, editor, area->handle(), true, false,
+        backend, context, shell);
+    EXPECT_FALSE(editor.stroke.active);
+    ASSERT_EQ(shell.output_lines.size(), 1u);
+    EXPECT_EQ(shell.output_lines[0].first, "warn");
+    EXPECT_NE(shell.output_lines[0].second.find("does not fit"), std::string::npos);
+    ASSERT_EQ(editor.preview_rows.size(), 1u);
+    EXPECT_EQ(editor.preview_rows[0].tile_index, 0u);
+    const auto recorded = shell.output_lines[0];
+    EXPECT_EQ(area->tiles[0].id, 20);
+    (void)update_area_tile_cursor(renderer, editor, area->handle(), {100.0f, 100.0f},
+        {.width = 800, .height = 600}, AreaTilePointerModifier::none, shell);
+    ASSERT_EQ(shell.output_lines.size(), 1u);
+    EXPECT_EQ(shell.output_lines[0], recorded);
+
+    const auto eraser = std::ranges::find_if(editor.palette.rows, [](const auto& row) {
+        return row.kind == AreaTilePaletteRowKind::action && row.brush.kind == AreaTileBrushKind::eraser;
+    });
+    ASSERT_NE(eraser, editor.palette.rows.end());
+    editor.selected_row = static_cast<int32_t>(eraser - editor.palette.rows.begin());
+    (void)begin_area_tile_stroke(renderer, editor, area->handle(), {100.0f, 100.0f},
+        {.width = 800, .height = 600}, SDL_BUTTON_LEFT, eraser->brush,
+        AreaTilePointerModifier::none, true, shell);
+    EXPECT_FALSE(editor.stroke.active);
+    ASSERT_EQ(shell.output_lines.size(), 2u);
+    EXPECT_NE(shell.output_lines.back().second.find("outside the area"), std::string::npos);
+    (void)update_area_tile_cursor(renderer, editor, area->handle(), {150.0f, 150.0f},
+        {.width = 800, .height = 600}, AreaTilePointerModifier::none, shell);
+    EXPECT_EQ(shell.output_lines.size(), 2u);
+}
+
+TEST(ClientAreaTileEditor, GroupEraserStrokeUsesTheWorkspaceUndoPath)
+{
+    using namespace nw::toolset;
+    auto* tileset = nw::kernel::tilesets().load("ttr01");
+    ASSERT_NE(tileset, nullptr);
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->tileset = tileset;
+    area->tileset_resref = "ttr01";
+    area->width = 4;
+    area->height = 4;
+    area->tiles.assign(16, {.id = 20});
+    const std::array<uint32_t, 1> anchor{5};
+    AreaTileEditBatch placed;
+    const auto built = build_area_tile_brush_edits(area->handle(), anchor,
+        {.kind = AreaTileBrushKind::group, .value = 41}, 19, placed);
+    ASSERT_TRUE(built.ok()) << built.diagnostic;
+    ASSERT_TRUE(apply_area_tile_edits(
+        placed, ObjectEditDirection::forward)
+            .ok());
+    const auto original = area->tiles;
+    WorkspaceState workspace;
+    auto& tab = workspace.open_area_tab("areas/test.caf.json", "Test");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    CommandContext context{.active_tab_id = tab.id,
+        .area_object = area->handle(),
+        .workspace = &workspace};
+    AreaTileEditorState editor;
+    editor.stroke = {.area = area->handle(), .tileset = area->tileset_resref, .brush = {.kind = AreaTileBrushKind::eraser, .value = tileset->default_terrain}, .label = "Erase", .mutation_epoch = object_mutation_state().epoch, .resource_generation = nw::kernel::resman().generation(), .width = 4, .height = 4, .tile_indices = {5}, .active = true};
+    ClientRenderer renderer;
+    ToolsetBackend backend;
+    ShellController shell;
+    ScriptCommandHostReset script_host;
+    backend.bind(nullptr, &shell, &workspace);
+    commit_area_tile_stroke(renderer, editor, area->handle(), true, false,
+        backend, context, shell);
+    EXPECT_FALSE(editor.stroke.active);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_TRUE(shell.output_lines.empty());
+    for (const uint32_t cell : {5u, 6u, 9u, 10u}) {
+        EXPECT_EQ(tileset->grouped_tiles[area->tiles[cell].id], 0);
+    }
+    ASSERT_TRUE(workspace.undo(context).ok());
+    ASSERT_EQ(area->tiles.size(), original.size());
+    for (size_t index = 0; index < original.size(); ++index) {
+        EXPECT_TRUE(area_tile_rows_equal(area->tiles[index], original[index]));
+    }
+    ASSERT_TRUE(workspace.redo(context).ok());
+    for (const uint32_t cell : {5u, 6u, 9u, 10u}) {
+        EXPECT_EQ(tileset->grouped_tiles[area->tiles[cell].id], 0);
+    }
 }
 
 TEST(ClientAreaTileEditor, BrushSelectionAndRotationInvalidateStationaryCursor)
