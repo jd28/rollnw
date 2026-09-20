@@ -530,6 +530,7 @@ void ToolsetBackend::register_native_commands()
         return;
     }
 
+    register_area_commands();
     register_blueprint_commands();
 
     auto register_or_log = [this](CommandSpec spec, CommandBus::Handler handler) {
@@ -3574,6 +3575,16 @@ ProjectTreeResult ToolsetBackend::list_project_tree(std::string_view query) cons
         return result;
     }
     return load_project_tree(current_project_dir_, query);
+}
+
+void ToolsetBackend::refresh_loaded_project_areas()
+{
+    if (current_project_dir_.empty()) { return; }
+    const auto tree = load_project_tree(current_project_dir_);
+    if (!tree.ok) { return; }
+    loaded_areas_.clear();
+    append_project_areas(tree.root, current_project_dir_, loaded_areas_);
+    ++module_generation_;
 }
 
 ProjectModuleSummary ToolsetBackend::project_module_summary() const

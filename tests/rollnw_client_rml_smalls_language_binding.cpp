@@ -2024,6 +2024,67 @@ TEST(ClientRmlTemplates, CommandPaletteRestoresViewportAndRefreshesBackendMatche
     Rml::RemoveContext("palette-matches");
 }
 
+TEST(ClientRmlTemplates, ProjectNewResourceMenuIsAnchoredAndVertical)
+{
+    CurrentPathScope ui_root{
+        std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui"};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("project-new-resource-menu", {800, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocumentFromMemory(R"RML(
+<rml>
+<head><link type="text/rcss" href="panel.rcss" /></head>
+<body>
+  <div id="panel" class="project_mode" style="display:flex;width:320px;">
+    <div id="title">
+      <span id="title_project">Project</span>
+      <button id="project_new_resource" class="active" type="button"><span class="project_new_resource_glyph">+</span></button>
+      <div id="project_new_resource_menu" class="active">
+        <button class="project_new_resource_action">Area</button>
+        <button class="project_new_resource_action">Creature</button>
+      </div>
+    </div>
+  </div>
+</body>
+</rml>)RML",
+        "project_new_resource_menu.rml");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+
+    auto* title = document->GetElementById("title");
+    auto* button = document->GetElementById("project_new_resource");
+    auto* menu = document->GetElementById("project_new_resource_menu");
+    ASSERT_NE(title, nullptr);
+    ASSERT_NE(button, nullptr);
+    ASSERT_NE(menu, nullptr);
+    ASSERT_EQ(menu->GetNumChildren(), 2u);
+    auto* area = menu->GetChild(0);
+    auto* creature = menu->GetChild(1);
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(creature, nullptr);
+
+    EXPECT_FLOAT_EQ(button->GetOffsetWidth(), 24.0f);
+    EXPECT_FLOAT_EQ(button->GetOffsetHeight(), 24.0f);
+    EXPECT_FLOAT_EQ(button->GetAbsoluteTop(), title->GetAbsoluteTop());
+    EXPECT_GE(button->GetAbsoluteLeft(),
+        title->GetAbsoluteLeft() + title->GetOffsetWidth()
+            - button->GetOffsetWidth());
+    EXPECT_FLOAT_EQ(menu->GetOffsetWidth(), 172.0f);
+    EXPECT_GE(menu->GetAbsoluteTop(),
+        title->GetAbsoluteTop() + button->GetOffsetHeight());
+    EXPECT_GT(area->GetOffsetWidth(), 0.0f);
+    EXPECT_FLOAT_EQ(area->GetOffsetWidth(), creature->GetOffsetWidth());
+    EXPECT_GE(creature->GetAbsoluteTop(),
+        area->GetAbsoluteTop() + area->GetOffsetHeight());
+
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("project-new-resource-menu");
+}
+
 TEST(ClientRmlTemplates, CommandSubmissionOwnsArgumentsAndRejectsDisabledActions)
 {
     using namespace nw::toolset;
@@ -2111,8 +2172,12 @@ TEST(ClientCommandView, BrowseResultsRejectStaleGenerationsAndPreserveCancellati
     CommandResult native{.prompt = CommandPrompt{.id = "save"}};
     EXPECT_FALSE(take_command_form_prompt(state, native));
     EXPECT_TRUE(native.prompt);
-    native.prompt->id = "blueprint.confirm";
+    native.prompt->action_list = true;
     EXPECT_TRUE(take_command_form_prompt(state, native));
+    EXPECT_EQ(state.command_form->id, "save");
+    CommandResult blueprint{.prompt = CommandPrompt{
+                                .id = "blueprint.confirm"}};
+    EXPECT_TRUE(take_command_form_prompt(state, blueprint));
     EXPECT_EQ(state.command_form->id, "blueprint.confirm");
 }
 
@@ -4676,6 +4741,25 @@ TEST(ClientRmlSmallsBridge, BlueprintFormsCreateAndCopyThroughTheCommandBus)
     backend.bind(&bridge, nullptr, &workspace);
     ASSERT_TRUE(backend.open_project(project.string()).ok());
     EXPECT_EQ(workspace.active_tab_id(), "home");
+
+    const auto resource_chooser = backend.execute_command("resource.new", {}, {});
+    ASSERT_TRUE(resource_chooser.prompt) << resource_chooser.message;
+    EXPECT_EQ(resource_chooser.prompt->title, "New Resource");
+    EXPECT_EQ(resource_chooser.prompt->message, "Choose the resource type.");
+    EXPECT_TRUE(resource_chooser.prompt->action_list);
+    ASSERT_EQ(resource_chooser.prompt->actions.size(), blueprint_types().size() + 2);
+    EXPECT_EQ(resource_chooser.prompt->actions.front().label, "Area");
+    EXPECT_EQ(resource_chooser.prompt->actions.front().command_id, "area.new");
+    for (size_t index = 0; index < blueprint_types().size(); ++index) {
+        const auto& definition = blueprint_types()[index];
+        const auto& action = resource_chooser.prompt->actions[index + 1];
+        const auto extension = std::string{nw::ResourceType::to_string(
+            definition.resource_type)};
+        EXPECT_EQ(action.label, definition.label);
+        EXPECT_EQ(action.command_id, "blueprint.new");
+        EXPECT_EQ(action.args, std::vector<std::string>{extension});
+    }
+    EXPECT_EQ(resource_chooser.prompt->actions.back().id, "cancel");
 
     const auto chooser = backend.execute_command("blueprint.new", {}, {});
     ASSERT_TRUE(chooser.prompt) << chooser.message;

@@ -538,6 +538,9 @@ void refresh_browser_view(Rml::ElementDocument* doc, BrowserViewState& state,
             project_title->SetInnerRML(escape_html(title));
         }
     }
+    if (auto* new_resource = doc->GetElementById("project_new_resource")) {
+        new_resource->SetClass("hidden", selecting_preview_actor);
+    }
 }
 
 void refresh_home_area_query(Rml::ElementDocument* doc, BrowserViewState& state, const ToolsetBackend& backend, bool home_active)

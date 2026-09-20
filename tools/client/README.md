@@ -135,6 +135,16 @@ another tab preserves the current area's edits and undo history. Selecting a
 different area reuses the Area tab; unsaved changes prompt for Save, Discard,
 or Cancel first. Home and Area cannot be moved or closed.
 
+Choose **Area** from the Project header's **+** menu, or run **New Area...**
+from the command palette, to create a native CAF area. The form accepts a
+ResRef, project directory, display name, tileset, width, and height. Dimensions
+are limited to 2–32 tiles and default to 4×4. The tileset list contains loaded
+SETs with an ungrouped flat tile for their default terrain. Creation never
+overwrites an existing area: it writes the complete file, refreshes project
+resources, adds the area to the project index, and opens it in the pinned Area
+tab. A failed write or resource refresh removes the file created by that
+attempt.
+
 Use **Ctrl+S** to save the active document or **Ctrl+Shift+S** / **Save All** to
 save every modified open document without switching tabs. Saving supports native
 CAF areas and JSON blueprints. If a document cannot be saved, it stays modified
@@ -218,11 +228,12 @@ Sound objects render a selectable debug radius; the mouse wheel resizes the
 selected Sound's maximum radius. Stores use point markers and Waypoints use
 their model with a marker fallback.
 
-New Blueprint presents a compact action list for Creature, Door, Encounter, Item,
-Placeable, Sound, Store, Trigger, and Waypoint blueprints, then opens the saved
-editor document. Every creation form asks for a ResRef, directory, and display
-name. New Creatures use separate required first-name and optional last-name
-fields and also prompt for race and class; NWN1 Smalls derives
+The project browser's + button opens an anchored New Resource menu for a blank
+Area or a Creature, Door, Encounter, Item, Placeable, Sound, Store, Trigger, or
+Waypoint blueprint. The selected resource opens its creation form. Every
+blueprint form asks for a ResRef, directory, and display name. New Creatures use
+separate required first-name and optional last-name fields and also prompt for
+race and class; NWN1 Smalls derives
 appearance, ability scores, level-one class data, skills, and body parts from
 those selections. Items require a base-item type. Base Item Type is currently
 read-only in the workbench. Further authoring uses the existing object editor.
@@ -366,8 +377,8 @@ The UI subsystem and language binding are documented in:
 
 ## Current Limits
 
-- The client is viewer-first. It does not yet provide new-area creation or a
-  complete editor for every object aggregate.
+- The client is viewer-first. It does not yet provide a complete editor for
+  every object aggregate.
 - Encounter creature-list editing remains a dedicated editor concern; placed
   spawn-point markers are edited directly in the Area viewport.
 - Save All covers open modified JSON area and blueprint documents; it is not

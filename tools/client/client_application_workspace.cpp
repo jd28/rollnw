@@ -195,6 +195,11 @@ void refresh_recent_list(Rml::ElementDocument* doc, ClientApplicationState& stat
     if (!doc) { return; }
     nw::toolset::refresh_browser_view(doc, state.browser, state.backend, state.shell,
         state.backend_ready, state.play_preview.selecting_actor);
+    if (!state.shell.showing_project_tree
+        || state.play_preview.selecting_actor) {
+        (void)nw::toolset::close_project_new_resource_menu(
+            doc, state.shell_view);
+    }
     apply_shell_layout(doc, state);
 }
 

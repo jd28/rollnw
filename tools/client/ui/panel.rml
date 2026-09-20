@@ -36,6 +36,8 @@ from toolset.rmlui import { refresh_creature_sheet_model };
     <div id="title">
       <span id="title_areas">Module Areas</span>
       <span id="title_project">Project</span>
+      <button id="project_new_resource" type="button" title="Create a new resource"><span class="project_new_resource_glyph">+</span></button>
+      <div id="project_new_resource_menu"></div>
     </div>
     <input id="recent_search" type="text" value="" placeholder="Search..." />
     <div id="recent_list"></div>

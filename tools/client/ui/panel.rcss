@@ -165,16 +165,89 @@ scrollbarhorizontal sliderbar:hover {
 }
 scrollbarcorner { background: #0d1115; cursor: arrow; }
 #title {
+  display: flex;
+  position: relative;
+  align-items: center;
+  min-height: 24px;
   font-family: RollnwSans;
   font-size: 18px;
   font-weight: 600;
   color: #f4f6f8;
   margin-bottom: 10px;
-  line-height: 22px;
+  line-height: 24px;
 }
 #title_areas, #title_project { display: none; }
 #panel.area_mode #title_areas { display: block; }
 #panel.project_mode #title_project { display: block; }
+#project_new_resource {
+  display: none;
+  flex: none;
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  padding: 0px;
+  font-family: RollnwSans;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 18px;
+  color: #e7ebef;
+  background: #192027;
+  border: 1px #3a4652;
+  border-radius: 2px;
+  cursor: pointer;
+}
+#panel.project_mode #project_new_resource { display: block; }
+#project_new_resource:hover { border-color: #a78d62; background: #222b34; }
+#project_new_resource:focus,
+#project_new_resource.active { border-color: #a78d62; background: #25313b; }
+#project_new_resource.hidden { display: none; }
+.project_new_resource_glyph {
+  display: block;
+  width: 100%;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+}
+#project_new_resource_menu {
+  display: none;
+  position: absolute;
+  top: 28px;
+  right: 0px;
+  width: 172px;
+  max-height: 290px;
+  padding: 4px;
+  border: 1px #3a4652;
+  border-radius: 2px;
+  background: #13191e;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 60;
+}
+#project_new_resource_menu.active { display: block; }
+.project_new_resource_action {
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin: 0px;
+  padding: 5px 9px;
+  border: 0px transparent;
+  border-left: 2px transparent;
+  border-radius: 0px;
+  background: transparent;
+  color: #e8ecef;
+  font-family: RollnwSans;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+.project_new_resource_action:hover,
+.project_new_resource_action:focus {
+  border-left-color: #a78d62;
+  background: #222b34;
+  color: #f0f3f6;
+}
 /* === Left dock === */
 #recent_search {
   display: block;

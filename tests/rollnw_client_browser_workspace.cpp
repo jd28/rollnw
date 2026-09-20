@@ -1,6 +1,7 @@
 #include "appearance_view.hpp"
 #include "area_object_editor.hpp"
 #include "area_tile_editor.hpp"
+#include "blueprint_edits.hpp"
 #include "browser_view.hpp"
 #include "client_input.hpp"
 #include "client_preferences.hpp"
@@ -1219,6 +1220,70 @@ TEST_F(ClientShellView, NativeShellClicksConsumeOnceAndOutputKeysUseOwnedUtf8Tex
     ASSERT_TRUE(backend.execute_command(std::move(*command), command_context).ok());
     EXPECT_TRUE(shell.terminal_visible());
     EXPECT_FALSE(take_shell_ui_click_command(*dock_click));
+
+    auto* new_resource = document->GetElementById("project_new_resource");
+    ASSERT_NE(new_resource, nullptr);
+    auto new_resource_click = capture_shell_ui_click(new_resource);
+    ASSERT_TRUE(new_resource_click);
+    EXPECT_EQ(new_resource_click->kind, ShellUiClickKind::new_resource);
+    EXPECT_FALSE(take_shell_ui_click_command(*new_resource_click));
+    EXPECT_FALSE(take_shell_ui_click_command(*new_resource_click));
+
+    auto resource_result = backend.execute_command("resource.new", {}, command_context);
+    ASSERT_TRUE(resource_result.prompt);
+    ASSERT_TRUE(open_project_new_resource_menu(
+        document, view, *resource_result.prompt));
+    ASSERT_EQ(view.new_resource_actions.size(),
+        blueprint_types().size() + 1);
+    document->GetElementById("panel")->SetClass("project_mode", true);
+    context->Update();
+    auto* resource_menu = document->GetElementById(
+        "project_new_resource_menu");
+    ASSERT_NE(resource_menu, nullptr);
+    EXPECT_TRUE(resource_menu->IsClassSet("active"));
+    ASSERT_EQ(resource_menu->GetNumChildren(),
+        blueprint_types().size() + 1);
+    EXPECT_TRUE(project_new_resource_menu_contains(new_resource));
+    EXPECT_TRUE(project_new_resource_menu_contains(
+        resource_menu->GetChild(0)));
+    EXPECT_FALSE(project_new_resource_menu_contains(nullptr));
+    auto action_click = capture_shell_ui_click(resource_menu->GetChild(0));
+    ASSERT_TRUE(action_click);
+    EXPECT_EQ(action_click->kind,
+        ShellUiClickKind::new_resource_action);
+    auto action = take_project_new_resource_action(*action_click, view);
+    ASSERT_TRUE(action);
+    EXPECT_EQ(action->command_id, "area.new");
+    EXPECT_TRUE(action->args.empty());
+    EXPECT_FALSE(take_project_new_resource_action(*action_click, view));
+    EXPECT_TRUE(close_project_new_resource_menu(document, view));
+    EXPECT_TRUE(view.new_resource_actions.empty());
+    EXPECT_FALSE(resource_menu->IsClassSet("active"));
+    EXPECT_EQ(resource_menu->GetNumChildren(), 0u);
+    EXPECT_FALSE(close_project_new_resource_menu(document, view));
+
+    ASSERT_TRUE(open_project_new_resource_menu(
+        document, view, *resource_result.prompt));
+    resource_menu = document->GetElementById(
+        "project_new_resource_menu");
+    ASSERT_NE(resource_menu, nullptr);
+    ASSERT_EQ(resource_menu->GetNumChildren(),
+        blueprint_types().size() + 1);
+    action_click = capture_shell_ui_click(resource_menu->GetChild(1));
+    ASSERT_TRUE(action_click);
+    action = take_project_new_resource_action(*action_click, view);
+    ASSERT_TRUE(action);
+    EXPECT_EQ(action->command_id, "blueprint.new");
+    ASSERT_EQ(action->args.size(), 1u);
+    EXPECT_EQ(action->args[0], nw::ResourceType::to_string(blueprint_types().front().resource_type));
+    EXPECT_TRUE(close_project_new_resource_menu(document, view));
+
+    ShellUiClick stale_action{ShellUiClickKind::new_resource_action, "0"};
+    EXPECT_FALSE(take_project_new_resource_action(stale_action, view));
+    CommandPrompt not_a_list;
+    EXPECT_FALSE(open_project_new_resource_menu(
+        document, view, not_a_list));
+
     dock->SetAttribute("data-widget", "");
     dock_click = capture_shell_ui_click(dock);
     ASSERT_TRUE(dock_click);

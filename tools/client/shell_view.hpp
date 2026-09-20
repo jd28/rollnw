@@ -79,6 +79,7 @@ enum class OutputScrollAfterLayout : uint8_t { none,
 struct ShellViewState {
     std::filesystem::path preferences_path;
     std::string last_output_filter;
+    std::vector<CommandPromptAction> new_resource_actions;
     OutputSelectionState output_selection;
     OutputScrollAfterLayout output_scroll_after_layout = OutputScrollAfterLayout::none;
     bool suppress_terminal_toggle_text_input = false;
@@ -99,7 +100,9 @@ struct ShellPreviewLayout {
 
 enum class ShellUiClickKind : uint8_t { none,
     dock,
-    output_channel };
+    output_channel,
+    new_resource,
+    new_resource_action };
 // Schema revision 1, singleton shell click with owning attribute text. No SDK
 // borrow escapes. A matched empty/unknown toggle produces no command.
 struct ShellUiClick {
@@ -109,6 +112,15 @@ struct ShellUiClick {
 std::optional<ShellUiClick> capture_shell_ui_click(Rml::Element* hit);
 // Consume once; unsupported nonempty dock values retain backend rejection.
 std::optional<CommandInvocation> take_shell_ui_click_command(ShellUiClick& click);
+// The project menu owns a compact copy of the current resource actions. DOM
+// rows carry only indices into that batch; stale and out-of-range indices reject.
+bool open_project_new_resource_menu(Rml::ElementDocument* doc,
+    ShellViewState& state, const CommandPrompt& prompt);
+bool close_project_new_resource_menu(Rml::ElementDocument* doc,
+    ShellViewState& state);
+[[nodiscard]] bool project_new_resource_menu_contains(Rml::Element* hit);
+std::optional<CommandPromptAction> take_project_new_resource_action(
+    ShellUiClick& click, const ShellViewState& state);
 
 struct ShellOutputKeyResult {
     bool handled = false;

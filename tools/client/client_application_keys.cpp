@@ -53,6 +53,17 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             return ClientEventFlow::finish;
         }
         if (!event.key.repeat && event.key.key == SDLK_ESCAPE
+            && nw::toolset::close_project_new_resource_menu(
+                doc, state.shell_view)) {
+            if (auto* button = doc
+                    ? doc->GetElementById("project_new_resource")
+                    : nullptr) {
+                button->Focus();
+            }
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
+        if (!event.key.repeat && event.key.key == SDLK_ESCAPE
             && state.area_workspace_surface
                 == AreaWorkspaceSurface::tiles) {
             if (cancel_area_tile_action(renderer, state)) {

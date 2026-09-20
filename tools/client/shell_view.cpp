@@ -806,6 +806,14 @@ bool complete_terminal_command(Rml::ElementDocument* doc, ShellController& shell
 
 std::optional<ShellUiClick> capture_shell_ui_click(Rml::Element* hit)
 {
+    if (auto* action = find_ancestor_with_class(hit,
+            "project_new_resource_action")) {
+        return ShellUiClick{ShellUiClickKind::new_resource_action,
+            action->GetAttribute<Rml::String>("data-index", "")};
+    }
+    if (find_ancestor_with_id(hit, "project_new_resource")) {
+        return ShellUiClick{ShellUiClickKind::new_resource, {}};
+    }
     if (auto* dock = find_ancestor_with_class(hit, "dock_tab")) {
         return ShellUiClick{ShellUiClickKind::dock, dock->GetAttribute<Rml::String>("data-widget", "")};
     }
@@ -841,6 +849,78 @@ std::optional<CommandInvocation> take_shell_ui_click_command(ShellUiClick& click
     }
     command.args.push_back(CommandArg::positional_string(std::move(click.value)));
     return command;
+}
+
+bool open_project_new_resource_menu(Rml::ElementDocument* doc,
+    ShellViewState& state, const CommandPrompt& prompt)
+{
+    auto* menu = doc ? doc->GetElementById("project_new_resource_menu")
+                     : nullptr;
+    auto* button = doc ? doc->GetElementById("project_new_resource")
+                       : nullptr;
+    if (!menu || !button || !prompt.action_list) { return false; }
+
+    std::vector<CommandPromptAction> actions;
+    actions.reserve(prompt.actions.size());
+    for (const auto& action : prompt.actions) {
+        if (action.id != "cancel" && !action.command_id.empty()) {
+            actions.push_back(action);
+        }
+    }
+    if (actions.empty()) { return false; }
+
+    std::string markup;
+    for (size_t index = 0; index < actions.size(); ++index) {
+        markup += "<button type=\"button\" class=\"project_new_resource_action\" data-index=\"";
+        markup += std::to_string(index);
+        markup += "\">";
+        markup += escape_html(actions[index].label);
+        markup += "</button>";
+    }
+    state.new_resource_actions = std::move(actions);
+    menu->SetInnerRML(markup);
+    menu->SetClass("active", true);
+    button->SetClass("active", true);
+    if (auto* first = menu->GetFirstChild()) { first->Focus(); }
+    return true;
+}
+
+bool close_project_new_resource_menu(Rml::ElementDocument* doc,
+    ShellViewState& state)
+{
+    if (state.new_resource_actions.empty()) { return false; }
+    state.new_resource_actions.clear();
+    if (auto* menu = doc ? doc->GetElementById("project_new_resource_menu")
+                         : nullptr) {
+        menu->SetClass("active", false);
+        menu->SetInnerRML("");
+    }
+    if (auto* button = doc ? doc->GetElementById("project_new_resource")
+                           : nullptr) {
+        button->SetClass("active", false);
+    }
+    return true;
+}
+
+bool project_new_resource_menu_contains(Rml::Element* hit)
+{
+    return find_ancestor_with_id(hit, "project_new_resource")
+        || find_ancestor_with_id(hit, "project_new_resource_menu");
+}
+
+std::optional<CommandPromptAction> take_project_new_resource_action(
+    ShellUiClick& click, const ShellViewState& state)
+{
+    const auto kind = std::exchange(click.kind, ShellUiClickKind::none);
+    if (kind != ShellUiClickKind::new_resource_action
+        || state.new_resource_actions.empty()) {
+        return std::nullopt;
+    }
+    const auto index = parse_size(click.value);
+    if (!index || *index >= state.new_resource_actions.size()) {
+        return std::nullopt;
+    }
+    return state.new_resource_actions[*index];
 }
 
 ShellOutputKeyResult handle_shell_output_key(const SDL_KeyboardEvent& key,

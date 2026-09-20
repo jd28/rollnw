@@ -222,6 +222,8 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
 
         if (command_palette_contains_point(
                 palette_doc, state, point)) {
+            (void)nw::toolset::close_project_new_resource_menu(
+                doc, state.shell_view);
             if (auto* hit = element_at_mouse(palette_context, window, event.button)) {
                 if (auto* command_item = find_ancestor_with_class(hit, "command_item")) {
                     const std::string command_id = command_item->GetAttribute<Rml::String>("data-key", "");
@@ -252,7 +254,13 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
             }
             return unchanged;
         };
-        if (auto* hit = element_at_mouse(context, window, event.button)) {
+        auto* hit = element_at_mouse(context, window, event.button);
+        if (!state.shell_view.new_resource_actions.empty()
+            && !nw::toolset::project_new_resource_menu_contains(hit)) {
+            (void)nw::toolset::close_project_new_resource_menu(
+                doc, state.shell_view);
+        }
+        if (hit) {
 
             if (auto area_surface_click = nw::toolset::capture_area_workspace_surface_click(hit)) {
                 if (!release_workspace_mouse_up()) { return ClientEventFlow::finish; }
@@ -400,8 +408,45 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                 handled = true;
             } else if (auto shell_click = nw::toolset::capture_shell_ui_click(hit)) {
                 const bool sync_visibility = shell_click->kind == nw::toolset::ShellUiClickKind::dock && !shell_click->value.empty();
-                if (auto command = nw::toolset::take_shell_ui_click_command(*shell_click)) {
-                    append_command_result(state, state.backend.execute_command(std::move(*command), command_context(state, nw::toolset::CommandSource::widget)));
+                if (shell_click->kind
+                    == nw::toolset::ShellUiClickKind::new_resource) {
+                    if (!nw::toolset::close_project_new_resource_menu(
+                            doc, state.shell_view)) {
+                        auto result = state.backend.execute_command(
+                            nw::toolset::CommandInvocation{"resource.new", {}},
+                            command_context(state,
+                                nw::toolset::CommandSource::widget));
+                        if (!result.prompt
+                            || !nw::toolset::open_project_new_resource_menu(
+                                doc, state.shell_view, *result.prompt)) {
+                            (void)resolve_command_result(window, state,
+                                std::move(result),
+                                nw::toolset::CommandSource::widget);
+                        }
+                    }
+                } else if (shell_click->kind
+                    == nw::toolset::ShellUiClickKind::new_resource_action) {
+                    auto action = nw::toolset::take_project_new_resource_action(
+                        *shell_click, state.shell_view);
+                    (void)nw::toolset::close_project_new_resource_menu(
+                        doc, state.shell_view);
+                    if (action) {
+                        std::vector<std::string_view> args;
+                        args.reserve(action->args.size());
+                        for (const auto& argument : action->args) {
+                            args.push_back(argument);
+                        }
+                        (void)dispatch_command_flow(window, state,
+                            action->command_id, std::move(args),
+                            nw::toolset::CommandSource::widget);
+                    }
+                } else if (auto command
+                    = nw::toolset::take_shell_ui_click_command(
+                        *shell_click)) {
+                    (void)resolve_command_result(window, state,
+                        state.backend.execute_command(std::move(*command),
+                            command_context(state, nw::toolset::CommandSource::widget)),
+                        nw::toolset::CommandSource::widget);
                 }
                 if (sync_visibility) { sync_shell_visibility(context, palette_context, doc, palette_doc, state); }
                 handled = true;

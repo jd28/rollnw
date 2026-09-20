@@ -1,4 +1,5 @@
 add_library(rollnw_client_core STATIC
+    area_creation.cpp
     area_door_hooks.cpp
     area_tile_interaction.cpp
     area_tile_palette.cpp
@@ -51,6 +52,7 @@ set(RMLUI_BACKENDS_DIR "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Backends")
 set(RMLUI_INCLUDE_DIR  "${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Include")
 
 add_executable(rollnw-client
+    area_commands.cpp
     area_object_editor.cpp
     area_object_editor_runtime.cpp
     area_tile_editor.cpp

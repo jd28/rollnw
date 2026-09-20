@@ -267,6 +267,26 @@ void ToolsetBackend::register_blueprint_commands()
         register_blueprint_command(std::move(id), std::move(title),
             std::move(handler), flags);
     };
+    add("resource.new", "New Resource...", [](const CommandInvocation&, CommandContext&) {
+        CommandResult result;
+        CommandPrompt prompt;
+        prompt.id = "resource.type";
+        prompt.title = "New Resource";
+        prompt.message = "Choose the resource type.";
+        prompt.action_list = true;
+        prompt.actions.reserve(blueprint_types().size() + 2);
+        prompt.actions.push_back({"area", "Area", "area.new", {}});
+        for (const auto& definition : blueprint_types()) {
+            const auto extension = std::string{ResourceType::to_string(
+                definition.resource_type)};
+            prompt.actions.push_back({extension, std::string{definition.label},
+                "blueprint.new", {extension}});
+        }
+        prompt.actions.push_back(
+            {"cancel", "Cancel", "blueprint.cancel", {}});
+        result.prompt = std::move(prompt);
+        return result;
+    });
     add("blueprint.new", "New Blueprint...", [this](const CommandInvocation& invocation, CommandContext&) {
         const auto kind = command_arg_string(invocation.args, 0);
         if (kind.empty()) {

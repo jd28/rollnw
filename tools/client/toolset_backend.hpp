@@ -124,6 +124,7 @@ private:
     [[nodiscard]] static std::string_view worker_phase_name(
         BlueprintUpdatePhase phase) noexcept;
     void register_native_commands();
+    void register_area_commands();
     void register_blueprint_commands();
     void register_blueprint_reference_commands();
     void register_blueprint_command(std::string id, std::string title,
@@ -136,6 +137,10 @@ private:
     CommandResult commit_blueprint_writes();
     CommandResult open_area_document(std::string resource, std::string title,
         const CommandInvocation& invocation);
+    CommandResult show_new_area_form();
+    CommandResult submit_new_area_form(
+        const CommandInvocation& invocation, CommandContext& context);
+    void refresh_loaded_project_areas();
     bool refresh_creature_body_part_editor();
     bool refresh_item_editor();
     bool ensure_data_object_editor_lists();

@@ -200,6 +200,7 @@ add_executable(rollnw_test
     nwn1_test_builders.cpp
 
     rollnw_client_appearance_catalog.cpp
+    rollnw_client_area_creation.cpp
     rollnw_client_area_navigation.cpp
     rollnw_client_area_tile_edits.cpp
     rollnw_client_blueprints.cpp
@@ -436,6 +437,7 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/project_import.cpp
         ../tools/client/project_resource_drag.cpp
         ../tools/client/area_object_editor.cpp
+        ../tools/client/area_commands.cpp
         ../tools/client/area_tile_editor.cpp
         rollnw_client_rml_smalls_data_model.cpp
         rollnw_client_rml_smalls_expression_binding.cpp

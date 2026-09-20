@@ -320,7 +320,11 @@ bool apply_command_form_directory_result(CommandViewState& state,
 
 bool take_command_form_prompt(CommandViewState& state, CommandResult& result)
 {
-    if (!result.prompt || (result.prompt->fields.empty() && !result.prompt->id.starts_with("blueprint."))) { return false; }
+    if (!result.prompt
+        || (result.prompt->fields.empty() && !result.prompt->action_list
+            && !result.prompt->id.starts_with("blueprint."))) {
+        return false;
+    }
     state.command_form = std::move(*result.prompt);
     ++state.command_form_generation;
     result.prompt.reset();
