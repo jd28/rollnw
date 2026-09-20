@@ -124,6 +124,9 @@ void sync_viewer_render_options(ClientRenderer& renderer, const ClientApplicatio
         .debug_enabled = state.shell.viewer_area_debug_enabled,
         .triggers_enabled = state.shell.viewer_area_triggers_enabled,
         .encounters_enabled = state.shell.viewer_area_encounters_enabled,
+        .tile_grid_enabled = !state.play_preview.session.active()
+            && !state.play_preview.placement_pending()
+            && !state.play_preview.selecting_actor,
         .forward_plus_enabled = state.shell.viewer_forward_plus_enabled,
         .forward_plus_auto_configure_area = state.shell.viewer_forward_plus_auto_configure_area,
         .forward_plus_tile_size = state.shell.viewer_forward_plus_tile_size,

@@ -102,6 +102,7 @@ mudl turntable <resref> [frames] [--output <dir>]
 mudl frames <count> [<resref>]
 mudl area-screenshot <resref> <path>
 mudl area-benchmark <resref> [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--visible-tile-radius <tiles>] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot <path>]
+mudl area-edit-benchmark <resref> [--samples <count>] [--warmup <count>] [--width <px>] [--height <px>] [--json <path>]
 mudl area-sweep <resref|area-list.txt> [--frames <count>] [--warmup <count>] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--validate] [--json <path>]
 mudl area --dump <module-path> [--output <path>] [--skip-existing] [--limit <n>]
 ```
@@ -127,6 +128,9 @@ mudl area-screenshot ttr01 ./out/ttr01.png
 # Headless area render benchmark from a gameplay-style camera
 mudl area-benchmark ms_4city --camera gameplay --json ./out/ms_4city.json
 
+# Measure one-tile and 64-tile live editor refreshes without writing the module
+mudl area-edit-benchmark ms_4city --samples 10 --warmup 3 --json ./out/ms_4city-edit.json
+
 # Compare the same fixed camera without local-light shadow maps
 mudl area-benchmark ms_4city --camera gameplay --no-local-shadows --json ./out/ms_4city-no-local-shadows.json
 
@@ -151,6 +155,17 @@ tools/mudl/area_benchmark_baseline.py ms_4city --module ../the_awakening --out-d
 # Dump every area in a module to screenshots
 mudl area --dump ./mymodule.mod --output ./out/areas --skip-existing --limit 50 --debug
 ```
+
+`area-edit-benchmark` measures orientation-only and model-replacement commits
+for one tile and an evenly distributed batch of up to 64 tiles. It also moves
+a retained tile-preview batch between two disjoint cell ranges to measure the
+mouse-hover path. Every presented frame includes the persistent tile-editor
+grid batch. Each scenario reports its first cold sample separately, retains
+the required model assets for warmup and repeated samples, restores the exact
+original state, and does not write the module. The JSON separates model
+preparation, instance, light, scene-summary and render-record refresh work from
+frame submission, GPU wait and CPU/GPU rendering. It records whether each frame
+reused cached area draw lists. GPU timing is `null` when unavailable.
 
 ### Inspection
 

@@ -7,6 +7,7 @@
 #include <nw/kernel/TilesetRegistry.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/render/viewer/preview_scene.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -75,6 +76,30 @@ void BM_area_tile_pick(benchmark::State& state)
 }
 BENCHMARK(BM_area_tile_pick)->Arg(64)->Arg(512)->Arg(1024);
 
+void BM_area_tile_grid_build(benchmark::State& state)
+{
+    const auto dimensions = area_dimensions(state.range(0));
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    nw::Area area;
+    configure_area(area, tileset, dimensions);
+    nw::render::viewer::AreaTileGridDebugGeometry geometry;
+
+    for (auto _ : state) {
+        const bool built
+            = nw::render::viewer::build_area_tile_grid_debug_geometry(
+                area, geometry);
+        benchmark::DoNotOptimize(geometry.vertices);
+        benchmark::DoNotOptimize(geometry.indices);
+        if (!built) {
+            state.SkipWithError("failed to build area tile grid");
+            break;
+        }
+    }
+    state.SetItemsProcessed(
+        state.iterations() * static_cast<int64_t>(area.tiles.size()));
+}
+BENCHMARK(BM_area_tile_grid_build)->Arg(64)->Arg(512)->Arg(1024);
 
 void run_area_tile_apply(
     benchmark::State& state, bool with_door_hooks)

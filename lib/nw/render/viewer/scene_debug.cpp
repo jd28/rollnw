@@ -95,10 +95,13 @@ SceneDebugRenderer::~SceneDebugRenderer()
     if (debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(debug_shape_vertices_);
     if (transient_debug_shape_indices_.valid()) nw::gfx::destroy_buffer(transient_debug_shape_indices_);
     if (transient_debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(transient_debug_shape_vertices_);
+    if (tile_grid_debug_shape_indices_.valid()) nw::gfx::destroy_buffer(tile_grid_debug_shape_indices_);
+    if (tile_grid_debug_shape_vertices_.valid()) nw::gfx::destroy_buffer(tile_grid_debug_shape_vertices_);
     if (debug_grid_indices_.valid()) nw::gfx::destroy_buffer(debug_grid_indices_);
     if (debug_grid_vertices_.valid()) nw::gfx::destroy_buffer(debug_grid_vertices_);
     if (sound_debug_dot_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, sound_debug_dot_pipeline_);
     if (selection_bounds_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, selection_bounds_pipeline_);
+    if (tile_grid_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, tile_grid_pipeline_);
     if (debug_shape_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_shape_pipeline_);
     if (debug_grid_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_grid_pipeline_);
 }
@@ -153,6 +156,35 @@ bool SceneDebugRenderer::initialize(nw::render::ShaderProvider& shader_provider)
         selection_bounds_pipeline_ = nw::gfx::create_pipeline(ctx_, debug_shape_desc);
         if (!selection_bounds_pipeline_.valid()) {
             LOG_F(WARNING, "Failed to create selection bounds pipeline");
+        }
+    }
+
+    auto vs_tile_grid = shader_provider.get_shader(
+        "render_area_tile_grid.vs.hlsl");
+    if (vs_tile_grid.valid() && ps_debug_shape.valid()) {
+        nw::gfx::PipelineDesc tile_grid_desc{};
+        tile_grid_desc.vs = vs_tile_grid;
+        tile_grid_desc.fs = ps_debug_shape;
+        tile_grid_desc.uses_single_texture = false;
+        tile_grid_desc.depth_test = true;
+        tile_grid_desc.depth_write = false;
+        tile_grid_desc.blend_mode
+            = nw::gfx::BlendMode::premultiplied_alpha;
+        tile_grid_desc.vertex_stride = sizeof(AreaTileGridVertex);
+        tile_grid_desc.vertex_attributes = {
+            {0, offsetof(AreaTileGridVertex, position),
+                nw::gfx::VertexFormat::Float3},
+            {1, offsetof(AreaTileGridVertex, opposite),
+                nw::gfx::VertexFormat::Float3},
+            {2, offsetof(AreaTileGridVertex, extrusion),
+                nw::gfx::VertexFormat::Float2},
+            {3, offsetof(AreaTileGridVertex, color),
+                nw::gfx::VertexFormat::Float4},
+        };
+        tile_grid_pipeline_
+            = nw::gfx::create_pipeline(ctx_, tile_grid_desc);
+        if (!tile_grid_pipeline_.valid()) {
+            LOG_F(WARNING, "Failed to create area tile grid pipeline");
         }
     }
 
@@ -224,6 +256,81 @@ struct DebugShapeConstants {
     glm::mat4 view{1.0f};
     glm::mat4 projection{1.0f};
 };
+
+struct AreaTileGridConstants {
+    glm::mat4 view{1.0f};
+    glm::mat4 projection{1.0f};
+    glm::vec4 viewport_line{1.0f, 1.0f, 1.0f, 0.0f};
+};
+
+constexpr float kAreaTileGridLineWidthPixels = 1.0f;
+constexpr float kAreaTileGridDepthBias = 5.0e-4f;
+
+template <typename Vertex>
+bool synchronize_debug_shape_batch(
+    nw::gfx::Context* ctx,
+    std::span<const Vertex> vertices,
+    std::span<const uint32_t> indices,
+    nw::gfx::Handle<nw::gfx::Buffer>& vertex_buffer,
+    size_t& vertex_capacity,
+    nw::gfx::Handle<nw::gfx::Buffer>& index_buffer,
+    size_t& index_capacity,
+    uint64_t revision,
+    uint64_t* uploaded_revision)
+{
+    if (!ctx || vertices.empty() || indices.empty()
+        || indices.size() > std::numeric_limits<uint32_t>::max()) {
+        return false;
+    }
+
+    const nw::gfx::BufferDesc vertex_desc{
+        .size = vertices.size_bytes(),
+        .usage = nw::gfx::BufferUsage::Vertex,
+        .cpu_visible = true,
+    };
+    bool upload = !uploaded_revision || *uploaded_revision != revision;
+    if (!vertex_buffer.valid() || vertex_capacity < vertices.size()) {
+        if (vertex_buffer.valid()) {
+            nw::gfx::destroy_buffer(vertex_buffer);
+        }
+        vertex_buffer = nw::gfx::create_buffer(ctx, vertex_desc);
+        vertex_capacity = vertices.size();
+        upload = true;
+    }
+
+    const nw::gfx::BufferDesc index_desc{
+        .size = indices.size_bytes(),
+        .usage = nw::gfx::BufferUsage::Index,
+        .cpu_visible = true,
+    };
+    if (!index_buffer.valid() || index_capacity < indices.size()) {
+        if (index_buffer.valid()) {
+            nw::gfx::destroy_buffer(index_buffer);
+        }
+        index_buffer = nw::gfx::create_buffer(ctx, index_desc);
+        index_capacity = indices.size();
+        upload = true;
+    }
+    if (!vertex_buffer.valid() || !index_buffer.valid()) {
+        return false;
+    }
+
+    if (upload) {
+        auto* vertex_data = nw::gfx::map_buffer(vertex_buffer);
+        auto* index_data = nw::gfx::map_buffer(index_buffer);
+        if (!vertex_data || !index_data) {
+            if (vertex_data) nw::gfx::unmap_buffer(vertex_buffer);
+            if (index_data) nw::gfx::unmap_buffer(index_buffer);
+            return false;
+        }
+        std::memcpy(vertex_data, vertices.data(), vertex_desc.size);
+        std::memcpy(index_data, indices.data(), index_desc.size);
+        nw::gfx::unmap_buffer(vertex_buffer);
+        nw::gfx::unmap_buffer(index_buffer);
+        if (uploaded_revision) *uploaded_revision = revision;
+    }
+    return true;
+}
 
 constexpr size_t kSelectionBoundsEdgeCount = 12;
 constexpr size_t kSelectionBoundsVertexCount = kSelectionBoundsEdgeCount * 4;
@@ -990,6 +1097,7 @@ void SceneDebugRenderer::render_debug_shapes(
                 scene.debug_shape_vertices,
                 {index_data, index_count},
                 ctx,
+                debug_shape_pipeline_,
                 debug_shape_vertices_,
                 debug_shape_vertex_capacity_,
                 debug_shape_indices_,
@@ -1077,6 +1185,7 @@ void SceneDebugRenderer::render_transient_debug_shapes(
         vertices,
         indices,
         ctx,
+        debug_shape_pipeline_,
         transient_debug_shape_vertices_,
         transient_debug_shape_vertex_capacity_,
         transient_debug_shape_indices_,
@@ -1085,11 +1194,58 @@ void SceneDebugRenderer::render_transient_debug_shapes(
         &uploaded_transient_debug_shape_revision_);
 }
 
+void SceneDebugRenderer::render_tile_grid_debug_shapes(
+    nw::gfx::CommandList* cmd,
+    std::span<const AreaTileGridVertex> vertices,
+    std::span<const uint32_t> indices,
+    uint64_t revision,
+    const nw::render::RenderContext& ctx,
+    glm::uvec2 viewport_size)
+{
+    if (!cmd || !tile_grid_pipeline_.valid()
+        || !synchronize_debug_shape_batch(
+            ctx_,
+            vertices,
+            indices,
+            tile_grid_debug_shape_vertices_,
+            tile_grid_debug_shape_vertex_capacity_,
+            tile_grid_debug_shape_indices_,
+            tile_grid_debug_shape_index_capacity_,
+            revision,
+            &uploaded_tile_grid_debug_shape_revision_)) {
+        return;
+    }
+
+    AreaTileGridConstants constants{};
+    constants.view = ctx.view;
+    constants.projection = ctx.projection;
+    constants.viewport_line = {
+        static_cast<float>(std::max(viewport_size.x, 1u)),
+        static_cast<float>(std::max(viewport_size.y, 1u)),
+        kAreaTileGridLineWidthPixels,
+        kAreaTileGridDepthBias,
+    };
+    const auto uniforms = nw::gfx::allocate_uniform_span(
+        ctx_, sizeof(AreaTileGridConstants));
+    if (!uniforms.data) {
+        return;
+    }
+    std::memcpy(uniforms.data, &constants, sizeof(AreaTileGridConstants));
+    nw::gfx::cmd_bind_pipeline(cmd, tile_grid_pipeline_);
+    nw::gfx::cmd_bind_vertex_buffer(
+        cmd, tile_grid_debug_shape_vertices_, sizeof(AreaTileGridVertex));
+    nw::gfx::cmd_bind_index_buffer(
+        cmd, tile_grid_debug_shape_indices_, sizeof(uint32_t));
+    nw::gfx::cmd_bind_resources(cmd, tile_grid_pipeline_, uniforms);
+    nw::gfx::cmd_draw_indexed(cmd, static_cast<uint32_t>(indices.size()));
+}
+
 void SceneDebugRenderer::render_debug_shape_batch(
     nw::gfx::CommandList* cmd,
     std::span<const DebugShapeVertex> vertices,
     std::span<const uint32_t> indices,
     const nw::render::RenderContext& ctx,
+    nw::gfx::Handle<nw::gfx::Pipeline> pipeline,
     nw::gfx::Handle<nw::gfx::Buffer>& vertex_buffer,
     size_t& vertex_capacity,
     nw::gfx::Handle<nw::gfx::Buffer>& index_buffer,
@@ -1097,56 +1253,13 @@ void SceneDebugRenderer::render_debug_shape_batch(
     uint64_t revision,
     uint64_t* uploaded_revision)
 {
-    if (!cmd || !debug_shape_pipeline_.valid()
-        || vertices.empty() || indices.empty()
-        || indices.size() > std::numeric_limits<uint32_t>::max()) {
+    if (!cmd || !pipeline.valid()
+        || !synchronize_debug_shape_batch(
+            ctx_, vertices, indices,
+            vertex_buffer, vertex_capacity,
+            index_buffer, index_capacity,
+            revision, uploaded_revision)) {
         return;
-    }
-
-    nw::gfx::BufferDesc vb_desc{};
-    vb_desc.size = vertices.size() * sizeof(DebugShapeVertex);
-    vb_desc.usage = nw::gfx::BufferUsage::Vertex;
-    vb_desc.cpu_visible = true;
-    bool upload = !uploaded_revision || *uploaded_revision != revision;
-    if (!vertex_buffer.valid() || vertex_capacity < vertices.size()) {
-        if (vertex_buffer.valid()) {
-            nw::gfx::destroy_buffer(vertex_buffer);
-        }
-        vertex_buffer = nw::gfx::create_buffer(ctx_, vb_desc);
-        vertex_capacity = vertices.size();
-        upload = true;
-    }
-
-    nw::gfx::BufferDesc ib_desc{};
-    ib_desc.size = indices.size() * sizeof(uint32_t);
-    ib_desc.usage = nw::gfx::BufferUsage::Index;
-    ib_desc.cpu_visible = true;
-    if (!index_buffer.valid() || index_capacity < indices.size()) {
-        if (index_buffer.valid()) {
-            nw::gfx::destroy_buffer(index_buffer);
-        }
-        index_buffer = nw::gfx::create_buffer(ctx_, ib_desc);
-        index_capacity = indices.size();
-        upload = true;
-    }
-
-    if (!vertex_buffer.valid() || !index_buffer.valid()) {
-        return;
-    }
-
-    if (upload) {
-        auto* vp = nw::gfx::map_buffer(vertex_buffer);
-        auto* ip = nw::gfx::map_buffer(index_buffer);
-        if (!vp || !ip) {
-            if (vp) nw::gfx::unmap_buffer(vertex_buffer);
-            if (ip) nw::gfx::unmap_buffer(index_buffer);
-            return;
-        }
-        std::memcpy(vp, vertices.data(), vb_desc.size);
-        std::memcpy(ip, indices.data(), ib_desc.size);
-        nw::gfx::unmap_buffer(vertex_buffer);
-        nw::gfx::unmap_buffer(index_buffer);
-        if (uploaded_revision) *uploaded_revision = revision;
     }
 
     DebugShapeConstants sc{};
@@ -1156,10 +1269,10 @@ void SceneDebugRenderer::render_debug_shape_batch(
     auto uniforms = nw::gfx::allocate_uniform_span(ctx_, sizeof(DebugShapeConstants));
     if (uniforms.data) {
         std::memcpy(uniforms.data, &sc, sizeof(DebugShapeConstants));
-        nw::gfx::cmd_bind_pipeline(cmd, debug_shape_pipeline_);
+        nw::gfx::cmd_bind_pipeline(cmd, pipeline);
         nw::gfx::cmd_bind_vertex_buffer(cmd, vertex_buffer, sizeof(DebugShapeVertex));
         nw::gfx::cmd_bind_index_buffer(cmd, index_buffer, sizeof(uint32_t));
-        nw::gfx::cmd_bind_resources(cmd, debug_shape_pipeline_, uniforms);
+        nw::gfx::cmd_bind_resources(cmd, pipeline, uniforms);
         nw::gfx::cmd_draw_indexed(cmd, static_cast<uint32_t>(indices.size()));
     }
 }

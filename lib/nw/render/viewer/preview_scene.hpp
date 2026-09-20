@@ -254,6 +254,26 @@ struct DebugShapeVertex {
     glm::vec4 color{0.0f};
 };
 
+struct AreaTileGridVertex {
+    glm::vec3 position{0.0f};
+    glm::vec3 opposite{0.0f};
+    glm::vec2 extrusion{0.0f};
+    glm::vec4 color{0.0f};
+};
+
+struct AreaTileGridDebugGeometry {
+    std::vector<AreaTileGridVertex> vertices;
+    std::vector<uint32_t> indices;
+};
+
+// Batch transform contract: input is one dense width*height Area tile array
+// with a finite positive tileset height. Output is one caller-owned screen-line
+// triangle batch. Contiguous equal-height edges are merged; height breaks occur
+// at both elevations. Invalid input or allocation failure clears output.
+[[nodiscard]] bool build_area_tile_grid_debug_geometry(
+    const nw::Area& area,
+    AreaTileGridDebugGeometry& output) noexcept;
+
 enum class DebugShapeCategory : uint8_t {
     general,
     trigger,

@@ -243,6 +243,43 @@ bool render_viewer_frame(
     return true;
 }
 
+TEST(RenderViewerPreparedDraws, AreaTileGridSharesFlatEdgesAndPreservesHeightBreaks)
+{
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    nw::Area area;
+    area.tileset = &tileset;
+    area.width = 2;
+    area.height = 1;
+    area.tiles.resize(2);
+    nw::render::viewer::AreaTileGridDebugGeometry geometry;
+
+    ASSERT_TRUE(nw::render::viewer::build_area_tile_grid_debug_geometry(
+        area, geometry));
+    EXPECT_EQ(geometry.vertices.size(), 20u);
+    EXPECT_EQ(geometry.indices.size(), 30u);
+    EXPECT_EQ(geometry.vertices[0].position,
+        (glm::vec3{0.0f, 0.0f, 0.14f}));
+    EXPECT_EQ(geometry.vertices[0].opposite,
+        (glm::vec3{20.0f, 0.0f, 0.14f}));
+    EXPECT_EQ(geometry.vertices[0].extrusion,
+        (glm::vec2{1.0f, 0.0f}));
+    EXPECT_EQ(geometry.vertices[0].color,
+        (glm::vec4{1.0f, 0.0f, 0.0f, 0.65f}));
+
+    area.tiles[1].height = 1;
+    ASSERT_TRUE(nw::render::viewer::build_area_tile_grid_debug_geometry(
+        area, geometry));
+    EXPECT_EQ(geometry.vertices.size(), 32u);
+    EXPECT_EQ(geometry.indices.size(), 48u);
+
+    area.tiles[0].id = nw::kAreaTileVoidId;
+    ASSERT_TRUE(nw::render::viewer::build_area_tile_grid_debug_geometry(
+        area, geometry));
+    EXPECT_EQ(geometry.vertices.size(), 32u);
+    EXPECT_EQ(geometry.indices.size(), 48u);
+}
+
 float max_abs_matrix_delta(const glm::mat4& lhs, const glm::mat4& rhs) noexcept
 {
     float result = 0.0f;

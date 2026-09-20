@@ -188,6 +188,15 @@ struct ClientViewerViewport::Impl {
             return false;
         }
         apply_area_options_to_session();
+        if (!synchronize_area_tile_grid()) {
+            if (!tile_grid_failure_reported) {
+                LOG_F(ERROR,
+                    "Client area render: failed to synchronize the tile editing grid");
+                tile_grid_failure_reported = true;
+            }
+        } else {
+            tile_grid_failure_reported = false;
+        }
 
         draw(command_list, viewport, dt_ms);
         return true;
@@ -245,6 +254,7 @@ struct ClientViewerViewport::Impl {
         if (session) {
             session->clear();
         }
+        forget_area_tile_grid();
         loaded_area_resref.clear();
         loaded_preview_resource.clear();
     }
@@ -367,6 +377,7 @@ struct ClientViewerViewport::Impl {
             LOG_F(ERROR, "Client area render: failed to load area '{}'", area_resref);
             return false;
         }
+        forget_area_tile_grid();
 
         loaded_area_resref = area_resref;
         loaded_preview_resource.clear();
@@ -425,6 +436,7 @@ struct ClientViewerViewport::Impl {
             LOG_F(ERROR, "Client preview viewport: failed to load '{}'", preview_path.string());
             return false;
         }
+        forget_area_tile_grid();
 
         loaded_area_resref.clear();
         loaded_preview_resource = std::string{resource_path};
@@ -1166,6 +1178,61 @@ struct ClientViewerViewport::Impl {
             && (!paintable || !replace_tiles || preview_visible);
     }
 
+    bool set_area_tile_grid(
+        nw::ObjectHandle area_handle, bool enabled)
+    {
+        if (!session) {
+            return false;
+        }
+        if (!enabled) {
+            session->clear_tile_grid_debug_geometry();
+            tile_grid_debug_geometry.vertices.clear();
+            tile_grid_debug_geometry.indices.clear();
+            tile_grid_area = nw::ObjectHandle{};
+            tile_grid_enabled = false;
+            return true;
+        }
+
+        const auto* area
+            = nw::kernel::objects().get<nw::Area>(area_handle);
+        if (!area
+            || !viewer::build_area_tile_grid_debug_geometry(
+                *area, tile_grid_debug_geometry)) {
+            session->clear_tile_grid_debug_geometry();
+            forget_area_tile_grid();
+            return false;
+        }
+        const bool applied = session->set_tile_grid_debug_geometry(
+            tile_grid_debug_geometry.vertices,
+            tile_grid_debug_geometry.indices);
+        tile_grid_area = applied ? area_handle : nw::ObjectHandle{};
+        tile_grid_enabled = applied;
+        return applied;
+    }
+
+    void forget_area_tile_grid() noexcept
+    {
+        tile_grid_debug_geometry.vertices.clear();
+        tile_grid_debug_geometry.indices.clear();
+        tile_grid_area = nw::ObjectHandle{};
+        tile_grid_enabled = false;
+    }
+
+    bool synchronize_area_tile_grid()
+    {
+        const auto* scene = session ? session->scene() : nullptr;
+        const bool should_enable = area_options.tile_grid_enabled
+            && scene && scene->is_area;
+        if (!should_enable) {
+            return !tile_grid_enabled
+                || set_area_tile_grid(nw::ObjectHandle{}, false);
+        }
+        if (tile_grid_enabled && tile_grid_area == scene->root_object) {
+            return true;
+        }
+        return set_area_tile_grid(scene->root_object, true);
+    }
+
     bool end_toolset_preview_visuals() noexcept
     {
         if (session) session->clear_transient_debug_geometry();
@@ -1225,7 +1292,11 @@ struct ClientViewerViewport::Impl {
 
     bool rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
     {
-        return session && session->rebuild_live_area(area, selected_object);
+        if (!session || !session->rebuild_live_area(area, selected_object)) {
+            return false;
+        }
+        forget_area_tile_grid();
+        return synchronize_area_tile_grid();
     }
 
     bool rebuild_live_object(nw::ObjectHandle object)
@@ -1477,10 +1548,14 @@ struct ClientViewerViewport::Impl {
     viewer::AreaTilePreviewLease area_tile_preview_lease;
     std::vector<viewer::DebugShapeVertex> transient_debug_vertices;
     std::vector<uint32_t> transient_debug_indices;
+    viewer::AreaTileGridDebugGeometry tile_grid_debug_geometry;
+    nw::ObjectHandle tile_grid_area{};
     ClientAreaViewerOptions area_options;
     uint64_t applied_area_time_generation = 0;
     uint64_t applied_area_reload_generation = 0;
     uint64_t applied_navigation_debug_revision = std::numeric_limits<uint64_t>::max();
+    bool tile_grid_enabled = false;
+    bool tile_grid_failure_reported = false;
 };
 
 ClientViewerViewport::ClientViewerViewport(nw::gfx::Context* context)

@@ -187,6 +187,9 @@ struct ViewerFrameStats {
     nw::gfx::CommandStats transparent_command_stats{};
     nw::gfx::CommandStats particle_command_stats{};
     nw::gfx::CommandStats debug_command_stats{};
+    nw::gfx::CommandStats tile_grid_command_stats{};
+    uint32_t tile_grid_vertex_count = 0;
+    uint32_t tile_grid_index_count = 0;
     bool shadows_rendered = false;
     bool local_shadows_rendered = false;
     bool water_rendered = false;
@@ -285,6 +288,10 @@ public:
         std::span<const DebugShapeVertex> vertices,
         std::span<const uint32_t> indices);
     void clear_transient_debug_geometry() noexcept;
+    bool set_tile_grid_debug_geometry(
+        std::span<const AreaTileGridVertex> vertices,
+        std::span<const uint32_t> indices);
+    void clear_tile_grid_debug_geometry() noexcept;
     bool clear_area_object_selection() noexcept;
     [[nodiscard]] bool area_object_selection_enabled() const noexcept
     {
@@ -420,6 +427,9 @@ private:
     std::vector<DebugShapeVertex> transient_debug_shape_vertices_;
     std::vector<uint32_t> transient_debug_shape_indices_;
     uint64_t transient_debug_shape_revision_ = 0;
+    std::vector<AreaTileGridVertex> tile_grid_debug_shape_vertices_;
+    std::vector<uint32_t> tile_grid_debug_shape_indices_;
+    uint64_t tile_grid_debug_shape_revision_ = 0;
     std::vector<nw::gfx::GpuTimerResult> completed_gpu_timer_results_;
     std::vector<uint8_t> area_visibility_mask_;
     AreaObjectSelection active_area_selection_{};

@@ -1277,6 +1277,36 @@ void ViewerSession::clear_transient_debug_geometry() noexcept
     transient_debug_shape_indices_.clear();
 }
 
+bool ViewerSession::set_tile_grid_debug_geometry(
+    std::span<const AreaTileGridVertex> vertices,
+    std::span<const uint32_t> indices)
+{
+    if (vertices.empty() != indices.empty()
+        || vertices.size() > std::numeric_limits<uint32_t>::max()
+        || indices.size() > std::numeric_limits<uint32_t>::max()
+        || std::any_of(indices.begin(), indices.end(),
+            [vertex_count = vertices.size()](uint32_t index) {
+                return index >= vertex_count;
+            })) {
+        return false;
+    }
+    tile_grid_debug_shape_vertices_.assign(
+        vertices.begin(), vertices.end());
+    tile_grid_debug_shape_indices_.assign(indices.begin(), indices.end());
+    ++tile_grid_debug_shape_revision_;
+    return true;
+}
+
+void ViewerSession::clear_tile_grid_debug_geometry() noexcept
+{
+    if (!tile_grid_debug_shape_vertices_.empty()
+        || !tile_grid_debug_shape_indices_.empty()) {
+        ++tile_grid_debug_shape_revision_;
+    }
+    tile_grid_debug_shape_vertices_.clear();
+    tile_grid_debug_shape_indices_.clear();
+}
+
 void ViewerSession::clear()
 {
     if (scene_) {
@@ -1289,6 +1319,7 @@ void ViewerSession::clear()
     prepared_model_draws_.clear();
     prepared_model_surfaces_.clear();
     clear_transient_debug_geometry();
+    clear_tile_grid_debug_geometry();
     clear_area_visibility_mask();
     scene_kind_ = ViewerSceneKind::none;
     loaded_source_.clear();
@@ -1848,6 +1879,21 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         const ScopedGpuTimer gpu_timer{command_list, kGpuTimerDebug};
         if (debug_renderer_) {
             debug_renderer_->render_debug_shapes(command_list, *scene_, render_context, debug_options);
+            const auto tile_grid_command_stats_start
+                = command_stats_sample();
+            debug_renderer_->render_tile_grid_debug_shapes(
+                command_list,
+                tile_grid_debug_shape_vertices_,
+                tile_grid_debug_shape_indices_,
+                tile_grid_debug_shape_revision_,
+                render_context,
+                {viewport.width, viewport.height});
+            frame_stats.tile_grid_command_stats = command_stats_delta(
+                command_stats_sample(), tile_grid_command_stats_start);
+            frame_stats.tile_grid_vertex_count = saturating_count(
+                tile_grid_debug_shape_vertices_.size());
+            frame_stats.tile_grid_index_count = saturating_count(
+                tile_grid_debug_shape_indices_.size());
             debug_renderer_->render_transient_debug_shapes(
                 command_list,
                 transient_debug_shape_vertices_,
@@ -2064,6 +2110,7 @@ bool ViewerSession::set_scene(std::unique_ptr<PreviewScene> scene, ViewerSceneKi
     prepared_model_draws_.clear();
     prepared_model_surfaces_.clear();
     clear_transient_debug_geometry();
+    clear_tile_grid_debug_geometry();
     clear_area_visibility_mask();
     scene_kind_ = kind;
     loaded_source_ = std::move(source);

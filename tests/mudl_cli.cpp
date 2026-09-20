@@ -153,6 +153,40 @@ TEST(MudlCli, AreaBenchmarkParsesAreaTime)
     EXPECT_FLOAT_EQ(*args.benchmark_area_time_seconds, 22.5f);
 }
 
+TEST(MudlCli, AreaEditBenchmarkParsesMeasurementOptions)
+{
+    mudl::ParsedArgs args;
+
+    const auto exit_code = parse_args_for({
+                                              "mudl",
+                                              "area-edit-benchmark",
+                                              "fda",
+                                              "--module",
+                                              "/tmp/module",
+                                              "--samples",
+                                              "7",
+                                              "--warmup",
+                                              "2",
+                                              "--width",
+                                              "1024",
+                                              "--height",
+                                              "768",
+                                              "--json",
+                                              "/tmp/area-edit.json",
+                                          },
+        args);
+
+    EXPECT_FALSE(exit_code.has_value());
+    EXPECT_EQ(args.command, "area-edit-benchmark");
+    EXPECT_EQ(args.initial_model, "fda");
+    EXPECT_EQ(args.module_path, "/tmp/module");
+    EXPECT_EQ(args.benchmark_frames, 7);
+    EXPECT_EQ(args.benchmark_warmup_frames, 2);
+    EXPECT_EQ(args.benchmark_width, 1024);
+    EXPECT_EQ(args.benchmark_height, 768);
+    EXPECT_EQ(args.benchmark_output_path, "/tmp/area-edit.json");
+}
+
 TEST(MudlCli, ParsesPbrIblDisableFlag)
 {
     mudl::ParsedArgs args;

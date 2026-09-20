@@ -35,6 +35,7 @@ target_link_libraries(mudl-imgui PUBLIC
 add_executable(mudl
     main.cpp
     app_runtime.cpp
+    area_edit_benchmark.cpp
     benchmark_report.cpp
     imgui_runtime.cpp
     mudl_cli.cpp

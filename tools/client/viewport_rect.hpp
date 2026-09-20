@@ -73,6 +73,7 @@ struct ClientAreaViewerOptions {
     bool debug_enabled = true;
     bool triggers_enabled = true;
     bool encounters_enabled = true;
+    bool tile_grid_enabled = false;
     bool forward_plus_enabled = true;
     bool forward_plus_auto_configure_area = true;
     uint32_t forward_plus_tile_size = 64;

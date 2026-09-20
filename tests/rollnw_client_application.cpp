@@ -308,6 +308,8 @@ TEST(ClientMetrics, PreservesBothHudLayoutsAndOwnsUnavailableSnapshotHistory)
     viewer.shadow_command_stats.draw_count = 14;
     viewer.transparent_command_stats.draw_count = 15;
     viewer.particle_command_stats.draw_count = 16;
+    viewer.tile_grid_index_count = 12672;
+    viewer.tile_grid_command_stats.draw_count = 1;
     ClientGpuFrameStats gpu;
     gpu.ui_seconds = .004f;
     gpu.viewport_seconds = .008f;
@@ -323,8 +325,8 @@ TEST(ClientMetrics, PreservesBothHudLayoutsAndOwnsUnavailableSnapshotHistory)
     update_viewer_internal_metrics(metrics, &viewer);
     update_client_gpu_metrics(metrics, &gpu);
     const auto markup = format_viewer_fps_rml(metrics, true, nw::render::ForwardPlusDebugMode::off);
-    const std::string compact = R"RML(50.0 FPS frame 20.0 | view 5.0 ui 4.0 present 9.0 ms<br/>gpu vp 8.00 pass 5.00 ui 4.00 ov 0.00 pal 0.00 ms<br/>vis 24 chunks 2 lights 11 | draws 4294967299 ind 7)RML";
-    const std::string verbose = R"RML(50.0 FPS | frame 20.0 ms<br/>work 10.0 sync 2.0 cpu-draw 3.0 present 9.0 ms<br/>ui 4.0 view 5.0 hud 6.0 overlay 7.0 palette 8.0 ms<br/>view total 9.0 tick 1.0 setup 0.0 prep 0.125 shadow 0.0 particles 0.0 debug 0.0 ms<br/>passes opaque 0.0 water 0.0 trans 0.0 ms | models 17 ps 4 lights 0/0 c0.00 i0.00 lit 0/0/0 lc0 c0.00 i0.00 sh 0 pass 3<br/>shadow res 1024 casters 13 no-caster 0 submitted 0 culled 0<br/>rmodel samples in 19 ok 18 dis 0 miss 0 badskel 0 fail 0 | surf 21 rm 0 skin 0 assign 0 entries 0 mats 22 bind 0 invalid 0<br/>gpu total 5.00 opaque 3.00 shadow 2.00 water 0.00 trans 0.00 ps 0.00 debug 0.00 ms timers 2<br/>gpu editor total 12.00 ui 4.00 viewport 8.00 overlay 0.00 palette 0.00 ms timers 4<br/>area cache rec 23 static 0 dyn 0 prep draws 0 lights 0 max 0 chunks 2/3 max 0 pass 0/0/0 sh 0<br/>area frame vis 24 static 0 dyn 0 prep surf 0 chunks 2 lists 0/0/0 sh 0 cached 1<br/>f+ on lights 11 clusters 10/12 refs 0 max 0 ov 0/0 upload 2.0 KB tile 0 z 0 dbg off<br/>submit draws 4294967299 ind 7 inst 0 idx 0.0M sh 14 trans 15 ps 16 | pipe 0/0 res 0/0 ubos 0 3.0 KB desc 2.0/4.0 KB fail 1/2 drop 3)RML";
+    const std::string compact = R"RML(50.0 FPS frame 20.0 | view 5.0 ui 4.0 present 9.0 ms<br/>gpu vp 8.00 pass 5.00 ui 4.00 ov 0.00 pal 0.00 ms<br/>vis 24 chunks 2 lights 11 | draws 4294967299 ind 7 grid 12672/1)RML";
+    const std::string verbose = R"RML(50.0 FPS | frame 20.0 ms<br/>work 10.0 sync 2.0 cpu-draw 3.0 present 9.0 ms<br/>ui 4.0 view 5.0 hud 6.0 overlay 7.0 palette 8.0 ms<br/>view total 9.0 tick 1.0 setup 0.0 prep 0.125 shadow 0.0 particles 0.0 debug 0.0 ms<br/>passes opaque 0.0 water 0.0 trans 0.0 ms | models 17 ps 4 lights 0/0 c0.00 i0.00 lit 0/0/0 lc0 c0.00 i0.00 sh 0 pass 3<br/>shadow res 1024 casters 13 no-caster 0 submitted 0 culled 0<br/>rmodel samples in 19 ok 18 dis 0 miss 0 badskel 0 fail 0 | surf 21 rm 0 skin 0 assign 0 entries 0 mats 22 bind 0 invalid 0<br/>gpu total 5.00 opaque 3.00 shadow 2.00 water 0.00 trans 0.00 ps 0.00 debug 0.00 ms timers 2<br/>gpu editor total 12.00 ui 4.00 viewport 8.00 overlay 0.00 palette 0.00 ms timers 4<br/>area cache rec 23 static 0 dyn 0 prep draws 0 lights 0 max 0 chunks 2/3 max 0 pass 0/0/0 sh 0<br/>area frame vis 24 static 0 dyn 0 prep surf 0 chunks 2 lists 0/0/0 sh 0 cached 1<br/>f+ on lights 11 clusters 10/12 refs 0 max 0 ov 0/0 upload 2.0 KB tile 0 z 0 dbg off<br/>submit draws 4294967299 ind 7 inst 0 idx 0.0M sh 14 trans 15 ps 16 grid 12672/1 | pipe 0/0 res 0/0 ubos 0 3.0 KB desc 2.0/4.0 KB fail 1/2 drop 3)RML";
     // The environment-selected layout is cached once per process. Execute this
     // production case in separate compact/verbose processes; accept both here.
     EXPECT_TRUE(markup == compact || markup == verbose) << markup;

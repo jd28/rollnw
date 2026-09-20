@@ -30,6 +30,7 @@ namespace nw::render::viewer {
 
 struct PreviewScene;
 struct DebugShapeVertex;
+struct AreaTileGridVertex;
 struct SoundDebugDotInstance;
 enum class DebugShapeCategory : uint8_t;
 
@@ -56,6 +57,13 @@ public:
         std::span<const uint32_t> indices,
         uint64_t revision,
         const nw::render::RenderContext& ctx);
+    void render_tile_grid_debug_shapes(
+        nw::gfx::CommandList* cmd,
+        std::span<const AreaTileGridVertex> vertices,
+        std::span<const uint32_t> indices,
+        uint64_t revision,
+        const nw::render::RenderContext& ctx,
+        glm::uvec2 viewport_size);
     void render_selection_bounds(
         nw::gfx::CommandList* cmd,
         const nw::render::Bounds& bounds,
@@ -68,6 +76,7 @@ private:
         std::span<const DebugShapeVertex> vertices,
         std::span<const uint32_t> indices,
         const nw::render::RenderContext& ctx,
+        nw::gfx::Handle<nw::gfx::Pipeline> pipeline,
         nw::gfx::Handle<nw::gfx::Buffer>& vertex_buffer,
         size_t& vertex_capacity,
         nw::gfx::Handle<nw::gfx::Buffer>& index_buffer,
@@ -83,6 +92,7 @@ private:
     nw::gfx::Handle<nw::gfx::Pipeline> debug_grid_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_shape_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> selection_bounds_pipeline_;
+    nw::gfx::Handle<nw::gfx::Pipeline> tile_grid_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> sound_debug_dot_pipeline_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_indices_;
@@ -90,6 +100,8 @@ private:
     nw::gfx::Handle<nw::gfx::Buffer> debug_shape_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> transient_debug_shape_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> transient_debug_shape_indices_;
+    nw::gfx::Handle<nw::gfx::Buffer> tile_grid_debug_shape_vertices_;
+    nw::gfx::Handle<nw::gfx::Buffer> tile_grid_debug_shape_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_vertices_;
     nw::gfx::Handle<nw::gfx::Buffer> selection_bounds_indices_;
     nw::gfx::Handle<nw::gfx::Buffer> sound_debug_dot_vertices_;
@@ -101,8 +113,11 @@ private:
     size_t debug_shape_index_capacity_ = 0;
     size_t transient_debug_shape_vertex_capacity_ = 0;
     size_t transient_debug_shape_index_capacity_ = 0;
+    size_t tile_grid_debug_shape_vertex_capacity_ = 0;
+    size_t tile_grid_debug_shape_index_capacity_ = 0;
     size_t sound_debug_dot_instance_capacity_ = 0;
     uint64_t uploaded_transient_debug_shape_revision_ = UINT64_MAX;
+    uint64_t uploaded_tile_grid_debug_shape_revision_ = UINT64_MAX;
 };
 
 void append_debug_triangle(PreviewScene& scene, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,

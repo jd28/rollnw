@@ -337,12 +337,14 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
     char compact_scene_text[128]{};
     std::snprintf(compact_scene_text,
         sizeof(compact_scene_text),
-        "vis %u chunks %u lights %u | draws %llu ind %llu",
+        "vis %u chunks %u lights %u | draws %llu ind %llu grid %u/%llu",
         state.viewer_stats.area_frame_visible_record_count,
         state.viewer_stats.area_frame_visible_chunk_count,
         state.viewer_stats.forward_plus_light_count,
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.draw_count),
-        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.indirect_draw_call_count));
+        static_cast<unsigned long long>(state.viewer_stats.total_command_stats.indirect_draw_call_count),
+        state.viewer_stats.tile_grid_index_count,
+        static_cast<unsigned long long>(state.viewer_stats.tile_grid_command_stats.draw_count));
 
     std::string compact_result = Rml::StringUtilities::EncodeRml(compact_frame_text);
     if (state.viewer_stats.gpu_timer_count > 0 || state.editor_gpu_stats.timer_count > 0) {
@@ -518,10 +520,10 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
         state.viewer_stats.forward_plus_depth_slices,
         nw::toolset::forward_plus_debug_mode_label(debug_mode));
 
-    char submit_text[224]{};
+    char submit_text[256]{};
     std::snprintf(submit_text,
         sizeof(submit_text),
-        "submit draws %llu ind %llu inst %llu idx %.1fM sh %llu trans %llu ps %llu | pipe %llu/%llu res %llu/%llu ubos %llu %.1f KB desc %.1f/%.1f KB fail %llu/%llu drop %llu",
+        "submit draws %llu ind %llu inst %llu idx %.1fM sh %llu trans %llu ps %llu grid %u/%llu | pipe %llu/%llu res %llu/%llu ubos %llu %.1f KB desc %.1f/%.1f KB fail %llu/%llu drop %llu",
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.draw_count),
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.indirect_draw_call_count),
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.draw_instance_count),
@@ -529,6 +531,8 @@ std::string format_viewer_fps_rml(const ClientMetricsState& state,
         static_cast<unsigned long long>(state.viewer_stats.shadow_command_stats.draw_count),
         static_cast<unsigned long long>(state.viewer_stats.transparent_command_stats.draw_count),
         static_cast<unsigned long long>(state.viewer_stats.particle_command_stats.draw_count),
+        state.viewer_stats.tile_grid_index_count,
+        static_cast<unsigned long long>(state.viewer_stats.tile_grid_command_stats.draw_count),
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.pipeline_bind_count),
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.pipeline_bind_skipped_count),
         static_cast<unsigned long long>(state.viewer_stats.total_command_stats.resource_bind_count),

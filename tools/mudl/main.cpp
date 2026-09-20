@@ -2,6 +2,7 @@
 // Main entry point
 
 #include "app_runtime.hpp"
+#include "area_edit_benchmark.hpp"
 #include "imgui_runtime.hpp"
 #include "mudl_cli.hpp"
 #include "mudl_commands.hpp"
@@ -221,7 +222,9 @@ static void configure_app_state(AppState& state, const ParsedArgs& args)
     }
     state.static_pbr_ibl_requested = args.pbr_ibl_enabled;
     state.preview_scene_load_options = nw::render::viewer::default_preview_scene_load_options();
-    if (args.command == "area-benchmark" || args.command == "area-sweep") {
+    if (args.command == "area-benchmark"
+        || args.command == "area-edit-benchmark"
+        || args.command == "area-sweep") {
         state.window_width = args.benchmark_width;
         state.window_height = args.benchmark_height;
     }
@@ -357,6 +360,7 @@ int main(int argc, char* argv[])
     }
 
     const bool headless_command = command_is_headless(args.command)
+        || args.command == "area-edit-benchmark"
         || args.max_frames > 0;
 
     if (headless_command) {
@@ -477,6 +481,19 @@ int main(int argc, char* argv[])
             args.benchmark_camera, args.benchmark_area_time_seconds, args.benchmark_visible_tile_radius,
             args.benchmark_visibility_mode, args.benchmark_visible_tile_cone_half_angle,
             args.benchmark_output_path, args.benchmark_screenshot_path);
+        reset_viewer_renderers(state);
+        state.shader_provider.reset();
+        shutdown_graphics(state);
+        if (window) { SDL_DestroyWindow(window); }
+        nw::kernel::services().shutdown();
+        return rc;
+    }
+
+    if (args.command == "area-edit-benchmark") {
+        const int rc = run_area_edit_benchmark_command(state,
+            args.initial_model, args.benchmark_frames,
+            args.benchmark_warmup_frames,
+            args.benchmark_output_path);
         reset_viewer_renderers(state);
         state.shader_provider.reset();
         shutdown_graphics(state);
