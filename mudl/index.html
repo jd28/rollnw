@@ -133,6 +133,7 @@ mudl turntable &lt;resref&gt; [frames] [--output &lt;dir&gt;]
 mudl frames &lt;count&gt; [&lt;resref&gt;]
 mudl area-screenshot &lt;resref&gt; &lt;path&gt;
 mudl area-benchmark &lt;resref&gt; [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--visible-tile-radius &lt;tiles&gt;] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot &lt;path&gt;]
+mudl area-edit-benchmark &lt;resref&gt; [--samples &lt;count&gt;] [--warmup &lt;count&gt;] [--width &lt;px&gt;] [--height &lt;px&gt;] [--json &lt;path&gt;]
 mudl area-sweep &lt;resref|area-list.txt&gt; [--frames &lt;count&gt;] [--warmup &lt;count&gt;] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--validate] [--json &lt;path&gt;]
 mudl area --dump &lt;module-path&gt; [--output &lt;path&gt;] [--skip-existing] [--limit &lt;n&gt;]
 </code></pre></div>
@@ -155,6 +156,9 @@ mudl<span class="w"> </span>area-screenshot<span class="w"> </span>ttr01<span cl
 
 <span class="c1"># Headless area render benchmark from a gameplay-style camera</span>
 mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city.json
+
+<span class="c1"># Measure one-tile and 64-tile live editor refreshes without writing the module</span>
+mudl<span class="w"> </span>area-edit-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--samples<span class="w"> </span><span class="m">10</span><span class="w"> </span>--warmup<span class="w"> </span><span class="m">3</span><span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-edit.json
 
 <span class="c1"># Compare the same fixed camera without local-light shadow maps</span>
 mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--no-local-shadows<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-no-local-shadows.json
@@ -181,6 +185,16 @@ tools/mudl/area_benchmark_baseline.py<span class="w"> </span>ms_4city<span class
 mudl<span class="w"> </span>area<span class="w"> </span>--dump<span class="w"> </span>./mymodule.mod<span class="w"> </span>--output<span class="w"> </span>./out/areas<span class="w"> </span>--skip-existing<span class="w"> </span>--limit<span class="w"> </span><span class="m">50</span><span class="w"> </span>--debug
 </code></pre></div>
 
+<p><code>area-edit-benchmark</code> measures orientation-only and model-replacement commits
+for one tile and an evenly distributed batch of up to 64 tiles. It also moves
+a retained tile-preview batch between two disjoint cell ranges to measure the
+mouse-hover path. Every presented frame includes the persistent tile-editor
+grid batch. Each scenario reports its first cold sample separately, retains
+the required model assets for warmup and repeated samples, restores the exact
+original state, and does not write the module. The JSON separates model
+preparation, instance, light, scene-summary and render-record refresh work from
+frame submission, GPU wait and CPU/GPU rendering. It records whether each frame
+reused cached area draw lists. GPU timing is <code>null</code> when unavailable.</p>
 <h3 id="inspection">Inspection</h3>
 <div class="codehilite"><pre><span></span><code>mudl stats &lt;resref&gt;
 mudl report &lt;resref|path&gt;

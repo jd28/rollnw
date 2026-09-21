@@ -92,6 +92,11 @@ there for inspection. Canceling either file picker writes nothing.</p>
 <p>Quote paths that contain spaces. If <code>project-dir</code> is omitted, the client creates
 a directory named after the module in the current working directory. For
 example, importing <code>example.mod</code> without a destination writes to <code>./example</code>.</p>
+<p>The client loads its <code>core</code> and <code>nwn1</code> packages from <code>stdlib/</code> beside the
+executable, including after module or project replacement. The executable and
+its packaged stdlib can be launched from any working directory; copies of those
+packages in the working directory do not override them. Relative module and
+destination paths still resolve against the caller's working directory.</p>
 <p>The JSON import creates <code>rollnw.json</code>, converts supported module resources to
 JSON, combines each area's ARE/GIT/GIC resources into one CAF file under
 <code>shared/areas/</code>, and generates area maps under <code>.rollnw/cache/area_maps/</code>.
@@ -169,6 +174,15 @@ commands do not add entries.</p>
 another tab preserves the current area's edits and undo history. Selecting a
 different area reuses the Area tab; unsaved changes prompt for Save, Discard,
 or Cancel first. Home and Area cannot be moved or closed.</p>
+<p>Choose <strong>Area</strong> from the Project header's <strong>+</strong> menu, or run <strong>New Area...</strong>
+from the command palette, to create a native CAF area. The form accepts a
+ResRef, project directory, display name, tileset, width, and height. Dimensions
+are limited to 2–32 tiles and default to 4×4. The tileset list contains loaded
+SETs with an ungrouped flat tile for their default terrain. Creation never
+overwrites an existing area: it writes the complete file, refreshes project
+resources, adds the area to the project index, and opens it in the pinned Area
+tab. A failed write or resource refresh removes the file created by that
+attempt.</p>
 <p>Use <strong>Ctrl+S</strong> to save the active document or <strong>Ctrl+Shift+S</strong> / <strong>Save All</strong> to
 save every modified open document without switching tabs. Saving supports native
 CAF areas and JSON blueprints. If a document cannot be saved, it stays modified
@@ -239,11 +253,12 @@ limit. Encounter spawn markers support add, move, and delete.
 Sound objects render a selectable debug radius; the mouse wheel resizes the
 selected Sound's maximum radius. Stores use point markers and Waypoints use
 their model with a marker fallback.</p>
-<p>New Blueprint presents a compact action list for Creature, Door, Encounter, Item,
-Placeable, Sound, Store, Trigger, and Waypoint blueprints, then opens the saved
-editor document. Every creation form asks for a ResRef, directory, and display
-name. New Creatures use separate required first-name and optional last-name
-fields and also prompt for race and class; NWN1 Smalls derives
+<p>The project browser's + button opens an anchored New Resource menu for a blank
+Area or a Creature, Door, Encounter, Item, Placeable, Sound, Store, Trigger, or
+Waypoint blueprint. The selected resource opens its creation form. Every
+blueprint form asks for a ResRef, directory, and display name. New Creatures use
+separate required first-name and optional last-name fields and also prompt for
+race and class; NWN1 Smalls derives
 appearance, ability scores, level-one class data, skills, and body parts from
 those selections. Items require a base-item type. Base Item Type is currently
 read-only in the workbench. Further authoring uses the existing object editor.</p>
@@ -284,9 +299,21 @@ groups. A selected action keeps its exact world-space preview while the camera
 moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
 Eraser removes a complete placed group when its SET footprint can be identified;
 incomplete or ambiguous groups are rejected without changing the area.
+Neighboring placed groups are fixed boundaries: erasing one group may refit
+ordinary transition tiles around it, but never widens the removal to another
+group.
+When a door is under the pointer, Eraser targets the tile that owns its SET hook
+and expands that tile to its complete placed group. Doors attached to hooks on
+tiles that change are removed with those tiles; Eraser never creates a door-only
+operation. Each erase stroke is one undoable operation, and undo restores the
+original tiles and doors together.
 Overlapping group placement replaces the complete intersected groups and refits
 their uncovered cells to the SET's default terrain. Eraser previews outline the
 complete removal target without swapping in ground variations.
+The hover preview consumes the latest queued mouse position used by button input.
+An invalid tile operation removes the substituted tile preview and leaves a red
+cell indicator. Failed placement attempts are recorded in <strong>Output</strong>; hover
+checks do not add messages or change the palette list's layout.
 Holding Shift outlines the tile or complete placed group under the pointer,
 changes the viewport cursor to a pointer, and shows the selection/variation
 controls above the tile palette. Selection and variation do not require a
@@ -407,8 +434,8 @@ must go through <code>core.commands.v1</code>, not through RmlUi element operati
 </ul>
 <h2 id="current-limits">Current Limits</h2>
 <ul>
-<li>The client is viewer-first. It does not yet provide new-area creation or a
-  complete editor for every object aggregate.</li>
+<li>The client is viewer-first. It does not yet provide a complete editor for
+  every object aggregate.</li>
 <li>Encounter creature-list editing remains a dedicated editor concern; placed
   spawn-point markers are edited directly in the Area viewport.</li>
 <li>Save All covers open modified JSON area and blueprint documents; it is not
