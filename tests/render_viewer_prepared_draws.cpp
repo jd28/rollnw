@@ -21,6 +21,7 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
 #include <nw/objects/Waypoint.hpp>
+#include <nw/render/area_tile_grid.hpp>
 #include <nw/render/render_service.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/render/viewer/preview_model_animation.hpp>
@@ -252,9 +253,9 @@ TEST(RenderViewerPreparedDraws, AreaTileGridSharesFlatEdgesAndPreservesHeightBre
     area.width = 2;
     area.height = 1;
     area.tiles.resize(2);
-    nw::render::viewer::AreaTileGridDebugGeometry geometry;
+    nw::render::AreaTileGridDebugGeometry geometry;
 
-    ASSERT_TRUE(nw::render::viewer::build_area_tile_grid_debug_geometry(
+    ASSERT_TRUE(nw::render::build_area_tile_grid_debug_geometry(
         area, geometry));
     EXPECT_EQ(geometry.vertices.size(), 20u);
     EXPECT_EQ(geometry.indices.size(), 30u);
@@ -268,13 +269,13 @@ TEST(RenderViewerPreparedDraws, AreaTileGridSharesFlatEdgesAndPreservesHeightBre
         (glm::vec4{1.0f, 0.0f, 0.0f, 0.65f}));
 
     area.tiles[1].height = 1;
-    ASSERT_TRUE(nw::render::viewer::build_area_tile_grid_debug_geometry(
+    ASSERT_TRUE(nw::render::build_area_tile_grid_debug_geometry(
         area, geometry));
     EXPECT_EQ(geometry.vertices.size(), 32u);
     EXPECT_EQ(geometry.indices.size(), 48u);
 
     area.tiles[0].id = nw::kAreaTileVoidId;
-    ASSERT_TRUE(nw::render::viewer::build_area_tile_grid_debug_geometry(
+    ASSERT_TRUE(nw::render::build_area_tile_grid_debug_geometry(
         area, geometry));
     EXPECT_EQ(geometry.vertices.size(), 32u);
     EXPECT_EQ(geometry.indices.size(), 48u);

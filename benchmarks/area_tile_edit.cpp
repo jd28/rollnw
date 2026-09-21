@@ -7,7 +7,7 @@
 #include <nw/kernel/TilesetRegistry.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
-#include <nw/render/viewer/preview_scene.hpp>
+#include <nw/render/area_tile_grid.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -83,11 +83,11 @@ void BM_area_tile_grid_build(benchmark::State& state)
     tileset.tile_height = 5.0f;
     nw::Area area;
     configure_area(area, tileset, dimensions);
-    nw::render::viewer::AreaTileGridDebugGeometry geometry;
+    nw::render::AreaTileGridDebugGeometry geometry;
 
     for (auto _ : state) {
         const bool built
-            = nw::render::viewer::build_area_tile_grid_debug_geometry(
+            = nw::render::build_area_tile_grid_debug_geometry(
                 area, geometry);
         benchmark::DoNotOptimize(geometry.vertices);
         benchmark::DoNotOptimize(geometry.indices);

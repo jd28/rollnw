@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nw/gfx/gfx.hpp>
+#include <nw/render/area_tile_grid.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -30,7 +31,6 @@ namespace nw::render::viewer {
 
 struct PreviewScene;
 struct DebugShapeVertex;
-struct AreaTileGridVertex;
 struct SoundDebugDotInstance;
 enum class DebugShapeCategory : uint8_t;
 

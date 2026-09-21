@@ -8,6 +8,7 @@
 #include "preview_scene.hpp"
 
 #include <nw/gfx/gfx.hpp>
+#include <nw/render/area_tile_grid.hpp>
 #include <nw/render/model_instance_animation.hpp>
 
 #include <cstddef>

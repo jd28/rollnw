@@ -36,6 +36,7 @@ add_library(nw STATIC
     model/MdlBinaryParser.cpp
     model/mdl_particle_import.cpp
 
+    render/area_tile_grid.cpp
     render/particle_compile.cpp
     render/particle_json.cpp
     render/particle_render.cpp

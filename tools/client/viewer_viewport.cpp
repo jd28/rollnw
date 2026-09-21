@@ -11,6 +11,7 @@
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/render/area_tile_grid.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/resources/assets.hpp>
 
@@ -1196,7 +1197,7 @@ struct ClientViewerViewport::Impl {
         const auto* area
             = nw::kernel::objects().get<nw::Area>(area_handle);
         if (!area
-            || !viewer::build_area_tile_grid_debug_geometry(
+            || !nw::render::build_area_tile_grid_debug_geometry(
                 *area, tile_grid_debug_geometry)) {
             session->clear_tile_grid_debug_geometry();
             forget_area_tile_grid();
@@ -1548,7 +1549,7 @@ struct ClientViewerViewport::Impl {
     viewer::AreaTilePreviewLease area_tile_preview_lease;
     std::vector<viewer::DebugShapeVertex> transient_debug_vertices;
     std::vector<uint32_t> transient_debug_indices;
-    viewer::AreaTileGridDebugGeometry tile_grid_debug_geometry;
+    nw::render::AreaTileGridDebugGeometry tile_grid_debug_geometry;
     nw::ObjectHandle tile_grid_area{};
     ClientAreaViewerOptions area_options;
     uint64_t applied_area_time_generation = 0;

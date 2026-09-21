@@ -8,6 +8,7 @@
 #include <nw/log.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/render/area_tile_grid.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
 #include <nw/render/viewer/session.hpp>
 
@@ -787,8 +788,8 @@ int run_area_edit_benchmark_command(
         return 1;
     }
 
-    nw::render::viewer::AreaTileGridDebugGeometry tile_grid;
-    if (!nw::render::viewer::build_area_tile_grid_debug_geometry(
+    nw::render::AreaTileGridDebugGeometry tile_grid;
+    if (!nw::render::build_area_tile_grid_debug_geometry(
             *area, tile_grid)
         || !session.set_tile_grid_debug_geometry(
             tile_grid.vertices, tile_grid.indices)) {
