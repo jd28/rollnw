@@ -73,9 +73,15 @@ elseif(APPLE)
             "Install with: brew install directx-shader-compiler")
     endif()
 elseif(UNIX)
+    set(ROLLNW_DXC_URL
+        "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz"
+        CACHE STRING "DXC archive URL")
+    set(ROLLNW_DXC_SHA256
+        "b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5"
+        CACHE STRING "DXC archive SHA-256")
     FetchContent_Declare(dxc_prebuilt
-        URL      https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz
-        URL_HASH SHA256=b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5
+        URL      "${ROLLNW_DXC_URL}"
+        URL_HASH "SHA256=${ROLLNW_DXC_SHA256}"
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
     FetchContent_MakeAvailable(dxc_prebuilt)
 

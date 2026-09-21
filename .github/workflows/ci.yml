@@ -482,9 +482,33 @@ jobs:
           HOST_CCACHE_DIR="$(ccache -k cache_dir)"
           mkdir -p "$HOST_CCACHE_DIR"
 
+      - name: linux - download DXC
+        run: |
+          set -euo pipefail
+
+          dxc_url="https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz"
+          dxc_file="$RUNNER_TEMP/linux_dxc_2025_05_24.x86_64.tar.gz"
+          expected_sha256="b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5"
+
+          curl \
+            --fail \
+            --location \
+            --retry 8 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 20 \
+            --max-time 300 \
+            "$dxc_url" \
+            --output "$dxc_file"
+
+          echo "$expected_sha256  $dxc_file" | sha256sum --check
+          echo "DXC_ARCHIVE=$dxc_file" >> "$GITHUB_ENV"
+
       - name: linux - configure tools package
         run: |
-          cmake --preset ci-linux-tools-package "-DROLLNW_RELEASE_TAG=$ROLLNW_RELEASE_TAG"
+          cmake --preset ci-linux-tools-package \
+            "-DROLLNW_RELEASE_TAG=$ROLLNW_RELEASE_TAG" \
+            "-DROLLNW_DXC_URL=file://$DXC_ARCHIVE"
 
       - name: linux - build tools package
         run: |
@@ -979,10 +1003,33 @@ jobs:
             ${{ github.workspace }}/nwn/
           key: cache-nwn-3e02cddcea5d0ae82111a3038f14aef6c14d05d9
 
+      - name: linux - download DXC
+        run: |
+          set -euo pipefail
+
+          dxc_url="https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz"
+          dxc_file="$RUNNER_TEMP/linux_dxc_2025_05_24.x86_64.tar.gz"
+          expected_sha256="b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5"
+
+          curl \
+            --fail \
+            --location \
+            --retry 8 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 20 \
+            --max-time 300 \
+            "$dxc_url" \
+            --output "$dxc_file"
+
+          echo "$expected_sha256  $dxc_file" | sha256sum --check
+          echo "DXC_ARCHIVE=$dxc_file" >> "$GITHUB_ENV"
+
       - name: linux - configure renderer
         run: |
           ./scripts/ci/ensure_nwn.sh
-          cmake --preset ci-linux-renderer
+          cmake --preset ci-linux-renderer \
+            "-DROLLNW_DXC_URL=file://$DXC_ARCHIVE"
 
       - name: linux - build renderer tools
         run: |
