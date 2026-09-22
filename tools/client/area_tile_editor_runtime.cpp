@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -160,9 +161,32 @@ nw::toolset::AreaTileCellPick pick_area_tile_cell(
         return {};
     }
 
-    // SET geometry can cross cell bounds. Every tile-mode operation therefore
-    // uses the coordinate grid, rather than the rendered model owner, as its
-    // target authority.
+    // One pointer event is a true singleton. Prefer the rendered model owner
+    // so tall and overhanging tiles select the geometry under the pointer.
+    // The authored cell planes remain the fallback for void or missing models.
+    const uint64_t tile_count = static_cast<uint64_t>(area->width)
+        * static_cast<uint64_t>(area->height);
+    if (tile_count == area->tiles.size()
+        && tile_count <= std::numeric_limits<uint32_t>::max()) {
+        const auto hit = renderer.viewer_area_tile_hit(
+            point.x, point.y, viewport);
+        if (hit && hit->tile_x >= 0 && hit->tile_y >= 0
+            && hit->tile_x < area->width && hit->tile_y < area->height
+            && std::isfinite(hit->position.x)
+            && std::isfinite(hit->position.y)
+            && std::isfinite(hit->position.z)
+            && std::isfinite(hit->distance) && hit->distance >= 0.0f) {
+            return {
+                .position = hit->position,
+                .distance = hit->distance,
+                .tile_index = static_cast<uint32_t>(hit->tile_y)
+                        * static_cast<uint32_t>(area->width)
+                    + static_cast<uint32_t>(hit->tile_x),
+                .status = nw::toolset::AreaTileCellPickStatus::hit,
+            };
+        }
+    }
+
     const auto ray = renderer.viewer_viewport_ray(
         point.x, point.y, viewport);
     return ray
@@ -615,6 +639,13 @@ bool begin_area_tile_stroke(ClientRenderer& renderer, AreaTileEditorState& edito
         shell.append_output("error", editor.feedback);
         return true;
     }
+    const uint32_t displayed_target = editor.cursor_target_index;
+    const bool displayed_target_available
+        = displayed_target != UINT32_MAX
+        && static_cast<uint64_t>(displayed_target) < target_count
+        && !editor.preview_rows.empty()
+        && modifier == nw::toolset::AreaTilePointerModifier::none
+        && editor.cursor_modifier == modifier;
     try {
         const auto& palette_row
             = editor.palette.rows[static_cast<size_t>(editor.selected_row)];
@@ -654,7 +685,47 @@ bool begin_area_tile_stroke(ClientRenderer& renderer, AreaTileEditorState& edito
         shell.append_output("error", "Tile stroke exceeds container capacity");
         return true;
     }
-    (void)update_area_tile_cursor(renderer, editor, active_area, point, viewport, modifier, shell);
+    if (displayed_target_available) {
+        auto& stroke = editor.stroke;
+        const int32_t target_width
+            = height_brush ? stroke.width + 1 : stroke.width;
+        const int32_t target_height
+            = height_brush ? stroke.height + 1 : stroke.height;
+        const nw::toolset::AreaTileCellCoord target{
+            .x = static_cast<int32_t>(
+                displayed_target % static_cast<uint32_t>(target_width)),
+            .y = static_cast<int32_t>(
+                displayed_target / static_cast<uint32_t>(target_width)),
+        };
+        auto& target_indices
+            = height_brush ? stroke.corner_indices : stroke.tile_indices;
+        const auto appended = nw::toolset::append_area_tile_grid_line(
+            target_width, target_height, target, target,
+            stroke.visited, target_indices);
+        if (appended.status
+                != nw::toolset::AreaTileLineStatus::success
+            || appended.appended_count != 1) {
+            editor.feedback = "Tile stroke buffer update failed";
+            shell.append_output("error", editor.feedback);
+            cancel_area_tile_stroke(renderer, editor, active_area);
+            return true;
+        }
+        if (height_brush
+            && !append_area_tile_height_preview_cells(
+                stroke, stroke.corner_indices)) {
+            editor.feedback = "Tile stroke preview allocation failed";
+            shell.append_output("error", editor.feedback);
+            cancel_area_tile_stroke(renderer, editor, active_area);
+            return true;
+        }
+        stroke.last_target = target;
+        stroke.has_last_target = true;
+        (void)preview_area_tile_stroke(renderer, editor, area_handle,
+            stroke.tile_indices, stroke.corner_indices, stroke.brush);
+    } else {
+        (void)update_area_tile_cursor(
+            renderer, editor, active_area, point, viewport, modifier, shell);
+    }
     if (editor.stroke.active
         && (height_brush ? editor.stroke.corner_indices.empty()
                          : editor.stroke.tile_indices.empty())) {

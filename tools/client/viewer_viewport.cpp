@@ -134,6 +134,46 @@ void append_transient_debug_segment(
                                   });
 }
 
+std::optional<float> area_tile_rendered_top(
+    const viewer::PreviewScene& scene,
+    const viewer::AreaTilePreviewLease& preview_lease,
+    uint32_t tile_index,
+    size_t& preview_cursor) noexcept
+{
+    uint32_t model_index = nw::render::kInvalidModelInstanceIndex;
+    if (preview_lease.active) {
+        if (preview_lease.preview_objects.size()
+            != preview_lease.preview_model_indices.size()) {
+            return std::nullopt;
+        }
+        while (preview_cursor < preview_lease.preview_objects.size()
+            && static_cast<uint32_t>(
+                   preview_lease.preview_objects[preview_cursor].id)
+                < tile_index) {
+            ++preview_cursor;
+        }
+        if (preview_cursor >= preview_lease.preview_objects.size()
+            || preview_lease.preview_objects[preview_cursor].type
+                != nw::ObjectType::tile
+            || static_cast<uint32_t>(
+                   preview_lease.preview_objects[preview_cursor].id)
+                != tile_index) {
+            return std::nullopt;
+        }
+        model_index = preview_lease.preview_model_indices[preview_cursor];
+    } else {
+        if (tile_index >= scene.area_tile_model_indices.size()) {
+            return std::nullopt;
+        }
+        model_index = scene.area_tile_model_indices[tile_index];
+    }
+
+    const auto* instance = scene.static_model_instance(model_index);
+    return instance && std::isfinite(instance->current_bounds.max.z)
+        ? std::optional{instance->current_bounds.max.z}
+        : std::nullopt;
+}
+
 } // namespace
 
 struct ClientViewerViewport::Impl {
@@ -1147,21 +1187,36 @@ struct ClientViewerViewport::Impl {
         constexpr glm::vec4 k_blocked{0.96f, 0.22f, 0.18f, 0.95f};
         const glm::vec4 color
             = paintable && preview_visible ? k_paintable : k_blocked;
+        const auto* scene = session->scene();
+        size_t preview_cursor = 0;
+        float overlay_z = -std::numeric_limits<float>::infinity();
+        for (const auto& row : rows) {
+            const uint32_t tile_index = row.tile_index;
+            const int32_t height
+                = paintable ? row.height : area->tiles[tile_index].height;
+            float row_z = static_cast<float>(height) * area->tileset->tile_height
+                + k_offset;
+            if (scene) {
+                const auto rendered_top = area_tile_rendered_top(
+                    *scene, area_tile_preview_lease, tile_index,
+                    preview_cursor);
+                if (rendered_top) {
+                    row_z = std::max(row_z, *rendered_top + k_offset);
+                }
+            }
+            overlay_z = std::max(overlay_z, row_z);
+        }
+        if (!std::isfinite(overlay_z)) {
+            transient_debug_vertices.clear();
+            transient_debug_indices.clear();
+            return false;
+        }
         for (const auto& row : rows) {
             const uint32_t tile_index = row.tile_index;
             const uint32_t x = tile_index % static_cast<uint32_t>(area->width);
             const uint32_t y = tile_index / static_cast<uint32_t>(area->width);
-            const int32_t height
-                = paintable ? row.height : area->tiles[tile_index].height;
-            const float z = static_cast<float>(height) * area->tileset->tile_height
-                + k_offset;
-            if (!std::isfinite(z)) {
-                transient_debug_vertices.clear();
-                transient_debug_indices.clear();
-                return false;
-            }
             const glm::vec3 p0{static_cast<float>(x) * k_tile_size,
-                static_cast<float>(y) * k_tile_size, z};
+                static_cast<float>(y) * k_tile_size, overlay_z};
             const glm::vec3 p1 = p0 + glm::vec3{k_tile_size, 0.0f, 0.0f};
             const glm::vec3 p2 = p0 + glm::vec3{k_tile_size, k_tile_size, 0.0f};
             const glm::vec3 p3 = p0 + glm::vec3{0.0f, k_tile_size, 0.0f};

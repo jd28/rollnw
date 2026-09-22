@@ -528,9 +528,10 @@ private:
 };
 
 // The active viewport selection is a true singleton. Tile hits retain their
-// exact triangle intersection, while this derives a stable, shallow 10x10 m
-// box rooted at the selected tile record's authored elevation. Stale,
-// mismatched, disabled, or non-finite records have no outline.
+// exact triangle intersection, while this derives a stable 10x10 m cell
+// footprint spanning the rendered tile's vertical bounds, with at least one
+// metre above its authored elevation. Stale, mismatched, disabled, or
+// non-finite records have no outline.
 [[nodiscard]] std::optional<nw::render::Bounds> area_tile_selection_bounds(
     const AreaObjectSelection& selection,
     const AreaRenderScene& records) noexcept;

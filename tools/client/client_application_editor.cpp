@@ -183,7 +183,9 @@ bool handle_area_tile_pointer_down(
         system_interface.SetMouseCursor("arrow");
         break;
     case nw::toolset::AreaTilePointerAction::paint: {
-        clear_area_tile_selection(renderer, state);
+        if (state.area_tile_editor.selection.active()) {
+            clear_area_tile_selection(renderer, state);
+        }
         const bool began = begin_area_tile_stroke(
             renderer, state, point, viewport, pointer_button);
         system_interface.SetMouseCursor(

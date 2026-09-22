@@ -266,7 +266,7 @@ TEST(RenderViewerPreparedDraws, AreaTileGridSharesFlatEdgesAndPreservesHeightBre
     EXPECT_EQ(geometry.vertices[0].extrusion,
         (glm::vec2{1.0f, 0.0f}));
     EXPECT_EQ(geometry.vertices[0].color,
-        (glm::vec4{1.0f, 0.0f, 0.0f, 0.65f}));
+        (glm::vec4{0.42f, 0.52f, 0.62f, 0.22f}));
 
     area.tiles[1].height = 1;
     ASSERT_TRUE(nw::render::build_area_tile_grid_debug_geometry(
@@ -3293,10 +3293,16 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
         tile_selection, *scene->area_render_scene);
     ASSERT_TRUE(tile_selection_bounds);
     ASSERT_LT(tile_selection.record_index, scene->area_render_scene->root_transforms().size());
+    ASSERT_LT(tile_selection.record_index, scene->area_render_scene->bounds().size());
+    const float tile_elevation
+        = scene->area_render_scene->root_transforms()[tile_selection.record_index][3].z;
+    const auto& rendered_tile_bounds
+        = scene->area_render_scene->bounds()[tile_selection.record_index];
     EXPECT_FLOAT_EQ(
         tile_selection_bounds->min.z,
-        scene->area_render_scene->root_transforms()[tile_selection.record_index][3].z);
-    EXPECT_FLOAT_EQ(tile_selection_bounds->max.z, tile_selection_bounds->min.z + 1.0f);
+        std::min(tile_elevation, rendered_tile_bounds.min.z));
+    EXPECT_FLOAT_EQ(tile_selection_bounds->max.z,
+        std::max(tile_elevation + 1.0f, rendered_tile_bounds.max.z));
     std::string render_failure;
     ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, render_failure)) << render_failure;
 
@@ -3921,7 +3927,13 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
                                             preview_model_index);
     ASSERT_NE(preview_record, viewer::kInvalidAreaRenderRecordIndex);
     EXPECT_EQ(scene->area_render_scene->kinds()[preview_record],
-        nw::ObjectType::invalid);
+        nw::ObjectType::tile);
+    EXPECT_EQ(scene->area_render_scene->tile_xs()[preview_record],
+        static_cast<int16_t>(target_cells[0]
+            % static_cast<uint32_t>(area->width)));
+    EXPECT_EQ(scene->area_render_scene->tile_ys()[preview_record],
+        static_cast<int16_t>(target_cells[0]
+            / static_cast<uint32_t>(area->width)));
     EXPECT_EQ(scene->area_render_scene->flags()[preview_record]
             & viewer::AreaRenderScene::RecordFlag::static_candidate,
         0u);

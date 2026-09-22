@@ -727,10 +727,12 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     LiveObjects live;
     const auto object = live.make<nw::Creature>();
     viewer::PreviewScene scene;
+    constexpr float tile_model_height = 4.0f;
     auto tile_model = make_selection_model(
         gfx.context,
         {{{1.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f}}},
-        {.min = {1.0f, 0.0f, 0.0f}, .max = {2.0f, 1.0f, 1.0f}});
+        {.min = {1.0f, 0.0f, 0.0f},
+            .max = {2.0f, 1.0f, tile_model_height}});
     auto object_model = make_selection_model(
         gfx.context,
         {{{3.0f, 0.0f, 0.0f}, {3.0f, 1.0f, 0.0f}, {3.0f, 0.0f, 1.0f}}},
@@ -741,6 +743,11 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     constexpr float tile_elevation = 6.0f;
     scene.add(std::move(tile_model));
     scene.static_area_model_info.back().kind = nw::ObjectType::tile;
+    scene.static_area_model_info.back().object = nw::ObjectHandle{
+        .id = static_cast<nw::ObjectID>(29),
+        .type = nw::ObjectType::tile,
+        .version = 1,
+    };
     scene.static_area_model_info.back().tile_x = 4;
     scene.static_area_model_info.back().tile_y = 7;
     auto* tile_instance = scene.static_model_instance(0);
@@ -793,7 +800,9 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     const auto tile_bounds = viewer::area_tile_selection_bounds(tile_hit, records);
     ASSERT_TRUE(tile_bounds);
     EXPECT_EQ(tile_bounds->min, glm::vec3(40.0f, 70.0f, tile_elevation));
-    EXPECT_EQ(tile_bounds->max, glm::vec3(50.0f, 80.0f, tile_elevation + 1.0f));
+    EXPECT_EQ(tile_bounds->max,
+        glm::vec3(50.0f, 80.0f,
+            tile_elevation + tile_model_height));
 
     const auto raised_tile_hit = viewer::select_area_object(
         viewer::ViewerRay{

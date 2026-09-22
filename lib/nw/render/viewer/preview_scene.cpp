@@ -5283,6 +5283,9 @@ AreaTransientVisualResult update_area_tile_previews(
         glm::mat4 placement{1.0f};
         uint32_t original_model_index = nw::render::kInvalidModelInstanceIndex;
         nw::ObjectHandle preview_object;
+        int16_t tile_x = -1;
+        int16_t tile_y = -1;
+        uint8_t tile_orientation = 0;
     };
     std::vector<PendingTilePreview> pending;
     pending.reserve(rows.size());
@@ -5322,6 +5325,10 @@ AreaTransientVisualResult update_area_tile_previews(
         const uint32_t tile_y
             = row.tile_index / static_cast<uint32_t>(area->width);
         if (!model
+            || tile_x > static_cast<uint32_t>(
+                   std::numeric_limits<int16_t>::max())
+            || tile_y > static_cast<uint32_t>(
+                   std::numeric_limits<int16_t>::max())
             || !nw::build_area_tile_world_transform(area->tileset->tile_height,
                 nw::AreaTileTransformInput{
                     static_cast<int32_t>(tile_x),
@@ -5343,6 +5350,9 @@ AreaTransientVisualResult update_area_tile_previews(
                 .type = nw::ObjectType::tile,
                 .version = 1,
             },
+            .tile_x = static_cast<int16_t>(tile_x),
+            .tile_y = static_cast<int16_t>(tile_y),
+            .tile_orientation = static_cast<uint8_t>(row.orientation),
         });
     }
     bool can_reuse = lease.active
@@ -5387,8 +5397,13 @@ AreaTransientVisualResult update_area_tile_previews(
                 scene.static_models[model_index]->bounds, row.placement);
             instance->shadow = render_model_shadow_summary(
                 *scene.static_models[model_index], instance->current_bounds);
-            scene.static_area_model_info[model_index].object
-                = row.preview_object;
+            scene.static_area_model_info[model_index] = {
+                .kind = nw::ObjectType::tile,
+                .object = row.preview_object,
+                .tile_x = row.tile_x,
+                .tile_y = row.tile_y,
+                .tile_orientation = row.tile_orientation,
+            };
         }
         lease.suppressed_tile_model_indices
             = std::move(suppressed_tile_model_indices);
@@ -5469,7 +5484,11 @@ AreaTransientVisualResult update_area_tile_previews(
             return result;
         }
         scene.static_area_model_info[model_index] = {
+            .kind = nw::ObjectType::tile,
             .object = row.preview_object,
+            .tile_x = row.tile_x,
+            .tile_y = row.tile_y,
+            .tile_orientation = row.tile_orientation,
         };
         preview_objects.push_back(row.preview_object);
         preview_model_indices.push_back(model_index);

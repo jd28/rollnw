@@ -63,6 +63,7 @@ tools/vscode-smalls/dist/
 conductor/
 .gemini
 .codex
+.agents
 
 # NWN
 nwn/

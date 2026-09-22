@@ -20,7 +20,7 @@ void append_area_tile_grid_segment(
     const glm::vec3& a,
     const glm::vec3& b)
 {
-    constexpr glm::vec4 k_color{1.0f, 0.0f, 0.0f, 0.65f};
+    constexpr glm::vec4 k_color{0.42f, 0.52f, 0.62f, 0.22f};
     const glm::vec3 delta = b - a;
     if (glm::dot(delta, delta) <= 1.0e-10f) {
         return;

@@ -1115,7 +1115,9 @@ AreaObjectSelection select_area_object_geometry(
         nearest_distance = record_distance;
         result = {
             .record_index = record_index,
-            .object = objects[record_index],
+            // Tile preview rows carry an internal handle used only to remove
+            // their retained model rows. It is not an object selection.
+            .object = tile_record ? nw::ObjectHandle{} : objects[record_index],
             .position = normalized_ray->origin + normalized_ray->direction * record_distance,
             .distance = record_distance,
             .tile_x = tile_xs[record_index],
@@ -1494,18 +1496,22 @@ std::optional<nw::render::Bounds> area_tile_selection_bounds(
     }
 
     const float elevation = records.root_transforms()[record_index][3].z;
-    if (!std::isfinite(elevation)) {
+    const auto& rendered_bounds = records.bounds()[record_index];
+    if (!std::isfinite(elevation)
+        || !finite_ordered_bounds(rendered_bounds)) {
         return std::nullopt;
     }
 
     const float tile_min_x = static_cast<float>(selection.tile_x) * kAreaRenderTileSize;
     const float tile_min_y = static_cast<float>(selection.tile_y) * kAreaRenderTileSize;
     return nw::render::Bounds{
-        .min = {tile_min_x, tile_min_y, elevation},
+        .min = {tile_min_x, tile_min_y,
+            std::min(elevation, rendered_bounds.min.z)},
         .max = {
             tile_min_x + kAreaRenderTileSize,
             tile_min_y + kAreaRenderTileSize,
-            elevation + kAreaTileSelectionOutlineHeight,
+            std::max(elevation + kAreaTileSelectionOutlineHeight,
+                rendered_bounds.max.z),
         },
     };
 }
@@ -3235,7 +3241,9 @@ bool AreaRenderScene::append_tile_preview_records(
         }
         const auto* instance = scene.static_model_instance(model_index);
         const auto& info = scene.static_area_model_info[model_index];
-        if (!instance || info.kind != nw::ObjectType::invalid
+        if (!instance || info.kind != nw::ObjectType::tile
+            || info.object.type != nw::ObjectType::tile
+            || info.tile_x < 0 || info.tile_y < 0
             || info.static_candidate
             || area_chunk_id(scene, info, instance->current_bounds) != kInvalidChunkId) {
             return false;
@@ -3337,9 +3345,15 @@ bool AreaRenderScene::refresh_tile_preview_records(
             || has_flag(flags_[record_index], RecordFlag::static_candidate)
             || chunk_ids_[record_index] != kInvalidChunkId
             || !prepared_model_draws_for_record(record_index).empty()
-            || kinds_[record_index] != nw::ObjectType::invalid
+            || kinds_[record_index] != nw::ObjectType::tile
+            || object_handles_[record_index].type
+                != nw::ObjectType::tile
             || scene.static_area_model_info[model_index].kind
-                != nw::ObjectType::invalid
+                != nw::ObjectType::tile
+            || scene.static_area_model_info[model_index].object.type
+                != nw::ObjectType::tile
+            || scene.static_area_model_info[model_index].tile_x < 0
+            || scene.static_area_model_info[model_index].tile_y < 0
             || scene.static_area_model_info[model_index].static_candidate
             || area_chunk_id(scene,
                    scene.static_area_model_info[model_index],
@@ -3419,7 +3433,9 @@ bool AreaRenderScene::remove_tile_preview_records(
             || model_indices_[record_index] != model_index
             || render_model_record_indices_[model_index] != record_index
             || has_flag(flags_[record_index], RecordFlag::static_candidate)
-            || kinds_[record_index] != nw::ObjectType::invalid
+            || kinds_[record_index] != nw::ObjectType::tile
+            || object_handles_[record_index].type
+                != nw::ObjectType::tile
             || chunk_ids_[record_index] != kInvalidChunkId
             || !prepared_model_draws_for_record(saturating_count(record_index)).empty()) {
             return false;
@@ -3448,7 +3464,7 @@ bool AreaRenderScene::remove_tile_preview_records(
         } else {
             decrement_count(prepared_model_draws_.stats.visible_instance_count);
         }
-        decrement_count(stats_.unknown_record_count);
+        decrement_count(stats_.tile_record_count);
         decrement_count(stats_.dynamic_record_count);
         decrement_count(prepared_model_draws_.stats.handle_count);
     }
