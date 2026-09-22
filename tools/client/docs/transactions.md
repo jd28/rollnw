@@ -203,6 +203,8 @@ workspace.save_tab [id] / toolset.save_all
         -> atomic file replacement
         -> clear that tab's dirty flag only after success
         -> regenerate derived area map (failure is a warning)
+        -> return each successfully replaced map path as native result metadata
+    -> release those exact RmlUi texture sources on the UI thread
     -> aggregate saved/failed counts and per-document diagnostics
 ```
 
@@ -212,7 +214,8 @@ there is no all-files rollback. Saving does not activate tabs, move cameras,
 replace live roots, or clear undo history. The output is one `CommandResult`
 with success only when every requested document saved. Atomic replacement
 writes the complete JSON document, not a log of mutation patches. Missing files
-are not recreated automatically.
+are not recreated automatically. Failed map writes do not produce texture
+invalidation paths; successful rows in a partially failed save batch still do.
 
 This is UI-thread event work: linear scanning to collect dirty tabs, existing
 linear ID lookup per row, and sequential serialization/file replacement. ID
@@ -221,8 +224,9 @@ justifies a second index here. Memory retained between switches is the sum of
 open live graphs and histories, not one GPU scene per tab. Handles are cold
 ObjectManager identities needed by existing edit/undo protocols; this adds no
 pointer-heavy frame loop. Save latency and retained-memory limits have not been
-benchmarked. No autosave, background queue, disk reload cache, or new file format
-is introduced.
+benchmarked. Texture invalidation is one linear pass over successfully written
+area maps and performs no per-frame work. No autosave, background queue, disk
+reload cache, or new file format is introduced.
 
 Tests cover ownership through tab movement/close, multi-document save/reload,
 failure isolation, inactive saves, and borrowed viewer scene switches/rebuilds.

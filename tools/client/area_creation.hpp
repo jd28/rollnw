@@ -1,5 +1,7 @@
 #pragma once
 
+#include "area_map.hpp"
+
 #include <nw/objects/Area.hpp>
 #include <nw/resources/assets.hpp>
 
@@ -39,6 +41,7 @@ struct PreparedNewAreas {
     std::filesystem::path project;
     uint64_t resource_generation = 0;
     std::vector<PreparedNewArea> rows;
+    std::vector<AreaMapSource> map_sources;
     std::string error;
 
     [[nodiscard]] bool ok() const noexcept { return error.empty(); }
@@ -51,23 +54,31 @@ struct NewAreaWriteResult {
     std::string error;
 };
 
+struct NewAreaPublishResult {
+    std::vector<NewAreaWriteResult> rows;
+    AreaMapWriteResult maps;
+};
+
 // Returns the first ungrouped, flat, uncrossed tile whose four corners use the
 // SET's default terrain. SET row order is the only tie-breaker.
 [[nodiscard]] bool canonical_area_ground_tile(
     const Tileset& tileset, AreaTile& output) noexcept;
 
 // The batch is rejected before serialization when any request is invalid.
-// Requests create CAF resources only; dimensions outside 2..32, duplicate
-// resources, unavailable SETs, and destinations outside the active native
-// module root reject the complete batch without writing files.
+// Dimensions outside 2..32, duplicate resources, unavailable SETs, and
+// destinations outside the active native module root reject the complete batch
+// without writing files. The prepared map-source batch has the same order and
+// count as rows.
 [[nodiscard]] PreparedNewAreas prepare_new_areas(
     const std::filesystem::path& project,
     std::span<const NewAreaRequest> requests);
 
-// Revalidates the prepared batch, creates every CAF exclusively, then refreshes
-// the resource registry once. Any write or refresh failure removes files created
-// by this call, so callers see either the complete batch or none of it.
-[[nodiscard]] std::vector<NewAreaWriteResult> publish_new_areas(
+// Revalidates the prepared batch, creates every CAF exclusively, refreshes the
+// resource registry once, then writes the derived map batch. Any CAF write or
+// refresh failure removes files created by this call, so callers see either the
+// complete authored batch or none of it. A map failure is reported separately
+// and preserves the successfully published CAF resources.
+[[nodiscard]] NewAreaPublishResult publish_new_areas(
     const PreparedNewAreas& prepared);
 
 } // namespace nw::toolset

@@ -585,6 +585,16 @@ std::string rml_file_source(const std::filesystem::path& path)
     return result;
 }
 
+void release_area_map_textures(
+    std::span<const std::filesystem::path> paths)
+{
+    for (const auto& path : paths) {
+        if (!path.empty()) {
+            (void)Rml::ReleaseTexture(rml_file_source(path));
+        }
+    }
+}
+
 void append_home_area_card_markup(const nw::toolset::LoadedAreaEntry& area,
     size_t index,
     std::string& markup)

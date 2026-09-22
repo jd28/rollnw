@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <array>
 #include <exception>
+#include <optional>
 #include <utility>
 
 namespace nw::toolset {
@@ -102,7 +103,8 @@ std::optional<std::filesystem::path> validated_project_file(
 }
 
 bool save_workspace_document(WorkspaceTab& tab, const std::filesystem::path& project_dir,
-    std::string& diagnostic, bool& warning)
+    std::string& diagnostic, bool& warning,
+    std::optional<std::filesystem::path>& refreshed_area_map)
 {
     if (tab.kind != WorkspaceTabKind::area && tab.kind != WorkspaceTabKind::preview) {
         diagnostic = "Only blueprint and area documents support saving";
@@ -133,6 +135,10 @@ bool save_workspace_document(WorkspaceTab& tab, const std::filesystem::path& pro
             const std::array<const Area*, 1> areas{kernel::objects().get<Area>(object)};
             const auto sources = collect_area_map_sources(areas);
             const auto maps = write_project_area_maps(project_dir, sources);
+            if (maps.written > 0 && !sources.empty()) {
+                refreshed_area_map = project_area_map_path(
+                    project_dir, sources.front().resref);
+            }
             warning = maps.failed > 0 || maps.degraded > 0;
             if (warning) {
                 diagnostic = maps.failed > 0 ? "Area map unavailable: " + maps.first_error
@@ -352,9 +358,11 @@ CommandResult save_workspace_documents(WorkspaceState& workspace,
         bool success = false;
         bool warning = false;
         std::string diagnostic;
+        std::optional<std::filesystem::path> refreshed_area_map;
         try {
             if (tab) {
-                success = save_workspace_document(*tab, project_dir, diagnostic, warning);
+                success = save_workspace_document(*tab, project_dir,
+                    diagnostic, warning, refreshed_area_map);
             } else {
                 diagnostic = "Document tab no longer exists";
             }
@@ -363,6 +371,10 @@ CommandResult save_workspace_documents(WorkspaceState& workspace,
         }
         if (success) {
             ++saved;
+        }
+        if (refreshed_area_map) {
+            result.refreshed_area_maps.push_back(
+                std::move(*refreshed_area_map));
         }
         any_warning |= warning;
         if (!success || warning) {

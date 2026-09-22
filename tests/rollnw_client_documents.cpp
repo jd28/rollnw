@@ -1,3 +1,4 @@
+#include "area_map.hpp"
 #include "object_document.hpp"
 #include "resource_document.hpp"
 #include "workspace.hpp"
@@ -208,6 +209,9 @@ TEST(ClientDocuments, SaveBatchRetainsSelectionHistoryAndReloadsMultipleEditedGr
     workspace.set_active_tab("home");
     auto result = save_workspace_documents(workspace, project, ids);
     ASSERT_TRUE(result.ok()) << result.message;
+    ASSERT_EQ(result.refreshed_area_maps.size(), 1u);
+    EXPECT_EQ(result.refreshed_area_maps.front(),
+        project_area_map_path(project, "test_area"));
     EXPECT_EQ(workspace.active_tab_id(), "home");
     EXPECT_FALSE(workspace.has_dirty_tabs());
     for (size_t i = 0; i < ids.size(); ++i) {
@@ -366,6 +370,7 @@ TEST(ClientDocuments, DerivedMapFailureDoesNotFailAnAuthoredAreaSave)
     EXPECT_TRUE(saved.ok()) << saved.message;
     EXPECT_EQ(saved.output_channel, CommandOutputChannel::warn);
     EXPECT_NE(saved.message.find("Area map unavailable"), std::string::npos);
+    EXPECT_TRUE(saved.refreshed_area_maps.empty());
     EXPECT_FALSE(tab.dirty);
     EXPECT_GT(std::filesystem::file_size(project / "test_area.caf.json"), 3u);
 }

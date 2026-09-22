@@ -1,6 +1,8 @@
 #include "area_creation.hpp"
+#include "area_map.hpp"
 #include "object_document.hpp"
 
+#include <nw/formats/Image.hpp>
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/TilesetRegistry.hpp>
@@ -132,12 +134,19 @@ TEST_F(ClientAreaCreation, PreparesPublishesAndReloadsCompleteCaf)
         EXPECT_EQ(tile.at("id"), tile_id);
     }
 
-    const auto results = publish_new_areas(prepared);
-    ASSERT_EQ(results.size(), 1u);
-    ASSERT_TRUE(results[0].saved) << results[0].error;
-    ASSERT_TRUE(results[0].published) << results[0].error;
+    const auto publication = publish_new_areas(prepared);
+    ASSERT_EQ(publication.rows.size(), 1u);
+    ASSERT_TRUE(publication.rows[0].saved) << publication.rows[0].error;
+    ASSERT_TRUE(publication.rows[0].published) << publication.rows[0].error;
+    EXPECT_EQ(publication.maps.written, 1u);
+    EXPECT_EQ(publication.maps.failed, 0u);
     EXPECT_TRUE(std::filesystem::is_regular_file(row.target));
     EXPECT_TRUE(kernel::resman().contains(row.resource));
+
+    Image map{project_area_map_path(project, "created_area")};
+    ASSERT_TRUE(map.valid());
+    EXPECT_EQ(map.width(), 96u);
+    EXPECT_EQ(map.height(), 64u);
 
     ObjectDocument owner;
     auto* reloaded = kernel::objects().make_area(row.resource.resref);
@@ -182,11 +191,35 @@ TEST_F(ClientAreaCreation, ExistingResourceRejectsBeforePublication)
     const std::array requests{request("existing_area")};
     auto prepared = prepare_new_areas(project, requests);
     ASSERT_TRUE(prepared.ok()) << prepared.error;
-    ASSERT_TRUE(publish_new_areas(prepared)[0].published);
+    const auto publication = publish_new_areas(prepared);
+    ASSERT_EQ(publication.rows.size(), 1u);
+    ASSERT_TRUE(publication.rows[0].published);
 
     auto duplicate = prepare_new_areas(project, requests);
     EXPECT_FALSE(duplicate.ok());
     EXPECT_TRUE(duplicate.rows.empty());
+}
+
+TEST_F(ClientAreaCreation, MapFailurePreservesPublishedCaf)
+{
+    std::filesystem::create_directories(project / ".rollnw/cache");
+    std::ofstream{project / ".rollnw/cache/area_maps"} << "blocked";
+
+    const std::array requests{request("map_failure")};
+    const auto prepared = prepare_new_areas(project, requests);
+    ASSERT_TRUE(prepared.ok()) << prepared.error;
+    const auto publication = publish_new_areas(prepared);
+
+    ASSERT_EQ(publication.rows.size(), 1u);
+    EXPECT_TRUE(publication.rows[0].saved) << publication.rows[0].error;
+    EXPECT_TRUE(publication.rows[0].published) << publication.rows[0].error;
+    EXPECT_EQ(publication.maps.written, 0u);
+    EXPECT_EQ(publication.maps.failed, 1u);
+    EXPECT_FALSE(publication.maps.first_error.empty());
+    EXPECT_TRUE(std::filesystem::is_regular_file(
+        project / "shared/areas/map_failure.caf.json"));
+    EXPECT_TRUE(kernel::resman().contains(
+        Resource{Resref{"map_failure"}, ResourceType::caf}));
 }
 
 #ifdef ROLLNW_TEST_CLIENT_EXECUTABLE
@@ -232,6 +265,10 @@ TEST(ClientAreaCreationCommands, FormCreatesOpensAndIndexesArea)
         "shared/areas/command_area.caf.json");
     EXPECT_TRUE(std::filesystem::is_regular_file(project
         / "shared/areas/command_area.caf.json"));
+    Image command_map{project_area_map_path(project, "command_area")};
+    ASSERT_TRUE(command_map.valid());
+    EXPECT_EQ(command_map.width(), 96u);
+    EXPECT_EQ(command_map.height(), 64u);
     const auto areas = backend.list_areas("Command Area");
     ASSERT_EQ(areas.size(), 1u);
     EXPECT_EQ(areas[0].resref, "command_area");
@@ -241,6 +278,8 @@ TEST(ClientAreaCreationCommands, FormCreatesOpensAndIndexesArea)
     const auto old_area = live->handle();
     ASSERT_TRUE(workspace.active_tab()->document.adopt(old_area));
     workspace.active_tab()->dirty = true;
+    std::filesystem::remove_all(project / ".rollnw/cache/area_maps");
+    std::ofstream{project / ".rollnw/cache/area_maps"} << "blocked";
     const std::vector<std::string_view> second_values{
         "second_area",
         "shared/areas",
@@ -262,6 +301,9 @@ TEST(ClientAreaCreationCommands, FormCreatesOpensAndIndexesArea)
     const auto discarded = backend.execute_command(
         pending.prompt->actions[1].command_id, discard_args, {});
     ASSERT_TRUE(discarded.ok()) << discarded.message;
+    EXPECT_EQ(discarded.output_channel, CommandOutputChannel::warn);
+    EXPECT_NE(discarded.message.find("area map unavailable"),
+        std::string::npos);
     EXPECT_TRUE(std::filesystem::is_regular_file(project
         / "shared/areas/second_area.caf.json"));
     EXPECT_FALSE(kernel::objects().valid(old_area));

@@ -63,11 +63,24 @@ public:
     Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex>, Rml::Span<const int>) override { return 1; }
     void RenderGeometry(Rml::CompiledGeometryHandle, Rml::Vector2f, Rml::TextureHandle) override { }
     void ReleaseGeometry(Rml::CompiledGeometryHandle) override { }
-    Rml::TextureHandle LoadTexture(Rml::Vector2i&, const Rml::String&) override { return 0; }
+    Rml::TextureHandle LoadTexture(Rml::Vector2i& dimensions,
+        const Rml::String& source) override
+    {
+        dimensions = {1, 1};
+        loaded_textures.push_back(source);
+        return next_texture++;
+    }
     Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte>, Rml::Vector2i) override { return 0; }
-    void ReleaseTexture(Rml::TextureHandle) override { }
+    void ReleaseTexture(Rml::TextureHandle texture) override
+    {
+        released_textures.push_back(texture);
+    }
     void EnableScissorRegion(bool) override { }
     void SetScissorRegion(Rml::Rectanglei) override { }
+
+    Rml::TextureHandle next_texture = 1;
+    std::vector<Rml::String> loaded_textures;
+    std::vector<Rml::TextureHandle> released_textures;
 };
 
 class KernelServiceScope {
@@ -120,6 +133,30 @@ protected:
     Rml::Context* context = nullptr;
     Rml::ElementDocument* document = nullptr;
 };
+
+TEST_F(ClientBrowserWorkspace, ReplacedAreaMapTextureReloadsFromSameSource)
+{
+    const auto map_path = std::filesystem::absolute(
+        "tmp/client_browser_workspace/reloaded_area_map.png");
+    const auto source_name = rml_file_source(map_path);
+    auto* content = document->GetElementById("workspace_content");
+    ASSERT_NE(content, nullptr);
+    content->SetInnerRML("<img src=\"" + source_name + "\"/>");
+    context->Update();
+    context->Render();
+
+    ASSERT_FALSE(renderer.loaded_textures.empty());
+    EXPECT_EQ(renderer.loaded_textures.back(), source_name);
+    const size_t load_count = renderer.loaded_textures.size();
+    const size_t release_count = renderer.released_textures.size();
+    const std::array paths{map_path};
+    release_area_map_textures(paths);
+    ASSERT_EQ(renderer.released_textures.size(), release_count + 1);
+
+    context->Render();
+    ASSERT_EQ(renderer.loaded_textures.size(), load_count + 1);
+    EXPECT_EQ(renderer.loaded_textures.back(), source_name);
+}
 
 TEST_F(ClientBrowserWorkspace, RealProjectFiltersAndHomeWindowsKeepTheirExistingContracts)
 {

@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <exception>
 #include <fstream>
@@ -131,6 +132,7 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
         }
         std::unordered_set<std::string> destinations;
         result.rows.reserve(requests.size());
+        result.map_sources.reserve(requests.size());
         for (const auto& request : requests) {
             std::string normalized;
             if (!validate_blueprint_resref(
@@ -214,6 +216,12 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
             }
             nlohmann::json serialized;
             serialize(area, serialized);
+            const std::array<const Area*, 1> area_batch{area};
+            auto map_sources = collect_area_map_sources(area_batch);
+            if (map_sources.size() != 1) {
+                result.error = "Area map source preparation failed";
+                break;
+            }
             PreparedNewArea row;
             row.request = request;
             row.request.resref = normalized;
@@ -223,19 +231,35 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
             row.relative_path = target.lexically_relative(result.project);
             row.bytes = serialized.dump(2) + "\n";
             result.rows.push_back(std::move(row));
+            result.map_sources.push_back(std::move(map_sources.front()));
         }
     } catch (const std::exception& ex) {
         result.error = "Area preparation failed: " + std::string{ex.what()};
     }
-    if (!result.error.empty()) { result.rows.clear(); }
+    if (!result.error.empty()) {
+        result.rows.clear();
+        result.map_sources.clear();
+    }
     return result;
 }
 
-std::vector<NewAreaWriteResult> publish_new_areas(
+NewAreaPublishResult publish_new_areas(
     const PreparedNewAreas& prepared)
 {
-    std::vector<NewAreaWriteResult> results(prepared.rows.size());
-    if (!prepared.ok() || prepared.rows.empty()) { return results; }
+    NewAreaPublishResult result;
+    result.rows.resize(prepared.rows.size());
+    if (!prepared.ok() || prepared.rows.empty()) { return result; }
+    if (prepared.map_sources.size() != prepared.rows.size()) {
+        const std::string error
+            = "Prepared area map sources do not match the area batch";
+        for (size_t index = 0; index < result.rows.size(); ++index) {
+            result.rows[index].relative_path
+                = prepared.rows[index].relative_path;
+            result.rows[index].error = error;
+        }
+        return result;
+    }
+
     std::string error;
     std::vector<ResourceFileWriteResult> written(prepared.rows.size());
     try {
@@ -290,13 +314,23 @@ std::vector<NewAreaWriteResult> publish_new_areas(
         rollback_created_areas(prepared.rows, written, error);
     }
 
-    for (size_t index = 0; index < results.size(); ++index) {
-        results[index].relative_path = prepared.rows[index].relative_path;
-        results[index].saved = error.empty();
-        results[index].published = error.empty();
-        results[index].error = error;
+    for (size_t index = 0; index < result.rows.size(); ++index) {
+        result.rows[index].relative_path = prepared.rows[index].relative_path;
+        result.rows[index].saved = error.empty();
+        result.rows[index].published = error.empty();
+        result.rows[index].error = error;
     }
-    return results;
+    if (!error.empty()) { return result; }
+
+    try {
+        result.maps = write_project_area_maps(
+            prepared.project, prepared.map_sources);
+    } catch (const std::exception& ex) {
+        result.maps.failed = prepared.map_sources.size();
+        result.maps.first_error
+            = "Area map generation failed: " + std::string{ex.what()};
+    }
+    return result;
 }
 
 } // namespace nw::toolset

@@ -1,4 +1,5 @@
 #include "client_application_commands.hpp"
+#include "browser_view.hpp"
 #include "client_application_input.hpp"
 #include "client_application_shell.hpp"
 #include "client_application_workspace.hpp"
@@ -80,6 +81,9 @@ nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
         }
         result = dispatch_command(state, action->command_id, std::move(args), source);
     }
+
+    nw::toolset::release_area_map_textures(
+        result.refreshed_area_maps);
 
     if (terminal_output) {
         append_terminal_result(state, result);

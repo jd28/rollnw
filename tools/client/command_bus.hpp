@@ -3,6 +3,7 @@
 #include <nw/objects/ObjectHandle.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -164,6 +165,9 @@ struct CommandResult {
     CommandOutputChannel output_channel = CommandOutputChannel::info;
     std::shared_ptr<CommandUndoAction> undo_action;
     std::optional<CommandPrompt> prompt;
+    // UI-thread consumers release only the derived area-map textures replaced
+    // by this command. Paths remain native metadata and are not script fields.
+    std::vector<std::filesystem::path> refreshed_area_maps;
 
     [[nodiscard]] bool ok() const noexcept;
     [[nodiscard]] bool should_log() const noexcept;

@@ -254,20 +254,35 @@ CommandResult ToolsetBackend::submit_new_area_form(
     }};
     auto prepared = prepare_new_areas(current_project_dir_, requests);
     if (!prepared.ok()) { return reject(prepared.error); }
-    const auto published = publish_new_areas(prepared);
-    if (published.size() != 1 || !published[0].published) {
-        return reject(published.empty()
+    const auto publication = publish_new_areas(prepared);
+    if (publication.rows.size() != 1 || !publication.rows[0].published) {
+        return reject(publication.rows.empty()
                 ? "Area publication failed"
-                : published[0].error);
+                : publication.rows[0].error);
     }
     if (decision == "--discard-current-area" && current) {
         current->dirty = false;
     }
     refresh_loaded_project_areas();
-    const std::string resource = published[0].relative_path.generic_string();
+    const std::string resource
+        = publication.rows[0].relative_path.generic_string();
     workspace_->open_area_tab(resource, prepared.rows[0].request.name);
-    return {CommandStatus::success,
-        "Created area: " + resource, CommandOutputChannel::info};
+    std::string message = "Created area: " + resource;
+    CommandOutputChannel channel = CommandOutputChannel::info;
+    if (publication.maps.failed > 0) {
+        message += "; area map unavailable";
+        if (!publication.maps.first_error.empty()) {
+            message += ": " + publication.maps.first_error;
+        }
+        channel = CommandOutputChannel::warn;
+    } else if (publication.maps.degraded > 0) {
+        message += "; area map contains missing-tile markers";
+        if (!publication.maps.first_warning.empty()) {
+            message += ": " + publication.maps.first_warning;
+        }
+        channel = CommandOutputChannel::warn;
+    }
+    return {CommandStatus::success, std::move(message), channel};
 }
 
 } // namespace nw::toolset

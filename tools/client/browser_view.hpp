@@ -7,6 +7,7 @@
 #include <RmlUi/Core/Types.h>
 
 #include <limits>
+#include <span>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -117,6 +118,12 @@ void refresh_browser_view(Rml::ElementDocument* doc, BrowserViewState& state,
     bool backend_ready, bool selecting_preview_actor);
 [[nodiscard]] bool render_project_tree_window(Rml::ElementDocument* doc, BrowserViewState& state, bool force);
 void refresh_home_area_catalog(BrowserViewState& state, const ToolsetBackend& backend, bool force);
+[[nodiscard]] std::string rml_file_source(
+    const std::filesystem::path& path);
+// The save result owns the path batch for the duration of this synchronous
+// UI-thread call. Empty paths are dropped; unloaded textures require no work.
+void release_area_map_textures(
+    std::span<const std::filesystem::path> paths);
 // One displayed home search; hidden/unavailable module retains its query/DOM.
 // Missing fields mean empty text; existing catalog rows remain indexed batches.
 void refresh_home_area_query(Rml::ElementDocument*, BrowserViewState&, const ToolsetBackend&, bool home_active);

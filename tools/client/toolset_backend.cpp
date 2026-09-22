@@ -1243,7 +1243,10 @@ void ToolsetBackend::register_native_commands()
                 return save;
             }
 
-            return execute_command("workspace.close_tab", {id}, context);
+            auto close = execute_command("workspace.close_tab", {id}, context);
+            close.refreshed_area_maps
+                = std::move(save.refreshed_area_maps);
+            return close;
         });
 
     register_or_log(CommandSpec{
