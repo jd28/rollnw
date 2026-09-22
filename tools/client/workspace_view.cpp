@@ -8,6 +8,7 @@
 
 #include "project.hpp"
 #include "resource_document.hpp"
+#include "smalls_object_properties.hpp"
 #include "toolset_backend.hpp"
 #include "workspace.hpp"
 
@@ -16,6 +17,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
 
 #include <algorithm>
@@ -852,6 +854,34 @@ bool remove_workspace_tab_element(Rml::ElementDocument* doc, WorkspaceViewState&
         }
     }
     return false;
+}
+
+std::optional<std::string> refresh_active_object_tab_title(
+    WorkspaceState& workspace, LanguageID toolset_language)
+{
+    auto* tab = workspace.active_tab();
+    if (!tab || (tab->kind != WorkspaceTabKind::preview && tab->kind != WorkspaceTabKind::area)) {
+        return std::nullopt;
+    }
+    const auto object = tab->document.object();
+    const auto* base = kernel::objects().get_object_base(object);
+    if (!base) { return std::nullopt; }
+
+    std::string label;
+    if (object.type == ObjectType::creature) {
+        label = live_object_display_name(object);
+    } else {
+        const LocString* name = &base->name;
+        if (const auto* area = base->as_area()) {
+            name = &area->name;
+        } else if (const auto* module = base->as_module()) {
+            name = &module->name;
+        }
+        label = locstring_resting_value(*name, toolset_language);
+    }
+    if (label.empty()) { label = std::filesystem::path{tab->detail}.filename().string(); }
+    tab->title = label;
+    return label;
 }
 
 void refresh_workspace_tabs(Rml::ElementDocument* doc, WorkspaceViewState& state, const WorkspaceState& workspace)

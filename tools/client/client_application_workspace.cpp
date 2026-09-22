@@ -5,20 +5,44 @@
 #include "client_application_shell.hpp"
 #include "client_application_workbench.hpp"
 #include "rollnw_tool_version.hpp"
+#include "smalls_object_properties.hpp"
 #include <RmlUi/Core.h>
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <filesystem>
-#include <nw/kernel/Kernel.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/profiles/nwn1/toolset_visual.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <utility>
 
 namespace nw::toolset::client_application_detail {
+
+namespace {
+void refresh_live_object_labels(Rml::ElementDocument* doc,
+    ClientApplicationState& state)
+{
+    const auto label = refresh_active_object_tab_title(state.workspace,
+        state.workbench.toolset_language);
+    if (!label) { return; }
+    const auto* tab = state.workspace.active_tab();
+    if (tab && tab->kind == WorkspaceTabKind::area) {
+        const auto* area = nw::kernel::objects().get<nw::Area>(
+            tab->document.object());
+        if (area && state.backend.update_loaded_area_label(area->resref.view(), *label)) {
+            nw::toolset::refresh_home_area_catalog(
+                state.browser, state.backend, true);
+        }
+    }
+    if (tab && state.shell.showing_project_tree
+        && update_visible_project_tree_label(
+            state.browser, tab->detail, *label)) {
+        (void)nw::toolset::render_project_tree_window(doc, state.browser, true);
+    }
+}
+} // namespace
 
 void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationState& state,
     Rml::Context* context, Rml::ElementDocument* doc)
@@ -28,6 +52,7 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
         const auto mutation_focus_target = nw::toolset::managed_list_focus_target(
             context ? context->GetFocusElement() : nullptr);
         state.observed_object_mutation_epoch = mutation.epoch;
+        refresh_live_object_labels(doc, state);
         refresh_workspace_tabs(doc, state);
         const bool area_structure_changed = mutation.area_structure_epoch != state.observed_area_structure_epoch;
         const auto* displayed_tab = state.workspace.active_tab();
@@ -204,6 +229,7 @@ void refresh_recent_list(Rml::ElementDocument* doc, ClientApplicationState& stat
     if (!doc) { return; }
     nw::toolset::refresh_browser_view(doc, state.browser, state.backend, state.shell,
         state.backend_ready, state.play_preview.selecting_actor);
+    refresh_live_object_labels(doc, state);
     if (!state.shell.showing_project_tree
         || state.play_preview.selecting_actor) {
         (void)nw::toolset::close_project_new_resource_menu(

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "command_bus.hpp"
+#include "object_locstring.hpp"
 
+#include <nw/i18n/LocString.hpp>
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectHandle.hpp>
@@ -91,6 +93,28 @@ struct ObjectTransformEdit {
     // Required for placed objects; captured with undo history so redo validates
     // the original generation, not whichever area happens to be active later.
     ObjectHandle area{};
+};
+
+enum class ObjectLocStringEditKind : uint8_t { localized_text,
+    strref };
+
+struct ObjectLocStringEdit {
+    ObjectLocStringTarget target;
+    LocString before;
+    LocString after;
+    ObjectLocStringEditKind kind = ObjectLocStringEditKind::localized_text;
+    LanguageID language = LanguageID::english;
+    bool feminine = false;
+    TextRef before_ref{};
+    TextRef after_ref{};
+};
+
+// One UI commit is currently a batch of one, but the mutation protocol is a
+// dense homogeneous batch: every row targets the same live object, targets are
+// unique, and validation completes before the first write.
+struct ObjectLocStringEditBatch {
+    ObjectHandle object{};
+    std::vector<ObjectLocStringEdit> rows;
 };
 
 struct ObjectAppearanceSelectors {
@@ -301,6 +325,12 @@ void snapshot_object_variables(ObjectHandle object, ObjectVariableSnapshot& outp
 // responsibilities. String values are unrestricted.
 [[nodiscard]] bool valid_object_variable_input_prefix(
     ObjectVariableType type, std::string_view value) noexcept;
+// An empty editor value means the stored UINT32_MAX sentinel. Nonempty values
+// are unsigned decimal references below that sentinel.
+[[nodiscard]] std::optional<uint32_t> parse_locstring_strref(
+    std::string_view value) noexcept;
+[[nodiscard]] bool valid_locstring_strref_input_prefix(
+    std::string_view value) noexcept;
 [[nodiscard]] std::string_view object_variable_warning_description(
     ObjectVariableWarning warnings) noexcept;
 
@@ -498,6 +528,13 @@ struct AreaObjectBlueprintLoadResult {
 
 [[nodiscard]] CommandResult commit_object_edits(
     ObjectEditBatch batch, std::string label, CommandContext& context);
+
+[[nodiscard]] ObjectEditApplyResult apply_object_locstring_edits(
+    smalls::Runtime& runtime, ObjectLocStringEditBatch& batch,
+    ObjectEditDirection direction);
+[[nodiscard]] CommandResult commit_object_locstring_edits(
+    ObjectLocStringEditBatch batch, std::string label,
+    CommandContext& context);
 
 [[nodiscard]] ObjectEditApplyResult apply_object_transform_edit(
     const ObjectTransformEdit& edit, ObjectEditDirection direction);

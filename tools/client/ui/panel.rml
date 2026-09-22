@@ -7,9 +7,11 @@
   <link type="text/rcss" href="dialog.rcss" />
   <link type="text/rcss" href="door_editor.rcss" />
   <link type="text/rcss" href="item_editor.rcss" />
+  <link type="text/rcss" href="object_locstring_editor.rcss" />
   <link type="text/rcss" href="placeable_editor.rcss" />
   <link type="text/template" href="door_editor.rml" />
   <link type="text/template" href="item_editor.rml" />
+  <link type="text/template" href="object_locstring_editor.rml" />
   <link type="text/template" href="placeable_editor.rml" />
   <link type="text/template" href="creature_editor.rml" />
   <script>

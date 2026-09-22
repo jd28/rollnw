@@ -158,10 +158,13 @@ int run_client_application(const char* executable)
         "change", &object_workbench_change_listener, false);
     context->AddEventListener(
         "blur", &object_workbench_change_listener, true);
+    context->AddEventListener(
+        "click", &object_workbench_change_listener, false);
     const auto workbench_listener_cleanup = create_scope_exit([&] {
         if (!rml_runtime.contexts().toolset) { return; }
         context->RemoveEventListener("change", &object_workbench_change_listener, false);
         context->RemoveEventListener("blur", &object_workbench_change_listener, true);
+        context->RemoveEventListener("click", &object_workbench_change_listener, false);
     });
     renderer.set_rml_generated_textures(
         &state.workbench.inventory_view.item_icon_cache.textures,
@@ -250,7 +253,9 @@ int run_client_application(const char* executable)
 
     ClientApplicationSurfaces surfaces{window, &system_interface, context, fps_context, palette_context, doc, fps_doc, palette_doc, width, height, frame_width, frame_height};
     state.shell_view.preferences_path = nw::toolset::client_preferences_path();
-    nw::toolset::load_ui_preferences(state.shell_view.preferences_path, state.shell.docks, state.browser.recent_projects);
+    nw::toolset::load_ui_preferences(state.shell_view.preferences_path,
+        state.shell.docks, state.browser.recent_projects,
+        &state.workbench.toolset_language);
     state.workspace.ensure_default_tabs("Home", true);
     apply_bottom_dock_height(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::bottom).size_px);
     apply_left_dock_width(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::left).size_px);

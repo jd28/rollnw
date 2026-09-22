@@ -11,6 +11,7 @@ namespace nw::toolset {
 // have no grid inventory/data-only exception; these are existing UI policies.
 enum class ObjectWorkbenchSurface : uint8_t {
     details,
+    locstring,
     sheet,
     variables,
     haks,

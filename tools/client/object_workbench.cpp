@@ -14,6 +14,7 @@ std::optional<ObjectWorkbenchSurface> object_workbench_surface_from_name(std::st
 {
     static constexpr std::array names{
         std::pair{"details", ObjectWorkbenchSurface::details},
+        std::pair{"locstring", ObjectWorkbenchSurface::locstring},
         std::pair{"sheet", ObjectWorkbenchSurface::sheet},
         std::pair{"variables", ObjectWorkbenchSurface::variables},
         std::pair{"haks", ObjectWorkbenchSurface::haks},

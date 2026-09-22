@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -87,6 +88,10 @@ struct ProjectPreviewSettings {
 
 [[nodiscard]] bool is_project_directory(const std::filesystem::path& path);
 [[nodiscard]] std::string project_display_name(const std::filesystem::path& project_dir);
+// Resolves the manifest's module resource only when it is an existing file
+// contained by the project root. External and malformed paths are rejected.
+[[nodiscard]] std::optional<std::filesystem::path> project_module_resource_path(
+    const std::filesystem::path& project_dir);
 [[nodiscard]] bool project_resource_is_area(const std::filesystem::path& relative_path);
 [[nodiscard]] bool project_resource_is_dialog(const std::filesystem::path& relative_path);
 [[nodiscard]] bool project_resource_is_preview_blueprint(const std::filesystem::path& relative_path);

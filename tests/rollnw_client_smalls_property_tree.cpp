@@ -1,4 +1,4 @@
-#include "smalls_creature_properties.hpp"
+#include "smalls_object_properties.hpp"
 #include "smalls_property_tree.hpp"
 
 #include <nw/kernel/Kernel.hpp>

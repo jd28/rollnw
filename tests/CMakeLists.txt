@@ -252,7 +252,7 @@ add_executable(rollnw_test
     ../tools/ui/smalls_property_tree.cpp
     ../tools/ui/smalls_creature_feats.cpp
     ../tools/ui/smalls_creature_inventory.cpp
-    ../tools/ui/smalls_creature_properties.cpp
+    ../tools/ui/smalls_object_properties.cpp
     ../tools/ui/smalls_creature_spells.cpp
     ../tools/ui/smalls_item_icons.cpp
     ../tools/ui/ui_v1.cpp

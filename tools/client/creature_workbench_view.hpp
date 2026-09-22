@@ -2,7 +2,7 @@
 #include "client_input_routes.hpp"
 #include "object_workbench.hpp"
 #include "smalls_creature_feats.hpp"
-#include "smalls_creature_properties.hpp"
+#include "smalls_object_properties.hpp"
 #include "smalls_creature_spells.hpp"
 #include "virtual_combobox.hpp"
 #include "virtual_list.hpp"

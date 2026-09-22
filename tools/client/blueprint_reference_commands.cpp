@@ -86,7 +86,8 @@ void ToolsetBackend::register_blueprint_reference_commands()
             for (const auto& id : blueprint_dirty_tabs_) {
                 ids.push_back(id);
             }
-            const auto saved = save_workspace_documents(*workspace_, current_project_dir_, ids);
+            const auto saved = save_workspace_documents(
+                *workspace_, current_project_dir_, ids, module_object_);
             if (!saved.ok()) { return saved; }
         } else if (action == "discard") {
             std::string error;

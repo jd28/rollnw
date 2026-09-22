@@ -2273,6 +2273,9 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .property_tree_row .object_details_integer {
   pointer-events: auto;
 }
+.property_tree_row .action_line_edit_action {
+  pointer-events: auto;
+}
 .property_tree_row .object_details_integer_step {
   pointer-events: auto;
 }
@@ -2406,6 +2409,61 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 .object_details_integer:focus {
   border-color: #a78d62;
+}
+.action_line_edit {
+  display: flex;
+  width: 100%;
+  height: 23px;
+  min-width: 0px;
+  margin: 3px 0px;
+  align-items: center;
+  border: 1px #536371;
+  border-radius: 2px;
+  background: #0f1419;
+  box-sizing: border-box;
+}
+.action_line_edit_input {
+  flex: 1;
+  min-width: 0px;
+  width: 0px;
+  height: 21px;
+  padding: 2px 5px;
+  border: 0px;
+  background: transparent;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #e4e9ed;
+  font-family: RollnwMono;
+  font-size: 11px;
+  line-height: 17px;
+  box-sizing: border-box;
+}
+.action_line_edit_input:disabled {
+  color: #e4e9ed;
+}
+.action_line_edit_separator {
+  flex: 0 0 1px;
+  height: 15px;
+  background: #3a4651;
+}
+.action_line_edit_action {
+  flex: 0 0 24px;
+  height: 21px;
+  padding: 0px;
+  border: 0px;
+  background: transparent;
+  color: #aab9c4;
+  font-family: RollnwSans;
+  font-size: 15px;
+  line-height: 19px;
+  text-align: center;
+  cursor: pointer;
+}
+.action_line_edit_action:hover,
+.action_line_edit_action:focus {
+  background: #3a342b;
+  color: #f0d6a5;
 }
 .object_details_integer_step {
   flex: 0 0 23px;

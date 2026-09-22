@@ -6,6 +6,8 @@
 
 #include <RmlUi/Core/Types.h>
 
+#include <nw/i18n/Language.hpp>
+
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -164,6 +166,10 @@ bool begin_workspace_tab_drag(Rml::ElementDocument*, WorkspaceViewState&, Rml::E
 WorkspaceTabDragUpdate update_workspace_tab_drag(Rml::ElementDocument*, WorkspaceViewState&,
     const WorkspaceState&, Rml::Vector2f point);
 void clear_workspace_tab_drag(WorkspaceViewState& state);
+// The active preview is one document, not a tab batch. Resolve its live object
+// name and update its title without changing focus.
+[[nodiscard]] std::optional<std::string> refresh_active_object_tab_title(
+    WorkspaceState& workspace, LanguageID toolset_language);
 void refresh_workspace_tabs(Rml::ElementDocument* doc, WorkspaceViewState& state,
     const WorkspaceState& workspace);
 [[nodiscard]] bool sync_workspace_tab_elements(Rml::ElementDocument* doc, WorkspaceViewState& state,

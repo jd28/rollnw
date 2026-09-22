@@ -101,6 +101,12 @@ overscan. Empty or duplicate-key batches are rejected and leave it closed.
 The caller owns the field and popup elements and dispatches the selected key
 through the command bus.
 
+`render_rml_action_line_edit` in `rml_action_line_edit.hpp` emits a shared
+single-line preview with an inset trailing action. It escapes the value and
+placeholder; callers supply trusted button RML with the action's own event
+binding. The input is disabled because this RmlUi version has no read-only
+text-input behavior. Use the `action_line_edit` CSS classes from `panel.rcss`.
+
 The current rollnw client workbench uses `VirtualListController` directly for DOM
 row materialization. `VirtualListHost::drain_events` is not yet connected to the
 rollnw client main loop, so `core.ui.v1` should be treated as an available state

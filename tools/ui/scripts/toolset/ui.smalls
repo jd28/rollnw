@@ -27,6 +27,7 @@ type ObjectDetailsRow {
     edit_value: int;
     edit_min: int;
     edit_max: int;
+    locstring_storage: int;
 };
 
 type CreatureSheetPresentationRow {
@@ -57,6 +58,14 @@ const details_editor_integer = 2;
 const details_editor_door_state = 3;
 const details_editor_sound_position = 4;
 const details_editor_sound_volume = 5;
+const details_editor_locstring = 6;
+
+const details_locstring_none = 0;
+const details_locstring_object_name = 1;
+const details_locstring_area_name = 2;
+const details_locstring_module_name = 3;
+const details_locstring_module_description = 4;
+const details_locstring_propset_text_ref = 5;
 
 fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
     return {
@@ -70,6 +79,7 @@ fn _details_row(group: string, label: string, value: string): ObjectDetailsRow {
         edit_value = 0,
         edit_min = 0,
         edit_max = 0,
+        locstring_storage = details_locstring_none,
     };
 }
 
@@ -86,6 +96,7 @@ fn _boolean_details_row(group: string, label: string,
         edit_value = value,
         edit_min = 0,
         edit_max = 1,
+        locstring_storage = details_locstring_none,
     };
 }
 
@@ -103,6 +114,7 @@ fn _integer_details_row(group: string, label: string,
         edit_value = value,
         edit_min = minimum,
         edit_max = maximum,
+        locstring_storage = details_locstring_none,
     };
 }
 
@@ -124,6 +136,7 @@ fn _door_state_details_row(value: int): ObjectDetailsRow {
         edit_value = value,
         edit_min = 0,
         edit_max = 2,
+        locstring_storage = details_locstring_none,
     };
 }
 
@@ -146,6 +159,7 @@ fn _sound_position_details_row(positional: int,
         edit_value = mode,
         edit_min = 0,
         edit_max = 2,
+        locstring_storage = details_locstring_none,
     };
 }
 
@@ -161,6 +175,24 @@ fn _sound_volume_details_row(value: int): ObjectDetailsRow {
         edit_value = value,
         edit_min = 0,
         edit_max = 127,
+        locstring_storage = details_locstring_none,
+    };
+}
+
+fn _locstring_details_row(group: string, label: string, value: string,
+    storage: int, propset: string = "", field: string = ""): ObjectDetailsRow {
+    return {
+        group = group,
+        label = label,
+        value = value,
+        editor = details_editor_locstring,
+        propset = propset,
+        field = field,
+        element = -1,
+        edit_value = 0,
+        edit_min = 0,
+        edit_max = 0,
+        locstring_storage = storage,
     };
 }
 
@@ -184,8 +216,19 @@ fn _append_integer_details_row(rows: array!(ObjectDetailsRow),
         group, label, propset, field, value, minimum, maximum, element));
 }
 
+fn _append_locstring_details_row(rows: array!(ObjectDetailsRow),
+    group: string, label: string, value: string,
+    storage: int, propset: string = "", field: string = "") {
+    Array.push(rows, _locstring_details_row(
+        group, label, value, storage, propset, field));
+}
+
 fn _append_identity(rows: array!(ObjectDetailsRow), obj: object) {
-    _append_details_row(rows, "Identity", "Name", Object.get_name(obj));
+    var storage = obj is Area
+        ? details_locstring_area_name
+        : details_locstring_object_name;
+    _append_locstring_details_row(rows, "Identity", "Name", Object.get_name(obj),
+        storage);
     _append_details_row(rows, "Identity", "Tag", Object.get_tag(obj));
     _append_details_row(rows, "Identity", "Resref",
         Types.resref_to_string(Object.get_resref(obj)));
@@ -341,7 +384,8 @@ fn refresh_creature_sheet_model(obj: object) {
 }
 
 fn _append_module_details(rows: array!(ObjectDetailsRow), obj: Module) {
-    _append_details_row(rows, "Identity", "Name", ModulePolicy.get_name(obj));
+    _append_locstring_details_row(rows, "Identity", "Name",
+        ModulePolicy.get_name(obj), details_locstring_module_name);
     _append_details_row(rows, "Identity", "Tag", Object.get_tag(obj));
     _append_details_row(rows, "Basic", "Areas", f"{ModulePolicy.get_area_count(obj)}");
     _append_details_row(rows, "Basic", "Save Game", ModulePolicy.is_save_game(obj) ? "Yes" : "No");
@@ -380,7 +424,8 @@ fn _append_module_details(rows: array!(ObjectDetailsRow), obj: Module) {
     _append_details_row(rows, "Scripts", "On Spawn Button Down", Types.resref_to_string(ModulePolicy.get_on_spawn_button_down(obj)));
     _append_details_row(rows, "Scripts", "On Start", Types.resref_to_string(ModulePolicy.get_on_start(obj)));
     _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(ModulePolicy.get_on_user_defined(obj)));
-    _append_details_row(rows, "Description", "Description", ModulePolicy.get_description(obj));
+    _append_locstring_details_row(rows, "Description", "Description",
+        ModulePolicy.get_description(obj), details_locstring_module_description);
     _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));
 }
 
@@ -431,20 +476,27 @@ fn _append_door_details(rows: array!(ObjectDetailsRow), obj: Door) {
     _append_details_row(rows, "Scripts", "On Trap Triggered", Types.resref_to_string(state.on_trap_triggered));
     _append_details_row(rows, "Scripts", "On Unlock", Types.resref_to_string(state.on_unlock));
     _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(state.on_user_defined));
-    _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
+    _append_locstring_details_row(rows, "Description", "Description",
+        Types.resolve_text(state.description, 0), details_locstring_propset_text_ref,
+        "nwn1.propsets.DoorState", "description");
 }
 
 fn _append_item_details(rows: array!(ObjectDetailsRow), obj: Item) {
     var descriptor = get_propset!(ItemDescriptor)(obj);
     var stats = get_propset!(ItemStats)(obj);
-    _append_identity(rows, obj);
+    _append_locstring_details_row(rows, "Identity", "Name", Object.get_name(obj),
+        details_locstring_object_name);
+    _append_details_row(rows, "Identity", "Tag", Object.get_tag(obj));
+    _append_details_row(rows, "Identity", "Resref",
+        Types.resref_to_string(Object.get_resref(obj)));
     _append_details_row(rows, "Basic", "Base Item Type", f"{stats.base_item}");
     _append_details_row(rows, "Basic", "Additional Cost", f"{stats.cost_additional}");
     _append_boolean_details_row(rows, "Basic", "Plot",
         "nwn1.propsets.ItemStats", "plot", stats.plot);
     _append_details_row(rows, "Basic", "Stack Size", f"{stats.stack_size}");
-    _append_details_row(rows, "Description", "Description",
-        Types.resolve_text(descriptor.description, 0));
+    _append_locstring_details_row(rows, "Description", "Description",
+        Types.resolve_text(descriptor.description, 0), details_locstring_propset_text_ref,
+        "nwn1.propsets.ItemDescriptor", "description");
     _append_details_row(rows, "Comments", "Comments", Object.get_comment(obj));
 }
 
@@ -520,7 +572,9 @@ fn _append_placeable_details(rows: array!(ObjectDetailsRow), obj: Placeable) {
     _append_details_row(rows, "Scripts", "On Unlock", Types.resref_to_string(state.on_unlock));
     _append_details_row(rows, "Scripts", "On Used", Types.resref_to_string(state.on_used));
     _append_details_row(rows, "Scripts", "On User Defined", Types.resref_to_string(state.on_user_defined));
-    _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
+    _append_locstring_details_row(rows, "Description", "Description",
+        Types.resolve_text(state.description, 0), details_locstring_propset_text_ref,
+        "nwn1.propsets.PlaceableState", "description");
 }
 
 fn _append_sound_details(rows: array!(ObjectDetailsRow), obj: Sound) {
@@ -587,9 +641,13 @@ fn _append_waypoint_details(rows: array!(ObjectDetailsRow), obj: Waypoint) {
         "nwn1.propsets.WaypointState", "map_note_enabled", state.map_note_enabled);
     _append_boolean_details_row(rows, "Map Note", "Has Map Note",
         "nwn1.propsets.WaypointState", "has_map_note", state.has_map_note);
-    _append_details_row(rows, "Map Note", "Text", Types.resolve_text(state.map_note, 0));
+    _append_locstring_details_row(rows, "Map Note", "Text",
+        Types.resolve_text(state.map_note, 0), details_locstring_propset_text_ref,
+        "nwn1.propsets.WaypointState", "map_note");
     _append_details_row(rows, "Transition", "Linked To", state.linked_to);
-    _append_details_row(rows, "Description", "Description", Types.resolve_text(state.description, 0));
+    _append_locstring_details_row(rows, "Description", "Description",
+        Types.resolve_text(state.description, 0), details_locstring_propset_text_ref,
+        "nwn1.propsets.WaypointState", "description");
 }
 
 fn get_object_details_rows(obj: object): array!(ObjectDetailsRow) {
@@ -608,6 +666,10 @@ fn get_object_details_rows(obj: object): array!(ObjectDetailsRow) {
                     _append_integer_details_row(rows, source.group, source.label,
                         source.propset, source.field, source.edit_value,
                         source.edit_min, source.edit_max, source.element);
+                } elif (source.editor == CreaturePolicy.property_editor_kind_locstring) {
+                    _append_locstring_details_row(rows, source.group, source.label,
+                        source.value, details_locstring_propset_text_ref,
+                        source.propset, source.field);
                 } else {
                     _append_details_row(rows, source.group, source.label, source.value);
                 }

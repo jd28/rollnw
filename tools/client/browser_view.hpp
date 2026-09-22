@@ -117,6 +117,10 @@ void refresh_browser_view(Rml::ElementDocument* doc, BrowserViewState& state,
     const ToolsetBackend& backend, const ShellController& shell,
     bool backend_ready, bool selecting_preview_actor);
 [[nodiscard]] bool render_project_tree_window(Rml::ElementDocument* doc, BrowserViewState& state, bool force);
+// Relabel only a displayed resource or grouped-area row; disk scans remain the
+// source for unopened resources. Returns true when a row's label changed.
+[[nodiscard]] bool update_visible_project_tree_label(BrowserViewState& state,
+    std::string_view relative_path, std::string_view label);
 void refresh_home_area_catalog(BrowserViewState& state, const ToolsetBackend& backend, bool force);
 [[nodiscard]] std::string rml_file_source(
     const std::filesystem::path& path);

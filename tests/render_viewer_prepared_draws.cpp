@@ -3,7 +3,7 @@
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/preview_session.hpp"
 #include "../tools/client/workspace.hpp"
-#include "../tools/ui/smalls_creature_properties.hpp"
+#include "../tools/ui/smalls_object_properties.hpp"
 
 #include <nw/formats/Image.hpp>
 #include <nw/formats/Tileset.hpp>

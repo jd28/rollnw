@@ -41,13 +41,17 @@ private:
     ObjectHandle object_{};
 };
 
-// Borrowed tab IDs -> independent atomic saves, in input order. Empty batches
-// are a no-op; empty/duplicate IDs reject the protocol before any writes.
-// Missing/stale/unsupported documents or invalid paths fail individually and
-// preserve their dirty state; later rows still run. Successful rows become clean, preserving
-// tab order, active selection, live roots and undo history. No batch rollback.
+// Borrowed tab IDs -> independent atomic saves, in input order. Home borrows
+// module_object because the kernel, rather than ObjectDocument, owns the live
+// module. Empty batches are a no-op; empty/duplicate IDs reject the protocol
+// before any writes. Missing/stale/unsupported documents or invalid paths fail
+// individually and preserve their dirty state; later rows still run. Successful
+// rows become clean, preserving tab order, active selection, live roots and
+// undo history. No batch rollback.
 [[nodiscard]] CommandResult save_workspace_documents(WorkspaceState& workspace,
-    const std::filesystem::path& project_dir, std::span<const std::string_view> tab_ids);
+    const std::filesystem::path& project_dir,
+    std::span<const std::string_view> tab_ids,
+    ObjectHandle module_object = ObjectHandle{});
 
 struct PlacedAreaObjectRow {
     ObjectHandle object{};
@@ -69,6 +73,9 @@ void build_placed_area_object_rows(
     ObjectHandle object, const std::filesystem::path& target, std::string& error);
 
 [[nodiscard]] bool save_live_area_json_atomic(
+    ObjectHandle object, const std::filesystem::path& target, std::string& error);
+
+[[nodiscard]] bool save_live_module_json_atomic(
     ObjectHandle object, const std::filesystem::path& target, std::string& error);
 
 } // namespace nw::toolset

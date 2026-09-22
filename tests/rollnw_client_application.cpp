@@ -249,6 +249,37 @@ TEST_F(ClientPreferences, MissingMalformedAndInvalidValuesPreserveExistingPolicy
     EXPECT_FALSE(save_ui_preferences(path / "blocked.json", docks, recent));
 }
 
+TEST_F(ClientPreferences, ToolsetLanguagePersistsWithoutReplacingOtherPreferences)
+{
+    DockLayout docks;
+    std::vector<RecentProjectEntry> recent{{"Example", "/example"}};
+    ASSERT_TRUE(save_ui_preferences(path, docks, recent));
+    ASSERT_TRUE(save_toolset_language_preference(path, LanguageID::french));
+    DockLayout loaded;
+    std::vector<RecentProjectEntry> projects;
+    LanguageID language = LanguageID::english;
+    load_ui_preferences(path, loaded, projects, &language);
+    EXPECT_EQ(language, LanguageID::french);
+    ASSERT_EQ(projects.size(), 1u);
+    EXPECT_EQ(projects[0].path, "/example");
+    ASSERT_TRUE(save_ui_preferences(path, docks, recent));
+    language = LanguageID::english;
+    load_ui_preferences(path, loaded, projects, &language);
+    EXPECT_EQ(language, LanguageID::french);
+    EXPECT_FALSE(save_toolset_language_preference(path, LanguageID::invalid));
+    {
+        nlohmann::json prefs;
+        std::ifstream input{path};
+        input >> prefs;
+        prefs["ui"]["toolset_language"] = "unknown";
+        std::ofstream output{path};
+        output << prefs;
+    }
+    language = LanguageID::english;
+    load_ui_preferences(path, loaded, projects, &language);
+    EXPECT_EQ(language, LanguageID::english);
+}
+
 TEST(ClientMetrics, PreservesFrameSmoothingAndRejectsNegativeTimes)
 {
     ClientMetricsState metrics;

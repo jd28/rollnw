@@ -1,0 +1,51 @@
+<template name="object-locstring-editor">
+<head></head>
+<body>
+  <div id="object_surface_locstring"
+       class="object_locstring_surface creature_workbench_surface item_workbench_surface door_workbench_surface placeable_workbench_surface">
+    <div class="object_locstring_header">
+      <button class="object_workbench_surface_button panel_back_button" type="button"
+              data-surface="details" title="Back to Details">
+        <span class="panel_back_icon"><span class="panel_back_head"></span><span class="panel_back_shaft"></span></span>
+      </button>
+      <span id="object_locstring_title">Localized String</span>
+    </div>
+    <div id="object_locstring_rows" class="object_locstring_rows">
+      <div id="object_locstring_unavailable" class="object_locstring_mode property_tree_empty">
+        Localized string is unavailable.
+      </div>
+      <div id="object_locstring_editor" class="object_locstring_mode">
+        <div class="object_locstring_section">Text source</div>
+        <button id="object_locstring_language"
+                class="combobox_field object_locstring_source_field"
+                type="button" title="Choose text source">
+          <span id="object_locstring_language_value" class="combobox_value">String Reference</span>
+          <span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span>
+        </button>
+        <div id="object_locstring_strref_editor" class="object_locstring_mode">
+          <div class="object_locstring_section">Strref</div>
+          <input id="object_locstring_strref"
+                 class="object_locstring_strref_input" type="text"
+                 placeholder="No strref"
+                 title="Decimal strref (0 to 4294967294); clear to unset" />
+          <div class="object_locstring_section object_locstring_preview_label">Resolved TLK text</div>
+          <div id="object_locstring_resolved" class="object_locstring_resolved"></div>
+        </div>
+        <div id="object_locstring_text_editor" class="object_locstring_mode">
+          <div id="object_locstring_gender" class="object_locstring_language_controls">
+            <span class="object_locstring_section">Gender</span>
+            <button id="object_locstring_gender_toggle"
+                    class="object_locstring_gender_toggle" type="button">Masculine</button>
+          </div>
+          <div class="object_locstring_section">Authored text</div>
+          <textarea id="object_locstring_text"
+                    class="object_locstring_text_input" rows="8"
+                    placeholder="No authored text for this language"></textarea>
+        </div>
+      </div>
+    </div>
+    <div id="object_details_combobox_popup"
+         class="combobox_options combobox_popup object_details_combobox_popup"></div>
+  </div>
+</body>
+</template>

@@ -38,6 +38,8 @@
       </div>
     </div>
 
+    <template src="object-locstring-editor"></template>
+
     <div id="placeable_surface_variables" class="placeable_workbench_surface">
       <div class="object_variable_toolbar">
         <button id="object_variable_add" type="button" title="Add integer variable">Add Variable</button>

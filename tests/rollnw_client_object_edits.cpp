@@ -5,7 +5,7 @@
 #include "../tools/client/object_document.hpp"
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/workspace.hpp"
-#include "../tools/ui/smalls_creature_properties.hpp"
+#include "../tools/ui/smalls_object_properties.hpp"
 
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -39,6 +39,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <numeric>
 #include <type_traits>
 
 #include <nlohmann/json.hpp>
@@ -337,6 +338,26 @@ TEST(ClientObjectEdits, ObjectVariableNumericInputRejectsInvalidPrefixes)
         Type::string, "arbitrary text: 1.5!"));
     EXPECT_FALSE(nw::toolset::valid_object_variable_input_prefix(
         static_cast<Type>(0), "1"));
+}
+
+TEST(ClientObjectEdits, LocStringStrrefAcceptsOnlyDecimalRangeAndUnset)
+{
+    using nw::toolset::parse_locstring_strref;
+    using nw::toolset::valid_locstring_strref_input_prefix;
+    EXPECT_EQ(parse_locstring_strref(""), UINT32_MAX);
+    EXPECT_EQ(parse_locstring_strref("0"), 0u);
+    EXPECT_EQ(parse_locstring_strref("0001"), 1u);
+    EXPECT_EQ(parse_locstring_strref("4294967294"), UINT32_MAX - 1u);
+    for (const auto value : {"-", "-1", "-2", "+1", " 1", "1 ", "1.0", "4294967295", "4294967296", "999999999999999999999"}) {
+        EXPECT_FALSE(parse_locstring_strref(value)) << value;
+    }
+    EXPECT_TRUE(valid_locstring_strref_input_prefix(""));
+    EXPECT_TRUE(valid_locstring_strref_input_prefix("0"));
+    EXPECT_TRUE(valid_locstring_strref_input_prefix("4294967294"));
+    EXPECT_FALSE(valid_locstring_strref_input_prefix("-"));
+    EXPECT_FALSE(valid_locstring_strref_input_prefix("-1"));
+    EXPECT_FALSE(valid_locstring_strref_input_prefix("-2"));
+    EXPECT_FALSE(valid_locstring_strref_input_prefix("4294967295"));
 }
 
 TEST(ClientObjectEdits, ObjectVariableSnapshotAndBatchEditsRoundTripExactRows)
@@ -2423,6 +2444,413 @@ TEST(ClientObjectEdits, DetailsBooleanCommitPersistsAndRestoresUndoRedo)
     EXPECT_EQ(serialized["nwn1.propsets.PlaceableState"]["plot"], prepared->after);
 
     nwk::objects().destroy(placeable->handle());
+}
+
+TEST(ClientObjectEdits, LocStringEditPreservesWholeValueAcrossSaveAndUndo)
+{
+    nw::LocString resolved{1000};
+    ASSERT_TRUE(resolved.add(nw::LanguageID::english, "Authored name"));
+    EXPECT_EQ(nw::toolset::locstring_resting_value(resolved,
+                  nw::LanguageID::english),
+        "Silence");
+    auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* item = nwk::objects().load_file<nw::Item>(
+        "test_data/user/development/cloth028.uti");
+    ASSERT_NE(item, nullptr);
+    item->name = nw::LocString{91379};
+    ASSERT_TRUE(item->name.add(nw::LanguageID::french, "Nom francais"));
+    const nw::LocString before = item->name;
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, item->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto row = std::ranges::find_if(snapshot.rows, [](const auto& entry) {
+        return entry.editor == nw::toolset::ObjectDetailsEditorKind::locstring;
+    });
+    ASSERT_NE(row, snapshot.rows.end());
+    EXPECT_TRUE(item->name.get(nw::LanguageID::english).empty());
+    EXPECT_EQ(snapshot.text_view(row->value),
+        nw::toolset::locstring_resting_value(item->name, nw::LanguageID::english));
+    nw::toolset::ObjectDetailsSnapshot french_snapshot;
+    nw::toolset::build_object_details(runtime, item->handle(), french_snapshot,
+        nw::LanguageID::french);
+    ASSERT_EQ(french_snapshot.status, nw::toolset::ObjectDetailsStatus::ready);
+    const auto french_display_row = std::ranges::find_if(french_snapshot.rows, [](const auto& entry) {
+        return entry.editor == nw::toolset::ObjectDetailsEditorKind::locstring;
+    });
+    ASSERT_NE(french_display_row, french_snapshot.rows.end());
+    EXPECT_EQ(item->name.get(nw::LanguageID::french), "Nom francais");
+
+    const uint32_t row_index = static_cast<uint32_t>(row - snapshot.rows.begin());
+    std::string diagnostic;
+    EXPECT_FALSE(nw::toolset::prepare_object_details_locstring_text_edit(
+        runtime, item->handle(), row_index, "stale", "New item name", diagnostic));
+    EXPECT_FALSE(nw::toolset::prepare_object_details_locstring_text_edit(
+        runtime, item->handle(), UINT32_MAX, "", "New item name", diagnostic));
+    auto prepared = nw::toolset::prepare_object_details_locstring_text_edit(
+        runtime, item->handle(), row_index, "", "New item name", diagnostic);
+    ASSERT_TRUE(prepared) << diagnostic;
+    EXPECT_EQ(prepared->before, before);
+    EXPECT_EQ(prepared->after.strref(), 91379u);
+    EXPECT_EQ(prepared->after.get(nw::LanguageID::french), "Nom francais");
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    nw::toolset::ObjectLocStringEdit prepared_row{
+        prepared->target, prepared->before, prepared->after};
+    auto committed = nw::toolset::commit_object_locstring_edits(
+        {item->handle(), {prepared_row}}, "Set localized text", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(item->name, prepared->after);
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+
+    nlohmann::json serialized;
+    ASSERT_TRUE(nw::serialize(item, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(serialized["object"]["name"].get<nw::LocString>(), prepared->after);
+    auto* reloaded = nwk::objects().make<nw::Item>();
+    ASSERT_NE(reloaded, nullptr);
+    ASSERT_TRUE(nw::deserialize(reloaded, serialized, nw::SerializationProfile::blueprint));
+    EXPECT_EQ(reloaded->name, prepared->after);
+    nwk::objects().destroy(reloaded->handle());
+    auto gff_builder = nw::serialize(item, nw::SerializationProfile::blueprint);
+    nw::ResourceData gff_data;
+    gff_data.bytes = gff_builder.to_byte_array();
+    nw::Gff gff{std::move(gff_data)};
+    ASSERT_TRUE(gff.valid());
+    auto* reloaded_gff = nwk::objects().make<nw::Item>();
+    ASSERT_NE(reloaded_gff, nullptr);
+    ASSERT_TRUE(nw::deserialize(
+        reloaded_gff, gff.toplevel(), nw::SerializationProfile::blueprint));
+    EXPECT_EQ(reloaded_gff->name, prepared->after);
+    nwk::objects().destroy(reloaded_gff->handle());
+
+    workspace.push_undo(*committed.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_EQ(item->name, before);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_EQ(item->name, prepared->after);
+
+    auto stale = *prepared;
+    stale.after.add(nw::LanguageID::english, "Another name");
+    nw::toolset::ObjectLocStringEditBatch stale_batch{
+        item->handle(), {{stale.target, stale.before, stale.after}}};
+    EXPECT_EQ(nw::toolset::apply_object_locstring_edits(runtime,
+                  stale_batch, nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::stale_value);
+    EXPECT_EQ(item->name, prepared->after);
+
+    auto invalid = nw::toolset::ObjectLocStringEdit{
+        prepared->target, prepared->after, prepared->after};
+    invalid.after.set_strref(12345);
+    nw::toolset::ObjectLocStringEditBatch invalid_batch{
+        item->handle(), {invalid}};
+    EXPECT_EQ(nw::toolset::apply_object_locstring_edits(runtime,
+                  invalid_batch, nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::invalid_batch);
+    invalid.after = invalid.before;
+    ASSERT_TRUE(invalid.after.add(nw::LanguageID::french, "Another French name"));
+    invalid_batch.rows = {invalid};
+    EXPECT_EQ(nw::toolset::apply_object_locstring_edits(runtime,
+                  invalid_batch, nw::toolset::ObjectEditDirection::forward)
+                  .status,
+        nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(item->name, prepared->after);
+
+    auto clear = nw::toolset::prepare_object_details_locstring_text_edit(
+        runtime, item->handle(), row_index, "New item name", "", diagnostic);
+    ASSERT_TRUE(clear) << diagnostic;
+    EXPECT_FALSE(clear->after.contains(nw::LanguageID::english));
+    EXPECT_EQ(clear->after.strref(), 91379u);
+    EXPECT_EQ(clear->after.get(nw::LanguageID::french), "Nom francais");
+
+    auto french = nw::toolset::prepare_object_details_locstring_text_edit(
+        runtime, item->handle(), row_index, "Nom francais", "Nouveau nom",
+        diagnostic, nw::LanguageID::french);
+    ASSERT_TRUE(french) << diagnostic;
+    nw::toolset::ObjectLocStringEdit french_row{
+        french->target, french->before, french->after,
+        nw::toolset::ObjectLocStringEditKind::localized_text,
+        nw::LanguageID::french};
+    auto french_commit = nw::toolset::commit_object_locstring_edits(
+        {item->handle(), {std::move(french_row)}},
+        "Set localized text", context);
+    ASSERT_TRUE(french_commit.ok()) << french_commit.message;
+    EXPECT_EQ(item->name.get(nw::LanguageID::french), "Nouveau nom");
+    EXPECT_EQ(item->name.get(nw::LanguageID::english), "New item name");
+    EXPECT_EQ(item->name.strref(), 91379u);
+
+    auto strref = nw::toolset::prepare_object_details_locstring_strref_edit(
+        runtime, item->handle(), row_index, 91379u, UINT32_MAX, diagnostic);
+    ASSERT_TRUE(strref) << diagnostic;
+    nw::toolset::ObjectLocStringEdit strref_row{
+        strref->target, strref->before, strref->after,
+        nw::toolset::ObjectLocStringEditKind::strref};
+    auto strref_commit = nw::toolset::commit_object_locstring_edits(
+        {item->handle(), {std::move(strref_row)}},
+        "Set localized-string strref", context);
+    ASSERT_TRUE(strref_commit.ok()) << strref_commit.message;
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+    EXPECT_EQ(nw::toolset::locstring_resting_value(item->name,
+                  nw::LanguageID::french),
+        "Nouveau nom");
+    EXPECT_EQ(nw::toolset::locstring_resting_value(item->name,
+                  nw::LanguageID::german),
+        "New item name");
+    workspace.push_undo(*strref_commit.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_EQ(item->name.strref(), 91379u);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+    nwk::objects().destroy(item->handle());
+}
+
+TEST(ClientObjectEdits, ExistingLocStringRowsExposeExplicitStorageTargets)
+{
+    auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* creature = nwk::objects().load_file<nw::Creature>(
+        "test_data/user/development/pl_agent_001.utc");
+    auto* item = nwk::objects().make<nw::Item>();
+    auto* door = nwk::objects().make<nw::Door>();
+    auto* placeable = nwk::objects().make<nw::Placeable>();
+    auto* waypoint = nwk::objects().make<nw::Waypoint>();
+    auto* encounter = nwk::objects().make<nw::Encounter>();
+    auto* sound = nwk::objects().make<nw::Sound>();
+    auto* store = nwk::objects().make<nw::Store>();
+    auto* trigger = nwk::objects().make<nw::Trigger>();
+    auto* area = nwk::objects().make<nw::Area>();
+    ASSERT_NE(creature, nullptr);
+    ASSERT_NE(item, nullptr);
+    ASSERT_NE(door, nullptr);
+    ASSERT_NE(placeable, nullptr);
+    ASSERT_NE(waypoint, nullptr);
+    ASSERT_NE(encounter, nullptr);
+    ASSERT_NE(sound, nullptr);
+    ASSERT_NE(store, nullptr);
+    ASSERT_NE(trigger, nullptr);
+    ASSERT_NE(area, nullptr);
+
+    const std::array created{
+        creature->handle(), item->handle(), door->handle(),
+        placeable->handle(), waypoint->handle(), encounter->handle(),
+        sound->handle(), store->handle(), trigger->handle(), area->handle()};
+    for (const auto object : created) {
+        runtime.init_object_propsets(object);
+    }
+
+    struct ExpectedStorageCounts {
+        nw::ObjectHandle object;
+        std::array<size_t, 6> counts;
+    };
+    const std::array expected{
+        ExpectedStorageCounts{creature->handle(), {0, 0, 0, 0, 0, 3}},
+        ExpectedStorageCounts{item->handle(), {0, 1, 0, 0, 0, 1}},
+        ExpectedStorageCounts{door->handle(), {0, 1, 0, 0, 0, 1}},
+        ExpectedStorageCounts{placeable->handle(), {0, 1, 0, 0, 0, 1}},
+        ExpectedStorageCounts{waypoint->handle(), {0, 1, 0, 0, 0, 2}},
+        ExpectedStorageCounts{encounter->handle(), {0, 1, 0, 0, 0, 0}},
+        ExpectedStorageCounts{sound->handle(), {0, 1, 0, 0, 0, 0}},
+        ExpectedStorageCounts{store->handle(), {0, 1, 0, 0, 0, 0}},
+        ExpectedStorageCounts{trigger->handle(), {0, 1, 0, 0, 0, 0}},
+        ExpectedStorageCounts{area->handle(), {0, 0, 1, 0, 0, 0}},
+        ExpectedStorageCounts{module->handle(), {0, 0, 0, 1, 1, 0}},
+    };
+
+    size_t total = 0;
+    for (const auto& object : expected) {
+        SCOPED_TRACE(static_cast<int>(object.object.type));
+        nw::toolset::ObjectDetailsSnapshot snapshot;
+        nw::toolset::build_object_details(runtime, object.object, snapshot);
+        ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+            << snapshot.diagnostic;
+
+        std::array<size_t, 6> actual{};
+        for (const auto& row : snapshot.rows) {
+            if (row.editor != nw::toolset::ObjectDetailsEditorKind::locstring) {
+                continue;
+            }
+            const auto index = static_cast<size_t>(row.locstring_storage);
+            ASSERT_LT(index, actual.size());
+            ++actual[index];
+            std::string diagnostic;
+            EXPECT_TRUE(nw::toolset::read_object_locstring(runtime,
+                {object.object, row.locstring_storage,
+                    row.propset_type, row.field_index},
+                &diagnostic))
+                << diagnostic;
+        }
+        EXPECT_EQ(actual, object.counts);
+        total += std::accumulate(actual.begin(), actual.end(), size_t{0});
+    }
+    EXPECT_EQ(total, 19u);
+
+    for (const auto object : created) {
+        nwk::objects().destroy(object);
+    }
+}
+
+TEST(ClientObjectEdits, DirectAreaAndModuleNamesRefreshDetailsAcrossUndoRedo)
+{
+    auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* area = nwk::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    runtime.init_object_propsets(area->handle());
+    area->name = nw::LocString{};
+    module->name = nw::LocString{};
+    ASSERT_TRUE(area->name.add(nw::LanguageID::english, "Old area"));
+    ASSERT_TRUE(module->name.add(nw::LanguageID::english, "Old module"));
+
+    const auto verify = [&](nw::ObjectHandle object,
+                            nw::toolset::ObjectLocStringStorage storage,
+                            nw::toolset::WorkspaceTabKind tab_kind,
+                            std::string_view before,
+                            std::string_view after) {
+        nw::toolset::ObjectDetailsSnapshot snapshot;
+        nw::toolset::build_object_details(runtime, object, snapshot);
+        ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+            << snapshot.diagnostic;
+        const auto row = std::ranges::find_if(snapshot.rows,
+            [storage](const auto& value) {
+                return value.editor
+                    == nw::toolset::ObjectDetailsEditorKind::locstring
+                    && value.locstring_storage == storage;
+            });
+        ASSERT_NE(row, snapshot.rows.end());
+        EXPECT_EQ(snapshot.text_view(row->value), before);
+        const auto row_index = static_cast<size_t>(
+            row - snapshot.rows.begin());
+
+        std::string diagnostic;
+        const auto prepared
+            = nw::toolset::prepare_object_details_locstring_text_edit(
+                runtime, object,
+                static_cast<uint32_t>(row_index),
+                before, after, diagnostic);
+        ASSERT_TRUE(prepared) << diagnostic;
+
+        nw::toolset::WorkspaceState workspace;
+        workspace.open_tab("target", "Target", tab_kind, false, false);
+        nw::toolset::CommandContext context;
+        context.workspace = &workspace;
+        context.active_tab_id = workspace.active_tab_id();
+        auto committed = nw::toolset::commit_object_locstring_edits(
+            {object, {{prepared->target, prepared->before, prepared->after}}},
+            "Set localized text", context);
+        ASSERT_TRUE(committed.ok()) << committed.message;
+        ASSERT_TRUE(committed.undo_action);
+
+        nw::toolset::build_object_details(runtime, object, snapshot);
+        ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+            << snapshot.diagnostic;
+        EXPECT_EQ(snapshot.text_view(snapshot.rows[row_index].value),
+            after);
+
+        workspace.push_undo(*committed.undo_action);
+        ASSERT_TRUE(workspace.undo(context).ok());
+        nw::toolset::build_object_details(runtime, object, snapshot);
+        EXPECT_EQ(snapshot.text_view(snapshot.rows[row_index].value),
+            before);
+        ASSERT_TRUE(workspace.redo(context).ok());
+        nw::toolset::build_object_details(runtime, object, snapshot);
+        EXPECT_EQ(snapshot.text_view(snapshot.rows[row_index].value),
+            after);
+    };
+
+    verify(area->handle(), nw::toolset::ObjectLocStringStorage::area_name,
+        nw::toolset::WorkspaceTabKind::area, "Old area", "New area");
+    verify(module->handle(), nw::toolset::ObjectLocStringStorage::module_name,
+        nw::toolset::WorkspaceTabKind::home, "Old module", "New module");
+
+    EXPECT_EQ(nw::toolset::live_object_display_name(area->handle()),
+        "New area");
+    EXPECT_EQ(nw::toolset::live_object_display_name(module->handle()),
+        "New module");
+    nwk::objects().destroy(area->handle());
+}
+
+TEST(ClientObjectEdits, PropsetLocStringEditReplacesTextRefAndRestoresUndoRedo)
+{
+    auto* module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* item = nwk::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    runtime.init_object_propsets(item->handle());
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(runtime, item->handle(), snapshot);
+    ASSERT_EQ(snapshot.status, nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+    const auto row = std::ranges::find_if(snapshot.rows, [](const auto& value) {
+        return value.editor == nw::toolset::ObjectDetailsEditorKind::locstring
+            && value.locstring_storage
+            == nw::toolset::ObjectLocStringStorage::propset_text_ref;
+    });
+    ASSERT_NE(row, snapshot.rows.end());
+    const nw::toolset::ObjectLocStringTarget target{
+        item->handle(), row->locstring_storage,
+        row->propset_type, row->field_index};
+    const auto before = nw::toolset::read_object_locstring(runtime, target);
+    ASSERT_TRUE(before);
+
+    std::string diagnostic;
+    const auto prepared = nw::toolset::prepare_object_details_locstring_text_edit(
+        runtime, item->handle(),
+        static_cast<uint32_t>(row - snapshot.rows.begin()),
+        before->get(nw::LanguageID::english),
+        "First line\nSecond line", diagnostic);
+    ASSERT_TRUE(prepared) << diagnostic;
+    ASSERT_EQ(prepared->target, target);
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:item", "Item", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    auto committed = nw::toolset::commit_object_locstring_edits(
+        {item->handle(), {{prepared->target, prepared->before, prepared->after}}},
+        "Set localized text", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    auto current = nw::toolset::read_object_locstring(runtime, target);
+    ASSERT_TRUE(current);
+    EXPECT_EQ(*current, prepared->after);
+
+    workspace.push_undo(*committed.undo_action);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    current = nw::toolset::read_object_locstring(runtime, target);
+    ASSERT_TRUE(current);
+    EXPECT_EQ(*current, *before);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    current = nw::toolset::read_object_locstring(runtime, target);
+    ASSERT_TRUE(current);
+    EXPECT_EQ(*current, prepared->after);
+
+    nwk::objects().destroy(item->handle());
 }
 
 TEST(ClientObjectEdits, DetailsIntegerCommitPersistsAndRestoresUndoRedo)

@@ -3120,6 +3120,24 @@ std::string format_object_variable_value(const ObjectVariableRecord& record)
     return {};
 }
 
+std::optional<uint32_t> parse_locstring_strref(std::string_view value) noexcept
+{
+    if (value.empty()) { return UINT32_MAX; }
+
+    uint32_t parsed = 0;
+    const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), parsed);
+    if (error != std::errc{} || end != value.data() + value.size()
+        || parsed == UINT32_MAX) {
+        return std::nullopt;
+    }
+    return parsed;
+}
+
+bool valid_locstring_strref_input_prefix(std::string_view value) noexcept
+{
+    return parse_locstring_strref(value).has_value();
+}
+
 bool valid_object_variable_input_prefix(
     ObjectVariableType type, std::string_view value) noexcept
 {
@@ -5148,6 +5166,190 @@ CommandResult commit_object_edits(ObjectEditBatch batch, std::string label, Comm
     };
     action->redo = [batch = std::move(batch), label](CommandContext& redo_context) {
         return replay_object_edits(batch, ObjectEditDirection::forward, "Redo " + label, redo_context);
+    };
+    result.undo_action = std::move(action);
+    return result;
+}
+
+ObjectEditApplyResult apply_object_locstring_edits(smalls::Runtime& runtime,
+    ObjectLocStringEditBatch& batch, ObjectEditDirection direction)
+{
+    if (batch.rows.empty()) {
+        return edit_result(ObjectEditStatus::empty,
+            "Localized-string edit batch is empty");
+    }
+    if (batch.rows.size() > 128 || !kernel::objects().valid(batch.object)) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Localized-string edit batch is invalid");
+    }
+
+    for (size_t index = 0; index < batch.rows.size(); ++index) {
+        auto& edit = batch.rows[index];
+        if (edit.target.object != batch.object || edit.before == edit.after) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Localized-string edit requires one changed field on its owner");
+        }
+        for (size_t previous = 0; previous < index; ++previous) {
+            if (batch.rows[previous].target == edit.target) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Localized-string edit targets must be unique");
+            }
+        }
+
+        auto before_other = edit.before;
+        auto after_other = edit.after;
+        if (edit.kind == ObjectLocStringEditKind::localized_text) {
+            if (Language::to_string(edit.language).empty()
+                || (edit.feminine && !Language::has_feminine(edit.language))) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Localized-string language is unsupported");
+            }
+            before_other.remove(edit.language, edit.feminine);
+            after_other.remove(edit.language, edit.feminine);
+        } else if (edit.kind == ObjectLocStringEditKind::strref) {
+            before_other.set_strref(UINT32_MAX);
+            after_other.set_strref(UINT32_MAX);
+        } else {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Localized-string edit kind is invalid");
+        }
+        if (before_other != after_other) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Localized-string edit changed data outside its target");
+        }
+
+        std::string diagnostic;
+        const auto current = read_object_locstring(runtime, edit.target, &diagnostic);
+        const auto& expected = direction == ObjectEditDirection::forward
+            ? edit.before
+            : edit.after;
+        if (!current) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                diagnostic.empty() ? "Localized-string target is unavailable"
+                                   : std::move(diagnostic));
+        }
+        if (*current != expected) {
+            return edit_result(ObjectEditStatus::stale_value,
+                "Localized string changed since the edit was prepared");
+        }
+
+        const bool propset = edit.target.storage
+            == ObjectLocStringStorage::propset_text_ref;
+        if (!propset && (edit.before_ref.valid() || edit.after_ref.valid())) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Direct localized-string edit contains TextRef storage");
+        }
+        if (propset) {
+            if (edit.before_ref.valid() != edit.after_ref.valid()) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Localized-string TextRef snapshots are incomplete");
+            }
+            if (!edit.before_ref.valid()) {
+                edit.before_ref = kernel::strings().make_text_ref(edit.before);
+                edit.after_ref = kernel::strings().make_text_ref(edit.after);
+            }
+            if (kernel::strings().to_locstring(edit.before_ref) != edit.before
+                || kernel::strings().to_locstring(edit.after_ref) != edit.after) {
+                return edit_result(ObjectEditStatus::invalid_batch,
+                    "Localized-string TextRef snapshots are stale");
+            }
+        }
+    }
+
+    size_t applied_count = 0;
+    for (; applied_count < batch.rows.size(); ++applied_count) {
+        const auto& edit = batch.rows[applied_count];
+        const bool forward = direction == ObjectEditDirection::forward;
+        const auto& replacement = forward ? edit.after : edit.before;
+        const TextRef replacement_ref = forward ? edit.after_ref : edit.before_ref;
+        std::string diagnostic;
+        if (write_object_locstring(runtime, edit.target, replacement,
+                replacement_ref, &diagnostic)) {
+            continue;
+        }
+
+        bool restored = true;
+        while (applied_count > 0) {
+            --applied_count;
+            const auto& rollback = batch.rows[applied_count];
+            const auto& rollback_value = forward ? rollback.before : rollback.after;
+            const TextRef rollback_ref = forward
+                ? rollback.before_ref
+                : rollback.after_ref;
+            restored = write_object_locstring(runtime, rollback.target,
+                           rollback_value, rollback_ref)
+                && restored;
+        }
+        return edit_result(ObjectEditStatus::failed,
+            restored && !diagnostic.empty()
+                ? std::move(diagnostic)
+                : "Localized-string batch write failed");
+    }
+
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::properties;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.object = batch.object;
+    return {ObjectEditStatus::success,
+        static_cast<uint32_t>(batch.rows.size()), {}};
+}
+
+CommandResult commit_object_locstring_edits(ObjectLocStringEditBatch batch,
+    std::string label, CommandContext& context)
+{
+    if (context.workspace) {
+        const auto* tab = context.workspace->active_tab();
+        const bool module_home = tab
+            && tab->kind == WorkspaceTabKind::home
+            && batch.object.type == ObjectType::module;
+        if (!tab || (!module_home && tab->kind != WorkspaceTabKind::preview && tab->kind != WorkspaceTabKind::area)) {
+            return command_edit_result(CommandStatus::rejected,
+                "Localized-string editing requires its preview, area, or module Home tab",
+                CommandOutputChannel::warn);
+        }
+    }
+    auto applied = apply_object_locstring_edits(
+        kernel::runtime(), batch, ObjectEditDirection::forward);
+    if (applied.status == ObjectEditStatus::empty) {
+        return command_edit_result(CommandStatus::noop,
+            std::move(applied.diagnostic), CommandOutputChannel::none);
+    }
+    if (!applied.ok()) {
+        return command_edit_result(
+            applied.status == ObjectEditStatus::failed
+                ? CommandStatus::failed
+                : CommandStatus::rejected,
+            applied.diagnostic, applied.status == ObjectEditStatus::failed ? CommandOutputChannel::error : CommandOutputChannel::warn);
+    }
+
+    mark_context_dirty(context);
+    CommandResult result = command_edit_result(
+        CommandStatus::success, label, CommandOutputChannel::none);
+    auto shared_batch = std::make_shared<ObjectLocStringEditBatch>(
+        std::move(batch));
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [shared_batch, label](CommandContext& undo_context) {
+        const auto replayed = apply_object_locstring_edits(kernel::runtime(),
+            *shared_batch, ObjectEditDirection::inverse);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::rejected,
+                replayed.diagnostic, CommandOutputChannel::warn);
+        }
+        mark_context_dirty(undo_context);
+        return command_edit_result(CommandStatus::success,
+            "Undo " + label, CommandOutputChannel::none);
+    };
+    action->redo = [shared_batch, label](CommandContext& redo_context) {
+        const auto replayed = apply_object_locstring_edits(kernel::runtime(),
+            *shared_batch, ObjectEditDirection::forward);
+        if (!replayed.ok()) {
+            return command_edit_result(CommandStatus::rejected,
+                replayed.diagnostic, CommandOutputChannel::warn);
+        }
+        mark_context_dirty(redo_context);
+        return command_edit_result(CommandStatus::success,
+            "Redo " + label, CommandOutputChannel::none);
     };
     result.undo_action = std::move(action);
     return result;

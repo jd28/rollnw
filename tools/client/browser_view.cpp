@@ -466,6 +466,22 @@ bool render_project_tree_window(Rml::ElementDocument* doc, BrowserViewState& sta
     return true;
 }
 
+bool update_visible_project_tree_label(BrowserViewState& state,
+    std::string_view relative_path, std::string_view label)
+{
+    const std::filesystem::path path{relative_path};
+    for (auto& row : state.project_rows) {
+        const bool relabelable = row.node.kind == ProjectTreeNodeKind::resource
+            || row.node.kind == ProjectTreeNodeKind::area;
+        if (!relabelable
+            || row.node.relative_path != path) { continue; }
+        if (row.node.label == label) { return false; }
+        row.node.label = label;
+        return true;
+    }
+    return false;
+}
+
 void refresh_browser_view(Rml::ElementDocument* doc, BrowserViewState& state,
     const ToolsetBackend& backend, const ShellController& shell, bool backend_ready, bool selecting_preview_actor)
 {

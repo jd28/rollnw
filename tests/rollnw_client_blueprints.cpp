@@ -1,7 +1,7 @@
 #include "blueprint_edits.hpp"
 #include "blueprint_operations.hpp"
 #include "project.hpp"
-#include "smalls_creature_properties.hpp"
+#include "smalls_object_properties.hpp"
 #include "workspace.hpp"
 
 #include <nw/kernel/Kernel.hpp>

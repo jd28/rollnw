@@ -21,6 +21,7 @@ add_library(rollnw_client_core STATIC
     forward_plus_debug.cpp
     object_document.cpp
     object_edits.cpp
+    object_locstring.cpp
     object_workbench.cpp
     pc_input.cpp
     preview_session.cpp
@@ -113,7 +114,7 @@ add_executable(rollnw-client
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_diagnostics.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_creature_feats.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_creature_inventory.cpp
-    ${CMAKE_SOURCE_DIR}/tools/ui/smalls_creature_properties.cpp
+    ${CMAKE_SOURCE_DIR}/tools/ui/smalls_object_properties.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_creature_spells.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/smalls_item_icons.cpp
     ${CMAKE_SOURCE_DIR}/tools/ui/rml_generated_texture.cpp

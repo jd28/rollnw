@@ -1397,6 +1397,29 @@ std::string project_display_name(const fs::path& project_dir)
     return project_dir.string();
 }
 
+std::optional<fs::path> project_module_resource_path(
+    const fs::path& project_dir)
+{
+    if (!load_valid_manifest(project_dir)) { return std::nullopt; }
+    const nlohmann::json manifest = load_manifest_json(project_dir);
+    const std::string resource = manifest.value("module", std::string{});
+    const fs::path relative{resource};
+    if (relative.empty() || relative.is_absolute()) { return std::nullopt; }
+
+    std::error_code ec;
+    const auto root = fs::weakly_canonical(project_dir, ec);
+    if (ec) { return std::nullopt; }
+    const auto target = fs::weakly_canonical(root / relative, ec);
+    if (ec || !fs::is_regular_file(target, ec) || ec) { return std::nullopt; }
+    const auto from_root = fs::relative(target, root, ec);
+    if (ec || from_root.empty()
+        || std::any_of(from_root.begin(), from_root.end(),
+            [](const auto& part) { return part == ".."; })) {
+        return std::nullopt;
+    }
+    return target;
+}
+
 bool project_resource_is_area(const fs::path& relative_path)
 {
     return area_resource_info(relative_path).has_value();

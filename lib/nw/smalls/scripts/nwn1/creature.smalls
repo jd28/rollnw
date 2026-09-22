@@ -131,6 +131,7 @@ const property_editor_surface_classes = 1;
 const property_editor_kind_read_only = 0;
 const property_editor_kind_boolean = 1;
 const property_editor_kind_integer = 2;
+const property_editor_kind_locstring = 3;
 const property_editor_class_level_min = 1;
 const property_editor_class_level_max = 60;
 const property_editor_int16_min = -32768;
@@ -227,6 +228,27 @@ fn _integer_property_editor_row(group: string, label: string,
     };
 }
 
+fn _locstring_property_editor_row(group: string, label: string,
+    field: string, value: string): CreaturePropertyEditorRow {
+    return CreaturePropertyEditorRow {
+        surface = property_editor_surface_properties,
+        group = group,
+        label = label,
+        value = value,
+        editor = property_editor_kind_locstring,
+        propset = "nwn1.propsets.CreatureDescriptor",
+        field = field,
+        element = -1,
+        edit_value = 0,
+        edit_min = 0,
+        edit_max = 0,
+        class_slot = -1,
+        class_level = 0,
+        class_level_min = 0,
+        class_level_max = 0,
+    };
+}
+
 fn _localized_editor_name(strref: int, fallback: string): string {
     if (strref < 0) {
         return fallback;
@@ -257,8 +279,10 @@ fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
     var levels = get_propset!(CreatureLevels)(obj);
     var rows: array!(CreaturePropertyEditorRow) = {};
 
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "First Name", T.resolve_text(descriptor.name_first, 0)));
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Last Name", T.resolve_text(descriptor.name_last, 0)));
+    arr.push(rows, _locstring_property_editor_row("Identity", "First Name",
+        "name_first", T.resolve_text(descriptor.name_first, 0)));
+    arr.push(rows, _locstring_property_editor_row("Identity", "Last Name",
+        "name_last", T.resolve_text(descriptor.name_last, 0)));
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Gender", _gender_editor_name(stats.gender)));
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Identity", "Race",
         _localized_editor_name(races.name_strref(stats.race) as int, f"Race {stats.race}")));
@@ -340,8 +364,8 @@ fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Advanced", "Movement Rate", f"{levels.walkrate}"));
     arr.push(rows, _property_editor_row(property_editor_surface_properties, "Advanced", "Perception Range", f"{stats.perception_range}"));
 
-    arr.push(rows, _property_editor_row(property_editor_surface_properties, "Description", "Description",
-        T.resolve_text(descriptor.description, 0)));
+    arr.push(rows, _locstring_property_editor_row("Description", "Description",
+        "description", T.resolve_text(descriptor.description, 0)));
 
     for (var slot = 0; slot < 8; slot += 1) {
         var class_id = levels.classes[slot];

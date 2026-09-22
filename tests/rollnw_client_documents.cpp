@@ -1,5 +1,6 @@
 #include "area_map.hpp"
 #include "object_document.hpp"
+#include "project.hpp"
 #include "resource_document.hpp"
 #include "workspace.hpp"
 
@@ -7,6 +8,7 @@
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/serialization/Serialization.hpp>
 
@@ -310,6 +312,39 @@ TEST(ClientDocuments, BatchContinuesAfterFailuresAndRejectsInvalidProtocolBefore
     const std::array<std::string_view, 1> stale{"escape"};
     EXPECT_EQ(save_workspace_documents(workspace, project, stale).status, CommandStatus::failed);
     EXPECT_TRUE(workspace.find_tab("escape")->dirty);
+}
+
+TEST(ClientDocuments, HomeSavesTheLiveJsonProjectModule)
+{
+    const std::filesystem::path project
+        = "tmp/client_documents_module_save";
+    std::filesystem::remove_all(project);
+    const auto imported = import_module_project(
+        "test_data/user/modules/DockerDemo.mod", project,
+        {ProjectImportFormat::json});
+    ASSERT_TRUE(imported.ok) << imported.message;
+    auto* module = kernel::load_module(project, false);
+    ASSERT_NE(module, nullptr);
+    module->name = LocString{};
+    ASSERT_TRUE(module->name.add(LanguageID::english, "Edited module"));
+
+    WorkspaceState workspace;
+    workspace.ensure_default_tabs("Project");
+    auto* home = workspace.find_tab("home");
+    ASSERT_NE(home, nullptr);
+    home->dirty = true;
+    const std::array<std::string_view, 1> ids{"home"};
+    const auto saved = save_workspace_documents(
+        workspace, project, ids, module->handle());
+    ASSERT_TRUE(saved.ok()) << saved.message;
+    EXPECT_FALSE(home->dirty);
+
+    const auto module_path = project_module_resource_path(project);
+    ASSERT_TRUE(module_path);
+    std::ifstream input{*module_path};
+    ASSERT_TRUE(input);
+    const auto serialized = nlohmann::json::parse(input);
+    EXPECT_EQ(serialized.at("name").get<LocString>(), module->name);
 }
 
 TEST(ClientDocuments, SaveRejectsBinaryAndSymlinkEscapesWithoutOverwritingFiles)

@@ -1,6 +1,7 @@
-#include "smalls_creature_properties.hpp"
+#include "smalls_object_properties.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -171,10 +172,16 @@ void build_details_snapshot(smalls::Runtime& runtime,
     std::string_view script,
     std::string_view presentation,
     bool allow_edits,
-    ObjectDetailsSnapshot& output)
+    ObjectDetailsSnapshot& output,
+    LanguageID toolset_language)
 {
     output = {};
     output.object = active_object;
+    if (Language::to_string(toolset_language).empty()) {
+        invalidate_details_snapshot(active_object, presentation,
+            " toolset language is unsupported", output);
+        return;
+    }
     const auto result = runtime.execute_script("toolset.ui",
         script, {object_value(runtime, active_object)});
     auto* rows = result.ok()
@@ -202,6 +209,7 @@ void build_details_snapshot(smalls::Runtime& runtime,
         int32_t edit_value = 0;
         int32_t edit_min = 0;
         int32_t edit_max = 0;
+        int32_t locstring_storage_value = 0;
         if (!rows->get_value(index, row, runtime)
             || !read_string_field(runtime, row, "group", group)
             || !read_string_field(runtime, row, "label", label)
@@ -213,6 +221,8 @@ void build_details_snapshot(smalls::Runtime& runtime,
             || !read_int_field(runtime, row, "edit_value", edit_value)
             || !read_int_field(runtime, row, "edit_min", edit_min)
             || !read_int_field(runtime, row, "edit_max", edit_max)
+            || !read_int_field(runtime, row, "locstring_storage",
+                locstring_storage_value)
             || group.empty() || label.empty()) {
             invalidate_details_snapshot(
                 active_object, presentation, " row is invalid", output);
@@ -222,6 +232,8 @@ void build_details_snapshot(smalls::Runtime& runtime,
         ObjectDetailsEditorKind editor_kind = ObjectDetailsEditorKind::read_only;
         smalls::TypeID propset_type{};
         uint32_t field_index = UINT32_MAX;
+        ObjectLocStringStorage locstring_storage = ObjectLocStringStorage::none;
+        std::optional<LocString> locstring_value;
         if (!allow_edits
             && editor != static_cast<int32_t>(ObjectDetailsEditorKind::read_only)) {
             invalidate_details_snapshot(
@@ -232,6 +244,8 @@ void build_details_snapshot(smalls::Runtime& runtime,
             = editor == static_cast<int32_t>(ObjectDetailsEditorKind::sound_position);
         const bool sound_volume_editor
             = editor == static_cast<int32_t>(ObjectDetailsEditorKind::sound_volume);
+        const bool locstring_editor
+            = editor == static_cast<int32_t>(ObjectDetailsEditorKind::locstring);
         if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
             || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)
             || editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)
@@ -294,6 +308,7 @@ void build_details_snapshot(smalls::Runtime& runtime,
             }
             if (!definition || !definition->is_propset || field_index == UINT32_MAX
                 || propset.type_id == smalls::invalid_type_id
+                || locstring_storage_value != 0
                 || element_index < -1
                 || !valid_target
                 || edit_min > edit_max
@@ -323,10 +338,63 @@ void build_details_snapshot(smalls::Runtime& runtime,
                 return;
             }
             editor_kind = static_cast<ObjectDetailsEditorKind>(editor);
+        } else if (locstring_editor) {
+            if (locstring_storage_value
+                    <= static_cast<int32_t>(ObjectLocStringStorage::none)
+                || locstring_storage_value
+                    > static_cast<int32_t>(ObjectLocStringStorage::propset_text_ref)) {
+                invalidate_details_snapshot(active_object, presentation,
+                    " localized-string storage is invalid", output);
+                return;
+            }
+            locstring_storage = static_cast<ObjectLocStringStorage>(
+                locstring_storage_value);
+            const bool propset_storage
+                = locstring_storage == ObjectLocStringStorage::propset_text_ref;
+            if (propset_storage) {
+                propset_type = runtime.type_id(propset_name, false);
+                const auto* definition = runtime.get_struct_def(propset_type);
+                field_index = definition
+                    ? definition->field_index(field_name)
+                    : UINT32_MAX;
+            }
+            const bool direct_metadata_valid = propset_storage
+                ? !propset_name.empty() && !field_name.empty()
+                : propset_name.empty() && field_name.empty();
+            const bool storage_matches_object
+                = (locstring_storage == ObjectLocStringStorage::object_name
+                      && active_object.type != ObjectType::area
+                      && active_object.type != ObjectType::creature
+                      && active_object.type != ObjectType::module)
+                || (locstring_storage == ObjectLocStringStorage::area_name
+                    && active_object.type == ObjectType::area)
+                || ((locstring_storage == ObjectLocStringStorage::module_name
+                        || locstring_storage
+                            == ObjectLocStringStorage::module_description)
+                    && active_object.type == ObjectType::module)
+                || propset_storage;
+            const ObjectLocStringTarget target{
+                active_object, locstring_storage, propset_type, field_index};
+            std::string locstring_diagnostic;
+            locstring_value = read_object_locstring(
+                runtime, target, &locstring_diagnostic);
+            if (!allow_edits || !direct_metadata_valid || !storage_matches_object
+                || element_index != -1 || edit_value != 0
+                || edit_min != 0 || edit_max != 0 || !locstring_value) {
+                invalidate_details_snapshot(
+                    active_object, presentation,
+                    locstring_diagnostic.empty()
+                        ? " localized-string editor is invalid"
+                        : std::string{" localized-string editor is invalid: "}
+                            + locstring_diagnostic,
+                    output);
+                return;
+            }
+            editor_kind = ObjectDetailsEditorKind::locstring;
         } else if (editor != static_cast<int32_t>(ObjectDetailsEditorKind::read_only)
             || !propset_name.empty() || !field_name.empty()
             || element_index != -1
-            || edit_min != 0 || edit_max != 0) {
+            || edit_min != 0 || edit_max != 0 || locstring_storage_value != 0) {
             invalidate_details_snapshot(
                 active_object, presentation, " editor kind is invalid", output);
             return;
@@ -354,8 +422,12 @@ void build_details_snapshot(smalls::Runtime& runtime,
             .edit_value = edit_value,
             .edit_min = edit_min,
             .edit_max = edit_max,
+            .locstring_storage = locstring_storage,
             .label = append_text(label, output.text),
-            .value = append_text(value, output.text),
+            .value = append_text(locstring_value
+                    ? locstring_resting_value(*locstring_value, toolset_language)
+                    : value,
+                output.text),
         });
     }
     output.status = ObjectDetailsStatus::ready;
@@ -363,9 +435,25 @@ void build_details_snapshot(smalls::Runtime& runtime,
 
 } // namespace
 
+std::string locstring_resting_value(const LocString& value, LanguageID toolset_language)
+{
+    if (value.strref() != UINT32_MAX) {
+        const auto resolved = kernel::strings().get(value.strref());
+        if (!resolved.empty()) { return resolved; }
+    }
+    const auto preferred = value.get(toolset_language);
+    if (!preferred.empty()) { return preferred; }
+    for (const auto& [language, text] : value) {
+        (void)language;
+        if (!text.empty()) { return text; }
+    }
+    return {};
+}
+
 void build_object_details(smalls::Runtime& runtime,
     ObjectHandle active_object,
-    ObjectDetailsSnapshot& output)
+    ObjectDetailsSnapshot& output,
+    LanguageID toolset_language)
 {
     if (!kernel::objects().valid(active_object)) {
         output = {};
@@ -375,7 +463,75 @@ void build_object_details(smalls::Runtime& runtime,
         return;
     }
     build_details_snapshot(runtime, active_object,
-        "get_object_details_rows", "object Details", true, output);
+        "get_object_details_rows", "object Details", true, output,
+        toolset_language);
+}
+
+std::optional<ObjectDetailsLocStringEdit> prepare_object_details_locstring_text_edit(
+    smalls::Runtime& runtime, ObjectHandle object, uint32_t row_index,
+    std::string_view expected, std::string_view desired, std::string& diagnostic,
+    LanguageID language, bool feminine)
+{
+    if (Language::to_string(language).empty()
+        || (feminine && !Language::has_feminine(language))) {
+        diagnostic = "Localized-string language is unsupported";
+        return std::nullopt;
+    }
+    ObjectDetailsSnapshot snapshot;
+    build_object_details(runtime, object, snapshot);
+    if (snapshot.status != ObjectDetailsStatus::ready
+        || row_index >= snapshot.rows.size()
+        || snapshot.rows[row_index].editor != ObjectDetailsEditorKind::locstring) {
+        diagnostic = "Localized-string row is unavailable or stale";
+        return std::nullopt;
+    }
+    const auto& row = snapshot.rows[row_index];
+    const ObjectLocStringTarget target{
+        object, row.locstring_storage, row.propset_type, row.field_index};
+    const auto current = read_object_locstring(runtime, target, &diagnostic);
+    if (!current || current->get(language, feminine) != expected) {
+        if (diagnostic.empty()) {
+            diagnostic = "Localized string changed since the editor was opened";
+        }
+        return std::nullopt;
+    }
+    ObjectDetailsLocStringEdit edit{
+        target, *current, *current, language, feminine};
+    if (desired.empty()) {
+        edit.after.remove(language, feminine);
+    } else if (!edit.after.add(language, desired, feminine)) {
+        diagnostic = "Localized string is invalid";
+        return std::nullopt;
+    }
+    return edit;
+}
+
+std::optional<ObjectDetailsLocStringEdit> prepare_object_details_locstring_strref_edit(
+    smalls::Runtime& runtime, ObjectHandle object, uint32_t row_index,
+    uint32_t expected, uint32_t desired, std::string& diagnostic)
+{
+    ObjectDetailsSnapshot snapshot;
+    build_object_details(runtime, object, snapshot);
+    if (snapshot.status != ObjectDetailsStatus::ready
+        || row_index >= snapshot.rows.size()
+        || snapshot.rows[row_index].editor != ObjectDetailsEditorKind::locstring) {
+        diagnostic = "Localized-string row is unavailable or stale";
+        return std::nullopt;
+    }
+    const auto& row = snapshot.rows[row_index];
+    const ObjectLocStringTarget target{
+        object, row.locstring_storage, row.propset_type, row.field_index};
+    const auto current = read_object_locstring(runtime, target, &diagnostic);
+    if (!current || current->strref() != expected) {
+        if (diagnostic.empty()) {
+            diagnostic = "Localized-string strref changed since the editor was opened";
+        }
+        return std::nullopt;
+    }
+    ObjectDetailsLocStringEdit edit{target, *current, *current};
+    edit.strref = true;
+    edit.after.set_strref(desired);
+    return edit;
 }
 
 void build_creature_sheet(smalls::Runtime& runtime,
@@ -391,7 +547,8 @@ void build_creature_sheet(smalls::Runtime& runtime,
         return;
     }
     build_details_snapshot(runtime, active_object,
-        "get_creature_sheet_rows", "Creature Sheet", false, output);
+        "get_creature_sheet_rows", "Creature Sheet", false, output,
+        LanguageID::english);
 }
 
 std::optional<ObjectDetailsValueEdit> prepare_object_details_boolean_edit(

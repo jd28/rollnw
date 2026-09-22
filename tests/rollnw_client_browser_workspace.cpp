@@ -13,6 +13,7 @@
 #include "loading_view.hpp"
 #include "object_edits.hpp"
 #include "object_workbench_view.hpp"
+#include "rml_action_line_edit.hpp"
 #include "script_commands.hpp"
 #include "shell_view.hpp"
 #include "smalls_rmlui.hpp"
@@ -201,6 +202,16 @@ TEST_F(ClientBrowserWorkspace, RealProjectFiltersAndHomeWindowsKeepTheirExisting
 
     refresh_home_area_catalog(browser, backend, false);
     ASSERT_FALSE(browser.home_areas.empty());
+    const auto renamed_area = browser.home_areas.front();
+    ASSERT_TRUE(backend.update_loaded_area_label(
+        renamed_area.resref, "Renamed live area"));
+    EXPECT_FALSE(backend.update_loaded_area_label(
+        renamed_area.resref, "Renamed live area"));
+    refresh_home_area_catalog(browser, backend, true);
+    const auto renamed_cached = std::ranges::find(
+        browser.home_areas, renamed_area.resref, &LoadedAreaEntry::resref);
+    ASSERT_NE(renamed_cached, browser.home_areas.end());
+    EXPECT_EQ(renamed_cached->name, "Renamed live area");
     const auto generation = browser.home_area_generation;
     LoadingViewState loading;
     std::string markup;
@@ -1141,6 +1152,30 @@ TEST_F(ClientBrowserWorkspace, RebuildRetainsTheSelectedIndexAndItsHighlight)
     EXPECT_TRUE(list->GetChild(0)->GetChild(0)->IsClassSet("selected"));
 }
 
+TEST_F(ClientBrowserWorkspace, VisibleProjectResourceAndAreaRowsRelabelWithoutChangingIdentity)
+{
+    BrowserViewState browser;
+    browser.project_rows.push_back({ProjectTreeNode{
+        .id = "item:armor.uti", .label = "Old name", .relative_path = "armor.uti", .resource_type = "item", .kind = ProjectTreeNodeKind::resource}});
+    browser.project_rows.push_back({ProjectTreeNode{
+        .id = "area:shared/areas/start", .label = "Old area", .relative_path = "shared/areas/start.are.json", .resource_type = "area", .kind = ProjectTreeNodeKind::area}});
+    ASSERT_TRUE(render_project_tree_window(document, browser, true));
+    EXPECT_FALSE(update_visible_project_tree_label(browser, "other.uti", "Ignored"));
+    EXPECT_TRUE(update_visible_project_tree_label(browser, "armor.uti", "New <name>"));
+    EXPECT_FALSE(update_visible_project_tree_label(browser, "armor.uti", "New <name>"));
+    EXPECT_TRUE(update_visible_project_tree_label(
+        browser, "shared/areas/start.are.json", "New <area>"));
+    EXPECT_FALSE(update_visible_project_tree_label(
+        browser, "shared/areas/start.are.json", "New <area>"));
+    EXPECT_EQ(browser.project_rows[0].node.id, "item:armor.uti");
+    EXPECT_EQ(browser.project_rows[1].node.id, "area:shared/areas/start");
+    ASSERT_TRUE(render_project_tree_window(document, browser, true));
+    auto* list = document->GetElementById("recent_list");
+    ASSERT_NE(list, nullptr);
+    EXPECT_NE(list->GetInnerRML().find("New &lt;name&gt;"), std::string::npos);
+    EXPECT_NE(list->GetInnerRML().find("New &lt;area&gt;"), std::string::npos);
+}
+
 TEST(ClientShellLogCapture, SdkMessagesOwnTextKeepBoundedOrderAndRemoveTheCallback)
 {
     const auto previous_verbosity = loguru::g_stderr_verbosity;
@@ -1667,6 +1702,79 @@ protected:
         view.active_object_tab_id = workspace.active_tab_id();
         command.active_tab_id = workspace.active_tab_id();
         rebuild_object_workbench_snapshots(view, object);
+    }
+    void show_locstring_panel()
+    {
+        if (!view.locstring_row) {
+            const auto row = std::ranges::find_if(view.object_details.rows,
+                [](const auto& value) {
+                    return value.editor == ObjectDetailsEditorKind::locstring;
+                });
+            ASSERT_NE(row, view.object_details.rows.end());
+            view.locstring_row = static_cast<uint32_t>(
+                row - view.object_details.rows.begin());
+        }
+        document->SetInnerRML("<div id='object_workbench' class='object_workbench' "
+                              "style='position:absolute;width:600px;height:600px;'>"
+                              "<span id='object_locstring_title'></span>"
+                              "<div id='object_locstring_rows' style='width:400px;height:400px;'>"
+                              "<div id='object_locstring_unavailable' class='object_locstring_mode'></div>"
+                              "<div id='object_locstring_editor' class='object_locstring_mode'>"
+                              "<div class='object_locstring_section'>Text source</div>"
+                              "<button id='object_locstring_language' class='combobox_field object_locstring_source_field'>"
+                              "<span id='object_locstring_language_value' class='combobox_value'></span>"
+                              "<span class='combobox_arrow'></span></button>"
+                              "<div id='object_locstring_strref_editor' class='object_locstring_mode'>"
+                              "<div class='object_locstring_section'>Strref</div>"
+                              "<input id='object_locstring_strref' class='object_locstring_strref_input' type='text' />"
+                              "<div class='object_locstring_section object_locstring_preview_label'>Resolved TLK text</div>"
+                              "<div id='object_locstring_resolved' class='object_locstring_resolved'></div></div>"
+                              "<div id='object_locstring_text_editor' class='object_locstring_mode'>"
+                              "<div id='object_locstring_gender' class='object_locstring_language_controls'>"
+                              "<span class='object_locstring_section'>Gender</span>"
+                              "<button id='object_locstring_gender_toggle' class='object_locstring_gender_toggle'></button></div>"
+                              "<div class='object_locstring_section'>Authored text</div>"
+                              "<textarea id='object_locstring_text' class='object_locstring_text_input'></textarea>"
+                              "</div></div></div>"
+                              "<div id='object_details_combobox_popup' "
+                              "class='combobox_options combobox_popup object_details_combobox_popup'></div></div>");
+        context->Update();
+        ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+        context->Update();
+    }
+    bool select_locstring_source(int32_t key)
+    {
+        auto* field = document->GetElementById("object_locstring_language");
+        if (!field) { return false; }
+        auto click = capture_object_workbench_click(field, {}, view, workspace,
+            backend.module_generation(), nw::kernel::resman().generation());
+        if (!click || !std::holds_alternative<ObjectWorkbenchComboClick>(click->payload)
+            || std::get<ObjectWorkbenchComboClick>(click->payload).kind
+                != ObjectWorkbenchComboKind::locstring_source_open) { return false; }
+        auto effect = apply_object_workbench_click(*click, document, view, workspace,
+            backend, shell, command);
+        if (effect.finish != ObjectWorkbenchClickFinish::locstring_source) { return false; }
+        finish_object_workbench_click(effect, *click, document, view, workspace,
+            nw::kernel::resman().generation());
+        context->Update();
+        Rml::ElementList options;
+        document->GetElementsByClassName(options, "combobox_option");
+        const auto found = std::ranges::find_if(options, [&](Rml::Element* option) {
+            return option->GetAttribute<Rml::String>("data-key", "") == std::to_string(key);
+        });
+        if (found == options.end()) { return false; }
+        click = capture_object_workbench_click(*found, {}, view, workspace,
+            backend.module_generation(), nw::kernel::resman().generation());
+        if (!click || !std::holds_alternative<ObjectWorkbenchComboClick>(click->payload)
+            || std::get<ObjectWorkbenchComboClick>(click->payload).kind
+                != ObjectWorkbenchComboKind::locstring_source_select) { return false; }
+        effect = apply_object_workbench_click(*click, document, view, workspace,
+            backend, shell, command);
+        if (effect.finish != ObjectWorkbenchClickFinish::locstring_source) { return false; }
+        finish_object_workbench_click(effect, *click, document, view, workspace,
+            nw::kernel::resman().generation());
+        context->Update();
+        return true;
     }
     ObjectWorkbenchViewState view;
     WorkspaceState workspace;
@@ -2556,6 +2664,770 @@ TEST_F(ClientObjectWorkbench, EnterRenameCommitsOnceDespiteSynchronousBlur)
     EXPECT_EQ(module->locals.get_int("new"), 5);
     EXPECT_TRUE(std::none_of(shell.output_lines.begin(), shell.output_lines.end(),
         [](const auto& row) { return row.first == "error" || row.first == "warn"; }));
+}
+
+TEST_F(ClientObjectWorkbench, ActionLineEditEscapesAnyPreviewAndKeepsItsAction)
+{
+    document->SetInnerRML(render_rml_action_line_edit("A \"<&'", "Not set",
+        "<button class='action_line_edit_action test_action' type='button'>Action</button>"));
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(
+        document->GetFirstChild()->GetFirstChild());
+    ASSERT_NE(input, nullptr);
+    EXPECT_EQ(input->GetValue(), "A \"<&'");
+    EXPECT_TRUE(input->IsDisabled());
+    Rml::ElementList actions;
+    document->GetElementsByClassName(actions, "test_action");
+    ASSERT_EQ(actions.size(), 1u);
+    EXPECT_EQ(actions.front()->GetInnerRML(), "Action");
+}
+
+TEST_F(ClientObjectWorkbench, ItemNamePreviewOpensLocalizedEditor)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    item->name.set_strref(1000);
+    ASSERT_TRUE(item->name.add(nw::LanguageID::english, "Old <&>"));
+    activate(item->handle());
+    ASSERT_EQ(view.object_details.status, ObjectDetailsStatus::ready)
+        << view.object_details.diagnostic;
+    document->SetInnerRML("<div id='property_tree_rows' style='height:400px;width:600px;overflow:auto;'></div>"
+                          "<div id='property_tree_count'></div>");
+    context->Update();
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+    context->Update();
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "action_line_edit_input");
+    ASSERT_EQ(fields.size(), 2u);
+    const auto name_field = std::ranges::find_if(fields, [](Rml::Element* field) {
+        const auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(field);
+        return input && input->GetValue() == "Silence";
+    });
+    ASSERT_NE(name_field, fields.end());
+    auto* preview = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(*name_field);
+    ASSERT_NE(preview, nullptr);
+    EXPECT_EQ(preview->GetValue(), "Silence");
+    EXPECT_TRUE(preview->IsDisabled());
+    EXPECT_FLOAT_EQ(preview->GetLineHeight(), 17.0f);
+    EXPECT_FLOAT_EQ(preview->GetBox().GetEdge(Rml::BoxArea::Padding, Rml::BoxEdge::Top), 2.0f);
+    auto* inset = preview->GetParentNode();
+    ASSERT_NE(inset, nullptr);
+    EXPECT_NEAR(inset->GetAbsoluteTop() + inset->GetOffsetHeight() / 2.0f,
+        preview->GetAbsoluteTop() + preview->GetOffsetHeight() / 2.0f, 1.0f);
+    fields.clear();
+    document->GetElementsByClassName(fields, "action_line_edit_action");
+    ASSERT_EQ(fields.size(), 2u);
+    const auto name_action = std::ranges::find_if(fields, [&](Rml::Element* field) {
+        return field->GetParentNode() == preview->GetParentNode();
+    });
+    ASSERT_NE(name_action, fields.end());
+    EXPECT_EQ((*name_action)->GetInnerRML(), "…");
+    EXPECT_GT((*name_action)->GetOffsetWidth(), 0);
+    EXPECT_LE((*name_action)->GetAbsoluteLeft() + (*name_action)->GetOffsetWidth(),
+        preview->GetParentNode()->GetAbsoluteLeft()
+            + preview->GetParentNode()->GetOffsetWidth() + 1);
+    auto click = capture_object_workbench_surface_click(*name_action);
+    ASSERT_TRUE(click);
+    EXPECT_TRUE(apply_object_workbench_surface_click(*click, view, document, backend));
+    EXPECT_EQ(view.object_workbench_surface, ObjectWorkbenchSurface::locstring);
+    ASSERT_TRUE(view.locstring_row);
+    EXPECT_EQ(view.object_details.rows[*view.locstring_row].editor,
+        ObjectDetailsEditorKind::locstring);
+    EXPECT_FALSE(view.locstring_language);
+}
+
+TEST_F(ClientObjectWorkbench, GenericObjectLocStringUsesSharedEditorTemplate)
+{
+    auto* waypoint = nw::kernel::objects().make<nw::Waypoint>();
+    ASSERT_NE(waypoint, nullptr);
+    nw::kernel::runtime().init_object_propsets(waypoint->handle());
+    waypoint->name.set_strref(2);
+    activate(waypoint->handle());
+    ASSERT_EQ(view.object_details.status, ObjectDetailsStatus::ready)
+        << view.object_details.diagnostic;
+
+    std::string markup;
+    append_object_workbench_markup(markup, view, workspace, backend);
+    document->SetInnerRML(markup);
+    context->Update();
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+    context->Update();
+    Rml::ElementList actions;
+    document->GetElementsByClassName(actions, "action_line_edit_action");
+    ASSERT_FALSE(actions.empty());
+    const auto name_action = std::ranges::find_if(actions, [](Rml::Element* action) {
+        auto* parent = action->GetParentNode();
+        auto* input = parent
+            ? rmlui_dynamic_cast<Rml::ElementFormControlInput*>(
+                  parent->QuerySelector(".action_line_edit_input"))
+            : nullptr;
+        return input && input->GetValue() == "Bard";
+    });
+    ASSERT_NE(name_action, actions.end());
+    auto click = capture_object_workbench_surface_click(*name_action);
+    ASSERT_TRUE(click);
+    ASSERT_TRUE(apply_object_workbench_surface_click(
+        *click, view, document, backend));
+
+    markup.clear();
+    append_object_workbench_markup(markup, view, workspace, backend);
+    EXPECT_NE(markup.find("<template src=\"object-locstring-editor\"></template>"),
+        std::string::npos);
+    EXPECT_EQ(markup.find("object_workbench_tab<template"), std::string::npos);
+    document->SetInnerRML(markup);
+    context->Update();
+    hydrate_object_workbench(document, view, workspace);
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+    context->Update();
+    EXPECT_NE(document->GetElementById("object_locstring_rows"), nullptr);
+    EXPECT_NE(document->GetElementById("object_locstring_language"), nullptr);
+    EXPECT_EQ(document->GetElementById("object_locstring_resolved")
+                  ->GetInnerRML(),
+        "Bard");
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameRefreshesWorkspaceTabTitle)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    item->name.set_strref(2);
+    auto* tab = workspace.active_tab();
+    ASSERT_NE(tab, nullptr);
+    tab->detail = "blueprints/items/helmet.uti.json";
+    ASSERT_TRUE(tab->document.adopt(item->handle()));
+    WorkspaceViewState tabs;
+    EXPECT_EQ(refresh_active_object_tab_title(workspace, nw::LanguageID::english), "Bard");
+    EXPECT_EQ(tab->title, "Bard");
+    refresh_workspace_tabs(document, tabs, workspace);
+    context->Update();
+    auto* track = document->GetElementById("workspace_tab_track");
+    ASSERT_NE(track, nullptr);
+    EXPECT_NE(track->GetInnerRML().find("Bard"), std::string::npos);
+
+    item->name.set_strref(UINT32_MAX);
+    ASSERT_TRUE(item->name.add(nw::LanguageID::english, "Renamed Item"));
+    EXPECT_EQ(refresh_active_object_tab_title(workspace, nw::LanguageID::english), "Renamed Item");
+    refresh_workspace_tabs(document, tabs, workspace);
+    context->Update();
+    track = document->GetElementById("workspace_tab_track");
+    ASSERT_NE(track, nullptr);
+    EXPECT_NE(track->GetInnerRML().find("Renamed Item"), std::string::npos);
+
+    item->name.remove(nw::LanguageID::english);
+    EXPECT_EQ(refresh_active_object_tab_title(workspace, nw::LanguageID::english), "helmet.uti.json");
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->name = nw::LocString{};
+    ASSERT_TRUE(area->name.add(nw::LanguageID::english, "Renamed Area"));
+    auto& area_tab = workspace.open_area_tab(
+        "shared/areas/renamed.caf.json", "Area");
+    ASSERT_TRUE(area_tab.document.adopt(area->handle()));
+    EXPECT_EQ(refresh_active_object_tab_title(workspace,
+                  nw::LanguageID::english),
+        "Renamed Area");
+    EXPECT_EQ(workspace.active_tab()->title, "Renamed Area");
+    workspace.clear();
+}
+
+TEST_F(ClientObjectWorkbench, ModuleNameRefreshesHomeDetailsAndSaves)
+{
+    const auto project = std::filesystem::path{"tmp/client_browser_workspace"}
+        / ::testing::UnitTest::GetInstance()->current_test_info()->name();
+    std::filesystem::remove_all(project);
+    const auto imported = import_module_project(
+        "test_data/user/modules/DockerDemo.mod", project,
+        {ProjectImportFormat::json});
+    ASSERT_TRUE(imported.ok) << imported.message;
+    const auto opened = backend.open_project(project.string());
+    ASSERT_TRUE(opened.ok()) << opened.message;
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path("stdlib/core");
+    runtime.add_module_path("stdlib/nwn1");
+    runtime.add_module_path("stdlib/toolset");
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+    ASSERT_EQ(workspace.active_tab_id(), "home");
+    command.active_tab_id = workspace.active_tab_id();
+
+    auto* module = nw::kernel::objects().get<nw::Module>(
+        backend.module_object());
+    ASSERT_NE(module, nullptr);
+    module->name = nw::LocString{};
+    ASSERT_TRUE(module->name.add(nw::LanguageID::english, "Old module"));
+    activate(module->handle());
+    const auto name_row = std::ranges::find_if(view.object_details.rows,
+        [](const auto& row) {
+            return row.editor == ObjectDetailsEditorKind::locstring
+                && row.locstring_storage
+                == ObjectLocStringStorage::module_name;
+        });
+    ASSERT_NE(name_row, view.object_details.rows.end());
+    const std::string row = std::to_string(
+        name_row - view.object_details.rows.begin());
+    const std::string language = std::to_string(
+        nw::Language::to_runtime_id(nw::LanguageID::english, false));
+    const auto renamed = backend.execute_command(
+        "object.details.set_locstring_text",
+        {row, language, "Old module", "New module"}, command);
+    ASSERT_TRUE(renamed.ok()) << renamed.message;
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    EXPECT_EQ(module->name.get(nw::LanguageID::english), "New module");
+
+    ASSERT_TRUE(refresh_object_workbench_snapshots(view, module->handle()));
+    const auto refreshed = std::ranges::find_if(view.object_details.rows,
+        [](const auto& value) {
+            return value.locstring_storage
+                == ObjectLocStringStorage::module_name;
+        });
+    ASSERT_NE(refreshed, view.object_details.rows.end());
+    EXPECT_EQ(view.object_details.text_view(refreshed->value), "New module");
+
+    document->SetInnerRML(
+        "<div id='property_tree_rows' style='height:400px;width:600px;overflow:auto;'></div>"
+        "<div id='property_tree_count'></div>");
+    context->Update();
+    ASSERT_TRUE(sync_object_details_window(
+        document, view, workspace, true));
+    context->Update();
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "action_line_edit_input");
+    EXPECT_TRUE(std::ranges::any_of(fields, [](Rml::Element* field) {
+        const auto* input
+            = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(field);
+        return input && input->GetValue() == "New module";
+    }));
+
+    const auto saved = backend.execute_command(
+        "workspace.save_tab", {"home"}, command);
+    ASSERT_TRUE(saved.ok()) << saved.message;
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+}
+
+TEST_F(ClientObjectWorkbench, StandaloneModuleNameRejectsWithoutJsonProject)
+{
+    workspace.open_tab("home", "Home", WorkspaceTabKind::home,
+        false, false);
+    command.active_tab_id = workspace.active_tab_id();
+    auto* module = nw::kernel::objects().make<nw::Module>();
+    ASSERT_NE(module, nullptr);
+    module->name = nw::LocString{};
+    ASSERT_TRUE(module->name.add(
+        nw::LanguageID::english, "Standalone module"));
+    activate(module->handle());
+    const auto name_row = std::ranges::find_if(view.object_details.rows,
+        [](const auto& row) {
+            return row.locstring_storage
+                == ObjectLocStringStorage::module_name;
+        });
+    ASSERT_NE(name_row, view.object_details.rows.end());
+    const std::string row = std::to_string(
+        name_row - view.object_details.rows.begin());
+    const std::string language = std::to_string(
+        nw::Language::to_runtime_id(nw::LanguageID::english, false));
+    const auto rejected = backend.execute_command(
+        "object.details.set_locstring_text",
+        {row, language, "Standalone module", "Unsaved module"}, command);
+    EXPECT_EQ(rejected.status, CommandStatus::rejected);
+    EXPECT_NE(rejected.message.find("JSON module resource"),
+        std::string::npos);
+    EXPECT_EQ(module->name.get(nw::LanguageID::english),
+        "Standalone module");
+    ASSERT_NE(workspace.active_tab(), nullptr);
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+}
+
+TEST_F(ClientObjectWorkbench, ItemNamePanelEditsStrrefAndMultilineGenderVariants)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    item->name.set_strref(1000);
+    ASSERT_TRUE(item->name.add(nw::LanguageID::english, "English name"));
+    ASSERT_TRUE(item->name.add(nw::LanguageID::french, "French name"));
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    show_locstring_panel();
+
+    Listener listener{*this};
+    context->AddEventListener("change", &listener, false);
+    context->AddEventListener("blur", &listener, true);
+    context->AddEventListener("click", &listener, false);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("change", &listener, false);
+        context->RemoveEventListener("blur", &listener, true);
+        context->RemoveEventListener("click", &listener, false);
+    });
+    auto* selector = document->GetElementById("object_locstring_language");
+    ASSERT_NE(selector, nullptr);
+    EXPECT_NE(selector->GetInnerRML().find("String Reference"), std::string::npos);
+    EXPECT_EQ(document->GetElementById("object_locstring_rows")
+                  ->GetInnerRML()
+                  .find("Default"),
+        std::string::npos);
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* strref = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+    ASSERT_NE(strref, nullptr);
+    EXPECT_EQ(strref->GetValue(), "1000");
+    EXPECT_NE(document->GetElementById("object_locstring_rows")->GetInnerRML().find("Silence"), std::string::npos);
+    ASSERT_NE(document->GetElementById("object_locstring_text"), nullptr);
+    EXPECT_TRUE(document->GetElementById("object_locstring_strref_editor")
+            ->IsClassSet("active"));
+    EXPECT_FALSE(document->GetElementById("object_locstring_text_editor")
+            ->IsClassSet("active"));
+
+    ASSERT_TRUE(select_locstring_source(1));
+    EXPECT_EQ(view.locstring_language, nw::LanguageID::french);
+    selector = document->GetElementById("object_locstring_language");
+    ASSERT_NE(selector, nullptr);
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_gender_toggle");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* gender_button = fields.front();
+    auto* gender_label = gender_button->GetPreviousSibling();
+    auto* source_label = selector->GetPreviousSibling();
+    ASSERT_NE(gender_label, nullptr);
+    ASSERT_NE(source_label, nullptr);
+    EXPECT_TRUE(gender_label->IsClassSet("object_locstring_section"));
+    EXPECT_EQ(gender_label->GetComputedValues().font_family(), source_label->GetComputedValues().font_family());
+    EXPECT_FLOAT_EQ(gender_label->GetComputedValues().font_size(), source_label->GetComputedValues().font_size());
+    EXPECT_EQ(gender_label->GetComputedValues().color(), source_label->GetComputedValues().color());
+    EXPECT_FLOAT_EQ(gender_button->GetComputedValues().font_size(), 13.0f);
+    EXPECT_FLOAT_EQ(gender_button->GetLineHeight(), 19.0f);
+    EXPECT_EQ(gender_button->GetInnerRML(), "Masculine");
+    auto* button_text = gender_button->GetFirstChild();
+    ASSERT_NE(button_text, nullptr);
+    EXPECT_NEAR(button_text->GetAbsoluteTop() + button_text->GetOffsetHeight() / 2.0f,
+        gender_button->GetAbsoluteTop() + gender_button->GetOffsetHeight() / 2.0f, 1.0f);
+    EXPECT_NEAR(fields.front()->GetAbsoluteLeft() + fields.front()->GetOffsetWidth(),
+        selector->GetAbsoluteLeft() + selector->GetOffsetWidth(), 1.0f);
+    auto* text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    auto* authored_label = text->GetPreviousSibling();
+    ASSERT_NE(authored_label, nullptr);
+    EXPECT_EQ(authored_label->GetComputedValues().font_family(), source_label->GetComputedValues().font_family());
+    EXPECT_FLOAT_EQ(authored_label->GetComputedValues().font_size(), source_label->GetComputedValues().font_size());
+    EXPECT_EQ(authored_label->GetComputedValues().color(), source_label->GetComputedValues().color());
+    EXPECT_EQ(text->GetValue(), "French name");
+    ASSERT_TRUE(text->Focus());
+    text->SetValue("Premiere ligne\nDeuxieme ligne");
+    Rml::Dictionary params{{Rml::String{"linebreak"}, Rml::Variant{true}}};
+    text->DispatchEvent("change", params);
+    EXPECT_EQ(item->name.get(nw::LanguageID::french), "French name");
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_apply_text");
+    EXPECT_TRUE(fields.empty());
+    EXPECT_EQ(document->GetElementById("object_locstring_rows")
+                  ->GetInnerRML()
+                  .find("Enter inserts a new line"),
+        std::string::npos);
+    text->Blur();
+    EXPECT_EQ(item->name.get(nw::LanguageID::french), "Premiere ligne\nDeuxieme ligne");
+    EXPECT_EQ(item->name.strref(), 1000u);
+    EXPECT_EQ(workspace.undo_count(), 1);
+
+    rebuild_object_workbench_snapshots(view, item->handle());
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+    context->Update();
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_gender_toggle");
+    ASSERT_EQ(fields.size(), 1u);
+    fields.front()->DispatchEvent("click", {});
+    EXPECT_TRUE(view.locstring_feminine);
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+    context->Update();
+    text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    EXPECT_TRUE(text->GetValue().empty());
+    ASSERT_TRUE(text->Focus());
+    text->SetValue("Nom feminin\nLigne deux");
+    text->Blur();
+    EXPECT_EQ(item->name.get(nw::LanguageID::french, true), "Nom feminin\nLigne deux");
+    EXPECT_EQ(item->name.get(nw::LanguageID::french), "Premiere ligne\nDeuxieme ligne");
+
+    rebuild_object_workbench_snapshots(view, item->handle());
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, true));
+    context->Update();
+    ASSERT_TRUE(select_locstring_source(-1));
+    EXPECT_FALSE(view.locstring_language);
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    strref = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+    ASSERT_NE(strref, nullptr);
+    strref->SetValue("");
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_apply_strref");
+    EXPECT_TRUE(fields.empty());
+    strref->DispatchEvent("change", params);
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+    EXPECT_EQ(locstring_resting_value(item->name, nw::LanguageID::french),
+        "Premiere ligne\nDeuxieme ligne");
+    EXPECT_EQ(workspace.undo_count(), 3);
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, false));
+    context->Update();
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    strref = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+    ASSERT_NE(strref, nullptr);
+    EXPECT_TRUE(strref->GetValue().empty());
+    strref->SetValue("-2");
+    selector = document->GetElementById("object_locstring_language");
+    ASSERT_NE(selector, nullptr);
+    EXPECT_FALSE(select_locstring_source(0));
+    EXPECT_FALSE(view.locstring_language);
+    EXPECT_NE(selector->GetInnerRML().find("String Reference"), std::string::npos);
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(item->name.strref(), 1000u);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_TRUE(item->name.get(nw::LanguageID::french, true).empty());
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(item->name.get(nw::LanguageID::french, true), "Nom feminin\nLigne deux");
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameSourceChangeCommitsCurrentMultilineDraft)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    ASSERT_TRUE(item->name.add(nw::LanguageID::english, "English name"));
+    ASSERT_TRUE(item->name.add(nw::LanguageID::french, "Nom francais"));
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    view.locstring_language = nw::LanguageID::english;
+    show_locstring_panel();
+    Listener listener{*this};
+    context->AddEventListener("change", &listener, false);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("change", &listener, false);
+    });
+    auto* text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    text->SetValue("English draft\nSecond line");
+    ASSERT_TRUE(select_locstring_source(1));
+    EXPECT_EQ(item->name.get(nw::LanguageID::english),
+        "English draft\nSecond line");
+    EXPECT_EQ(view.locstring_language, nw::LanguageID::french);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    EXPECT_EQ(text->GetValue(), "Nom francais");
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameEscapeDiscardsMultilineDraft)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    ASSERT_TRUE(item->name.add(nw::LanguageID::english, "Original"));
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    view.locstring_language = nw::LanguageID::english;
+    show_locstring_panel();
+    Listener listener{*this};
+    context->AddEventListener("blur", &listener, true);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("blur", &listener, true);
+    });
+    auto* text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    ASSERT_TRUE(text->Focus());
+    text->SetValue("Draft\nsecond line");
+    SDL_KeyboardEvent key{};
+    key.key = SDLK_ESCAPE;
+    EXPECT_EQ(handle_object_workbench_field_key(key, context, document,
+                  view, workspace, backend, shell, command),
+        ObjectWorkbenchFieldKeyEffect::handled);
+    EXPECT_EQ(item->name.get(nw::LanguageID::english), "Original");
+    EXPECT_EQ(workspace.undo_count(), 0);
+    text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    EXPECT_EQ(text->GetValue(), "Original");
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameEscapeRestoresStrrefPreview)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    item->name.set_strref(2);
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    show_locstring_panel();
+    Listener listener{*this};
+    context->AddEventListener("change", &listener, false);
+    context->AddEventListener("blur", &listener, true);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("change", &listener, false);
+        context->RemoveEventListener("blur", &listener, true);
+    });
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(fields.front());
+    ASSERT_NE(input, nullptr);
+    ASSERT_TRUE(input->Focus());
+    input->SetValue("1000");
+    input->DispatchEvent("change", {});
+    auto* preview = document->GetElementById("object_locstring_resolved");
+    ASSERT_NE(preview, nullptr);
+    EXPECT_EQ(preview->GetInnerRML(), "Silence");
+    SDL_KeyboardEvent key{};
+    key.key = SDLK_ESCAPE;
+    EXPECT_EQ(handle_object_workbench_field_key(key, context, document,
+                  view, workspace, backend, shell, command),
+        ObjectWorkbenchFieldKeyEffect::handled);
+    EXPECT_EQ(item->name.strref(), 2u);
+    EXPECT_EQ(workspace.undo_count(), 0);
+    preview = document->GetElementById("object_locstring_resolved");
+    ASSERT_NE(preview, nullptr);
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameSaveShortcutCommitsFocusedDraft)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    ASSERT_TRUE(item->name.add(nw::LanguageID::english, "Original"));
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    view.locstring_language = nw::LanguageID::english;
+    show_locstring_panel();
+    Listener listener{*this};
+    context->AddEventListener("blur", &listener, true);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("blur", &listener, true);
+    });
+    auto* text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+        document->GetElementById("object_locstring_text"));
+    ASSERT_NE(text, nullptr);
+    ASSERT_TRUE(text->Focus());
+    text->SetValue("Saved\nsecond line");
+    SDL_KeyboardEvent key{};
+    key.key = SDLK_S;
+    key.mod = SDL_KMOD_CTRL;
+    EXPECT_EQ(handle_object_workbench_field_key(key, context, document,
+                  view, workspace, backend, shell, command),
+        ObjectWorkbenchFieldKeyEffect::none);
+    EXPECT_EQ(item->name.get(nw::LanguageID::english), "Saved\nsecond line");
+    EXPECT_EQ(workspace.undo_count(), 1);
+
+    view.locstring_language.reset();
+    view.locstring_panel_rendered = false;
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, false));
+    context->Update();
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* strref = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+    ASSERT_NE(strref, nullptr);
+    ASSERT_TRUE(strref->Focus());
+    strref->SetValue("2");
+    EXPECT_EQ(handle_object_workbench_field_key(key, context, document,
+                  view, workspace, backend, shell, command),
+        ObjectWorkbenchFieldKeyEffect::none);
+    EXPECT_EQ(item->name.strref(), 2u);
+    EXPECT_EQ(workspace.undo_count(), 2);
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameStrrefCommitsOnBlurAndPreviewFillsRow)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    item->name.set_strref(1000);
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    show_locstring_panel();
+    Listener listener{*this};
+    context->AddEventListener("blur", &listener, true);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("blur", &listener, true);
+    });
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+    ASSERT_NE(input, nullptr);
+    EXPECT_GT(input->GetOffsetWidth(), 300);
+    EXPECT_EQ(document->GetElementById("object_locstring_rows")
+                  ->GetInnerRML()
+                  .find("Apply strref"),
+        std::string::npos);
+    input->SetValue("2");
+    input->DispatchEvent("blur", {});
+    EXPECT_EQ(item->name.strref(), 2u);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, false));
+    context->Update();
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_preview_label");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* label = fields.front();
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_resolved");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* preview = fields.front();
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+    EXPECT_GT(preview->GetOffsetWidth(), 300);
+    EXPECT_GE(preview->GetAbsoluteTop(), label->GetAbsoluteTop() + label->GetOffsetHeight());
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    input = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+    ASSERT_NE(input, nullptr);
+    input->SetValue("4294967296");
+    input->DispatchEvent("blur", {});
+    EXPECT_EQ(item->name.strref(), 2u);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    EXPECT_EQ(input->GetValue(), "2");
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameStrrefInputEnforcesNumericBounds)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    item->name.set_strref(2);
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    show_locstring_panel();
+    Listener listener{*this};
+    context->AddEventListener("change", &listener, false);
+    context->AddEventListener("blur", &listener, true);
+    const auto remove = create_scope_exit([&] {
+        context->RemoveEventListener("change", &listener, false);
+        context->RemoveEventListener("blur", &listener, true);
+    });
+    Rml::ElementList fields;
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(fields.front());
+    ASSERT_NE(input, nullptr);
+    const auto row = input->GetAttribute<Rml::String>("data-row", "");
+    auto* preview = document->GetElementById("object_locstring_resolved");
+    ASSERT_NE(preview, nullptr);
+    EXPECT_GE(preview->GetOffsetHeight(), 180);
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+    input->SetValue("1000");
+    input->DispatchEvent("change", {});
+    EXPECT_EQ(preview->GetInnerRML(), "Silence");
+    EXPECT_EQ(item->name.strref(), 2u);
+    EXPECT_EQ(workspace.undo_count(), 0);
+    input->SetValue("2");
+    input->DispatchEvent("change", {});
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+    input->SetValue("4294967295");
+    input->DispatchEvent("change", {});
+    EXPECT_EQ(input->GetValue(), "2");
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+    input->SetValue("-2");
+    input->DispatchEvent("change", {});
+    EXPECT_EQ(input->GetValue(), "2");
+    input->SetValue("-");
+    input->DispatchEvent("change", {});
+    EXPECT_EQ(input->GetValue(), "2");
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+    input->DispatchEvent("blur", {});
+    EXPECT_EQ(input->GetValue(), "2");
+    EXPECT_EQ(preview->GetInnerRML(), "Bard");
+    EXPECT_EQ(workspace.undo_count(), 0);
+
+    input->SetValue("4294967294");
+    input->DispatchEvent("change", {});
+    input->DispatchEvent("blur", {});
+    EXPECT_EQ(item->name.strref(), UINT32_MAX - 1u);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, false));
+    context->Update();
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(fields.front());
+    ASSERT_NE(input, nullptr);
+    preview = document->GetElementById("object_locstring_resolved");
+    ASSERT_NE(preview, nullptr);
+    input->SetValue("");
+    input->DispatchEvent("change", {});
+    EXPECT_EQ(preview->GetInnerRML(), "No TLK text to preview.");
+    EXPECT_EQ(item->name.strref(), UINT32_MAX - 1u);
+    input->DispatchEvent("blur", {});
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+    EXPECT_EQ(workspace.undo_count(), 2);
+    ASSERT_TRUE(sync_object_details_window(document, view, workspace, false));
+    context->Update();
+    fields.clear();
+    document->GetElementsByClassName(fields, "object_locstring_strref_input");
+    ASSERT_EQ(fields.size(), 1u);
+    input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(fields.front());
+    ASSERT_NE(input, nullptr);
+    EXPECT_TRUE(input->GetValue().empty());
+    const auto invalid = backend.execute_command("object.details.set_locstring_strref",
+        {row, std::to_string(UINT32_MAX), "4294967295"}, command);
+    EXPECT_EQ(invalid.status, CommandStatus::rejected);
+    const auto negative = backend.execute_command("object.details.set_locstring_strref",
+        {row, std::to_string(UINT32_MAX), "-1"}, command);
+    EXPECT_EQ(negative.status, CommandStatus::rejected);
+    EXPECT_EQ(item->name.strref(), UINT32_MAX);
+    EXPECT_EQ(workspace.undo_count(), 2);
+}
+
+TEST_F(ClientObjectWorkbench, ItemNameSourceUsesStyledComboboxKeyboardPath)
+{
+    auto* item = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    nw::kernel::runtime().init_object_propsets(item->handle());
+    item->name.set_strref(1000);
+    activate(item->handle());
+    view.object_workbench_surface = ObjectWorkbenchSurface::locstring;
+    show_locstring_panel();
+    auto* field = document->GetElementById("object_locstring_language");
+    ASSERT_NE(field, nullptr);
+    ASSERT_TRUE(field->Focus());
+    SDL_KeyboardEvent key{};
+    key.key = SDLK_RETURN;
+    const auto handle = [&] {
+        return handle_object_workbench_field_key(key, context, document,
+            view, workspace, backend, shell, command);
+    };
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::handled);
+    ASSERT_TRUE(view.object_details_combobox.is_active());
+    EXPECT_EQ(view.object_details_combobox.size(), 11u);
+    EXPECT_EQ(view.object_details_combobox.selected_key(), -1);
+    auto* popup = document->GetElementById("object_details_combobox_popup");
+    ASSERT_NE(popup, nullptr);
+    EXPECT_TRUE(popup->IsClassSet("active"));
+    EXPECT_NE(popup->GetInnerRML().find("String Reference"), std::string::npos);
+    context->Update();
+    EXPECT_GT(popup->GetOffsetHeight(), 0);
+    EXPECT_GE(popup->GetAbsoluteTop(),
+        field->GetAbsoluteTop() + field->GetOffsetHeight());
+    key.key = SDLK_DOWN;
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::handled);
+    EXPECT_EQ(view.object_details_combobox.selected_key(), 0);
+    key.key = SDLK_RETURN;
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::content_changed);
+    EXPECT_EQ(view.locstring_language, nw::LanguageID::english);
+    EXPECT_FALSE(view.object_details_combobox.is_active());
+    EXPECT_EQ(workspace.undo_count(), 0);
+    (void)sync_object_details_window(document, view, workspace, false);
+    EXPECT_NE(document->GetElementById("object_locstring_language")
+                  ->GetInnerRML()
+                  .find("English"),
+        std::string::npos);
 }
 
 TEST_F(ClientObjectWorkbench, VariableWindowsPreserveUtf8RowsAndSkipInactiveSurfaces)

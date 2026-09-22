@@ -1,6 +1,7 @@
 #include "object_document.hpp"
 
 #include "area_map.hpp"
+#include "project.hpp"
 #include "resource_document.hpp"
 #include "workspace.hpp"
 
@@ -10,6 +11,7 @@
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
@@ -102,12 +104,25 @@ std::optional<std::filesystem::path> validated_project_file(
     return target;
 }
 
-bool save_workspace_document(WorkspaceTab& tab, const std::filesystem::path& project_dir,
+bool save_workspace_document(WorkspaceTab& tab,
+    const std::filesystem::path& project_dir, ObjectHandle module_object,
     std::string& diagnostic, bool& warning,
     std::optional<std::filesystem::path>& refreshed_area_map)
 {
+    if (tab.kind == WorkspaceTabKind::home) {
+        const auto target = project_module_resource_path(project_dir);
+        if (!target || target->extension() != ".json") {
+            diagnostic = "Module metadata saving requires a JSON resource inside the active project";
+            return false;
+        }
+        if (!save_live_module_json_atomic(module_object, *target, diagnostic)) {
+            return false;
+        }
+        tab.dirty = false;
+        return true;
+    }
     if (tab.kind != WorkspaceTabKind::area && tab.kind != WorkspaceTabKind::preview) {
-        diagnostic = "Only blueprint and area documents support saving";
+        diagnostic = "Only module, blueprint, and area documents support saving";
         return false;
     }
     if (std::filesystem::path{tab.detail}.extension() != ".json") {
@@ -320,7 +335,13 @@ std::string live_object_display_name(ObjectHandle object)
             return name;
         }
     }
-    if (auto name = kernel::strings().get(live_object->name); !name.empty()) {
+    const LocString* localized_name = &live_object->name;
+    if (const auto* area = live_object->as_area()) {
+        localized_name = &area->name;
+    } else if (const auto* module = live_object->as_module()) {
+        localized_name = &module->name;
+    }
+    if (auto name = kernel::strings().get(*localized_name); !name.empty()) {
         return name;
     }
     if (!live_object->tag.view().empty()) {
@@ -333,7 +354,8 @@ std::string live_object_display_name(ObjectHandle object)
 }
 
 CommandResult save_workspace_documents(WorkspaceState& workspace,
-    const std::filesystem::path& project_dir, std::span<const std::string_view> tab_ids)
+    const std::filesystem::path& project_dir,
+    std::span<const std::string_view> tab_ids, ObjectHandle module_object)
 {
     CommandResult result;
     if (tab_ids.empty()) {
@@ -362,7 +384,7 @@ CommandResult save_workspace_documents(WorkspaceState& workspace,
         try {
             if (tab) {
                 success = save_workspace_document(*tab, project_dir,
-                    diagnostic, warning, refreshed_area_map);
+                    module_object, diagnostic, warning, refreshed_area_map);
             } else {
                 diagnostic = "Document tab no longer exists";
             }
@@ -429,6 +451,28 @@ bool save_live_area_json_atomic(
         serialize(area, serialized);
     } catch (const std::exception& e) {
         error = "Failed to serialize live area: " + std::string{e.what()};
+        return false;
+    }
+    return save_json_resource_document_atomic(target, serialized, error);
+}
+
+bool save_live_module_json_atomic(
+    ObjectHandle object, const std::filesystem::path& target, std::string& error)
+{
+    error.clear();
+    if (object.type != ObjectType::module) {
+        error = "Live module is invalid or stale";
+        return false;
+    }
+    const auto* module = kernel::objects().get<Module>(object);
+    if (!module) {
+        error = "Live module is invalid or stale";
+        return false;
+    }
+
+    nlohmann::json serialized;
+    if (!Module::serialize(module, serialized)) {
+        error = "Failed to serialize live module";
         return false;
     }
     return save_json_resource_document_atomic(target, serialized, error);

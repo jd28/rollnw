@@ -19,7 +19,7 @@ fn _selection_args(selection: ListSelection): array!(string) {
 }
 
 // Native code owns copied presentation rows and selector state. Profile SmallS
-// supplies the policy batch and remains the only writer of live Item state.
+// supplies appearance/property policy; command transactions mutate live Items.
 fn initialize(): bool {
     return _succeeded(command_execute("toolset.item.initialize", {}).status);
 }

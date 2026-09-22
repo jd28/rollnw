@@ -7,7 +7,7 @@
 #include "object_edits.hpp"
 #include "object_workbench.hpp"
 #include "rml_managed_list.hpp"
-#include "smalls_creature_properties.hpp"
+#include "smalls_object_properties.hpp"
 #include "virtual_combobox.hpp"
 #include "virtual_list.hpp"
 
@@ -85,11 +85,15 @@ struct ObjectWorkbenchCommandClick {
 enum class ObjectWorkbenchComboKind : uint8_t { none,
     sound_open,
     sound_select,
+    locstring_source_open,
+    locstring_source_select,
     spell_open,
     spell_select };
 enum class ObjectWorkbenchComboEffect : uint8_t { none,
     sound_opened,
     sound_selected,
+    locstring_source_opened,
+    locstring_source_selected,
     spell_opened,
     spell_selected };
 // Cold schema 1. Copied property/filter facts and owning UTF-8 payload survive
@@ -169,12 +173,19 @@ struct ObjectWorkbenchViewState {
     nw::toolset::ObjectVariableSnapshot object_variables;
     nw::toolset::VirtualListController object_variable_list;
     std::string active_object_tab_id;
+    LanguageID toolset_language = LanguageID::english;
+    // No language means the String Reference editor is selected.
+    std::optional<uint32_t> locstring_row;
+    std::optional<LanguageID> locstring_language;
+    bool locstring_feminine = false;
+    std::string locstring_text_before;
     ObjectWorkbenchSurface object_workbench_surface = ObjectWorkbenchSurface::details;
     std::string active_object_variable_warning;
     float object_workbench_tab_scroll_x = 0.0f;
     bool object_workbench_tab_scroll_pending = false;
     bool details_list_configured = false;
     bool details_rendered = false;
+    bool locstring_panel_rendered = false;
     bool object_variable_list_configured = false;
     bool object_variables_rendered = false;
     nw::toolset::VirtualListRange rendered_details_range{};
@@ -189,6 +200,7 @@ struct ObjectWorkbenchViewState {
 // synchronous selector-close callbacks; no DOM borrow survives capture.
 struct ObjectWorkbenchSurfaceClick {
     std::optional<ObjectWorkbenchSurface> surface;
+    std::optional<uint32_t> row;
     bool pending = true;
 };
 std::optional<ObjectWorkbenchSurfaceClick> capture_object_workbench_surface_click(Rml::Element* hit);
@@ -212,6 +224,7 @@ struct ObjectWorkbenchClick {
 enum class ObjectWorkbenchClickFinish : uint8_t {
     none,
     sound_combo,
+    locstring_source,
     spell_filter,
     spells,
     sound_catalog,

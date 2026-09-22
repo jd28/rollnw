@@ -3,6 +3,8 @@
 #include "dock_layout.hpp"
 #include "project.hpp"
 
+#include <nw/i18n/Language.hpp>
+
 #include <filesystem>
 #include <span>
 #include <vector>
@@ -14,9 +16,14 @@ namespace nw::toolset {
 // files leave defaults; errors are logged and save reports failure.
 [[nodiscard]] std::filesystem::path client_preferences_path();
 void load_ui_preferences(const std::filesystem::path& path,
-    DockLayout& docks, std::vector<RecentProjectEntry>& recent_projects);
+    DockLayout& docks, std::vector<RecentProjectEntry>& recent_projects,
+    LanguageID* toolset_language = nullptr);
 bool save_ui_preferences(const std::filesystem::path& path,
     const DockLayout& docks, std::span<const RecentProjectEntry> recent_projects);
+// Independent of the engine's resource-encoding language. Unknown stored
+// values are ignored; valid changes preserve every other preference key.
+bool save_toolset_language_preference(const std::filesystem::path& path,
+    LanguageID language);
 
 enum class RecentProjectForgetStatus { rejected,
     saved,

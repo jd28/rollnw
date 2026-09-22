@@ -1,6 +1,7 @@
 #include "object_workbench_view.hpp"
 #include "command_view.hpp"
 #include "object_document.hpp"
+#include "rml_action_line_edit.hpp"
 #include "smalls_rmlui.hpp"
 #include "smalls_ui_v1.hpp"
 #include "toolset_backend.hpp"
@@ -9,11 +10,13 @@
 #include <RmlUi/Core/Elements/ElementFormControlInput.h>
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <initializer_list>
 #include <limits>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/ResourceManager.hpp>
@@ -52,6 +55,13 @@ std::string escape_html(std::string_view text)
     return out;
 }
 
+std::string locstring_strref_preview_markup(std::optional<uint32_t> strref)
+{
+    if (!strref || *strref == UINT32_MAX) { return "No TLK text to preview."; }
+    const auto resolved = kernel::strings().get(*strref);
+    return resolved.empty() ? "No TLK text to preview." : escape_html(resolved);
+}
+
 Rml::Element* find_el(Rml::ElementDocument* doc, const char* id)
 {
     return doc ? doc->GetElementById(id) : nullptr;
@@ -79,6 +89,48 @@ std::optional<int32_t> parse_decimal_int32(std::string_view value)
         return std::nullopt;
     }
     return result;
+}
+
+constexpr std::array kLocStringLanguages{
+    LanguageID::english,
+    LanguageID::french,
+    LanguageID::german,
+    LanguageID::italian,
+    LanguageID::spanish,
+    LanguageID::polish,
+    LanguageID::korean,
+    LanguageID::chinese_traditional,
+    LanguageID::chinese_simplified,
+    LanguageID::japanese,
+};
+
+int32_t locstring_source_key(std::optional<LanguageID> language)
+{
+    return language ? static_cast<int32_t>(*language) : -1;
+}
+
+bool locstring_source_language(int32_t key, std::optional<LanguageID>& language)
+{
+    if (key == -1) {
+        language.reset();
+        return true;
+    }
+    const auto found = std::ranges::find(kLocStringLanguages, static_cast<LanguageID>(key));
+    if (found == kLocStringLanguages.end()) { return false; }
+    language = *found;
+    return true;
+}
+
+std::vector<VirtualComboBoxItem> locstring_source_options()
+{
+    std::vector<VirtualComboBoxItem> options;
+    options.reserve(kLocStringLanguages.size() + 1);
+    options.push_back({.key = -1, .label = "String Reference"});
+    for (const auto language : kLocStringLanguages) {
+        options.push_back({.key = static_cast<int32_t>(language),
+            .label = std::string{Language::to_string(language, true)}});
+    }
+    return options;
 }
 
 class ObjectDetailsListAdapter final : public nw::toolset::VirtualListAdapter {
@@ -224,6 +276,16 @@ public:
                     markup += std::to_string(*volume);
                     markup += "</span></span>";
                 }
+            } else if (row.editor
+                == nw::toolset::ObjectDetailsEditorKind::locstring) {
+                std::string action
+                    = "<button class=\"action_line_edit_action object_workbench_surface_button\" "
+                      "data-surface=\"locstring\" data-row=\"";
+                action += std::to_string(index);
+                action += "\" type=\"button\" "
+                          "title=\"Edit localized string\" aria-label=\"Edit localized string\">&#8230;</button>";
+                markup += render_rml_action_line_edit(
+                    value, "Not set", action);
             } else {
                 markup += escape_html(value.empty() ? std::string_view{"Not set"} : value);
             }
@@ -356,6 +418,18 @@ public:
 
     void process_event(Rml::Event& event)
     {
+        auto* target = event.GetTargetElement();
+        if (event == Rml::EventId::Click && target) {
+            if (find_ancestor_with_class(target, "object_locstring_gender_toggle")) {
+                if (!locstring_panel_active()
+                    || !state_.locstring_language
+                    || !Language::has_feminine(*state_.locstring_language)
+                    || !commit_visible_locstring_draft(target)) { return; }
+                state_.locstring_feminine = !state_.locstring_feminine;
+                state_.locstring_panel_rendered = false;
+                return;
+            }
+        }
         if (event == Rml::EventId::Change
             && stage_sound_volume(event)) {
             return;
@@ -368,14 +442,16 @@ public:
             return;
         }
         if (event == Rml::EventId::Change) {
+            if (target && target->IsClassSet("object_locstring_text_input")) { return; }
             if (!event.GetParameter<bool>("linebreak", false)) {
-                reject_invalid_numeric_input(event.GetTargetElement());
+                reject_invalid_numeric_input(target);
+                preview_locstring_strref(target);
                 return;
             }
 
-            if (commit_input(event.GetTargetElement())) {
+            if (commit_input(target)) {
                 state_.suppress_blur_commit = true;
-                event.GetTargetElement()->Blur();
+                target->Blur();
                 state_.suppress_blur_commit = false;
             }
             return;
@@ -385,7 +461,7 @@ public:
             return;
         }
 
-        (void)commit_input(event.GetTargetElement());
+        (void)commit_input(target);
     }
 
     bool commit_sound_volume()
@@ -424,7 +500,65 @@ public:
         return result.ok();
     }
 
+    bool select_locstring_source(Rml::Element* source, int32_t key)
+    {
+        std::optional<LanguageID> language;
+        if (!locstring_panel_active()
+            || !locstring_source_language(key, language)
+            || !commit_visible_locstring_draft(source)) { return false; }
+        state_.locstring_language = language;
+        state_.locstring_feminine = false;
+        state_.locstring_panel_rendered = false;
+        return true;
+    }
+
 private:
+    void preview_locstring_strref(Rml::Element* target) const
+    {
+        if (!target || !target->IsClassSet("object_locstring_strref_input")
+            || !locstring_panel_active() || state_.locstring_language
+            || !state_.locstring_panel_rendered) { return; }
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControlInput*>(target);
+        auto* preview = find_el(target->GetOwnerDocument(), "object_locstring_resolved");
+        if (!input || !preview) { return; }
+        preview->SetInnerRML(locstring_strref_preview_markup(
+            nw::toolset::parse_locstring_strref(input->GetValue())));
+    }
+
+    bool locstring_panel_active() const
+    {
+        return state_.object_workbench_surface == ObjectWorkbenchSurface::locstring
+            && state_.locstring_row
+            && *state_.locstring_row < state_.object_details.rows.size()
+            && state_.object_details.rows[*state_.locstring_row].editor
+            == ObjectDetailsEditorKind::locstring
+            && active_object_details_matches_tab(state_, workspace_)
+            && context_.active_tab_id == workspace_.active_tab_id()
+            && smalls_rmlui_host().active_object() == state_.object_details.object;
+    }
+
+    bool commit_visible_locstring_draft(Rml::Element* source)
+    {
+        auto* doc = source ? source->GetOwnerDocument() : nullptr;
+        if (!doc) { return false; }
+        if (state_.locstring_language) {
+            auto* text = find_el(doc, "object_locstring_text");
+            auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(text);
+            return input && (input->GetValue() == state_.locstring_text_before || commit_input(text));
+        }
+        Rml::ElementList fields;
+        doc->GetElementsByClassName(fields, "object_locstring_strref_input");
+        if (fields.empty()) { return false; }
+        auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(fields.front());
+        if (!input) { return false; }
+        const std::string current = fields.front()->GetAttribute<Rml::String>(
+            "data-current", "");
+        const std::string displayed = current == std::to_string(UINT32_MAX)
+            ? std::string{}
+            : current;
+        return input->GetValue() == displayed || commit_input(fields.front());
+    }
+
     bool stage_sound_volume(Rml::Event& event)
     {
         auto* target = event.GetTargetElement();
@@ -485,7 +619,8 @@ private:
 
     static void reject_invalid_numeric_input(Rml::Element* target)
     {
-        if (!target || !target->IsClassSet("object_variable_value")) {
+        const bool strref = target && target->IsClassSet("object_locstring_strref_input");
+        if (!strref && (!target || !target->IsClassSet("object_variable_value"))) {
             return;
         }
 
@@ -494,18 +629,19 @@ private:
             return;
         }
 
-        const auto type_value = parse_decimal_int32(
-            input->GetAttribute<Rml::String>("data-type", ""));
-        if (!type_value) {
-            return;
-        }
-        const auto type = static_cast<nw::toolset::ObjectVariableType>(*type_value);
-        if (type == nw::toolset::ObjectVariableType::string) {
-            return;
-        }
-
         const Rml::String value = input->GetValue();
-        if (nw::toolset::valid_object_variable_input_prefix(type, value)) {
+        bool valid = false;
+        if (strref) {
+            valid = nw::toolset::valid_locstring_strref_input_prefix(value);
+        } else {
+            const auto type_value = parse_decimal_int32(
+                input->GetAttribute<Rml::String>("data-type", ""));
+            if (!type_value) { return; }
+            const auto type = static_cast<nw::toolset::ObjectVariableType>(*type_value);
+            if (type == nw::toolset::ObjectVariableType::string) { return; }
+            valid = nw::toolset::valid_object_variable_input_prefix(type, value);
+        }
+        if (valid) {
             input->SetAttribute("data-last-valid", value);
             return;
         }
@@ -531,6 +667,66 @@ private:
 
     bool commit_input(Rml::Element* target)
     {
+        const bool panel_text = target && target->IsClassSet("object_locstring_text_input");
+        const bool panel_strref = target && target->IsClassSet("object_locstring_strref_input");
+        if (panel_text || panel_strref) {
+            auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(target);
+            const auto row_index = parse_decimal_int32(target->GetAttribute<Rml::String>("data-row", ""));
+            if (!input || !row_index || *row_index < 0
+                || !locstring_panel_active() || !state_.locstring_panel_rendered
+                || !state_.locstring_row
+                || static_cast<uint32_t>(*row_index) != *state_.locstring_row
+                || static_cast<size_t>(*row_index) >= state_.object_details.rows.size()
+                || state_.object_details.rows[static_cast<size_t>(*row_index)].editor
+                    != ObjectDetailsEditorKind::locstring) {
+                return false;
+            }
+            const std::string row_text = std::to_string(*row_index);
+            std::string desired = input->GetValue();
+            CommandResult result;
+            if (panel_text) {
+                if (!state_.locstring_language) { return false; }
+                const auto runtime_id = Language::to_runtime_id(*state_.locstring_language,
+                    state_.locstring_feminine);
+                if (target->GetAttribute<Rml::String>("data-runtime", "")
+                    != std::to_string(runtime_id)) { return false; }
+                if (desired == state_.locstring_text_before) { return true; }
+                const std::string language_text = std::to_string(runtime_id);
+                result = backend_.execute_command("object.details.set_locstring_text",
+                    {row_text, language_text, state_.locstring_text_before, desired}, context_);
+            } else {
+                if (state_.locstring_language) { return false; }
+                const std::string expected = target->GetAttribute<Rml::String>("data-current", "");
+                const auto parsed = nw::toolset::parse_locstring_strref(desired);
+                const std::string displayed = expected == std::to_string(UINT32_MAX)
+                    ? std::string{}
+                    : expected;
+                if (!parsed) {
+                    input->SetValue(displayed);
+                    target->SetAttribute("data-last-valid", displayed);
+                    preview_locstring_strref(target);
+                    return false;
+                }
+                desired = *parsed == UINT32_MAX ? "" : std::to_string(*parsed);
+                input->SetValue(desired);
+                target->SetAttribute("data-last-valid", desired);
+                preview_locstring_strref(target);
+                if (desired == displayed) { return true; }
+                result = backend_.execute_command("object.details.set_locstring_strref",
+                    {row_text, expected, desired}, context_);
+            }
+            append_command_results(shell_, {&result, 1});
+            if (result.ok()) {
+                if (panel_text) {
+                    state_.locstring_text_before = desired;
+                } else {
+                    target->SetAttribute("data-current",
+                        desired.empty() ? std::to_string(UINT32_MAX) : desired);
+                    state_.locstring_panel_rendered = false;
+                }
+            }
+            return result.ok();
+        }
         const bool rename = target && target->IsClassSet("object_variable_name");
         const bool set_value = target && target->IsClassSet("object_variable_value");
         if (!rename && !set_value) {
@@ -574,6 +770,8 @@ void hydrate_creature_workbench(Rml::ElementDocument* doc, const ObjectWorkbench
     static constexpr std::array surfaces{
         CreatureSurfaceElements{"creature_tab_details", "creature_surface_details",
             ObjectWorkbenchSurface::details},
+        CreatureSurfaceElements{"", "object_surface_locstring",
+            ObjectWorkbenchSurface::locstring},
         CreatureSurfaceElements{"creature_tab_sheet", "creature_surface_sheet",
             ObjectWorkbenchSurface::sheet},
         CreatureSurfaceElements{"creature_tab_variables", "creature_surface_variables",
@@ -590,8 +788,10 @@ void hydrate_creature_workbench(Rml::ElementDocument* doc, const ObjectWorkbench
             ObjectWorkbenchSurface::inventory},
     };
     for (const auto& elements : surfaces) {
-        if (auto* tab = find_el(doc, elements.tab_id)) {
-            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        if (elements.tab_id[0] != '\0') {
+            if (auto* tab = find_el(doc, elements.tab_id)) {
+                tab->SetClass("active", state.object_workbench_surface == elements.surface);
+            }
         }
         if (auto* surface = find_el(doc, elements.surface_id)) {
             surface->SetClass("active", state.object_workbench_surface == elements.surface);
@@ -699,6 +899,8 @@ void hydrate_item_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchView
     static constexpr std::array surfaces{
         ItemSurfaceElements{"item_tab_details", "item_surface_details",
             ObjectWorkbenchSurface::details},
+        ItemSurfaceElements{"", "object_surface_locstring",
+            ObjectWorkbenchSurface::locstring},
         ItemSurfaceElements{"item_tab_variables", "item_surface_variables",
             ObjectWorkbenchSurface::variables},
         ItemSurfaceElements{"item_tab_appearance", "item_surface_appearance",
@@ -709,8 +911,10 @@ void hydrate_item_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchView
             ObjectWorkbenchSurface::inventory},
     };
     for (const auto& elements : surfaces) {
-        if (auto* tab = find_el(doc, elements.tab_id)) {
-            tab->SetClass("active", surface == elements.surface);
+        if (elements.tab_id[0] != '\0') {
+            if (auto* tab = find_el(doc, elements.tab_id)) {
+                tab->SetClass("active", surface == elements.surface);
+            }
         }
         if (auto* element = find_el(doc, elements.surface_id)) {
             element->SetClass("active", surface == elements.surface);
@@ -747,14 +951,18 @@ void hydrate_door_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchView
     static constexpr std::array surfaces{
         DoorSurfaceElements{"door_tab_details", "door_surface_details",
             ObjectWorkbenchSurface::details},
+        DoorSurfaceElements{"", "object_surface_locstring",
+            ObjectWorkbenchSurface::locstring},
         DoorSurfaceElements{"door_tab_variables", "door_surface_variables",
             ObjectWorkbenchSurface::variables},
         DoorSurfaceElements{"door_tab_appearance", "door_surface_appearance",
             ObjectWorkbenchSurface::appearance},
     };
     for (const auto& elements : surfaces) {
-        if (auto* tab = find_el(doc, elements.tab_id)) {
-            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        if (elements.tab_id[0] != '\0') {
+            if (auto* tab = find_el(doc, elements.tab_id)) {
+                tab->SetClass("active", state.object_workbench_surface == elements.surface);
+            }
         }
         if (auto* surface = find_el(doc, elements.surface_id)) {
             surface->SetClass("active", state.object_workbench_surface == elements.surface);
@@ -803,6 +1011,8 @@ void hydrate_placeable_workbench(Rml::ElementDocument* doc, const ObjectWorkbenc
     static constexpr std::array surfaces{
         PlaceableSurfaceElements{"placeable_tab_details", "placeable_surface_details",
             ObjectWorkbenchSurface::details},
+        PlaceableSurfaceElements{"", "object_surface_locstring",
+            ObjectWorkbenchSurface::locstring},
         PlaceableSurfaceElements{"placeable_tab_variables", "placeable_surface_variables",
             ObjectWorkbenchSurface::variables},
         PlaceableSurfaceElements{"placeable_tab_appearance", "placeable_surface_appearance",
@@ -811,8 +1021,10 @@ void hydrate_placeable_workbench(Rml::ElementDocument* doc, const ObjectWorkbenc
             ObjectWorkbenchSurface::inventory},
     };
     for (const auto& elements : surfaces) {
-        if (auto* tab = find_el(doc, elements.tab_id)) {
-            tab->SetClass("active", state.object_workbench_surface == elements.surface);
+        if (elements.tab_id[0] != '\0') {
+            if (auto* tab = find_el(doc, elements.tab_id)) {
+                tab->SetClass("active", state.object_workbench_surface == elements.surface);
+            }
         }
         if (auto* surface = find_el(doc, elements.surface_id)) {
             surface->SetClass("active", state.object_workbench_surface == elements.surface);
@@ -1082,8 +1294,11 @@ void close_object_details_combobox(
     Rml::ElementDocument* doc, ObjectWorkbenchViewState& state)
 {
     if (state.object_details_combobox_row) {
-        const auto field_id = "object_details_sound_position_field_"
-            + std::to_string(*state.object_details_combobox_row);
+        const auto row_index = *state.object_details_combobox_row;
+        const bool locstring = row_index < state.object_details.rows.size()
+            && state.object_details.rows[row_index].editor == ObjectDetailsEditorKind::locstring;
+        const auto field_id = locstring ? std::string{"object_locstring_language"}
+                                        : "object_details_sound_position_field_" + std::to_string(row_index);
         if (auto* field = find_el(doc, field_id.c_str())) {
             field->SetClass("open", false);
         }
@@ -1133,6 +1348,35 @@ bool open_object_details_sound_position_combobox(
     return true;
 }
 
+bool open_object_details_locstring_source_combobox(
+    Rml::ElementDocument* doc, ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, uint32_t row_index)
+{
+    if (state.object_workbench_surface != ObjectWorkbenchSurface::locstring
+        || !active_object_details_matches_tab(state, workspace)
+        || !state.locstring_row || *state.locstring_row != row_index
+        || row_index >= state.object_details.rows.size()
+        || state.object_details.rows[row_index].editor != ObjectDetailsEditorKind::locstring) {
+        return false;
+    }
+    if (state.object_details_combobox_row == row_index
+        && state.object_details_combobox.is_active()) {
+        if (state.object_details_combobox.popup_visible()) {
+            state.object_details_combobox.hide_popup();
+        } else {
+            (void)state.object_details_combobox.show_popup();
+        }
+        state.object_details_combobox_placement.reset();
+        return true;
+    }
+
+    close_object_details_combobox(doc, state);
+    if (!state.object_details_combobox.open(locstring_source_options(),
+            locstring_source_key(state.locstring_language))) { return false; }
+    state.object_details_combobox_row = row_index;
+    return true;
+}
+
 bool sync_object_details_combobox(
     Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
 {
@@ -1148,14 +1392,21 @@ bool sync_object_details_combobox(
     }
     const auto& row = state.object_details.rows[row_index];
     const auto selected = state.object_details_combobox.selected_key();
-    if (row.editor != nw::toolset::ObjectDetailsEditorKind::sound_position
-        || !selected || *selected < 0 || *selected > 2) {
+    std::optional<LanguageID> source_language;
+    const bool sound = row.editor == ObjectDetailsEditorKind::sound_position
+        && state.object_workbench_surface == ObjectWorkbenchSurface::details
+        && selected && *selected >= 0 && *selected <= 2;
+    const bool locstring = row.editor == ObjectDetailsEditorKind::locstring
+        && state.object_workbench_surface == ObjectWorkbenchSurface::locstring
+        && state.locstring_row && *state.locstring_row == row_index
+        && selected && locstring_source_language(*selected, source_language);
+    if (!sound && !locstring) {
         close_object_details_combobox(doc, state);
         return true;
     }
 
-    const auto field_id = "object_details_sound_position_field_"
-        + std::to_string(row_index);
+    const auto field_id = locstring ? std::string{"object_locstring_language"}
+                                    : "object_details_sound_position_field_" + std::to_string(row_index);
     auto* field = find_el(doc, field_id.c_str());
     auto* popup = find_el(doc, "object_details_combobox_popup");
     auto* workbench = find_el(doc, "object_workbench");
@@ -1272,9 +1523,101 @@ bool sync_object_variable_window(Rml::ElementDocument* doc, ObjectWorkbenchViewS
     return true;
 }
 
+bool sync_object_locstring_panel(Rml::ElementDocument* doc,
+    ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
+{
+    auto* rows = find_el(doc, "object_locstring_rows");
+    if (!rows || state.object_workbench_surface != ObjectWorkbenchSurface::locstring) {
+        return false;
+    }
+    if (!force && state.locstring_panel_rendered) { return false; }
+
+    const auto row_index = state.locstring_row;
+    std::optional<LocString> current;
+    if (active_object_details_matches_tab(state, workspace) && row_index
+        && *row_index < state.object_details.rows.size()) {
+        const auto& row = state.object_details.rows[*row_index];
+        if (row.editor == ObjectDetailsEditorKind::locstring) {
+            current = read_object_locstring(kernel::runtime(),
+                {state.object_details.object, row.locstring_storage,
+                    row.propset_type, row.field_index});
+            if (auto* title = find_el(doc, "object_locstring_title")) {
+                title->SetInnerRML(escape_html(state.object_details.text_view(row.label)));
+            }
+        }
+    }
+    auto* unavailable = find_el(doc, "object_locstring_unavailable");
+    auto* editor = find_el(doc, "object_locstring_editor");
+    const bool available = current.has_value() && row_index.has_value();
+    if (unavailable) { unavailable->SetClass("active", !available); }
+    if (editor) { editor->SetClass("active", available); }
+    if (!available) {
+        state.locstring_text_before.clear();
+        state.locstring_panel_rendered = true;
+        return true;
+    }
+
+    const auto row_value = std::to_string(*row_index);
+    auto* source = find_el(doc, "object_locstring_language");
+    if (source) { source->SetAttribute("data-row", row_value); }
+    if (auto* value = find_el(doc, "object_locstring_language_value")) {
+        value->SetInnerRML(state.locstring_language
+                ? escape_html(Language::to_string(*state.locstring_language, true))
+                : "String Reference");
+    }
+
+    auto* strref_editor = find_el(doc, "object_locstring_strref_editor");
+    auto* text_editor = find_el(doc, "object_locstring_text_editor");
+    const bool editing_strref = !state.locstring_language;
+    if (strref_editor) { strref_editor->SetClass("active", editing_strref); }
+    if (text_editor) { text_editor->SetClass("active", !editing_strref); }
+
+    if (editing_strref) {
+        const auto strref = current->strref();
+        if (auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+                find_el(doc, "object_locstring_strref"))) {
+            const auto displayed = strref == UINT32_MAX
+                ? std::string{}
+                : std::to_string(strref);
+            input->SetAttribute("data-row", row_value);
+            input->SetAttribute("data-current", std::to_string(strref));
+            input->SetAttribute("data-last-valid", displayed);
+            input->SetValue(displayed);
+        }
+        if (auto* preview = find_el(doc, "object_locstring_resolved")) {
+            preview->SetInnerRML(locstring_strref_preview_markup(strref));
+        }
+    } else {
+        const auto language = *state.locstring_language;
+        if (auto* gender = find_el(doc, "object_locstring_gender")) {
+            gender->SetClass("hidden", !Language::has_feminine(language));
+        }
+        if (auto* toggle = find_el(doc, "object_locstring_gender_toggle")) {
+            toggle->SetClass("active", state.locstring_feminine);
+            toggle->SetInnerRML(state.locstring_feminine ? "Feminine" : "Masculine");
+        }
+        state.locstring_text_before = current->get(language, state.locstring_feminine);
+        if (auto* text = rmlui_dynamic_cast<Rml::ElementFormControl*>(
+                find_el(doc, "object_locstring_text"))) {
+            text->SetAttribute("data-row", row_value);
+            text->SetAttribute("data-runtime",
+                std::to_string(Language::to_runtime_id(language,
+                    state.locstring_feminine)));
+            text->SetValue(state.locstring_text_before);
+        }
+    }
+    state.locstring_panel_rendered = true;
+    return true;
+}
+
 bool sync_object_details_window(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
 {
     const bool variable_changed = sync_object_variable_window(doc, state, workspace, force);
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::locstring) {
+        const bool panel_changed = sync_object_locstring_panel(doc, state, workspace, force);
+        const bool combobox_changed = sync_object_details_combobox(doc, state, workspace, force);
+        return variable_changed || panel_changed || combobox_changed;
+    }
     if (state.object_workbench_surface != ObjectWorkbenchSurface::details) {
         const bool combobox_changed = state.object_details_combobox.is_active();
         if (combobox_changed) {
@@ -1343,7 +1686,8 @@ void rebuild_object_workbench_snapshots(ObjectWorkbenchViewState& state, nw::Obj
         state.pending_sound_volume.reset();
     }
     auto& runtime = nw::kernel::runtime();
-    nw::toolset::build_object_details(runtime, object, state.object_details);
+    nw::toolset::build_object_details(runtime, object, state.object_details,
+        state.toolset_language);
     if (state.object_details.status == nw::toolset::ObjectDetailsStatus::invalid_data) {
         LOG_F(WARNING, "rollnw-client: %s", state.object_details.diagnostic.c_str());
     }
@@ -1354,6 +1698,7 @@ void rebuild_object_workbench_snapshots(ObjectWorkbenchViewState& state, nw::Obj
             state.object_variables.diagnostic.c_str());
     }
     invalidate_details_render(state);
+    state.locstring_panel_rendered = false;
     invalidate_object_variable_render(state);
     rebuild_creature_class_presentation(state.creature_view, object);
 }
@@ -1368,6 +1713,8 @@ void clear_object_workbench_snapshots(ObjectWorkbenchViewState& state)
     state.details_list.set_total_rows(0);
     state.details_list.set_scroll_top(0);
     state.details_rendered = false;
+    state.locstring_panel_rendered = false;
+    state.locstring_row.reset();
     configure_object_variable_list(state);
     state.object_variable_list.set_total_rows(0);
     state.object_variable_list.set_scroll_top(0);
@@ -1411,6 +1758,23 @@ bool commit_object_details_sound_position(
     return result.ok();
 }
 
+bool commit_object_details_locstring_source(Rml::ElementDocument* doc,
+    ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    ToolsetBackend& backend, ShellController& shell, const CommandContext& context,
+    int32_t desired)
+{
+    if (!state.object_details_combobox_row
+        || !state.object_details_combobox.is_active()
+        || !active_object_details_matches_tab(state, workspace)
+        || *state.object_details_combobox_row >= state.object_details.rows.size()
+        || state.object_details.rows[*state.object_details_combobox_row].editor
+            != ObjectDetailsEditorKind::locstring) { return false; }
+    auto* field = find_el(doc, "object_locstring_language");
+    if (!field || !ObjectWorkbenchChangeHandler{state, workspace, backend, shell, context}.select_locstring_source(field, desired)) { return false; }
+    close_object_details_combobox(doc, state);
+    return true;
+}
+
 void process_object_workbench_change(Rml::Event& event, ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
     ToolsetBackend& backend, ShellController& shell, const CommandContext& context)
 {
@@ -1439,6 +1803,10 @@ void hydrate_object_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchVi
         break;
     default:
         break;
+    }
+    if (auto* surface = find_el(doc, "object_surface_locstring")) {
+        surface->SetClass("active",
+            state.object_workbench_surface == ObjectWorkbenchSurface::locstring);
     }
 }
 void append_placed_area_object_list_markup(std::string& content_markup,
@@ -1575,7 +1943,9 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
                       "type=\"button\" title=\"Scroll editor tabs right\">&#x203a;</button>"
                       "</div>";
 
-    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::locstring) {
+        content_markup += "<template src=\"object-locstring-editor\"></template>";
+    } else if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
         content_markup += "<div class=\"object_variable_toolbar\"><button id=\"object_variable_add\" "
                           "type=\"button\" title=\"Add integer variable\">Add Variable</button></div>"
                           "<div class=\"object_variable_header\"><span class=\"object_variable_header_name\">Name</span>"
@@ -1677,7 +2047,8 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
         content_markup += "</span></div><div id=\"property_tree_rows\" class=\"property_tree_rows\">";
         content_markup += "<div class=\"property_tree_empty\">Select an object to inspect.</div></div>";
     }
-    if (object_type == nw::ObjectType::sound) {
+    if (object_type == nw::ObjectType::sound
+        && state.object_workbench_surface != ObjectWorkbenchSurface::locstring) {
         content_markup += "<div id=\"object_details_combobox_popup\" "
                           "class=\"combobox_options combobox_popup "
                           "object_details_combobox_popup\"></div>";
@@ -1860,9 +2231,17 @@ bool close_active_smalls_selector(Rml::ElementDocument* document)
 std::optional<ObjectWorkbenchSurfaceClick> capture_object_workbench_surface_click(Rml::Element* hit)
 {
     auto* control = find_ancestor_with_class(hit, "object_workbench_tab");
+    if (!control) {
+        control = find_ancestor_with_class(hit, "object_workbench_surface_button");
+    }
     if (!control) { return std::nullopt; }
+    const auto row_value = parse_decimal_int32(
+        control->GetAttribute<Rml::String>("data-row", ""));
     return ObjectWorkbenchSurfaceClick{
         .surface = object_workbench_surface_from_name(control->GetAttribute<Rml::String>("data-surface", "")),
+        .row = row_value && *row_value >= 0
+            ? std::optional{static_cast<uint32_t>(*row_value)}
+            : std::nullopt,
     };
 }
 
@@ -1881,6 +2260,11 @@ bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
         switch (*click.surface) {
         case ObjectWorkbenchSurface::details:
             allowed = true;
+            break;
+        case ObjectWorkbenchSurface::locstring:
+            allowed = click.row && *click.row < state.object_details.rows.size()
+                && state.object_details.rows[*click.row].editor
+                    == ObjectDetailsEditorKind::locstring;
             break;
         case ObjectWorkbenchSurface::sheet:
         case ObjectWorkbenchSurface::classes:
@@ -1917,7 +2301,20 @@ bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
         }
     }
     if (allowed) {
+        if (*click.surface == ObjectWorkbenchSurface::locstring) {
+            const auto& row = state.object_details.rows[*click.row];
+            const auto current = read_object_locstring(kernel::runtime(),
+                {state.object_details.object, row.locstring_storage,
+                    row.propset_type, row.field_index});
+            if (!current) { return false; }
+            state.locstring_row = click.row;
+            state.locstring_language = current->strref() != UINT32_MAX
+                ? std::nullopt
+                : std::optional<LanguageID>{state.toolset_language};
+            state.locstring_feminine = false;
+        }
         state.object_workbench_surface = *click.surface;
+        state.locstring_panel_rendered = false;
         if (*click.surface == ObjectWorkbenchSurface::appearance && appearance_catalog_kind(type)) {
             rebuild_active_appearances(state.appearance_view, backend.module_generation(), state.object_details.object);
         }
@@ -1953,10 +2350,15 @@ std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rm
 {
     auto* control = find_ancestor_with_class(hit, "combobox_option");
     const bool option = control != nullptr;
-    bool sound = false;
+    bool details_combo = option && state.object_details_combobox.is_active()
+        && combo_ancestor_with_id(control, "object_details_combobox_popup");
     if (!control) {
         control = find_ancestor_with_class(hit, "object_details_sound_position_field");
-        sound = control != nullptr;
+        details_combo = control != nullptr;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "object_locstring_source_field");
+        details_combo = control != nullptr;
     }
     if (!control) { control = find_ancestor_with_class(hit, "creature_spell_filter_field"); }
     if (!control) { return std::nullopt; }
@@ -1967,25 +2369,35 @@ std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rm
         const auto value = parse_decimal_int32(control->GetAttribute<Rml::String>("data-key", ""));
         if (!value) { return click; }
         click.value = *value;
-        sound = state.object_details_combobox.is_active() && combo_ancestor_with_id(control, "object_details_combobox_popup");
     }
-    if (sound) {
+    if (details_combo) {
         const auto row_index = option ? state.object_details_combobox_row
                                       : [&]() -> std::optional<uint32_t> {
             const auto row = parse_decimal_int32(control->GetAttribute<Rml::String>("data-row", ""));
             return row && *row >= 0 ? std::optional{static_cast<uint32_t>(*row)} : std::nullopt;
         }();
-        if (!active_object_details_matches_tab(state, workspace) || !row_index || *row_index >= state.object_details.rows.size()
-            || (option && (click.value < 0 || click.value > 2))) { return click; }
+        if (!active_object_details_matches_tab(state, workspace)
+            || !row_index || *row_index >= state.object_details.rows.size()) { return click; }
         const auto& row = state.object_details.rows[*row_index];
-        if (row.kind != ObjectDetailsRowKind::value || row.editor != ObjectDetailsEditorKind::sound_position
-            || row.edit_value < 0 || row.edit_value > 2) { return click; }
+        const bool sound = row.editor == ObjectDetailsEditorKind::sound_position
+            && state.object_workbench_surface == ObjectWorkbenchSurface::details
+            && row.edit_value >= 0 && row.edit_value <= 2
+            && (!option || (click.value >= 0 && click.value <= 2));
+        std::optional<LanguageID> source_language;
+        const bool locstring = row.editor == ObjectDetailsEditorKind::locstring
+            && state.object_workbench_surface == ObjectWorkbenchSurface::locstring
+            && state.locstring_row && *state.locstring_row == *row_index
+            && (!option || locstring_source_language(click.value, source_language));
+        if (row.kind != ObjectDetailsRowKind::value || (!sound && !locstring)) { return click; }
         click.property = ObjectWorkbenchCommandRow{.propset_type = row.propset_type, .field_index = row.field_index, .element_index = row.element_index, .row = *row_index, .current = row.edit_value, .editor = row.editor};
         click.source_row = state.object_details_combobox_row;
         click.source_selection = state.object_details_combobox.selected_key();
         click.active = state.object_details_combobox.is_active();
         click.popup_visible = state.object_details_combobox.popup_visible();
-        click.kind = option ? ObjectWorkbenchComboKind::sound_select : ObjectWorkbenchComboKind::sound_open;
+        click.kind = sound
+            ? (option ? ObjectWorkbenchComboKind::sound_select : ObjectWorkbenchComboKind::sound_open)
+            : (option ? ObjectWorkbenchComboKind::locstring_source_select
+                      : ObjectWorkbenchComboKind::locstring_source_open);
         if (!option) { click.field_id = control->GetId(); }
     } else {
         const auto& creature = state.creature_view;
@@ -2026,7 +2438,9 @@ ObjectWorkbenchComboEffect apply_object_workbench_combo_click(ObjectWorkbenchCom
         || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id || context.workspace != &workspace
         || smalls_rmlui_host().active_object() != click.object || !kernel::objects().valid(click.object)
         || backend.module_generation() != click.module_generation || kernel::resman().generation() != click.resource_generation
-        || object_mutation_state().epoch != click.mutation_epoch) { return ObjectWorkbenchComboEffect::none; }
+        || ((kind != ObjectWorkbenchComboKind::locstring_source_open
+                && kind != ObjectWorkbenchComboKind::locstring_source_select)
+            && object_mutation_state().epoch != click.mutation_epoch)) { return ObjectWorkbenchComboEffect::none; }
     if (kind == ObjectWorkbenchComboKind::sound_open || kind == ObjectWorkbenchComboKind::sound_select) {
         if (!click.property || click.property->editor != ObjectDetailsEditorKind::sound_position
             || state.object_details_combobox_row != click.source_row || state.object_details_combobox.is_active() != click.active
@@ -2040,6 +2454,26 @@ ObjectWorkbenchComboEffect apply_object_workbench_combo_click(ObjectWorkbenchCom
         }
         return click.active && commit_object_details_sound_position(doc, state, workspace, backend, shell, context, click.value)
             ? ObjectWorkbenchComboEffect::sound_selected
+            : ObjectWorkbenchComboEffect::none;
+    }
+    if (kind == ObjectWorkbenchComboKind::locstring_source_open
+        || kind == ObjectWorkbenchComboKind::locstring_source_select) {
+        if (!click.property || click.property->editor != ObjectDetailsEditorKind::locstring
+            || state.object_details_combobox_row != click.source_row
+            || state.object_details_combobox.is_active() != click.active
+            || state.object_details_combobox.popup_visible() != click.popup_visible
+            || state.object_details_combobox.selected_key() != click.source_selection
+            || !current_command_property_matches(click.object, *click.property)) {
+            return ObjectWorkbenchComboEffect::none;
+        }
+        if (kind == ObjectWorkbenchComboKind::locstring_source_open) {
+            return open_object_details_locstring_source_combobox(doc, state, workspace,
+                       click.property->row)
+                ? ObjectWorkbenchComboEffect::locstring_source_opened
+                : ObjectWorkbenchComboEffect::none;
+        }
+        return click.active && commit_object_details_locstring_source(doc, state, workspace, backend, shell, context, click.value)
+            ? ObjectWorkbenchComboEffect::locstring_source_selected
             : ObjectWorkbenchComboEffect::none;
     }
     auto& creature = state.creature_view;
@@ -2153,6 +2587,25 @@ ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_Keyboa
 
     auto* focused_details_integer = find_ancestor_with_class(
         context->GetFocusElement(), "object_details_integer");
+    auto* focused_panel_text = find_ancestor_with_class(
+        context->GetFocusElement(), "object_locstring_text_input");
+    auto* focused_panel_strref = find_ancestor_with_class(
+        context->GetFocusElement(), "object_locstring_strref_input");
+    if (!key.repeat && key.key == SDLK_ESCAPE
+        && (focused_panel_text || focused_panel_strref)) {
+        state.suppress_blur_commit = true;
+        blur_focus();
+        state.suppress_blur_commit = false;
+        sync_object_locstring_panel(doc, state, workspace, true);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+    if (!key.repeat && key.key == SDLK_S
+        && (key.mod & SDL_KMOD_CTRL)
+        && !(key.mod & (SDL_KMOD_ALT | SDL_KMOD_GUI))
+        && (focused_panel_text || focused_panel_strref)) {
+        blur_focus();
+        return ObjectWorkbenchFieldKeyEffect::none;
+    }
     if (!key.repeat && key.key == SDLK_ESCAPE
         && focused_details_integer) {
         blur_focus();
@@ -2263,6 +2716,49 @@ ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_Keyboa
         return ObjectWorkbenchFieldKeyEffect::handled;
     }
 
+    auto* focused_locstring_source = find_ancestor_with_class(
+        context->GetFocusElement(), "object_locstring_source_field");
+    const auto focused_locstring_source_row = focused_locstring_source
+        ? parse_decimal_int32(focused_locstring_source->GetAttribute<Rml::String>(
+              "data-row", ""))
+        : std::nullopt;
+    const bool locstring_source_focused = focused_locstring_source_row
+        && *focused_locstring_source_row >= 0
+        && !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI));
+    if (locstring_source_focused && !key.repeat && key.key == SDLK_ESCAPE) {
+        close_object_details_combobox(doc, state);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+    if (locstring_source_focused && (key.key == SDLK_UP || key.key == SDLK_DOWN)) {
+        const auto row_index = static_cast<uint32_t>(*focused_locstring_source_row);
+        if (state.object_details_combobox_row != row_index
+            || !state.object_details_combobox.is_active()) {
+            (void)open_object_details_locstring_source_combobox(doc, state, workspace, row_index);
+        } else if (!state.object_details_combobox.popup_visible()) {
+            (void)state.object_details_combobox.show_popup();
+        }
+        (void)state.object_details_combobox.move_selection(key.key == SDLK_UP ? -1 : 1);
+        (void)sync_object_details_combobox(doc, state, workspace, true);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+    if (locstring_source_focused && !key.repeat
+        && (key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER)) {
+        const auto row_index = static_cast<uint32_t>(*focused_locstring_source_row);
+        if (state.object_details_combobox_row != row_index
+            || !state.object_details_combobox.is_active()) {
+            (void)open_object_details_locstring_source_combobox(doc, state, workspace, row_index);
+        } else if (!state.object_details_combobox.popup_visible()) {
+            (void)state.object_details_combobox.show_popup();
+        } else if (const auto selected = state.object_details_combobox.selected_key()) {
+            if (commit_object_details_locstring_source(doc, state, workspace,
+                    backend, shell, command, *selected)) {
+                return ObjectWorkbenchFieldKeyEffect::content_changed;
+            }
+        }
+        (void)sync_object_details_combobox(doc, state, workspace, true);
+        return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
     return ObjectWorkbenchFieldKeyEffect::none;
 }
 
@@ -2348,6 +2844,10 @@ ObjectWorkbenchClickEffect apply_object_workbench_click(ObjectWorkbenchClick& cl
             case ObjectWorkbenchComboEffect::sound_selected:
                 effect.refresh_content = true;
                 break;
+            case ObjectWorkbenchComboEffect::locstring_source_opened:
+            case ObjectWorkbenchComboEffect::locstring_source_selected:
+                effect.finish = ObjectWorkbenchClickFinish::locstring_source;
+                break;
             case ObjectWorkbenchComboEffect::spell_opened:
                 effect.refresh_content = true;
                 effect.finish = ObjectWorkbenchClickFinish::spell_filter;
@@ -2398,6 +2898,14 @@ void finish_object_workbench_click(ObjectWorkbenchClickEffect& effect, const Obj
     switch (finish) {
     case ObjectWorkbenchClickFinish::sound_combo:
         (void)sync_object_details_combobox(doc, state, workspace, true);
+        if (const auto* payload = std::get_if<ObjectWorkbenchComboClick>(&click.payload)) {
+            (void)focus_object_workbench_combo_field(doc, *payload, state, workspace);
+        }
+        break;
+    case ObjectWorkbenchClickFinish::locstring_source:
+        // Opening must not replace an unsaved textarea. Selection marks the
+        // panel dirty, so the same non-forced sync renders the new source.
+        (void)sync_object_details_window(doc, state, workspace, false);
         if (const auto* payload = std::get_if<ObjectWorkbenchComboClick>(&click.payload)) {
             (void)focus_object_workbench_combo_field(doc, *payload, state, workspace);
         }

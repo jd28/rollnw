@@ -240,7 +240,7 @@ CommandResult ToolsetBackend::submit_new_area_form(
     if (decision == "--save-current-area") {
         const std::array<std::string_view, 1> ids{"area"};
         auto saved = save_workspace_documents(
-            *workspace_, current_project_dir_, ids);
+            *workspace_, current_project_dir_, ids, module_object_);
         if (!saved.ok()) { return saved; }
     }
 

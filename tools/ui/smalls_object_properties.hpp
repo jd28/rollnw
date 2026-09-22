@@ -1,6 +1,9 @@
 #pragma once
 
+#include "object_locstring.hpp"
 #include "smalls_property_tree.hpp"
+
+#include <nw/i18n/LocString.hpp>
 
 #include <cstdint>
 #include <optional>
@@ -46,6 +49,7 @@ enum class ObjectDetailsEditorKind : uint8_t {
     door_state,
     sound_position,
     sound_volume,
+    locstring,
 };
 
 struct ObjectDetailsRow {
@@ -57,6 +61,7 @@ struct ObjectDetailsRow {
     int32_t edit_value = 0;
     int32_t edit_min = 0;
     int32_t edit_max = 0;
+    ObjectLocStringStorage locstring_storage = ObjectLocStringStorage::none;
     PropertyTextSlice label;
     PropertyTextSlice value;
 };
@@ -96,6 +101,15 @@ struct ObjectDetailsValueEdit {
     std::string label;
 };
 
+struct ObjectDetailsLocStringEdit {
+    ObjectLocStringTarget target;
+    LocString before;
+    LocString after;
+    LanguageID language = LanguageID::english;
+    bool feminine = false;
+    bool strref = false;
+};
+
 struct ObjectDetailsSoundPositionEdit {
     ObjectHandle object{};
     smalls::TypeID propset_type{};
@@ -112,7 +126,32 @@ struct ObjectDetailsSoundPositionEdit {
 // rows as one bounded batch for a linear partition into UI storage.
 void build_object_details(smalls::Runtime& runtime,
     ObjectHandle active_object,
-    ObjectDetailsSnapshot& output);
+    ObjectDetailsSnapshot& output,
+    LanguageID toolset_language = LanguageID::english);
+
+// Display priority is TLK strref, authored toolset language, then the first
+// nonempty authored entry in storage order. Empty input yields an empty value.
+[[nodiscard]] std::string locstring_resting_value(
+    const LocString& value, LanguageID toolset_language);
+
+// The selected field is a UI singleton. Validate its rebuilt row and authored
+// language value, then return complete LocStrings for exact undo/redo.
+[[nodiscard]] std::optional<ObjectDetailsLocStringEdit>
+prepare_object_details_locstring_text_edit(smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    std::string_view expected,
+    std::string_view desired,
+    std::string& diagnostic,
+    LanguageID language = LanguageID::english,
+    bool feminine = false);
+[[nodiscard]] std::optional<ObjectDetailsLocStringEdit>
+prepare_object_details_locstring_strref_edit(smalls::Runtime& runtime,
+    ObjectHandle object,
+    uint32_t row_index,
+    uint32_t expected,
+    uint32_t desired,
+    std::string& diagnostic);
 
 // The Character Sheet is a read-only Creature presentation. Smalls produces
 // the complete derived-value batch; C++ copies and validates it for the UI.

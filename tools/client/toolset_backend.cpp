@@ -3,10 +3,11 @@
 #include "area_map.hpp"
 #include "forward_plus_debug.hpp"
 #include "object_edits.hpp"
+#include "project.hpp"
 #include "script_commands.hpp"
 #include "ui_v1.hpp"
 
-#include "smalls_creature_properties.hpp"
+#include "smalls_object_properties.hpp"
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Rules.hpp>
@@ -34,6 +35,7 @@
 #include <numbers>
 #include <optional>
 #include <random>
+#include <ranges>
 #include <unordered_set>
 #include <utility>
 
@@ -69,6 +71,21 @@ bool is_blank_ascii(std::string_view value)
         }
     }
     return true;
+}
+
+bool project_module_locstring_editable(
+    const ObjectLocStringTarget& target,
+    const std::filesystem::path& project_dir,
+    std::string& diagnostic)
+{
+    if (target.storage != ObjectLocStringStorage::module_name
+        && target.storage != ObjectLocStringStorage::module_description) {
+        return true;
+    }
+    const auto path = project_module_resource_path(project_dir);
+    if (path && path->extension() == ".json") { return true; }
+    diagnostic = "Module localized strings require a JSON module resource inside the active project";
+    return false;
 }
 
 std::optional<uint32_t> parse_positive_u32(std::string_view value)
@@ -1218,7 +1235,8 @@ void ToolsetBackend::register_native_commands()
                 return command_result(CommandStatus::noop, "No workspace tab to save", CommandOutputChannel::info);
             }
             const std::array<std::string_view, 1> ids{id};
-            return save_workspace_documents(*workspace_, current_project_dir_, ids);
+            return save_workspace_documents(
+                *workspace_, current_project_dir_, ids, module_object_);
         });
 
     register_or_log(CommandSpec{
@@ -1994,6 +2012,106 @@ void ToolsetBackend::register_native_commands()
                 return execute_command(std::move(request), context);
             }
             return open_area_document(resource, title, invocation);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.details.set_locstring_text",
+                        "Set Localized Text",
+                        "Set one authored language entry in an active localized string",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.details.set_locstring_text <row-index> <runtime-language> <expected> <desired>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto row_index = parse_u32(command_arg_string(invocation.args, 0));
+            const auto runtime_language = parse_u32(command_arg_string(invocation.args, 1));
+            if (!row_index || !runtime_language || invocation.args.size() != 4) {
+                return command_result(CommandStatus::rejected,
+                    "Usage: object.details.set_locstring_text <row-index> <runtime-language> <expected> <desired>",
+                    CommandOutputChannel::warn);
+            }
+            if (!bridge_) {
+                return command_result(CommandStatus::failed,
+                    "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+            const auto [language, feminine] = Language::to_base_id(*runtime_language);
+            std::string diagnostic;
+            auto edit = prepare_object_details_locstring_text_edit(
+                kernel::runtime(), bridge_->active_object(), *row_index,
+                command_arg_string(invocation.args, 2),
+                command_arg_string(invocation.args, 3), diagnostic,
+                language, feminine);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic, CommandOutputChannel::warn);
+            }
+            if (!project_module_locstring_editable(
+                    edit->target, current_project_dir_, diagnostic)) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic, CommandOutputChannel::warn);
+            }
+            if (edit->before == edit->after) {
+                return command_result(CommandStatus::noop,
+                    "Localized text is already set", CommandOutputChannel::none);
+            }
+            ObjectLocStringEdit row{
+                edit->target, std::move(edit->before), std::move(edit->after),
+                ObjectLocStringEditKind::localized_text, language, feminine};
+            return commit_object_locstring_edits(
+                {row.target.object, {std::move(row)}},
+                "Set localized text", context);
+        });
+
+    register_or_log(CommandSpec{
+                        "object.details.set_locstring_strref",
+                        "Set Localized String Strref",
+                        "Set an active localized string's TLK reference",
+                        "object",
+                        {},
+                        CommandScope::workspace,
+                        CommandFlags::hidden,
+                        {},
+                        "object.details.set_locstring_strref <row-index> <expected> <desired-or-empty>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto row_index = parse_u32(command_arg_string(invocation.args, 0));
+            const auto expected = parse_u32(command_arg_string(invocation.args, 1));
+            const auto desired = parse_locstring_strref(command_arg_string(invocation.args, 2));
+            if (!row_index || !expected || !desired || invocation.args.size() != 3) {
+                return command_result(CommandStatus::rejected,
+                    "Strref must be empty or a decimal integer from 0 through 4294967294",
+                    CommandOutputChannel::warn);
+            }
+            if (!bridge_) {
+                return command_result(CommandStatus::failed,
+                    "Smalls bridge unavailable", CommandOutputChannel::error);
+            }
+            std::string diagnostic;
+            auto edit = prepare_object_details_locstring_strref_edit(
+                kernel::runtime(), bridge_->active_object(), *row_index,
+                *expected, *desired, diagnostic);
+            if (!edit) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic, CommandOutputChannel::warn);
+            }
+            if (!project_module_locstring_editable(
+                    edit->target, current_project_dir_, diagnostic)) {
+                return command_result(CommandStatus::rejected,
+                    diagnostic, CommandOutputChannel::warn);
+            }
+            if (edit->before == edit->after) {
+                return command_result(CommandStatus::noop,
+                    "Localized-string strref is already set", CommandOutputChannel::none);
+            }
+            ObjectLocStringEdit row{
+                edit->target, std::move(edit->before), std::move(edit->after),
+                ObjectLocStringEditKind::strref};
+            return commit_object_locstring_edits(
+                {row.target.object, {std::move(row)}},
+                "Set localized-string strref", context);
         });
 
     register_or_log(CommandSpec{
@@ -3340,7 +3458,8 @@ void ToolsetBackend::register_native_commands()
             for (const auto& tab : workspace_->tabs()) {
                 if (tab.dirty) { ids.push_back(tab.id); }
             }
-            return save_workspace_documents(*workspace_, current_project_dir_, ids);
+            return save_workspace_documents(
+                *workspace_, current_project_dir_, ids, module_object_);
         });
 
     register_or_log(CommandSpec{
@@ -3570,6 +3689,18 @@ std::vector<LoadedAreaEntry> ToolsetBackend::list_areas(std::string_view query) 
     return areas;
 }
 
+bool ToolsetBackend::update_loaded_area_label(
+    std::string_view resref, std::string_view label)
+{
+    const auto area = std::ranges::find(
+        loaded_areas_, resref, &LoadedAreaEntry::resref);
+    if (area == loaded_areas_.end() || area->name == label) {
+        return false;
+    }
+    area->name = label;
+    return true;
+}
+
 ProjectTreeResult ToolsetBackend::list_project_tree(std::string_view query) const
 {
     if (current_project_dir_.empty()) {
@@ -3660,7 +3791,8 @@ CommandResult ToolsetBackend::open_area_document(std::string resource, std::stri
         }
         if (decision == "--save-current-area") {
             const std::array<std::string_view, 1> ids{"area"};
-            auto saved = save_workspace_documents(*workspace_, current_project_dir_, ids);
+            auto saved = save_workspace_documents(
+                *workspace_, current_project_dir_, ids, module_object_);
             if (!saved.ok()) { return saved; }
             workspace_->open_area_tab(std::move(resource), std::move(title));
             return saved;

@@ -79,6 +79,38 @@ void write_dock_preferences(nlohmann::json& prefs, const nw::toolset::DockLayout
     }
 }
 
+bool write_preferences(const std::filesystem::path& path, const nlohmann::json& prefs)
+{
+    std::error_code ec;
+    if (const auto parent = path.parent_path(); !parent.empty()) {
+        std::filesystem::create_directories(parent, ec);
+        if (ec) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to create rollnw client preferences directory: %s", ec.message().c_str());
+            return false;
+        }
+    }
+    if (std::filesystem::exists(path, ec)) {
+        std::string error;
+        if (!nw::toolset::save_json_resource_document_atomic(path, prefs, error)) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to save rollnw client preferences: %s", error.c_str());
+            return false;
+        }
+        return true;
+    }
+    std::ofstream output{path};
+    if (!output) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open rollnw client preferences for writing");
+        return false;
+    }
+    output << prefs.dump(2) << '\n';
+    output.flush();
+    if (!output) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to write rollnw client preferences");
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 std::filesystem::path client_preferences_path()
@@ -87,7 +119,8 @@ std::filesystem::path client_preferences_path()
 }
 
 void load_ui_preferences(const std::filesystem::path& path,
-    DockLayout& docks, std::vector<RecentProjectEntry>& recent_projects)
+    DockLayout& docks, std::vector<RecentProjectEntry>& recent_projects,
+    LanguageID* toolset_language)
 {
     if (path.empty()) {
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Unable to resolve rollnw client preferences path: %s", SDL_GetError());
@@ -107,6 +140,16 @@ void load_ui_preferences(const std::filesystem::path& path,
         }
         load_dock_preferences(prefs, docks);
         nw::toolset::load_recent_project_preferences(prefs, recent_projects);
+        if (toolset_language) {
+            const auto ui = prefs.find("ui");
+            if (ui != prefs.end() && ui->is_object()) {
+                const auto value = ui->find("toolset_language");
+                if (value != ui->end() && value->is_string()) {
+                    const auto language = Language::from_string(value->get<std::string>());
+                    if (language != LanguageID::invalid) { *toolset_language = language; }
+                }
+            }
+        }
     } catch (const std::exception& e) {
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to read rollnw client preferences: %s", e.what());
     }
@@ -137,37 +180,26 @@ bool save_ui_preferences(const std::filesystem::path& path,
     prefs.erase("bottom_dock_height_px");
     prefs.erase("terminal_height_px");
 
-    std::error_code ec;
-    if (const auto parent = path.parent_path(); !parent.empty()) {
-        std::filesystem::create_directories(parent, ec);
-        if (ec) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to create rollnw client preferences directory: %s", ec.message().c_str());
-            return false;
+    return write_preferences(path, prefs);
+}
+
+bool save_toolset_language_preference(const std::filesystem::path& path,
+    LanguageID language)
+{
+    if (path.empty() || Language::to_string(language).empty()) { return false; }
+    nlohmann::json prefs = nlohmann::json::object();
+    if (std::ifstream input{path}; input) {
+        try {
+            input >> prefs;
+            if (!prefs.is_object()) { prefs = nlohmann::json::object(); }
+        } catch (const std::exception&) {
+            prefs = nlohmann::json::object();
         }
     }
-
-    // Existing preferences use the same atomic replacement as document saves.
-    if (std::filesystem::exists(path, ec)) {
-        std::string error;
-        if (!nw::toolset::save_json_resource_document_atomic(path, prefs, error)) {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to save rollnw client preferences: %s", error.c_str());
-            return false;
-        }
-        return true;
-    }
-    std::ofstream output{path};
-    if (!output) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to open rollnw client preferences for writing");
-        return false;
-    }
-
-    output << prefs.dump(2) << '\n';
-    output.flush();
-    if (!output) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Failed to write rollnw client preferences");
-        return false;
-    }
-    return true;
+    auto& ui = prefs["ui"];
+    if (!ui.is_object()) { ui = nlohmann::json::object(); }
+    ui["toolset_language"] = std::string{Language::to_string(language)};
+    return write_preferences(path, prefs);
 }
 
 void remember_recent_project(const std::filesystem::path& preferences_path, const DockLayout& docks,

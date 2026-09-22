@@ -56,6 +56,11 @@ public:
 
     [[nodiscard]] std::vector<RecentModuleEntry> list_modules(std::string_view query, size_t limit = 16) const;
     [[nodiscard]] std::vector<LoadedAreaEntry> list_areas(std::string_view query) const;
+    // The active Area edit is a true singleton. Update the matching cached
+    // catalog row by resref; callers rebuild filtered/sorted views only when
+    // this returns true.
+    [[nodiscard]] bool update_loaded_area_label(
+        std::string_view resref, std::string_view label);
     [[nodiscard]] ProjectTreeResult list_project_tree(std::string_view query) const;
     [[nodiscard]] ProjectModuleSummary project_module_summary() const;
     [[nodiscard]] std::vector<CommandSpec> list_commands(std::string_view query) const;

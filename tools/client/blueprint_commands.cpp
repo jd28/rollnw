@@ -324,7 +324,8 @@ void ToolsetBackend::register_blueprint_commands()
         }
         if (auto* tab = workspace_->active_tab(); tab && tab->kind == WorkspaceTabKind::preview && tab->document.object() == source) {
             const std::array<std::string_view, 1> ids{tab->id};
-            return save_workspace_documents(*workspace_, current_project_dir_, ids);
+            return save_workspace_documents(
+                *workspace_, current_project_dir_, ids, module_object_);
         }
         const std::array requests{BlueprintWriteRequest{BlueprintWriteKind::update, source,
             Resource{object->resref, blueprint_resource_type(source.type)}, {}}};
