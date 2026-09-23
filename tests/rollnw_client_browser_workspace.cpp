@@ -1,4 +1,5 @@
 #include "appearance_view.hpp"
+#include "area_map.hpp"
 #include "area_object_editor.hpp"
 #include "area_tile_editor.hpp"
 #include "blueprint_edits.hpp"
@@ -167,6 +168,8 @@ TEST_F(ClientBrowserWorkspace, RealProjectFiltersAndHomeWindowsKeepTheirExisting
     std::filesystem::remove_all(root);
     const auto imported = import_module_project("test_data/user/modules/DockerDemo.mod", root, {ProjectImportFormat::json});
     ASSERT_TRUE(imported.ok) << imported.message;
+    const auto initially_missing_map = project_area_map_path(root, "start");
+    ASSERT_TRUE(std::filesystem::remove(initially_missing_map));
     RmlSmallsBridge bridge;
     WorkspaceState workspace;
     ShellController shell;
@@ -175,6 +178,8 @@ TEST_F(ClientBrowserWorkspace, RealProjectFiltersAndHomeWindowsKeepTheirExisting
     const auto unbind = create_scope_exit([] { script_command_host().bind(nullptr, nullptr); });
     const auto opened = backend.open_project(root.string());
     ASSERT_TRUE(opened.ok()) << opened.message;
+    const auto regenerated_map = project_area_map_path(
+        backend.current_project_dir(), "start");
     shell.set_showing_project_tree(true);
     BrowserViewState browser;
     browser.selected_recent_index = std::numeric_limits<int>::max();
@@ -202,6 +207,19 @@ TEST_F(ClientBrowserWorkspace, RealProjectFiltersAndHomeWindowsKeepTheirExisting
 
     refresh_home_area_catalog(browser, backend, false);
     ASSERT_FALSE(browser.home_areas.empty());
+    const auto missing_map = std::ranges::find(
+        browser.home_areas, "start", &LoadedAreaEntry::resref);
+    ASSERT_NE(missing_map, browser.home_areas.end());
+    EXPECT_TRUE(missing_map->map_path.empty());
+    std::ofstream{regenerated_map, std::ios::binary} << "regenerated map";
+    const std::array regenerated_maps{regenerated_map};
+    EXPECT_EQ(backend.update_loaded_area_maps(regenerated_maps), 1u);
+    refresh_home_area_catalog(browser, backend, true);
+    const auto refreshed_map = std::ranges::find(
+        browser.home_areas, "start", &LoadedAreaEntry::resref);
+    ASSERT_NE(refreshed_map, browser.home_areas.end());
+    EXPECT_EQ(refreshed_map->map_path, regenerated_map);
+
     const auto renamed_area = browser.home_areas.front();
     ASSERT_TRUE(backend.update_loaded_area_label(
         renamed_area.resref, "Renamed live area"));
@@ -2161,6 +2179,43 @@ TEST_F(ClientObjectWorkbench, NativeDetailsClickUsesLiveMetadataAndRejectsReplac
     build_object_details(nw::kernel::runtime(), sound->handle(), current);
     ASSERT_LT(index, current.rows.size());
     EXPECT_EQ(current.rows[index].edit_value, before);
+}
+
+TEST_F(ClientObjectWorkbench, NativeAreaLightingClickUsesTheBooleanControlAndUndo)
+{
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->weather.day_night_cycle = 0;
+    activate(area->handle());
+
+    const auto row = std::ranges::find(view.object_details.rows,
+        ObjectDetailsEditorKind::area_weather_boolean,
+        &ObjectDetailsRow::editor);
+    ASSERT_NE(row, view.object_details.rows.end());
+    const auto index = static_cast<uint32_t>(
+        std::distance(view.object_details.rows.begin(), row));
+    document->SetInnerRML(
+        "<span id='target' class='object_details_boolean' data-row='"
+        + std::to_string(index)
+        + "' data-current='0'>Toggle</span>");
+
+    auto click = capture_object_workbench_command_click(
+        document->GetElementById("target"), view, workspace,
+        backend.module_generation());
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->kind, ObjectWorkbenchCommandKind::boolean);
+    EXPECT_TRUE(execute_object_workbench_command_click(
+        *click, view, workspace, backend, shell, command));
+    EXPECT_EQ(area->weather.day_night_cycle, 1);
+    EXPECT_EQ(object_mutation_state().kind,
+        ObjectMutationKind::area_lighting);
+    ASSERT_EQ(workspace.undo_count(), 1);
+
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(area->weather.day_night_cycle, 0);
+
+    area->clear();
+    nw::kernel::objects().destroy(area->handle());
 }
 
 TEST_F(ClientObjectWorkbench, NativeIntegerAndDoorClicksPreservePhasesAndUndo)

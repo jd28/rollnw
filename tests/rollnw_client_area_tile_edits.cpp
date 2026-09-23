@@ -153,6 +153,84 @@ TEST(ClientAreaTileEdits, PaintAndInversePreserveCompleteRows)
     destroy_area(area);
 }
 
+TEST(ClientAreaTileEdits, TileLightBatchUsesNwnRangesAndPreservesOtherFields)
+{
+    nw::Tileset tileset;
+    tileset.tiles.resize(2);
+    auto* area = make_area(tileset, 2, 1);
+    ASSERT_NE(area, nullptr);
+    area->tiles = {
+        distinct_tile(0, 0, 0, 1),
+        distinct_tile(1, 2, 1, 20),
+    };
+    const auto original = area->tiles;
+    const std::array<uint32_t, 2> indices{0, 1};
+
+    nw::toolset::AreaTileEditBatch edit;
+    auto built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        indices, nw::toolset::AreaTileLightSlot::main1, 31, edit);
+    ASSERT_TRUE(built.ok()) << built.diagnostic;
+    ASSERT_EQ(edit.rows.size(), 2u);
+    EXPECT_EQ(edit.rows[0].tile_index, 0u);
+    EXPECT_EQ(edit.rows[1].tile_index, 1u);
+    EXPECT_EQ(edit.rows[0].after.mainlight1, 31u);
+    EXPECT_EQ(edit.rows[1].after.mainlight1, 31u);
+    EXPECT_EQ(edit.rows[0].after.srclight2, original[0].srclight2);
+    EXPECT_EQ(edit.rows[1].after.height, original[1].height);
+
+    auto applied = nw::toolset::apply_area_tile_edits(
+        edit, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+    EXPECT_EQ(area->tiles[0].mainlight1, 31u);
+    EXPECT_EQ(area->tiles[1].mainlight1, 31u);
+    applied = nw::toolset::apply_area_tile_edits(
+        edit, nw::toolset::ObjectEditDirection::inverse);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+    EXPECT_TRUE(nw::toolset::area_tile_rows_equal(
+        area->tiles[0], original[0]));
+    EXPECT_TRUE(nw::toolset::area_tile_rows_equal(
+        area->tiles[1], original[1]));
+
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        indices, nw::toolset::AreaTileLightSlot::source2, 15, edit);
+    ASSERT_TRUE(built.ok()) << built.diagnostic;
+    EXPECT_EQ(edit.rows[0].after.srclight2, 15u);
+    EXPECT_EQ(edit.rows[1].after.srclight2, 15u);
+
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        indices, nw::toolset::AreaTileLightSlot::source1, 16, edit);
+    EXPECT_EQ(built.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        indices, nw::toolset::AreaTileLightSlot::main2, 32, edit);
+    EXPECT_EQ(built.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        indices, nw::toolset::AreaTileLightSlot::invalid, 0, edit);
+    EXPECT_EQ(built.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+
+    const std::array<uint32_t, 2> duplicate_indices{0, 0};
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        duplicate_indices, nw::toolset::AreaTileLightSlot::main1, 1, edit);
+    EXPECT_EQ(built.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+    const std::array<uint32_t, 2> descending_indices{1, 0};
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        descending_indices, nw::toolset::AreaTileLightSlot::main1, 1, edit);
+    EXPECT_EQ(built.status, nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+
+    const std::array<uint32_t, 1> first_index{0};
+    built = nw::toolset::build_area_tile_light_edits(area->handle(),
+        first_index, nw::toolset::AreaTileLightSlot::main1,
+        original[0].mainlight1, edit);
+    EXPECT_EQ(built.status, nw::toolset::ObjectEditStatus::empty);
+    EXPECT_TRUE(edit.rows.empty());
+
+    destroy_area(area);
+}
+
 TEST(ClientAreaTileEdits, InvalidBatchWritesNoRows)
 {
     nw::Tileset tileset;

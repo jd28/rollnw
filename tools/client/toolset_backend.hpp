@@ -61,6 +61,11 @@ public:
     // this returns true.
     [[nodiscard]] bool update_loaded_area_label(
         std::string_view resref, std::string_view label);
+    // Save results provide the exact derived-map paths written on disk.
+    // Existing regular files matching loaded project areas update the cached
+    // catalog row; missing and unrelated paths are dropped.
+    [[nodiscard]] size_t update_loaded_area_maps(
+        std::span<const std::filesystem::path> paths);
     [[nodiscard]] ProjectTreeResult list_project_tree(std::string_view query) const;
     [[nodiscard]] ProjectModuleSummary project_module_summary() const;
     [[nodiscard]] std::vector<CommandSpec> list_commands(std::string_view query) const;

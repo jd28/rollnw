@@ -31,6 +31,7 @@ struct AreaTileEditRow;
 enum class ObjectEditKind : uint8_t {
     propset_int,
     propset_int_element,
+    area_weather_boolean,
     creature_feat,
     creature_body_part,
     creature_color,
@@ -468,6 +469,7 @@ enum class ObjectMutationKind : uint8_t {
     properties,
     spatial,
     visual,
+    area_lighting,
     area_tiles,
     structure,
 };

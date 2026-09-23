@@ -5403,6 +5403,7 @@ AreaTransientVisualResult update_area_tile_previews(
                 .tile_x = row.tile_x,
                 .tile_y = row.tile_y,
                 .tile_orientation = row.tile_orientation,
+                .tile_preview = true,
             };
         }
         lease.suppressed_tile_model_indices
@@ -5489,6 +5490,7 @@ AreaTransientVisualResult update_area_tile_previews(
             .tile_x = row.tile_x,
             .tile_y = row.tile_y,
             .tile_orientation = row.tile_orientation,
+            .tile_preview = true,
         };
         preview_objects.push_back(row.preview_object);
         preview_model_indices.push_back(model_index);

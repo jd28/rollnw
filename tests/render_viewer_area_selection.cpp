@@ -849,6 +849,69 @@ TEST(RenderViewerAreaSelection, SeparatesObjectAndTileSelectionTargets)
     destroy_selection_model_buffers(scene);
 }
 
+TEST(RenderViewerAreaSelection, TilePreviewDoesNotOwnTheNextTilePick)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+
+    viewer::PreviewScene scene;
+    auto authored_model = make_selection_model(
+        gfx.context,
+        {{{3.0f, 0.0f, 0.0f}, {3.0f, 1.0f, 0.0f}, {3.0f, 0.0f, 1.0f}}},
+        {.min = {3.0f, 0.0f, 0.0f}, .max = {4.0f, 1.0f, 1.0f}});
+    auto preview_model = make_selection_model(
+        gfx.context,
+        {{{1.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f}}},
+        {.min = {1.0f, 0.0f, 0.0f}, .max = {2.0f, 1.0f, 1.0f}});
+    ASSERT_TRUE(authored_model);
+    ASSERT_TRUE(preview_model);
+
+    scene.add(std::move(authored_model));
+    scene.static_area_model_info.back() = {
+        .kind = nw::ObjectType::tile,
+        .tile_x = 4,
+        .tile_y = 7,
+        .static_candidate = true,
+    };
+    scene.add(std::move(preview_model));
+    scene.static_area_model_info.back() = {
+        .kind = nw::ObjectType::tile,
+        .object = nw::ObjectHandle{
+            .id = static_cast<nw::ObjectID>(29),
+            .type = nw::ObjectType::tile,
+            .version = 1,
+        },
+        .tile_x = 9,
+        .tile_y = 11,
+        .tile_preview = true,
+    };
+
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+    constexpr std::array<uint32_t, 1> authored_model_indices{0u};
+    ASSERT_TRUE(records.set_tile_preview_suppressed_models(
+        authored_model_indices));
+
+    const auto selected = viewer::select_area_object(
+        {
+            .origin = {0.0f, 0.25f, 0.25f},
+            .direction = {1.0f, 0.0f, 0.0f},
+        },
+        records,
+        scene,
+        {.target = viewer::AreaObjectSelectionTarget::tile});
+    ASSERT_EQ(selected.status, viewer::AreaObjectSelectionStatus::hit);
+    EXPECT_EQ(selected.record_index, 0u);
+    EXPECT_EQ(selected.tile_x, 4);
+    EXPECT_EQ(selected.tile_y, 7);
+    EXPECT_FLOAT_EQ(selected.distance, 3.0f);
+    EXPECT_TRUE(viewer::area_tile_selection_bounds(selected, records));
+
+    destroy_selection_model_buffers(scene);
+}
+
 TEST(RenderViewerAreaSelection, SelectsTriggerAndEncounterFootprints)
 {
     TestGfxRuntime gfx;

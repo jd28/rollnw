@@ -2446,6 +2446,159 @@ TEST(ClientObjectEdits, DetailsBooleanCommitPersistsAndRestoresUndoRedo)
     nwk::objects().destroy(placeable->handle());
 }
 
+TEST(ClientObjectEdits, AreaLightingBooleansPersistAndRestoreUndoRedo)
+{
+    auto module = nwk::load_module(
+        "test_data/user/modules/DockerDemo.mod");
+    ASSERT_TRUE(module);
+    auto& runtime = nwk::runtime();
+    runtime.add_module_path(
+        std::filesystem::path{"stdlib/toolset"});
+    ASSERT_NE(runtime.load_module("toolset.ui"), nullptr);
+
+    auto* area = nwk::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->weather.day_night_cycle = 0;
+    area->weather.is_night = 0;
+    area->weather.sun_shadows = 0;
+    area->weather.moon_shadows = 0;
+
+    nw::toolset::ObjectDetailsSnapshot snapshot;
+    nw::toolset::build_object_details(
+        runtime, area->handle(), snapshot);
+    ASSERT_EQ(snapshot.status,
+        nw::toolset::ObjectDetailsStatus::ready)
+        << snapshot.diagnostic;
+
+    constexpr std::array expected_labels{
+        std::string_view{"Day/Night Cycle"},
+        std::string_view{"Starts at Night"},
+        std::string_view{"Sun Shadows"},
+        std::string_view{"Moon Shadows"},
+    };
+    std::vector<size_t> weather_rows;
+    for (size_t index = 0; index < snapshot.rows.size(); ++index) {
+        const auto& row = snapshot.rows[index];
+        if (row.editor
+            != nw::toolset::ObjectDetailsEditorKind::area_weather_boolean) {
+            continue;
+        }
+        weather_rows.push_back(index);
+        ASSERT_EQ(row.edit_min, 0);
+        ASSERT_EQ(row.edit_max, 1);
+        ASSERT_TRUE(row.edit_value == 0 || row.edit_value == 1);
+        ASSERT_LT(row.field_index,
+            static_cast<uint32_t>(
+                nw::toolset::ObjectDetailsAreaWeatherField::count));
+    }
+    ASSERT_EQ(weather_rows.size(), expected_labels.size());
+    for (size_t index = 0; index < weather_rows.size(); ++index) {
+        EXPECT_EQ(snapshot.text_view(
+                      snapshot.rows[weather_rows[index]].label),
+            expected_labels[index]);
+    }
+
+    std::vector<nw::toolset::ObjectDetailsValueEdit> prepared;
+    prepared.reserve(weather_rows.size());
+    for (const size_t row_index : weather_rows) {
+        const auto& row = snapshot.rows[row_index];
+        std::string diagnostic;
+        auto edit = nw::toolset::prepare_object_details_boolean_edit(
+            runtime, area->handle(), static_cast<uint32_t>(row_index),
+            row.edit_value, row.edit_value == 0, diagnostic);
+        ASSERT_TRUE(edit) << diagnostic;
+        ASSERT_EQ(edit->editor,
+            nw::toolset::ObjectDetailsEditorKind::area_weather_boolean);
+        prepared.push_back(std::move(*edit));
+    }
+
+    nw::toolset::ObjectEditBatch invalid_batch;
+    invalid_batch.kind
+        = nw::toolset::ObjectEditKind::area_weather_boolean;
+    invalid_batch.patches.push_back({
+        prepared.front().object,
+        prepared.front().propset_type,
+        prepared.front().field_index,
+        prepared.front().before,
+        2,
+        prepared.front().element_index,
+    });
+    const auto rejected = nw::toolset::apply_object_edits(
+        runtime, invalid_batch,
+        nw::toolset::ObjectEditDirection::forward);
+    EXPECT_EQ(rejected.status,
+        nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_EQ(area->weather.day_night_cycle,
+        static_cast<uint8_t>(prepared.front().before));
+
+    nw::toolset::ObjectEditBatch batch;
+    batch.kind
+        = nw::toolset::ObjectEditKind::area_weather_boolean;
+    for (const auto& edit : prepared) {
+        batch.patches.push_back({
+            edit.object,
+            edit.propset_type,
+            edit.field_index,
+            edit.before,
+            edit.after,
+            edit.element_index,
+        });
+    }
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("area:test", "Test Area",
+        nw::toolset::WorkspaceTabKind::area);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+
+    auto committed = nw::toolset::commit_object_edits(
+        std::move(batch), "Set area lighting", context);
+    ASSERT_TRUE(committed.ok()) << committed.message;
+    ASSERT_TRUE(committed.undo_action);
+    EXPECT_EQ(area->weather.day_night_cycle, 1);
+    EXPECT_EQ(area->weather.is_night, 1);
+    EXPECT_EQ(area->weather.sun_shadows, 1);
+    EXPECT_EQ(area->weather.moon_shadows, 1);
+    EXPECT_EQ(nw::toolset::object_mutation_state().kind,
+        nw::toolset::ObjectMutationKind::area_lighting);
+
+    nlohmann::json serialized;
+    nw::serialize(area, serialized);
+    EXPECT_EQ(serialized["weather"]["day_night_cycle"], 1);
+    EXPECT_EQ(serialized["weather"]["is_night"], 1);
+    EXPECT_EQ(serialized["weather"]["sun_shadows"], 1);
+    EXPECT_EQ(serialized["weather"]["moon_shadows"], 1);
+
+    auto* reloaded = nwk::objects().make<nw::Area>();
+    ASSERT_NE(reloaded, nullptr);
+    ASSERT_TRUE(nw::deserialize(reloaded, serialized));
+    EXPECT_EQ(reloaded->weather.day_night_cycle, 1);
+    EXPECT_EQ(reloaded->weather.is_night, 1);
+    EXPECT_EQ(reloaded->weather.sun_shadows, 1);
+    EXPECT_EQ(reloaded->weather.moon_shadows, 1);
+    reloaded->clear();
+    nwk::objects().destroy(reloaded->handle());
+
+    workspace.push_undo(*committed.undo_action);
+    auto result = workspace.undo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    EXPECT_EQ(area->weather.day_night_cycle, 0);
+    EXPECT_EQ(area->weather.is_night, 0);
+    EXPECT_EQ(area->weather.sun_shadows, 0);
+    EXPECT_EQ(area->weather.moon_shadows, 0);
+
+    result = workspace.redo(context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    EXPECT_EQ(area->weather.day_night_cycle, 1);
+    EXPECT_EQ(area->weather.is_night, 1);
+    EXPECT_EQ(area->weather.sun_shadows, 1);
+    EXPECT_EQ(area->weather.moon_shadows, 1);
+
+    area->clear();
+    nwk::objects().destroy(area->handle());
+}
+
 TEST(ClientObjectEdits, LocStringEditPreservesWholeValueAcrossSaveAndUndo)
 {
     nw::LocString resolved{1000};

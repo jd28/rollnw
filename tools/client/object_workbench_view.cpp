@@ -179,7 +179,9 @@ public:
         }
         markup += "\">";
         if (!section) {
-            if (row.editor == nw::toolset::ObjectDetailsEditorKind::boolean) {
+            if (row.editor == nw::toolset::ObjectDetailsEditorKind::boolean
+                || row.editor
+                    == nw::toolset::ObjectDetailsEditorKind::area_weather_boolean) {
                 markup += "<span class=\"object_details_boolean\" data-row=\"";
                 markup += std::to_string(index);
                 markup += "\" data-current=\"";
@@ -2195,7 +2197,12 @@ std::optional<ObjectWorkbenchCommandClick> capture_object_workbench_command_clic
         }
         desired = *current + *delta;
     } else if (kind == ObjectWorkbenchCommandKind::boolean) {
-        if ((*current != 0 && *current != 1) || row.editor != ObjectDetailsEditorKind::boolean) { return finish(); }
+        if ((*current != 0 && *current != 1)
+            || (row.editor != ObjectDetailsEditorKind::boolean
+                && row.editor
+                    != ObjectDetailsEditorKind::area_weather_boolean)) {
+            return finish();
+        }
         desired = 1 - *current;
     } else {
         if (*current < 0 || *current > 2 || row.editor != ObjectDetailsEditorKind::door_state) { return finish(); }

@@ -268,6 +268,23 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                 refresh_workspace_content(doc, state);
                 sync_area_tile_palette_window(doc, state, true);
                 handled = true;
+            } else if (auto light_click
+                = nw::toolset::capture_area_tile_light_click(
+                    hit, state.area_tile_editor)) {
+                if (!release_workspace_mouse_up()) {
+                    return ClientEventFlow::finish;
+                }
+                const auto effect = nw::toolset::apply_area_tile_light_click(
+                    *light_click, state.area_tile_editor,
+                    active_workspace_area(state),
+                    area_tile_editor_action_allowed(state), state.backend,
+                    command_context(
+                        state, nw::toolset::CommandSource::widget),
+                    state.shell);
+                if (effect != nw::toolset::AreaTileLightClickEffect::none) {
+                    sync_area_tile_palette_window(doc, state, true);
+                }
+                handled = true;
             } else if (auto tile_click = nw::toolset::capture_area_tile_palette_click(hit, state.area_tile_editor)) {
                 if (!release_workspace_mouse_up()) { return ClientEventFlow::finish; }
                 const auto effect = nw::toolset::apply_area_tile_palette_click(*tile_click, state.area_tile_editor, active_workspace_area(state));

@@ -57,33 +57,6 @@ float color_max_channel(const glm::vec3& color) noexcept
     return std::max(color.x, std::max(color.y, color.z));
 }
 
-glm::vec3 tile_light_hue(uint8_t index)
-{
-    static const std::array<glm::vec3, 7> colors{
-        glm::vec3{1.0f, 0.82f, 0.32f},
-        glm::vec3{0.32f, 1.0f, 0.36f},
-        glm::vec3{0.25f, 0.95f, 1.0f},
-        glm::vec3{0.34f, 0.52f, 1.0f},
-        glm::vec3{0.72f, 0.38f, 1.0f},
-        glm::vec3{1.0f, 0.32f, 0.28f},
-        glm::vec3{1.0f, 0.58f, 0.22f},
-    };
-    return colors[std::min<size_t>(index, colors.size() - 1)];
-}
-
-glm::vec3 tile_main_light_debug_color(uint8_t color_id)
-{
-    static constexpr std::array<float, 4> white_strengths{0.0f, 0.45f, 0.76f, 1.0f};
-    static constexpr std::array<float, 4> hue_strengths{0.36f, 0.56f, 0.78f, 1.0f};
-    if (color_id <= 3) {
-        return glm::vec3{white_strengths[color_id]};
-    }
-
-    const uint8_t hue_index = static_cast<uint8_t>((color_id - 4) / 4);
-    const uint8_t strength_index = static_cast<uint8_t>((color_id - 4) % 4);
-    return tile_light_hue(hue_index) * hue_strengths[strength_index];
-}
-
 bool has_visible_light_color(const glm::vec3& color) noexcept
 {
     return color_max_channel(color) > 1.0e-4f;
@@ -118,7 +91,7 @@ glm::vec3 placeable_table_light_color(int32_t color) noexcept
         return glm::vec3{0.0f};
     }
 
-    return tile_main_light_debug_color(static_cast<uint8_t>(std::clamp(color, 0, 31)));
+    return tile_main_light_color(static_cast<uint8_t>(std::clamp(color, 0, 31)));
 }
 
 SceneLocalLightTuning scene_light_tuning_for_source(
@@ -138,10 +111,11 @@ SceneLocalLightTuning scene_light_tuning_for_source(
 
 glm::vec3 render_model_light_color(
     const nw::render::ModelLight& light,
-    const SceneTileLightSlots& slots)
+    const SceneTileLightSlots& slots,
+    bool use_tile_slots)
 {
     glm::vec3 color = light.color;
-    if (has_tile_light_slots(slots)
+    if (use_tile_slots
         && light.external_color_slot != nw::render::kModelLightNoExternalColor
         && light.external_color_slot < 4u) {
         const std::array<uint8_t, 4> color_indices{
@@ -150,7 +124,10 @@ glm::vec3 render_model_light_color(
             slots.source1,
             slots.source2,
         };
-        color = tile_color_from_index(color_indices[light.external_color_slot]);
+        const uint8_t slot = light.external_color_slot;
+        color = slot < 2u
+            ? tile_main_light_color(color_indices[slot])
+            : tile_source_light_color(color_indices[slot]);
     }
     return glm::clamp(color, glm::vec3{0.0f}, glm::vec3{1.0f});
 }
@@ -160,7 +137,8 @@ SceneLocalLight scene_local_light_from_render_model_light(
     const glm::mat4& node_world_transform,
     const SceneModelLightAppendOptions& options)
 {
-    const bool has_authored_tile_slots = has_tile_light_slots(options.tile_slots);
+    const bool has_authored_tile_slots
+        = options.source == SceneLocalLightSource::tile_model;
     auto world_position = glm::vec3(node_world_transform[3]);
     if (has_authored_tile_slots) {
         const float tile_base_z = glm::vec3(options.root_transform[3]).z;
@@ -196,7 +174,8 @@ SceneLocalLight scene_local_light_from_render_model_light(
     return SceneLocalLight{
         .position = world_position,
         .radius = base_radius * options.tuning.radius_scale,
-        .color = render_model_light_color(light, options.tile_slots),
+        .color = render_model_light_color(
+            light, options.tile_slots, has_authored_tile_slots),
         .intensity = base_intensity * options.tuning.intensity_scale,
         .base_radius = base_radius,
         .base_intensity = base_intensity,
@@ -421,7 +400,7 @@ SceneLocalLightTuning scene_local_light_tuning(const PreviewScene& scene) noexce
     if (night) {
         return SceneLocalLightTuning{.radius_scale = 0.80f, .intensity_scale = 0.50f};
     }
-    return SceneLocalLightTuning{.radius_scale = 0.62f, .intensity_scale = 0.28f};
+    return SceneLocalLightTuning{.radius_scale = 0.75f, .intensity_scale = 0.42f};
 }
 
 SceneTileLightSlots scene_tile_light_slots(const nw::AreaTile& tile) noexcept

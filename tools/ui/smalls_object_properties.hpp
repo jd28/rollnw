@@ -1,5 +1,6 @@
 #pragma once
 
+#include "object_details_protocol.hpp"
 #include "object_locstring.hpp"
 #include "smalls_property_tree.hpp"
 
@@ -40,16 +41,6 @@ void build_creature_property_groups(
 enum class ObjectDetailsRowKind : uint8_t {
     section,
     value,
-};
-
-enum class ObjectDetailsEditorKind : uint8_t {
-    read_only,
-    boolean,
-    integer,
-    door_state,
-    sound_position,
-    sound_volume,
-    locstring,
 };
 
 struct ObjectDetailsRow {
@@ -93,6 +84,7 @@ struct ObjectDetailsSnapshot {
 
 struct ObjectDetailsValueEdit {
     ObjectHandle object{};
+    ObjectDetailsEditorKind editor = ObjectDetailsEditorKind::read_only;
     smalls::TypeID propset_type{};
     uint32_t field_index = UINT32_MAX;
     int32_t element_index = -1;

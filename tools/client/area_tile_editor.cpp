@@ -4,6 +4,7 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/TilesetRegistry.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/render/viewer/tile_light.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
 #include <RmlUi/Core.h>
@@ -16,6 +17,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace nw::toolset {
@@ -24,9 +26,256 @@ namespace {
 constexpr int kAreaTilePaletteRowHeightPx = 58;
 constexpr int kAreaTilePaletteOverscanRows = 3;
 
+constexpr std::array<std::string_view, 32> kMainLightNames{
+    "Black",
+    "Dim White",
+    "White",
+    "Bright White",
+    "Pale Dark Yellow",
+    "Dark Yellow",
+    "Pale Yellow",
+    "Yellow",
+    "Pale Dark Green",
+    "Dark Green",
+    "Pale Green",
+    "Green",
+    "Pale Dark Aqua",
+    "Dark Aqua",
+    "Pale Aqua",
+    "Aqua",
+    "Pale Dark Blue",
+    "Dark Blue",
+    "Pale Blue",
+    "Blue",
+    "Pale Dark Purple",
+    "Dark Purple",
+    "Pale Purple",
+    "Purple",
+    "Pale Dark Red",
+    "Dark Red",
+    "Pale Red",
+    "Red",
+    "Pale Dark Orange",
+    "Dark Orange",
+    "Pale Orange",
+    "Orange",
+};
+
+constexpr std::array<std::string_view, 16> kSourceLightNames{
+    "Black",
+    "White",
+    "Pale Dark Yellow",
+    "Pale Yellow",
+    "Pale Dark Green",
+    "Pale Green",
+    "Pale Dark Aqua",
+    "Pale Aqua",
+    "Pale Dark Blue",
+    "Pale Blue",
+    "Pale Dark Purple",
+    "Pale Purple",
+    "Pale Dark Red",
+    "Pale Red",
+    "Pale Dark Orange",
+    "Pale Orange",
+};
+
 Rml::Element* find_el(Rml::ElementDocument* document, const char* id)
 {
     return document ? document->GetElementById(id) : nullptr;
+}
+
+std::string_view tile_light_slot_label(AreaTileLightSlot slot) noexcept
+{
+    switch (slot) {
+    case AreaTileLightSlot::main1:
+        return "Main Light 1";
+    case AreaTileLightSlot::main2:
+        return "Main Light 2";
+    case AreaTileLightSlot::source1:
+        return "Source Light 1";
+    case AreaTileLightSlot::source2:
+        return "Source Light 2";
+    case AreaTileLightSlot::invalid:
+        return "Tile Light";
+    }
+    return "Tile Light";
+}
+
+bool tile_light_slot_is_main(AreaTileLightSlot slot) noexcept
+{
+    return slot == AreaTileLightSlot::main1
+        || slot == AreaTileLightSlot::main2;
+}
+
+uint8_t tile_light_value(
+    const AreaTile& tile, AreaTileLightSlot slot) noexcept
+{
+    switch (slot) {
+    case AreaTileLightSlot::main1:
+        return tile.mainlight1;
+    case AreaTileLightSlot::main2:
+        return tile.mainlight2;
+    case AreaTileLightSlot::source1:
+        return tile.srclight1;
+    case AreaTileLightSlot::source2:
+        return tile.srclight2;
+    case AreaTileLightSlot::invalid:
+        return 0;
+    }
+    return 0;
+}
+
+std::string_view tile_light_value_name(
+    AreaTileLightSlot slot, uint8_t value) noexcept
+{
+    if (tile_light_slot_is_main(slot)) {
+        return value < kMainLightNames.size()
+            ? kMainLightNames[value]
+            : std::string_view{"Invalid"};
+    }
+    if (slot == AreaTileLightSlot::source1
+        || slot == AreaTileLightSlot::source2) {
+        return value < kSourceLightNames.size()
+            ? kSourceLightNames[value]
+            : std::string_view{"Invalid"};
+    }
+    return "Invalid";
+}
+
+glm::vec3 tile_light_display_color(
+    AreaTileLightSlot slot, uint8_t value) noexcept
+{
+    return tile_light_slot_is_main(slot)
+        ? nw::render::viewer::tile_main_light_color(value)
+        : nw::render::viewer::tile_source_light_color(value);
+}
+
+std::string tile_light_css_color(
+    AreaTileLightSlot slot, uint8_t value)
+{
+    const glm::vec3 color = glm::clamp(
+        tile_light_display_color(slot, value),
+        glm::vec3{0.0f}, glm::vec3{1.0f});
+    const auto channel = [](float component) {
+        return static_cast<int>(std::lround(component * 255.0f));
+    };
+    return "rgb(" + std::to_string(channel(color.r)) + ","
+        + std::to_string(channel(color.g)) + ","
+        + std::to_string(channel(color.b)) + ")";
+}
+
+std::optional<uint8_t> selected_tile_light_value(
+    const Area& area,
+    const AreaTileSelection& selection,
+    AreaTileLightSlot slot) noexcept
+{
+    if (!selection.active()
+        || selection.tile_indices.front() >= area.tiles.size()) {
+        return std::nullopt;
+    }
+    const uint8_t value
+        = tile_light_value(area.tiles[selection.tile_indices.front()], slot);
+    for (const uint32_t tile_index : selection.tile_indices) {
+        if (tile_index >= area.tiles.size()
+            || tile_light_value(area.tiles[tile_index], slot) != value) {
+            return std::nullopt;
+        }
+    }
+    return value;
+}
+
+AreaTileLightSlot tile_light_slot_from_attribute(
+    Rml::Element& element) noexcept
+{
+    const int value = element.GetAttribute<int>("data-light-slot", -1);
+    return value >= static_cast<int>(AreaTileLightSlot::main1)
+            && value <= static_cast<int>(AreaTileLightSlot::source2)
+        ? static_cast<AreaTileLightSlot>(value)
+        : AreaTileLightSlot::invalid;
+}
+
+void append_tile_light_fields_markup(
+    std::string& markup,
+    const Area& area,
+    const AreaTileSelection& selection)
+{
+    constexpr std::array slots{
+        AreaTileLightSlot::main1,
+        AreaTileLightSlot::main2,
+        AreaTileLightSlot::source1,
+        AreaTileLightSlot::source2,
+    };
+    for (const AreaTileLightSlot slot : slots) {
+        const auto value = selected_tile_light_value(area, selection, slot);
+        const std::string_view label = tile_light_slot_label(slot);
+        markup += "<button type=\"button\" class=\"area_tile_light_field";
+        if (value == std::nullopt) {
+            markup += " mixed";
+        }
+        markup += "\" data-light-slot=\"";
+        markup += std::to_string(static_cast<int>(slot));
+        markup += "\" title=\"";
+        markup += label;
+        markup += ": ";
+        markup += value ? tile_light_value_name(slot, *value)
+                        : std::string_view{"Mixed"};
+        markup += "\"><span class=\"area_tile_light_label\">";
+        markup += label;
+        markup += "</span><span class=\"area_tile_light_value\">";
+        markup += value ? tile_light_value_name(slot, *value)
+                        : std::string_view{"Mixed"};
+        markup += "</span><span class=\"area_tile_light_swatch\"";
+        if (value) {
+            markup += " style=\"background-color:";
+            markup += tile_light_css_color(slot, *value);
+            markup += ";\"";
+        }
+        markup += ">";
+        if (!value) {
+            markup += "&mdash;";
+        }
+        markup += "</span></button>";
+    }
+}
+
+void append_tile_light_palette_markup(
+    std::string& markup,
+    const Area& area,
+    const AreaTileSelection& selection,
+    AreaTileLightSlot slot)
+{
+    if (slot == AreaTileLightSlot::invalid) {
+        return;
+    }
+    const bool main = tile_light_slot_is_main(slot);
+    const uint8_t count = main ? 32 : 16;
+    const auto selected = selected_tile_light_value(area, selection, slot);
+    markup += "<div class=\"area_tile_light_palette\"><div class=\"area_tile_light_palette_title\">";
+    markup += tile_light_slot_label(slot);
+    markup += "</div><div class=\"area_tile_light_choices\">";
+    for (uint8_t value = 0; value < count; ++value) {
+        if (value % 4u == 0u) {
+            markup += "<div class=\"area_tile_light_choice_row\">";
+        }
+        markup += "<button type=\"button\" class=\"area_tile_light_choice";
+        if (selected && *selected == value) {
+            markup += " selected";
+        }
+        markup += "\" data-light-slot=\"";
+        markup += std::to_string(static_cast<int>(slot));
+        markup += "\" data-light-value=\"";
+        markup += std::to_string(value);
+        markup += "\" title=\"";
+        markup += tile_light_value_name(slot, value);
+        markup += "\"><span style=\"background-color:";
+        markup += tile_light_css_color(slot, value);
+        markup += ";\"></span></button>";
+        if (value % 4u == 3u || value + 1u == count) {
+            markup += "</div>";
+        }
+    }
+    markup += "</div></div>";
 }
 
 void configure_area_tile_palette_list(AreaTileEditorState& editor)
@@ -213,6 +462,52 @@ AreaTilePaletteClickEffect apply_area_tile_palette_click(AreaTilePaletteClick& c
     return AreaTilePaletteClickEffect::selected;
 }
 
+std::optional<AreaTileLightClick> capture_area_tile_light_click(
+    Rml::Element* hit, const AreaTileEditorState& editor)
+{
+    Rml::Element* control = nullptr;
+    AreaTileLightClickKind kind = AreaTileLightClickKind::none;
+    for (auto* element = hit; element; element = element->GetParentNode()) {
+        if (element->IsClassSet("area_tile_light_choice")) {
+            control = element;
+            kind = AreaTileLightClickKind::select_color;
+            break;
+        }
+        if (element->IsClassSet("area_tile_light_field")) {
+            control = element;
+            kind = AreaTileLightClickKind::toggle_slot;
+            break;
+        }
+    }
+    if (!control) {
+        return std::nullopt;
+    }
+
+    AreaTileLightClick click{
+        .area = editor.selection.area,
+        .mutation_epoch = object_mutation_state().epoch,
+        .source_tile_index = editor.selection.source_tile_index,
+        .group_index = editor.selection.group_index,
+        .open_slot = editor.light_editor_slot,
+        .slot = tile_light_slot_from_attribute(*control),
+        .kind = kind,
+    };
+    if (click.slot == AreaTileLightSlot::invalid) {
+        click.kind = AreaTileLightClickKind::none;
+        return click;
+    }
+    if (kind == AreaTileLightClickKind::select_color) {
+        const int value = control->GetAttribute<int>("data-light-value", -1);
+        const int max_value = tile_light_slot_is_main(click.slot) ? 31 : 15;
+        if (value < 0 || value > max_value) {
+            click.kind = AreaTileLightClickKind::none;
+            return click;
+        }
+        click.value = static_cast<uint8_t>(value);
+    }
+    return click;
+}
+
 void reset_area_tile_palette_folder_view(AreaTileEditorState& editor)
 {
     editor.feedback.clear();
@@ -258,8 +553,9 @@ bool rebuild_area_tile_palette(AreaTileEditorState& editor, nw::ObjectHandle are
 void sync_area_tile_selection_info(
     Rml::ElementDocument* doc, const AreaTileEditorState& editor, nw::ObjectHandle area_handle)
 {
-    auto* element = find_el(doc, "area_tile_selection_info");
-    if (!element) {
+    auto* selection_element = find_el(doc, "area_tile_selection_info");
+    auto* light_element = find_el(doc, "area_tile_light_panel");
+    if (!selection_element || !light_element) {
         return;
     }
     const auto& selection = editor.selection;
@@ -267,8 +563,10 @@ void sync_area_tile_selection_info(
     if (!selection.active() || selection.area != area_handle || !area
         || !area->tileset || area->width <= 0 || area->height <= 0
         || selection.source_tile_index >= area->tiles.size()) {
-        element->SetInnerRML("");
-        element->SetClass("visible", false);
+        selection_element->SetInnerRML("");
+        selection_element->SetClass("visible", false);
+        light_element->SetInnerRML("");
+        light_element->SetClass("visible", false);
         return;
     }
 
@@ -298,31 +596,42 @@ void sync_area_tile_selection_info(
         label = "Area Tile";
     }
 
-    std::string markup;
-    markup.reserve(label.size() + 180);
-    markup += "<div class=\"area_tile_selection_title\">Selected ";
-    markup += selection.is_group() ? "Group" : "Tile";
-    markup += "</div><div class=\"area_tile_selection_name\">";
-    markup += Rml::StringUtilities::EncodeRml(Rml::String{label});
-    markup += "</div><div class=\"area_tile_selection_meta\">Cell ";
-    markup += std::to_string(x);
-    markup += ", ";
-    markup += std::to_string(y);
-    markup += " · Tile ";
-    markup += std::to_string(tile.id);
-    markup += " · Height ";
-    markup += std::to_string(tile.height);
-    markup += " · Rotation ";
-    markup += std::to_string(tile.orientation * 90);
-    markup += "°";
+    std::string selection_markup;
+    selection_markup.reserve(label.size() + 180);
+    selection_markup += "<div class=\"area_tile_selection_title\">Selected ";
+    selection_markup += selection.is_group() ? "Group" : "Tile";
+    selection_markup += "</div><div class=\"area_tile_selection_name\">";
+    selection_markup += Rml::StringUtilities::EncodeRml(Rml::String{label});
+    selection_markup += "</div><div class=\"area_tile_selection_meta\">Cell ";
+    selection_markup += std::to_string(x);
+    selection_markup += ", ";
+    selection_markup += std::to_string(y);
+    selection_markup += " · Tile ";
+    selection_markup += std::to_string(tile.id);
+    selection_markup += " · Height ";
+    selection_markup += std::to_string(tile.height);
+    selection_markup += " · Rotation ";
+    selection_markup += std::to_string(tile.orientation * 90);
+    selection_markup += "°";
     if (selection.is_group()) {
-        markup += " · ";
-        markup += std::to_string(selection.tile_indices.size());
-        markup += " cells";
+        selection_markup += " · ";
+        selection_markup += std::to_string(selection.tile_indices.size());
+        selection_markup += " cells";
     }
-    markup += "</div>";
-    element->SetInnerRML(markup);
-    element->SetClass("visible", true);
+    selection_markup += "</div>";
+    selection_element->SetInnerRML(selection_markup);
+    selection_element->SetClass("visible", true);
+
+    std::string light_markup;
+    light_markup.reserve(2200);
+    light_markup += "<div class=\"area_tile_light_title\">Tile Lights</div>"
+                    "<div class=\"area_tile_light_fields\">";
+    append_tile_light_fields_markup(light_markup, *area, selection);
+    light_markup += "</div>";
+    append_tile_light_palette_markup(
+        light_markup, *area, selection, editor.light_editor_slot);
+    light_element->SetInnerRML(light_markup);
+    light_element->SetClass("visible", true);
 }
 
 void refresh_area_tile_palette_query(Rml::ElementDocument* doc, AreaTileEditorState& editor,
@@ -447,6 +756,8 @@ void append_area_tile_palette_markup(
                       "Right-click cycles its variation</div>"
                       "</div><div id=\"area_tile_selection_info\" "
                       "class=\"area_tile_selection_info\"></div>"
+                      "<div id=\"area_tile_light_panel\" "
+                      "class=\"area_tile_light_panel\"></div>"
                       "<div id=\"area_tile_palette_rows\" "
                       "class=\"area_tile_palette_rows\"></div></div>";
 }
@@ -483,6 +794,7 @@ bool reset_area_tile_editor(AreaTileEditorState& editor, ObjectHandle area)
     editor.query.clear();
     editor.preview_rows.clear();
     editor.selection = {};
+    editor.light_editor_slot = AreaTileLightSlot::invalid;
     editor.cursor_target_index = UINT32_MAX;
     editor.cursor_modifier = AreaTilePointerModifier::none;
     editor.cursor_update_pending = false;

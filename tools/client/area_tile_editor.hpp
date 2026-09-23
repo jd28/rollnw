@@ -69,6 +69,7 @@ struct AreaTileEditorState {
     int rendered_row_count = 0;
     int32_t selected_row = -1;
     int32_t group_orientation = 0; // Owned invariant: quarter turns in [0, 3].
+    AreaTileLightSlot light_editor_slot = AreaTileLightSlot::invalid;
     bool list_configured = false;
     bool rendered = false;
     bool cursor_update_pending = false;
@@ -99,6 +100,38 @@ std::optional<AreaTilePaletteClick> capture_area_tile_palette_click(Rml::Element
     const AreaTileEditorState& editor);
 AreaTilePaletteClickEffect apply_area_tile_palette_click(AreaTilePaletteClick& click,
     AreaTileEditorState& editor, ObjectHandle active_area);
+
+enum class AreaTileLightClickKind : uint8_t {
+    none,
+    toggle_slot,
+    select_color,
+};
+enum class AreaTileLightClickEffect : uint8_t {
+    none,
+    presentation_changed,
+    value_changed,
+    unavailable,
+};
+struct AreaTileLightClick {
+    ObjectHandle area{};
+    uint64_t mutation_epoch = 0;
+    uint32_t source_tile_index = UINT32_MAX;
+    uint32_t group_index = UINT32_MAX;
+    AreaTileLightSlot open_slot = AreaTileLightSlot::invalid;
+    AreaTileLightSlot slot = AreaTileLightSlot::invalid;
+    uint8_t value = 0;
+    AreaTileLightClickKind kind = AreaTileLightClickKind::none;
+};
+std::optional<AreaTileLightClick> capture_area_tile_light_click(
+    Rml::Element* hit, const AreaTileEditorState& editor);
+AreaTileLightClickEffect apply_area_tile_light_click(
+    AreaTileLightClick& click,
+    AreaTileEditorState& editor,
+    ObjectHandle active_area,
+    bool actions_allowed,
+    ToolsetBackend& backend,
+    const CommandContext& context,
+    ShellController& shell);
 
 void reset_area_tile_palette_folder_view(AreaTileEditorState& editor);
 [[nodiscard]] bool rebuild_area_tile_palette(AreaTileEditorState& editor, ObjectHandle area);

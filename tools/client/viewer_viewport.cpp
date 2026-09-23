@@ -134,46 +134,6 @@ void append_transient_debug_segment(
                                   });
 }
 
-std::optional<float> area_tile_rendered_top(
-    const viewer::PreviewScene& scene,
-    const viewer::AreaTilePreviewLease& preview_lease,
-    uint32_t tile_index,
-    size_t& preview_cursor) noexcept
-{
-    uint32_t model_index = nw::render::kInvalidModelInstanceIndex;
-    if (preview_lease.active) {
-        if (preview_lease.preview_objects.size()
-            != preview_lease.preview_model_indices.size()) {
-            return std::nullopt;
-        }
-        while (preview_cursor < preview_lease.preview_objects.size()
-            && static_cast<uint32_t>(
-                   preview_lease.preview_objects[preview_cursor].id)
-                < tile_index) {
-            ++preview_cursor;
-        }
-        if (preview_cursor >= preview_lease.preview_objects.size()
-            || preview_lease.preview_objects[preview_cursor].type
-                != nw::ObjectType::tile
-            || static_cast<uint32_t>(
-                   preview_lease.preview_objects[preview_cursor].id)
-                != tile_index) {
-            return std::nullopt;
-        }
-        model_index = preview_lease.preview_model_indices[preview_cursor];
-    } else {
-        if (tile_index >= scene.area_tile_model_indices.size()) {
-            return std::nullopt;
-        }
-        model_index = scene.area_tile_model_indices[tile_index];
-    }
-
-    const auto* instance = scene.static_model_instance(model_index);
-    return instance && std::isfinite(instance->current_bounds.max.z)
-        ? std::optional{instance->current_bounds.max.z}
-        : std::nullopt;
-}
-
 } // namespace
 
 struct ClientViewerViewport::Impl {
@@ -1012,6 +972,7 @@ struct ClientViewerViewport::Impl {
             session->clear_transient_debug_geometry();
             transient_debug_vertices.clear();
             transient_debug_indices.clear();
+            area_tile_overlay_joined_edges.clear();
             return true;
         }
         const auto finite = [](glm::vec3 point) {
@@ -1120,7 +1081,8 @@ struct ClientViewerViewport::Impl {
         nw::ObjectHandle area_handle,
         std::span<const viewer::AreaTilePreviewRow> rows,
         bool paintable,
-        bool replace_tiles)
+        bool replace_tiles,
+        std::optional<uint32_t> anchor_tile_index)
     {
         if (!session || loaded_area_resref.empty()) {
             return false;
@@ -1150,7 +1112,8 @@ struct ClientViewerViewport::Impl {
             || tile_count != area->tiles.size()
             || !std::isfinite(area->tileset->tile_height)
             || area->tileset->tile_height <= 0.0f
-            || rows.size() > std::numeric_limits<uint32_t>::max() / 16u
+            || rows.size() > std::numeric_limits<uint32_t>::max() / 22u
+            || (anchor_tile_index && *anchor_tile_index >= tile_count)
             || std::ranges::any_of(rows,
                 [area](const auto& row) {
                     return row.tile_index >= area->tiles.size();
@@ -1179,58 +1142,124 @@ struct ClientViewerViewport::Impl {
 
         transient_debug_vertices.clear();
         transient_debug_indices.clear();
-        transient_debug_vertices.reserve(rows.size() * 16u);
-        transient_debug_indices.reserve(rows.size() * 24u);
+        transient_debug_vertices.reserve(rows.size() * 22u);
+        transient_debug_indices.reserve(rows.size() * 30u);
         constexpr float k_tile_size = 10.0f;
-        constexpr float k_offset = 0.12f;
-        constexpr glm::vec4 k_paintable{0.18f, 0.92f, 0.42f, 0.95f};
-        constexpr glm::vec4 k_blocked{0.96f, 0.22f, 0.18f, 0.95f};
-        const glm::vec4 color
-            = paintable && preview_visible ? k_paintable : k_blocked;
-        const auto* scene = session->scene();
-        size_t preview_cursor = 0;
-        float overlay_z = -std::numeric_limits<float>::infinity();
-        for (const auto& row : rows) {
-            const uint32_t tile_index = row.tile_index;
-            const int32_t height
-                = paintable ? row.height : area->tiles[tile_index].height;
-            float row_z = static_cast<float>(height) * area->tileset->tile_height
-                + k_offset;
-            if (scene) {
-                const auto rendered_top = area_tile_rendered_top(
-                    *scene, area_tile_preview_lease, tile_index,
-                    preview_cursor);
-                if (rendered_top) {
-                    row_z = std::max(row_z, *rendered_top + k_offset);
+        constexpr float k_offset = 0.08f;
+        constexpr glm::vec4 k_valid_fill{0.18f, 0.92f, 0.42f, 0.14f};
+        constexpr glm::vec4 k_valid_border{0.18f, 0.92f, 0.42f, 0.90f};
+        constexpr glm::vec4 k_valid_anchor_fill{0.36f, 1.0f, 0.58f, 0.22f};
+        constexpr glm::vec4 k_valid_anchor_border{0.58f, 1.0f, 0.70f, 1.0f};
+        constexpr glm::vec4 k_blocked_fill{0.96f, 0.22f, 0.18f, 0.16f};
+        constexpr glm::vec4 k_blocked_border{0.96f, 0.22f, 0.18f, 0.95f};
+        const bool valid = paintable && preview_visible;
+        const auto logical_height = [&](const viewer::AreaTilePreviewRow& row) {
+            return paintable ? row.height : area->tiles[row.tile_index].height;
+        };
+        bool rows_strictly_sorted = true;
+        for (size_t index = 1; index < rows.size(); ++index) {
+            if (rows[index - 1].tile_index >= rows[index].tile_index) {
+                rows_strictly_sorted = false;
+                break;
+            }
+        }
+        const uint32_t area_width = static_cast<uint32_t>(area->width);
+        const uint32_t area_height = static_cast<uint32_t>(area->height);
+        constexpr uint8_t k_joined_bottom = 1u << 0u;
+        constexpr uint8_t k_joined_right = 1u << 1u;
+        constexpr uint8_t k_joined_top = 1u << 2u;
+        constexpr uint8_t k_joined_left = 1u << 3u;
+        area_tile_overlay_joined_edges.assign(rows.size(), 0u);
+        if (rows_strictly_sorted) {
+            for (size_t index = 1; index < rows.size(); ++index) {
+                const auto& left = rows[index - 1];
+                const auto& right = rows[index];
+                if (right.tile_index == left.tile_index + 1u
+                    && right.tile_index / area_width
+                        == left.tile_index / area_width
+                    && logical_height(left) == logical_height(right)) {
+                    area_tile_overlay_joined_edges[index - 1]
+                        |= k_joined_right;
+                    area_tile_overlay_joined_edges[index] |= k_joined_left;
                 }
             }
-            overlay_z = std::max(overlay_z, row_z);
+
+            size_t upper_index = 0;
+            for (size_t index = 0; index < rows.size(); ++index) {
+                const auto& lower = rows[index];
+                if (lower.tile_index / area_width + 1u == area_height) {
+                    continue;
+                }
+                const uint32_t upper_tile_index
+                    = lower.tile_index + area_width;
+                while (upper_index < rows.size()
+                    && rows[upper_index].tile_index < upper_tile_index) {
+                    ++upper_index;
+                }
+                if (upper_index < rows.size()
+                    && rows[upper_index].tile_index == upper_tile_index
+                    && logical_height(lower)
+                        == logical_height(rows[upper_index])) {
+                    area_tile_overlay_joined_edges[index] |= k_joined_top;
+                    area_tile_overlay_joined_edges[upper_index]
+                        |= k_joined_bottom;
+                }
+            }
         }
-        if (!std::isfinite(overlay_z)) {
-            transient_debug_vertices.clear();
-            transient_debug_indices.clear();
-            return false;
-        }
-        for (const auto& row : rows) {
+
+        for (size_t row_index = 0; row_index < rows.size(); ++row_index) {
+            const auto& row = rows[row_index];
             const uint32_t tile_index = row.tile_index;
-            const uint32_t x = tile_index % static_cast<uint32_t>(area->width);
-            const uint32_t y = tile_index / static_cast<uint32_t>(area->width);
+            const uint32_t x = tile_index % area_width;
+            const uint32_t y = tile_index / area_width;
+            const int32_t height = logical_height(row);
+            const float overlay_z
+                = static_cast<float>(height) * area->tileset->tile_height
+                + k_offset;
+            if (!std::isfinite(overlay_z)) {
+                transient_debug_vertices.clear();
+                transient_debug_indices.clear();
+                return false;
+            }
             const glm::vec3 p0{static_cast<float>(x) * k_tile_size,
                 static_cast<float>(y) * k_tile_size, overlay_z};
             const glm::vec3 p1 = p0 + glm::vec3{k_tile_size, 0.0f, 0.0f};
             const glm::vec3 p2 = p0 + glm::vec3{k_tile_size, k_tile_size, 0.0f};
             const glm::vec3 p3 = p0 + glm::vec3{0.0f, k_tile_size, 0.0f};
-            append_transient_debug_segment(transient_debug_vertices,
-                transient_debug_indices, p0, p1, color, 0.09f);
-            append_transient_debug_segment(transient_debug_vertices,
-                transient_debug_indices, p1, p2, color, 0.09f);
-            append_transient_debug_segment(transient_debug_vertices,
-                transient_debug_indices, p2, p3, color, 0.09f);
-            append_transient_debug_segment(transient_debug_vertices,
-                transient_debug_indices, p3, p0, color, 0.09f);
+            const bool anchor
+                = anchor_tile_index && *anchor_tile_index == tile_index;
+            const glm::vec4 fill = valid
+                ? (anchor ? k_valid_anchor_fill : k_valid_fill)
+                : k_blocked_fill;
+            const glm::vec4 border = valid
+                ? (anchor ? k_valid_anchor_border : k_valid_border)
+                : k_blocked_border;
+            const float border_width = anchor ? 0.15f : 0.09f;
+            append_transient_debug_triangle(transient_debug_vertices,
+                transient_debug_indices, p0, p1, p2, fill);
+            append_transient_debug_triangle(transient_debug_vertices,
+                transient_debug_indices, p0, p2, p3, fill);
+            const uint8_t joined_edges
+                = area_tile_overlay_joined_edges[row_index];
+            if (anchor || !(joined_edges & k_joined_bottom)) {
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p0, p1, border, border_width);
+            }
+            if (anchor || !(joined_edges & k_joined_right)) {
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p1, p2, border, border_width);
+            }
+            if (anchor || !(joined_edges & k_joined_top)) {
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p2, p3, border, border_width);
+            }
+            if (anchor || !(joined_edges & k_joined_left)) {
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p3, p0, border, border_width);
+            }
         }
         return session->set_transient_debug_geometry(
-                   transient_debug_vertices, transient_debug_indices)
+                   transient_debug_vertices, transient_debug_indices, false)
             && (!paintable || !replace_tiles || preview_visible);
     }
 
@@ -1379,6 +1408,11 @@ struct ClientViewerViewport::Impl {
                 refreshed.diagnostic);
         }
         return refreshed.ok();
+    }
+
+    bool refresh_live_area_weather(nw::ObjectHandle area)
+    {
+        return session && session->refresh_live_area_weather(area);
     }
 
     bool clear_area_object_selection() noexcept
@@ -1604,6 +1638,7 @@ struct ClientViewerViewport::Impl {
     viewer::AreaTilePreviewLease area_tile_preview_lease;
     std::vector<viewer::DebugShapeVertex> transient_debug_vertices;
     std::vector<uint32_t> transient_debug_indices;
+    std::vector<uint8_t> area_tile_overlay_joined_edges;
     nw::render::AreaTileGridDebugGeometry tile_grid_debug_geometry;
     nw::ObjectHandle tile_grid_area{};
     ClientAreaViewerOptions area_options;
@@ -1784,11 +1819,12 @@ bool ClientViewerViewport::update_area_tile_preview(
     nw::ObjectHandle area,
     std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
     bool paintable,
-    bool replace_tiles)
+    bool replace_tiles,
+    std::optional<uint32_t> anchor_tile_index)
 {
     return impl_
         && impl_->update_area_tile_preview(
-            area, rows, paintable, replace_tiles);
+            area, rows, paintable, replace_tiles, anchor_tile_index);
 }
 
 bool ClientViewerViewport::end_toolset_preview_visuals() noexcept
@@ -1817,6 +1853,11 @@ bool ClientViewerViewport::refresh_live_area_tiles(
 {
     return impl_
         && impl_->refresh_live_area_tiles(area, tile_indices);
+}
+
+bool ClientViewerViewport::refresh_live_area_weather(nw::ObjectHandle area)
+{
+    return impl_ && impl_->refresh_live_area_weather(area);
 }
 
 bool ClientViewerViewport::rebuild_live_object(nw::ObjectHandle object)

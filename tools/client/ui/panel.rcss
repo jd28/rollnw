@@ -1447,6 +1447,128 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   font-size: 10px;
   line-height: 15px;
 }
+.area_tile_light_panel {
+  display: none;
+  flex: 0 0 auto;
+  padding: 8px 12px 10px 12px;
+  border-bottom: 1px #35424c;
+  background: #12191e;
+  box-sizing: border-box;
+}
+.area_tile_light_panel.visible {
+  display: block;
+}
+.area_tile_light_title {
+  color: #b8c2c9;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+.area_tile_light_fields {
+  display: block;
+  border: 1px #35424c;
+  background: #11171b;
+}
+.area_tile_light_field {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 4px 6px;
+  border-width: 0px 0px 1px 0px;
+  border-color: #28333c;
+  background: transparent;
+  color: #dbe1e5;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.area_tile_light_field:hover {
+  background: #1b252c;
+}
+.area_tile_light_label,
+.area_tile_light_value,
+.area_tile_light_swatch {
+  pointer-events: none;
+}
+.area_tile_light_label {
+  flex: 1;
+  color: #dbe1e5;
+  font-size: 11px;
+  text-align: left;
+}
+.area_tile_light_value {
+  width: 104px;
+  color: #9eabb4;
+  font-size: 10px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.area_tile_light_swatch {
+  display: block;
+  width: 25px;
+  height: 18px;
+  margin-left: 7px;
+  border: 1px #65717a;
+  background: #0a0d10;
+  color: #aab4bb;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.area_tile_light_palette {
+  margin-top: 8px;
+}
+.area_tile_light_palette_title {
+  margin-bottom: 5px;
+  color: #c7d0d6;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+}
+.area_tile_light_choices {
+  display: block;
+  width: 100%;
+  border-width: 1px 0px 0px 1px;
+  border-color: #4b5861;
+  box-sizing: border-box;
+}
+.area_tile_light_choice_row {
+  display: flex;
+  width: 100%;
+}
+.area_tile_light_choice {
+  display: block;
+  flex: 1;
+  min-width: 0px;
+  height: 30px;
+  padding: 3px;
+  border-width: 0px 1px 1px 0px;
+  border-color: #4b5861;
+  background: #1b242a;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.area_tile_light_choice:hover {
+  border-color: #93a3ad;
+  background: #25313a;
+}
+.area_tile_light_choice.selected {
+  background: #d4b46f;
+}
+.area_tile_light_choice span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.area_tile_light_choice.selected span {
+  border: 1px #f0d28d;
+  box-sizing: border-box;
+}
 .area_tile_palette_rows {
   display: block;
   flex: 1;

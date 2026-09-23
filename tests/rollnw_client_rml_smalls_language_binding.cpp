@@ -2262,10 +2262,65 @@ TEST(ClientRmlTemplates, TilePaletteUsesLiveTilesetAndPreservesStableVirtualRows
     EXPECT_TRUE(document->GetElementById("area_tile_modifier_hint")->IsClassSet("visible"));
     ASSERT_TRUE(build_area_tile_selection(area->handle(), 0, editor.selection).ok());
     sync_area_tile_selection_info(document, editor, area->handle());
-    EXPECT_TRUE(document->GetElementById("area_tile_selection_info")->IsClassSet("visible"));
+    auto* selection_info
+        = document->GetElementById("area_tile_selection_info");
+    auto* light_panel = document->GetElementById("area_tile_light_panel");
+    ASSERT_NE(selection_info, nullptr);
+    ASSERT_NE(light_panel, nullptr);
+    EXPECT_TRUE(selection_info->IsClassSet("visible"));
+    EXPECT_TRUE(light_panel->IsClassSet("visible"));
+    EXPECT_EQ(selection_info->GetParentNode(), light_panel->GetParentNode());
+    Rml::ElementList light_fields;
+    document->GetElementsByClassName(light_fields, "area_tile_light_field");
+    ASSERT_EQ(light_fields.size(), 4u);
+    auto field_click = capture_area_tile_light_click(
+        light_fields.front()->GetChild(0), editor);
+    ASSERT_TRUE(field_click);
+    EXPECT_EQ(field_click->kind, AreaTileLightClickKind::toggle_slot);
+    EXPECT_EQ(field_click->slot, AreaTileLightSlot::main1);
+    Rml::ElementList light_choices;
+    document->GetElementsByClassName(light_choices, "area_tile_light_choice");
+    EXPECT_TRUE(light_choices.empty());
+    editor.light_editor_slot = AreaTileLightSlot::main1;
+    sync_area_tile_selection_info(document, editor, area->handle());
+    context->Update();
+    light_choices.clear();
+    document->GetElementsByClassName(light_choices, "area_tile_light_choice");
+    ASSERT_EQ(light_choices.size(), 32u);
+    EXPECT_FLOAT_EQ(light_choices[0]->GetAbsoluteOffset().y,
+        light_choices[3]->GetAbsoluteOffset().y);
+    EXPECT_GT(light_choices[4]->GetAbsoluteOffset().y,
+        light_choices[0]->GetAbsoluteOffset().y);
+    EXPECT_FLOAT_EQ(light_choices[0]->GetAbsoluteOffset().x,
+        light_choices[4]->GetAbsoluteOffset().x);
+    EXPECT_FLOAT_EQ(light_choices[0]->GetClientWidth(),
+        light_choices[3]->GetClientWidth());
+    auto choice_click = capture_area_tile_light_click(
+        light_choices.back()->GetChild(0), editor);
+    ASSERT_TRUE(choice_click);
+    EXPECT_EQ(choice_click->kind, AreaTileLightClickKind::select_color);
+    EXPECT_EQ(choice_click->slot, AreaTileLightSlot::main1);
+    EXPECT_EQ(choice_click->value, 31u);
+    ToolsetBackend light_backend;
+    CommandContext light_context;
+    ShellController light_shell;
+    EXPECT_EQ(apply_area_tile_light_click(*choice_click, editor,
+                  area->handle(), true, light_backend, light_context,
+                  light_shell),
+        AreaTileLightClickEffect::value_changed);
+    EXPECT_EQ(area->tiles[0].mainlight1, 31u);
+    EXPECT_EQ(object_mutation_state().area, area->handle());
+    ASSERT_EQ(object_mutation_state().area_tile_indices.size(), 1u);
+    EXPECT_EQ(object_mutation_state().area_tile_indices.front(), 0u);
+    editor.light_editor_slot = AreaTileLightSlot::source1;
+    sync_area_tile_selection_info(document, editor, area->handle());
+    light_choices.clear();
+    document->GetElementsByClassName(light_choices, "area_tile_light_choice");
+    EXPECT_EQ(light_choices.size(), 16u);
     area->width = 0;
     sync_area_tile_selection_info(document, editor, area->handle());
-    EXPECT_FALSE(document->GetElementById("area_tile_selection_info")->IsClassSet("visible"));
+    EXPECT_FALSE(selection_info->IsClassSet("visible"));
+    EXPECT_FALSE(light_panel->IsClassSet("visible"));
     area->width = 1;
     document->Close();
     context->Update();

@@ -1976,11 +1976,12 @@ void append_nwn_model_asset_lights(
 
         const auto slot = source_tile_light_slot(light->name);
         const float classification_radius = source_light_classification_radius(*light);
-        const bool main_contribution = !slot.source && classification_radius >= 8.0f;
+        const bool main_contribution
+            = slot.valid ? !slot.source : classification_radius >= 8.0f;
         uint8_t external_color_slot = nw::render::kModelLightNoExternalColor;
         if (slot.valid) {
             external_color_slot = static_cast<uint8_t>(
-                (main_contribution ? 0u : 2u) + (slot.second ? 1u : 0u));
+                (slot.source ? 2u : 0u) + (slot.second ? 1u : 0u));
         }
 
         float radius = source_light_scalar(*light, nwm::ControllerType::Radius)

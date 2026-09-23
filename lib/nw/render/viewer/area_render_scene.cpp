@@ -1073,18 +1073,25 @@ AreaObjectSelection select_area_object_geometry(
     for (uint32_t record_index = 0; record_index < bounds.size(); ++record_index) {
         if ((flags[record_index]
                 & AreaRenderScene::RecordFlag::render_enabled)
-                == 0u
-            || (flags[record_index]
-                   & AreaRenderScene::RecordFlag::preview_suppressed)
-                != 0u) {
+            == 0u) {
             continue;
         }
+        const bool preview_suppressed = (flags[record_index]
+                                            & AreaRenderScene::RecordFlag::preview_suppressed)
+            != 0u;
+        const bool tile_preview = (flags[record_index]
+                                      & AreaRenderScene::RecordFlag::tile_preview)
+            != 0u;
         const bool tile_record = kinds[record_index] == nw::ObjectType::tile
             && tile_xs[record_index] >= 0
             && tile_ys[record_index] >= 0;
         const bool object_record = object_matches_record_kind(kinds[record_index], objects[record_index])
             && nw::kernel::objects().valid(objects[record_index]);
         if ((select_tiles && !tile_record) || (!select_tiles && !object_record)) {
+            continue;
+        }
+        if ((select_tiles && tile_preview)
+            || (!select_tiles && preview_suppressed)) {
             continue;
         }
         if (!candidates.empty()
@@ -1490,7 +1497,7 @@ std::optional<nw::render::Bounds> area_tile_selection_bounds(
                & AreaRenderScene::RecordFlag::render_enabled)
             == 0u
         || (records.flags()[record_index]
-               & AreaRenderScene::RecordFlag::preview_suppressed)
+               & AreaRenderScene::RecordFlag::tile_preview)
             != 0u) {
         return std::nullopt;
     }
@@ -1773,6 +1780,9 @@ void AreaRenderScene::rebuild_records(
             ++stats_.static_record_count;
         } else {
             ++stats_.dynamic_record_count;
+        }
+        if (info.tile_preview) {
+            flags |= RecordFlag::tile_preview;
         }
         const bool record_casts_shadow = valid_instance ? instance->shadow.casts_shadow : render_model_casts_shadow(model);
         if (record_casts_shadow) {
@@ -3141,6 +3151,9 @@ bool AreaRenderScene::rebuild_dynamic_records(
         } else {
             ++stats_.dynamic_record_count;
         }
+        if (info.tile_preview) {
+            flags |= RecordFlag::tile_preview;
+        }
         if (instance->shadow.casts_shadow) {
             flags |= RecordFlag::shadow_caster;
             ++stats_.shadow_caster_record_count;
@@ -3244,7 +3257,7 @@ bool AreaRenderScene::append_tile_preview_records(
         if (!instance || info.kind != nw::ObjectType::tile
             || info.object.type != nw::ObjectType::tile
             || info.tile_x < 0 || info.tile_y < 0
-            || info.static_candidate
+            || info.static_candidate || !info.tile_preview
             || area_chunk_id(scene, info, instance->current_bounds) != kInvalidChunkId) {
             return false;
         }
@@ -3272,7 +3285,7 @@ bool AreaRenderScene::append_tile_preview_records(
         const auto& info = scene.static_area_model_info[model_index];
         const uint32_t record_index = saturating_count(model_indices_.size());
         const uint8_t pass_mask = render_model_pass_mask(model);
-        uint8_t flags = 0;
+        uint8_t flags = RecordFlag::tile_preview;
         if (instance->visible) {
             flags |= RecordFlag::render_enabled;
             ++prepared_model_draws_.stats.visible_instance_count;
@@ -3343,6 +3356,7 @@ bool AreaRenderScene::refresh_tile_preview_records(
             || model_indices_[record_index] != model_index
             || !instance
             || has_flag(flags_[record_index], RecordFlag::static_candidate)
+            || !has_flag(flags_[record_index], RecordFlag::tile_preview)
             || chunk_ids_[record_index] != kInvalidChunkId
             || !prepared_model_draws_for_record(record_index).empty()
             || kinds_[record_index] != nw::ObjectType::tile
@@ -3355,6 +3369,7 @@ bool AreaRenderScene::refresh_tile_preview_records(
             || scene.static_area_model_info[model_index].tile_x < 0
             || scene.static_area_model_info[model_index].tile_y < 0
             || scene.static_area_model_info[model_index].static_candidate
+            || !scene.static_area_model_info[model_index].tile_preview
             || area_chunk_id(scene,
                    scene.static_area_model_info[model_index],
                    instance->current_bounds)
@@ -3433,6 +3448,7 @@ bool AreaRenderScene::remove_tile_preview_records(
             || model_indices_[record_index] != model_index
             || render_model_record_indices_[model_index] != record_index
             || has_flag(flags_[record_index], RecordFlag::static_candidate)
+            || !has_flag(flags_[record_index], RecordFlag::tile_preview)
             || kinds_[record_index] != nw::ObjectType::tile
             || object_handles_[record_index].type
                 != nw::ObjectType::tile
@@ -3506,7 +3522,8 @@ bool AreaRenderScene::set_tile_preview_suppressed_models(
         if (record_index >= model_indices_.size()
             || model_indices_[record_index] != model_index
             || !has_flag(flags_[record_index],
-                RecordFlag::static_candidate)) {
+                RecordFlag::static_candidate)
+            || has_flag(flags_[record_index], RecordFlag::tile_preview)) {
             return false;
         }
     }

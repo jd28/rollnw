@@ -1,6 +1,10 @@
 [[native]] fn get_width(obj: Area): int;
 [[native]] fn get_height(obj: Area): int;
 [[native]] fn get_tile_count(obj: Area): int;
+[[native]] fn get_day_night_cycle(obj: Area): int;
+[[native]] fn get_is_night(obj: Area): int;
+[[native]] fn get_sun_shadows(obj: Area): int;
+[[native]] fn get_moon_shadows(obj: Area): int;
 
 fn get_size(obj: Area): (int, int) {
     return (get_width(obj), get_height(obj));

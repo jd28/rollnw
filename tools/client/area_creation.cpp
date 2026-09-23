@@ -205,6 +205,16 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
             area->tileset_resref = request.tileset;
             area->width = request.width;
             area->height = request.height;
+            area->shadow_opacity = 50;
+            area->weather.day_night_cycle = 1;
+            area->weather.is_night = 0;
+            area->weather.sun_shadows = 1;
+            area->weather.moon_shadows = 1;
+            area->weather.color_moon_diffuse = 0x00c86464u;
+            area->weather.color_moon_fog = 0x00643232u;
+            area->weather.color_sun_ambient = 0x00643232u;
+            area->weather.color_sun_diffuse = 0x00ffffffu;
+            area->weather.color_sun_fog = 0x00917e68u;
             area->weather.fog_clip_distance = 45.0f;
             area->tiles.assign(
                 static_cast<size_t>(request.width)

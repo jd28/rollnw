@@ -3,6 +3,7 @@
 #include <nw/kernel/TwoDACache.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 
@@ -13,6 +14,20 @@ namespace {
 float tile_color_max_channel(const glm::vec3& color) noexcept
 {
     return std::max(color.x, std::max(color.y, color.z));
+}
+
+glm::vec3 tile_light_hue(uint8_t index) noexcept
+{
+    static constexpr std::array<glm::vec3, 7> colors{
+        glm::vec3{1.0f, 0.82f, 0.32f},
+        glm::vec3{0.32f, 1.0f, 0.36f},
+        glm::vec3{0.25f, 0.95f, 1.0f},
+        glm::vec3{0.34f, 0.52f, 1.0f},
+        glm::vec3{0.72f, 0.38f, 1.0f},
+        glm::vec3{1.0f, 0.32f, 0.28f},
+        glm::vec3{1.0f, 0.58f, 0.22f},
+    };
+    return colors[std::min<size_t>(index, colors.size() - 1)];
 }
 
 float light_authored_radius(const nw::model::LightNode& light) noexcept
@@ -56,6 +71,35 @@ glm::vec3 tile_color_from_index(uint8_t index)
     return glm::clamp(color, glm::vec3{0.0f}, glm::vec3{1.0f});
 }
 
+glm::vec3 tile_main_light_color(uint8_t value) noexcept
+{
+    static constexpr std::array<float, 4> white_strengths{
+        0.0f, 0.45f, 0.76f, 1.0f};
+    static constexpr std::array<float, 4> hue_strengths{
+        0.36f, 0.56f, 0.78f, 1.0f};
+    if (value <= 3) {
+        return glm::vec3{white_strengths[value]};
+    }
+    if (value > 31) {
+        return glm::vec3{0.0f};
+    }
+
+    const uint8_t hue_index = static_cast<uint8_t>((value - 4) / 4);
+    const uint8_t strength_index = static_cast<uint8_t>((value - 4) % 4);
+    return tile_light_hue(hue_index) * hue_strengths[strength_index];
+}
+
+glm::vec3 tile_source_light_color(uint8_t value) noexcept
+{
+    if (value > 15) {
+        return glm::vec3{0.0f};
+    }
+    const uint8_t main_value = value == 0 ? 0
+        : value == 1                      ? 2
+                                          : static_cast<uint8_t>(value * 2);
+    return tile_main_light_color(main_value);
+}
+
 TileLightSlot parse_tile_light_slot(StringView name) noexcept
 {
     const size_t n = name.size();
@@ -85,14 +129,9 @@ uint8_t tile_slot_color_index(const SceneTileLightSlots& slots, const TileLightS
 bool model_light_is_main_tile_slot(const nw::model::LightNode& light) noexcept
 {
     const auto slot = parse_tile_light_slot(light.name);
-    if (slot.valid && !slot.is_main) {
-        // Explicit source-light node (sl1/sl2) is always treated as source.
-        return false;
+    if (slot.valid) {
+        return slot.is_main;
     }
-    // Main-light nodes (ml1/ml2) and unrecognized nodes fall back to the
-    // original radius heuristic. This preserves compatibility with tilesets
-    // that only provide ml nodes and rely on radius to distinguish main fill
-    // lights from smaller source/directional lights.
     return light_authored_radius(light) >= 8.0f;
 }
 
@@ -104,14 +143,10 @@ glm::vec3 tile_slot_color_for_model_light(
     if (!slot.valid) {
         return glm::vec3{0.0f};
     }
-    // The node suffix picks the slot index (1/2); the radius heuristic decides
-    // whether we read from the main or source slot category. This matches how
-    // existing tilesets actually use ml1/ml2 nodes.
-    const bool use_main_slot = model_light_is_main_tile_slot(light);
-    const uint8_t index = use_main_slot
-        ? (slot.second ? slots.main2 : slots.main1)
-        : (slot.second ? slots.source2 : slots.source1);
-    return tile_color_from_index(index);
+    const uint8_t value = tile_slot_color_index(slots, slot);
+    return slot.is_main
+        ? tile_main_light_color(value)
+        : tile_source_light_color(value);
 }
 
 } // namespace nw::render::viewer

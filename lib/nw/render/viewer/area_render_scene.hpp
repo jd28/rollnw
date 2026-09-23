@@ -32,6 +32,9 @@ struct AreaRenderSourceInfo {
     int16_t tile_y = -1;
     uint8_t tile_orientation = 0;
     bool static_candidate = false;
+    // Transient replacement geometry is rendered but never owns a tile pick.
+    // The suppressed authored tile remains the stable picking source.
+    bool tile_preview = false;
     // Cached area-item local pose. All parts share the combined-bottom offset.
     // Zero-initialized for other source kinds and standalone item previews.
     int32_t item_ground_rotation = 0;
@@ -310,6 +313,7 @@ public:
         static_candidate = 1u << 1u,
         shadow_caster = 1u << 2u,
         preview_suppressed = 1u << 3u,
+        tile_preview = 1u << 4u,
     };
 
     void clear();

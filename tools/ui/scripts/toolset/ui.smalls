@@ -1,6 +1,7 @@
 from core.ui import { UiListBinding };
 from core.types import { Skill };
 import core.array as Array;
+import core.area as AreaPolicy;
 import core.module as ModulePolicy;
 import core.object as Object;
 import core.types as Types;
@@ -59,6 +60,7 @@ const details_editor_door_state = 3;
 const details_editor_sound_position = 4;
 const details_editor_sound_volume = 5;
 const details_editor_locstring = 6;
+const details_editor_area_weather_boolean = 7;
 
 const details_locstring_none = 0;
 const details_locstring_object_name = 1;
@@ -114,6 +116,23 @@ fn _integer_details_row(group: string, label: string,
         edit_value = value,
         edit_min = minimum,
         edit_max = maximum,
+        locstring_storage = details_locstring_none,
+    };
+}
+
+fn _area_weather_boolean_details_row(label: string,
+    field: string, value: int): ObjectDetailsRow {
+    return {
+        group = "Lighting",
+        label = label,
+        value = _bool_details_value(value),
+        editor = details_editor_area_weather_boolean,
+        propset = "",
+        field = field,
+        element = -1,
+        edit_value = value,
+        edit_min = 0,
+        edit_max = 1,
         locstring_storage = details_locstring_none,
     };
 }
@@ -232,6 +251,17 @@ fn _append_identity(rows: array!(ObjectDetailsRow), obj: object) {
     _append_details_row(rows, "Identity", "Tag", Object.get_tag(obj));
     _append_details_row(rows, "Identity", "Resref",
         Types.resref_to_string(Object.get_resref(obj)));
+}
+
+fn _append_area_details(rows: array!(ObjectDetailsRow), obj: Area) {
+    Array.push(rows, _area_weather_boolean_details_row(
+        "Day/Night Cycle", "day_night_cycle", AreaPolicy.get_day_night_cycle(obj)));
+    Array.push(rows, _area_weather_boolean_details_row(
+        "Starts at Night", "is_night", AreaPolicy.get_is_night(obj)));
+    Array.push(rows, _area_weather_boolean_details_row(
+        "Sun Shadows", "sun_shadows", AreaPolicy.get_sun_shadows(obj)));
+    Array.push(rows, _area_weather_boolean_details_row(
+        "Moon Shadows", "moon_shadows", AreaPolicy.get_moon_shadows(obj)));
 }
 
 fn _bool_details_value(value: int): string {
@@ -688,7 +718,8 @@ fn get_object_details_rows(obj: object): array!(ObjectDetailsRow) {
     }
 
     _append_identity(rows, obj);
-    if (obj is Door) { _append_door_details(rows, obj); }
+    if (obj is Area) { _append_area_details(rows, obj); }
+    elif (obj is Door) { _append_door_details(rows, obj); }
     elif (obj is Encounter) { _append_encounter_details(rows, obj); }
     elif (obj is Placeable) { _append_placeable_details(rows, obj); }
     elif (obj is Sound) { _append_sound_details(rows, obj); }

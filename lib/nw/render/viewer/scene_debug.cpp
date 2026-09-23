@@ -100,7 +100,7 @@ SceneDebugRenderer::~SceneDebugRenderer()
     if (debug_grid_indices_.valid()) nw::gfx::destroy_buffer(debug_grid_indices_);
     if (debug_grid_vertices_.valid()) nw::gfx::destroy_buffer(debug_grid_vertices_);
     if (sound_debug_dot_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, sound_debug_dot_pipeline_);
-    if (selection_bounds_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, selection_bounds_pipeline_);
+    if (xray_debug_shape_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, xray_debug_shape_pipeline_);
     if (tile_grid_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, tile_grid_pipeline_);
     if (debug_shape_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_shape_pipeline_);
     if (debug_grid_pipeline_.valid()) nw::gfx::destroy_pipeline(ctx_, debug_grid_pipeline_);
@@ -153,9 +153,9 @@ bool SceneDebugRenderer::initialize(nw::render::ShaderProvider& shader_provider)
             LOG_F(WARNING, "Failed to create debug shape pipeline");
         }
         debug_shape_desc.depth_test = false;
-        selection_bounds_pipeline_ = nw::gfx::create_pipeline(ctx_, debug_shape_desc);
-        if (!selection_bounds_pipeline_.valid()) {
-            LOG_F(WARNING, "Failed to create selection bounds pipeline");
+        xray_debug_shape_pipeline_ = nw::gfx::create_pipeline(ctx_, debug_shape_desc);
+        if (!xray_debug_shape_pipeline_.valid()) {
+            LOG_F(WARNING, "Failed to create x-ray debug shape pipeline");
         }
     }
 
@@ -1178,6 +1178,7 @@ void SceneDebugRenderer::render_transient_debug_shapes(
     std::span<const DebugShapeVertex> vertices,
     std::span<const uint32_t> indices,
     uint64_t revision,
+    bool depth_test,
     const nw::render::RenderContext& ctx)
 {
     render_debug_shape_batch(
@@ -1185,7 +1186,7 @@ void SceneDebugRenderer::render_transient_debug_shapes(
         vertices,
         indices,
         ctx,
-        debug_shape_pipeline_,
+        depth_test ? debug_shape_pipeline_ : xray_debug_shape_pipeline_,
         transient_debug_shape_vertices_,
         transient_debug_shape_vertex_capacity_,
         transient_debug_shape_indices_,
@@ -1283,7 +1284,7 @@ void SceneDebugRenderer::render_selection_bounds(
     const nw::render::RenderContext& ctx,
     const glm::vec4& color)
 {
-    if (!cmd || !selection_bounds_pipeline_.valid()) {
+    if (!cmd || !xray_debug_shape_pipeline_.valid()) {
         return;
     }
 
@@ -1330,10 +1331,10 @@ void SceneDebugRenderer::render_selection_bounds(
         return;
     }
     std::memcpy(uniforms.data, &constants, sizeof(DebugShapeConstants));
-    nw::gfx::cmd_bind_pipeline(cmd, selection_bounds_pipeline_);
+    nw::gfx::cmd_bind_pipeline(cmd, xray_debug_shape_pipeline_);
     nw::gfx::cmd_bind_vertex_buffer(cmd, selection_bounds_vertices_, sizeof(DebugShapeVertex));
     nw::gfx::cmd_bind_index_buffer(cmd, selection_bounds_indices_, sizeof(uint32_t));
-    nw::gfx::cmd_bind_resources(cmd, selection_bounds_pipeline_, uniforms);
+    nw::gfx::cmd_bind_resources(cmd, xray_debug_shape_pipeline_, uniforms);
     nw::gfx::cmd_draw_indexed(cmd, geometry.index_count);
 }
 

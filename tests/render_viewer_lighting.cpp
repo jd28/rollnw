@@ -177,8 +177,8 @@ TEST(RenderViewerLighting, DayNightTransitionRetunesAreaLocalLights)
 
     nw::render::viewer::refresh_scene_local_light_render_data(scene);
     ASSERT_EQ(scene.render_local_lights.size(), 1u);
-    EXPECT_NEAR(scene.local_lights[0].radius, 6.0f * 0.62f, 1.0e-5f);
-    EXPECT_NEAR(scene.local_lights[0].intensity, 0.86f * 0.28f, 1.0e-5f);
+    EXPECT_NEAR(scene.local_lights[0].radius, 6.0f * 0.75f, 1.0e-5f);
+    EXPECT_NEAR(scene.local_lights[0].intensity, 0.86f * 0.42f, 1.0e-5f);
     EXPECT_NEAR(scene.render_local_lights[0].radius, scene.local_lights[0].radius, 1.0e-5f);
     EXPECT_NEAR(scene.render_local_lights[0].intensity, scene.local_lights[0].intensity, 1.0e-5f);
 
@@ -213,6 +213,25 @@ TEST(RenderViewerLighting, ModernAreaModelsUseAuthoredCelestialLighting)
     EXPECT_GT(night.key_intensity, 0.0f);
     EXPECT_GT(glm::length(night.ambient), 0.0f);
     EXPECT_GT(glm::length(day.key_direction - night.key_direction), 0.1f);
+}
+
+TEST(RenderViewerLighting, DirectionalShadowsFollowAuthoredDayNightFlags)
+{
+    namespace viewer = nw::render::viewer;
+
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.area_weather.sun_shadows = 1;
+    scene.area_weather.moon_shadows = 0;
+
+    scene.area_weather.is_night = 0;
+    EXPECT_TRUE(viewer::area_directional_shadows_enabled(scene));
+
+    scene.area_weather.is_night = 1;
+    EXPECT_FALSE(viewer::area_directional_shadows_enabled(scene));
+
+    scene.area_weather.moon_shadows = 1;
+    EXPECT_TRUE(viewer::area_directional_shadows_enabled(scene));
 }
 
 // Cascade shadows hang off the resolved key light: resolve_scene_shadow bails
@@ -1839,6 +1858,23 @@ TEST(RenderViewerTileLight, LooksUpTileColor)
     EXPECT_NEAR(clamped.b, 1.0f, 1.0e-5f);
 }
 
+TEST(RenderViewerTileLight, ResolvesNwnMainAndSourcePalettes)
+{
+    namespace viewer = nw::render::viewer;
+
+    EXPECT_EQ(viewer::tile_main_light_color(0), glm::vec3(0.0f));
+    EXPECT_EQ(viewer::tile_main_light_color(3), glm::vec3(1.0f));
+    EXPECT_EQ(viewer::tile_main_light_color(32), glm::vec3(0.0f));
+    EXPECT_EQ(viewer::tile_source_light_color(0), glm::vec3(0.0f));
+    EXPECT_EQ(viewer::tile_source_light_color(1),
+        viewer::tile_main_light_color(2));
+    EXPECT_EQ(viewer::tile_source_light_color(6),
+        viewer::tile_main_light_color(12));
+    EXPECT_EQ(viewer::tile_source_light_color(15),
+        viewer::tile_main_light_color(30));
+    EXPECT_EQ(viewer::tile_source_light_color(16), glm::vec3(0.0f));
+}
+
 TEST(RenderViewerTileLight, ResolvesModelLightNodeSlotColor)
 {
     namespace viewer = nw::render::viewer;
@@ -1850,29 +1886,26 @@ TEST(RenderViewerTileLight, ResolvesModelLightNodeSlotColor)
         .source2 = 6,
     };
 
-    // Large-radius ml node -> main slot, so ml1 reads main1 (row 3).
+    // The suffix is authoritative: ml1 reads main1.
     nw::model::LightNode main_light{"t01ml1"};
-    main_light.flareradius = 14.0f;
+    main_light.flareradius = 5.0f;
     const glm::vec3 main_color = viewer::tile_slot_color_for_model_light(main_light, slots);
-    EXPECT_NEAR(main_color.r, 0.49f, 1.0e-5f);
-    EXPECT_NEAR(main_color.g, 0.29f, 1.0e-5f);
-    EXPECT_NEAR(main_color.b, 0.07f, 1.0e-5f);
+    EXPECT_EQ(main_color, viewer::tile_main_light_color(slots.main1));
 
-    // Small-radius ml node -> source slot, so ml2 reads source2 (row 6).
-    nw::model::LightNode source_light{"t01ml2"};
-    source_light.flareradius = 5.0f;
-    const glm::vec3 source_color = viewer::tile_slot_color_for_model_light(source_light, slots);
-    EXPECT_NEAR(source_color.r, 0.55f, 1.0e-5f);
-    EXPECT_NEAR(source_color.g, 0.66f, 1.0e-5f);
-    EXPECT_NEAR(source_color.b, 0.40f, 1.0e-5f);
+    // ml2 reads main2 even when its authored radius is small.
+    nw::model::LightNode second_main_light{"t01ml2"};
+    second_main_light.flareradius = 5.0f;
+    const glm::vec3 second_main_color
+        = viewer::tile_slot_color_for_model_light(second_main_light, slots);
+    EXPECT_EQ(second_main_color,
+        viewer::tile_main_light_color(slots.main2));
 
-    // Explicit sl node -> source slot regardless of radius, so sl1 reads source1 (row 5).
+    // Explicit sl node -> source slot regardless of radius.
     nw::model::LightNode explicit_source_light{"t01sl1"};
     explicit_source_light.flareradius = 14.0f;
     const glm::vec3 explicit_source_color = viewer::tile_slot_color_for_model_light(explicit_source_light, slots);
-    EXPECT_NEAR(explicit_source_color.r, 0.86f, 1.0e-5f);
-    EXPECT_NEAR(explicit_source_color.g, 0.84f, 1.0e-5f);
-    EXPECT_NEAR(explicit_source_color.b, 0.59f, 1.0e-5f);
+    EXPECT_EQ(explicit_source_color,
+        viewer::tile_source_light_color(slots.source1));
 
     nw::model::LightNode unknown_light{"random_node"};
     const glm::vec3 unknown = viewer::tile_slot_color_for_model_light(unknown_light, slots);

@@ -23,6 +23,7 @@
 #include <nw/objects/Waypoint.hpp>
 #include <nw/render/area_tile_grid.hpp>
 #include <nw/render/render_service.hpp>
+#include <nw/render/viewer/area_lighting.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/render/viewer/preview_model_animation.hpp>
 #include <nw/render/viewer/preview_nwn_creature.hpp>
@@ -1370,6 +1371,50 @@ TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuild
     for (const auto root : roots) {
         EXPECT_FALSE(nw::kernel::objects().valid(root));
     }
+}
+
+TEST(RenderViewerPreparedDraws, LiveAreaWeatherRefreshPreservesSceneRows)
+{
+    namespace viewer = nw::render::viewer;
+
+    ASSERT_NE(nw::kernel::load_module(
+                  "test_data/user/modules/DockerDemo.mod", false),
+        nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    viewer::ViewerDevice device{
+        gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize(viewer::ViewerDeviceOptions{
+        .shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_NE(session, nullptr);
+    ASSERT_TRUE(session->load_area("test_area"));
+
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    auto* area = nw::kernel::objects().get<nw::Area>(
+        scene->root_object);
+    ASSERT_NE(area, nullptr);
+    const auto scene_models = scene->static_models;
+    const auto* scene_address = scene;
+
+    area->weather.day_night_cycle = 1;
+    area->weather.is_night = 1;
+    area->weather.sun_shadows = 0;
+    area->weather.moon_shadows = 1;
+    ASSERT_TRUE(session->refresh_live_area_weather(
+        scene->root_object));
+
+    ASSERT_EQ(session->scene(), scene_address);
+    EXPECT_EQ(session->scene()->static_models, scene_models);
+    EXPECT_EQ(session->scene()->area_weather.day_night_cycle, 1u);
+    EXPECT_EQ(session->scene()->area_weather.is_night, 1u);
+    EXPECT_EQ(session->scene()->area_weather.sun_shadows, 0u);
+    EXPECT_EQ(session->scene()->area_weather.moon_shadows, 1u);
+    EXPECT_FLOAT_EQ(session->area_day_night_elapsed_seconds(),
+        viewer::kAreaDayNightCycleSeconds * 0.75f);
 }
 
 TEST(RenderViewerPreparedDraws, ItemPlacementPreviewsUseGroundModelsAndPreserveLiveObjects)
@@ -3939,6 +3984,9 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
         0u);
     EXPECT_NE(scene->area_render_scene->flags()[preview_record]
             & viewer::AreaRenderScene::RecordFlag::render_enabled,
+        0u);
+    EXPECT_NE(scene->area_render_scene->flags()[preview_record]
+            & viewer::AreaRenderScene::RecordFlag::tile_preview,
         0u);
     EXPECT_TRUE(scene->static_model_instance(
                          scene->area_tile_model_indices[target_cells[0]])

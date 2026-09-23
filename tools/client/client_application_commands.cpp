@@ -84,6 +84,11 @@ nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
 
     nw::toolset::release_area_map_textures(
         result.refreshed_area_maps);
+    const size_t updated_area_maps = state.backend.update_loaded_area_maps(
+        result.refreshed_area_maps);
+    if (updated_area_maps > 0) {
+        refresh_home_area_catalog(state, true);
+    }
 
     if (terminal_output) {
         append_terminal_result(state, result);

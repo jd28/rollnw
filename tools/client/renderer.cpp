@@ -415,12 +415,13 @@ bool ClientRenderer::update_viewer_area_tile_preview(
     nw::ObjectHandle area,
     std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
     bool paintable,
-    bool replace_tiles)
+    bool replace_tiles,
+    std::optional<uint32_t> anchor_tile_index)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
         return nwgfx_.update_viewer_area_tile_preview(
-            area, rows, paintable, replace_tiles);
+            area, rows, paintable, replace_tiles, anchor_tile_index);
     }
 #endif
 
@@ -428,6 +429,7 @@ bool ClientRenderer::update_viewer_area_tile_preview(
     (void)rows;
     (void)paintable;
     (void)replace_tiles;
+    (void)anchor_tile_index;
     return false;
 }
 
@@ -495,6 +497,21 @@ bool ClientRenderer::refresh_live_viewer_area_tiles(
     }
     (void)area;
     (void)tile_indices;
+    return false;
+}
+
+bool ClientRenderer::refresh_live_viewer_area_weather(
+    nw::ObjectHandle area)
+{
+    switch (backend_) {
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    case Backend::nwgfx:
+        return nwgfx_.refresh_live_viewer_area_weather(area);
+#endif
+    case Backend::none:
+        break;
+    }
+    (void)area;
     return false;
 }
 

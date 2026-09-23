@@ -21,6 +21,22 @@ void register_core_area(Runtime& rt)
             auto* base = nw::kernel::objects().get_object_base(obj);
             auto* area = base ? base->as_area() : nullptr;
             return area ? static_cast<int32_t>(area->tiles.size()) : 0; })
+        .function("get_day_night_cycle", +[](nw::ObjectHandle obj) -> int32_t {
+            auto* base = nw::kernel::objects().get_object_base(obj);
+            auto* area = base ? base->as_area() : nullptr;
+            return area ? area->weather.day_night_cycle : 0; })
+        .function("get_is_night", +[](nw::ObjectHandle obj) -> int32_t {
+            auto* base = nw::kernel::objects().get_object_base(obj);
+            auto* area = base ? base->as_area() : nullptr;
+            return area ? area->weather.is_night : 0; })
+        .function("get_sun_shadows", +[](nw::ObjectHandle obj) -> int32_t {
+            auto* base = nw::kernel::objects().get_object_base(obj);
+            auto* area = base ? base->as_area() : nullptr;
+            return area ? area->weather.sun_shadows : 0; })
+        .function("get_moon_shadows", +[](nw::ObjectHandle obj) -> int32_t {
+            auto* base = nw::kernel::objects().get_object_base(obj);
+            auto* area = base ? base->as_area() : nullptr;
+            return area ? area->weather.moon_shadows : 0; })
         .finalize();
 }
 

@@ -374,11 +374,12 @@ bool ClientRendererNwgfx::update_viewer_area_tile_preview(
     nw::ObjectHandle area,
     std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
     bool paintable,
-    bool replace_tiles)
+    bool replace_tiles,
+    std::optional<uint32_t> anchor_tile_index)
 {
     return viewer_viewport_
         && viewer_viewport_->update_area_tile_preview(
-            area, rows, paintable, replace_tiles);
+            area, rows, paintable, replace_tiles, anchor_tile_index);
 }
 
 bool ClientRendererNwgfx::end_toolset_preview_visuals() noexcept
@@ -409,6 +410,13 @@ bool ClientRendererNwgfx::refresh_live_viewer_area_tiles(
 {
     return viewer_viewport_
         && viewer_viewport_->refresh_live_area_tiles(area, tile_indices);
+}
+
+bool ClientRendererNwgfx::refresh_live_viewer_area_weather(
+    nw::ObjectHandle area)
+{
+    return viewer_viewport_
+        && viewer_viewport_->refresh_live_area_weather(area);
 }
 
 bool ClientRendererNwgfx::rebuild_live_viewer_object(nw::ObjectHandle object)

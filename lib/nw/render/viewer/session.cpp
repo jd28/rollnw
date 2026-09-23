@@ -814,6 +814,30 @@ AreaTransientVisualResult ViewerSession::refresh_live_area_tiles(
         *scene_, *preview_resources_, tile_indices);
 }
 
+bool ViewerSession::refresh_live_area_weather(nw::ObjectHandle area)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area
+        || scene_->root_object != area) {
+        return false;
+    }
+    const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
+    if (!live_area) {
+        return false;
+    }
+
+    scene_->area_weather = live_area->weather;
+    area_day_night_elapsed_seconds_ = supports_area_day_night_cycle(*scene_)
+        ? initial_area_day_night_elapsed_seconds(*scene_)
+        : 0.0f;
+    refresh_scene_local_light_render_data(*scene_);
+    if (scene_->area_render_scene) {
+        scene_->area_render_scene->refresh_light_indices(*scene_);
+        area_frame_.clear();
+        area_frame_.reserve_for_scene(*scene_->area_render_scene);
+    }
+    return true;
+}
+
 bool ViewerSession::rebuild_live_object(nw::ObjectHandle object)
 {
     if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::object_file
@@ -1251,7 +1275,8 @@ bool ViewerSession::clear_area_object_selection() noexcept
 
 bool ViewerSession::set_transient_debug_geometry(
     std::span<const DebugShapeVertex> vertices,
-    std::span<const uint32_t> indices)
+    std::span<const uint32_t> indices,
+    bool depth_test)
 {
     if (vertices.empty() != indices.empty()
         || vertices.size() > std::numeric_limits<uint32_t>::max()
@@ -1263,6 +1288,7 @@ bool ViewerSession::set_transient_debug_geometry(
     }
     transient_debug_shape_vertices_.assign(vertices.begin(), vertices.end());
     transient_debug_shape_indices_.assign(indices.begin(), indices.end());
+    transient_debug_shape_depth_test_ = depth_test;
     ++transient_debug_shape_revision_;
     return true;
 }
@@ -1275,6 +1301,7 @@ void ViewerSession::clear_transient_debug_geometry() noexcept
     }
     transient_debug_shape_vertices_.clear();
     transient_debug_shape_indices_.clear();
+    transient_debug_shape_depth_test_ = true;
 }
 
 bool ViewerSession::set_tile_grid_debug_geometry(
@@ -1364,7 +1391,13 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
     frame_stats.model_count = saturating_count(scene_->static_models.size());
     frame_stats.particle_system_count = saturating_count(scene_->particles.size());
     frame_stats.prepared_render_model_draws_enabled = true;
-    const bool shadows_enabled = viewer_shadows_enabled() && (area_shadows_enabled_ || scene_kind_ != ViewerSceneKind::area);
+    const bool area_directional_shadows
+        = scene_kind_ != ViewerSceneKind::area
+        || !area_lights_enabled_
+        || area_directional_shadows_enabled(*scene_);
+    const bool shadows_enabled = viewer_shadows_enabled()
+        && (area_shadows_enabled_ || scene_kind_ != ViewerSceneKind::area)
+        && area_directional_shadows;
     const bool validate_prepared_model_draws_this_frame = viewer_prepared_model_draw_validation_enabled();
     const bool collect_prepared_model_surfaces_for_shadows = shadows_enabled
         && scene_kind_ != ViewerSceneKind::area;
@@ -1899,6 +1932,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
                 transient_debug_shape_vertices_,
                 transient_debug_shape_indices_,
                 transient_debug_shape_revision_,
+                transient_debug_shape_depth_test_,
                 render_context);
         }
         if (debug_renderer_ && area_object_selection_enabled_) {

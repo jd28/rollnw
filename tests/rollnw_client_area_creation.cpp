@@ -128,6 +128,16 @@ TEST_F(ClientAreaCreation, PreparesPublishesAndReloadsCompleteCaf)
     EXPECT_EQ(json.at("$version"), Area::json_archive_version);
     EXPECT_EQ(json.at("width"), 3);
     EXPECT_EQ(json.at("height"), 2);
+    EXPECT_EQ(json.at("shadow_opacity"), 50);
+    EXPECT_EQ(json.at("weather").at("day_night_cycle"), 1);
+    EXPECT_EQ(json.at("weather").at("is_night"), 0);
+    EXPECT_EQ(json.at("weather").at("sun_shadows"), 1);
+    EXPECT_EQ(json.at("weather").at("moon_shadows"), 1);
+    EXPECT_EQ(json.at("weather").at("color_moon_diffuse"), 0x00c86464u);
+    EXPECT_EQ(json.at("weather").at("color_moon_fog"), 0x00643232u);
+    EXPECT_EQ(json.at("weather").at("color_sun_ambient"), 0x00643232u);
+    EXPECT_EQ(json.at("weather").at("color_sun_diffuse"), 0x00ffffffu);
+    EXPECT_EQ(json.at("weather").at("color_sun_fog"), 0x00917e68u);
     ASSERT_EQ(json.at("tiles").size(), 6u);
     const auto tile_id = json.at("tiles").front().at("id");
     for (const auto& tile : json.at("tiles")) {
@@ -157,6 +167,16 @@ TEST_F(ClientAreaCreation, PreparesPublishesAndReloadsCompleteCaf)
     EXPECT_EQ(reloaded->tiles.size(), 6u);
     EXPECT_EQ(reloaded->name.get(LanguageID::english), "Created Area");
     EXPECT_EQ(reloaded->tileset_resref, tileset);
+    EXPECT_EQ(reloaded->shadow_opacity, 50);
+    EXPECT_EQ(reloaded->weather.day_night_cycle, 1);
+    EXPECT_EQ(reloaded->weather.is_night, 0);
+    EXPECT_EQ(reloaded->weather.sun_shadows, 1);
+    EXPECT_EQ(reloaded->weather.moon_shadows, 1);
+    EXPECT_EQ(reloaded->weather.color_moon_diffuse, 0x00c86464u);
+    EXPECT_EQ(reloaded->weather.color_moon_fog, 0x00643232u);
+    EXPECT_EQ(reloaded->weather.color_sun_ambient, 0x00643232u);
+    EXPECT_EQ(reloaded->weather.color_sun_diffuse, 0x00ffffffu);
+    EXPECT_EQ(reloaded->weather.color_sun_fog, 0x00917e68u);
 }
 
 TEST_F(ClientAreaCreation, InvalidBatchRejectsWithoutWriting)

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace nw::toolset {
@@ -27,6 +28,24 @@ bool area_tile_removal_brush(AreaTileBrushKind kind) noexcept
 {
     return kind == AreaTileBrushKind::eraser
         || kind == AreaTileBrushKind::void_tile;
+}
+
+std::string_view area_tile_light_slot_label(
+    AreaTileLightSlot slot) noexcept
+{
+    switch (slot) {
+    case AreaTileLightSlot::main1:
+        return "Main Light 1";
+    case AreaTileLightSlot::main2:
+        return "Main Light 2";
+    case AreaTileLightSlot::source1:
+        return "Source Light 1";
+    case AreaTileLightSlot::source2:
+        return "Source Light 2";
+    case AreaTileLightSlot::invalid:
+        return "Tile Light";
+    }
+    return "Tile Light";
 }
 
 bool preview_area_tile_stroke(ClientRenderer& renderer,
@@ -41,6 +60,13 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
     const bool erasing = brush.kind == nw::toolset::AreaTileBrushKind::eraser;
     const bool voiding
         = brush.kind == nw::toolset::AreaTileBrushKind::void_tile;
+    const bool height_brush
+        = brush.kind == nw::toolset::AreaTileBrushKind::raise
+        || brush.kind == nw::toolset::AreaTileBrushKind::lower;
+    const std::optional<uint32_t> anchor_tile_index
+        = !height_brush && !tile_indices.empty()
+        ? std::optional<uint32_t>{tile_indices.back()}
+        : std::nullopt;
     auto built = erasing
         ? build_area_tile_erase_edits(area, tile_indices, brush.value,
               editor.next_random_seed, removal_preview)
@@ -67,7 +93,7 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
             editor.preview_rows.clear();
         }
         (void)renderer.update_viewer_area_tile_preview(
-            area, editor.preview_rows, false, false);
+            area, editor.preview_rows, false, false, anchor_tile_index);
         return false;
     }
     try {
@@ -116,7 +142,7 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
         return false;
     }
     (void)renderer.update_viewer_area_tile_preview(
-        area, editor.preview_rows, true, !erasing);
+        area, editor.preview_rows, true, !erasing, anchor_tile_index);
     return true;
 }
 
@@ -242,7 +268,8 @@ bool update_area_tile_outlines(ClientRenderer& renderer, AreaTileEditorState& ed
     editor.cursor_target_index = UINT32_MAX;
     editor.cursor_update_pending = false;
     if (!renderer.update_viewer_area_tile_preview(
-            selection.area, editor.preview_rows, true, false)) {
+            selection.area, editor.preview_rows, true, false,
+            selection.source_tile_index)) {
         editor.feedback = "Tile selection highlight is unavailable";
         editor.preview_rows.clear();
         (void)renderer.update_viewer_area_tile_preview(
@@ -257,6 +284,7 @@ bool set_area_tile_selection(ClientRenderer& renderer, AreaTileEditorState& edit
     const ObjectHandle area = active_area;
     cancel_area_tile_stroke(renderer, editor, active_area);
     editor.selection = {};
+    editor.light_editor_slot = AreaTileLightSlot::invalid;
 
     nw::toolset::AreaTileSelection selection;
     const auto built = nw::toolset::build_area_tile_selection(
@@ -277,6 +305,69 @@ bool set_area_tile_selection(ClientRenderer& renderer, AreaTileEditorState& edit
 }
 
 } // namespace
+
+AreaTileLightClickEffect apply_area_tile_light_click(
+    AreaTileLightClick& click,
+    AreaTileEditorState& editor,
+    ObjectHandle active_area,
+    bool actions_allowed,
+    ToolsetBackend& backend,
+    const CommandContext& context,
+    ShellController& shell)
+{
+    const auto kind
+        = std::exchange(click.kind, AreaTileLightClickKind::none);
+    if (kind == AreaTileLightClickKind::none
+        || kind > AreaTileLightClickKind::select_color
+        || !editor.selection.active()
+        || editor.selection.area != click.area
+        || active_area != click.area
+        || !kernel::objects().valid(click.area)
+        || object_mutation_state().epoch != click.mutation_epoch
+        || editor.selection.source_tile_index != click.source_tile_index
+        || editor.selection.group_index != click.group_index
+        || editor.light_editor_slot != click.open_slot
+        || click.slot == AreaTileLightSlot::invalid) {
+        return AreaTileLightClickEffect::none;
+    }
+
+    if (kind == AreaTileLightClickKind::toggle_slot) {
+        editor.light_editor_slot = editor.light_editor_slot == click.slot
+            ? AreaTileLightSlot::invalid
+            : click.slot;
+        editor.feedback.clear();
+        return AreaTileLightClickEffect::presentation_changed;
+    }
+
+    if (!actions_allowed || click.open_slot != click.slot) {
+        editor.feedback = "Tile light editing is unavailable";
+        return AreaTileLightClickEffect::unavailable;
+    }
+
+    AreaTileEditBatch edit;
+    const auto built = build_area_tile_light_edits(click.area,
+        editor.selection.tile_indices, click.slot, click.value, edit);
+    if (built.status == ObjectEditStatus::empty) {
+        editor.feedback.clear();
+        return AreaTileLightClickEffect::presentation_changed;
+    }
+    if (!built.ok()) {
+        editor.feedback = built.diagnostic;
+        shell.append_output(
+            built.status == ObjectEditStatus::failed ? "error" : "warn",
+            built.diagnostic);
+        return AreaTileLightClickEffect::unavailable;
+    }
+
+    std::string label{"Set "};
+    label += area_tile_light_slot_label(click.slot);
+    const auto result
+        = backend.edit_area_tiles(std::move(edit), std::move(label), context);
+    editor.feedback = result.ok() ? std::string{} : result.message;
+    append_command_results(shell, {&result, 1});
+    return result.ok() ? AreaTileLightClickEffect::value_changed
+                       : AreaTileLightClickEffect::unavailable;
+}
 
 void refresh_area_tile_selection_after_rebuild(ClientRenderer& renderer, AreaTileEditorState& editor, ObjectHandle area)
 {
@@ -313,6 +404,7 @@ void refresh_area_tile_selection_after_rebuild(ClientRenderer& renderer, AreaTil
 void clear_area_tile_selection(ClientRenderer& renderer, AreaTileEditorState& editor, ObjectHandle active_area)
 {
     editor.selection = {};
+    editor.light_editor_slot = AreaTileLightSlot::invalid;
     if (editor.stroke.active) {
         return;
     }
@@ -397,6 +489,7 @@ bool cancel_area_tile_action(ClientRenderer& renderer, AreaTileEditorState& edit
     }
     cancel_area_tile_stroke(renderer, editor, active_area);
     editor.selection = {};
+    editor.light_editor_slot = AreaTileLightSlot::invalid;
     editor.selected_row = -1;
     editor.group_orientation = 0;
     editor.feedback.clear();

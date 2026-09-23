@@ -226,6 +226,7 @@ public:
     [[nodiscard]] AreaTransientVisualResult refresh_live_area_tiles(
         nw::ObjectHandle area,
         std::span<const uint32_t> tile_indices);
+    bool refresh_live_area_weather(nw::ObjectHandle area);
     bool rebuild_live_object(nw::ObjectHandle object);
     [[nodiscard]] ObjectVisualRefreshResult refresh_live_object_visuals(
         std::span<const nw::ObjectHandle> objects);
@@ -287,7 +288,8 @@ public:
     /// reject the whole batch and leave the previous batch unchanged.
     bool set_transient_debug_geometry(
         std::span<const DebugShapeVertex> vertices,
-        std::span<const uint32_t> indices);
+        std::span<const uint32_t> indices,
+        bool depth_test = true);
     void clear_transient_debug_geometry() noexcept;
     bool set_tile_grid_debug_geometry(
         std::span<const AreaTileGridVertex> vertices,
@@ -428,6 +430,7 @@ private:
     std::vector<DebugShapeVertex> transient_debug_shape_vertices_;
     std::vector<uint32_t> transient_debug_shape_indices_;
     uint64_t transient_debug_shape_revision_ = 0;
+    bool transient_debug_shape_depth_test_ = true;
     std::vector<AreaTileGridVertex> tile_grid_debug_shape_vertices_;
     std::vector<uint32_t> tile_grid_debug_shape_indices_;
     uint64_t tile_grid_debug_shape_revision_ = 0;

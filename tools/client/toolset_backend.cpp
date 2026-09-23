@@ -2149,6 +2149,10 @@ void ToolsetBackend::register_native_commands()
             }
 
             ObjectEditBatch batch;
+            batch.kind = edit->editor
+                    == ObjectDetailsEditorKind::area_weather_boolean
+                ? ObjectEditKind::area_weather_boolean
+                : ObjectEditKind::propset_int;
             batch.patches.push_back({
                 edit->object,
                 edit->propset_type,
@@ -3699,6 +3703,29 @@ bool ToolsetBackend::update_loaded_area_label(
     }
     area->name = label;
     return true;
+}
+
+size_t ToolsetBackend::update_loaded_area_maps(
+    std::span<const std::filesystem::path> paths)
+{
+    if (current_project_dir_.empty() || paths.empty()) { return 0; }
+
+    size_t updated = 0;
+    for (auto& area : loaded_areas_) {
+        const auto expected = project_area_map_path(
+            current_project_dir_, area.resref);
+        if (std::ranges::find(paths, expected) == paths.end()) {
+            continue;
+        }
+        std::error_code ec;
+        if (!std::filesystem::is_regular_file(expected, ec)
+            || area.map_path == expected) {
+            continue;
+        }
+        area.map_path = expected;
+        ++updated;
+    }
+    return updated;
 }
 
 ProjectTreeResult ToolsetBackend::list_project_tree(std::string_view query) const

@@ -1,5 +1,6 @@
 #include "object_edits.hpp"
 
+#include "../ui/object_details_protocol.hpp"
 #include "area_door_hooks.hpp"
 #include "area_navigation.hpp"
 #include "area_regions.hpp"
@@ -1238,6 +1239,24 @@ bool patch_key_less(ObjectEditKind kind, const ObjectEditPatch& lhs, const Objec
     return lhs.key < rhs.key;
 }
 
+uint8_t* area_weather_boolean_field(
+    AreaWeather& weather, uint32_t key) noexcept
+{
+    switch (static_cast<ObjectDetailsAreaWeatherField>(key)) {
+    case ObjectDetailsAreaWeatherField::day_night_cycle:
+        return &weather.day_night_cycle;
+    case ObjectDetailsAreaWeatherField::is_night:
+        return &weather.is_night;
+    case ObjectDetailsAreaWeatherField::sun_shadows:
+        return &weather.sun_shadows;
+    case ObjectDetailsAreaWeatherField::moon_shadows:
+        return &weather.moon_shadows;
+    case ObjectDetailsAreaWeatherField::count:
+        break;
+    }
+    return nullptr;
+}
+
 ObjectEditApplyResult validate_batch_shape(const ObjectEditBatch& batch)
 {
     if (batch.patches.empty()) {
@@ -1245,6 +1264,7 @@ ObjectEditApplyResult validate_batch_shape(const ObjectEditBatch& batch)
     }
     if (batch.kind != ObjectEditKind::propset_int
         && batch.kind != ObjectEditKind::propset_int_element
+        && batch.kind != ObjectEditKind::area_weather_boolean
         && batch.kind != ObjectEditKind::creature_feat
         && batch.kind != ObjectEditKind::creature_body_part
         && batch.kind != ObjectEditKind::creature_color
@@ -1273,6 +1293,31 @@ ObjectEditApplyResult validate_batch_shape(const ObjectEditBatch& batch)
         }
     }
 
+    return edit_result(ObjectEditStatus::success);
+}
+
+ObjectEditApplyResult validate_area_weather_booleans(
+    const ObjectEditBatch& batch, ObjectEditDirection direction)
+{
+    auto* area = kernel::objects().get<Area>(batch.patches.front().object);
+    if (!area) {
+        return edit_result(ObjectEditStatus::invalid_batch,
+            "Area-weather edit target is invalid or stale");
+    }
+    for (const auto& patch : batch.patches) {
+        auto* field = area_weather_boolean_field(area->weather, patch.key);
+        if (!field || patch.element_index != -1
+            || (patch.before != 0 && patch.before != 1)
+            || (patch.after != 0 && patch.after != 1)
+            || patch.before == patch.after) {
+            return edit_result(ObjectEditStatus::invalid_batch,
+                "Area-weather boolean patch has invalid metadata");
+        }
+        if (*field != patch_values(patch, direction).expected) {
+            return edit_result(ObjectEditStatus::stale_value,
+                "Area-weather boolean changed before the edit was applied");
+        }
+    }
     return edit_result(ObjectEditStatus::success);
 }
 
@@ -2441,6 +2486,17 @@ bool write_patch(smalls::Runtime& runtime,
         return write_propset_int(runtime, patch, replacement);
     case ObjectEditKind::propset_int_element:
         return write_propset_int_element(runtime, patch, replacement);
+    case ObjectEditKind::area_weather_boolean: {
+        auto* area = kernel::objects().get<Area>(patch.object);
+        auto* field = area
+            ? area_weather_boolean_field(area->weather, patch.key)
+            : nullptr;
+        if (!field || (replacement != 0 && replacement != 1)) {
+            return false;
+        }
+        *field = static_cast<uint8_t>(replacement);
+        return true;
+    }
     case ObjectEditKind::creature_feat:
         return write_creature_feat(runtime, patch, replacement);
     case ObjectEditKind::creature_body_part:
@@ -5030,6 +5086,9 @@ ObjectEditApplyResult apply_object_edits(
     case ObjectEditKind::propset_int_element:
         validation = validate_propset_int_elements(runtime, batch, direction);
         break;
+    case ObjectEditKind::area_weather_boolean:
+        validation = validate_area_weather_booleans(batch, direction);
+        break;
     case ObjectEditKind::creature_feat:
         validation = validate_creature_feats(runtime, batch, direction);
         break;
@@ -5120,7 +5179,9 @@ ObjectEditApplyResult apply_object_edits(
         || batch.kind == ObjectEditKind::item_model_part
         || batch.kind == ObjectEditKind::item_color;
     ++g_mutation_state.epoch;
-    g_mutation_state.kind = sound_visual || detail_visual
+    g_mutation_state.kind = batch.kind == ObjectEditKind::area_weather_boolean
+        ? ObjectMutationKind::area_lighting
+        : sound_visual || detail_visual
         ? ObjectMutationKind::visual
         : ObjectMutationKind::properties;
     g_mutation_state.visual_kind = sound_visual
@@ -5129,6 +5190,9 @@ ObjectEditApplyResult apply_object_edits(
         ? ObjectVisualMutationKind::detail
         : ObjectVisualMutationKind::none;
     g_mutation_state.object = batch.patches.front().object;
+    g_mutation_state.area = batch.kind == ObjectEditKind::area_weather_boolean
+        ? batch.patches.front().object
+        : ObjectHandle{};
     return {ObjectEditStatus::success, applied_count, {}};
 }
 

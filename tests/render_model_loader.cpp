@@ -368,6 +368,73 @@ donemodel material_colors
         {1.0f, 1.0f, 1.0f}));
 }
 
+TEST(RenderModelLoader, ImportsTileLightSlotsFromNodeSuffixes)
+{
+    constexpr auto model_text = R"mdl(#MAXMODEL ASCII
+newmodel tile_lights
+setsupermodel tile_lights NULL
+classification TILE
+beginmodelgeom tile_lights
+node dummy tile_lights
+  parent NULL
+endnode
+node light tile_lightsml1
+  parent tile_lights
+  radius 5
+  multiplier 1
+  color 0 0 0
+endnode
+node light tile_lightsml2
+  parent tile_lights
+  radius 14
+  multiplier 1
+  color 0 0 0
+endnode
+node light tile_lightssl1
+  parent tile_lights
+  radius 14
+  multiplier 1
+  color 0 0 0
+endnode
+node light tile_lightssl2
+  parent tile_lights
+  radius 5
+  multiplier 1
+  color 0 0 0
+endnode
+node trimesh geometry
+  parent tile_lights
+  render 1
+  bitmap NULL
+  verts 3
+    0 0 0
+    1 0 0
+    0 1 0
+  faces 1
+    0 1 2 0 0 1 2 0
+  tverts 3
+    0 0 0
+    1 0 0
+    0 1 0
+endnode
+endmodelgeom tile_lights
+donemodel tile_lights
+)mdl"sv;
+
+    nw::ResourceData data;
+    data.bytes.append(model_text.data(), model_text.size());
+    nw::model::Mdl mdl{std::move(data)};
+    ASSERT_TRUE(mdl.valid());
+
+    auto result = nw::render::nwn::import_nwn_model_asset(mdl);
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(result.asset->lights.size(), 4u);
+    for (uint8_t slot = 0; slot < 4u; ++slot) {
+        EXPECT_EQ(result.asset->lights[slot].external_color_slot, slot);
+        EXPECT_EQ(result.asset->lights[slot].main_contribution, slot < 2u);
+    }
+}
+
 TEST(RenderModelLoader, ImportsNwnIdentitySkinBoneRows)
 {
     namespace nwn = nw::render::nwn;

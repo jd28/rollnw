@@ -205,6 +205,16 @@ bool supports_area_day_night_cycle(const PreviewScene& scene) noexcept
         && scene.area_weather.day_night_cycle != 0;
 }
 
+bool area_directional_shadows_enabled(const PreviewScene& scene) noexcept
+{
+    if (!scene.is_area) {
+        return true;
+    }
+    return scene.area_weather.is_night != 0
+        ? scene.area_weather.moon_shadows != 0
+        : scene.area_weather.sun_shadows != 0;
+}
+
 float normalize_area_day_night_elapsed_seconds(float elapsed_seconds) noexcept
 {
     float result = std::fmod(elapsed_seconds, kAreaDayNightCycleSeconds);

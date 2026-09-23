@@ -2,6 +2,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
+#include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -69,6 +70,42 @@ smalls::Value object_value(smalls::Runtime& runtime, ObjectHandle object)
     auto result = smalls::Value::make_object(object);
     result.type_id = runtime.object_subtype_for_tag(object.type);
     return result;
+}
+
+std::optional<ObjectDetailsAreaWeatherField> area_weather_boolean_field(
+    std::string_view name) noexcept
+{
+    if (name == "day_night_cycle") {
+        return ObjectDetailsAreaWeatherField::day_night_cycle;
+    }
+    if (name == "is_night") {
+        return ObjectDetailsAreaWeatherField::is_night;
+    }
+    if (name == "sun_shadows") {
+        return ObjectDetailsAreaWeatherField::sun_shadows;
+    }
+    if (name == "moon_shadows") {
+        return ObjectDetailsAreaWeatherField::moon_shadows;
+    }
+    return std::nullopt;
+}
+
+int32_t area_weather_boolean_value(
+    const AreaWeather& weather, ObjectDetailsAreaWeatherField field) noexcept
+{
+    switch (field) {
+    case ObjectDetailsAreaWeatherField::day_night_cycle:
+        return weather.day_night_cycle;
+    case ObjectDetailsAreaWeatherField::is_night:
+        return weather.is_night;
+    case ObjectDetailsAreaWeatherField::sun_shadows:
+        return weather.sun_shadows;
+    case ObjectDetailsAreaWeatherField::moon_shadows:
+        return weather.moon_shadows;
+    case ObjectDetailsAreaWeatherField::count:
+        break;
+    }
+    return -1;
 }
 
 } // namespace
@@ -246,7 +283,26 @@ void build_details_snapshot(smalls::Runtime& runtime,
             = editor == static_cast<int32_t>(ObjectDetailsEditorKind::sound_volume);
         const bool locstring_editor
             = editor == static_cast<int32_t>(ObjectDetailsEditorKind::locstring);
-        if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
+        const bool area_weather_boolean_editor
+            = editor == static_cast<int32_t>(ObjectDetailsEditorKind::area_weather_boolean);
+        if (area_weather_boolean_editor) {
+            const auto field = area_weather_boolean_field(field_name);
+            const auto* area = kernel::objects().get<Area>(active_object);
+            const int32_t current = area && field
+                ? area_weather_boolean_value(area->weather, *field)
+                : -1;
+            if (!allow_edits || !area || !field || !propset_name.empty()
+                || element_index != -1 || locstring_storage_value != 0
+                || edit_min != 0 || edit_max != 1
+                || (edit_value != 0 && edit_value != 1)
+                || current != edit_value) {
+                invalidate_details_snapshot(active_object, presentation,
+                    " area-weather boolean editor is invalid", output);
+                return;
+            }
+            editor_kind = ObjectDetailsEditorKind::area_weather_boolean;
+            field_index = static_cast<uint32_t>(*field);
+        } else if (editor == static_cast<int32_t>(ObjectDetailsEditorKind::boolean)
             || editor == static_cast<int32_t>(ObjectDetailsEditorKind::integer)
             || editor == static_cast<int32_t>(ObjectDetailsEditorKind::door_state)
             || sound_position_editor || sound_volume_editor) {
@@ -579,9 +635,11 @@ std::optional<ObjectDetailsValueEdit> prepare_object_details_boolean_edit(
     }
 
     const auto& row = snapshot.rows[row_index];
+    const bool area_weather
+        = row.editor == ObjectDetailsEditorKind::area_weather_boolean;
     if (row.kind != ObjectDetailsRowKind::value
-        || row.editor != ObjectDetailsEditorKind::boolean
-        || row.propset_type == smalls::invalid_type_id
+        || (row.editor != ObjectDetailsEditorKind::boolean && !area_weather)
+        || (!area_weather && row.propset_type == smalls::invalid_type_id)
         || row.field_index == UINT32_MAX) {
         diagnostic = "Object Details row is not an editable boolean";
         return std::nullopt;
@@ -599,6 +657,7 @@ std::optional<ObjectDetailsValueEdit> prepare_object_details_boolean_edit(
 
     ObjectDetailsValueEdit result{
         .object = object,
+        .editor = row.editor,
         .propset_type = row.propset_type,
         .field_index = row.field_index,
         .element_index = row.element_index,
@@ -662,6 +721,7 @@ std::optional<ObjectDetailsValueEdit> prepare_object_details_integer_edit(
 
     ObjectDetailsValueEdit result{
         .object = object,
+        .editor = row.editor,
         .propset_type = row.propset_type,
         .field_index = row.field_index,
         .element_index = row.element_index,

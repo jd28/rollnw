@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -112,13 +113,15 @@ public:
         nw::ObjectHandle area,
         std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
         bool paintable = true,
-        bool replace_tiles = true);
+        bool replace_tiles = true,
+        std::optional<uint32_t> anchor_tile_index = std::nullopt);
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> viewer_area_camera_focus() const noexcept;
     bool sync_viewer_area_object_spatial(nw::ObjectHandle object);
     bool rebuild_live_viewer_area(nw::ObjectHandle area, nw::ObjectHandle selected_object);
     bool refresh_live_viewer_area_tiles(
         nw::ObjectHandle area, std::span<const uint32_t> tile_indices);
+    bool refresh_live_viewer_area_weather(nw::ObjectHandle area);
     bool rebuild_live_viewer_object(nw::ObjectHandle object);
     bool refresh_live_viewer_object_visual(nw::ObjectHandle object);
     bool clear_viewer_area_object_selection() noexcept;

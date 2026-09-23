@@ -119,7 +119,15 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
             }
             const auto* active_tab = state.workspace.active_tab();
             const bool area_tab = active_tab && active_tab->kind == nw::toolset::WorkspaceTabKind::area;
-            if (mutation.kind == nw::toolset::ObjectMutationKind::spatial) {
+            if (mutation.kind
+                == nw::toolset::ObjectMutationKind::area_lighting) {
+                if (changed_area_visible
+                    && !renderer.refresh_live_viewer_area_weather(
+                        mutation.object)) {
+                    append_output(state, "error",
+                        "Failed to refresh live area lighting after property edit");
+                }
+            } else if (mutation.kind == nw::toolset::ObjectMutationKind::spatial) {
                 renderer.sync_viewer_area_object_spatial(mutation.object);
             } else if (mutation.kind == nw::toolset::ObjectMutationKind::structure
                 && mutation.object.type == nw::ObjectType::encounter

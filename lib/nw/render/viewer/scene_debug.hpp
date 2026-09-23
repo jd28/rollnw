@@ -56,6 +56,7 @@ public:
         std::span<const DebugShapeVertex> vertices,
         std::span<const uint32_t> indices,
         uint64_t revision,
+        bool depth_test,
         const nw::render::RenderContext& ctx);
     void render_tile_grid_debug_shapes(
         nw::gfx::CommandList* cmd,
@@ -91,7 +92,7 @@ private:
     nw::gfx::Context* ctx_ = nullptr;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_grid_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> debug_shape_pipeline_;
-    nw::gfx::Handle<nw::gfx::Pipeline> selection_bounds_pipeline_;
+    nw::gfx::Handle<nw::gfx::Pipeline> xray_debug_shape_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> tile_grid_pipeline_;
     nw::gfx::Handle<nw::gfx::Pipeline> sound_debug_dot_pipeline_;
     nw::gfx::Handle<nw::gfx::Buffer> debug_grid_vertices_;

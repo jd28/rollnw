@@ -94,6 +94,42 @@ bool valid_tile_row(const Area& area, const AreaTile& tile) noexcept
         && tile.orientation >= 0 && tile.orientation < 4;
 }
 
+bool valid_tile_light_value(AreaTileLightSlot slot, uint8_t value) noexcept
+{
+    switch (slot) {
+    case AreaTileLightSlot::main1:
+    case AreaTileLightSlot::main2:
+        return value <= 31;
+    case AreaTileLightSlot::source1:
+    case AreaTileLightSlot::source2:
+        return value <= 15;
+    case AreaTileLightSlot::invalid:
+        return false;
+    }
+    return false;
+}
+
+void set_tile_light_value(
+    AreaTile& tile, AreaTileLightSlot slot, uint8_t value) noexcept
+{
+    switch (slot) {
+    case AreaTileLightSlot::main1:
+        tile.mainlight1 = value;
+        break;
+    case AreaTileLightSlot::main2:
+        tile.mainlight2 = value;
+        break;
+    case AreaTileLightSlot::source1:
+        tile.srclight1 = value;
+        break;
+    case AreaTileLightSlot::source2:
+        tile.srclight2 = value;
+        break;
+    case AreaTileLightSlot::invalid:
+        break;
+    }
+}
+
 bool row_changes_spatial_tile_data(const AreaTileEditRow& row) noexcept
 {
     return row.before.id != row.after.id
@@ -288,6 +324,67 @@ bool area_tile_rows_equal(
         && lhs.mainlight2 == rhs.mainlight2
         && lhs.srclight1 == rhs.srclight1
         && lhs.srclight2 == rhs.srclight2;
+}
+
+ObjectEditApplyResult build_area_tile_light_edits(
+    ObjectHandle area_handle,
+    std::span<const uint32_t> tile_indices,
+    AreaTileLightSlot slot,
+    uint8_t value,
+    AreaTileEditBatch& output)
+{
+    output = {};
+    const auto* area = kernel::objects().get<Area>(area_handle);
+    uint32_t tile_count = 0;
+    if (!area || !valid_area_shape(*area, tile_count)
+        || !valid_tile_light_value(slot, value)
+        || tile_indices.empty()) {
+        return tile_result(ObjectEditStatus::invalid_batch,
+            "Area tile light input is unavailable or out of range");
+    }
+
+    try {
+        AreaTileEditBatch candidate;
+        candidate.area = area_handle;
+        candidate.rows.reserve(tile_indices.size());
+        for (size_t index = 0; index < tile_indices.size(); ++index) {
+            const uint32_t tile_index = tile_indices[index];
+            if (tile_index >= tile_count
+                || (index > 0 && tile_indices[index - 1] >= tile_index)) {
+                return tile_result(ObjectEditStatus::invalid_batch,
+                    "Area tile light indices must be sorted, unique, and in range");
+            }
+            AreaTile replacement = area->tiles[tile_index];
+            set_tile_light_value(replacement, slot, value);
+            if (!area_tile_rows_equal(area->tiles[tile_index], replacement)) {
+                candidate.rows.push_back({
+                    .tile_index = tile_index,
+                    .before = area->tiles[tile_index],
+                    .after = replacement,
+                });
+            }
+        }
+        if (candidate.rows.empty()) {
+            return tile_result(ObjectEditStatus::empty,
+                "Area tile lights already use that color");
+        }
+        const auto validated = area_tile_edit_detail::validate_area_tile_edits(
+            candidate, ObjectEditDirection::forward);
+        if (!validated.ok()) {
+            return validated;
+        }
+        output = std::move(candidate);
+        return {
+            .status = ObjectEditStatus::success,
+            .applied_count = static_cast<uint32_t>(output.rows.size()),
+        };
+    } catch (const std::bad_alloc&) {
+        return tile_result(ObjectEditStatus::failed,
+            "Area tile light allocation failed");
+    } catch (const std::length_error&) {
+        return tile_result(ObjectEditStatus::failed,
+            "Area tile light batch exceeds container capacity");
+    }
 }
 
 ObjectEditApplyResult apply_area_tile_edits(
