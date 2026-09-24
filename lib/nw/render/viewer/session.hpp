@@ -176,9 +176,15 @@ struct ViewerFrameStats {
     uint32_t shadow_culled_model_count = 0;
     uint32_t shadow_prepared_surface_shadow_range_count = 0;
     uint32_t shadow_prepared_surface_invalid_range_count = 0;
+    uint32_t shadow_static_batch_count = 0;
+    uint32_t shadow_static_batched_model_count = 0;
+    uint32_t shadow_static_batch_draw_count = 0;
     uint32_t local_shadow_caster_light_count = 0;
     uint32_t local_shadow_submitted_model_count = 0;
     uint32_t local_shadow_culled_model_count = 0;
+    uint32_t local_shadow_static_batch_count = 0;
+    uint32_t local_shadow_static_batched_model_count = 0;
+    uint32_t local_shadow_static_batch_draw_count = 0;
     uint32_t main_pass_count = 0;
     nw::gfx::CommandStats total_command_stats{};
     nw::gfx::CommandStats shadow_command_stats{};

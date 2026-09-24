@@ -64,6 +64,13 @@ struct NewAreaPublishResult {
 [[nodiscard]] bool canonical_area_ground_tile(
     const Tileset& tileset, AreaTile& output) noexcept;
 
+// Area creation requires one seed tile which is then replicated across the
+// requested tile batch. Returns the first canonical tile with an authored,
+// renderable shadow-casting MDL mesh. If none qualifies, returns the canonical
+// SET-order tile so tilesets without shadow casters remain usable.
+[[nodiscard]] bool preferred_area_ground_tile(
+    const Tileset& tileset, AreaTile& output);
+
 // The batch is rejected before serialization when any request is invalid.
 // Dimensions outside 2..32, duplicate resources, unavailable SETs, and
 // destinations outside the active native module root reject the complete batch

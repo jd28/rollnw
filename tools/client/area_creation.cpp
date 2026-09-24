@@ -8,6 +8,8 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/kernel/TilesetRegistry.hpp>
+#include <nw/log.hpp>
+#include <nw/model/Mdl.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
@@ -18,6 +20,7 @@
 #include <cctype>
 #include <exception>
 #include <fstream>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace fs = std::filesystem;
@@ -54,6 +57,39 @@ bool read_file(const fs::path& path, std::string& output)
     return input.is_open() && !input.bad();
 }
 
+bool is_area_ground_tile_candidate(
+    const Tileset& tileset, size_t index) noexcept
+{
+    if (index >= tileset.tile_topologies.size()
+        || index >= tileset.grouped_tiles.size()) {
+        return false;
+    }
+    const auto& topology = tileset.tile_topologies[index];
+    return topology.valid && tileset.grouped_tiles[index] == 0
+        && std::ranges::all_of(topology.terrain,
+            [&](int32_t value) { return value == tileset.default_terrain; })
+        && std::ranges::all_of(topology.crosser,
+            [](int32_t value) { return value == -1; })
+        && std::ranges::all_of(topology.height,
+            [&](int32_t value) { return value == topology.height[0]; });
+}
+
+bool model_has_authored_shadow_caster(StringView model)
+{
+    if (model.empty()) { return false; }
+    auto data = kernel::resman().demand(
+        Resource{Resref{model}, ResourceType::mdl});
+    if (data.bytes.size() == 0) { return false; }
+    const nw::model::Mdl mdl{std::move(data)};
+    if (!mdl.valid()) { return false; }
+    return std::ranges::any_of(mdl.model.nodes, [](const auto& node) {
+        const auto* mesh = dynamic_cast<const nw::model::TrimeshNode*>(
+            node.get());
+        return mesh && mesh->render && mesh->shadow
+            && !mesh->vertices.empty() && !mesh->indices.empty();
+    });
+}
+
 void rollback_created_areas(std::span<const PreparedNewArea> rows,
     std::span<const ResourceFileWriteResult> writes, std::string& error)
 {
@@ -80,20 +116,36 @@ bool canonical_area_ground_tile(
         return false;
     }
     for (size_t index = 0; index < tileset.tile_topologies.size(); ++index) {
-        const auto& topology = tileset.tile_topologies[index];
-        if (!topology.valid || tileset.grouped_tiles[index] != 0
-            || !std::ranges::all_of(topology.terrain,
-                [&](int32_t value) { return value == tileset.default_terrain; })
-            || !std::ranges::all_of(topology.crosser,
-                [](int32_t value) { return value == -1; })
-            || !std::ranges::all_of(topology.height,
-                [&](int32_t value) { return value == topology.height[0]; })) {
-            continue;
-        }
+        if (!is_area_ground_tile_candidate(tileset, index)) { continue; }
         output = AreaTile{.id = static_cast<int32_t>(index)};
         return true;
     }
     return false;
+}
+
+bool preferred_area_ground_tile(
+    const Tileset& tileset, AreaTile& output)
+{
+    AreaTile fallback;
+    bool has_fallback = false;
+    for (size_t index = 0; index < tileset.tiles.size(); ++index) {
+        if (!is_area_ground_tile_candidate(tileset, index)) { continue; }
+        if (!has_fallback) {
+            fallback = AreaTile{.id = static_cast<int32_t>(index)};
+            has_fallback = true;
+        }
+        if (model_has_authored_shadow_caster(tileset.tiles[index].model)) {
+            output = AreaTile{.id = static_cast<int32_t>(index)};
+            return true;
+        }
+    }
+    if (has_fallback) {
+        output = fallback;
+        LOG_F(WARNING,
+            "Tileset has no flat default ground tile with authored shadow-caster geometry; using SET row {}",
+            fallback.id);
+    }
+    return has_fallback;
 }
 
 PreparedNewAreas prepare_new_areas(const fs::path& project,
@@ -131,8 +183,10 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
             }
         }
         std::unordered_set<std::string> destinations;
+        std::unordered_map<std::string, AreaTile> ground_tiles;
         result.rows.reserve(requests.size());
         result.map_sources.reserve(requests.size());
+        ground_tiles.reserve(requests.size());
         for (const auto& request : requests) {
             std::string normalized;
             if (!validate_blueprint_resref(
@@ -178,15 +232,23 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
                 break;
             }
 
-            auto* tileset = kernel::tilesets().get(request.tileset.view());
             AreaTile ground;
-            if (!resources.contains(
-                    Resource{request.tileset, ResourceType::set})
-                || !tileset
-                || !canonical_area_ground_tile(*tileset, ground)) {
-                result.error = "Tileset cannot provide a flat default ground tile: "
-                    + request.tileset.string();
-                break;
+            const auto tileset_key = request.tileset.string();
+            if (const auto found = ground_tiles.find(tileset_key);
+                found != ground_tiles.end()) {
+                ground = found->second;
+            } else {
+                auto* tileset = kernel::tilesets().get(
+                    request.tileset.view());
+                if (!resources.contains(
+                        Resource{request.tileset, ResourceType::set})
+                    || !tileset
+                    || !preferred_area_ground_tile(*tileset, ground)) {
+                    result.error = "Tileset cannot provide a flat default ground tile: "
+                        + request.tileset.string();
+                    break;
+                }
+                ground_tiles.emplace(tileset_key, ground);
             }
 
             ObjectDocument owner;

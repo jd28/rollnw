@@ -938,6 +938,100 @@ void render_prepared_render_model_surface_instances(
     record_result(instance_count, 0u);
 }
 
+bool render_prepared_render_model_shadow_surface_instances(
+    const ModelRenderContext& render_ctx,
+    nw::gfx::CommandList* cmd,
+    const RenderModel& model,
+    const PreparedModelSurfaceDraw& prototype,
+    nw::gfx::StorageSpan instance_storage,
+    uint32_t first_instance,
+    uint32_t instance_count,
+    const glm::mat4& light_view,
+    const glm::mat4& light_projection,
+    const ModelMaterialOverrideStore* material_overrides)
+{
+    if (instance_count == 0u
+        || !instance_storage.buffer.valid()
+        || instance_storage.size
+                % sizeof(PreparedModelSurfaceInstance)
+            != 0u) {
+        return false;
+    }
+
+    const uint32_t storage_instance_count
+        = instance_storage.size
+        / sizeof(PreparedModelSurfaceInstance);
+    if (first_instance > storage_instance_count
+        || instance_count
+            > storage_instance_count - first_instance
+        || !render_ctx.gfx || !render_ctx.gpu || !cmd
+        || prototype.skinned
+        || !prepared_shadow_surface_matches_model(
+            model, prototype, material_overrides)) {
+        return false;
+    }
+
+    const auto& primitive
+        = model.primitives[prototype.source_draw_index];
+    const auto* material = prepared_surface_material(
+        model, primitive, prototype, material_overrides);
+    if (!material || primitive.skinned
+        || !primitive.vertices.valid()
+        || !primitive.indices.valid()
+        || primitive.index_count == 0u
+        || is_translucent_material(material->alpha_mode)) {
+        return false;
+    }
+
+    const auto pipeline = model_pipeline_for(render_ctx,
+        ModelPipelineMeshKind::pbr_static_instanced,
+        material->alpha_mode, ModelPipelinePass::shadow);
+    if (!pipeline.valid()) {
+        return false;
+    }
+
+    SceneConstants scene_constants{};
+    scene_constants.view = light_view;
+    scene_constants.projection = light_projection;
+    scene_constants.model = primitive.transform;
+    scene_constants.normal_matrix
+        = make_normal_matrix(primitive.transform);
+    const SurfaceConstants surface_constants
+        = make_render_model_shadow_surface_constants(*material);
+
+    auto scene_uniforms = nw::gfx::allocate_uniform_span(
+        render_ctx.gfx, sizeof(SceneConstants));
+    auto surface_uniforms = nw::gfx::allocate_uniform_span(
+        render_ctx.gfx, sizeof(SurfaceConstants));
+    if (!scene_uniforms.data || !surface_uniforms.data) {
+        return false;
+    }
+    std::memcpy(scene_uniforms.data, &scene_constants,
+        sizeof(scene_constants));
+    std::memcpy(surface_uniforms.data, &surface_constants,
+        sizeof(surface_constants));
+
+    const nw::gfx::StorageSpan dummy_storage{
+        render_ctx.gpu->dummy_storage_buffer()};
+    nw::gfx::cmd_bind_pipeline(cmd, pipeline);
+    nw::gfx::cmd_bind_vertex_buffer(
+        cmd, primitive.vertices, sizeof(Vertex));
+    nw::gfx::cmd_bind_index_buffer(
+        cmd, primitive.indices, primitive.index_stride);
+    nw::gfx::cmd_bind_resources(cmd, pipeline,
+        scene_uniforms,
+        dummy_storage,
+        instance_storage,
+        dummy_storage,
+        dummy_storage,
+        dummy_storage,
+        surface_uniforms);
+    nw::gfx::cmd_draw_indexed_base_instance(cmd,
+        primitive.index_count, first_instance,
+        instance_count);
+    return true;
+}
+
 void render_prepared_render_model_shadow_surfaces(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
     const RenderModel& model, std::span<const PreparedModelSurfaceDraw> surfaces,
     uint32_t range_index, const glm::mat4& light_view, const glm::mat4& light_projection,

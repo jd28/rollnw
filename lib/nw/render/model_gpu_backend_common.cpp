@@ -232,7 +232,9 @@ nw::gfx::Handle<nw::gfx::Pipeline> ModelGpuBackend::pipeline(ModelPipelineKey ke
         case ModelPipelineMeshKind::pbr_static:
             return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_static_shadow_cutout) : pipeline(PipelineSlot::pbr_static_shadow);
         case ModelPipelineMeshKind::pbr_static_instanced:
-            return {};
+            return key.material == MaterialMode::cutout
+                ? pipeline(PipelineSlot::pbr_static_instanced_shadow_cutout)
+                : pipeline(PipelineSlot::pbr_static_instanced_shadow);
         case ModelPipelineMeshKind::pbr_skinned:
             return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_skinned_shadow_cutout) : pipeline(PipelineSlot::pbr_skinned_shadow);
         }
@@ -363,6 +365,15 @@ bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderPr
                 "Failed to create static model PBR shadow pipeline");
             warn_pipeline_slot(PipelineSlot::pbr_static_shadow_cutout, pbr_shadow_desc,
                 "Failed to create static model PBR cutout shadow pipeline");
+            auto pbr_instanced_shadow_desc
+                = nw::render::make_shader_variant_pipeline_desc(
+                    pbr_shadow_desc, vs_pbr_instanced, ps_pbr_shadow);
+            warn_pipeline_slot(PipelineSlot::pbr_static_instanced_shadow,
+                pbr_instanced_shadow_desc,
+                "Failed to create instanced static model PBR shadow pipeline");
+            warn_pipeline_slot(PipelineSlot::pbr_static_instanced_shadow_cutout,
+                pbr_instanced_shadow_desc,
+                "Failed to create instanced static model PBR cutout shadow pipeline");
         } else {
             LOG_F(WARNING, "Failed to load static model PBR shadow shader");
         }

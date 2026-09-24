@@ -40,6 +40,8 @@ class ModelGpuBackend {
         static_water,
         pbr_static_shadow,
         pbr_static_shadow_cutout,
+        pbr_static_instanced_shadow,
+        pbr_static_instanced_shadow_cutout,
         pbr_static_instanced_opaque,
         pbr_static_instanced_cutout,
         pbr_skinned_opaque,

@@ -1745,6 +1745,9 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.shadow_culled_model_count = shadow_stats.culled_model_count;
         frame_stats.shadow_prepared_surface_shadow_range_count = shadow_stats.prepared_surface_shadow_range_count;
         frame_stats.shadow_prepared_surface_invalid_range_count = shadow_stats.prepared_surface_invalid_range_count;
+        frame_stats.shadow_static_batch_count = shadow_stats.static_batch_count;
+        frame_stats.shadow_static_batched_model_count = shadow_stats.static_batched_model_count;
+        frame_stats.shadow_static_batch_draw_count = shadow_stats.static_batch_draw_count;
     }
 
     if (local_shadows_enabled && render_context.local_shadows.count > 0) {
@@ -1768,6 +1771,9 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.local_shadow_caster_light_count = local_shadow_stats.caster_light_count;
         frame_stats.local_shadow_submitted_model_count = local_shadow_stats.submitted_model_count;
         frame_stats.local_shadow_culled_model_count = local_shadow_stats.culled_model_count;
+        frame_stats.local_shadow_static_batch_count = local_shadow_stats.static_batch_count;
+        frame_stats.local_shadow_static_batched_model_count = local_shadow_stats.static_batched_model_count;
+        frame_stats.local_shadow_static_batch_draw_count = local_shadow_stats.static_batch_draw_count;
     }
 
     const auto render_scene_pass = [&](const nw::render::RenderContext& pass_context,

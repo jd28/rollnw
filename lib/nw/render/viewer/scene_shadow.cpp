@@ -75,15 +75,37 @@ float shadow_cascade_blend_width(float previous_split_distance, float split_dist
     return std::min(kShadowCascadeBlendDistance, span * kShadowCascadeBlendFraction);
 }
 
+enum class ShadowPreparedDrawSource : uint8_t {
+    frame,
+    area_cache,
+};
+
 struct ShadowRenderModelCandidate {
     uint32_t model_index = 0;
     uint32_t prepared_draw_range_index = std::numeric_limits<uint32_t>::max();
+    uint32_t area_record_index = kInvalidAreaRenderRecordIndex;
     Bounds bounds{};
+    ShadowPreparedDrawSource prepared_draw_source = ShadowPreparedDrawSource::frame;
+};
+
+// Area-static prepared payloads retain scene-cache lifetime; dynamic area and
+// non-area payloads retain frame lifetime. Keep both flat sources in place and
+// tag candidates instead of copying/rebasing cached ranges every frame.
+struct ShadowPreparedDrawView {
+    const nw::render::PreparedModelDrawRangeList* ranges = nullptr;
+    const nw::render::PreparedModelSurfaceDrawList* surfaces = nullptr;
+    std::span<const uint8_t> range_casts_shadow;
 };
 
 uint32_t saturating_count(size_t value)
 {
     return static_cast<uint32_t>(std::min<size_t>(value, std::numeric_limits<uint32_t>::max()));
+}
+
+uint32_t saturating_sum(uint32_t lhs, uint32_t rhs) noexcept
+{
+    const uint64_t sum = static_cast<uint64_t>(lhs) + rhs;
+    return static_cast<uint32_t>(std::min<uint64_t>(sum, std::numeric_limits<uint32_t>::max()));
 }
 
 bool prepared_shadow_range_casts_shadow(std::span<const uint8_t> range_casts_shadow, uint32_t range_index) noexcept
@@ -96,7 +118,8 @@ template <typename Candidate>
 void assign_shadow_prepared_ranges(
     std::vector<Candidate>& candidates,
     std::span<const uint32_t> candidate_by_source,
-    const nw::render::PreparedModelDrawRangeList& ranges)
+    const nw::render::PreparedModelDrawRangeList& ranges,
+    ShadowPreparedDrawSource prepared_draw_source)
 {
     for (size_t range_index = 0; range_index < ranges.ranges.size(); ++range_index) {
         const auto& range = ranges.ranges[range_index];
@@ -107,6 +130,7 @@ void assign_shadow_prepared_ranges(
         const uint32_t candidate_index = candidate_by_source[range.instance_source_index];
         if (candidate_index < candidates.size()) {
             candidates[candidate_index].prepared_draw_range_index = static_cast<uint32_t>(range_index);
+            candidates[candidate_index].prepared_draw_source = prepared_draw_source;
         }
     }
 }
@@ -114,14 +138,21 @@ void assign_shadow_prepared_ranges(
 template <typename Candidate>
 uint32_t drop_non_shadow_prepared_ranges(
     std::vector<Candidate>& candidates,
-    std::span<const uint8_t> range_casts_shadow)
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws)
 {
     uint32_t dropped_count = 0;
     auto removed_begin = std::remove_if(
         candidates.begin(),
         candidates.end(),
         [&](const auto& candidate) {
-            if (prepared_shadow_range_casts_shadow(range_casts_shadow, candidate.prepared_draw_range_index)) {
+            const auto& draws = candidate.prepared_draw_source == ShadowPreparedDrawSource::area_cache
+                ? area_cached_draws
+                : frame_draws;
+            if (draws.ranges && draws.surfaces
+                && prepared_shadow_range_casts_shadow(
+                    draws.range_casts_shadow,
+                    candidate.prepared_draw_range_index)) {
                 return false;
             }
             ++dropped_count;
@@ -163,7 +194,8 @@ Bounds area_shadow_record_bounds(const AreaRenderScene& area_scene, uint32_t rec
 
 // Batch transform from area record columns to RenderModel shadow candidates.
 // Stale handles and out-of-range source indices are dropped before prepared
-// range matching or Vulkan submission.
+// range matching or Vulkan submission. Only dynamic handles are emitted for
+// fallback collection because static prepared payloads are area-cache owned.
 void collect_area_shadow_render_model_candidates(
     std::vector<ShadowRenderModelCandidate>& out,
     std::vector<uint32_t>& candidate_by_source,
@@ -182,10 +214,12 @@ void collect_area_shadow_render_model_candidates(
 
     const auto model_indices = area_scene.model_indices();
     const auto model_instance_handles = area_scene.model_instance_handles();
+    const auto flags = area_scene.flags();
 
     for (const uint32_t record_index : record_indices) {
         if (record_index >= model_indices.size()
-            || record_index >= model_instance_handles.size()) {
+            || record_index >= model_instance_handles.size()
+            || record_index >= flags.size()) {
             continue;
         }
         const uint32_t model_index = model_indices[record_index];
@@ -201,13 +235,399 @@ void collect_area_shadow_render_model_candidates(
         }
         out.push_back(ShadowRenderModelCandidate{
             .model_index = model_index,
+            .area_record_index = record_index,
             .bounds = area_shadow_record_bounds(area_scene, record_index),
         });
         candidate_by_source[model_index] = static_cast<uint32_t>(out.size() - 1u);
-        if (handles) {
+        if (handles
+            && !area_record_has_flag(
+                flags[record_index],
+                AreaRenderScene::RecordFlag::static_candidate)) {
             handles->push_back(instance_handle);
         }
     }
+}
+
+glm::mat4 shadow_normal_matrix(const glm::mat4& model_matrix)
+{
+    return glm::mat4(glm::mat3(glm::transpose(glm::inverse(model_matrix))));
+}
+
+const ShadowPreparedDrawView& shadow_prepared_draw_view(
+    const ShadowRenderModelCandidate& candidate,
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws) noexcept
+{
+    return candidate.prepared_draw_source
+            == ShadowPreparedDrawSource::area_cache
+        ? area_cached_draws
+        : frame_draws;
+}
+
+std::span<const nw::render::PreparedModelSurfaceDraw>
+shadow_candidate_surfaces(
+    const PreviewScene& scene,
+    const ShadowRenderModelCandidate& candidate,
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws)
+{
+    const auto& prepared_draws = shadow_prepared_draw_view(
+        candidate, frame_draws, area_cached_draws);
+    if (!prepared_draws.surfaces) {
+        return {};
+    }
+    if (candidate.prepared_draw_source
+        == ShadowPreparedDrawSource::area_cache) {
+        if (!scene.area_render_scene
+            || candidate.area_record_index
+                == kInvalidAreaRenderRecordIndex) {
+            return {};
+        }
+        return scene.area_render_scene
+            ->prepared_model_surface_draws_for_record(
+                candidate.area_record_index);
+    }
+    return {
+        prepared_draws.surfaces->draws.data(),
+        prepared_draws.surfaces->draws.size(),
+    };
+}
+
+bool shadow_batch_surface_compatible(
+    const nw::render::PreparedModelSurfaceDraw& left,
+    const nw::render::PreparedModelSurfaceDraw& right) noexcept
+{
+    return left.source_draw_index == right.source_draw_index
+        && left.material_index == right.material_index
+        && left.material_override == right.material_override
+        && left.skin_index == right.skin_index
+        && left.material_mode == right.material_mode
+        && left.material_uses_fallback
+        == right.material_uses_fallback
+        && left.material_payload == right.material_payload
+        && left.skinned == right.skinned;
+}
+
+bool shadow_batch_surfaces_compatible(
+    std::span<const nw::render::PreparedModelSurfaceDraw> left,
+    std::span<const nw::render::PreparedModelSurfaceDraw> right)
+{
+    size_t left_index = 0u;
+    size_t right_index = 0u;
+    while (true) {
+        while (left_index < left.size()
+            && !left[left_index].casts_shadow) {
+            ++left_index;
+        }
+        while (right_index < right.size()
+            && !right[right_index].casts_shadow) {
+            ++right_index;
+        }
+        if (left_index == left.size()
+            || right_index == right.size()) {
+            return left_index == left.size()
+                && right_index == right.size();
+        }
+        if (!shadow_batch_surface_compatible(
+                left[left_index], right[right_index])) {
+            return false;
+        }
+        ++left_index;
+        ++right_index;
+    }
+}
+
+bool shadow_candidate_batch_eligible(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    const PreviewScene& scene,
+    const ShadowRenderModelCandidate& candidate,
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws)
+{
+    if (!render_model_ctx.gpu
+        || candidate.prepared_draw_source
+            != ShadowPreparedDrawSource::area_cache
+        || candidate.model_index >= scene.static_models.size()
+        || !scene.static_models[candidate.model_index]) {
+        return false;
+    }
+    const auto* instance
+        = scene.static_model_instance(candidate.model_index);
+    if (!instance || instance->scene_animation_enabled) {
+        return false;
+    }
+
+    const auto surfaces = shadow_candidate_surfaces(
+        scene, candidate, frame_draws, area_cached_draws);
+    bool has_shadow_surface = false;
+    for (const auto& surface : surfaces) {
+        if (!surface.casts_shadow) {
+            continue;
+        }
+        has_shadow_surface = true;
+        if (surface.skinned || surface.material_override.valid()
+            || !nw::render::prepared_render_model_shadow_surface_matches_model(
+                *scene.static_models[candidate.model_index], surface)) {
+            return false;
+        }
+        const auto pipeline = render_model_ctx.gpu->pipeline({
+            .mesh = nw::render::ModelPipelineMeshKind::pbr_static_instanced,
+            .material = surface.material_mode,
+            .pass = nw::render::ModelPipelinePass::shadow,
+        });
+        if (!pipeline.valid()) {
+            return false;
+        }
+    }
+    return has_shadow_surface;
+}
+
+// Per-call batch protocol: candidate_indices are indices into the immutable
+// flat candidate input; groups own only transient indices and never retain
+// model or surface pointers. Invalid, animated, skinned, overridden, or
+// pipeline-incompatible candidates take the scalar fallback path.
+struct ShadowStaticBatchGroup {
+    uint32_t representative_candidate_index = 0u;
+    std::vector<uint32_t> candidate_indices;
+};
+
+struct ShadowStaticBatchList {
+    std::vector<ShadowStaticBatchGroup> groups;
+    std::vector<uint32_t> fallback_candidate_indices;
+};
+
+ShadowStaticBatchList build_shadow_static_batches(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    const PreviewScene& scene,
+    std::span<const ShadowRenderModelCandidate> candidates,
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws)
+{
+    ShadowStaticBatchList result;
+    result.groups.reserve(candidates.size());
+    result.fallback_candidate_indices.reserve(candidates.size());
+    for (size_t candidate_index = 0u;
+        candidate_index < candidates.size(); ++candidate_index) {
+        if (candidate_index > std::numeric_limits<uint32_t>::max()) {
+            break;
+        }
+        const auto& candidate = candidates[candidate_index];
+        if (!shadow_candidate_batch_eligible(render_model_ctx,
+                scene, candidate, frame_draws,
+                area_cached_draws)) {
+            result.fallback_candidate_indices.push_back(
+                static_cast<uint32_t>(candidate_index));
+            continue;
+        }
+
+        const auto& model
+            = scene.static_models[candidate.model_index];
+        const auto surfaces = shadow_candidate_surfaces(
+            scene, candidate, frame_draws,
+            area_cached_draws);
+        auto group = std::find_if(result.groups.begin(),
+            result.groups.end(), [&](const auto& entry) {
+                const auto& representative
+                    = candidates[entry
+                            .representative_candidate_index];
+                return scene.static_models[representative.model_index]
+                    == model
+                    && shadow_batch_surfaces_compatible(
+                        shadow_candidate_surfaces(scene,
+                            representative, frame_draws,
+                            area_cached_draws),
+                        surfaces);
+            });
+        if (group == result.groups.end()) {
+            result.groups.push_back({
+                .representative_candidate_index
+                = static_cast<uint32_t>(candidate_index),
+                .candidate_indices = {
+                    static_cast<uint32_t>(candidate_index)},
+            });
+        } else {
+            group->candidate_indices.push_back(
+                static_cast<uint32_t>(candidate_index));
+        }
+    }
+    return result;
+}
+
+struct ShadowStaticBatchSubmissionStats {
+    uint32_t batch_count = 0u;
+    uint32_t batched_model_count = 0u;
+    uint32_t batch_draw_count = 0u;
+};
+
+void render_shadow_candidate_scalar(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    const ShadowRenderModelCandidate& candidate,
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws,
+    const glm::mat4& light_view,
+    const glm::mat4& light_projection)
+{
+    if (candidate.model_index >= scene.static_models.size()
+        || !scene.static_models[candidate.model_index]) {
+        return;
+    }
+    const auto& prepared_draws = shadow_prepared_draw_view(
+        candidate, frame_draws, area_cached_draws);
+    if (!prepared_draws.ranges || !prepared_draws.surfaces
+        || candidate.prepared_draw_range_index
+            >= prepared_draws.ranges->ranges.size()
+        || !prepared_shadow_range_casts_shadow(
+            prepared_draws.range_casts_shadow,
+            candidate.prepared_draw_range_index)) {
+        return;
+    }
+    const auto surfaces = shadow_candidate_surfaces(
+        scene, candidate, frame_draws, area_cached_draws);
+    nw::render::render_prepared_render_model_shadow_surfaces(
+        render_model_ctx, cmd,
+        *scene.static_models[candidate.model_index], surfaces,
+        candidate.prepared_draw_range_index,
+        light_view, light_projection,
+        &prepared_draws.surfaces->render_model_skins,
+        &scene.material_overrides);
+}
+
+ShadowStaticBatchSubmissionStats render_shadow_candidates(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    std::span<const ShadowRenderModelCandidate> candidates,
+    const ShadowStaticBatchList& batches,
+    const ShadowPreparedDrawView& frame_draws,
+    const ShadowPreparedDrawView& area_cached_draws,
+    const glm::mat4& light_view,
+    const glm::mat4& light_projection)
+{
+    ShadowStaticBatchSubmissionStats stats;
+    const auto visible = [&](uint32_t candidate_index) {
+        return candidate_index < candidates.size()
+            && bounds_intersects_shadow_clip(
+                candidates[candidate_index].bounds,
+                light_projection);
+    };
+    const auto render_scalar = [&](uint32_t candidate_index) {
+        if (visible(candidate_index)) {
+            render_shadow_candidate_scalar(render_model_ctx, cmd,
+                scene, candidates[candidate_index], frame_draws,
+                area_cached_draws, light_view,
+                light_projection);
+        }
+    };
+
+    for (const uint32_t candidate_index :
+        batches.fallback_candidate_indices) {
+        render_scalar(candidate_index);
+    }
+
+    std::vector<uint32_t> visible_candidate_indices;
+    for (const auto& group : batches.groups) {
+        visible_candidate_indices.clear();
+        visible_candidate_indices.reserve(
+            group.candidate_indices.size());
+        for (const uint32_t candidate_index :
+            group.candidate_indices) {
+            if (visible(candidate_index)) {
+                visible_candidate_indices.push_back(
+                    candidate_index);
+            }
+        }
+        if (visible_candidate_indices.size() < 2u
+            || !render_model_ctx.gpu
+            || visible_candidate_indices.size()
+                > std::numeric_limits<uint32_t>::max()
+                    / sizeof(
+                        nw::render::PreparedModelSurfaceInstance)) {
+            for (const uint32_t candidate_index :
+                visible_candidate_indices) {
+                render_scalar(candidate_index);
+            }
+            continue;
+        }
+
+        const uint32_t instance_count
+            = static_cast<uint32_t>(
+                visible_candidate_indices.size());
+        const uint32_t instance_bytes = instance_count
+            * sizeof(nw::render::PreparedModelSurfaceInstance);
+        const auto mapped_instances
+            = render_model_ctx.gpu
+                  ->allocate_mapped_frame_storage(
+                      cmd, instance_bytes, 64u);
+        if (!mapped_instances.span.buffer.valid()
+            || !mapped_instances.data) {
+            for (const uint32_t candidate_index :
+                visible_candidate_indices) {
+                render_scalar(candidate_index);
+            }
+            continue;
+        }
+
+        auto* instances = static_cast<
+            nw::render::PreparedModelSurfaceInstance*>(
+            mapped_instances.data);
+        bool valid_instances = true;
+        for (size_t instance_index = 0u;
+            instance_index < visible_candidate_indices.size();
+            ++instance_index) {
+            const auto& candidate
+                = candidates[visible_candidate_indices[instance_index]];
+            const auto* instance
+                = scene.static_model_instance(
+                    candidate.model_index);
+            if (!instance) {
+                valid_instances = false;
+                break;
+            }
+            instances[instance_index] = {
+                .root = instance->root_transform,
+                .root_normal_matrix = shadow_normal_matrix(
+                    instance->root_transform),
+            };
+        }
+        if (!valid_instances) {
+            for (const uint32_t candidate_index :
+                visible_candidate_indices) {
+                render_scalar(candidate_index);
+            }
+            continue;
+        }
+
+        const auto& representative
+            = candidates[group.representative_candidate_index];
+        const auto& model
+            = *scene.static_models[representative.model_index];
+        const auto surfaces = shadow_candidate_surfaces(
+            scene, representative, frame_draws,
+            area_cached_draws);
+        uint32_t batch_draw_count = 0u;
+        for (const auto& surface : surfaces) {
+            if (!surface.casts_shadow) {
+                continue;
+            }
+            if (nw::render::render_prepared_render_model_shadow_surface_instances(
+                    render_model_ctx, cmd, model, surface,
+                    mapped_instances.span, 0u, instance_count,
+                    light_view, light_projection,
+                    &scene.material_overrides)) {
+                ++batch_draw_count;
+            }
+        }
+        if (batch_draw_count > 0u) {
+            ++stats.batch_count;
+            stats.batched_model_count = saturating_sum(
+                stats.batched_model_count, instance_count);
+            stats.batch_draw_count = saturating_sum(
+                stats.batch_draw_count, batch_draw_count);
+        }
+    }
+    return stats;
 }
 
 std::array<glm::vec3, 8> frustum_corners_world(const glm::mat4& inv_view_projection)
@@ -542,26 +962,65 @@ bool render_scene_shadow_maps(
         shadow_surfaces = &local_shadow_surfaces;
     }
 
-    std::vector<uint8_t> shadow_range_casts_shadow;
-    const auto shadow_range_stats = nw::render::collect_prepared_model_surface_shadow_ranges(
-        shadow_range_casts_shadow,
+    std::vector<uint8_t> frame_shadow_range_casts_shadow;
+    const auto frame_shadow_range_stats = nw::render::collect_prepared_model_surface_shadow_ranges(
+        frame_shadow_range_casts_shadow,
         std::span<const nw::render::PreparedModelSurfaceDraw>{
             shadow_surfaces->draws.data(),
             shadow_surfaces->draws.size()},
         shadow_draws->ranges.ranges.size());
-    const std::span<const nw::render::PreparedModelSurfaceDraw> shadow_surface_span{
-        shadow_surfaces->draws.data(),
-        shadow_surfaces->draws.size()};
-
+    const ShadowPreparedDrawView frame_shadow_draws{
+        .ranges = &shadow_draws->ranges,
+        .surfaces = shadow_surfaces,
+        .range_casts_shadow = frame_shadow_range_casts_shadow,
+    };
     assign_shadow_prepared_ranges(
         shadow_render_models,
         shadow_render_model_candidate_by_source,
-        shadow_draws->ranges);
-    no_caster_model_count += drop_non_shadow_prepared_ranges(shadow_render_models, shadow_range_casts_shadow);
+        shadow_draws->ranges,
+        ShadowPreparedDrawSource::frame);
+
+    std::vector<uint8_t> area_cached_shadow_range_casts_shadow;
+    nw::render::PreparedModelSurfaceShadowRangeStats area_cached_shadow_range_stats{};
+    ShadowPreparedDrawView area_cached_shadow_draws;
+    if (scene.area_render_scene) {
+        const auto& area_scene = *scene.area_render_scene;
+        const auto& cached_ranges = area_scene.prepared_model_draw_ranges();
+        const auto& cached_surfaces = area_scene.prepared_model_surface_draws();
+        area_cached_shadow_range_stats = nw::render::collect_prepared_model_surface_shadow_ranges(
+            area_cached_shadow_range_casts_shadow,
+            std::span<const nw::render::PreparedModelSurfaceDraw>{
+                cached_surfaces.draws.data(),
+                cached_surfaces.draws.size()},
+            cached_ranges.ranges.size());
+        area_cached_shadow_draws = {
+            .ranges = &cached_ranges,
+            .surfaces = &cached_surfaces,
+            .range_casts_shadow = area_cached_shadow_range_casts_shadow,
+        };
+        assign_shadow_prepared_ranges(
+            shadow_render_models,
+            shadow_render_model_candidate_by_source,
+            cached_ranges,
+            ShadowPreparedDrawSource::area_cache);
+    }
+
+    no_caster_model_count += drop_non_shadow_prepared_ranges(
+        shadow_render_models,
+        frame_shadow_draws,
+        area_cached_shadow_draws);
+    const auto shadow_static_batches
+        = build_shadow_static_batches(render_model_ctx, scene,
+            shadow_render_models, frame_shadow_draws,
+            area_cached_shadow_draws);
 
     ShadowRenderStats local_stats{};
-    local_stats.prepared_surface_shadow_range_count = shadow_range_stats.shadow_range_count;
-    local_stats.prepared_surface_invalid_range_count = shadow_range_stats.invalid_range_index_count;
+    local_stats.prepared_surface_shadow_range_count = saturating_sum(
+        frame_shadow_range_stats.shadow_range_count,
+        area_cached_shadow_range_stats.shadow_range_count);
+    local_stats.prepared_surface_invalid_range_count = saturating_sum(
+        frame_shadow_range_stats.invalid_range_index_count,
+        area_cached_shadow_range_stats.invalid_range_index_count);
 
     local_stats.caster_model_count = saturating_count(shadow_render_models.size());
     local_stats.no_caster_model_count = no_caster_model_count;
@@ -599,34 +1058,22 @@ bool render_scene_shadow_maps(
             static_cast<float>(shadow_map_resolution),
             0.0f, 1.0f);
         nw::gfx::cmd_set_scissor(cmd, 0, 0, shadow_map_resolution, shadow_map_resolution);
-        for (size_t candidate_index = 0; candidate_index < shadow_render_models.size(); ++candidate_index) {
-            const auto& candidate = shadow_render_models[candidate_index];
-            if (!bounds_intersects_shadow_clip(candidate.bounds, shadow.world_to_shadow[cascade])) {
-                continue;
-            }
-            if (candidate.model_index >= scene.static_models.size()
-                || !scene.static_models[candidate.model_index]) {
-                continue;
-            }
-            if (candidate.prepared_draw_range_index >= shadow_draws->ranges.ranges.size()) {
-                continue;
-            }
-            if (!prepared_shadow_range_casts_shadow(
-                    shadow_range_casts_shadow,
-                    candidate.prepared_draw_range_index)) {
-                continue;
-            }
-            nw::render::render_prepared_render_model_shadow_surfaces(
-                render_model_ctx,
-                cmd,
-                *scene.static_models[candidate.model_index],
-                shadow_surface_span,
-                candidate.prepared_draw_range_index,
-                glm::mat4(1.0f),
-                shadow.world_to_shadow[cascade],
-                &shadow_surfaces->render_model_skins,
-                &scene.material_overrides);
-        }
+        const auto batch_stats = render_shadow_candidates(
+            render_model_ctx, cmd, scene,
+            shadow_render_models, shadow_static_batches,
+            frame_shadow_draws, area_cached_shadow_draws,
+            glm::mat4(1.0f),
+            shadow.world_to_shadow[cascade]);
+        local_stats.static_batch_count = saturating_sum(
+            local_stats.static_batch_count,
+            batch_stats.batch_count);
+        local_stats.static_batched_model_count
+            = saturating_sum(
+                local_stats.static_batched_model_count,
+                batch_stats.batched_model_count);
+        local_stats.static_batch_draw_count = saturating_sum(
+            local_stats.static_batch_draw_count,
+            batch_stats.batch_draw_count);
         nw::gfx::cmd_end_render(cmd);
     }
 
@@ -817,21 +1264,55 @@ bool render_local_shadow_maps(
         shadow_surfaces = &local_shadow_surfaces;
     }
 
-    std::vector<uint8_t> render_model_shadow_range_casts_shadow;
+    std::vector<uint8_t> frame_shadow_range_casts_shadow;
     nw::render::collect_prepared_model_surface_shadow_ranges(
-        render_model_shadow_range_casts_shadow,
+        frame_shadow_range_casts_shadow,
         std::span<const nw::render::PreparedModelSurfaceDraw>{
             shadow_surfaces->draws.data(),
             shadow_surfaces->draws.size()},
         shadow_draws->ranges.ranges.size());
-    const std::span<const nw::render::PreparedModelSurfaceDraw> render_model_shadow_surfaces{
-        shadow_surfaces->draws.data(),
-        shadow_surfaces->draws.size()};
+    const ShadowPreparedDrawView frame_shadow_draws{
+        .ranges = &shadow_draws->ranges,
+        .surfaces = shadow_surfaces,
+        .range_casts_shadow = frame_shadow_range_casts_shadow,
+    };
     assign_shadow_prepared_ranges(
         render_model_casters,
         render_model_candidate_by_source,
-        shadow_draws->ranges);
-    drop_non_shadow_prepared_ranges(render_model_casters, render_model_shadow_range_casts_shadow);
+        shadow_draws->ranges,
+        ShadowPreparedDrawSource::frame);
+
+    std::vector<uint8_t> area_cached_shadow_range_casts_shadow;
+    ShadowPreparedDrawView area_cached_shadow_draws;
+    if (scene.area_render_scene) {
+        const auto& area_scene = *scene.area_render_scene;
+        const auto& cached_ranges = area_scene.prepared_model_draw_ranges();
+        const auto& cached_surfaces = area_scene.prepared_model_surface_draws();
+        nw::render::collect_prepared_model_surface_shadow_ranges(
+            area_cached_shadow_range_casts_shadow,
+            std::span<const nw::render::PreparedModelSurfaceDraw>{
+                cached_surfaces.draws.data(),
+                cached_surfaces.draws.size()},
+            cached_ranges.ranges.size());
+        area_cached_shadow_draws = {
+            .ranges = &cached_ranges,
+            .surfaces = &cached_surfaces,
+            .range_casts_shadow = area_cached_shadow_range_casts_shadow,
+        };
+        assign_shadow_prepared_ranges(
+            render_model_casters,
+            render_model_candidate_by_source,
+            cached_ranges,
+            ShadowPreparedDrawSource::area_cache);
+    }
+    drop_non_shadow_prepared_ranges(
+        render_model_casters,
+        frame_shadow_draws,
+        area_cached_shadow_draws);
+    const auto shadow_static_batches
+        = build_shadow_static_batches(render_model_ctx, scene,
+            render_model_casters, frame_shadow_draws,
+            area_cached_shadow_draws);
 
     const auto begin_slot = [&](uint32_t slot) {
         local_shadows.depth_textures[slot] = local_shadow_renderer.depth_texture(slot);
@@ -852,22 +1333,23 @@ bool render_local_shadow_maps(
                 ++local_stats.culled_model_count;
                 continue;
             }
-            if (caster.model_index >= scene.static_models.size()
-                || !scene.static_models[caster.model_index]) {
-                continue;
-            }
             ++local_stats.submitted_model_count;
-            nw::render::render_prepared_render_model_shadow_surfaces(
-                render_model_ctx,
-                cmd,
-                *scene.static_models[caster.model_index],
-                render_model_shadow_surfaces,
-                caster.prepared_draw_range_index,
-                glm::mat4(1.0f),
-                world_to_shadow,
-                &shadow_surfaces->render_model_skins,
-                &scene.material_overrides);
         }
+        const auto batch_stats = render_shadow_candidates(
+            render_model_ctx, cmd, scene,
+            render_model_casters, shadow_static_batches,
+            frame_shadow_draws, area_cached_shadow_draws,
+            glm::mat4(1.0f), world_to_shadow);
+        local_stats.static_batch_count = saturating_sum(
+            local_stats.static_batch_count,
+            batch_stats.batch_count);
+        local_stats.static_batched_model_count
+            = saturating_sum(
+                local_stats.static_batched_model_count,
+                batch_stats.batched_model_count);
+        local_stats.static_batch_draw_count = saturating_sum(
+            local_stats.static_batch_draw_count,
+            batch_stats.batch_draw_count);
         nw::gfx::cmd_end_render(cmd);
     }
 

@@ -30,6 +30,9 @@ struct ShadowRenderStats {
     uint32_t culled_model_count = 0;
     uint32_t prepared_surface_shadow_range_count = 0;
     uint32_t prepared_surface_invalid_range_count = 0;
+    uint32_t static_batch_count = 0;
+    uint32_t static_batched_model_count = 0;
+    uint32_t static_batch_draw_count = 0;
 };
 
 [[nodiscard]] uint32_t viewer_shadow_map_resolution();
@@ -59,6 +62,9 @@ struct LocalShadowRenderStats {
     uint32_t caster_light_count = 0; // shadow-casting lights selected (= slots used)
     uint32_t submitted_model_count = 0;
     uint32_t culled_model_count = 0;
+    uint32_t static_batch_count = 0;
+    uint32_t static_batched_model_count = 0;
+    uint32_t static_batch_draw_count = 0;
 };
 
 // Select the top-K shadow-casting local lights, assign each a shadow slot

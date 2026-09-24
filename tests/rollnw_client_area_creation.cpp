@@ -66,6 +66,31 @@ TEST(ClientAreaCreationTopology, CanonicalGroundUsesSetOrderAndTopology)
     EXPECT_FALSE(canonical_area_ground_tile(tileset, ground));
 }
 
+TEST(ClientAreaCreationTopology, PreferredGroundUsesAuthoredShadowCasterThenFallback)
+{
+    Tileset tileset;
+    tileset.default_terrain = 3;
+    tileset.tiles.resize(3);
+    tileset.tile_topologies.resize(3);
+    tileset.grouped_tiles.resize(3, 0);
+    for (auto& topology : tileset.tile_topologies) {
+        topology.valid = true;
+        topology.terrain.fill(3);
+        topology.crosser.fill(-1);
+    }
+    tileset.tiles[0].model = "tno01_v80_04";
+    tileset.tiles[1].model = "plc_palm02";
+    tileset.tiles[2].model = "tno01_v80_04";
+
+    AreaTile ground;
+    ASSERT_TRUE(preferred_area_ground_tile(tileset, ground));
+    EXPECT_EQ(ground.id, 1);
+
+    tileset.tiles[1].model = "tno01_v80_04";
+    ASSERT_TRUE(preferred_area_ground_tile(tileset, ground));
+    EXPECT_EQ(ground.id, 0);
+}
+
 class ClientAreaCreation : public testing::Test {
 protected:
     std::filesystem::path project{"tmp/client_area_creation"};

@@ -67,6 +67,20 @@ void render_prepared_render_model_surface_instances(
     RenderPassSelection pass,
     const ModelMaterialOverrideStore* material_overrides = nullptr,
     PreparedRenderModelSurfaceSubmissionStats* stats = nullptr);
+// Submits one shadow-casting unskinned primitive for a contiguous batch of
+// caller-owned root transforms. Invalid, translucent, skinned, mismatched, or
+// out-of-range input is rejected without recording a draw.
+[[nodiscard]] bool render_prepared_render_model_shadow_surface_instances(
+    const ModelRenderContext& render_ctx,
+    nw::gfx::CommandList* cmd,
+    const RenderModel& model,
+    const PreparedModelSurfaceDraw& prototype,
+    nw::gfx::StorageSpan instance_storage,
+    uint32_t first_instance,
+    uint32_t instance_count,
+    const glm::mat4& light_view,
+    const glm::mat4& light_projection,
+    const ModelMaterialOverrideStore* material_overrides = nullptr);
 void render_prepared_render_model_shadow_surfaces(const ModelRenderContext& render_ctx, nw::gfx::CommandList* cmd,
     const RenderModel& model, std::span<const PreparedModelSurfaceDraw> surfaces,
     uint32_t range_index, const glm::mat4& light_view, const glm::mat4& light_projection,
