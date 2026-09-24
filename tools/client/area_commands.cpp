@@ -2,6 +2,7 @@
 
 #include "area_creation.hpp"
 #include "object_document.hpp"
+#include "resource_document.hpp"
 
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -15,6 +16,7 @@
 #include <array>
 #include <charconv>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 
 namespace nw::toolset {
@@ -32,6 +34,84 @@ bool parse_dimension(std::string_view text, int32_t& output)
         text.data(), text.data() + text.size(), output);
     return parsed.ec == std::errc{}
     && parsed.ptr == text.data() + text.size();
+}
+
+bool path_is_inside(const std::filesystem::path& outer,
+    const std::filesystem::path& inner)
+{
+    const auto relative = inner.lexically_relative(outer);
+    return !relative.empty() && !relative.is_absolute()
+        && *relative.begin() != "..";
+}
+
+bool read_file(const std::filesystem::path& path, std::string& output)
+{
+    std::ifstream input{path, std::ios::binary};
+    output.assign(std::istreambuf_iterator<char>{input}, {});
+    return input.is_open() && !input.bad();
+}
+
+struct AreaDeleteTarget {
+    std::filesystem::path target;
+    std::filesystem::path relative;
+    std::filesystem::path map;
+};
+
+bool resolve_area_delete_target(const std::filesystem::path& project,
+    std::string_view detail, AreaDeleteTarget& output, std::string& error)
+{
+    namespace fs = std::filesystem;
+    auto& resources = kernel::resman();
+    if (project.empty() || detail.empty() || !resources.module_container()
+        || resources.module_format() != ModuleResourceFormat::native_json) {
+        error = "Area deletion requires an active native project area";
+        return false;
+    }
+
+    const fs::path input{detail};
+    if (input.is_absolute()) {
+        error = "Area path must be relative to the active project";
+        return false;
+    }
+
+    std::error_code ec;
+    const auto canonical_project = fs::canonical(project, ec);
+    if (ec) {
+        error = "Failed to resolve the active project: " + ec.message();
+        return false;
+    }
+    const auto root = fs::canonical(
+        fs::path{resources.module_container()->path()}, ec);
+    if (ec || !path_is_inside(canonical_project, root)) {
+        error = "Active module resources are outside this project";
+        return false;
+    }
+
+    const auto unresolved = canonical_project / input;
+    const auto status = fs::symlink_status(unresolved, ec);
+    if (ec || status.type() == fs::file_type::symlink) {
+        error = "Area deletion does not follow symbolic links";
+        return false;
+    }
+    const auto target = fs::canonical(unresolved, ec);
+    if (ec || !fs::is_regular_file(target, ec) || ec
+        || !path_is_inside(root, target)) {
+        error = "Active area file is unavailable inside the module resource root";
+        return false;
+    }
+
+    const auto resource = Resource::from_path(target, false);
+    if (!resource.valid() || resource.type != ResourceType::caf
+        || !resources.contains(resource)) {
+        error = "Active document is not a published native Area resource";
+        return false;
+    }
+
+    output.target = target;
+    output.relative = target.lexically_relative(canonical_project);
+    output.map = project_area_map_path(
+        canonical_project, resource.resref.view());
+    return true;
 }
 
 std::vector<CommandPromptChoice> area_tileset_choices()
@@ -114,6 +194,20 @@ void ToolsetBackend::register_area_commands()
         [](const CommandInvocation&, CommandContext&) {
             return CommandResult{
                 CommandStatus::noop, {}, CommandOutputChannel::none};
+        });
+    add(CommandSpec{
+            "area.delete",
+            "Delete Area...",
+            "Permanently delete the active Area from the project",
+            "area",
+            {"delete_area"},
+            CommandScope::workspace,
+            CommandFlags::none,
+            {},
+            "area.delete",
+        },
+        [this](const CommandInvocation& invocation, CommandContext&) {
+            return delete_current_area(invocation);
         });
 }
 
@@ -283,6 +377,119 @@ CommandResult ToolsetBackend::submit_new_area_form(
         channel = CommandOutputChannel::warn;
     }
     return {CommandStatus::success, std::move(message), channel};
+}
+
+CommandResult ToolsetBackend::delete_current_area(
+    const CommandInvocation& invocation)
+{
+    if (!workspace_) { return failure("Workspace unavailable"); }
+    auto* current = workspace_->active_tab();
+    if (!current || current->id != "area"
+        || current->kind != WorkspaceTabKind::area
+        || current->detail.empty()) {
+        return failure("Open and activate a project Area before deleting it");
+    }
+
+    AreaDeleteTarget target;
+    std::string error;
+    if (!resolve_area_delete_target(
+            current_project_dir_, current->detail, target, error)) {
+        return failure(std::move(error));
+    }
+
+    if (invocation.args.empty()) {
+        auto result = failure("Confirm permanent Area deletion");
+        CommandPrompt prompt;
+        prompt.id = "area.delete";
+        prompt.title = "Delete Area?";
+        prompt.message = "Permanently delete " + current->title + "?";
+        prompt.detail = target.relative.generic_string();
+        if (current->dirty) {
+            prompt.detail += "\nUnsaved changes and undo history will be discarded.";
+        }
+        prompt.actions = {
+            {"delete", "Delete", "area.delete",
+                {"--confirm", current->detail}},
+            {"cancel", "Cancel", {}, {}},
+        };
+        result.prompt = std::move(prompt);
+        return result;
+    }
+
+    if (invocation.args.size() != 2
+        || command_arg_string(invocation.args, 0) != "--confirm"
+        || command_arg_string(invocation.args, 1) != current->detail) {
+        return failure(
+            "The active Area changed; request deletion again");
+    }
+
+    std::string bytes;
+    if (!read_file(target.target, bytes)) {
+        return failure("Failed to read Area before deletion: "
+            + target.target.string());
+    }
+
+    std::error_code ec;
+    if (!std::filesystem::remove(target.target, ec) || ec) {
+        return failure("Failed to delete Area: " + target.target.string()
+            + (ec ? ": " + ec.message() : std::string{}));
+    }
+
+    String refresh_error;
+    if (!kernel::resman().refresh_module_resources(refresh_error)) {
+        const std::array writes{ResourceFileWrite{
+            target.target, bytes, ResourceFileWriteMode::create, {}}};
+        const auto restored = write_resource_files_atomic(writes);
+        String rollback_refresh_error;
+        const bool rollback_refreshed = !restored.empty()
+            && restored[0].written
+            && kernel::resman().refresh_module_resources(
+                rollback_refresh_error);
+        std::string message
+            = "Area deletion failed during resource refresh: "
+            + std::string{refresh_error};
+        if (rollback_refreshed) {
+            message += "; original Area restored";
+        } else if (!restored.empty() && restored[0].written) {
+            message += "; original Area file restored, but resource refresh failed";
+            if (!rollback_refresh_error.empty()) {
+                message += ": " + std::string{rollback_refresh_error};
+            }
+        } else {
+            message += "; failed to restore original Area";
+            if (!restored.empty() && !restored[0].error.empty()) {
+                message += ": " + restored[0].error;
+            }
+        }
+        return {CommandStatus::failed, std::move(message),
+            CommandOutputChannel::error};
+    }
+
+    ec.clear();
+    bool map_removed = true;
+    if (std::filesystem::exists(target.map, ec)) {
+        map_removed = std::filesystem::remove(target.map, ec);
+    }
+    if (ec) { map_removed = false; }
+
+    current->dirty = false;
+    workspace_->open_area_tab({}, "Area");
+    workspace_->set_active_tab("home");
+    if (bridge_) {
+        bridge_->clear_active_object();
+        bridge_->clear_active_area();
+    }
+    refresh_loaded_project_areas();
+
+    CommandResult result;
+    result.message = "Deleted area: " + target.relative.generic_string();
+    result.refreshed_area_maps.push_back(target.map);
+    if (!map_removed || ec) {
+        result.message += "; stale derived map could not be removed";
+        if (ec) { result.message += ": " + ec.message(); }
+        result.output_channel = CommandOutputChannel::warn;
+    }
+    return result;
 }
 
 } // namespace nw::toolset

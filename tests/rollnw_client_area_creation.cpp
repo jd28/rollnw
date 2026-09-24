@@ -330,6 +330,92 @@ TEST(ClientAreaCreationCommands, FormCreatesOpensAndIndexesArea)
     EXPECT_EQ(workspace.active_tab()->detail,
         "shared/areas/second_area.caf.json");
 }
+
+TEST(ClientAreaCreationCommands, DeleteRequiresConfirmationAndClearsActiveArea)
+{
+    KernelServiceScope services;
+    const std::filesystem::path project
+        = "tmp/client_area_deletion_command";
+    std::filesystem::remove_all(project);
+    ProjectImportOptions options;
+    options.format = ProjectImportFormat::json;
+    const auto imported = import_module_project(
+        "test_data/user/modules/DockerDemo.mod", project, options);
+    ASSERT_TRUE(imported.ok) << imported.message;
+
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ASSERT_TRUE(backend.open_project(project.string()).ok());
+    ASSERT_TRUE(backend.has_command("area.delete"));
+
+    const auto form = backend.execute_command("area.new", {}, {});
+    ASSERT_TRUE(form.prompt) << form.message;
+    const std::vector<std::string_view> values{
+        "deleted_area",
+        "shared/areas",
+        "Deleted Area",
+        form.prompt->fields[3].value,
+        "3",
+        "2",
+    };
+    const auto created
+        = backend.execute_command("area.create", values, {});
+    ASSERT_TRUE(created.ok()) << created.message;
+
+    const auto area_path
+        = project / "shared/areas/deleted_area.caf.json";
+    const auto map_path = project_area_map_path(project, "deleted_area");
+    ASSERT_TRUE(std::filesystem::is_regular_file(area_path));
+    ASSERT_TRUE(std::filesystem::is_regular_file(map_path));
+    ASSERT_TRUE(kernel::resman().contains(
+        Resource{Resref{"deleted_area"}, ResourceType::caf}));
+
+    auto* live = kernel::objects().make_area(Resref{"deleted_area"});
+    ASSERT_NE(live, nullptr);
+    const auto live_handle = live->handle();
+    ASSERT_TRUE(workspace.active_tab()->document.adopt(live_handle));
+    workspace.active_tab()->dirty = true;
+
+    ASSERT_TRUE(workspace.set_active_tab("home"));
+    const auto inactive = backend.execute_command("area.delete", {}, {});
+    EXPECT_FALSE(inactive.ok());
+    EXPECT_TRUE(std::filesystem::is_regular_file(area_path));
+    ASSERT_TRUE(workspace.set_active_tab("area"));
+
+    const auto pending = backend.execute_command("area.delete", {}, {});
+    ASSERT_TRUE(pending.prompt) << pending.message;
+    ASSERT_EQ(pending.prompt->actions.size(), 2u);
+    EXPECT_NE(pending.prompt->detail.find("Unsaved changes"),
+        std::string::npos);
+    EXPECT_TRUE(std::filesystem::is_regular_file(area_path));
+
+    const std::vector<std::string_view> stale_args{
+        "--confirm", "shared/areas/another.caf.json"};
+    const auto stale = backend.execute_command(
+        "area.delete", stale_args, {});
+    EXPECT_FALSE(stale.ok());
+    EXPECT_TRUE(std::filesystem::is_regular_file(area_path));
+
+    std::vector<std::string_view> confirm_args;
+    for (const auto& arg : pending.prompt->actions[0].args) {
+        confirm_args.push_back(arg);
+    }
+    const auto deleted = backend.execute_command(
+        pending.prompt->actions[0].command_id, confirm_args, {});
+    ASSERT_TRUE(deleted.ok()) << deleted.message;
+    EXPECT_FALSE(std::filesystem::exists(area_path));
+    EXPECT_FALSE(std::filesystem::exists(map_path));
+    EXPECT_FALSE(kernel::resman().contains(
+        Resource{Resref{"deleted_area"}, ResourceType::caf}));
+    EXPECT_FALSE(kernel::objects().valid(live_handle));
+    EXPECT_EQ(workspace.active_tab_id(), "home");
+    ASSERT_NE(workspace.find_tab("area"), nullptr);
+    EXPECT_TRUE(workspace.find_tab("area")->detail.empty());
+    EXPECT_FALSE(workspace.find_tab("area")->dirty);
+    EXPECT_TRUE(backend.list_areas("Deleted Area").empty());
+}
 #endif
 
 } // namespace

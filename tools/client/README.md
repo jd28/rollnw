@@ -145,6 +145,11 @@ resources, adds the area to the project index, and opens it in the pinned Area
 tab. A failed write or resource refresh removes the file created by that
 attempt.
 
+Run **Delete Area...** from the command palette while an Area tab is active to
+permanently remove that native CAF resource. The confirmation identifies the
+exact project-relative file and warns when unsaved edits will be discarded.
+Deletion has no undo; it also removes the derived area-map cache when present.
+
 Use **Ctrl+S** to save the active document or **Ctrl+Shift+S** / **Save All** to
 save every modified open document without switching tabs. Saving supports native
 CAF areas and JSON blueprints. If a document cannot be saved, it stays modified

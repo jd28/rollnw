@@ -152,6 +152,7 @@ private:
     CommandResult show_new_area_form();
     CommandResult submit_new_area_form(
         const CommandInvocation& invocation, CommandContext& context);
+    CommandResult delete_current_area(const CommandInvocation& invocation);
     void refresh_loaded_project_areas();
     bool refresh_creature_body_part_editor();
     bool refresh_item_editor();
