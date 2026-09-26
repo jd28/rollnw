@@ -5236,6 +5236,39 @@ AreaTransientVisualResult refresh_live_area_tiles(
     return result;
 }
 
+static bool apply_area_tile_preview_ghost(
+    PreviewScene& scene, uint32_t model_index)
+{
+    if (model_index >= scene.static_models.size()
+        || !scene.static_models[model_index]) {
+        return false;
+    }
+    auto* instance = scene.static_model_instance(model_index);
+    if (!instance) {
+        return false;
+    }
+
+    for (const auto handle : instance->material_override_handles) {
+        scene.material_overrides.destroy(handle);
+    }
+    const auto& materials = scene.static_models[model_index]->materials;
+    instance->material_override_handles.clear();
+    instance->material_override_handles.reserve(materials.size());
+    constexpr float k_ghost_opacity = 0.20f;
+    for (const auto& material : materials) {
+        auto ghost = material;
+        ghost.albedo.a *= k_ghost_opacity;
+        ghost.alpha_mode = nw::render::MaterialMode::transparent;
+        instance->material_override_handles.push_back(
+            scene.material_overrides.create(
+                nw::render::ModelMaterialOverride{
+                    .material = std::move(ghost),
+                }));
+    }
+    instance->shadow = {};
+    return true;
+}
+
 AreaTransientVisualResult update_area_tile_previews(
     PreviewScene& scene,
     PreviewRenderResources& resources,
@@ -5371,7 +5404,9 @@ AreaTransientVisualResult update_area_tile_previews(
             const uint32_t model_index = lease.preview_model_indices[index];
             const auto& row = pending[index];
             auto* instance = scene.static_model_instance(model_index);
-            if (scene.static_models[model_index] != row.model) {
+            const bool model_changed
+                = scene.static_models[model_index] != row.model;
+            if (model_changed) {
                 models_changed = true;
                 const auto owner_handle
                     = scene.static_model_instance_handles[model_index];
@@ -5395,8 +5430,14 @@ AreaTransientVisualResult update_area_tile_previews(
                 *instance, *scene.static_models[model_index]);
             instance->current_bounds = transform_bounds(
                 scene.static_models[model_index]->bounds, row.placement);
-            instance->shadow = render_model_shadow_summary(
-                *scene.static_models[model_index], instance->current_bounds);
+            if (model_changed
+                && !apply_area_tile_preview_ghost(scene, model_index)) {
+                result.status = AreaTransientVisualStatus::failed;
+                result.diagnostic
+                    = "Area tile preview ghost could not be updated";
+                return result;
+            }
+            instance->shadow = {};
             scene.static_area_model_info[model_index] = {
                 .kind = nw::ObjectType::tile,
                 .object = row.preview_object,
@@ -5504,6 +5545,13 @@ AreaTransientVisualResult update_area_tile_previews(
         }
         instance->scene_animation_enabled = false;
         instance->animation.enabled = false;
+        if (!apply_area_tile_preview_ghost(scene, model_index)) {
+            (void)remove_object_model_rows(scene, preview_objects);
+            scene.area_render_scene->rebuild(scene);
+            result.status = AreaTransientVisualStatus::failed;
+            result.diagnostic = "Area tile preview ghost could not be created";
+            return result;
+        }
     }
     if (!scene.area_render_scene->append_tile_preview_records(
             scene, preview_model_indices)) {

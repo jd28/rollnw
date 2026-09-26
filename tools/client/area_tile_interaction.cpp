@@ -51,6 +51,134 @@ bool valid_cell(
         && cell.y >= 0 && cell.y < height;
 }
 
+uint32_t spatial_cell_index(
+    int32_t width, int32_t height, glm::vec3 position) noexcept
+{
+    const float area_max_x = static_cast<float>(width) * k_tile_size;
+    const float area_max_y = static_cast<float>(height) * k_tile_size;
+    const float world_x = std::clamp(position.x, 0.0f, area_max_x);
+    const float world_y = std::clamp(position.y, 0.0f, area_max_y);
+    const uint32_t tile_x = std::min(
+        static_cast<uint32_t>(world_x / k_tile_size),
+        static_cast<uint32_t>(width - 1));
+    const uint32_t tile_y = std::min(
+        static_cast<uint32_t>(world_y / k_tile_size),
+        static_cast<uint32_t>(height - 1));
+    return tile_y * static_cast<uint32_t>(width) + tile_x;
+}
+
+AreaTileCrosserTarget crosser_target_from_hit(
+    int32_t width,
+    int32_t height,
+    uint32_t tile_count,
+    const AreaTileCellPick& hit) noexcept
+{
+    AreaTileCrosserTarget result;
+    if (hit.status != AreaTileCellPickStatus::hit
+        || hit.tile_index >= tile_count || !finite(hit.position)) {
+        return result;
+    }
+
+    const float area_max_x = static_cast<float>(width) * k_tile_size;
+    const float area_max_y = static_cast<float>(height) * k_tile_size;
+    const float world_x = std::clamp(hit.position.x, 0.0f, area_max_x);
+    const float world_y = std::clamp(hit.position.y, 0.0f, area_max_y);
+    result.tile_index = spatial_cell_index(width, height, hit.position);
+    const uint32_t tile_x
+        = result.tile_index % static_cast<uint32_t>(width);
+    const uint32_t tile_y
+        = result.tile_index / static_cast<uint32_t>(width);
+    const float local_x
+        = world_x - static_cast<float>(tile_x) * k_tile_size;
+    const float local_y
+        = world_y - static_cast<float>(tile_y) * k_tile_size;
+    const std::array distances{
+        local_y,
+        k_tile_size - local_x,
+        k_tile_size - local_y,
+        local_x,
+    };
+    const auto nearest = std::min_element(distances.begin(), distances.end());
+    switch (nearest - distances.begin()) {
+    case 0:
+        result.edge = {
+            .x = tile_x,
+            .y = tile_y,
+            .axis = AreaTileEdgeAxis::horizontal,
+        };
+        break;
+    case 1:
+        result.edge = {
+            .x = tile_x + 1u,
+            .y = tile_y,
+            .axis = AreaTileEdgeAxis::vertical,
+        };
+        break;
+    case 2:
+        result.edge = {
+            .x = tile_x,
+            .y = tile_y + 1u,
+            .axis = AreaTileEdgeAxis::horizontal,
+        };
+        break;
+    case 3:
+        result.edge = {
+            .x = tile_x,
+            .y = tile_y,
+            .axis = AreaTileEdgeAxis::vertical,
+        };
+        break;
+    default:
+        result = {};
+        break;
+    }
+    return result;
+}
+
+bool valid_edge(int32_t width,
+    int32_t height,
+    AreaTileCrosserEdge edge) noexcept
+{
+    if (edge.axis == AreaTileEdgeAxis::horizontal) {
+        return edge.x < static_cast<uint32_t>(width)
+            && edge.y <= static_cast<uint32_t>(height);
+    }
+    if (edge.axis == AreaTileEdgeAxis::vertical) {
+        return edge.x <= static_cast<uint32_t>(width)
+            && edge.y < static_cast<uint32_t>(height);
+    }
+    return false;
+}
+
+bool edge_layout(int32_t width,
+    int32_t height,
+    uint64_t& horizontal_count,
+    uint64_t& total_count) noexcept
+{
+    if (width <= 0 || height <= 0
+        || width == std::numeric_limits<int32_t>::max()
+        || height == std::numeric_limits<int32_t>::max()) {
+        return false;
+    }
+    horizontal_count = static_cast<uint64_t>(width)
+        * static_cast<uint64_t>(height + 1);
+    const uint64_t vertical_count = static_cast<uint64_t>(width + 1)
+        * static_cast<uint64_t>(height);
+    total_count = horizontal_count + vertical_count;
+    return total_count <= std::numeric_limits<uint32_t>::max();
+}
+
+uint32_t flat_edge_index(int32_t width,
+    uint64_t horizontal_count,
+    AreaTileCrosserEdge edge) noexcept
+{
+    if (edge.axis == AreaTileEdgeAxis::horizontal) {
+        return edge.y * static_cast<uint32_t>(width) + edge.x;
+    }
+    return static_cast<uint32_t>(horizontal_count)
+        + edge.y * static_cast<uint32_t>(width + 1) + edge.x;
+}
+
 } // namespace
 
 void resolve_area_tile_pointer_actions(
@@ -115,6 +243,64 @@ AreaTilePointerAction resolve_area_tile_pointer_action(
     AreaTilePointerInput input) noexcept
 {
     return resolve_area_tile_pointer_input(input).action;
+}
+
+void resolve_area_tile_crosser_spans(
+    int32_t width,
+    int32_t height,
+    std::span<const AreaTileCrosserEdge> edges,
+    std::span<AreaTileCrosserSpan> output) noexcept
+{
+    std::fill(output.begin(), output.end(), AreaTileCrosserSpan{});
+    uint64_t horizontal_count = 0;
+    uint64_t total_count = 0;
+    if (edges.size() != output.size()
+        || !edge_layout(width, height, horizontal_count, total_count)) {
+        return;
+    }
+
+    constexpr float half_tile = k_tile_size * 0.5f;
+    for (size_t index = 0; index < edges.size(); ++index) {
+        const auto edge = edges[index];
+        if (!valid_edge(width, height, edge)) {
+            continue;
+        }
+        auto& span = output[index];
+        if (edge.axis == AreaTileEdgeAxis::horizontal) {
+            const float x
+                = (static_cast<float>(edge.x) + 0.5f) * k_tile_size;
+            const float y = static_cast<float>(edge.y) * k_tile_size;
+            span = {
+                .start = {x, y - (edge.y == 0 ? 0.0f : half_tile)},
+                .end = {x,
+                    y + (edge.y == static_cast<uint32_t>(height) ? 0.0f : half_tile)},
+                .valid = true,
+            };
+        } else {
+            const float x = static_cast<float>(edge.x) * k_tile_size;
+            const float y
+                = (static_cast<float>(edge.y) + 0.5f) * k_tile_size;
+            span = {
+                .start = {x - (edge.x == 0 ? 0.0f : half_tile), y},
+                .end = {
+                    x + (edge.x == static_cast<uint32_t>(width) ? 0.0f : half_tile),
+                    y},
+                .valid = true,
+            };
+        }
+    }
+}
+
+AreaTileCrosserSpan resolve_area_tile_crosser_span(
+    int32_t width,
+    int32_t height,
+    AreaTileCrosserEdge edge) noexcept
+{
+    AreaTileCrosserSpan result;
+    resolve_area_tile_crosser_spans(width, height,
+        std::span<const AreaTileCrosserEdge>{&edge, 1},
+        std::span<AreaTileCrosserSpan>{&result, 1});
+    return result;
 }
 
 void pick_area_tile_cells(
@@ -202,6 +388,59 @@ AreaTileCellPick pick_area_tile_cell(
         std::span<const AreaTileCellRay>{&ray, 1},
         std::span<AreaTileCellPick>{&result, 1});
     return result;
+}
+
+void pick_area_tile_crosser_targets(
+    const Area& area,
+    std::span<const AreaTileCellPick> cell_hits,
+    std::span<AreaTileCrosserTarget> output) noexcept
+{
+    std::fill(output.begin(), output.end(), AreaTileCrosserTarget{});
+    uint32_t tile_count = 0;
+    if (cell_hits.size() != output.size()
+        || !valid_area_cells(area, tile_count)) {
+        return;
+    }
+
+    for (size_t index = 0; index < cell_hits.size(); ++index) {
+        output[index] = crosser_target_from_hit(
+            area.width, area.height, tile_count, cell_hits[index]);
+    }
+}
+
+AreaTileCrosserTarget pick_area_tile_crosser_target(
+    const Area& area, const AreaTileCellPick& cell_hit) noexcept
+{
+    AreaTileCrosserTarget result;
+    pick_area_tile_crosser_targets(area,
+        std::span<const AreaTileCellPick>{&cell_hit, 1},
+        std::span<AreaTileCrosserTarget>{&result, 1});
+    return result;
+}
+
+void pick_area_tile_crosser_edges(
+    const Area& area,
+    std::span<const AreaTileCellPick> cell_hits,
+    std::span<AreaTileCrosserEdge> output) noexcept
+{
+    std::fill(output.begin(), output.end(), AreaTileCrosserEdge{});
+    uint32_t tile_count = 0;
+    if (cell_hits.size() != output.size()
+        || !valid_area_cells(area, tile_count)) {
+        return;
+    }
+
+    for (size_t index = 0; index < cell_hits.size(); ++index) {
+        output[index] = crosser_target_from_hit(
+            area.width, area.height, tile_count, cell_hits[index])
+                            .edge;
+    }
+}
+
+AreaTileCrosserEdge pick_area_tile_crosser_edge(
+    const Area& area, const AreaTileCellPick& cell_hit) noexcept
+{
+    return pick_area_tile_crosser_target(area, cell_hit).edge;
 }
 
 void pick_area_tile_corners(
@@ -375,6 +614,147 @@ AreaTileLineResult append_area_tile_grid_line(
             ++crossed_y;
         }
         if (!append({.x = x, .y = y})) {
+            return result;
+        }
+    }
+    return result;
+}
+
+AreaTileLineResult append_area_tile_crosser_edges(
+    int32_t width,
+    int32_t height,
+    std::span<const AreaTileCrosserEdge> input,
+    std::span<uint8_t> visited,
+    std::vector<AreaTileCrosserEdge>& edges) noexcept
+{
+    uint64_t horizontal_count = 0;
+    uint64_t total_count = 0;
+    if (input.empty()
+        || !edge_layout(width, height, horizontal_count, total_count)
+        || visited.size() != total_count
+        || std::ranges::any_of(input, [=](AreaTileCrosserEdge edge) {
+               return !valid_edge(width, height, edge);
+           })) {
+        return {.status = AreaTileLineStatus::invalid_input};
+    }
+
+    AreaTileLineResult result{.status = AreaTileLineStatus::success};
+    for (const auto edge : input) {
+        ++result.visited_count;
+        const uint32_t index
+            = flat_edge_index(width, horizontal_count, edge);
+        if (visited[index] != 0u) {
+            continue;
+        }
+        try {
+            edges.push_back(edge);
+        } catch (const std::bad_alloc&) {
+            result.status = AreaTileLineStatus::failed;
+            return result;
+        } catch (const std::length_error&) {
+            result.status = AreaTileLineStatus::failed;
+            return result;
+        }
+        visited[index] = 1u;
+        ++result.appended_count;
+    }
+    return result;
+}
+
+AreaTileLineResult append_area_tile_crosser_line(
+    int32_t width,
+    int32_t height,
+    AreaTileCellCoord from,
+    AreaTileCellCoord to,
+    std::span<uint8_t> visited,
+    std::vector<AreaTileCrosserEdge>& edges) noexcept
+{
+    uint64_t horizontal_count = 0;
+    uint64_t total_count = 0;
+    if (!edge_layout(width, height, horizontal_count, total_count)
+        || visited.size() != total_count || !valid_cell(width, height, from)
+        || !valid_cell(width, height, to)) {
+        return {.status = AreaTileLineStatus::invalid_input};
+    }
+
+    AreaTileLineResult result{.status = AreaTileLineStatus::success};
+    const auto append = [&](AreaTileCrosserEdge edge) {
+        ++result.visited_count;
+        const uint32_t index
+            = flat_edge_index(width, horizontal_count, edge);
+        if (visited[index] != 0u) {
+            return true;
+        }
+        try {
+            edges.push_back(edge);
+        } catch (const std::bad_alloc&) {
+            result.status = AreaTileLineStatus::failed;
+            return false;
+        } catch (const std::length_error&) {
+            result.status = AreaTileLineStatus::failed;
+            return false;
+        }
+        visited[index] = 1u;
+        ++result.appended_count;
+        return true;
+    };
+
+    int32_t x = from.x;
+    int32_t y = from.y;
+    const int32_t dx = std::abs(to.x - from.x);
+    const int32_t dy = std::abs(to.y - from.y);
+    const int32_t step_x = from.x < to.x ? 1 : from.x > to.x ? -1
+                                                             : 0;
+    const int32_t step_y = from.y < to.y ? 1 : from.y > to.y ? -1
+                                                             : 0;
+    int32_t crossed_x = 0;
+    int32_t crossed_y = 0;
+    const auto cross_x = [&]() {
+        const int32_t next_x = x + step_x;
+        if (!append({
+                .x = static_cast<uint32_t>(std::max(x, next_x)),
+                .y = static_cast<uint32_t>(y),
+                .axis = AreaTileEdgeAxis::vertical,
+            })) {
+            return false;
+        }
+        x = next_x;
+        ++crossed_x;
+        return true;
+    };
+    const auto cross_y = [&]() {
+        const int32_t next_y = y + step_y;
+        if (!append({
+                .x = static_cast<uint32_t>(x),
+                .y = static_cast<uint32_t>(std::max(y, next_y)),
+                .axis = AreaTileEdgeAxis::horizontal,
+            })) {
+            return false;
+        }
+        y = next_y;
+        ++crossed_y;
+        return true;
+    };
+    while (crossed_x < dx || crossed_y < dy) {
+        const int64_t x_boundary
+            = (1 + 2 * static_cast<int64_t>(crossed_x)) * dy;
+        const int64_t y_boundary
+            = (1 + 2 * static_cast<int64_t>(crossed_y)) * dx;
+        if (x_boundary == y_boundary) {
+            // Always turn around an exact grid corner in increasing-x order,
+            // independent of which direction the pointer traversed the line.
+            if (step_x > 0) {
+                if (!cross_x() || !cross_y()) {
+                    return result;
+                }
+            } else if (!cross_y() || !cross_x()) {
+                return result;
+            }
+        } else if (x_boundary < y_boundary) {
+            if (!cross_x()) {
+                return result;
+            }
+        } else if (!cross_y()) {
             return result;
         }
     }

@@ -14,12 +14,14 @@
 #include <nw/resources/ResourceManager.hpp>
 
 #include <nlohmann/json.hpp>
+#include <xxhash/xxh3.h>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <exception>
 #include <fstream>
+#include <random>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -90,6 +92,23 @@ bool model_has_authored_shadow_caster(StringView model)
     });
 }
 
+uint64_t new_area_tile_seed(std::string_view resref,
+    StringView tileset,
+    int32_t width,
+    int32_t height)
+{
+    std::string material;
+    material.reserve(resref.size() + tileset.size() + 24);
+    material.append(resref);
+    material.push_back('\0');
+    material.append(tileset);
+    material.push_back('\0');
+    material.append(std::to_string(width));
+    material.push_back('x');
+    material.append(std::to_string(height));
+    return XXH3_64bits(material.data(), material.size());
+}
+
 void rollback_created_areas(std::span<const PreparedNewArea> rows,
     std::span<const ResourceFileWriteResult> writes, std::string& error)
 {
@@ -126,26 +145,114 @@ bool canonical_area_ground_tile(
 bool preferred_area_ground_tile(
     const Tileset& tileset, AreaTile& output)
 {
-    AreaTile fallback;
-    bool has_fallback = false;
+    std::vector<AreaTile> candidates;
+    if (!collect_area_ground_tiles(tileset, candidates)) {
+        return false;
+    }
+    output = candidates.front();
+    return true;
+}
+
+bool collect_area_ground_tiles(
+    const Tileset& tileset, std::vector<AreaTile>& output)
+{
+    output.clear();
+    if (tileset.default_terrain < 0
+        || tileset.tile_topologies.size() != tileset.tiles.size()
+        || tileset.grouped_tiles.size() != tileset.tiles.size()) {
+        return false;
+    }
+
+    size_t fallback_index = tileset.tiles.size();
+    size_t preferred_index = tileset.tiles.size();
     for (size_t index = 0; index < tileset.tiles.size(); ++index) {
         if (!is_area_ground_tile_candidate(tileset, index)) { continue; }
-        if (!has_fallback) {
-            fallback = AreaTile{.id = static_cast<int32_t>(index)};
-            has_fallback = true;
+        if (fallback_index == tileset.tiles.size()) {
+            fallback_index = index;
         }
         if (model_has_authored_shadow_caster(tileset.tiles[index].model)) {
-            output = AreaTile{.id = static_cast<int32_t>(index)};
-            return true;
+            preferred_index = index;
+            break;
         }
     }
-    if (has_fallback) {
-        output = fallback;
+    if (fallback_index == tileset.tiles.size()) {
+        return false;
+    }
+    const bool has_shadow_caster = preferred_index != tileset.tiles.size();
+    if (!has_shadow_caster) {
+        preferred_index = fallback_index;
         LOG_F(WARNING,
             "Tileset has no flat default ground tile with authored shadow-caster geometry; using SET row {}",
-            fallback.id);
+            preferred_index);
     }
-    return has_fallback;
+    const int32_t relative_height
+        = tileset.tile_topologies[preferred_index].height[0];
+    output.reserve(tileset.tiles.size());
+    output.push_back(AreaTile{.id = static_cast<int32_t>(preferred_index)});
+    for (size_t index = 0; index < tileset.tiles.size(); ++index) {
+        if (index == preferred_index
+            || !is_area_ground_tile_candidate(tileset, index)
+            || tileset.tile_topologies[index].height[0] != relative_height) {
+            continue;
+        }
+        output.push_back(AreaTile{.id = static_cast<int32_t>(index)});
+    }
+    return true;
+}
+
+bool generate_area_ground_tiles(std::span<AreaTile> output,
+    std::span<const AreaTile> candidates,
+    uint64_t seed) noexcept
+{
+    if (candidates.empty()
+        || std::ranges::any_of(candidates, [](const AreaTile& candidate) {
+               return candidate.id < 0;
+           })) {
+        return false;
+    }
+    if (output.empty()) { return true; }
+
+    std::mt19937_64 generator{seed};
+    std::uniform_int_distribution<size_t> candidate_distribution{
+        0, candidates.size() - 1};
+    std::uniform_int_distribution<int32_t> orientation_distribution{0, 3};
+    bool preferred_selected = false;
+    for (auto& tile : output) {
+        const size_t candidate_index = candidate_distribution(generator);
+        tile = candidates[candidate_index];
+        tile.orientation = orientation_distribution(generator);
+        preferred_selected = preferred_selected || candidate_index == 0;
+    }
+
+    std::uniform_int_distribution<size_t> output_distribution{
+        0, output.size() - 1};
+    if (!preferred_selected) {
+        auto& tile = output[output_distribution(generator)];
+        tile = candidates.front();
+        tile.orientation = orientation_distribution(generator);
+    }
+
+    if (output.size() > 1) {
+        const auto alternate = std::ranges::find_if(candidates,
+            [&](const AreaTile& candidate) {
+                return candidate.id != candidates.front().id;
+            });
+        if (alternate != candidates.end()
+            && std::ranges::all_of(output, [&](const AreaTile& tile) {
+                   return tile.id == candidates.front().id;
+               })) {
+            auto& tile = output[output_distribution(generator)];
+            tile = *alternate;
+            tile.orientation = orientation_distribution(generator);
+        } else if (alternate == candidates.end()
+            && std::ranges::all_of(output, [&](const AreaTile& tile) {
+                   return tile.orientation == output.front().orientation;
+               })) {
+            output.back().orientation
+                = (output.front().orientation + 1) % 4;
+        }
+    }
+    return true;
 }
 
 PreparedNewAreas prepare_new_areas(const fs::path& project,
@@ -183,7 +290,7 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
             }
         }
         std::unordered_set<std::string> destinations;
-        std::unordered_map<std::string, AreaTile> ground_tiles;
+        std::unordered_map<std::string, std::vector<AreaTile>> ground_tiles;
         result.rows.reserve(requests.size());
         result.map_sources.reserve(requests.size());
         ground_tiles.reserve(requests.size());
@@ -232,23 +339,23 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
                 break;
             }
 
-            AreaTile ground;
             const auto tileset_key = request.tileset.string();
-            if (const auto found = ground_tiles.find(tileset_key);
-                found != ground_tiles.end()) {
-                ground = found->second;
-            } else {
+            auto found = ground_tiles.find(tileset_key);
+            if (found == ground_tiles.end()) {
                 auto* tileset = kernel::tilesets().get(
                     request.tileset.view());
+                std::vector<AreaTile> candidates;
                 if (!resources.contains(
                         Resource{request.tileset, ResourceType::set})
                     || !tileset
-                    || !preferred_area_ground_tile(*tileset, ground)) {
+                    || !collect_area_ground_tiles(*tileset, candidates)) {
                     result.error = "Tileset cannot provide a flat default ground tile: "
                         + request.tileset.string();
                     break;
                 }
-                ground_tiles.emplace(tileset_key, ground);
+                found = ground_tiles.emplace(
+                                        tileset_key, std::move(candidates))
+                            .first;
             }
 
             ObjectDocument owner;
@@ -278,10 +385,14 @@ PreparedNewAreas prepare_new_areas(const fs::path& project,
             area->weather.color_sun_diffuse = 0x00ffffffu;
             area->weather.color_sun_fog = 0x00917e68u;
             area->weather.fog_clip_distance = 45.0f;
-            area->tiles.assign(
-                static_cast<size_t>(request.width)
-                    * static_cast<size_t>(request.height),
-                ground);
+            area->tiles.resize(static_cast<size_t>(request.width)
+                * static_cast<size_t>(request.height));
+            if (!generate_area_ground_tiles(area->tiles, found->second,
+                    new_area_tile_seed(normalized, request.tileset.view(),
+                        request.width, request.height))) {
+                result.error = "Area ground tile generation failed";
+                break;
+            }
             if (!area->instantiate()) {
                 result.error = "Area initialization failed";
                 break;

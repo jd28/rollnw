@@ -453,6 +453,7 @@ AreaTilePaletteClickEffect apply_area_tile_palette_click(AreaTilePaletteClick& c
     editor.selected_row = static_cast<int32_t>(click.row);
     editor.group_orientation = 0;
     editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_crosser_edge.reset();
     editor.cursor_update_pending = false;
     editor.preview_rows.clear();
     editor.feedback.clear();
@@ -796,6 +797,7 @@ bool reset_area_tile_editor(AreaTileEditorState& editor, ObjectHandle area)
     editor.selection = {};
     editor.light_editor_slot = AreaTileLightSlot::invalid;
     editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_crosser_edge.reset();
     editor.cursor_modifier = AreaTilePointerModifier::none;
     editor.cursor_update_pending = false;
     editor.selected_row = -1;
@@ -819,6 +821,7 @@ bool rotate_area_tile_group_orientation(AreaTileEditorState& editor)
     editor.feedback = "Feature rotation: "
         + std::to_string(editor.group_orientation * 90) + " degrees";
     editor.cursor_target_index = UINT32_MAX;
+    editor.cursor_crosser_edge.reset();
     editor.cursor_update_pending = false;
     return true;
 }
@@ -834,6 +837,7 @@ nw::toolset::ObjectEditApplyResult build_area_tile_stroke_edits(
     nw::ObjectHandle area,
     std::span<const uint32_t> tile_indices,
     std::span<const uint32_t> corner_indices,
+    std::span<const AreaTileCrosserEdge> crosser_edges,
     nw::toolset::AreaTileBrush brush,
     uint64_t seed,
     nw::toolset::AreaTileEditBatch& output)
@@ -845,7 +849,7 @@ nw::toolset::ObjectEditApplyResult build_area_tile_stroke_edits(
             area, corner_indices, delta, seed, output);
     }
     return nw::toolset::build_area_tile_brush_edits(
-        area, tile_indices, brush, seed, output);
+        area, tile_indices, brush, seed, output, crosser_edges);
 }
 
 bool append_area_tile_height_preview_cells(
@@ -872,6 +876,48 @@ bool append_area_tile_height_preview_cells(
         }
     }
     return true;
+}
+
+AreaTileLineResult append_area_tile_crosser_stroke_edges(
+    AreaTileStrokeState& stroke,
+    AreaTileCellCoord target,
+    AreaTileCrosserEdge click_edge) noexcept
+{
+    AreaTileLineResult result;
+    if (!stroke.has_last_target) {
+        if (stroke.crosser_moved_between_cells) {
+            result = append_area_tile_crosser_line(stroke.width, stroke.height,
+                target, target, stroke.visited_crosser_edges,
+                stroke.crosser_edges);
+        } else {
+            result = append_area_tile_crosser_edges(stroke.width,
+                stroke.height,
+                std::span<const AreaTileCrosserEdge>{&click_edge, 1},
+                stroke.visited_crosser_edges, stroke.crosser_edges);
+        }
+    } else if (target == stroke.last_target) {
+        result = append_area_tile_crosser_line(stroke.width, stroke.height,
+            target, target, stroke.visited_crosser_edges,
+            stroke.crosser_edges);
+    } else {
+        if (!stroke.crosser_moved_between_cells) {
+            std::fill(stroke.visited_crosser_edges.begin(),
+                stroke.visited_crosser_edges.end(), 0u);
+            stroke.crosser_edges.clear();
+        }
+        result = append_area_tile_crosser_line(stroke.width, stroke.height,
+            stroke.last_target, target, stroke.visited_crosser_edges,
+            stroke.crosser_edges);
+        if (result.status == AreaTileLineStatus::success) {
+            stroke.crosser_moved_between_cells = true;
+        }
+    }
+
+    if (result.status == AreaTileLineStatus::success) {
+        stroke.last_target = target;
+        stroke.has_last_target = true;
+    }
+    return result;
 }
 
 } // namespace nw::toolset

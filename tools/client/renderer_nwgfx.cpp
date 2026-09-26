@@ -375,11 +375,13 @@ bool ClientRendererNwgfx::update_viewer_area_tile_preview(
     std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
     bool paintable,
     bool replace_tiles,
-    std::optional<uint32_t> anchor_tile_index)
+    std::optional<uint32_t> anchor_tile_index,
+    std::span<const nw::toolset::AreaTileCrosserEdge> crosser_edges)
 {
     return viewer_viewport_
         && viewer_viewport_->update_area_tile_preview(
-            area, rows, paintable, replace_tiles, anchor_tile_index);
+            area, rows, paintable, replace_tiles, anchor_tile_index,
+            crosser_edges);
 }
 
 bool ClientRendererNwgfx::end_toolset_preview_visuals() noexcept

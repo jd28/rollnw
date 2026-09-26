@@ -5,6 +5,7 @@
 #include <nw/formats/Image.hpp>
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Strings.hpp>
 #include <nw/kernel/TilesetRegistry.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -13,6 +14,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <fstream>
@@ -85,10 +87,77 @@ TEST(ClientAreaCreationTopology, PreferredGroundUsesAuthoredShadowCasterThenFall
     AreaTile ground;
     ASSERT_TRUE(preferred_area_ground_tile(tileset, ground));
     EXPECT_EQ(ground.id, 1);
+    std::vector<AreaTile> candidates;
+    ASSERT_TRUE(collect_area_ground_tiles(tileset, candidates));
+    ASSERT_EQ(candidates.size(), 3u);
+    EXPECT_EQ(candidates[0].id, 1);
+    EXPECT_EQ(candidates[1].id, 0);
+    EXPECT_EQ(candidates[2].id, 2);
 
     tileset.tiles[1].model = "tno01_v80_04";
     ASSERT_TRUE(preferred_area_ground_tile(tileset, ground));
     EXPECT_EQ(ground.id, 0);
+    ASSERT_TRUE(collect_area_ground_tiles(tileset, candidates));
+    ASSERT_EQ(candidates.size(), 3u);
+    EXPECT_EQ(candidates[0].id, 0);
+    EXPECT_EQ(candidates[1].id, 1);
+    EXPECT_EQ(candidates[2].id, 2);
+
+    tileset.tiles[1].model = "plc_palm02";
+    tileset.tile_topologies[2].height.fill(1);
+    ASSERT_TRUE(collect_area_ground_tiles(tileset, candidates));
+    ASSERT_EQ(candidates.size(), 2u);
+    EXPECT_EQ(candidates[0].id, 1);
+    EXPECT_EQ(candidates[1].id, 0);
+}
+
+TEST(ClientAreaCreationTopology, GroundGenerationIsVariedAndRepeatable)
+{
+    const std::array candidates{
+        AreaTile{.id = 7},
+        AreaTile{.id = 11},
+        AreaTile{.id = 19},
+    };
+    std::array<AreaTile, 24> first{};
+    std::array<AreaTile, 24> repeated{};
+    ASSERT_TRUE(generate_area_ground_tiles(first, candidates, 0x12345678u));
+    ASSERT_TRUE(generate_area_ground_tiles(
+        repeated, candidates, 0x12345678u));
+
+    bool has_preferred = false;
+    bool has_other = false;
+    for (size_t index = 0; index < first.size(); ++index) {
+        EXPECT_EQ(first[index].id, repeated[index].id);
+        EXPECT_EQ(first[index].orientation, repeated[index].orientation);
+        EXPECT_GE(first[index].orientation, 0);
+        EXPECT_LT(first[index].orientation, 4);
+        has_preferred = has_preferred || first[index].id == candidates[0].id;
+        has_other = has_other || first[index].id != candidates[0].id;
+    }
+    EXPECT_TRUE(has_preferred);
+    EXPECT_TRUE(has_other);
+
+    const std::array one_candidate{AreaTile{.id = 23}};
+    std::array<AreaTile, 4> rotated{};
+    ASSERT_TRUE(generate_area_ground_tiles(rotated, one_candidate, 9u));
+    EXPECT_TRUE(std::ranges::all_of(rotated,
+        [](const AreaTile& tile) { return tile.id == 23; }));
+    EXPECT_TRUE(std::ranges::any_of(rotated, [&](const AreaTile& tile) {
+        return tile.orientation != rotated.front().orientation;
+    }));
+
+    const std::array invalid_candidates{AreaTile{.id = -1}};
+    std::array<AreaTile, 2> unchanged{
+        AreaTile{.id = 31}, AreaTile{.id = 37}};
+    EXPECT_FALSE(generate_area_ground_tiles(
+        unchanged, invalid_candidates, 1u));
+    EXPECT_EQ(unchanged[0].id, 31);
+    EXPECT_EQ(unchanged[1].id, 37);
+
+    std::span<AreaTile> empty_output;
+    EXPECT_FALSE(generate_area_ground_tiles(
+        empty_output, invalid_candidates, 1u));
+    EXPECT_TRUE(generate_area_ground_tiles(empty_output, candidates, 1u));
 }
 
 class ClientAreaCreation : public testing::Test {
@@ -164,10 +233,26 @@ TEST_F(ClientAreaCreation, PreparesPublishesAndReloadsCompleteCaf)
     EXPECT_EQ(json.at("weather").at("color_sun_diffuse"), 0x00ffffffu);
     EXPECT_EQ(json.at("weather").at("color_sun_fog"), 0x00917e68u);
     ASSERT_EQ(json.at("tiles").size(), 6u);
-    const auto tile_id = json.at("tiles").front().at("id");
+    const auto* created_tileset = kernel::tilesets().get(tileset.view());
+    ASSERT_NE(created_tileset, nullptr);
+    std::vector<AreaTile> candidates;
+    ASSERT_TRUE(collect_area_ground_tiles(*created_tileset, candidates));
+    std::vector<int32_t> generated_ids;
     for (const auto& tile : json.at("tiles")) {
-        EXPECT_EQ(tile.at("id"), tile_id);
+        const int32_t id = tile.at("id");
+        const int32_t orientation = tile.at("orientation");
+        EXPECT_NE(std::ranges::find(candidates, id,
+                      &AreaTile::id),
+            candidates.end());
+        EXPECT_GE(orientation, 0);
+        EXPECT_LT(orientation, 4);
+        if (std::ranges::find(generated_ids, id) == generated_ids.end()) {
+            generated_ids.push_back(id);
+        }
     }
+    if (candidates.size() > 1) { EXPECT_GT(generated_ids.size(), 1u); }
+    EXPECT_NE(std::ranges::find(generated_ids, candidates.front().id),
+        generated_ids.end());
 
     const auto publication = publish_new_areas(prepared);
     ASSERT_EQ(publication.rows.size(), 1u);
@@ -292,6 +377,14 @@ TEST(ClientAreaCreationCommands, FormCreatesOpensAndIndexesArea)
     EXPECT_EQ(form.prompt->fields[4].value, "4");
     EXPECT_EQ(form.prompt->fields[5].value, "4");
     ASSERT_FALSE(form.prompt->fields[3].value.empty());
+    const auto& tileset_choices = form.prompt->fields[3].choices;
+    const auto rural = std::ranges::find_if(tileset_choices,
+        [](const CommandPromptChoice& choice) {
+            return choice.value == "ttr01";
+        });
+    ASSERT_NE(rural, tileset_choices.end());
+    EXPECT_EQ(rural->label, kernel::strings().get(1606u));
+    EXPECT_FALSE(rural->label.starts_with("Bad Strref"));
 
     const std::vector<std::string_view> values{
         "command_area",

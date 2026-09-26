@@ -485,6 +485,7 @@ ClientEventFlow process_client_pointer_motion(SDL_Event& event, ClientInputDispa
             if (state.area_tile_editor.cursor_target_index != UINT32_MAX
                 || !state.area_tile_editor.preview_rows.empty()) {
                 state.area_tile_editor.cursor_target_index = UINT32_MAX;
+                state.area_tile_editor.cursor_crosser_edge.reset();
                 state.area_tile_editor.preview_rows.clear();
                 (void)renderer.update_viewer_area_tile_preview(
                     active_workspace_area(state), {});

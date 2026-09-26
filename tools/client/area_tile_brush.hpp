@@ -10,6 +10,8 @@
 
 namespace nw::toolset {
 
+struct AreaTileCrosserEdge;
+
 enum class AreaTileBrushKind : uint8_t {
     terrain,
     crosser,
@@ -91,7 +93,8 @@ struct AreaTileSelection {
     std::span<const uint32_t> ordered_tile_indices,
     AreaTileBrush brush,
     uint64_t seed,
-    AreaTileEditBatch& output);
+    AreaTileEditBatch& output,
+    std::span<const AreaTileCrosserEdge> crosser_edges = {});
 
 // Cycles each placed, non-group tile to the next SET row with identical world
 // topology. Inputs must be unique row-major area cell indices. The result is

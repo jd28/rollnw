@@ -2,6 +2,7 @@
 
 #include <nw/objects/Area.hpp>
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include <array>
@@ -73,6 +74,53 @@ struct AreaTileCellPick {
     AreaTileCellPickStatus status = AreaTileCellPickStatus::invalid_input;
 };
 
+enum class AreaTileEdgeAxis : uint8_t {
+    horizontal,
+    vertical,
+    invalid,
+};
+
+// Canonical area edge-lattice coordinate. Horizontal edges accept
+// x in [0, width) and y in [0, height]; vertical edges accept
+// x in [0, width] and y in [0, height). Boundary coordinates are valid.
+struct AreaTileCrosserEdge {
+    uint32_t x = 0;
+    uint32_t y = 0;
+    AreaTileEdgeAxis axis = AreaTileEdgeAxis::invalid;
+
+    bool operator==(const AreaTileCrosserEdge&) const = default;
+};
+
+// One canonical crosser pointer target. The cell drives drag interpolation and
+// the edge drives topology edits and preview geometry; both are resolved from
+// the same world hit position.
+struct AreaTileCrosserTarget {
+    uint32_t tile_index = UINT32_MAX;
+    AreaTileCrosserEdge edge;
+};
+
+// World-space centerline occupied by a crosser as it passes through one
+// canonical edge. The line is perpendicular to the targeted boundary and is
+// clipped to the area at perimeter edges.
+struct AreaTileCrosserSpan {
+    glm::vec2 start{0.0f};
+    glm::vec2 end{0.0f};
+    bool valid = false;
+};
+
+// Inputs and outputs correspond by index. Mismatched spans or invalid area
+// dimensions clear every output; invalid edges produce invalid rows.
+void resolve_area_tile_crosser_spans(
+    int32_t width,
+    int32_t height,
+    std::span<const AreaTileCrosserEdge> edges,
+    std::span<AreaTileCrosserSpan> output) noexcept;
+
+[[nodiscard]] AreaTileCrosserSpan resolve_area_tile_crosser_span(
+    int32_t width,
+    int32_t height,
+    AreaTileCrosserEdge edge) noexcept;
+
 // Batch fallback for logical cells without selectable rendered geometry.
 // Inputs and outputs correspond by index. The area is borrowed for the call.
 void pick_area_tile_cells(
@@ -82,6 +130,28 @@ void pick_area_tile_cells(
 
 [[nodiscard]] AreaTileCellPick pick_area_tile_cell(
     const Area& area, const AreaTileCellRay& ray) noexcept;
+
+// Resolves rendered hits through their world positions instead of the owning
+// model rows. Inputs and outputs correspond by index. Positions past the area
+// clamp to its perimeter; invalid inputs produce invalid targets.
+void pick_area_tile_crosser_targets(
+    const Area& area,
+    std::span<const AreaTileCellPick> cell_hits,
+    std::span<AreaTileCrosserTarget> output) noexcept;
+
+[[nodiscard]] AreaTileCrosserTarget pick_area_tile_crosser_target(
+    const Area& area, const AreaTileCellPick& cell_hit) noexcept;
+
+// Converts cell hits to the nearest canonical edge-lattice coordinate. The
+// rendered world position determines the logical cell through the same target
+// protocol used by dragging. Invalid inputs produce invalid edges.
+void pick_area_tile_crosser_edges(
+    const Area& area,
+    std::span<const AreaTileCellPick> cell_hits,
+    std::span<AreaTileCrosserEdge> output) noexcept;
+
+[[nodiscard]] AreaTileCrosserEdge pick_area_tile_crosser_edge(
+    const Area& area, const AreaTileCellPick& cell_hit) noexcept;
 
 // Converts rendered cell hits to their nearest row-major corner-lattice index.
 // Outputs are UINT32_MAX when the corresponding hit or area is invalid.
@@ -118,6 +188,8 @@ enum class AreaTileLineStatus : uint8_t {
 struct AreaTileCellCoord {
     int32_t x = 0;
     int32_t y = 0;
+
+    bool operator==(const AreaTileCellCoord&) const = default;
 };
 
 struct AreaTileLineResult {
@@ -135,5 +207,25 @@ AreaTileLineResult append_area_tile_grid_line(
     AreaTileCellCoord to,
     std::span<uint8_t> visited,
     std::vector<uint32_t>& indices) noexcept;
+
+// Appends the canonical edge batch crossed by a segment between two cell
+// centers. The visited buffer has width * (height + 1) horizontal bytes
+// followed by (width + 1) * height vertical bytes. Existing edges coalesce.
+AreaTileLineResult append_area_tile_crosser_line(
+    int32_t width,
+    int32_t height,
+    AreaTileCellCoord from,
+    AreaTileCellCoord to,
+    std::span<uint8_t> visited,
+    std::vector<AreaTileCrosserEdge>& edges) noexcept;
+
+// Appends a borrowed edge batch through the same canonical visited mask used
+// by crosser lines. Invalid input writes nothing.
+AreaTileLineResult append_area_tile_crosser_edges(
+    int32_t width,
+    int32_t height,
+    std::span<const AreaTileCrosserEdge> input,
+    std::span<uint8_t> visited,
+    std::vector<AreaTileCrosserEdge>& edges) noexcept;
 
 } // namespace nw::toolset

@@ -24,6 +24,7 @@
 #include <fstream>
 #include <limits>
 #include <span>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
@@ -666,6 +667,15 @@ TEST(ClientAreaTileEdits, CellPickerUsesNearestPlaneAndStableEdgeTie)
     EXPECT_FLOAT_EQ(hit.distance, 25.0f);
 
     hit = nw::toolset::pick_area_tile_cell(*area, {
+                                                      .origin = {5.0f, 15.0f, 30.0f},
+                                                      .direction = {0.0f, 0.0f, -1.0f},
+                                                  });
+    ASSERT_EQ(hit.status, nw::toolset::AreaTileCellPickStatus::hit);
+    EXPECT_EQ(hit.tile_index, 2u);
+    EXPECT_EQ(hit.position, (glm::vec3{5.0f, 15.0f, 10.0f}));
+    EXPECT_FLOAT_EQ(hit.distance, 20.0f);
+
+    hit = nw::toolset::pick_area_tile_cell(*area, {
                                                       .origin = {10.0f, 5.0f, 20.0f},
                                                       .direction = {0.0f, 0.0f, -1.0f},
                                                   });
@@ -679,6 +689,105 @@ TEST(ClientAreaTileEdits, CellPickerUsesNearestPlaneAndStableEdgeTie)
     EXPECT_EQ(hit.status, nw::toolset::AreaTileCellPickStatus::miss);
 
     destroy_area(area);
+}
+
+TEST(ClientAreaTileEdits, CrosserPickerTargetsInteriorAndBoundaryEdges)
+{
+    nw::Tileset tileset;
+    tileset.tile_height = 5.0f;
+    tileset.tiles.resize(1);
+    auto* area = make_area(tileset, 2, 2);
+    ASSERT_NE(area, nullptr);
+    area->tiles.assign(4, distinct_tile(0, 0, 0, 1));
+
+    const std::array hits{
+        nw::toolset::AreaTileCellPick{
+            .position = {0.25f, 5.0f, 0.0f},
+            .tile_index = 0,
+            .status = nw::toolset::AreaTileCellPickStatus::hit,
+        },
+        nw::toolset::AreaTileCellPick{
+            .position = {9.75f, 5.0f, 0.0f},
+            .tile_index = 0,
+            .status = nw::toolset::AreaTileCellPickStatus::hit,
+        },
+        nw::toolset::AreaTileCellPick{
+            .position = {15.0f, 19.75f, 0.0f},
+            .tile_index = 3,
+            .status = nw::toolset::AreaTileCellPickStatus::hit,
+        },
+        nw::toolset::AreaTileCellPick{
+            .position = {25.0f, 15.0f, 0.0f},
+            .tile_index = 3,
+            .status = nw::toolset::AreaTileCellPickStatus::hit,
+        },
+    };
+    std::array<nw::toolset::AreaTileCrosserEdge, hits.size()> edges{};
+    nw::toolset::pick_area_tile_crosser_edges(*area, hits, edges);
+    using Axis = nw::toolset::AreaTileEdgeAxis;
+    EXPECT_EQ(edges[0], (nw::toolset::AreaTileCrosserEdge{.x = 0, .y = 0, .axis = Axis::vertical}));
+    EXPECT_EQ(edges[1], (nw::toolset::AreaTileCrosserEdge{.x = 1, .y = 0, .axis = Axis::vertical}));
+    EXPECT_EQ(edges[2], (nw::toolset::AreaTileCrosserEdge{.x = 1, .y = 2, .axis = Axis::horizontal}));
+    EXPECT_EQ(edges[3], (nw::toolset::AreaTileCrosserEdge{.x = 2, .y = 1, .axis = Axis::vertical}));
+
+    const nw::toolset::AreaTileCellPick overhang{
+        .position = {18.0f, 5.0f, 0.0f},
+        .tile_index = 0,
+        .status = nw::toolset::AreaTileCellPickStatus::hit,
+    };
+    const auto overhang_target
+        = nw::toolset::pick_area_tile_crosser_target(*area, overhang);
+    EXPECT_EQ(overhang_target.tile_index, 1u);
+    EXPECT_EQ(overhang_target.edge,
+        (nw::toolset::AreaTileCrosserEdge{
+            .x = 2,
+            .y = 0,
+            .axis = Axis::vertical,
+        }));
+
+    destroy_area(area);
+}
+
+TEST(ClientAreaTileEdits, CrosserPreviewSpansRunAcrossTargetEdges)
+{
+    using Axis = nw::toolset::AreaTileEdgeAxis;
+    const std::array edges{
+        nw::toolset::AreaTileCrosserEdge{
+            .x = 1,
+            .y = 1,
+            .axis = Axis::horizontal,
+        },
+        nw::toolset::AreaTileCrosserEdge{
+            .x = 1,
+            .y = 0,
+            .axis = Axis::horizontal,
+        },
+        nw::toolset::AreaTileCrosserEdge{
+            .x = 1,
+            .y = 1,
+            .axis = Axis::vertical,
+        },
+        nw::toolset::AreaTileCrosserEdge{
+            .x = 2,
+            .y = 1,
+            .axis = Axis::vertical,
+        },
+    };
+    std::array<nw::toolset::AreaTileCrosserSpan, edges.size()> spans{};
+    nw::toolset::resolve_area_tile_crosser_spans(2, 2, edges, spans);
+
+    ASSERT_TRUE(spans[0].valid);
+    EXPECT_EQ(spans[0].start, (glm::vec2{15.0f, 5.0f}));
+    EXPECT_EQ(spans[0].end, (glm::vec2{15.0f, 15.0f}));
+    ASSERT_TRUE(spans[1].valid);
+    EXPECT_EQ(spans[1].start, (glm::vec2{15.0f, 0.0f}));
+    EXPECT_EQ(spans[1].end, (glm::vec2{15.0f, 5.0f}));
+    ASSERT_TRUE(spans[2].valid);
+    EXPECT_EQ(spans[2].start, (glm::vec2{5.0f, 15.0f}));
+    EXPECT_EQ(spans[2].end, (glm::vec2{15.0f, 15.0f}));
+    ASSERT_TRUE(spans[3].valid);
+    EXPECT_EQ(spans[3].start, (glm::vec2{15.0f, 15.0f}));
+    EXPECT_EQ(spans[3].end, (glm::vec2{20.0f, 15.0f}));
 }
 
 TEST(ClientAreaTileEdits, GridLineIsContinuousAndCoalescesRepeatedCells)
@@ -703,6 +812,59 @@ TEST(ClientAreaTileEdits, GridLineIsContinuousAndCoalescesRepeatedCells)
         4, 4, {.x = -1, .y = 0}, {.x = 0, .y = 0}, visited, indices);
     EXPECT_EQ(result.status, nw::toolset::AreaTileLineStatus::invalid_input);
     EXPECT_EQ(indices.size(), 7u);
+}
+
+TEST(ClientAreaTileEdits, CrosserLineAppendsCanonicalEdgesOnce)
+{
+    std::array<uint8_t, 24> visited{};
+    std::vector<nw::toolset::AreaTileCrosserEdge> edges;
+    using Axis = nw::toolset::AreaTileEdgeAxis;
+
+    auto result = nw::toolset::append_area_tile_crosser_line(
+        3, 3, {.x = 0, .y = 0}, {.x = 2, .y = 0}, visited, edges);
+    ASSERT_EQ(result.status, nw::toolset::AreaTileLineStatus::success);
+    EXPECT_EQ(edges,
+        (std::vector<nw::toolset::AreaTileCrosserEdge>{
+            {.x = 1, .y = 0, .axis = Axis::vertical},
+            {.x = 2, .y = 0, .axis = Axis::vertical},
+        }));
+
+    result = nw::toolset::append_area_tile_crosser_line(
+        3, 3, {.x = 2, .y = 0}, {.x = 2, .y = 2}, visited, edges);
+    ASSERT_EQ(result.status, nw::toolset::AreaTileLineStatus::success);
+    EXPECT_EQ(edges,
+        (std::vector<nw::toolset::AreaTileCrosserEdge>{
+            {.x = 1, .y = 0, .axis = Axis::vertical},
+            {.x = 2, .y = 0, .axis = Axis::vertical},
+            {.x = 2, .y = 1, .axis = Axis::horizontal},
+            {.x = 2, .y = 2, .axis = Axis::horizontal},
+        }));
+
+    result = nw::toolset::append_area_tile_crosser_line(
+        3, 3, {.x = 2, .y = 2}, {.x = 2, .y = 0}, visited, edges);
+    EXPECT_EQ(result.status, nw::toolset::AreaTileLineStatus::success);
+    EXPECT_EQ(result.appended_count, 0u);
+    EXPECT_EQ(edges.size(), 4u);
+
+    std::array<uint8_t, 24> diagonal_visited{};
+    std::vector<nw::toolset::AreaTileCrosserEdge> diagonal_edges;
+    result = nw::toolset::append_area_tile_crosser_line(
+        3, 3, {.x = 0, .y = 0}, {.x = 2, .y = 2}, diagonal_visited,
+        diagonal_edges);
+    ASSERT_EQ(result.status, nw::toolset::AreaTileLineStatus::success);
+    EXPECT_EQ(diagonal_edges,
+        (std::vector<nw::toolset::AreaTileCrosserEdge>{
+            {.x = 1, .y = 0, .axis = Axis::vertical},
+            {.x = 1, .y = 1, .axis = Axis::horizontal},
+            {.x = 2, .y = 1, .axis = Axis::vertical},
+            {.x = 2, .y = 2, .axis = Axis::horizontal},
+        }));
+    result = nw::toolset::append_area_tile_crosser_line(
+        3, 3, {.x = 2, .y = 2}, {.x = 0, .y = 0}, diagonal_visited,
+        diagonal_edges);
+    EXPECT_EQ(result.status, nw::toolset::AreaTileLineStatus::success);
+    EXPECT_EQ(result.appended_count, 0u);
+    EXPECT_EQ(diagonal_edges.size(), 4u);
 }
 
 TEST(ClientAreaTileEdits, PointerActionsUseOneModifierDecisionTable)
@@ -1861,6 +2023,87 @@ TEST(ClientAreaTileEdits, CrosserBrushConnectsVisitedCells)
     destroy_area(area);
 }
 
+TEST(ClientAreaTileEdits, CrosserBrushPlacesOneBoundaryEdge)
+{
+    auto* tileset = nwk::tilesets().load("ttr01");
+    ASSERT_NE(tileset, nullptr);
+    auto* area = make_area(*tileset, 3, 3);
+    ASSERT_NE(area, nullptr);
+    area->tileset_resref = nw::Resref{"ttr01"};
+    area->tiles.assign(9, distinct_tile(109, 0, 0, 1));
+
+    using Axis = nw::toolset::AreaTileEdgeAxis;
+    const std::array<uint32_t, 1> cells{1};
+    const std::array edges{
+        nw::toolset::AreaTileCrosserEdge{
+            .x = 1,
+            .y = 0,
+            .axis = Axis::horizontal,
+        },
+    };
+    nw::toolset::AreaTileEditBatch edit;
+    auto built = nw::toolset::build_area_tile_brush_edits(
+        area->handle(), cells,
+        {
+            .kind = nw::toolset::AreaTileBrushKind::crosser,
+            .value = 3,
+        },
+        11, edit, edges);
+    ASSERT_TRUE(built.ok()) << built.diagnostic;
+    ASSERT_FALSE(edit.rows.empty());
+    EXPECT_NE(std::ranges::find(edit.rows, 1u,
+                  &nw::toolset::AreaTileEditRow::tile_index),
+        edit.rows.end());
+    const auto applied = nw::toolset::apply_area_tile_edits(
+        edit, nw::toolset::ObjectEditDirection::forward);
+    ASSERT_TRUE(applied.ok()) << applied.diagnostic;
+
+    const auto& tile = area->tiles[1];
+    ASSERT_GE(tile.id, 0);
+    ASSERT_LT(static_cast<size_t>(tile.id), tileset->tile_topologies.size());
+    constexpr std::array<std::array<uint8_t, 4>, 4> world_to_local{{
+        {0, 1, 2, 3},
+        {1, 2, 3, 0},
+        {2, 3, 0, 1},
+        {3, 0, 1, 2},
+    }};
+    ASSERT_GE(tile.orientation, 0);
+    ASSERT_LT(tile.orientation, 4);
+    EXPECT_EQ(tileset->tile_topologies[static_cast<size_t>(tile.id)]
+                  .crosser[world_to_local[static_cast<size_t>(tile.orientation)][2]],
+        3);
+
+    const std::array invalid_edges{
+        nw::toolset::AreaTileCrosserEdge{
+            .x = 4,
+            .y = 0,
+            .axis = Axis::vertical,
+        },
+    };
+    edit = {};
+    built = nw::toolset::build_area_tile_brush_edits(area->handle(), cells,
+        {
+            .kind = nw::toolset::AreaTileBrushKind::crosser,
+            .value = 3,
+        },
+        11, edit, invalid_edges);
+    EXPECT_EQ(built.status,
+        nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+
+    const std::array duplicate_edges{edges[0], edges[0]};
+    built = nw::toolset::build_area_tile_brush_edits(area->handle(), cells,
+        {
+            .kind = nw::toolset::AreaTileBrushKind::crosser,
+            .value = 3,
+        },
+        11, edit, duplicate_edges);
+    EXPECT_EQ(built.status,
+        nw::toolset::ObjectEditStatus::invalid_batch);
+    EXPECT_TRUE(edit.rows.empty());
+    destroy_area(area);
+}
+
 TEST(ClientAreaTileEdits, GroupBrushFitsRandomGroupCells)
 {
     auto* tileset = nwk::tilesets().load("ttr01");
@@ -1973,6 +2216,13 @@ TEST(ClientAreaTileEdits, PaletteUsesTilesetActionsAndStableKeys)
     ASSERT_LT(palette.root_folder, palette.rows.size());
     EXPECT_EQ(palette.current_folder, palette.root_folder);
     ASSERT_EQ(palette.matches.size(), 4u);
+    std::vector<std::string> root_labels;
+    for (const uint32_t row_index : palette.matches) {
+        root_labels.push_back(palette.rows[row_index].label);
+    }
+    EXPECT_EQ(root_labels,
+        (std::vector<std::string>{"Features", "Groups", "Terrain",
+            "Void Tiles"}));
     for (const uint32_t row_index : palette.matches) {
         ASSERT_LT(row_index, palette.rows.size());
         EXPECT_TRUE(palette.rows[row_index].kind
@@ -1980,6 +2230,17 @@ TEST(ClientAreaTileEdits, PaletteUsesTilesetActionsAndStableKeys)
             || palette.rows[row_index].brush.kind
                 == nw::toolset::AreaTileBrushKind::void_tile);
         EXPECT_EQ(palette.rows[row_index].parent, palette.root_folder);
+    }
+    for (const auto& folder : palette.rows) {
+        if (folder.kind != nw::toolset::AreaTilePaletteRowKind::folder) {
+            continue;
+        }
+        std::vector<std::string_view> labels;
+        labels.reserve(folder.child_count);
+        for (uint32_t child = 0; child < folder.child_count; ++child) {
+            labels.push_back(palette.rows[palette.child_rows[folder.child_offset + child]].label);
+        }
+        EXPECT_TRUE(std::ranges::is_sorted(labels)) << folder.label;
     }
     const auto grass = std::find_if(palette.rows.begin(), palette.rows.end(),
         [](const auto& row) {
@@ -2002,6 +2263,13 @@ TEST(ClientAreaTileEdits, PaletteUsesTilesetActionsAndStableKeys)
     ASSERT_TRUE(nw::toolset::enter_area_tile_palette_folder(
         palette, terrain_folder_index));
     EXPECT_EQ(palette.current_folder, terrain_folder_index);
+    std::vector<std::string> terrain_labels;
+    for (const uint32_t row_index : palette.matches) {
+        terrain_labels.push_back(palette.rows[row_index].label);
+    }
+    EXPECT_EQ(terrain_labels,
+        (std::vector<std::string>{"Eraser", "Grass", "Raise/Lower",
+            "Road", "Stream", "Trees", "Wall 1", "Wall 2", "Water"}));
     EXPECT_NE(std::find(palette.matches.begin(), palette.matches.end(),
                   static_cast<uint32_t>(grass - palette.rows.begin())),
         palette.matches.end());

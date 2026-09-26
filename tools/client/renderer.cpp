@@ -416,12 +416,14 @@ bool ClientRenderer::update_viewer_area_tile_preview(
     std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
     bool paintable,
     bool replace_tiles,
-    std::optional<uint32_t> anchor_tile_index)
+    std::optional<uint32_t> anchor_tile_index,
+    std::span<const nw::toolset::AreaTileCrosserEdge> crosser_edges)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
         return nwgfx_.update_viewer_area_tile_preview(
-            area, rows, paintable, replace_tiles, anchor_tile_index);
+            area, rows, paintable, replace_tiles, anchor_tile_index,
+            crosser_edges);
     }
 #endif
 
@@ -430,6 +432,7 @@ bool ClientRenderer::update_viewer_area_tile_preview(
     (void)paintable;
     (void)replace_tiles;
     (void)anchor_tile_index;
+    (void)crosser_edges;
     return false;
 }
 

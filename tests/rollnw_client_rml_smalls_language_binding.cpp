@@ -2671,6 +2671,52 @@ TEST(ClientAreaTileEditor, HeightPreviewCellsRemainUniqueAcrossOverlappingCorner
     EXPECT_EQ(stroke.tile_indices.size(), 4u);
 }
 
+TEST(ClientAreaTileEditor, CrosserDragUsesCellMovementInsteadOfNearestEdge)
+{
+    using namespace nw::toolset;
+    using Axis = AreaTileEdgeAxis;
+    AreaTileStrokeState stroke;
+    stroke.width = 3;
+    stroke.height = 1;
+    stroke.visited_crosser_edges.resize(10);
+
+    const AreaTileCrosserEdge initial_click{
+        .x = 0,
+        .y = 1,
+        .axis = Axis::horizontal,
+    };
+    auto result = append_area_tile_crosser_stroke_edges(
+        stroke, {.x = 0, .y = 0}, initial_click);
+    ASSERT_EQ(result.status, AreaTileLineStatus::success);
+    ASSERT_EQ(stroke.crosser_edges,
+        (std::vector<AreaTileCrosserEdge>{initial_click}));
+
+    const AreaTileCrosserEdge center_jitter{
+        .x = 1,
+        .y = 0,
+        .axis = Axis::vertical,
+    };
+    result = append_area_tile_crosser_stroke_edges(
+        stroke, {.x = 0, .y = 0}, center_jitter);
+    ASSERT_EQ(result.status, AreaTileLineStatus::success);
+    EXPECT_EQ(result.appended_count, 0u);
+    EXPECT_EQ(stroke.crosser_edges,
+        (std::vector<AreaTileCrosserEdge>{initial_click}));
+
+    result = append_area_tile_crosser_stroke_edges(
+        stroke, {.x = 1, .y = 0}, initial_click);
+    ASSERT_EQ(result.status, AreaTileLineStatus::success);
+    result = append_area_tile_crosser_stroke_edges(
+        stroke, {.x = 2, .y = 0}, initial_click);
+    ASSERT_EQ(result.status, AreaTileLineStatus::success);
+    EXPECT_TRUE(stroke.crosser_moved_between_cells);
+    EXPECT_EQ(stroke.crosser_edges,
+        (std::vector<AreaTileCrosserEdge>{
+            {.x = 1, .y = 0, .axis = Axis::vertical},
+            {.x = 2, .y = 0, .axis = Axis::vertical},
+        }));
+}
+
 TEST(ClientAreaTileEditor, ViewportContainsPointsWithTheExistingHalfOpenEdges)
 {
     const ClientViewportRect rect{.x = -10, .y = 20, .width = 100, .height = 50};

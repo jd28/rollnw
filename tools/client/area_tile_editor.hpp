@@ -4,6 +4,7 @@
 #include "area_tile_edits.hpp"
 #include "area_tile_interaction.hpp"
 #include "area_tile_palette.hpp"
+#include "viewport_pointer_drag.hpp"
 #include "viewport_rect.hpp"
 
 #include <RmlUi/Core/Types.h>
@@ -43,12 +44,16 @@ struct AreaTileStrokeState {
     int32_t height = 0;
     AreaTileCellCoord last_target{};
     std::vector<uint8_t> visited;
+    std::vector<uint8_t> visited_crosser_edges;
     std::vector<uint8_t> previewed_tiles;
     std::vector<uint32_t> tile_indices;
     std::vector<uint32_t> corner_indices;
+    std::vector<AreaTileCrosserEdge> crosser_edges;
+    ClientViewportPointerDrag pointer;
     uint8_t pointer_button = 0;
     bool active = false;
     bool has_last_target = false;
+    bool crosser_moved_between_cells = false;
 };
 
 struct AreaTileEditorState {
@@ -62,6 +67,7 @@ struct AreaTileEditorState {
     std::vector<nw::render::viewer::AreaTilePreviewRow> preview_rows;
     Rml::Vector2f pending_cursor_point{};
     uint32_t cursor_target_index = UINT32_MAX;
+    std::optional<AreaTileCrosserEdge> cursor_crosser_edge;
     // Cached presentation mode, not a second source of keyboard state.
     AreaTilePointerModifier cursor_modifier
         = AreaTilePointerModifier::none;
@@ -158,9 +164,19 @@ void refresh_area_tile_selection_after_rebuild(ClientRenderer&, AreaTileEditorSt
 [[nodiscard]] bool area_tile_height_brush(AreaTileBrush brush) noexcept;
 ObjectEditApplyResult build_area_tile_stroke_edits(ObjectHandle area,
     std::span<const uint32_t> tile_indices, std::span<const uint32_t> corner_indices,
-    AreaTileBrush brush, uint64_t seed, AreaTileEditBatch& output);
+    std::span<const AreaTileCrosserEdge> crosser_edges, AreaTileBrush brush,
+    uint64_t seed, AreaTileEditBatch& output);
 [[nodiscard]] bool append_area_tile_height_preview_cells(
     AreaTileStrokeState& stroke, std::span<const uint32_t> corner_indices) noexcept;
+// One active pointer gesture is a true singleton. Its first cell owns the
+// nearest edge for click placement. Repeated samples in that cell do no edge
+// work; the first cell transition replaces the click edge with direction-led
+// boundary crossings, and later transitions append to that run. Invalid state
+// is disposable because the runtime cancels the complete stroke.
+[[nodiscard]] AreaTileLineResult append_area_tile_crosser_stroke_edges(
+    AreaTileStrokeState& stroke,
+    AreaTileCellCoord target,
+    AreaTileCrosserEdge click_edge) noexcept;
 
 // Renderer integration borrows current area/viewport/eligibility facts. It must
 // not cache root input authority. The caller synchronizes a stale viewport

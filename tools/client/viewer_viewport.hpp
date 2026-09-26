@@ -30,6 +30,7 @@ enum class PreviewActorLocomotion : uint8_t;
 struct PreviewCameraState;
 struct PreviewDoorVisualState;
 struct PreviewNavigationDebugView;
+struct AreaTileCrosserEdge;
 }
 
 class ClientViewerViewport {
@@ -106,7 +107,8 @@ public:
         std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
         bool paintable = true,
         bool replace_tiles = true,
-        std::optional<uint32_t> anchor_tile_index = std::nullopt);
+        std::optional<uint32_t> anchor_tile_index = std::nullopt,
+        std::span<const nw::toolset::AreaTileCrosserEdge> crosser_edges = {});
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> area_camera_focus() const noexcept;
     bool sync_area_object_spatial(nw::ObjectHandle object);

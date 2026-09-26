@@ -11,6 +11,7 @@
 #include <nw/serialization/Gff.hpp>
 #include <nw/util/string.hpp>
 
+#include <absl/strings/ascii.h>
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
 
@@ -54,7 +55,7 @@ std::string palette_label(const PaletteTreeNode& node)
 {
     if (node.strref != std::numeric_limits<uint32_t>::max()) {
         auto label = kernel::strings().get(node.strref);
-        if (!label.empty()) {
+        if (!label.empty() && !label.starts_with("Bad Strref")) {
             return label;
         }
     }
@@ -132,6 +133,31 @@ int32_t find_group(const Tileset& tileset, StringView model) noexcept
 }
 
 constexpr uint32_t invalid_palette_row = UINT32_MAX;
+
+struct OrderedPaletteNode {
+    const PaletteTreeNode* node = nullptr;
+    std::string sort_key;
+};
+
+std::vector<OrderedPaletteNode> ordered_palette_nodes(
+    std::span<PaletteTreeNode* const> nodes)
+{
+    std::vector<OrderedPaletteNode> result;
+    result.reserve(nodes.size());
+    for (const auto* node : nodes) {
+        if (node) {
+            result.push_back({
+                .node = node,
+                .sort_key = absl::AsciiStrToLower(palette_label(*node)),
+            });
+        }
+    }
+    std::stable_sort(result.begin(), result.end(),
+        [](const auto& lhs, const auto& rhs) {
+            return lhs.sort_key < rhs.sort_key;
+        });
+    return result;
+}
 
 uint32_t append_folder_row(AreaTilePalette& output,
     std::string label,
@@ -286,13 +312,13 @@ uint32_t append_palette_node(AreaTilePalette& output,
         output, palette_label(node), parent);
     std::vector<uint32_t> children;
     children.reserve(node.children.size());
-    for (const auto* child : node.children) {
-        if (child) {
-            const uint32_t child_index = append_palette_node(output, tileset,
-                *child, folder, child_category_id, child_category, node_hidden);
-            if (child_index != invalid_palette_row) {
-                children.push_back(child_index);
-            }
+    const auto ordered_children = ordered_palette_nodes(
+        {node.children.data(), node.children.size()});
+    for (const auto& child : ordered_children) {
+        const uint32_t child_index = append_palette_node(output, tileset,
+            *child.node, folder, child_category_id, child_category, node_hidden);
+        if (child_index != invalid_palette_row) {
+            children.push_back(child_index);
         }
     }
     if (children.empty()) {
@@ -350,14 +376,14 @@ bool build_area_tile_palette(ObjectHandle area_handle, AreaTilePalette& output)
             invalid_palette_row);
         std::vector<uint32_t> root_children;
         root_children.reserve(palette->children.size());
-        for (const auto* node : palette->children) {
-            if (node) {
-                const uint32_t row_index = append_palette_node(output,
-                    *area->tileset, *node, output.root_folder,
-                    std::numeric_limits<uint8_t>::max(), {}, false);
-                if (row_index != invalid_palette_row) {
-                    root_children.push_back(row_index);
-                }
+        const auto ordered_children = ordered_palette_nodes(
+            {palette->children.data(), palette->children.size()});
+        for (const auto& node : ordered_children) {
+            const uint32_t row_index = append_palette_node(output,
+                *area->tileset, *node.node, output.root_folder,
+                std::numeric_limits<uint8_t>::max(), {}, false);
+            if (row_index != invalid_palette_row) {
+                root_children.push_back(row_index);
             }
         }
         if (root_children.empty()) {

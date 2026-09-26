@@ -1,5 +1,7 @@
 #include "viewer_viewport.hpp"
 
+#include "area_tile_interaction.hpp"
+
 #include "object_document.hpp"
 
 #include "preview_session.hpp"
@@ -132,6 +134,67 @@ void append_transient_debug_segment(
                                       base + 2,
                                       base + 3,
                                   });
+}
+
+void append_transient_debug_box(
+    std::vector<viewer::DebugShapeVertex>& vertices,
+    std::vector<uint32_t>& indices,
+    const glm::vec3& minimum,
+    const glm::vec3& maximum,
+    const glm::vec4& color)
+{
+    const auto base = static_cast<uint32_t>(vertices.size());
+    vertices.insert(vertices.end(), {
+                                        {{minimum.x, minimum.y, minimum.z}, color},
+                                        {{maximum.x, minimum.y, minimum.z}, color},
+                                        {{maximum.x, maximum.y, minimum.z}, color},
+                                        {{minimum.x, maximum.y, minimum.z}, color},
+                                        {{minimum.x, minimum.y, maximum.z}, color},
+                                        {{maximum.x, minimum.y, maximum.z}, color},
+                                        {{maximum.x, maximum.y, maximum.z}, color},
+                                        {{minimum.x, maximum.y, maximum.z}, color},
+                                    });
+    constexpr std::array<uint32_t, 36> box_indices{
+        4,
+        5,
+        6,
+        4,
+        6,
+        7,
+        0,
+        2,
+        1,
+        0,
+        3,
+        2,
+        0,
+        1,
+        5,
+        0,
+        5,
+        4,
+        1,
+        2,
+        6,
+        1,
+        6,
+        5,
+        2,
+        3,
+        7,
+        2,
+        7,
+        6,
+        3,
+        0,
+        4,
+        3,
+        4,
+        7,
+    };
+    for (const uint32_t index : box_indices) {
+        indices.push_back(base + index);
+    }
 }
 
 } // namespace
@@ -1082,12 +1145,13 @@ struct ClientViewerViewport::Impl {
         std::span<const viewer::AreaTilePreviewRow> rows,
         bool paintable,
         bool replace_tiles,
-        std::optional<uint32_t> anchor_tile_index)
+        std::optional<uint32_t> anchor_tile_index,
+        std::span<const nw::toolset::AreaTileCrosserEdge> crosser_edges)
     {
         if (!session || loaded_area_resref.empty()) {
             return false;
         }
-        if (rows.empty()) {
+        if (rows.empty() && crosser_edges.empty()) {
             if (area_tile_preview_lease.active) {
                 const auto restored = session->restore_area_tile_previews(
                     area_tile_preview_lease);
@@ -1113,16 +1177,31 @@ struct ClientViewerViewport::Impl {
             || !std::isfinite(area->tileset->tile_height)
             || area->tileset->tile_height <= 0.0f
             || rows.size() > std::numeric_limits<uint32_t>::max() / 22u
+            || crosser_edges.size()
+                > std::numeric_limits<uint32_t>::max() / 24u
             || (anchor_tile_index && *anchor_tile_index >= tile_count)
             || std::ranges::any_of(rows,
                 [area](const auto& row) {
                     return row.tile_index >= area->tiles.size();
+                })
+            || std::ranges::any_of(crosser_edges,
+                [area](const auto& edge) {
+                    return edge.axis
+                            == nw::toolset::AreaTileEdgeAxis::horizontal
+                        ? edge.x >= static_cast<uint32_t>(area->width)
+                            || edge.y > static_cast<uint32_t>(area->height)
+                        : edge.axis
+                            == nw::toolset::AreaTileEdgeAxis::vertical
+                        ? edge.x > static_cast<uint32_t>(area->width)
+                            || edge.y
+                                >= static_cast<uint32_t>(area->height)
+                        : true;
                 })) {
             return false;
         }
 
         bool preview_visible = paintable && !replace_tiles;
-        if (paintable && replace_tiles) {
+        if (paintable && replace_tiles && !rows.empty()) {
             const auto updated = session->update_area_tile_previews(
                 rows, area_tile_preview_lease);
             preview_visible = updated.ok();
@@ -1142,8 +1221,10 @@ struct ClientViewerViewport::Impl {
 
         transient_debug_vertices.clear();
         transient_debug_indices.clear();
-        transient_debug_vertices.reserve(rows.size() * 22u);
-        transient_debug_indices.reserve(rows.size() * 30u);
+        transient_debug_vertices.reserve(
+            rows.size() * 22u + crosser_edges.size() * 24u);
+        transient_debug_indices.reserve(
+            rows.size() * 30u + crosser_edges.size() * 60u);
         constexpr float k_tile_size = 10.0f;
         constexpr float k_offset = 0.08f;
         constexpr glm::vec4 k_valid_fill{0.18f, 0.92f, 0.42f, 0.14f};
@@ -1154,7 +1235,9 @@ struct ClientViewerViewport::Impl {
         constexpr glm::vec4 k_blocked_border{0.96f, 0.22f, 0.18f, 0.95f};
         const bool valid = paintable && preview_visible;
         const auto logical_height = [&](const viewer::AreaTilePreviewRow& row) {
-            return paintable ? row.height : area->tiles[row.tile_index].height;
+            return paintable && replace_tiles
+                ? row.height
+                : area->tiles[row.tile_index].height;
         };
         bool rows_strictly_sorted = true;
         for (size_t index = 1; index < rows.size(); ++index) {
@@ -1165,6 +1248,94 @@ struct ClientViewerViewport::Impl {
         }
         const uint32_t area_width = static_cast<uint32_t>(area->width);
         const uint32_t area_height = static_cast<uint32_t>(area->height);
+        if (!crosser_edges.empty()) {
+            constexpr float k_slab_half_width = 0.72f;
+            constexpr float k_slab_bottom_offset = 0.10f;
+            constexpr float k_slab_height = 0.62f;
+            const glm::vec4 fill = valid
+                ? glm::vec4{0.30f, 0.94f, 0.58f, 0.34f}
+                : k_blocked_fill;
+            const glm::vec4 border
+                = valid ? k_valid_anchor_border : k_blocked_border;
+            const auto edge_height = [&](const auto& edge) {
+                const uint32_t tile_x
+                    = edge.axis == nw::toolset::AreaTileEdgeAxis::horizontal
+                    ? edge.x
+                    : std::min(edge.x, area_width - 1u);
+                const uint32_t tile_y
+                    = edge.axis == nw::toolset::AreaTileEdgeAxis::vertical
+                    ? edge.y
+                    : std::min(edge.y, area_height - 1u);
+                const uint32_t tile_index = tile_y * area_width + tile_x;
+                if (paintable && rows_strictly_sorted) {
+                    const auto row = std::lower_bound(rows.begin(), rows.end(),
+                        tile_index, [](const auto& candidate, uint32_t value) {
+                            return candidate.tile_index < value;
+                        });
+                    if (row != rows.end() && row->tile_index == tile_index) {
+                        return row->height;
+                    }
+                }
+                return area->tiles[tile_index].height;
+            };
+            for (const auto edge : crosser_edges) {
+                const auto span
+                    = nw::toolset::resolve_area_tile_crosser_span(
+                        area->width, area->height, edge);
+                const float base_z = static_cast<float>(edge_height(edge))
+                        * area->tileset->tile_height
+                    + k_slab_bottom_offset;
+                glm::vec3 minimum;
+                glm::vec3 maximum;
+                if (edge.axis
+                    == nw::toolset::AreaTileEdgeAxis::horizontal) {
+                    minimum = {
+                        span.start.x - k_slab_half_width,
+                        span.start.y,
+                        base_z,
+                    };
+                    maximum = {
+                        span.end.x + k_slab_half_width,
+                        span.end.y,
+                        base_z + k_slab_height,
+                    };
+                } else {
+                    minimum = {
+                        span.start.x,
+                        span.start.y - k_slab_half_width,
+                        base_z,
+                    };
+                    maximum = {
+                        span.end.x,
+                        span.end.y + k_slab_half_width,
+                        base_z + k_slab_height,
+                    };
+                }
+                if (!span.valid || !std::isfinite(base_z)) {
+                    transient_debug_vertices.clear();
+                    transient_debug_indices.clear();
+                    return false;
+                }
+                append_transient_debug_box(transient_debug_vertices,
+                    transient_debug_indices, minimum, maximum, fill);
+                const glm::vec3 p0{minimum.x, minimum.y, maximum.z};
+                const glm::vec3 p1{maximum.x, minimum.y, maximum.z};
+                const glm::vec3 p2{maximum.x, maximum.y, maximum.z};
+                const glm::vec3 p3{minimum.x, maximum.y, maximum.z};
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p0, p1, border, 0.12f);
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p1, p2, border, 0.12f);
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p2, p3, border, 0.12f);
+                append_transient_debug_segment(transient_debug_vertices,
+                    transient_debug_indices, p3, p0, border, 0.12f);
+            }
+            return session->set_transient_debug_geometry(
+                       transient_debug_vertices, transient_debug_indices,
+                       false)
+                && (!paintable || !replace_tiles || preview_visible);
+        }
         constexpr uint8_t k_joined_bottom = 1u << 0u;
         constexpr uint8_t k_joined_right = 1u << 1u;
         constexpr uint8_t k_joined_top = 1u << 2u;
@@ -1820,11 +1991,13 @@ bool ClientViewerViewport::update_area_tile_preview(
     std::span<const nw::render::viewer::AreaTilePreviewRow> rows,
     bool paintable,
     bool replace_tiles,
-    std::optional<uint32_t> anchor_tile_index)
+    std::optional<uint32_t> anchor_tile_index,
+    std::span<const nw::toolset::AreaTileCrosserEdge> crosser_edges)
 {
     return impl_
         && impl_->update_area_tile_preview(
-            area, rows, paintable, replace_tiles, anchor_tile_index);
+            area, rows, paintable, replace_tiles, anchor_tile_index,
+            crosser_edges);
 }
 
 bool ClientViewerViewport::end_toolset_preview_visuals() noexcept

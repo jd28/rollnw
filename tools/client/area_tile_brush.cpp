@@ -1,6 +1,7 @@
 #include "area_tile_brush.hpp"
 
 #include "area_door_hooks.hpp"
+#include "area_tile_interaction.hpp"
 
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
@@ -791,6 +792,67 @@ bool set_crosser_path(const Area& area,
             set_crosser_edge(topology, x, y, x, next_y, crosser,
                 affected, fit_flags);
             y = next_y;
+        }
+    }
+    return true;
+}
+
+bool set_crosser_edges(const Area& area,
+    std::span<const AreaTileCrosserEdge> edges,
+    int32_t crosser,
+    AreaTopology& topology,
+    std::vector<uint8_t>& affected,
+    std::vector<uint8_t>& fit_flags)
+{
+    if (crosser < 0
+        || static_cast<size_t>(crosser) >= area.tileset->crossers.size()
+        || edges.empty()) {
+        return false;
+    }
+
+    std::vector<uint8_t> horizontal_visited(
+        topology.horizontal_crossers.size(), 0);
+    std::vector<uint8_t> vertical_visited(
+        topology.vertical_crossers.size(), 0);
+    for (const auto edge : edges) {
+        if (edge.axis == AreaTileEdgeAxis::horizontal) {
+            if (edge.x >= static_cast<uint32_t>(topology.width)
+                || edge.y > static_cast<uint32_t>(topology.height)) {
+                return false;
+            }
+            const size_t index = horizontal_edge_index(topology,
+                static_cast<int32_t>(edge.x), static_cast<int32_t>(edge.y));
+            if (horizontal_visited[index] != 0u) {
+                return false;
+            }
+            horizontal_visited[index] = 1u;
+            topology.horizontal_crossers[index] = crosser;
+            mark_horizontal_edge_incident(topology,
+                static_cast<int32_t>(edge.x), static_cast<int32_t>(edge.y),
+                affected);
+            mark_horizontal_edge_incident(topology,
+                static_cast<int32_t>(edge.x), static_cast<int32_t>(edge.y),
+                fit_flags);
+        } else if (edge.axis == AreaTileEdgeAxis::vertical) {
+            if (edge.x > static_cast<uint32_t>(topology.width)
+                || edge.y >= static_cast<uint32_t>(topology.height)) {
+                return false;
+            }
+            const size_t index = vertical_edge_index(topology,
+                static_cast<int32_t>(edge.x), static_cast<int32_t>(edge.y));
+            if (vertical_visited[index] != 0u) {
+                return false;
+            }
+            vertical_visited[index] = 1u;
+            topology.vertical_crossers[index] = crosser;
+            mark_vertical_edge_incident(topology,
+                static_cast<int32_t>(edge.x), static_cast<int32_t>(edge.y),
+                affected);
+            mark_vertical_edge_incident(topology,
+                static_cast<int32_t>(edge.x), static_cast<int32_t>(edge.y),
+                fit_flags);
+        } else {
+            return false;
         }
     }
     return true;
@@ -1635,7 +1697,8 @@ ObjectEditApplyResult build_area_tile_brush_edits(
     std::span<const uint32_t> ordered_tile_indices,
     AreaTileBrush brush,
     uint64_t seed,
-    AreaTileEditBatch& output)
+    AreaTileEditBatch& output,
+    std::span<const AreaTileCrosserEdge> crosser_edges)
 {
     output = {};
     const auto* area = kernel::objects().get<Area>(area_handle);
@@ -1684,10 +1747,13 @@ ObjectEditApplyResult build_area_tile_brush_edits(
             }
             break;
         case AreaTileBrushKind::crosser:
-            if (!set_crosser_path(*area, ordered_tile_indices, brush.value,
-                    topology, affected, fit_flags)) {
+            if (!(crosser_edges.empty()
+                        ? set_crosser_path(*area, ordered_tile_indices,
+                              brush.value, topology, affected, fit_flags)
+                        : set_crosser_edges(*area, crosser_edges, brush.value,
+                              topology, affected, fit_flags))) {
                 return brush_result(ObjectEditStatus::invalid_batch,
-                    "Drag a crosser brush across at least two area tiles");
+                    "Crosser edges are invalid or outside the area");
             }
             break;
         case AreaTileBrushKind::group:

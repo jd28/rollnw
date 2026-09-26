@@ -12,6 +12,7 @@ TEST(KernelTilesets, Load)
 {
     auto* tileset = nwk::tilesets().load("TTR01");
     ASSERT_TRUE(tileset);
+    EXPECT_EQ(tileset->strref, 1606u);
     ASSERT_FALSE(tileset->tiles.empty());
     EXPECT_FALSE(tileset->tiles.front().image_map_2d.empty());
     EXPECT_EQ(tileset->tiles.front().path_node.size(), 1u);

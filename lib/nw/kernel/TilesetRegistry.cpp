@@ -231,7 +231,7 @@ Tileset* TilesetRegistry::load(StringView resref)
     int32_t temp = 0;
     Tileset tileset;
 
-    set.get_to("general/name", tileset.strref);
+    set.get_to("general/displayname", tileset.strref);
     set.get_to("general/UnlocalizedName", tileset.name);
     set.get_to("general/transition", tileset.tile_height);
     (void)set.get_to(

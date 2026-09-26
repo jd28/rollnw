@@ -127,10 +127,10 @@ std::vector<CommandPromptChoice> area_tileset_choices()
         std::string label;
         if (tileset.strref != std::numeric_limits<uint32_t>::max()) {
             label = kernel::strings().get(tileset.strref);
+            if (label.starts_with("Bad Strref")) { label.clear(); }
         }
         if (label.empty()) { label = tileset.name; }
         if (label.empty()) { label = resref; }
-        if (label != resref) { label += " (" + resref + ")"; }
         choices.push_back({resref, std::move(label)});
     }
     std::ranges::sort(choices, [](const auto& lhs, const auto& rhs) {

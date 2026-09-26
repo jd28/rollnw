@@ -64,12 +64,27 @@ struct NewAreaPublishResult {
 [[nodiscard]] bool canonical_area_ground_tile(
     const Tileset& tileset, AreaTile& output) noexcept;
 
-// Area creation requires one seed tile which is then replicated across the
-// requested tile batch. Returns the first canonical tile with an authored,
-// renderable shadow-casting MDL mesh. If none qualifies, returns the canonical
-// SET-order tile so tilesets without shadow casters remain usable.
+// Returns the first compatible variation selected by
+// collect_area_ground_tiles. This singular query is for tileset availability;
+// area generation uses the plural catalog and batch transform below.
 [[nodiscard]] bool preferred_area_ground_tile(
     const Tileset& tileset, AreaTile& output);
+
+// Collects ungrouped, flat, uncrossed default-terrain SET rows that can share
+// one initial area height. The first row is the first authored shadow caster
+// when available; otherwise it is the first canonical SET row. Remaining rows
+// retain SET order. Output is empty on ordinary invalid input.
+[[nodiscard]] bool collect_area_ground_tiles(
+    const Tileset& tileset, std::vector<AreaTile>& output);
+
+// Fills a borrowed dense tile batch from the candidate rows using a stable
+// seed. Candidate zero occurs at least once, multiple candidate IDs produce at
+// least two IDs when the output has room, and orientations vary when only one
+// ID exists. Invalid candidates reject without modifying output.
+[[nodiscard]] bool generate_area_ground_tiles(
+    std::span<AreaTile> output,
+    std::span<const AreaTile> candidates,
+    uint64_t seed) noexcept;
 
 // The batch is rejected before serialization when any request is invalid.
 // Dimensions outside 2..32, duplicate resources, unavailable SETs, and

@@ -3961,6 +3961,27 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
         original_light_cache_generation);
     const uint32_t preview_model_index = lease.preview_model_indices[0];
     const auto preview_model_indices = lease.preview_model_indices;
+    const auto* preview_instance
+        = scene->static_model_instance(preview_model_index);
+    ASSERT_NE(preview_instance, nullptr);
+    ASSERT_EQ(preview_instance->material_override_handles.size(),
+        scene->static_models[preview_model_index]->materials.size());
+    EXPECT_FALSE(preview_instance->shadow.casts_shadow);
+    EXPECT_EQ(preview_instance->shadow.caster_count, 0u);
+    for (size_t material_index = 0;
+        material_index < preview_instance->material_override_handles.size();
+        ++material_index) {
+        const auto* material_override = scene->material_overrides.get(
+            preview_instance->material_override_handles[material_index]);
+        ASSERT_NE(material_override, nullptr);
+        EXPECT_EQ(material_override->material.alpha_mode,
+            nw::render::MaterialMode::transparent);
+        EXPECT_FLOAT_EQ(material_override->material.albedo.a,
+            scene->static_models[preview_model_index]
+                    ->materials[material_index]
+                    .albedo.a
+                * 0.20f);
+    }
     const std::array preview_handles{
         scene->static_model_instance_handles.at(preview_model_indices.at(0)),
         scene->static_model_instance_handles.at(preview_model_indices.at(1)),
@@ -4068,6 +4089,25 @@ TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)
     EXPECT_TRUE(tile_preview_suppressed(target_cells[0]));
     EXPECT_FALSE(tile_preview_suppressed(target_cells[1]));
     EXPECT_TRUE(tile_preview_suppressed(target_cells[2]));
+    preview_instance = scene->static_model_instance(preview_model_index);
+    ASSERT_NE(preview_instance, nullptr);
+    ASSERT_EQ(preview_instance->material_override_handles.size(),
+        scene->static_models[preview_model_index]->materials.size());
+    EXPECT_FALSE(preview_instance->shadow.casts_shadow);
+    for (size_t material_index = 0;
+        material_index < preview_instance->material_override_handles.size();
+        ++material_index) {
+        const auto* material_override = scene->material_overrides.get(
+            preview_instance->material_override_handles[material_index]);
+        ASSERT_NE(material_override, nullptr);
+        EXPECT_EQ(material_override->material.alpha_mode,
+            nw::render::MaterialMode::transparent);
+        EXPECT_FLOAT_EQ(material_override->material.albedo.a,
+            scene->static_models[preview_model_index]
+                    ->materials[material_index]
+                    .albedo.a
+                * 0.20f);
+    }
     std::string render_failure;
     EXPECT_TRUE(render_viewer_frame(gfx.context, *session,
         viewer::ViewerViewport{0, 0, 256, 256}, render_failure, 100))
