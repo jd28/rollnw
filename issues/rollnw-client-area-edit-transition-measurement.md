@@ -10,9 +10,13 @@ live-area refresh begins.
 ## Observed data
 
 Measurements used a 1280x720 viewport on an AMD Radeon 890M. `fda` is the
-default 32x32 new-area initialization: 1,024 placements of one repeated tile,
-not an authored area distribution. `pvp_area_2` is a varied 32x16 authored
-area with 512 tiles, 119 tile ids, 7,522 prepared draws and 1,020 local lights.
+then-current 32x32 new-area initialization: 1,024 placements of one repeated
+tile, not an authored area distribution. The 0.2.0 development line now
+initializes new areas from a deterministic varied batch of compatible flat
+default-terrain tile IDs and orientations. The `fda` measurements below are
+therefore historical input-specific results, not measurements of the current
+new-area distribution. `pvp_area_2` is a varied 32x16 authored area with 512
+tiles, 119 tile ids, 7,522 prepared draws and 1,020 local lights.
 
 The old `fda` selection cache materialized 422,912 world-space triangles and
 used 15,257,600 bytes. Its 64-tile orientation refresh median was 63.03 ms,
@@ -105,8 +109,8 @@ resource.
 
 ## Done criteria
 
-- [x] The harness runs against the default 32x32 initialization and a varied
-      authored area without modifying The Awakening.
+- [ ] Rerun the harness against the current randomized 32x32 initialization;
+      the varied authored-area run must still avoid modifying The Awakening.
 - [ ] Results include the client publication and RmlUi interval.
 - [x] Results separate cold import, live scene refresh and the first rendered
       frame.

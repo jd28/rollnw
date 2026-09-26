@@ -2,6 +2,8 @@
 
 Status: open.
 
+Target: `rollnw-client` 0.2.0.
+
 ## Goal
 
 Record one short public video after the client history is integrated into

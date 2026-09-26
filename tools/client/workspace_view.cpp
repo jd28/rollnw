@@ -1042,7 +1042,7 @@ bool append_workspace_home_start_markup(std::string& content_markup, BrowserView
     } else if (module_open) {
         content_markup += escape_html(nw::toolset::live_object_display_name(module_object));
     } else {
-        content_markup += "Recent Projects";
+        content_markup += "rollnw | toolset";
     }
     content_markup += "</div>";
     if (project_open) {
@@ -1058,7 +1058,8 @@ bool append_workspace_home_start_markup(std::string& content_markup, BrowserView
 
     if (!module_open) {
         nw::toolset::refresh_recent_projects(browser.recent_projects);
-        content_markup += "<div id=\"home_project_list\">";
+        content_markup += "<div class=\"home_section_title\">Recent Projects</div>"
+                          "<div id=\"home_project_list\">";
         content_markup += nw::toolset::recent_projects_markup(browser.recent_projects);
         content_markup += "</div>";
     }

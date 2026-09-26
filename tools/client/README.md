@@ -1,10 +1,10 @@
-# rollnw | client
+# rollnw | toolset
 
-rollnw client is rollnw's local-first Neverwinter Nights module viewer and
-authoring workbench. It imports a module into a project, presents resources in
-workspace tabs, renders areas and blueprints through the shared viewer, and
-exposes the selected live object to focused Details surfaces, Smalls scripts,
-the terminal, and the command palette.
+`rollnw | toolset` is rollnw's local-first Neverwinter Nights module viewer and
+authoring workbench, installed as `rollnw-client`. It imports a module into a
+project, presents resources in workspace tabs, renders areas and blueprints
+through the shared viewer, and exposes the selected live object to focused
+Details surfaces, Smalls scripts, the terminal, and the command palette.
 
 [Watch the rollnw-client demo on YouTube](https://youtu.be/1zftndVT2Is).
 
@@ -139,11 +139,13 @@ Choose **Area** from the Project header's **+** menu, or run **New Area...**
 from the command palette, to create a native CAF area. The form accepts a
 ResRef, project directory, display name, tileset, width, and height. Dimensions
 are limited to 2–32 tiles and default to 4×4. The tileset list contains loaded
-SETs with an ungrouped flat tile for their default terrain. Creation never
-overwrites an existing area: it writes the complete file, refreshes project
-resources, adds the area to the project index, and opens it in the pinned Area
-tab. A failed write or resource refresh removes the file created by that
-attempt.
+SETs with ungrouped, flat, uncrossed tiles for their default terrain. The
+initial grid deterministically varies compatible tile IDs and orientations at
+one shared height; when available, it includes a tile with authored shadow
+geometry. Creation never overwrites an existing area: it writes the complete
+file, refreshes project resources, adds the area to the project index, and opens
+it in the pinned Area tab. A failed write or resource refresh removes the file
+created by that attempt.
 
 Run **Delete Area...** from the command palette while an Area tab is active to
 permanently remove that native CAF resource. The confirmation identifies the
@@ -285,6 +287,11 @@ item into the world and picking up ground items are not supported yet.
 Open the **Tiles** tab in an area to paint terrain, features, and tileset
 groups. A selected action keeps its exact world-space preview while the camera
 moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
+Crosser actions preview a translucent slab on the targeted tile edge. One click
+places that edge, including an outer area edge; dragging is optional. After the
+pointer enters another cell, the stroke follows the crossed cell boundaries
+rather than whichever edge is nearest within each cell. Tile targeting and the
+preview both use the area's authored cell-height planes.
 Eraser removes a complete placed group when its SET footprint can be identified;
 incomplete or ambiguous groups are rejected without changing the area.
 Neighboring placed groups are fixed boundaries: erasing one group may refit
@@ -309,7 +316,7 @@ selected paint action.
 
 | Input | Action |
 | --- | --- |
-| Left drag | Paint the selected tile action; raise with Raise/Lower. |
+| Left click or drag | Paint the selected tile action; raise with Raise/Lower. |
 | Shift + left click | Select one tile or its complete placed SET group. |
 | Shift + right click | Select the tile under the pointer and cycle a compatible SET variation. |
 | Right drag | Lower with Raise/Lower; otherwise orbit the camera. |
