@@ -147,6 +147,11 @@ and requests a DOM update containing only the visible option range plus
 overscan. Empty or duplicate-key batches are rejected and leave it closed.
 The caller owns the field and popup elements and dispatches the selected key
 through the command bus.</p>
+<p><code>render_rml_action_line_edit</code> in <code>rml_action_line_edit.hpp</code> emits a shared
+single-line preview with an inset trailing action. It escapes the value and
+placeholder; callers supply trusted button RML with the action's own event
+binding. The input is disabled because this RmlUi version has no read-only
+text-input behavior. Use the <code>action_line_edit</code> CSS classes from <code>panel.rcss</code>.</p>
 <p>The current rollnw client workbench uses <code>VirtualListController</code> directly for DOM
 row materialization. <code>VirtualListHost::drain_events</code> is not yet connected to the
 rollnw client main loop, so <code>core.ui.v1</code> should be treated as an available state

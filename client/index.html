@@ -46,12 +46,12 @@
       <div class="page-meta"><a href="https://github.com/jd28/rollnw/blob/main/tools/client/README.md">Source</a></div>
       <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
       <article class="content">
-<h1 id="rollnw-client">rollnw | client</h1>
-<p>rollnw client is rollnw's local-first Neverwinter Nights module viewer and
-authoring workbench. It imports a module into a project, presents resources in
-workspace tabs, renders areas and blueprints through the shared viewer, and
-exposes the selected live object to focused Details surfaces, Smalls scripts,
-the terminal, and the command palette.</p>
+<h1 id="rollnw-toolset">rollnw | toolset</h1>
+<p><code>rollnw | toolset</code> is rollnw's local-first Neverwinter Nights module viewer and
+authoring workbench, installed as <code>rollnw-client</code>. It imports a module into a
+project, presents resources in workspace tabs, renders areas and blueprints
+through the shared viewer, and exposes the selected live object to focused
+Details surfaces, Smalls scripts, the terminal, and the command palette.</p>
 <p><a href="https://youtu.be/1zftndVT2Is">Watch the rollnw-client demo on YouTube</a>.</p>
 <p>The integration target is a trustworthy viewer with bounded, explicit editing
 paths. It is not a complete replacement for every NWToolset workflow. New
@@ -178,11 +178,17 @@ or Cancel first. Home and Area cannot be moved or closed.</p>
 from the command palette, to create a native CAF area. The form accepts a
 ResRef, project directory, display name, tileset, width, and height. Dimensions
 are limited to 2–32 tiles and default to 4×4. The tileset list contains loaded
-SETs with an ungrouped flat tile for their default terrain. Creation never
-overwrites an existing area: it writes the complete file, refreshes project
-resources, adds the area to the project index, and opens it in the pinned Area
-tab. A failed write or resource refresh removes the file created by that
-attempt.</p>
+SETs with ungrouped, flat, uncrossed tiles for their default terrain. The
+initial grid deterministically varies compatible tile IDs and orientations at
+one shared height; when available, it includes a tile with authored shadow
+geometry. Creation never overwrites an existing area: it writes the complete
+file, refreshes project resources, adds the area to the project index, and opens
+it in the pinned Area tab. A failed write or resource refresh removes the file
+created by that attempt.</p>
+<p>Run <strong>Delete Area...</strong> from the command palette while an Area tab is active to
+permanently remove that native CAF resource. The confirmation identifies the
+exact project-relative file and warns when unsaved edits will be discarded.
+Deletion has no undo; it also removes the derived area-map cache when present.</p>
 <p>Use <strong>Ctrl+S</strong> to save the active document or <strong>Ctrl+Shift+S</strong> / <strong>Save All</strong> to
 save every modified open document without switching tabs. Saving supports native
 CAF areas and JSON blueprints. If a document cannot be saved, it stays modified
@@ -294,9 +300,15 @@ and equipped-item poses are unchanged.</p>
 <p>Area drops create new instances from blueprints. Moving an existing inventory
 item into the world and picking up ground items are not supported yet.</p>
 <h2 id="area-tile-editing">Area Tile Editing</h2>
+<p><a href="https://youtu.be/PvT9pjiYuU0">Watch the area-editing demo on YouTube</a>.</p>
 <p>Open the <strong>Tiles</strong> tab in an area to paint terrain, features, and tileset
 groups. A selected action keeps its exact world-space preview while the camera
 moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
+Crosser actions preview a translucent slab on the targeted tile edge. One click
+places that edge, including an outer area edge; dragging is optional. After the
+pointer enters another cell, the stroke follows the crossed cell boundaries
+rather than whichever edge is nearest within each cell. Tile targeting and the
+preview both use the area's authored cell-height planes.
 Eraser removes a complete placed group when its SET footprint can be identified;
 incomplete or ambiguous groups are rejected without changing the area.
 Neighboring placed groups are fixed boundaries: erasing one group may refit
@@ -327,7 +339,7 @@ selected paint action.</p>
 </thead>
 <tbody>
 <tr>
-<td>Left drag</td>
+<td>Left click or drag</td>
 <td>Paint the selected tile action; raise with Raise/Lower.</td>
 </tr>
 <tr>
