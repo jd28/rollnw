@@ -4,6 +4,9 @@ Status: open.
 
 Target: `rollnw-client` 0.2.0.
 
+The [published area-editing demo](https://youtu.be/PvT9pjiYuU0) records that
+focused workflow. The broader walkthrough and release checks below remain open.
+
 ## Goal
 
 Record one short public video after the client history is integrated into

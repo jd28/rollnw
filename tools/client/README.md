@@ -284,6 +284,8 @@ item into the world and picking up ground items are not supported yet.
 
 ## Area Tile Editing
 
+[Watch the area-editing demo on YouTube](https://youtu.be/PvT9pjiYuU0).
+
 Open the **Tiles** tab in an area to paint terrain, features, and tileset
 groups. A selected action keeps its exact world-space preview while the camera
 moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
