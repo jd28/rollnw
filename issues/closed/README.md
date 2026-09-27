@@ -14,6 +14,7 @@ Later completed work records its own date and verification limits.
 | [CLI package paths](client-cli-package-paths.md) | Imports from four launch directories, service/module recreation, two desktop project opens, full CTest, and 45 affected ASan/UBSan cases passed on Linux. |
 | [Area eraser and placement Output](client-area-eraser-and-placement-output.md) | Complete group/door erasure, atomic undo/redo and door lifetime, persistent placement errors, and stable palette rows passed the 2,270-test Release suite and eight focused ASan/UBSan cases on Linux. Manual interaction remains unverified. |
 | [Area map regeneration](rollnw-client-area-map-regeneration.md) | Creation and save write derived maps; successful saves invalidate the exact RmlUi texture while failures preserve the CAF and warn. The 15 focused and 509 client tests passed on Linux; user visual inspection passed. |
+| [Object workbench and property surfaces](rollnw-client-object-workbench-and-property-surfaces.md) | Shared live state and transactions, bounded lists, managed edits, and persistence have recorded regression evidence. Latest Encounter/Sound removal, selection feedback, and tab ordering passed focused checks; desktop interaction remains unverified. Inventory, Encounter, and spell feature follow-ups remain active and linked from the closure record. |
 
 The [refactor checkpoint log](client-main-refactor-progress.md) retains the
 sequence of changes, actual test counts and coverage limits. Earlier entries

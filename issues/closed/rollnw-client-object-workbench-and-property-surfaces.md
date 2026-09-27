@@ -1,5 +1,40 @@
 # rollnw | client Object Workbench and Property Surfaces
 
+Status: closed 2026-09-26 as the foundational object-workbench milestone.
+
+## Closure
+
+The stated Done Criteria have implementation and automated verification evidence:
+the workbench shares the live active object and transaction protocol, combines
+reflected properties with managed task views, bounds list materialization, and
+validates stale or invalid input. Feat and spell edits share their SmallS policy
+with terminal commands; dirty state, undo/redo, preview refresh, and persistence
+use the existing transaction path. The original contracts and checkpoint evidence
+are preserved below.
+
+The latest implementation is commit `24e06991a`: Encounter/Sound selected-entry
+removal, shared selected-row feedback, and Details/Spawns-or-Sounds/Variables tab
+ordering. Recorded checks include the client/test Release build, 60 focused
+removal and persistence tests, 32 selected RML/template tests after the styling
+fix, and two focused tests after tab reordering. Earlier workbench, spell,
+inventory, and virtualization evidence remains in the Verification section.
+These are historical results, not a new test run for this documentation change.
+Manual desktop pointer/keyboard validation of the latest changes remains
+unverified; the RML interaction coverage uses the test render interface.
+
+Unfinished features remain active in three focused issues:
+
+- [Inventory removal, replacement, and ordering](../rollnw-client-inventory-removal-and-reordering.md):
+  Item ownership on removal, occupied-slot replacement, and Store removal/order.
+- [Encounter spawn editing](../rollnw-client-encounter-spawn-editing.md): spawn
+  field editing and explicit reordering.
+- [Spell workbench actions](../rollnw-client-spell-workbench-actions.md): preset
+  Load/Save and Clear/Summary requirements.
+
+Closing this milestone does not complete those features. The historical
+follow-up sections below record their origin; the linked active issues own
+further decisions and verification.
+
 ## Encounter and Sound entry removal (2026-09-26)
 
 Tier 1. Complete the existing list-authoring workflow by removing a selected
@@ -119,7 +154,7 @@ background/border, persistence during hover, and clearing after removal for both
 types. Client/tests build; all 32 selected RML/template tests pass, along with
 formatting and diff checks. No new selection state or runtime path was added.
 
-Status: object-workbench vertical slices implemented and verified through
+Historical status: object-workbench vertical slices implemented and verified through
 2026-08-19; Item appearance ownership updated 2026-09-01.
 
 ## Problem

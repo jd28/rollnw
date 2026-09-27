@@ -278,10 +278,10 @@ schema, rules, resource, or object bootstrap.
 
 ## Focused Follow-up Work
 
-The package/bootstrap ownership migration is complete. Remaining presentation
-cleanup belongs to
-[`issues/rollnw-client-object-workbench-and-property-surfaces.md`](../../../../issues/rollnw-client-object-workbench-and-property-surfaces.md),
-not to the closed ownership audit.
+The package/bootstrap ownership migration and the foundational
+[object-workbench milestone](../../../../issues/closed/rollnw-client-object-workbench-and-property-surfaces.md)
+are complete. The workbench closure record links the active inventory, Encounter,
+and spell presentation follow-ups and preserves their verification history.
 
 ## Verification
 
