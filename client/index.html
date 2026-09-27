@@ -47,289 +47,109 @@
       <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
       <article class="content">
 <h1 id="rollnw-toolset">rollnw | toolset</h1>
-<p><code>rollnw | toolset</code> is rollnw's local-first Neverwinter Nights module viewer and
-authoring workbench, installed as <code>rollnw-client</code>. It imports a module into a
-project, presents resources in workspace tabs, renders areas and blueprints
-through the shared viewer, and exposes the selected live object to focused
-Details surfaces, Smalls scripts, the terminal, and the command palette.</p>
-<p><a href="https://youtu.be/1zftndVT2Is">Watch the rollnw-client demo on YouTube</a>.</p>
-<p>The integration target is a trustworthy viewer with bounded, explicit editing
-paths. It is not a complete replacement for every NWToolset workflow. New
-editors are added when their input, mutation, undo, persistence, and preview
-contracts are all defined.</p>
-<p>rollnw client is currently one process with one SDL event loop, one kernel Smalls
-runtime, local project files, and a local renderer. The renderer presents live
-objects; it does not own a second gameplay or editor object model.</p>
-<h2 id="screenshots">Screenshots</h2>
-<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/module_view_2026_08_12.png"><img alt="Module viewer showing project resources, area minimaps, and module details" src="../assets/tools/client/screenshots/module_view_2026_08_12.png"></a></p>
-<p><em>Module viewing with project-resource navigation and area minimaps.</em></p>
-<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/area_view_2026_08_12.png"><img alt="Area viewer showing project resources, a rendered area, and its placed-object list" src="../assets/tools/client/screenshots/area_view_2026_08_12.png"></a></p>
-<p><em>Area viewing with project-resource navigation and the complete placed-object list.</em></p>
-<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/creature_view_2026_08_12.png"><img alt="Creature blueprint preview showing the rendered creature and Details workbench" src="../assets/tools/client/screenshots/creature_view_2026_08_12.png"></a></p>
-<p><em>Creature blueprint preview with shared Details and focused editor tabs.</em></p>
-<h2 id="importing-a-module">Importing A Module</h2>
-<p>On the Home tab, click <strong>Import Module...</strong>. Browse for the source <code>.mod</code> and a
-destination parent folder, review both paths, then click <strong>Import</strong>. An animated
-progress bar shows that import is running (it does not estimate a percentage).
-The client creates a new folder named after the module and imports it in the
-native JSON format. Existing folders are never
-overwritten by this workflow. <strong>Open Project...</strong> opens an already imported project.</p>
-<p>You can keep working during import. On success, the project opens automatically
-unless you have unsaved changes or switched projects; it is also added to Recent
-Projects. Wait for import to finish before quitting. If import fails, the error
-dialog identifies the output folder and <code>import.log</code>; partial output is kept
-there for inspection. Canceling either file picker writes nothing.</p>
-<p>For scripting or legacy imports, the command line remains available:</p>
-<div class="codehilite"><pre><span></span><code>rollnw-client import (--json|--legacy) &lt;module.mod&gt; [project-dir]
-</code></pre></div>
-
-<p>Use <code>--json</code> for the client's native project format:</p>
-<div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--json<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">"/path/to/Neverwinter Nights/modules/example.mod"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>./example-project
-</code></pre></div>
-
-<p>Quote paths that contain spaces. If <code>project-dir</code> is omitted, the client creates
-a directory named after the module in the current working directory. For
-example, importing <code>example.mod</code> without a destination writes to <code>./example</code>.</p>
-<p>The client loads its <code>core</code> and <code>nwn1</code> packages from <code>stdlib/</code> beside the
-executable, including after module or project replacement. The executable and
-its packaged stdlib can be launched from any working directory; copies of those
-packages in the working directory do not override them. Relative module and
-destination paths still resolve against the caller's working directory.</p>
-<p>The JSON import creates <code>rollnw.json</code>, converts supported module resources to
-JSON, combines each area's ARE/GIT/GIC resources into one CAF file under
-<code>shared/areas/</code>, and generates area maps under <code>.rollnw/cache/area_maps/</code>.
-The NWN:EE installation and every hak named by the module must be discoverable;
-if automatic discovery fails, set <code>NWN_ROOT</code> and <code>NWN_HOME</code> to the installation
-and user directories. Import fails when a declared hak cannot be loaded.</p>
-<p>To preserve the module's original binary GFF resources instead, use:</p>
-<div class="codehilite"><pre><span></span><code>./rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-legacy
-</code></pre></div>
-
-<p>With the command line, the destination is created when it does not exist.
-Importing into an existing project updates files in place and does not remove
-unrelated or stale files, so use a new or empty destination when a clean import
-is required.</p>
-<h2 id="runtime-shape">Runtime Shape</h2>
-<p>The common data flow is:</p>
-<div class="codehilite"><pre><span></span><code>project/module resource
-    -&gt; ToolsetBackend command
-    -&gt; WorkspaceState tab
-    -&gt; ResourceDocument or live ObjectHandle
-    -&gt; ViewerSession
-    -&gt; selected active_object
-    -&gt; property and managed-view snapshots
-</code></pre></div>
-
-<p>User actions from menus, shortcuts, the command palette, terminal, RmlUi, and
-Smalls converge on <code>CommandBus</code>. A command returns one <code>CommandResult</code> with a
-status, diagnostic channel, optional undo action, and optional prompt. The
-command source does not get a separate mutation path.</p>
-<p>The main ownership boundaries are:</p>
+<p><code>rollnw | toolset</code> is a Neverwinter Nights module viewer and authoring tool,
+installed as <code>rollnw-client</code>. Import a module into a local project, explore its
+areas and resources, and edit objects and terrain with previews, undo, and save.</p>
+<p><a href="https://youtu.be/1zftndVT2Is">Watch the overview demo</a> or the
+<a href="https://youtu.be/PvT9pjiYuU0">area-editing demo</a>.</p>
+<h2 id="getting-started">Getting started</h2>
+<p>The client runs on Linux and Windows. See the root README for
+<a href="../index.html#import-and-open-a-module-project">build and launch instructions</a>.
+You need an NWN:EE installation and the module's required hak files. If they
+aren't found automatically, set <code>NWN_ROOT</code> to the installation directory and
+<code>NWN_HOME</code> to the NWN user directory.</p>
+<ol>
+<li>Launch <code>rollnw-client</code> and choose <strong>Import Module...</strong> on Home.</li>
+<li>Select a <code>.mod</code> file and a destination parent folder, then click <strong>Import</strong>.
+   The client creates a new project folder named after the module; this workflow
+   does not overwrite an existing folder.</li>
+<li>Open areas and blueprints from the project browser. Use <strong>Open Project...</strong>
+   or Recent Projects to return to an imported project later.</li>
+</ol>
+<p>You can continue working during import. The imported project opens automatically
+when your current work allows it; otherwise, it is available in Recent Projects.
+Wait for import to finish before quitting. Failed imports retain their output
+folder and <code>import.log</code> for troubleshooting.</p>
+<p>Projects use native JSON resources, with each area's data combined into a CAF
+file. The source module is kept separate from the editable project.</p>
+<h2 id="workspace">Workspace</h2>
+<p>Home provides project navigation and area maps. Areas open in a pinned Area tab;
+blueprints and other resources open in their own tabs. Switching tabs preserves
+your edits, and undo/redo belongs to the document being edited. Opening another
+area reuses the Area tab and prompts if the current area has unsaved changes.</p>
+<p>Select an object in the viewport or placed-object list to inspect it. The
+workbench combines general <strong>Details</strong> with focused editors for appearance,
+creature progression, item properties, inventory, and other supported data.
+The command palette exposes actions, and the terminal provides command and
+Smalls access.</p>
 <table>
 <thead>
 <tr>
-<th>Owner</th>
-<th>Data and lifetime</th>
+<th>Shortcut</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>ToolsetBackend</code></td>
-<td>Command registry, project/module state, terminal dispatch, and document-save commands.</td>
+<td>Ctrl+Shift+P</td>
+<td>Open the command palette.</td>
 </tr>
 <tr>
-<td><code>WorkspaceState</code></td>
-<td>Ordered tabs, live documents, active tab, dirty flags, subtabs, and per-tab undo/redo stacks.</td>
+<td>Ctrl+S</td>
+<td>Save the active document.</td>
 </tr>
 <tr>
-<td><code>ViewerSession</code></td>
-<td>The loaded preview scene and renderer-side selected object handle.</td>
+<td>Ctrl+Shift+S</td>
+<td>Save all modified open documents.</td>
 </tr>
 <tr>
-<td><code>ObjectManager</code></td>
-<td>Live gameplay object storage addressed by generational <code>ObjectHandle</code> values.</td>
+<td>Ctrl+W</td>
+<td>Close the active closable tab.</td>
 </tr>
 <tr>
-<td><code>RmlSmallsBridge</code> / <code>SmallsRmlUiHost</code></td>
-<td>Non-owning active-object and active-area handles used by Smalls commands. Stale handles read back as invalid.</td>
+<td>Ctrl+Z / Ctrl+Y</td>
+<td>Undo / redo.</td>
 </tr>
 <tr>
-<td>RmlUi documents</td>
-<td>Presentation elements and document-scoped inline or external Smalls modules.</td>
+<td>Ctrl+J</td>
+<td>Toggle Output.</td>
+</tr>
+<tr>
+<td>Backtick</td>
+<td>Toggle the terminal.</td>
+</tr>
+<tr>
+<td>F9</td>
+<td>Enter or leave play preview.</td>
 </tr>
 </tbody>
 </table>
-<p><code>active_object</code> and its area command context are deliberate singleton
-exceptions. rollnw client has one active workspace surface, one displayed area, and
-one preview selection. The values are non-owning generational handles; changing
-tabs, clearing selection, reloading, or closing a scene clears or replaces them.</p>
-<h2 id="workspace">Workspace</h2>
-<p><code>WorkspaceState</code> owns a contiguous list of tabs. A tab records its identity,
-kind, title, resource detail, dirty flag, optional subtabs, and undo/redo
-stacks. Undo history belongs to the tab containing the edited document; global
-commands do not add entries.</p>
-<p>There is one pinned Area tab, alongside Home and the blueprint tabs. Visiting
-another tab preserves the current area's edits and undo history. Selecting a
-different area reuses the Area tab; unsaved changes prompt for Save, Discard,
-or Cancel first. Home and Area cannot be moved or closed.</p>
-<p>Choose <strong>Area</strong> from the Project header's <strong>+</strong> menu, or run <strong>New Area...</strong>
-from the command palette, to create a native CAF area. The form accepts a
-ResRef, project directory, display name, tileset, width, and height. Dimensions
-are limited to 2–32 tiles and default to 4×4. The tileset list contains loaded
-SETs with ungrouped, flat, uncrossed tiles for their default terrain. The
-initial grid deterministically varies compatible tile IDs and orientations at
-one shared height; when available, it includes a tile with authored shadow
-geometry. Creation never overwrites an existing area: it writes the complete
-file, refreshes project resources, adds the area to the project index, and opens
-it in the pinned Area tab. A failed write or resource refresh removes the file
-created by that attempt.</p>
-<p>Run <strong>Delete Area...</strong> from the command palette while an Area tab is active to
-permanently remove that native CAF resource. The confirmation identifies the
-exact project-relative file and warns when unsaved edits will be discarded.
-Deletion has no undo; it also removes the derived area-map cache when present.</p>
-<p>Use <strong>Ctrl+S</strong> to save the active document or <strong>Ctrl+Shift+S</strong> / <strong>Save All</strong> to
-save every modified open document without switching tabs. Saving supports native
-CAF areas and JSON blueprints. If a document cannot be saved, it stays modified
-and the output identifies the failure; other documents still save. Binary
-resources are not overwritten with JSON.</p>
-<p>Dirty tabs use a complete close protocol:</p>
-<div class="codehilite"><pre><span></span><code>workspace.close_tab
-    -&gt; clean: close
-    -&gt; dirty: Save / Discard / Cancel prompt
-        -&gt; Save: workspace.save_and_close_tab
-            -&gt; workspace.save_tab
-            -&gt; close only when save succeeds
-        -&gt; Discard: forced close
-        -&gt; Cancel: no command
-</code></pre></div>
-
-<p><code>Ctrl+W</code>, palette actions, and terminal commands all dispatch this protocol.
-They do not close a dirty document directly.
-Quitting offers Save All, Discard, or Cancel. Save or discard modified documents
-before opening another project or module.</p>
-<h2 id="commands">Commands</h2>
-<p><code>CommandBus</code> is the application action boundary. <code>CommandSpec</code> supplies stable
-IDs, aliases, scope, flags, default bindings, and usage text. The palette and
-terminal enumerate the same specifications that scripts execute.</p>
-<p>Command scopes are:</p>
-<ul>
-<li><code>global</code>: application or navigation state; never pushed to a tab undo stack.</li>
-<li><code>workspace</code>: document operations; a successful result may contribute one
-  <code>CommandUndoAction</code> to the active tab.</li>
-<li><code>renderer</code>: renderer or viewport state.</li>
-</ul>
-<p><code>CommandStatus::success</code> and <code>CommandStatus::noop</code> are successful results.
-Only <code>success</code> results with an undo action, a workspace scope, and
-<code>record_undo == true</code> are pushed to undo history. New undo actions clear the
-tab's redo stack.</p>
-<p>Smalls uses <code>core.commands.v1.command_execute</code>, so RmlUi handlers, scripts,
-the terminal, and native widgets reach the same command handlers. See
-<a href="transactions.html">transactions</a> for the current mutation, undo, dirty,
-and save contracts.</p>
-<h2 id="viewer-and-workbench">Viewer And Workbench</h2>
-<p>Blueprint previews instantiate one live object and areas retain one live root
-area plus their contained objects. The viewer publishes the selected live
-object without copying gameplay state into the renderer or UI.</p>
-<p>The object workbench reads live Smalls propsets and native facts into bounded
-presentation snapshots. The default Details surface is shared across placed
-object types; workflow-heavy data opens a focused surface:</p>
-<ul>
-<li>creature appearance, body parts, and PLT colors;</li>
-<li>creature classes, feats, spells, inventory, and equipment;</li>
-<li>item state and item properties; and</li>
-<li>module details and hak inspection.</li>
-</ul>
-<p>These views demonstrate the intended split: reflection handles broadly useful
-data, while workflow-heavy collections use purpose-built views and commands.
-All data-dependent row surfaces must remain viewport-virtualized.</p>
-<p>Area tabs provide mesh or authored-footprint selection for placed objects,
-Ctrl-click tile selection, a complete placed-object list, and camera focus on
-list selection. Creature, Door, Encounter, Item, Placeable, Sound, Store,
-Trigger, and Waypoint instances support placement, movement, duplication,
-deletion, undo/redo, and native CAF save. Blueprint preview tabs use the same
-focused edit commands and save path.</p>
-<p>Doors snap to unoccupied SET hooks. Tileset Door appearances require an exact
-hook type; generic Door models accept any hook. New Trigger and Encounter
-vertices project to the Area navigation surface before commit. Polygon
-validation rejects points outside the Area, adjacent duplicates,
-self-intersections, zero-area shapes, and paths above the bounded authoring
-limit. Encounter spawn markers support add, move, and delete.
-Sound objects render a selectable debug radius; the mouse wheel resizes the
-selected Sound's maximum radius. Stores use point markers and Waypoints use
-their model with a marker fallback.</p>
-<p>The project browser's + button opens an anchored New Resource menu for a blank
-Area or a Creature, Door, Encounter, Item, Placeable, Sound, Store, Trigger, or
-Waypoint blueprint. The selected resource opens its creation form. Every
-blueprint form asks for a ResRef, directory, and display name. New Creatures use
-separate required first-name and optional last-name fields and also prompt for
-race and class; NWN1 Smalls derives
-appearance, ability scores, level-one class data, skills, and body parts from
-those selections. Items require a base-item type. Base Item Type is currently
-read-only in the workbench. Further authoring uses the existing object editor.</p>
-<p>Blueprint forms and progress dialogs share the command overlay drawn after the
-native viewport, with modal focus and input routed to that overlay.</p>
-<p>Save as New Blueprint prompts for a ResRef and directory, copies the selected
-authored object, changes its ResRef, and saves it. Blueprint files and their
-temporary editor copies do not retain an instance UUID. The
-temporary copy is destroyed and the project tree refreshes; the source selection,
-tab, and dirty state remain unchanged. Names share the module's typed resource
-namespace across directories. Ctrl+Z deletes the created file; Ctrl+Y restores the
-same saved bytes. Undo rejects a subsequently changed file, and redo rejects a
-resource-name collision. Close an open copy's editor tab before undoing creation.</p>
-<p>Update Blueprint References offers Current Area or Whole Module. Matching live
-instances of all nine authored object types are instantiated from the saved
-blueprint, attached in their existing
-area/inventory/equipment slots, and the old instances are destroyed. Placement,
-UUID, container positions and unrelated edits survive. Preparation advances one
-live instance per frame with progress and cancellation. Applying clears the area's
-old handle-based history and leaves the area dirty; it does not write its file.
-Whole Module also updates unopened documents through the isolated file worker.
-Restore Original Files covers that worker's writes, excluding the live area.</p>
-<p>Drag a Creature, Placeable, or Item blueprint from the project tree into an area
-to preview placement; drop commits one undoable edit and cancel discards it.
-Creature placement/transforms require walkable ground and known clearance:
-invalid targets reject rather than snap, with a navigation overlay during drag.
-Placeables and items allow free authored height within area XY bounds.</p>
-<p>Ground items align their rotated model bottoms to authored height without
-rewriting saved coordinates. Thin items have six-pixel sampled click assistance,
-respecting nearer geometry. Selecting keeps the viewport stable; moving requires
-a five-pixel drag, and viewport/camera changes cancel the gesture. Standalone
-and equipped-item poses are unchanged.</p>
-<p>Area drops create new instances from blueprints. Moving an existing inventory
-item into the world and picking up ground items are not supported yet.</p>
-<h2 id="area-tile-editing">Area Tile Editing</h2>
-<p><a href="https://youtu.be/PvT9pjiYuU0">Watch the area-editing demo on YouTube</a>.</p>
-<p>Open the <strong>Tiles</strong> tab in an area to paint terrain, features, and tileset
-groups. A selected action keeps its exact world-space preview while the camera
-moves. Raise/Lower edits grid corners; left paint raises and right paint lowers.
-Crosser actions preview a translucent slab on the targeted tile edge. One click
-places that edge, including an outer area edge; dragging is optional. After the
-pointer enters another cell, the stroke follows the crossed cell boundaries
-rather than whichever edge is nearest within each cell. Tile targeting and the
-preview both use the area's authored cell-height planes.
-Eraser removes a complete placed group when its SET footprint can be identified;
-incomplete or ambiguous groups are rejected without changing the area.
-Neighboring placed groups are fixed boundaries: erasing one group may refit
-ordinary transition tiles around it, but never widens the removal to another
-group.
-When a door is under the pointer, Eraser targets the tile that owns its SET hook
-and expands that tile to its complete placed group. Doors attached to hooks on
-tiles that change are removed with those tiles; Eraser never creates a door-only
-operation. Each erase stroke is one undoable operation, and undo restores the
-original tiles and doors together.
-Overlapping group placement replaces the complete intersected groups and refits
-their uncovered cells to the SET's default terrain. Eraser previews outline the
-complete removal target without swapping in ground variations.
-The hover preview consumes the latest queued mouse position used by button input.
-An invalid tile operation removes the substituted tile preview and leaves a red
-cell indicator. Failed placement attempts are recorded in <strong>Output</strong>; hover
-checks do not add messages or change the palette list's layout.
-Holding Shift outlines the tile or complete placed group under the pointer,
-changes the viewport cursor to a pointer, and shows the selection/variation
-controls above the tile palette. Selection and variation do not require a
-selected paint action.</p>
+<p>Saving supports native CAF areas and JSON blueprints. Closing modified documents
+or quitting offers Save, Discard, or Cancel. Failed saves keep the affected
+documents open and modified; Save All still attempts the other documents.
+Save or discard your changes before opening another project or module.</p>
+<h2 id="editing-areas">Editing areas</h2>
+<p>Choose <strong>Area</strong> from the project browser's <strong>+</strong> menu, or <strong>New Area...</strong> from
+the command palette. Supply a resource name (ResRef), directory, display name,
+tileset, and dimensions. New areas can be 2–32 tiles wide and high and open in
+the Area tab. <strong>Delete Area...</strong> permanently removes the active native area
+resource; deletion has no undo.</p>
+<p>The viewport supports placement, movement, duplication, and deletion of
+Creatures, Doors, Encounters, Items, Placeables, Sounds, Stores, Triggers, and
+Waypoints. These edits support undo/redo and CAF save. Drag Creature, Placeable,
+or Item blueprints from the project tree to preview and place new instances.
+Creatures require walkable ground; Placeables and Items allow authored height
+within the area's bounds. Doors snap to compatible, unoccupied tileset hooks.</p>
+<p>Encounter spawn-point markers can be added, moved, or removed in the area.
+Sound objects show a selectable radius; use the mouse
+wheel with a selected Sound to adjust its maximum radius.</p>
+<h3 id="terrain-and-tiles">Terrain and tiles</h3>
+<p>Open the <strong>Tiles</strong> tab to paint terrain, features, tileset groups, elevation,
+and crossers. The preview shows the proposed placement before you commit it.
+Raise/Lower changes terrain height; crossers are placed on tile edges.</p>
+<p>Groups are edited as complete footprints. Replacing or erasing a group also
+handles doors attached to affected tiles, and undo restores them together.
+Invalid operations leave the area unchanged and report the failure in Output.</p>
 <table>
 <thead>
 <tr>
@@ -340,31 +160,31 @@ selected paint action.</p>
 <tbody>
 <tr>
 <td>Left click or drag</td>
-<td>Paint the selected tile action; raise with Raise/Lower.</td>
+<td>Paint; raise with Raise/Lower selected.</td>
 </tr>
 <tr>
 <td>Shift + left click</td>
-<td>Select one tile or its complete placed SET group.</td>
+<td>Select a tile or its complete group.</td>
 </tr>
 <tr>
 <td>Shift + right click</td>
-<td>Select the tile under the pointer and cycle a compatible SET variation.</td>
+<td>Select a tile and cycle a compatible variation.</td>
 </tr>
 <tr>
 <td>Right drag</td>
-<td>Lower with Raise/Lower; otherwise orbit the camera.</td>
+<td>Orbit the camera; lower with Raise/Lower selected.</td>
 </tr>
 <tr>
 <td>Middle drag</td>
-<td>Pan the camera.</td>
+<td>Pan.</td>
 </tr>
 <tr>
 <td>Mouse wheel</td>
-<td>Zoom the camera.</td>
+<td>Zoom.</td>
 </tr>
 <tr>
 <td>W / A / S / D</td>
-<td>Move the camera relative to its current view.</td>
+<td>Move the camera relative to its view.</td>
 </tr>
 <tr>
 <td>Q / E</td>
@@ -372,7 +192,7 @@ selected paint action.</p>
 </tr>
 <tr>
 <td>Arrow keys</td>
-<td>Orbit and tilt the camera around its focus.</td>
+<td>Orbit and tilt around the camera focus.</td>
 </tr>
 <tr>
 <td>R</td>
@@ -380,85 +200,75 @@ selected paint action.</p>
 </tr>
 <tr>
 <td>Escape</td>
-<td>Clear the tile selection or cancel the selected tile action and preview.</td>
+<td>Clear the tile selection or cancel the current action.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="play-preview">Play Preview</h2>
-<p>Press F9 in an active area tab to enter the transient play preview. The first
-use opens the project tree to choose a Creature blueprint; the project-relative
-choice is persisted in <code>rollnw.json</code>:</p>
-<div class="codehilite"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">"preview"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"test_actor"</span><span class="p">:</span><span class="w"> </span><span class="s2">"shared/blueprints/creatures/example.utc.json"</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
+<h2 id="blueprints-and-object-editing">Blueprints and object editing</h2>
+<p>The project browser's <strong>+</strong> menu creates Creature, Door, Encounter, Item,
+Placeable, Sound, Store, Trigger, and Waypoint blueprints. Forms ask for a ResRef,
+directory, and display name. Creatures also need a race and class; Items need a
+base-item type. Continue editing in the new blueprint's workbench.</p>
+<p>Focused editors cover creature appearance, classes, feats, spells, inventory,
+and equipment, as well as item appearance and properties. Encounter <strong>Spawns</strong>
+and Sound <strong>Sounds</strong> support adding and removing entries; Sound entries can
+also be reordered by dragging.</p>
+<p><strong>Save as New Blueprint</strong> creates a copy of the selected object without changing
+the original. Resource names must be unique for their type across project
+directories. Creation supports undo/redo; close the new blueprint's editor tab
+before undoing its creation. Undo and redo reject conflicting file changes.</p>
+<p><strong>Update Blueprint References</strong> replaces matching instances from a saved blueprint
+in the <strong>Current Area</strong> or <strong>Whole Module</strong>, preserving their placement and
+container positions. Applying to an open area clears its previous undo history
+and leaves it modified for you to save. <strong>Restore Original Files</strong> restores
+updates made to unopened documents; it does not restore the live area.</p>
+<h2 id="play-preview">Play preview</h2>
+<p>Press <strong>F9</strong> in an area to try movement with a test Creature. On first use,
+choose a Creature blueprint from the project tree; the choice is remembered
+for that project. Preview movement does not modify the authored area.</p>
+<p>Move with WASD or the controller's left stick, orbit with the right mouse button
+or right stick, and zoom with the wheel, triggers, or shoulder buttons.
+Left-click an area surface to request a path there. <strong>F9</strong> or <strong>Escape</strong> ends
+preview and restores the editor selection and camera.</p>
+<p>This is a movement preview. Scripts, encounters, combat, and gameplay
+persistence do not run.</p>
+<h2 id="command-line-import">Command-line import</h2>
+<div class="codehilite"><pre><span></span><code>rollnw-client<span class="w"> </span>import<span class="w"> </span>--json<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-project
+rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-legacy
 </code></pre></div>
 
-<p>The actor is detached from authored area membership. Preview movement therefore
-does not dirty the project or create undo entries, and it does not run scripts,
-encounters, combat, persistence, or lifecycle events. F9 or Escape removes the
-actor and returns to the unchanged editor selection and camera.</p>
-<p>Move with WASD or the controller left stick, orbit with the right mouse button
-or controller right stick, and zoom with the wheel, triggers, or shoulder
-buttons. Left-clicking an area surface requests a path to that point.</p>
-<h2 id="appearance-ownership">Appearance Ownership</h2>
-<p>Appearance editing has one mutation path even though the UI catalogs join two
-data sources:</p>
-<div class="codehilite"><pre><span></span><code>native appearance tables          profile Smalls config/state
-  model, model type, labels         NWN rules, propsets, body parts, colors
-              \                    /
-               nwn1 visual resolution
-                        -&gt; copied visual rows
-                        -&gt; shared renderer
-</code></pre></div>
-
-<p>Native creature/placeable tables provide engine-loaded facts and localized
-catalog labels. <code>nwn1.appearances</code>, <code>nwn1.creature_state</code>, and
-<code>nwn1.creature</code> own NWN interpretation, live appearance state, validation, and
-visual resolution. Client edits invoke that profile API through the command and
-undo path. The renderer receives resolved rows; it does not read profile
-propsets or choose an appearance. Wing and tail catalogs are tool projections
-of profile config, not a second state owner.</p>
-<h2 id="rmlui-and-smalls">RmlUi And Smalls</h2>
-<p>RmlUi owns layout and presentation. Smalls provides document behavior through
-typed event snapshots and a bounded list of UI commands. Resource mutation
-must go through <code>core.commands.v1</code>, not through RmlUi element operations.</p>
-<p>The UI subsystem and language binding are documented in:</p>
+<p>Use <code>--json</code> for editable native projects. <code>--legacy</code> preserves the module's
+original binary GFF resources. If the destination is omitted, it defaults to
+the module name in the current directory. Relative paths are resolved from the
+working directory; quote paths containing spaces.</p>
+<p>Unlike the Home import workflow, command-line import can update an existing
+destination in place. It does not remove stale or unrelated files, so use a new
+or empty directory for a clean import.</p>
+<p>Run <code>rollnw-client --help</code> for CLI usage, or <code>--version</code> and <code>--build-info</code> to
+identify the build. Keep the executable with its packaged assets when moving
+an installation.</p>
+<h2 id="current-limits">Current limits</h2>
 <ul>
-<li><a href="ui-runtime.html">tools/ui</a></li>
-<li><a href="rml-smalls.html">RmlUi/Smalls binding</a></li>
+<li>Editing does not yet cover every object field or NWToolset workflow.</li>
+<li>Individual Encounter spawn fields are not editable yet; spawn-point markers
+  can be edited in the area viewport.</li>
+<li>Moving inventory Items into the world and picking up ground Items are not
+  supported. Area drops create new instances from blueprints.</li>
+<li>Save All saves open modified native documents. It is not autosave or a
+  project-wide export, and binary resources are not overwritten with JSON.</li>
 </ul>
-<h2 id="source-map">Source Map</h2>
+<h2 id="screenshots">Screenshots</h2>
+<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/module_view_2026_08_12.png"><img alt="Module viewer showing project resources, area maps, and module details" src="../assets/tools/client/screenshots/module_view_2026_08_12.png"></a></p>
+<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/area_view_2026_08_12.png"><img alt="Area viewer showing a rendered area and its placed-object list" src="../assets/tools/client/screenshots/area_view_2026_08_12.png"></a></p>
+<p><a href="https://github.com/jd28/rollnw/blob/main/tools/client/screenshots/creature_view_2026_08_12.png"><img alt="Creature blueprint preview and workbench" src="../assets/tools/client/screenshots/creature_view_2026_08_12.png"></a></p>
+<h2 id="development">Development</h2>
+<p>The client uses SDL, RmlUi, Smalls, and the shared rollnw renderer. UI actions,
+shortcuts, and scripts share command handlers and document undo history.</p>
 <ul>
-<li><code>main.cpp</code>: SDL/RmlUi event loop, document rendering, active-object
-  publication, save callback, and shell integration.</li>
-<li><code>toolset_backend.*</code>: project/module state and native command registration.</li>
-<li><code>command_bus.*</code>: command protocol and undo-action admission.</li>
-<li><code>workspace.*</code>: tabs, dirty state, close decisions, and per-tab undo/redo.</li>
-<li><code>object_edits.*</code>: validated live-object patch and area-membership batches,
-  undo ownership, and rollback.</li>
-<li><code>resource_document.*</code> / <code>object_document.*</code>: resource identity,
-  presentation, serialization, and atomic JSON replacement.</li>
-<li><code>viewer_viewport.*</code> / <code>renderer*</code>: shared viewer integration and viewport
-  presentation.</li>
-<li><code>ui/panel.rml</code> / <code>ui/panel.rcss</code>: current shell document and styling.</li>
-</ul>
-<h2 id="current-limits">Current Limits</h2>
-<ul>
-<li>The client is viewer-first. It does not yet provide a complete editor for
-  every object aggregate.</li>
-<li>Encounter creature-list editing remains a dedicated editor concern; placed
-  spawn-point markers are edited directly in the Area viewport.</li>
-<li>Save All covers open modified JSON area and blueprint documents; it is not
-  autosave or a project-wide export.</li>
-<li>The Smalls list host defines list state and callback protocols, but the
-  current object-workbench DOM rows are materialized by the C++
-  <code>VirtualListController</code> path.</li>
-<li>Toolset presentation is packaged separately from profile policy, but runtime
-  toolset-package replacement and hot reload are not implemented.</li>
-<li>There is no network server or serializable transaction protocol. Current
-  object handles, Smalls type IDs, and undo closures are process-local.</li>
+<li><a href="https://github.com/jd28/rollnw/blob/main/tools/client/client_application.cpp">Application entry and lifecycle</a></li>
+<li><a href="transactions.html">Commands and document transactions</a></li>
+<li><a href="ui-runtime.html">UI subsystem</a> and <a href="rml-smalls.html">RmlUi/Smalls binding</a></li>
+<li><a href="../render/index.html">Shared renderer</a></li>
 </ul>
       </article>
     </main>
