@@ -1853,6 +1853,10 @@ static void resolve_function_signature(TypeResolver& resolver, FunctionDefinitio
         const ModuleInterface* native_module = rt.get_native_module(ctx.parent_->name());
 
         if (!native_module) {
+            // The language server checks declarations without loading their host.
+            if (nw::kernel::services().mode() == nw::kernel::ServiceMode::language) {
+                return;
+            }
             ctx.errorf(decl->range_, "Module '{}' has [[native]] declarations but no C++ native module is registered",
                 ctx.parent_->name());
             return;
@@ -2449,6 +2453,9 @@ void TypeResolver::visit(OpaqueTypeDecl* decl)
     auto& rt = nw::kernel::runtime();
     const ModuleInterface* native_module = rt.get_native_module(ctx.parent_->name());
     if (!native_module) {
+        if (nw::kernel::services().mode() == nw::kernel::ServiceMode::language) {
+            return;
+        }
         ctx.errorf(decl->range_, "Module '{}' has [[native]] declarations but no C++ native module is registered",
             ctx.parent_->name());
         return;

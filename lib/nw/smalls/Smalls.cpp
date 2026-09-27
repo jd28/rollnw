@@ -6,6 +6,7 @@
 #include "AstResolver.hpp"
 #include "runtime.hpp"
 
+#include <algorithm>
 #include <fmt/format.h>
 #include <new>
 
@@ -765,6 +766,14 @@ void Script::resolve()
 
         AstResolver resolver{this, ctx_};
         resolver.resolve(&ast_);
+        // Prelude declarations are implicit imports and share their lifetime
+        // with the resolved AST just like explicit imports.
+        for (auto* prelude : {resolver.core_prelude_, resolver.user_prelude_}) {
+            if (prelude && prelude != this
+                && std::find(dependency_paths_.begin(), dependency_paths_.end(), prelude->name()) == dependency_paths_.end()) {
+                dependency_paths_.emplace_back(prelude->name());
+            }
+        }
         symbol_table_ = resolver.symbol_table();
         decl_providers_ = resolver.decl_providers_;
 

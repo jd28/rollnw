@@ -524,6 +524,55 @@ const json* find_symbol(const json& symbols, std::string_view name)
 
 } // namespace
 
+TEST_F(SmallsLSP, ProtocolRefreshesPreludeAcrossOpenDocuments)
+{
+    const auto core = std::filesystem::weakly_canonical(
+        std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "lib/nw/smalls/scripts/core");
+    nw::kernel::runtime().add_module_path(core);
+    std::vector<json> conversation{initialize_message()};
+    int request_id = 2;
+    std::string prelude_source;
+    const auto prelude_uri = smalls_lsp::native_path_to_uri((core / "prelude.smalls").string());
+    for (const auto* name : {"placeable.smalls", "prelude.smalls", "visual.smalls"}) {
+        const auto path = core / name;
+        const auto uri = smalls_lsp::native_path_to_uri(path.string());
+        std::ifstream input{path};
+        std::ostringstream buffer;
+        buffer << input.rdbuf();
+        auto source = buffer.str();
+        ASSERT_FALSE(source.empty());
+        if (uri == prelude_uri) {
+            prelude_source = source;
+            source += "\nconst lsp_prelude_value = 42;\n";
+        }
+        conversation.push_back(did_open_message(uri, source));
+        conversation.push_back(document_request(request_id++, "textDocument/diagnostic", uri));
+    }
+
+    const auto consumer_uri = smalls_lsp::native_path_to_uri((core / "lsp_prelude_consumer.smalls").string());
+    conversation.push_back(did_open_message(consumer_uri,
+        "fn read(): int { return lsp_prelude_value; }"));
+    conversation.push_back(document_request(request_id++, "textDocument/diagnostic", consumer_uri));
+    conversation.push_back({{"jsonrpc", "2.0"}, {"method", "textDocument/didChange"},
+        {"params", {{"textDocument", {{"uri", prelude_uri}, {"version", 2}}}, {"contentChanges", json::array({{{"text", prelude_source + "\nconst lsp_prelude_value = \"changed\";\n"}}})}}}});
+    conversation.push_back(document_request(request_id, "textDocument/diagnostic", consumer_uri));
+
+    const auto messages = run_conversation(conversation);
+    for (int id = 2; id < request_id; ++id) {
+        const auto* response = response_with_id(messages, id);
+        ASSERT_NE(response, nullptr) << id;
+        EXPECT_FALSE(response->contains("error")) << *response;
+        for (const auto& diagnostic : (*response)["result"]["items"]) {
+            EXPECT_NE(diagnostic.value("severity", 1), 1) << diagnostic;
+        }
+    }
+    const auto* updated = response_with_id(messages, request_id);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_FALSE(updated->contains("error")) << *updated;
+    ASSERT_FALSE((*updated)["result"]["items"].empty()) << *updated;
+    EXPECT_EQ((*updated)["result"]["items"][0]["severity"], 1);
+}
+
 // A request carries an id and gets exactly one response; a notification carries
 // none and must get none. Indexing `req["id"]` unconditionally read past the end
 // of the object under NDEBUG.

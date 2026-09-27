@@ -201,8 +201,7 @@ struct Script {
     /// Converts exported symbol metadata to symbol.
     Symbol export_to_symbol(StringView name, const Export& exp) const;
 
-    /// Returns all transitive dependencies in 'preprocessed' order,
-    /// i.e. dependencies()[n] was include before dependencies()[n+1]
+    /// Direct imports in source order, followed by implicit preludes after resolution.
     Vector<String> dependencies() const;
 
     /// Gets script diagnostics

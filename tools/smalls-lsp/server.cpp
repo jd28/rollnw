@@ -1719,7 +1719,7 @@ struct LspServer {
     ///
     /// `evict_modules` drops the edited module and its cached dependents
     /// transitively, so the republish set must be transitive too.
-    /// `Script::dependencies` reports direct imports only, so the set is grown
+    /// `Script::dependencies` reports direct dependencies, so the set is grown
     /// to a fixpoint rather than tested one level deep.
     void cascade_diagnostics(const std::string& changed_uri)
     {

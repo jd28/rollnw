@@ -2435,6 +2435,9 @@ size_t Runtime::evict_cached_modules(const absl::flat_hash_set<String>& module_n
         }
 
         line_offsets_.erase(module_name);
+        if (core_prelude_ == script_it->second) { core_prelude_ = nullptr; }
+        if (core_test_ == script_it->second) { core_test_ = nullptr; }
+        if (user_prelude_ == script_it->second) { user_prelude_ = nullptr; }
         script_it->second->~Script();
         // Script storage is arena-backed and remains high-water memory until runtime shutdown.
         modules_.erase(script_it);
@@ -5323,6 +5326,9 @@ bool Runtime::validate_native_struct(StringView struct_name, const StructDef* st
 {
     auto it = native_struct_layouts_.find(struct_name);
     if (it == native_struct_layouts_.end()) {
+        if (kernel::services().mode() == kernel::ServiceMode::language) {
+            return true;
+        }
         LOG_F(ERROR, "[native] [[native]] struct '{}' not registered in C++. "
                      "Call validate_native_struct<T>(\\\"{}\\\") at startup.",
             struct_name, struct_name);
