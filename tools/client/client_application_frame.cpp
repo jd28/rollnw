@@ -49,7 +49,7 @@ void poll_client_jobs(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
         refresh_workspace_view(doc, state);
     }
     sync_blueprint_operation(state);
-    poll_project_import(window, doc, state);
+    poll_project_import(doc, state);
     poll_project_open(window, context, palette_context,
         doc, palette_doc, renderer, state);
     sync_command_form(state);
@@ -409,6 +409,7 @@ int run_client_frames(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
         update_viewer_frame_metrics(state.metrics, raw_frame_delta_seconds);
 
         poll_client_input(surfaces, renderer, state, object_workbench_change_listener, running);
+        if (!running || state.quit_requested) { break; }
         refresh_client_queries(surfaces, renderer, state, log_capture);
         if (!prepare_client_surface(surfaces, renderer, state, frame_start_ms)) { continue; }
         const Uint64 begin_frame_start_counter = SDL_GetPerformanceCounter();

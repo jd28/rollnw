@@ -277,7 +277,7 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             cancel_area_tile_stroke(renderer, state);
             if (ensure_backend_ready(state)) {
                 dispatch_command_flow(
-                    window, state, "workspace.close_tab", {}, nw::toolset::CommandSource::shortcut);
+                    state, "workspace.close_tab", {}, nw::toolset::CommandSource::shortcut);
                 refresh_workspace_view(doc, state);
             }
             dispatch.native_handled = true;
@@ -287,7 +287,7 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             cancel_area_tile_stroke(renderer, state);
             if (ensure_backend_ready(state)) {
                 dispatch_command_flow(
-                    window, state, shortcut == nw::toolset::EditorShortcutAction::save_all ? "toolset.save_all" : "workspace.save_tab",
+                    state, shortcut == nw::toolset::EditorShortcutAction::save_all ? "toolset.save_all" : "workspace.save_tab",
                     {}, nw::toolset::CommandSource::shortcut);
                 refresh_workspace_view(doc, state);
             }
@@ -297,8 +297,7 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
         if (shortcut == nw::toolset::EditorShortcutAction::undo || shortcut == nw::toolset::EditorShortcutAction::redo) {
             cancel_area_tile_stroke(renderer, state);
             if (ensure_backend_ready(state)) {
-                dispatch_command_flow(window,
-                    state,
+                dispatch_command_flow(state,
                     shortcut == nw::toolset::EditorShortcutAction::undo ? "command.undo" : "command.redo",
                     {},
                     nw::toolset::CommandSource::shortcut);
@@ -342,7 +341,7 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
                     const bool was_showing_project = state.shell.showing_project_tree;
                     auto result = state.backend.console_execute(line, command_context(state, nw::toolset::CommandSource::terminal));
                     result = resolve_command_result(
-                        window, state, std::move(result), nw::toolset::CommandSource::terminal, true);
+                        state, std::move(result), true);
                     if (result.ok() && state.shell.showing_project_tree) {
                         remember_recent_project(state, state.backend.current_project_dir());
                     }

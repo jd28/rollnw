@@ -8,10 +8,10 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
-struct SDL_Window;
-struct SDL_KeyboardEvent;
+union SDL_Event;
 
 namespace Rml {
 class Context;
@@ -79,26 +79,31 @@ struct CommandOverlayAction {
     CommandViewState& state, const ToolsetBackend& backend,
     bool project_load_active, Rml::Element* target);
 
-// One overlay owns keyboard focus and choice presentation. No DOM borrow escapes
+// One overlay owns keyboard focus, close requests, and choice presentation. No DOM borrow escapes
 // this synchronous singleton call. A returned action index is validated again by
 // take_command_form_action; unhandled keys retain ordinary SDK forwarding.
-struct CommandFormKeyResult {
+struct CommandFormEventResult {
     bool handled = false;
     std::optional<size_t> action_index;
 };
-[[nodiscard]] CommandFormKeyResult handle_command_form_key(
+[[nodiscard]] CommandFormEventResult handle_command_form_event(
     CommandViewState& state, const ToolsetBackend& backend,
-    bool project_load_active, Rml::Context* context, const SDL_KeyboardEvent& key);
+    bool project_load_active, Rml::Context* context, const SDL_Event& event);
 [[nodiscard]] std::optional<CommandPromptAction> take_command_form_action(
     CommandViewState& state, const ToolsetBackend& backend,
+    bool project_load_active, bool dialog_open, size_t index);
+// Empty-command actions dismiss without dispatch. Failed confirmations return
+// the same prompt with a diagnostic, so the caller can present a retry.
+[[nodiscard]] std::optional<CommandResult> execute_command_form_action(
+    CommandViewState& state, ToolsetBackend& backend, CommandContext context,
     bool project_load_active, bool dialog_open, size_t index);
 // Returns false for a stale/absent form. Matching cancellation still advances
 // the generation, as does the original native-dialog result path.
 [[nodiscard]] bool apply_command_form_directory_result(CommandViewState& state,
     const std::string& path, const std::string& error, bool canceled);
 [[nodiscard]] bool take_command_form_prompt(CommandViewState& state, CommandResult& result);
-[[nodiscard]] std::optional<CommandPromptAction> show_command_prompt(
-    SDL_Window* window, const CommandPrompt& prompt);
+// Notices preserve an active form's inputs/actions instead of replacing it.
+void show_command_message(CommandViewState& state, std::string_view title, std::string_view message);
 void append_command_results(ShellController& shell, std::span<const CommandResult> results);
 void append_terminal_results(ShellController& shell, std::span<const CommandResult> results);
 

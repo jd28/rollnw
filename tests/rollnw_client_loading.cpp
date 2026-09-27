@@ -52,6 +52,7 @@ protected:
     }
 
     LoadingViewState state;
+    CommandViewState command_view;
     ShellController shell;
     bool events_started = false;
     bool video_started = false;
@@ -75,7 +76,7 @@ TEST_F(ClientLoading, NativePayloadCopiesSelectionAndIsConsumedOnce)
     EXPECT_TRUE(state.module_dialog_command.empty());
     EXPECT_EQ(event.user.data1, nullptr);
     EXPECT_FALSE(take_loading_dialog_result(state, event));
-    EXPECT_EQ(apply_loading_dialog_selection(state, *result, nullptr, shell), LoadingDialogAction::import_changed);
+    EXPECT_EQ(apply_loading_dialog_selection(state, *result, command_view, shell), LoadingDialogAction::import_changed);
     EXPECT_EQ(state.import_module_path, result->selection.path);
     EXPECT_NE(state.import_status.find("Review"), std::string::npos);
 }
@@ -193,7 +194,7 @@ TEST_F(ClientLoading, CancellationNullPayloadAndUnrelatedEventsRetainTheirPolici
     ASSERT_TRUE(result);
     EXPECT_TRUE(result->selection.canceled);
     state.import_parent_dir = "keep destination";
-    EXPECT_EQ(apply_loading_dialog_selection(state, *result, nullptr, shell), LoadingDialogAction::import_changed);
+    EXPECT_EQ(apply_loading_dialog_selection(state, *result, command_view, shell), LoadingDialogAction::import_changed);
     EXPECT_EQ(state.import_parent_dir, "keep destination");
     EXPECT_EQ(state.import_status, "Selection canceled. No project files were written.");
 
@@ -241,7 +242,7 @@ TEST_F(ClientLoading, CompletionQueuesOneUnpresentedLoadAndKeepsBusyWork)
     state.import_module_generation = 9;
     state.import_status = result.message;
     EXPECT_FALSE(queue_loading_project(state, "", CommandSource::widget));
-    EXPECT_TRUE(finish_loading_import(state, result, {.module_generation = 9}, nullptr));
+    EXPECT_TRUE(finish_loading_import(state, result, {.module_generation = 9}, command_view));
     EXPECT_EQ(state.project_load.path, "completed project");
     EXPECT_TRUE(state.project_load.close_import_panel_on_success);
     EXPECT_FALSE(state.project_load.presented);
@@ -249,12 +250,11 @@ TEST_F(ClientLoading, CompletionQueuesOneUnpresentedLoadAndKeepsBusyWork)
     EXPECT_FALSE(queue_loading_project(state, "second", CommandSource::palette));
     EXPECT_EQ(state.project_load.path, "completed project");
 
-    // With the dummy driver no desktop dialog can be displayed. These are the
-    // real completion policies; graphics/native dialog presentation is separate.
+    // Completion notices use the same application modal as confirmations.
     state.project_load = {};
-    EXPECT_FALSE(finish_loading_import(state, {.ok = false}, {.module_generation = 9}, nullptr));
+    EXPECT_FALSE(finish_loading_import(state, {.ok = false}, {.module_generation = 9}, command_view));
     EXPECT_FALSE(state.project_load.active());
-    EXPECT_FALSE(poll_loading_import(state, nullptr, shell));
+    EXPECT_FALSE(poll_loading_import(state, command_view, shell));
     const std::array busy_work{
         LoadingImportWorkState{.dirty_tabs = true, .module_generation = 9},
         LoadingImportWorkState{.module_generation = 10},
@@ -262,16 +262,20 @@ TEST_F(ClientLoading, CompletionQueuesOneUnpresentedLoadAndKeepsBusyWork)
     };
     for (const auto work : busy_work) {
         state.import_status = result.message;
-        EXPECT_FALSE(finish_loading_import(state, result, work, nullptr));
+        EXPECT_FALSE(finish_loading_import(state, result, work, command_view));
+        ASSERT_TRUE(command_view.command_form);
+        EXPECT_EQ(command_view.command_form->title, "Import complete");
+        EXPECT_TRUE(command_view.command_form->fields.empty());
+        command_view.command_form.reset();
         EXPECT_FALSE(state.project_load.active());
         EXPECT_NE(state.import_status.find("current work was kept open"), std::string::npos);
     }
     state.module_dialog_open = true;
-    EXPECT_FALSE(finish_loading_import(state, result, {.module_generation = 9}, nullptr));
+    EXPECT_FALSE(finish_loading_import(state, result, {.module_generation = 9}, command_view));
     EXPECT_FALSE(state.project_load.active());
     state.module_dialog_open = false;
     ASSERT_TRUE(queue_loading_project(state, "previous", CommandSource::palette));
-    EXPECT_FALSE(finish_loading_import(state, result, {.module_generation = 9}, nullptr));
+    EXPECT_FALSE(finish_loading_import(state, result, {.module_generation = 9}, command_view));
     EXPECT_EQ(state.project_load.path, "previous");
     EXPECT_NE(state.import_status.find("Another project is already opening"), std::string::npos);
 }

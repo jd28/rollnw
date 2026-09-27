@@ -1,4 +1,5 @@
 #include "loading_view.hpp"
+#include "command_view.hpp"
 #include "shell_controller.hpp"
 
 #include <RmlUi/Core.h>
@@ -276,7 +277,7 @@ std::optional<LoadingDialogSelection> take_loading_dialog_result(LoadingViewStat
 }
 
 LoadingDialogAction apply_loading_dialog_selection(LoadingViewState& state,
-    const LoadingDialogSelection& result, SDL_Window* window, ShellController& shell)
+    const LoadingDialogSelection& result, CommandViewState& command_view, ShellController& shell)
 {
     const auto& command = result.command;
     const auto& [path, error, canceled] = result.selection;
@@ -285,7 +286,7 @@ LoadingDialogAction apply_loading_dialog_selection(LoadingViewState& state,
         shell.append_output("error", std::string{"File dialog failed: "} + error);
         if (importing) {
             state.import_status = "Import dialog failed: " + error;
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Import failed", error.c_str(), window);
+            show_command_message(command_view, "Import failed", error);
             return LoadingDialogAction::import_changed;
         }
         return LoadingDialogAction::none;
@@ -311,7 +312,7 @@ LoadingDialogAction apply_loading_dialog_selection(LoadingViewState& state,
 }
 
 LoadingHomeAction handle_loading_home_target(LoadingViewState& state,
-    Rml::Element* target, SDL_Window* window, ShellController& shell,
+    Rml::Element* target, CommandViewState& command_view, ShellController& shell,
     const std::filesystem::path& executable, uint64_t module_generation)
 {
     if (find_ancestor_with_id(target, "home_import_module")) {
@@ -332,7 +333,7 @@ LoadingHomeAction handle_loading_home_target(LoadingViewState& state,
         } else {
             state.import_status = error;
             shell.append_output("error", error);
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Import failed", error.c_str(), window);
+            show_command_message(command_view, "Import failed", error);
         }
     } else if (find_ancestor_with_id(target, "home_open_project")) {
         return LoadingHomeAction::open_project;
@@ -343,29 +344,29 @@ LoadingHomeAction handle_loading_home_target(LoadingViewState& state,
 }
 
 std::optional<ProjectImportCompletion> poll_loading_import(LoadingViewState& state,
-    SDL_Window* window, ShellController& shell)
+    CommandViewState& command_view, ShellController& shell)
 {
     auto result = state.project_import.poll();
     if (!result) { return std::nullopt; }
     state.import_status = result->message;
     shell.append_output(result->ok ? "info" : "error", result->message);
-    if (!result->ok) { SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Import failed", result->message.c_str(), window); }
+    if (!result->ok) { show_command_message(command_view, "Import failed", result->message); }
     return result;
 }
 
 bool finish_loading_import(LoadingViewState& state, const ProjectImportCompletion& result,
-    LoadingImportWorkState work, SDL_Window* window)
+    LoadingImportWorkState work, CommandViewState& command_view)
 {
     if (!result.ok) { return false; }
     if (work.dirty_tabs || work.module_generation != state.import_module_generation
         || state.module_dialog_open || work.preview_active) {
         state.import_status += ". Open it from Open Project or Recent Projects when you are ready; your current work was kept open.";
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Import complete", state.import_status.c_str(), window);
+        show_command_message(command_view, "Import complete", state.import_status);
         return false;
     }
     if (!queue_loading_project(state, result.project_dir.string(), CommandSource::widget, true)) {
         state.import_status += ". Another project is already opening.";
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Could not open imported project", state.import_status.c_str(), window);
+        show_command_message(command_view, "Could not open imported project", state.import_status);
         return false;
     }
     return true;

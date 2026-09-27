@@ -3545,6 +3545,49 @@ void ToolsetBackend::register_native_commands()
         });
 
     register_or_log(CommandSpec{
+                        "workspace.quit",
+                        "Quit Workspace",
+                        "Confirm unsaved documents before exiting the client",
+                        "workspace",
+                        {},
+                        CommandScope::global,
+                        CommandFlags::hidden,
+                        {},
+                        "workspace.quit [--save|--discard]",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext context) {
+            if (!workspace_) {
+                return command_result(CommandStatus::failed, "Workspace unavailable", CommandOutputChannel::error);
+            }
+            const auto action = command_arg_string(invocation.args, 0);
+            if (invocation.args.size() > 1
+                || (!invocation.args.empty() && action != "--save" && action != "--discard")) {
+                return command_result(CommandStatus::rejected, "Expected workspace.quit [--save|--discard]", CommandOutputChannel::warn);
+            }
+            auto result = command_result(CommandStatus::noop, {}, CommandOutputChannel::none);
+            if (action == "--save") {
+                result = execute_command("toolset.save_all", {}, context);
+                if (!result.ok()) { return result; }
+            }
+            if (action == "--discard" || !workspace_->has_dirty_tabs()) {
+                result.quit_requested = true;
+            } else {
+                result.prompt = CommandPrompt{
+                    .id = "workspace.quit",
+                    .title = "Unsaved documents",
+                    .message = "Save changes before quitting?",
+                    .detail = "Discard closes all documents without saving their edits.",
+                    .actions = {
+                        {"save", "Save All", "workspace.quit", {"--save"}},
+                        {"discard", "Discard", "workspace.quit", {"--discard"}},
+                        {"cancel", "Cancel", {}, {}},
+                    },
+                };
+            }
+            return result;
+        });
+
+    register_or_log(CommandSpec{
                         "toolset.open_recent",
                         "Open Recent",
                         "Show recent projects",

@@ -54,33 +54,12 @@ bool queue_project_open(ClientApplicationState& state, std::string path,
     return true;
 }
 
-nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
-    ClientApplicationState& state,
+nw::toolset::CommandResult resolve_command_result(ClientApplicationState& state,
     nw::toolset::CommandResult result,
-    nw::toolset::CommandSource source,
     bool terminal_output)
 {
-    bool prompted = false;
-    while (result.prompt) {
-        prompted = true;
-        if (nw::toolset::take_command_form_prompt(state.command_view, result)) {
-            break;
-        }
-        const auto action = nw::toolset::show_command_prompt(window, *result.prompt);
-        if (!action || action->command_id.empty()) {
-            result = {};
-            result.status = nw::toolset::CommandStatus::noop;
-            result.output_channel = nw::toolset::CommandOutputChannel::none;
-            break;
-        }
-
-        std::vector<std::string_view> args;
-        args.reserve(action->args.size());
-        for (const auto& argument : action->args) {
-            args.push_back(argument);
-        }
-        result = dispatch_command(state, action->command_id, std::move(args), source);
-    }
+    if (nw::toolset::take_command_form_prompt(state.command_view, result)) { sync_command_form(state); }
+    state.quit_requested |= result.ok() && result.quit_requested;
 
     nw::toolset::release_area_map_textures(
         result.refreshed_area_maps);
@@ -95,19 +74,15 @@ nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
     } else {
         append_command_result(state, result);
     }
-    if (prompted && !result.ok() && result.should_log()) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Save failed", result.message.c_str(), window);
-    }
     return result;
 }
 
-nw::toolset::CommandResult dispatch_command_flow(SDL_Window* window,
-    ClientApplicationState& state,
+nw::toolset::CommandResult dispatch_command_flow(ClientApplicationState& state,
     std::string_view command_id,
     std::vector<std::string_view> args,
     nw::toolset::CommandSource source)
 {
-    return resolve_command_result(window, state, dispatch_command(state, command_id, std::move(args), source), source);
+    return resolve_command_result(state, dispatch_command(state, command_id, std::move(args), source));
 }
 
 void show_open_module_dialog(SDL_Window* window, ClientApplicationState& state, bool import)
@@ -152,7 +127,7 @@ void execute_palette_command(SDL_Window* window,
 
     const bool was_showing_areas = state.shell.showing_areas;
     const bool was_showing_project = state.shell.showing_project_tree;
-    const auto result = dispatch_command_flow(window, state, command_id, {}, nw::toolset::CommandSource::palette);
+    const auto result = dispatch_command_flow(state, command_id, {}, nw::toolset::CommandSource::palette);
     sync_shell_visibility(context, palette_context, doc, palette_doc, state);
     refresh_workspace_view(doc, state);
     if (result.ok()
@@ -165,7 +140,7 @@ void execute_palette_command(SDL_Window* window,
     toggle_command_palette(context, palette_context, doc, palette_doc, state, false);
 }
 
-void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* doc, ClientApplicationState& state, SDL_Event& event)
+void handle_open_module_dialog_result(Rml::ElementDocument* doc, ClientApplicationState& state, SDL_Event& event)
 {
     const auto result = nw::toolset::take_loading_dialog_result(state.loading, event);
     if (!result) { return; }
@@ -176,7 +151,7 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
                 result->selection.error, result->selection.canceled)) { sync_command_form(state); }
         return;
     }
-    const auto action = nw::toolset::apply_loading_dialog_selection(state.loading, *result, window, state.shell);
+    const auto action = nw::toolset::apply_loading_dialog_selection(state.loading, *result, state.command_view, state.shell);
     if (action == nw::toolset::LoadingDialogAction::import_changed) {
         refresh_workspace_view(doc, state);
         return;
@@ -217,24 +192,22 @@ void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* 
     }
 }
 
-void run_command_form_action(SDL_Window* window, Rml::ElementDocument* doc, ClientApplicationState& state, size_t index)
+void run_command_form_action(Rml::ElementDocument* doc, ClientApplicationState& state, size_t index)
 {
-    const auto action = nw::toolset::take_command_form_action(state.command_view,
-        state.backend, state.loading.project_load.active(), state.loading.module_dialog_open, index);
-    if (!action) { return; }
-    std::vector<std::string_view> args;
-    for (const auto& argument : action->args) {
-        args.push_back(argument);
-    }
-    (void)dispatch_command_flow(window, state, action->command_id, std::move(args), nw::toolset::CommandSource::widget);
+    auto result = nw::toolset::execute_command_form_action(state.command_view, state.backend,
+        command_context(state, nw::toolset::CommandSource::widget),
+        state.loading.project_load.active(), state.loading.module_dialog_open, index);
+    if (!result) { return; }
+    (void)resolve_command_result(state, std::move(*result));
+    if (state.quit_requested) { return; }
     refresh_recent_list(doc, state);
     refresh_workspace_view(doc, state);
     sync_command_form(state);
 }
 
-void poll_project_import(SDL_Window* window, Rml::ElementDocument* doc, ClientApplicationState& state)
+void poll_project_import(Rml::ElementDocument* doc, ClientApplicationState& state)
 {
-    const auto result = nw::toolset::poll_loading_import(state.loading, window, state.shell);
+    const auto result = nw::toolset::poll_loading_import(state.loading, state.command_view, state.shell);
     if (!result) { return; }
     if (result->ok) {
         remember_recent_project(state, result->project_dir);
@@ -242,7 +215,7 @@ void poll_project_import(SDL_Window* window, Rml::ElementDocument* doc, ClientAp
                 {.dirty_tabs = state.workspace.has_dirty_tabs(),
                     .module_generation = state.backend.module_generation(),
                     .preview_active = state.play_preview.session.active() || state.play_preview.placement_pending()},
-                window)) {
+                state.command_view)) {
             sync_project_load_overlay(state);
         }
     }
@@ -266,7 +239,7 @@ void poll_project_open(SDL_Window* window,
     auto pending_result = nw::toolset::poll_loading_project(state.loading, window, context,
         palette_context, state.command_view.command_overlay_document, renderer, state.backend);
     if (!pending_result) { return; }
-    const auto result = resolve_command_result(window, state, std::move(*pending_result), request.source);
+    const auto result = resolve_command_result(state, std::move(*pending_result));
     state.loading.project_load = {};
     if (result.ok()) {
         remember_recent_project(state, state.backend.current_project_dir());
@@ -276,8 +249,7 @@ void poll_project_open(SDL_Window* window,
         state.browser.selected_recent_index = -1;
         set_input_value(doc, "recent_search", "");
     } else {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
-            "Unable to open project", result.message.c_str(), window);
+        nw::toolset::show_command_message(state.command_view, "Unable to open project", result.message);
     }
 
     sync_project_load_overlay(state);
@@ -300,14 +272,14 @@ void BlueprintActionListener::ProcessEvent(Rml::Event& event)
         state_.command_view, state_.backend, state_.loading.project_load.active(), event.GetTargetElement());
     switch (action.kind) {
     case nw::toolset::CommandOverlayActionKind::dispatch:
-        (void)dispatch_command_flow(window_, state_, action.command_id, {}, nw::toolset::CommandSource::widget);
+        (void)dispatch_command_flow(state_, action.command_id, {}, nw::toolset::CommandSource::widget);
         refresh_recent_list(document_, state_);
         refresh_workspace_view(document_, state_);
         sync_command_form(state_);
         sync_blueprint_operation(state_);
         break;
     case nw::toolset::CommandOverlayActionKind::submit:
-        run_command_form_action(window_, document_, state_, action.form_action_index);
+        run_command_form_action(document_, state_, action.form_action_index);
         break;
     case nw::toolset::CommandOverlayActionKind::browse_directory: {
         if (!state_.command_view.command_form || state_.command_view.command_form->fields.size() < 2 || state_.loading.module_dialog_open || state_.loading.open_module_dialog_event == 0) { return; }
@@ -337,7 +309,7 @@ HomeProjectActionListener::HomeProjectActionListener(SDL_Window* window, Rml::El
 void HomeProjectActionListener::ProcessEvent(Rml::Event& event)
 {
     const auto action = nw::toolset::handle_loading_home_target(state_.loading, event.GetTargetElement(),
-        window_, state_.shell, state_.client_executable, state_.backend.module_generation());
+        state_.command_view, state_.shell, state_.client_executable, state_.backend.module_generation());
     switch (action) {
     case nw::toolset::LoadingHomeAction::browse_module:
         show_open_module_dialog(window_, state_, true);

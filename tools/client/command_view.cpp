@@ -216,13 +216,17 @@ CommandOverlayAction handle_command_overlay_target(CommandViewState& state,
     return {CommandOverlayActionKind::handled};
 }
 
-CommandFormKeyResult handle_command_form_key(CommandViewState& state,
+CommandFormEventResult handle_command_form_event(CommandViewState& state,
     const ToolsetBackend& backend, bool project_load_active,
-    Rml::Context* context, const SDL_KeyboardEvent& key)
+    Rml::Context* context, const SDL_Event& event)
 {
-    if (!state.command_form || key.type != SDL_EVENT_KEY_DOWN || key.repeat) {
+    if (!state.command_form) { return {}; }
+    // A second OS close must not replace a pending decision or destroy its UI.
+    if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) { return {true}; }
+    if (event.type != SDL_EVENT_KEY_DOWN || event.key.repeat) {
         return {};
     }
+    const auto& key = event.key;
     auto* focused_choice = find_ancestor_with_class(
         context ? context->GetFocusElement() : nullptr, "command_form_choice_field");
     const bool choice_key = focused_choice
@@ -274,7 +278,14 @@ CommandFormKeyResult handle_command_form_key(CommandViewState& state,
         }
         return {true};
     }
-    if (key.key == SDLK_RETURN && !state.command_form->actions.empty()) {
+    if ((key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER)
+        && !state.command_form->actions.empty()) {
+        if (auto* button = find_ancestor_with_class(
+                context ? context->GetFocusElement() : nullptr, "command_form_action")) {
+            const auto index = parse_decimal_int32(button->GetAttribute<Rml::String>("data-index", ""));
+            if (index && *index >= 0) { return {true, static_cast<size_t>(*index)}; }
+            return {true};
+        }
         return {true, 0};
     }
     return {};
@@ -305,6 +316,31 @@ std::optional<CommandPromptAction> take_command_form_action(CommandViewState& st
     return action;
 }
 
+std::optional<CommandResult> execute_command_form_action(CommandViewState& state,
+    ToolsetBackend& backend, CommandContext context, bool project_load_active,
+    bool dialog_open, size_t index)
+{
+    auto confirmation = state.command_form && state.command_form->fields.empty()
+        ? state.command_form
+        : std::nullopt;
+    const auto action = take_command_form_action(state, backend, project_load_active, dialog_open, index);
+    if (!action) { return std::nullopt; }
+    if (action->command_id.empty()) {
+        return CommandResult{.status = CommandStatus::noop, .output_channel = CommandOutputChannel::none};
+    }
+    std::vector<std::string_view> args;
+    args.reserve(action->args.size());
+    for (const auto& argument : action->args) {
+        args.push_back(argument);
+    }
+    auto result = backend.execute_command(action->command_id, args, std::move(context));
+    if (!result.ok() && !result.prompt && confirmation) {
+        confirmation->detail = result.message;
+        result.prompt = std::move(confirmation);
+    }
+    return result;
+}
+
 bool apply_command_form_directory_result(CommandViewState& state,
     const std::string& path, const std::string& error, bool canceled)
 {
@@ -320,17 +356,37 @@ bool apply_command_form_directory_result(CommandViewState& state,
 
 bool take_command_form_prompt(CommandViewState& state, CommandResult& result)
 {
-    if (!result.prompt
-        || (result.prompt->fields.empty() && !result.prompt->action_list
-            && !result.prompt->id.starts_with("blueprint."))) {
-        return false;
-    }
+    if (!result.prompt) { return false; }
     state.command_form = std::move(*result.prompt);
     ++state.command_form_generation;
     result.prompt.reset();
     result.status = CommandStatus::noop;
     result.output_channel = CommandOutputChannel::none;
     return true;
+}
+
+void show_command_message(CommandViewState& state, std::string_view title, std::string_view message)
+{
+    if (state.command_form) {
+        auto& form = *state.command_form;
+        for (size_t index = 0; index < form.fields.size(); ++index) {
+            const auto id = "command_form_field_" + std::to_string(index);
+            if (state.rendered_command_form_generation == state.command_form_generation
+                && form.fields[index].choices.empty() && find_el(state.command_overlay_document, id.c_str())) {
+                form.fields[index].value = get_input_value(state.command_overlay_document, id.c_str());
+            }
+        }
+        if (!form.detail.empty()) { form.detail += "\n\n"; }
+        form.detail += std::string{title} + ": " + std::string{message};
+    } else {
+        state.command_form = CommandPrompt{
+            .id = "message",
+            .title = std::string{title},
+            .message = std::string{message},
+            .actions = {{"cancel", "OK", {}, {}}},
+        };
+    }
+    ++state.command_form_generation;
 }
 
 void append_command_results(ShellController& shell, std::span<const CommandResult> results)
@@ -396,51 +452,6 @@ void refresh_command_palette_query(Rml::ElementDocument* document,
         state.last_command_query = query;
         refresh_command_palette(document, state, backend);
     }
-}
-
-std::optional<CommandPromptAction> show_command_prompt(
-    SDL_Window* window, const CommandPrompt& prompt)
-{
-    if (prompt.actions.size() > static_cast<size_t>(std::numeric_limits<int>::max())) { return std::nullopt; }
-    std::vector<SDL_MessageBoxButtonData> buttons;
-    buttons.reserve(prompt.actions.size());
-    for (size_t i = 0; i < prompt.actions.size(); ++i) {
-        SDL_MessageBoxButtonFlags flags = 0;
-        if (prompt.actions[i].id == "save") {
-            flags |= SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
-        }
-        if (prompt.actions[i].id == "cancel") {
-            flags |= SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-        }
-        buttons.push_back(SDL_MessageBoxButtonData{
-            .flags = flags,
-            .buttonID = static_cast<int>(i),
-            .text = prompt.actions[i].label.c_str(),
-        });
-    }
-
-    std::string message = prompt.message;
-    if (!prompt.detail.empty()) {
-        message += "\n\n";
-        message += prompt.detail;
-    }
-    const SDL_MessageBoxData message_box{
-        .flags = SDL_MESSAGEBOX_WARNING | SDL_MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT,
-        .window = window,
-        .title = prompt.title.c_str(),
-        .message = message.c_str(),
-        .numbuttons = static_cast<int>(buttons.size()),
-        .buttons = buttons.data(),
-        .colorScheme = nullptr,
-    };
-
-    int button_id = -1;
-    if (!SDL_ShowMessageBox(&message_box, &button_id)
-        || button_id < 0
-        || static_cast<size_t>(button_id) >= prompt.actions.size()) {
-        return std::nullopt;
-    }
-    return prompt.actions[static_cast<size_t>(button_id)];
 }
 
 void sync_command_overlay_visibility(CommandViewState& state, bool project_load_active, bool operation_active)
@@ -674,7 +685,11 @@ void sync_command_form(CommandViewState& state, const ToolsetBackend& backend,
         }
         markup += "</div></div><div id=\"command_form_combobox_popup\" class=\"combobox_options combobox_popup command_form_combobox_popup\"></div>";
         host->SetInnerRML(markup);
-        if (auto* input = find_el(doc, "command_form_field_0")) { input->Focus(); }
+        if (auto* input = find_el(doc, "command_form_field_0")) {
+            input->Focus();
+        } else if (auto* button = find_el(doc, "command_form_action_0")) {
+            button->Focus();
+        }
     }
     if (!state.command_form) { return; }
     auto& form = *state.command_form;

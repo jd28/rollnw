@@ -40,7 +40,7 @@ nw::toolset::ClientInputOwnership client_input_ownership(const ClientApplication
             && state.backend.module_generation() == state.play_preview.module_generation
             && nw::kernel::objects().valid(state.play_preview.area)
             && (state.play_preview.placement_pending() || nw::kernel::objects().valid(state.play_preview.session.actor())),
-        .command_modal = state.backend.blueprint_operation_active()
+        .command_modal = state.command_view.command_form.has_value() || state.backend.blueprint_operation_active()
             || state.backend.blueprint_publication_pending(),
         .world_input_blocked = state.loading.module_dialog_open || state.loading.project_load.active(),
     };
@@ -236,7 +236,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
     auto* palette_doc = surfaces.palette_doc;
     auto& system_interface = *surfaces.system_interface;
     SDL_Event event;
-    while (SDL_PollEvent(&event)) {
+    while (running && !state.quit_requested && SDL_PollEvent(&event)) {
         nw::toolset::ClientInputDispatchState dispatch;
         clear_inactive_object(state);
         if (state.project_blueprint_drag.active()
@@ -254,7 +254,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             cancel_area_object_drag(renderer, state);
         }
         if (state.loading.open_module_dialog_event != 0 && event.type == state.loading.open_module_dialog_event) {
-            handle_open_module_dialog_result(window, doc, state, event);
+            handle_open_module_dialog_result(doc, state, event);
             continue;
         }
         if (consume_terminal_toggle_text_input(state, event)) {
@@ -279,17 +279,14 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             continue;
         }
 
-        if ((state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending())) {
-            if (event.type == SDL_EVENT_QUIT) {
-                if (state.backend.blueprint_progress().stage == "recovery" && !state.backend.blueprint_worker_active()
-                    && !state.workspace.has_dirty_tabs()) {
-                    running = false;
-                    continue;
-                }
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Blueprint update in progress",
-                    "Finish or cancel the blueprint operation before quitting.", window);
-                continue;
+        if (state.command_view.command_form) {
+            const auto input = nw::toolset::handle_command_form_event(
+                state.command_view, state.backend, state.loading.project_load.active(),
+                palette_context, event);
+            if (input.action_index) {
+                run_command_form_action(doc, state, *input.action_index);
             }
+            if (input.handled) { continue; }
             if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP
                 || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING
                 || event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN
@@ -299,15 +296,17 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
                 continue;
             }
         }
-        if (state.command_view.command_form) {
-            if (event.type == SDL_EVENT_KEY_DOWN) {
-                const auto key = nw::toolset::handle_command_form_key(
-                    state.command_view, state.backend, state.loading.project_load.active(),
-                    palette_context, event.key);
-                if (key.action_index) {
-                    run_command_form_action(window, doc, state, *key.action_index);
+
+        if ((state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending())) {
+            if (event.type == SDL_EVENT_QUIT) {
+                if (state.backend.blueprint_progress().stage == "recovery" && !state.backend.blueprint_worker_active()
+                    && !state.workspace.has_dirty_tabs()) {
+                    running = false;
+                    continue;
                 }
-                if (key.handled) { continue; }
+                nw::toolset::show_command_message(state.command_view, "Blueprint update in progress",
+                    "Finish or cancel the blueprint operation before quitting.");
+                continue;
             }
             if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP
                 || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING
@@ -322,38 +321,12 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
         switch (event.type) {
         case SDL_EVENT_QUIT: {
             if (state.loading.project_import.active()) {
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Import in progress",
-                    "Please wait for the module import to finish before quitting.", window);
+                nw::toolset::show_command_message(state.command_view, "Import in progress",
+                    "Please wait for the module import to finish before quitting.");
                 break;
             }
-            if (!state.workspace.has_dirty_tabs()) {
-                running = false;
-                break;
-            }
-            const nw::toolset::CommandPrompt prompt{
-                .id = "workspace.quit",
-                .title = "Unsaved documents",
-                .message = "Save changes before quitting?",
-                .detail = "Discard closes all documents without saving their edits.",
-                .actions = {
-                    {"save", "Save All", "toolset.save_all", {}},
-                    {"discard", "Discard", {}, {}},
-                    {"cancel", "Cancel", {}, {}},
-                },
-            };
-            const auto action = show_command_prompt(window, prompt);
-            if (action && action->id == "discard") {
-                running = false;
-            } else if (action && action->id == "save") {
-                const auto result = dispatch_command_flow(window, state,
-                    "toolset.save_all", {}, nw::toolset::CommandSource::shortcut);
-                refresh_workspace_view(doc, state);
-                if (result.ok() && !state.workspace.has_dirty_tabs()) {
-                    running = false;
-                } else {
-                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Save failed", result.message.c_str(), window);
-                }
-            }
+            (void)dispatch_command_flow(state,
+                "workspace.quit", {}, nw::toolset::CommandSource::shortcut);
             break;
         }
         case SDL_EVENT_KEY_DOWN:

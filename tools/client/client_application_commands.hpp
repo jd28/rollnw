@@ -37,13 +37,10 @@ void sync_blueprint_operation(ClientApplicationState& state);
 void sync_project_load_overlay(ClientApplicationState& state);
 bool queue_project_open(ClientApplicationState& state, std::string path,
     nw::toolset::CommandSource source, bool close_import_panel_on_success = false);
-nw::toolset::CommandResult resolve_command_result(SDL_Window* window,
-    ClientApplicationState& state,
+nw::toolset::CommandResult resolve_command_result(ClientApplicationState& state,
     nw::toolset::CommandResult result,
-    nw::toolset::CommandSource source,
     bool terminal_output = false);
-nw::toolset::CommandResult dispatch_command_flow(SDL_Window* window,
-    ClientApplicationState& state,
+nw::toolset::CommandResult dispatch_command_flow(ClientApplicationState& state,
     std::string_view command_id,
     std::vector<std::string_view> args,
     nw::toolset::CommandSource source);
@@ -56,9 +53,9 @@ void execute_palette_command(SDL_Window* window,
     Rml::ElementDocument* palette_doc,
     ClientApplicationState& state,
     std::string_view command_id);
-void handle_open_module_dialog_result(SDL_Window* window, Rml::ElementDocument* doc, ClientApplicationState& state, SDL_Event& event);
-void run_command_form_action(SDL_Window* window, Rml::ElementDocument* doc, ClientApplicationState& state, size_t index);
-void poll_project_import(SDL_Window* window, Rml::ElementDocument* doc, ClientApplicationState& state);
+void handle_open_module_dialog_result(Rml::ElementDocument* doc, ClientApplicationState& state, SDL_Event& event);
+void run_command_form_action(Rml::ElementDocument* doc, ClientApplicationState& state, size_t index);
+void poll_project_import(Rml::ElementDocument* doc, ClientApplicationState& state);
 void poll_project_open(SDL_Window* window,
     Rml::Context* context,
     Rml::Context* palette_context,

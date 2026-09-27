@@ -52,6 +52,7 @@ struct ClientApplicationState {
     uint64_t observed_area_structure_epoch = 0;
     nw::ObjectHandle stale_area_viewport{};
     bool backend_ready = false;
+    bool quit_requested = false;
     std::filesystem::path client_executable;
     nw::toolset::ClientPointerOwner viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
     bool viewer_viewport_focused = false;

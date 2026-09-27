@@ -29,6 +29,7 @@ namespace nw::toolset {
 
 class ShellController;
 class ToolsetBackend;
+struct CommandViewState;
 
 struct ProjectLoadRequest {
     std::string path;
@@ -129,7 +130,7 @@ enum class LoadingDialogAction : uint8_t {
 // Blueprint browse-generation validation remains with command_view. All other
 // paths return owned values for current backend command dispatch by the root.
 [[nodiscard]] LoadingDialogAction apply_loading_dialog_selection(LoadingViewState& state,
-    const LoadingDialogSelection& result, SDL_Window* window, ShellController& shell);
+    const LoadingDialogSelection& result, CommandViewState& command_view, ShellController& shell);
 
 // Appends the loading-owned controls/status into the existing home surface.
 void append_loading_home_markup(std::string& content_markup, const LoadingViewState& state);
@@ -143,11 +144,11 @@ enum class LoadingHomeAction : uint8_t {
 };
 
 [[nodiscard]] LoadingHomeAction handle_loading_home_target(LoadingViewState& state,
-    Rml::Element* target, SDL_Window* window, ShellController& shell,
+    Rml::Element* target, CommandViewState& command_view, ShellController& shell,
     const std::filesystem::path& executable, uint64_t module_generation);
 
 [[nodiscard]] std::optional<ProjectImportCompletion> poll_loading_import(
-    LoadingViewState& state, SDL_Window* window, ShellController& shell);
+    LoadingViewState& state, CommandViewState& command_view, ShellController& shell);
 
 // Current-work facts are copied after completion. No workspace/session owner or
 // pointer is retained by the load coordinator.
@@ -160,7 +161,7 @@ struct LoadingImportWorkState {
 // Called after recording the completed project in preferences. Failed results
 // do nothing; success either keeps current work or queues this owner's load.
 [[nodiscard]] bool finish_loading_import(LoadingViewState& state,
-    const ProjectImportCompletion& result, LoadingImportWorkState work, SDL_Window* window);
+    const ProjectImportCompletion& result, LoadingImportWorkState work, CommandViewState& command_view);
 
 [[nodiscard]] bool queue_loading_project(LoadingViewState& state, std::string path,
     CommandSource source, bool close_import_panel_on_success = false);

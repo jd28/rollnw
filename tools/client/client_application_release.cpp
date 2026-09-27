@@ -319,7 +319,7 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                         auto result = state.backend.execute_command(std::move(*invocation),
                             command_context(state, nw::toolset::CommandSource::widget));
                         if (kind == nw::toolset::WorkspaceTabClickKind::close) {
-                            result = resolve_command_result(window, state, std::move(result), nw::toolset::CommandSource::widget);
+                            result = resolve_command_result(state, std::move(result));
                         } else {
                             append_command_result(state, result);
                         }
@@ -383,7 +383,7 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                     const auto kind = nw::toolset::consume_home_workspace_click(*home_click, state.browser, state.backend);
                     switch (kind) {
                     case nw::toolset::HomeWorkspaceClickKind::select_area: {
-                        const auto result = dispatch_command_flow(window, state, "toolset.select_area",
+                        const auto result = dispatch_command_flow(state, "toolset.select_area",
                             {std::string_view{home_click->area_resref}}, nw::toolset::CommandSource::widget);
                         if (result.ok()) {
                             refresh_workspace_view(doc, state);
@@ -396,8 +396,8 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                         if (nw::toolset::forget_recent_project_preferences(state.shell_view.preferences_path,
                                 state.shell.docks, state.browser.recent_projects, indices)
                             == nw::toolset::RecentProjectForgetStatus::save_failed) {
-                            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to remove recent project",
-                                "Could not save preferences. The project was kept in the recent list.", window);
+                            nw::toolset::show_command_message(state.command_view, "Unable to remove recent project",
+                                "Could not save preferences. The project was kept in the recent list.");
                         }
                         refresh_workspace_content(doc, state);
                         break;
@@ -407,13 +407,13 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                         if (!project.error.empty()) {
                             const auto message = project.error + ":\n" + project.path;
                             append_output(state, "error", message);
-                            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", message.c_str(), window);
+                            nw::toolset::show_command_message(state.command_view, "Unable to open project", message);
                         } else if (ensure_backend_ready(state)) {
                             if (!queue_project_open(state, project.path, nw::toolset::CommandSource::widget)) {
                                 append_output(state, "warn", "A project is already opening");
                             }
                         } else {
-                            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unable to open project", "Backend initialization failed.", window);
+                            nw::toolset::show_command_message(state.command_view, "Unable to open project", "Backend initialization failed.");
                         }
                         refresh_workspace_view(doc, state);
                         break;
@@ -436,9 +436,7 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                         if (!result.prompt
                             || !nw::toolset::open_project_new_resource_menu(
                                 doc, state.shell_view, *result.prompt)) {
-                            (void)resolve_command_result(window, state,
-                                std::move(result),
-                                nw::toolset::CommandSource::widget);
+                            (void)resolve_command_result(state, std::move(result));
                         }
                     }
                 } else if (shell_click->kind
@@ -453,17 +451,16 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                         for (const auto& argument : action->args) {
                             args.push_back(argument);
                         }
-                        (void)dispatch_command_flow(window, state,
+                        (void)dispatch_command_flow(state,
                             action->command_id, std::move(args),
                             nw::toolset::CommandSource::widget);
                     }
                 } else if (auto command
                     = nw::toolset::take_shell_ui_click_command(
                         *shell_click)) {
-                    (void)resolve_command_result(window, state,
+                    (void)resolve_command_result(state,
                         state.backend.execute_command(std::move(*command),
-                            command_context(state, nw::toolset::CommandSource::widget)),
-                        nw::toolset::CommandSource::widget);
+                            command_context(state, nw::toolset::CommandSource::widget)));
                 }
                 if (sync_visibility) { sync_shell_visibility(context, palette_context, doc, palette_doc, state); }
                 handled = true;
@@ -494,7 +491,7 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
                         const auto argument = kind == nw::toolset::BrowserRowClickKind::open_resource
                             ? click.resource_path.generic_string()
                             : click.area_resref;
-                        const auto result = dispatch_command_flow(window, state,
+                        const auto result = dispatch_command_flow(state,
                             kind == nw::toolset::BrowserRowClickKind::open_resource
                                 ? "toolset.open_resource"
                                 : "toolset.select_area",

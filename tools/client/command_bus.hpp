@@ -168,6 +168,8 @@ struct CommandResult {
     // UI-thread consumers release only the derived area-map textures replaced
     // by this command. Paths remain native metadata and are not script fields.
     std::vector<std::filesystem::path> refreshed_area_maps;
+    // The desktop exits only after the current input callback returns.
+    bool quit_requested = false;
 
     [[nodiscard]] bool ok() const noexcept;
     [[nodiscard]] bool should_log() const noexcept;

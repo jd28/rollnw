@@ -1840,7 +1840,7 @@ TEST(ClientRmlTemplates, CommandFormKeysUseLiveFocusAndPreservePopupActionOrderi
         key.key = code;
         key.mod = mods;
         key.repeat = repeat;
-        return handle_command_form_key(state, backend, false, context, key);
+        return handle_command_form_event(state, backend, false, context, SDL_Event{.key = key});
     };
     EXPECT_FALSE(press(SDLK_DOWN, SDL_KMOD_NONE, true).handled);
     EXPECT_FALSE(press(SDLK_DOWN, SDL_KMOD_CTRL).handled);
@@ -1882,7 +1882,7 @@ TEST(ClientRmlTemplates, CommandFormKeysUseLiveFocusAndPreservePopupActionOrderi
     ASSERT_TRUE(key.action_index);
     EXPECT_EQ(*key.action_index, 0u);
     choice->Blur();
-    EXPECT_FALSE(press(SDLK_KP_ENTER).handled);
+    EXPECT_EQ(press(SDLK_KP_ENTER).action_index, 0u);
     key = press(SDLK_RETURN);
     EXPECT_EQ(key.action_index, 0u);
     state.command_form->actions.clear();
@@ -2150,6 +2150,168 @@ TEST(ClientRmlTemplates, CommandSubmissionOwnsArgumentsAndRejectsDisabledActions
     Rml::RemoveContext("command-submit");
 }
 
+TEST(ClientRmlTemplates, SaveConfirmationsOwnInputAndRejectRepeatedWindowClose)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("save-confirmations", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/command_modals.rml");
+    ASSERT_NE(document, nullptr);
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(nullptr, nullptr, &workspace);
+    workspace.open_tab("broken").dirty = true;
+    CommandViewState state;
+    state.command_overlay_document = document;
+
+    for (const auto* command : {"workspace.close_tab", "workspace.quit"}) {
+        auto result = backend.execute_command(command, {}, {});
+        ASSERT_TRUE(result.prompt);
+        const auto prompt_id = result.prompt->id;
+        ASSERT_TRUE(take_command_form_prompt(state, result));
+        sync_command_form(state, backend, false);
+        context->Update();
+        ASSERT_TRUE(document->IsVisible());
+        EXPECT_TRUE(document->IsModal());
+        ASSERT_TRUE(document->GetElementById("command_form_overlay")->IsVisible(true));
+        EXPECT_EQ(context->GetFocusElement(), document->GetElementById("command_form_action_0"));
+        const auto generation = state.command_form_generation;
+        for (const auto type : {SDL_EVENT_QUIT, SDL_EVENT_WINDOW_CLOSE_REQUESTED, SDL_EVENT_QUIT}) {
+            SDL_Event event{};
+            event.type = type;
+            const auto close = handle_command_form_event(state, backend, false, context, event);
+            EXPECT_TRUE(close.handled);
+            EXPECT_FALSE(close.action_index);
+            ASSERT_TRUE(state.command_form);
+            EXPECT_EQ(state.command_form->id, prompt_id);
+            EXPECT_EQ(state.command_form_generation, generation);
+            EXPECT_TRUE(workspace.find_tab("broken")->dirty);
+        }
+
+        // Modal ownership blocks editing and held player input, independently
+        // of whether a pointer is over the form or the underlying workspace.
+        const ClientInputOwnership ownership{.map = ClientInputMap::pc, .world_available = true};
+        const std::array held{capture_client_held_input_facts(nullptr, context, nullptr, document, ownership)};
+        std::array<ClientInputRoute, 1> routes{};
+        ASSERT_TRUE(resolve_client_input_routes(held, routes));
+        EXPECT_TRUE(held[0].command_modal);
+        EXPECT_FALSE(routes[0].sources.keyboard);
+        EXPECT_FALSE(routes[0].sources.controller);
+        EXPECT_FALSE(routes[0].sources.pointer);
+        for (const auto type : {SDL_EVENT_KEY_DOWN, SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_EVENT_MOUSE_WHEEL}) {
+            SDL_Event event{};
+            event.type = type;
+            const std::array facts{capture_client_input_facts(event, nullptr, nullptr, context, nullptr, document, ownership)};
+            ASSERT_TRUE(resolve_client_input_routes(facts, routes));
+            EXPECT_EQ(routes[0].rml, ClientRmlRecipient::command);
+            EXPECT_EQ(routes[0].native, ClientNativeRecipient::ui);
+        }
+
+        EXPECT_FALSE(execute_command_form_action(state, backend, {}, false, false, 3));
+        EXPECT_FALSE(execute_command_form_action(state, backend, {}, false, true, 0));
+        const auto submit = handle_command_overlay_target(state, backend, false,
+            document->GetElementById("command_form_action_0"));
+        ASSERT_EQ(submit.kind, CommandOverlayActionKind::submit);
+        auto failed = execute_command_form_action(state, backend, {}, false, false, submit.form_action_index);
+        ASSERT_TRUE(failed);
+        EXPECT_FALSE(failed->ok());
+        EXPECT_FALSE(failed->quit_requested);
+        ASSERT_TRUE(failed->prompt);
+        EXPECT_EQ(failed->prompt->id, prompt_id);
+        EXPECT_EQ(failed->prompt->detail, failed->message);
+        EXPECT_TRUE(workspace.find_tab("broken")->dirty);
+        ASSERT_TRUE(take_command_form_prompt(state, *failed));
+        sync_command_form(state, backend, false);
+        context->Update();
+        EXPECT_FALSE(document->GetElementById("command_form_detail")->GetInnerRML().empty());
+        ASSERT_TRUE(document->GetElementById("command_form_action_2")->Focus());
+        SDL_Event key{};
+        key.type = SDL_EVENT_KEY_DOWN;
+        key.key.key = SDLK_RETURN;
+        EXPECT_EQ(handle_command_form_event(state, backend, false, context, key).action_index, 2u);
+        key.key.key = SDLK_ESCAPE;
+        const auto cancel = handle_command_form_event(state, backend, false, context, key);
+        ASSERT_EQ(cancel.action_index, 2u);
+        auto canceled = execute_command_form_action(state, backend, {}, false, false, *cancel.action_index);
+        ASSERT_TRUE(canceled);
+        EXPECT_EQ(canceled->status, CommandStatus::noop);
+        EXPECT_FALSE(canceled->should_log());
+        EXPECT_FALSE(canceled->quit_requested);
+        EXPECT_TRUE(workspace.find_tab("broken")->dirty);
+        EXPECT_FALSE(execute_command_form_action(state, backend, {}, false, false, 2));
+        sync_command_form(state, backend, false);
+        context->Update();
+        EXPECT_FALSE(document->IsVisible());
+    }
+
+    auto quit = backend.execute_command("workspace.quit", {}, {});
+    ASSERT_TRUE(take_command_form_prompt(state, quit));
+    auto discard = execute_command_form_action(state, backend, {}, false, false, 1);
+    ASSERT_TRUE(discard);
+    EXPECT_TRUE(discard->quit_requested);
+    // Shutdown is result data: no document or UI owner dies during dispatch.
+    EXPECT_TRUE(workspace.find_tab("broken")->dirty);
+    sync_command_form(state, backend, false);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("save-confirmations");
+}
+
+TEST(ClientRmlTemplates, NoticesPreservePendingFormsAndUseTheModalOverlay)
+{
+    using namespace nw::toolset;
+    CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("command-notices", {900, 600});
+    ASSERT_NE(context, nullptr);
+    auto* document = context->LoadDocument("tools/client/ui/command_modals.rml");
+    ASSERT_NE(document, nullptr);
+    ToolsetBackend backend;
+    CommandViewState state;
+    state.command_overlay_document = document;
+    show_command_message(state, "Import failed", "Failed <&> safely");
+    sync_command_form(state, backend, false);
+    context->Update();
+    EXPECT_TRUE(document->IsModal());
+    EXPECT_TRUE(document->IsVisible());
+    ASSERT_TRUE(state.command_form);
+    EXPECT_EQ(state.command_form->actions[0].label, "OK");
+    auto closed = execute_command_form_action(state, backend, {}, false, false, 0);
+    ASSERT_TRUE(closed);
+    EXPECT_EQ(closed->status, CommandStatus::noop);
+    EXPECT_FALSE(closed->quit_requested);
+
+    CommandResult result{.prompt = CommandPrompt{
+                             .id = "editing",
+                             .actions = {{"save", "Save", "save"}, {"cancel", "Cancel"}},
+                             .fields = {{.label = "Name", .value = "before"}},
+                         }};
+    ASSERT_TRUE(take_command_form_prompt(state, result));
+    sync_command_form(state, backend, false);
+    auto* input = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("command_form_field_0"));
+    ASSERT_NE(input, nullptr);
+    input->SetValue("typed <&>");
+    show_command_message(state, "Import complete", "Current work was kept open.");
+    EXPECT_EQ(state.command_form->id, "editing");
+    EXPECT_EQ(state.command_form->actions.size(), 2u);
+    EXPECT_EQ(state.command_form->fields[0].value, "typed <&>");
+    sync_command_form(state, backend, false);
+    context->Update();
+    input = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("command_form_field_0"));
+    ASSERT_NE(input, nullptr);
+    EXPECT_EQ(input->GetValue(), "typed <&>");
+    EXPECT_NE(document->GetElementById("command_form_detail")->GetInnerRML().find("Import complete"), std::string::npos);
+    document->Close();
+    context->Update();
+    Rml::RemoveContext("command-notices");
+}
+
 TEST(ClientCommandView, BrowseResultsRejectStaleGenerationsAndPreserveCancellation)
 {
     using namespace nw::toolset;
@@ -2172,11 +2334,9 @@ TEST(ClientCommandView, BrowseResultsRejectStaleGenerationsAndPreserveCancellati
     EXPECT_EQ(state.command_form->fields[1].value, "chosen-directory");
     state.command_form.reset();
     EXPECT_FALSE(apply_command_form_directory_result(state, "ignored", "", false));
-    CommandResult native{.prompt = CommandPrompt{.id = "save"}};
-    EXPECT_FALSE(take_command_form_prompt(state, native));
-    EXPECT_TRUE(native.prompt);
-    native.prompt->action_list = true;
-    EXPECT_TRUE(take_command_form_prompt(state, native));
+    CommandResult confirmation{.prompt = CommandPrompt{.id = "save"}};
+    EXPECT_TRUE(take_command_form_prompt(state, confirmation));
+    EXPECT_FALSE(confirmation.prompt);
     EXPECT_EQ(state.command_form->id, "save");
     CommandResult blueprint{.prompt = CommandPrompt{
                                 .id = "blueprint.confirm"}};
@@ -5072,6 +5232,14 @@ TEST(ClientRmlSmallsBridge, SaveAllUsesRetainedTabsAndProtectsProjectReplacement
     const auto opened = backend.open_project(project.string());
     ASSERT_TRUE(opened.ok()) << opened.message;
     const auto original_generation = backend.module_generation();
+    EXPECT_TRUE(backend.execute_command("workspace.quit", {}, {}).quit_requested);
+    for (const auto& args : {std::vector<std::string_view>{"--invalid"},
+             std::vector<std::string_view>{"--save", "--discard"},
+             std::vector<std::string_view>{""}}) {
+        const auto invalid = backend.execute_command("workspace.quit", args, {});
+        EXPECT_EQ(invalid.status, nw::toolset::CommandStatus::rejected);
+        EXPECT_FALSE(invalid.quit_requested);
+    }
     auto* item = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
     ASSERT_NE(item, nullptr);
     const auto item_handle = item->handle();
@@ -5086,8 +5254,13 @@ TEST(ClientRmlSmallsBridge, SaveAllUsesRetainedTabsAndProtectsProjectReplacement
     EXPECT_EQ(backend.module_generation(), original_generation);
     EXPECT_TRUE(nw::kernel::objects().valid(item_handle));
 
-    const auto saved = backend.execute_command("saveall", {}, {});
+    const auto confirmation = backend.execute_command("workspace.quit", {}, {});
+    ASSERT_TRUE(confirmation.prompt);
+    EXPECT_EQ(confirmation.prompt->id, "workspace.quit");
+    EXPECT_FALSE(confirmation.quit_requested);
+    const auto saved = backend.execute_command("workspace.quit", {"--save"}, {});
     EXPECT_EQ(saved.status, nw::toolset::CommandStatus::failed);
+    EXPECT_FALSE(saved.quit_requested);
     EXPECT_NE(saved.message.find("Saved 1 of 2"), std::string::npos);
     EXPECT_EQ(workspace.active_tab_id(), "home");
     EXPECT_FALSE(workspace.find_tab("item")->dirty);
@@ -5098,6 +5271,17 @@ TEST(ClientRmlSmallsBridge, SaveAllUsesRetainedTabsAndProtectsProjectReplacement
     EXPECT_NE(workspace.find_tab("broken"), nullptr);
     EXPECT_TRUE(workspace.request_close_tab("broken", true).closed());
     EXPECT_EQ(backend.execute_command("toolset.save_all", {}, {}).status, nw::toolset::CommandStatus::noop);
+    item->comment = "Save before quit";
+    workspace.set_tab_dirty("item", true);
+    const auto saved_quit = backend.execute_command("workspace.quit", {"--save"}, {});
+    ASSERT_TRUE(saved_quit.ok()) << saved_quit.message;
+    EXPECT_TRUE(saved_quit.quit_requested);
+    EXPECT_FALSE(workspace.has_dirty_tabs());
+    EXPECT_TRUE(nw::kernel::objects().valid(item_handle));
+    auto* reloaded = nw::kernel::objects().load_file<nw::Item>(project / "item.uti.json");
+    ASSERT_NE(reloaded, nullptr);
+    EXPECT_EQ(reloaded->comment, "Save before quit");
+    nw::kernel::objects().destroy(reloaded->handle());
     workspace.set_tab_dirty("item", true);
     EXPECT_TRUE(backend.execute_command("workspace.save_and_close_tab", {"item"}, {}).ok());
     EXPECT_EQ(workspace.find_tab("item"), nullptr);
