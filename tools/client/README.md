@@ -218,6 +218,12 @@ These views demonstrate the intended split: reflection handles broadly useful
 data, while workflow-heavy collections use purpose-built views and commands.
 All data-dependent row surfaces must remain viewport-virtualized.
 
+In Encounter **Spawns** and Sound **Sounds**, select an entry and click the
+minus button to remove it. Removal affects only that entry, including when
+duplicates exist, and supports undo/redo and save in both blueprints and areas.
+Selection clears after removal; select another entry to remove it. Sound entries
+also support drag reordering.
+
 Area tabs provide mesh or authored-footprint selection for placed objects,
 Ctrl-click tile selection, a complete placed-object list, and camera focus on
 list selection. Creature, Door, Encounter, Item, Placeable, Sound, Store,
@@ -405,8 +411,9 @@ The UI subsystem and language binding are documented in:
 
 - The client is viewer-first. It does not yet provide a complete editor for
   every object aggregate.
-- Encounter creature-list editing remains a dedicated editor concern; placed
-  spawn-point markers are edited directly in the Area viewport.
+- Encounter creature lists support blueprint drops and entry removal; editing
+  individual spawn fields is not implemented. Placed spawn-point markers are
+  edited directly in the Area viewport.
 - Save All covers open modified JSON area and blueprint documents; it is not
   autosave or a project-wide export.
 - The Smalls list host defines list state and callback protocols, but the

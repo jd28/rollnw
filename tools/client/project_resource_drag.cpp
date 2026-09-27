@@ -609,7 +609,7 @@ void commit_project_blueprint_drag(Rml::ElementDocument* doc, ProjectBlueprintDr
         }
         auto result = backend.replace_encounter_spawns(
             std::move(*drag.encounter_spawn_edit),
-            context);
+            "Add encounter spawn", context);
         append_command_results(shell, {&result, 1});
         return;
     }

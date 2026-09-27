@@ -61,6 +61,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -4746,6 +4747,312 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
 
     nw::toolset::smalls_rmlui_host().clear_active_object();
     nw::toolset::script_command_host().bind(nullptr, nullptr);
+}
+
+TEST(ClientRmlSmallsLanguageBinding, DataCollectionRemovalRejectsStaleSelectionsAndPersists)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto& runtime = nw::kernel::runtime();
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ScriptCommandHostReset reset_commands;
+    ASSERT_TRUE(backend.initialize());
+
+    RmlSmallsLanguageBinding binding;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(binding.initialize(runtime));
+    auto* context = Rml::CreateContext("data-collection-removal", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    const auto cleanup_context = create_scope_exit([&] {
+        bridge.clear_active_object();
+        Rml::RemoveContext("data-collection-removal");
+    });
+    auto* document = context->LoadDocument(
+        (std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui/panel.rml").string());
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    auto* content = document->GetElementById("workspace_content");
+    ASSERT_NE(content, nullptr);
+    const std::filesystem::path project = "tmp/client_data_collection_removal";
+    std::filesystem::create_directories(project);
+
+    const auto verify_removal = [&](auto* object, auto* other,
+                                    std::string_view list_id,
+                                    std::string_view refresh_function,
+                                    std::string_view command,
+                                    const char* button_id,
+                                    ObjectWorkbenchSurface surface,
+                                    const char* filename,
+                                    auto snapshot_rows) {
+        using Object = std::remove_pointer_t<decltype(object)>;
+        SCOPED_TRACE(list_id);
+        ASSERT_NE(object, nullptr);
+        ASSERT_NE(other, nullptr);
+        const auto cleanup_other = create_scope_exit([&] {
+            nw::kernel::objects().destroy(other->handle());
+        });
+        const auto object_handle = object->handle();
+        const auto before = snapshot_rows(runtime, object_handle);
+        const auto other_before = snapshot_rows(runtime, other->handle());
+        ASSERT_TRUE(before);
+        ASSERT_EQ(before->size(), 4u);
+        ASSERT_EQ((*before)[0], (*before)[2]);
+        ASSERT_NE((*before)[0], (*before)[1]);
+        auto after = *before;
+        after.erase(after.begin() + 2);
+
+        ASSERT_TRUE(object->save(project / filename, "json"));
+
+        auto& tab = workspace.open_or_replace_tab(filename, filename,
+            WorkspaceTabKind::preview, filename);
+        ASSERT_TRUE(tab.document.adopt(object_handle));
+        const std::string tab_id = tab.id;
+        CommandContext command_context;
+        command_context.workspace = &workspace;
+        command_context.active_tab_id = tab_id;
+        bridge.publish_active_object(object_handle);
+        ObjectWorkbenchViewState view;
+        activate_object_workbench(view, object_handle, tab_id);
+        view.object_workbench_surface = surface;
+        std::string markup;
+        append_object_workbench_markup(markup, view, workspace, backend);
+        content->SetInnerRML(markup);
+        context->Update();
+        auto* button = document->GetElementById(button_id);
+        ASSERT_NE(button, nullptr);
+        EXPECT_GT(button->GetOffsetWidth(), 0.0f);
+        EXPECT_GT(button->GetOffsetHeight(), 0.0f);
+        EXPECT_FALSE(button->GetAttribute<Rml::String>("onclick", "").empty());
+
+        auto& host = ui_v1_host();
+        const auto refresh = [&] {
+            ASSERT_TRUE(runtime.execute_script(
+                                   "toolset.data_object_editor", refresh_function, {})
+                    .ok());
+        };
+        const auto select = [&](int index) {
+            ASSERT_TRUE(host.set_selected(list_id,
+                UiListSelection{.list_id = std::string{list_id}, .index = index}, false));
+        };
+        const auto remove = [&] {
+            return backend.execute_command(command, {}, command_context);
+        };
+        refresh();
+        EXPECT_EQ(remove().status, CommandStatus::rejected);
+        EXPECT_FALSE(workspace.active_tab()->dirty);
+        EXPECT_EQ(workspace.undo_count(), 0u);
+
+        ASSERT_TRUE(sync_managed_lists(document, host, view.managed_lists, true));
+        context->Update();
+        constexpr auto selected_row_selector = ".data_collection_rows .managed_list_row[data-index='2']";
+        auto* row = document->QuerySelector(selected_row_selector);
+        ASSERT_NE(row, nullptr);
+        const auto unselected_color = row->GetProperty<Rml::Colourb>("background-color");
+        ASSERT_NE(row->GetChild(0), nullptr);
+        ASSERT_TRUE(activate_managed_list_element(row->GetChild(0), host));
+        refresh();
+        ASSERT_TRUE(sync_managed_lists(document, host, view.managed_lists, false));
+        context->Update();
+        row = document->QuerySelector(selected_row_selector);
+        ASSERT_NE(row, nullptr);
+        EXPECT_TRUE(row->IsClassSet("selected"));
+        const auto selected_color = row->GetProperty<Rml::Colourb>("background-color");
+        EXPECT_NE(selected_color, unselected_color);
+        EXPECT_GT(row->GetProperty<float>("border-left-width"), 0.0f);
+        row->SetPseudoClass("hover", true);
+        context->Update();
+        EXPECT_EQ(row->GetProperty<Rml::Colourb>("background-color"), selected_color);
+        ASSERT_TRUE(host.get_selected(list_id));
+        EXPECT_EQ(host.get_selected(list_id)->index, 2);
+        const auto epoch = object_mutation_state().epoch;
+        ASSERT_TRUE(button->DispatchEvent("click", {}));
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), std::optional{after});
+        EXPECT_EQ(object_mutation_state().epoch, epoch + 1);
+        EXPECT_TRUE(workspace.active_tab()->dirty);
+        EXPECT_EQ(workspace.undo_count(), 1u);
+        EXPECT_EQ(host.get_selected(list_id)->index, -1);
+        ASSERT_TRUE(button->DispatchEvent("click", {}));
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), std::optional{after});
+        EXPECT_EQ(workspace.undo_count(), 1u);
+        refresh();
+        EXPECT_EQ(host.get_selected(list_id)->index, -1);
+        ASSERT_TRUE(sync_managed_lists(document, host, view.managed_lists, false));
+        EXPECT_EQ(document->QuerySelector(".data_collection_rows .managed_list_row.selected"), nullptr);
+
+        const auto undone = workspace.undo(command_context);
+        ASSERT_TRUE(undone.ok());
+        EXPECT_NE(undone.message.find("Remove"), std::string::npos);
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), before);
+        ASSERT_TRUE(workspace.redo(command_context).ok());
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), std::optional{after});
+        const auto save_and_reload = [&] {
+            const std::array<std::string_view, 1> ids{tab_id};
+            const auto saved = save_workspace_documents(workspace, project, ids);
+            ASSERT_TRUE(saved.ok()) << saved.message;
+            EXPECT_FALSE(workspace.active_tab()->dirty);
+            auto* reloaded = nw::kernel::objects().load_file<Object>(project / filename);
+            ASSERT_NE(reloaded, nullptr);
+            EXPECT_EQ(snapshot_rows(runtime, reloaded->handle()),
+                snapshot_rows(runtime, object_handle));
+            nw::kernel::objects().destroy(reloaded->handle());
+        };
+        save_and_reload();
+
+        // A different object must not inherit the old object's indexed selection.
+        refresh();
+        select(0);
+        bridge.publish_active_object(other->handle());
+        EXPECT_EQ(remove().status, CommandStatus::rejected);
+        EXPECT_EQ(snapshot_rows(runtime, other->handle()), other_before);
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), std::optional{after});
+        EXPECT_EQ(workspace.undo_count(), 1u);
+        EXPECT_FALSE(workspace.active_tab()->dirty);
+        refresh();
+        EXPECT_EQ(host.get_selected(list_id)->index, -1);
+        bridge.publish_active_object(object_handle);
+
+        // Undo changes row meaning before the displayed list has refreshed.
+        refresh();
+        select(0);
+        ASSERT_TRUE(workspace.undo(command_context).ok());
+        EXPECT_EQ(remove().status, CommandStatus::rejected);
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), before);
+        EXPECT_EQ(workspace.undo_count(), 0u);
+        refresh();
+        EXPECT_EQ(host.get_selected(list_id)->index, -1);
+
+        // Even an in-range presentation row must address an existing live row.
+        const auto initialized = backend.execute_command(
+            "toolset.data_objects.initialize", {}, command_context);
+        ASSERT_TRUE(initialized.ok());
+        std::vector<UiListItem> stale_rows(5);
+        for (size_t index = 0; index < stale_rows.size(); ++index) {
+            stale_rows[index].key = initialized.message + std::to_string(index);
+        }
+        ASSERT_TRUE(host.set_items(list_id, std::move(stale_rows)));
+        select(4);
+        EXPECT_EQ(remove().status, CommandStatus::rejected);
+        EXPECT_EQ(snapshot_rows(runtime, object_handle), before);
+        EXPECT_EQ(workspace.undo_count(), 0u);
+
+        // The last row can be removed, persisted, and restored exactly.
+        for (size_t remaining = before->size(); remaining > 0; --remaining) {
+            refresh();
+            select(0);
+            ASSERT_TRUE(remove().ok());
+            EXPECT_EQ(snapshot_rows(runtime, object_handle)->size(), remaining - 1);
+        }
+        refresh();
+        EXPECT_EQ(remove().status, CommandStatus::rejected);
+        EXPECT_EQ(host.get_selected(list_id)->index, -1);
+        ASSERT_TRUE(workspace.undo(command_context).ok());
+        ASSERT_EQ(snapshot_rows(runtime, object_handle)->size(), 1u);
+        EXPECT_EQ(snapshot_rows(runtime, object_handle)->front(), before->back());
+        ASSERT_TRUE(workspace.redo(command_context).ok());
+        save_and_reload();
+        bridge.clear_active_object();
+        EXPECT_EQ(remove().status, CommandStatus::rejected);
+
+        // The same command must dirty and persist a containing Area document.
+        ASSERT_TRUE(workspace.undo(command_context).ok());
+        auto* area = nw::kernel::objects().make_area(nw::Resref{"start"});
+        ASSERT_NE(area, nullptr);
+        EXPECT_EQ(workspace.find_tab(tab_id)->document.release(), object_handle);
+        if constexpr (std::is_same_v<Object, nw::Encounter>) {
+            area->encounters.push_back(object);
+        } else {
+            area->sounds.push_back(object);
+        }
+        const std::string area_filename = std::string{filename} + ".caf.json";
+        {
+            std::ofstream placeholder{project / area_filename};
+            ASSERT_TRUE(placeholder);
+            placeholder << "{}\n";
+        }
+        std::string save_error;
+        ASSERT_TRUE(save_live_area_json_atomic(area->handle(),
+            project / area_filename, save_error))
+            << save_error;
+        auto& area_tab = workspace.open_area_tab(area_filename, "Collection removal");
+        ASSERT_TRUE(area_tab.document.adopt(area->handle()));
+        command_context.active_tab_id = area_tab.id;
+        bridge.publish_active_object(object_handle);
+        refresh();
+        select(0);
+        ASSERT_TRUE(remove().ok());
+        EXPECT_TRUE(workspace.active_tab()->dirty);
+        EXPECT_EQ(workspace.undo_count(), 1u);
+        ASSERT_TRUE(workspace.undo(command_context).ok());
+        EXPECT_EQ(snapshot_rows(runtime, object_handle)->size(), 1u);
+        ASSERT_TRUE(workspace.redo(command_context).ok());
+        const std::array<std::string_view, 1> area_ids{area_tab.id};
+        const auto area_saved = save_workspace_documents(workspace, project, area_ids);
+        ASSERT_TRUE(area_saved.ok()) << area_saved.message;
+        EXPECT_FALSE(workspace.active_tab()->dirty);
+        std::ifstream saved_area{project / area_filename};
+        ASSERT_TRUE(saved_area);
+        const auto area_archive = nlohmann::json::parse(saved_area);
+        auto* reloaded_area = nw::kernel::objects().make<nw::Area>();
+        ASSERT_NE(reloaded_area, nullptr);
+        ASSERT_TRUE(nw::deserialize(reloaded_area, area_archive));
+        nw::ObjectHandle reloaded_object;
+        if constexpr (std::is_same_v<Object, nw::Encounter>) {
+            ASSERT_FALSE(reloaded_area->encounters.empty());
+            reloaded_object = reloaded_area->encounters.back()->handle();
+        } else {
+            ASSERT_FALSE(reloaded_area->sounds.empty());
+            reloaded_object = reloaded_area->sounds.back()->handle();
+        }
+        const auto reloaded_rows = snapshot_rows(runtime, reloaded_object);
+        ASSERT_TRUE(reloaded_rows);
+        EXPECT_TRUE(reloaded_rows->empty());
+        reloaded_area->clear();
+        nw::kernel::objects().destroy(reloaded_area->handle());
+        bridge.clear_active_object();
+    };
+
+    auto* encounter = nw::kernel::objects().load_file<nw::Encounter>(
+        "test_data/user/development/boundelementallo.ute");
+    ASSERT_NE(encounter, nullptr);
+    const auto spawns = snapshot_encounter_spawns(runtime, encounter->handle());
+    ASSERT_TRUE(spawns);
+    ASSERT_FALSE(spawns->empty());
+    auto middle = spawns->front();
+    middle.cr += 1.0f;
+    auto last = middle;
+    last.single_spawn = 1;
+    ASSERT_TRUE(apply_encounter_spawn_edit(runtime,
+        {encounter->handle(), *spawns, {spawns->front(), middle, spawns->front(), last}},
+        ObjectEditDirection::forward)
+            .ok());
+    verify_removal(encounter,
+        nw::kernel::objects().load_file<nw::Encounter>("test_data/user/development/boundelementallo.ute"),
+        "data.encounter.spawns", "encounter_spawns_refresh", "toolset.encounter.spawns.remove",
+        "encounter_spawn_remove", ObjectWorkbenchSurface::spawns, "selected.ute.json",
+        snapshot_encounter_spawns);
+
+    auto* sound = nw::kernel::objects().load_file<nw::Sound>(
+        "test_data/user/development/blue_bell.uts");
+    ASSERT_NE(sound, nullptr);
+    const auto sounds = snapshot_sound_resources(runtime, sound->handle());
+    ASSERT_TRUE(sounds);
+    ASSERT_FALSE(sounds->empty());
+    ASSERT_TRUE(apply_sound_resource_edit(runtime,
+        {sound->handle(), *sounds, {sounds->front(), nw::Resref{"middle"}, sounds->front(), nw::Resref{"last"}}},
+        ObjectEditDirection::forward)
+            .ok());
+    verify_removal(sound,
+        nw::kernel::objects().load_file<nw::Sound>("test_data/user/development/blue_bell.uts"),
+        "data.sound.resources", "sound_resources_refresh", "toolset.sound.resources.remove",
+        "sound_resource_remove", ObjectWorkbenchSurface::sounds, "selected.uts.json",
+        snapshot_sound_resources);
+    EXPECT_TRUE(binding.diagnostics().empty());
 }
 
 TEST(ClientRmlSmallsBridge, SaveAllUsesRetainedTabsAndProtectsProjectReplacement)

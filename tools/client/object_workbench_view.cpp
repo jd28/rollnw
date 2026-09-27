@@ -1905,18 +1905,6 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
         content_markup += " active";
     }
     content_markup += "\" data-surface=\"details\">Details</div>";
-    content_markup += "<div class=\"object_workbench_tab";
-    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
-        content_markup += " active";
-    }
-    content_markup += "\" data-surface=\"variables\">Variables</div>";
-    if (project_module) {
-        content_markup += "<div class=\"object_workbench_tab";
-        if (state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
-            content_markup += " active";
-        }
-        content_markup += "\" data-surface=\"haks\">Haks</div>";
-    }
     if (object_type == nw::ObjectType::encounter) {
         content_markup += "<div class=\"object_workbench_tab";
         if (state.object_workbench_surface == ObjectWorkbenchSurface::spawns) {
@@ -1929,7 +1917,20 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
             content_markup += " active";
         }
         content_markup += "\" data-surface=\"sounds\">Sounds</div>";
-    } else if (object_type == nw::ObjectType::store) {
+    }
+    content_markup += "<div class=\"object_workbench_tab";
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::variables) {
+        content_markup += " active";
+    }
+    content_markup += "\" data-surface=\"variables\">Variables</div>";
+    if (project_module) {
+        content_markup += "<div class=\"object_workbench_tab";
+        if (state.object_workbench_surface == ObjectWorkbenchSurface::haks) {
+            content_markup += " active";
+        }
+        content_markup += "\" data-surface=\"haks\">Haks</div>";
+    }
+    if (object_type == nw::ObjectType::store) {
         content_markup += "<div class=\"object_workbench_tab";
         if (state.object_workbench_surface == ObjectWorkbenchSurface::store_inventory) {
             content_markup += " active";
@@ -1991,7 +1992,13 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
                           "<div class=\"data_collection_rows encounter_spawn_rows managed_list_rows\" "
                           "tabindex=\"0\" "
                           "data-list-id=\"data.encounter.spawns\" "
-                          "data-empty-text=\"This encounter has no spawn entries.\"></div></div>";
+                          "data-empty-text=\"This encounter has no spawn entries.\"></div>"
+                          "<div class=\"data_collection_action_bar\">"
+                          "<button id=\"encounter_spawn_remove\" type=\"button\" "
+                          "class=\"data_collection_action remove\" title=\"Remove selected spawn\" "
+                          "onclick=\"remove_selected_encounter_spawn()\">"
+                          "<span class=\"data_collection_action_mark horizontal\"></span>"
+                          "</button></div></div>";
     } else if (object_type == nw::ObjectType::sound
         && state.object_workbench_surface == ObjectWorkbenchSurface::sounds) {
         if (state.appearance_view.sound_resource_selector_open) {
@@ -2010,6 +2017,10 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
                               "data-list-id=\"data.sound.resources\" "
                               "data-empty-text=\"This sound object has no sound resources.\"></div>"
                               "<div class=\"data_collection_action_bar\">"
+                              "<button id=\"sound_resource_remove\" type=\"button\" "
+                              "class=\"data_collection_action remove\" title=\"Remove selected sound resource\" "
+                              "onclick=\"remove_selected_sound_resource()\">"
+                              "<span class=\"data_collection_action_mark horizontal\"></span></button>"
                               "<button id=\"sound_resource_add\" type=\"button\" "
                               "class=\"data_collection_action add\" title=\"Add sound resource\">"
                               "<span class=\"data_collection_action_mark horizontal\"></span>"

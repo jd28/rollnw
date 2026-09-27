@@ -29,11 +29,6 @@ fn _ensure_lists(): bool {
     return result.status == 0 || result.status == 4;
 }
 
-fn _ensure_sound_list(): bool {
-    return _ensure_lists() && list_on_reorder(sound_resource_list,
-        "toolset.data_object_editor.on_sound_resource_reorder");
-}
-
 fn on_sound_resource_reorder(reorder: ListReorder) {
     command_execute("toolset.sound.resources.reorder", {
         f"{reorder.source_index}",
@@ -41,16 +36,27 @@ fn on_sound_resource_reorder(reorder: ListReorder) {
     });
 }
 
+fn remove_selected_encounter_spawn() {
+    command_execute("toolset.encounter.spawns.remove", {});
+}
+
+fn remove_selected_sound_resource() {
+    command_execute("toolset.sound.resources.remove", {});
+}
+
+fn _row_key_prefix(): string {
+    // Initialization also returns the current object and mutation context.
+    var result = command_execute("toolset.data_objects.initialize", {});
+    return result.status == 0 ? result.message : "";
+}
+
 fn _set_empty(list_id: string, title: string): array!(Command) {
-    if (_ensure_lists()) {
-        list_set_items(list_id, {});
-        list_set_title(list_id, title);
-    }
+    list_set_items(list_id, {});
+    list_set_title(list_id, title);
     return {};
 }
 
 fn _set_rows(list_id: string, rows: array!(ListItem), count: int): array!(Command) {
-    if (!_ensure_lists()) { return {}; }
     var visible_count = Array.len(rows);
     var title = count > visible_count
         ? f"Showing first {visible_count} of {count} entries"
@@ -61,6 +67,7 @@ fn _set_rows(list_id: string, rows: array!(ListItem), count: int): array!(Comman
 }
 
 fn encounter_spawns_refresh(): array!(Command) {
+    var key_prefix = _row_key_prefix();
     if (active_object_type() != (Const.object_type_encounter as int)) {
         return _set_empty(encounter_spawn_list, "Waiting for a live Encounter.");
     }
@@ -71,6 +78,7 @@ fn encounter_spawns_refresh(): array!(Command) {
     }
 
     var spawns = get_propset!(EncounterState)(encounter).creatures;
+    if (key_prefix == "") { return _set_empty(encounter_spawn_list, "Encounter list unavailable."); }
     var count = Array.len(spawns);
     var visible_count = count < max_collection_rows ? count : max_collection_rows;
     var rows: array!(ListItem) = {};
@@ -78,7 +86,7 @@ fn encounter_spawns_refresh(): array!(Command) {
     for (var index = 0; index < visible_count; index += 1) {
         var spawn = spawns[index];
         Array.push(rows, ListItem {
-            key = f"{index}",
+            key = f"{key_prefix}{index}",
             icon_source = "",
             cell0 = T.resref_to_string(spawn.resref),
             cell1 = f"{spawn.cr}",
@@ -94,7 +102,9 @@ fn encounter_spawns_refresh(): array!(Command) {
 }
 
 fn sound_resources_refresh(): array!(Command) {
-    if (!_ensure_sound_list()) { return {}; }
+    var key_prefix = _row_key_prefix();
+    if (!list_on_reorder(sound_resource_list,
+        "toolset.data_object_editor.on_sound_resource_reorder")) { return {}; }
     if (active_object_type() != (Const.object_type_sound as int)) {
         return _set_empty(sound_resource_list, "Waiting for a live Sound.");
     }
@@ -105,13 +115,14 @@ fn sound_resources_refresh(): array!(Command) {
     }
 
     var sounds = get_propset!(SoundState)(sound).sounds;
+    if (key_prefix == "") { return _set_empty(sound_resource_list, "Sound list unavailable."); }
     var count = Array.len(sounds);
     var visible_count = count < max_collection_rows ? count : max_collection_rows;
     var rows: array!(ListItem) = {};
     Array.reserve(rows, visible_count);
     for (var index = 0; index < visible_count; index += 1) {
         Array.push(rows, ListItem {
-            key = f"{index}",
+            key = f"{key_prefix}{index}",
             icon_source = "",
             cell0 = T.resref_to_string(sounds[index]),
             cell1 = "",
@@ -150,6 +161,7 @@ fn _append_store_rows(rows: array!(ListItem), store: Store,
 }
 
 fn store_inventory_refresh(): array!(Command) {
+    if (!_ensure_lists()) { return {}; }
     if (active_object_type() != (Const.object_type_store as int)) {
         return _set_empty(store_inventory_list, "Waiting for a live Store.");
     }

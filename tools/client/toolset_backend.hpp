@@ -104,7 +104,7 @@ public:
         std::span<const StoreItemPlacement> placements,
         CommandContext context);
     CommandResult replace_encounter_spawns(
-        EncounterSpawnEdit edit, CommandContext context);
+        EncounterSpawnEdit edit, std::string label, CommandContext context);
     CommandResult replace_sound_resources(SoundResourceEdit edit,
         std::string label,
         CommandContext context);
@@ -157,6 +157,7 @@ private:
     bool refresh_creature_body_part_editor();
     bool refresh_item_editor();
     bool ensure_data_object_editor_lists();
+    [[nodiscard]] std::string data_object_list_key_prefix() const;
     [[nodiscard]] bool creature_body_part_editor_is_current() const noexcept;
     [[nodiscard]] bool item_editor_is_current() const noexcept;
 

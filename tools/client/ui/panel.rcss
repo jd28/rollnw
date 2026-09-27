@@ -1930,6 +1930,12 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   background: #79c98e;
   pointer-events: none;
 }
+.data_collection_action.remove {
+  margin-right: 6px;
+}
+.data_collection_action.remove .data_collection_action_mark {
+  background: #d58484;
+}
 .data_collection_action_mark.horizontal {
   left: 7px;
   top: 13px;
@@ -1949,6 +1955,15 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   border-bottom: 1px #2a343e;
   background: #151b21;
   color: #dce3ea;
+  cursor: pointer;
+}
+.data_collection_rows .managed_list_row:hover {
+  background: #202930;
+}
+.data_collection_rows .managed_list_row.selected {
+  padding-left: 8px;
+  border-left: 2px #a78d62;
+  background: #25313b;
 }
 .managed_list_rows .managed_list_row.reorder_source {
   color: #7f8b96;

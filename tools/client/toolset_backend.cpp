@@ -535,6 +535,17 @@ bool ToolsetBackend::creature_body_part_editor_is_current() const noexcept
         && bridge_->active_object() == creature_body_part_editor_.object();
 }
 
+std::string ToolsetBackend::data_object_list_key_prefix() const
+{
+    const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+    if (!kernel::objects().valid(object)) {
+        return {};
+    }
+    // One active workbench supplies the context for its indexed presentation rows.
+    return fmt::format("{}:{}:{}:", kernel::services().generation(),
+        object.to_ull(), object_mutation_state().epoch);
+}
+
 bool ToolsetBackend::item_editor_is_current() const noexcept
 {
     return bridge_ && item_editor_.object().type == ObjectType::item
@@ -589,12 +600,79 @@ void ToolsetBackend::register_native_commands()
     register_hidden_editor_command(
         "toolset.data_objects.initialize",
         [this](const CommandInvocation&, CommandContext&) {
-            return command_result(
-                ensure_data_object_editor_lists()
-                    ? CommandStatus::success
-                    : CommandStatus::failed,
-                {}, CommandOutputChannel::none);
+            if (!ensure_data_object_editor_lists()) {
+                return command_result(CommandStatus::failed, {}, CommandOutputChannel::none);
+            }
+            return command_result(CommandStatus::success,
+                data_object_list_key_prefix(), CommandOutputChannel::none);
         });
+    struct CollectionRemovalCommand {
+        std::string_view id;
+        std::string_view list_id;
+        std::string_view label;
+        ObjectType type;
+    };
+    static constexpr std::array removal_commands{
+        CollectionRemovalCommand{"toolset.encounter.spawns.remove",
+            "data.encounter.spawns", "Remove encounter spawn", ObjectType::encounter},
+        CollectionRemovalCommand{"toolset.sound.resources.remove",
+            "data.sound.resources", "Remove sound resource", ObjectType::sound},
+    };
+    for (const auto command : removal_commands) {
+        register_hidden_editor_command(std::string{command.id},
+            [this, command](const CommandInvocation&, CommandContext& context) {
+                const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+                const auto selected = ui_v1_host().get_selected(command.list_id);
+                const auto prefix = data_object_list_key_prefix();
+                if (object.type != command.type || prefix.empty()
+                    || !selected || selected->index < 0
+                    || selected->key != prefix + std::to_string(selected->index)) {
+                    return command_result(CommandStatus::rejected,
+                        "Select a current list entry before removing it",
+                        CommandOutputChannel::warn);
+                }
+
+                CommandResult result;
+                try {
+                    if (command.type == ObjectType::encounter) {
+                        auto before = snapshot_encounter_spawns(kernel::runtime(), object);
+                        if (!before || static_cast<size_t>(selected->index) >= before->size()) {
+                            return command_result(CommandStatus::rejected,
+                                "The Encounter spawn selection is invalid or stale",
+                                CommandOutputChannel::warn);
+                        }
+                        auto after = *before;
+                        after.erase(after.begin() + selected->index);
+                        result = replace_encounter_spawns(
+                            {object, std::move(*before), std::move(after)},
+                            std::string{command.label}, context);
+                    } else {
+                        auto before = snapshot_sound_resources(kernel::runtime(), object);
+                        if (!before || static_cast<size_t>(selected->index) >= before->size()) {
+                            return command_result(CommandStatus::rejected,
+                                "The Sound resource selection is invalid or stale",
+                                CommandOutputChannel::warn);
+                        }
+                        auto after = *before;
+                        after.erase(after.begin() + selected->index);
+                        result = replace_sound_resources(
+                            {object, std::move(*before), std::move(after)},
+                            std::string{command.label}, context);
+                    }
+                } catch (const std::bad_alloc&) {
+                    return command_result(CommandStatus::failed,
+                        "List removal allocation failed", CommandOutputChannel::error);
+                } catch (const std::length_error&) {
+                    return command_result(CommandStatus::failed,
+                        "List removal exceeds container capacity", CommandOutputChannel::error);
+                }
+                if (result.ok()) {
+                    (void)ui_v1_host().set_selected(command.list_id,
+                        UiListSelection{.list_id = std::string{command.list_id}}, false);
+                }
+                return result;
+            });
+    }
     register_hidden_editor_command(
         "toolset.sound.resources.reorder",
         [this](const CommandInvocation& invocation, CommandContext& context) {
@@ -4145,14 +4223,14 @@ CommandResult ToolsetBackend::place_store_items(
 }
 
 CommandResult ToolsetBackend::replace_encounter_spawns(
-    EncounterSpawnEdit edit, CommandContext context)
+    EncounterSpawnEdit edit, std::string label, CommandContext context)
 {
     if (blueprint_operation_active() || blueprint_publication_pending()) {
         return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
     }
     context = context_with_backend_defaults(std::move(context), workspace_);
     CommandResult result = nw::toolset::commit_encounter_spawn_edit(
-        std::move(edit), "Add encounter spawn", context);
+        std::move(edit), std::move(label), context);
     if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
         context.workspace->push_undo(*result.undo_action);
     }

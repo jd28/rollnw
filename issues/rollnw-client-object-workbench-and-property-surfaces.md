@@ -1,5 +1,124 @@
 # rollnw | client Object Workbench and Property Surfaces
 
+## Encounter and Sound entry removal (2026-09-26)
+
+Tier 1. Complete the existing list-authoring workflow by removing a selected
+Encounter spawn or Sound resource, with undo/redo and native JSON persistence.
+The limit is these two value arrays; owned inventory objects and encounter field
+editing remain separate work. If selection cannot be validated, reject without
+mutation and let the user refresh and select again.
+
+### Patterns & Conventions Found
+
+- `tools/ui/scripts/toolset/data_object_editor.smalls:63` projects live arrays
+  into indexed, viewport-bounded rows. Sound already supports reordering.
+- `tools/client/toolset_backend.cpp:899` routes Item property removal through
+  the command system; `tools/client/object_edits.cpp:3520` validates complete
+  Encounter before/after arrays. Reuse those transaction and error conventions.
+- `tests/rollnw_client_object_edits.cpp:1197` covers Encounter removal,
+  undo/redo, stale replacement, and JSON round-trip at the data boundary.
+- Preserve snake_case, explicit status/diagnostics, value ownership, adjacent
+  RML action-button markup, and the repository clang-format configuration.
+
+### Architecture Decision
+
+The platform is the desktop client's single kernel/UI thread, with live Smalls
+propsets, one active object, and existing native document saves. Inputs are an
+ordered array of EncounterSpawnRecord or Resref values and one selected row;
+outputs are the surviving ordered array and one undo entry. Both editing paths
+accept at most 1,024 rows. The recorded Encounter sample has 466 blueprints,
+387 with one row and a maximum of six; Sound list distribution is unmeasured.
+ASSUMPTION: the existing single-selection UI is sufficient — affects the first
+removal interaction, which removes one row from the complete array batch.
+
+Keep indexed row keys, prefixed with kernel generation, active object identity,
+and the existing mutation epoch. On removal, verify that the selected key still
+matches the live context, then snapshot, remove, and replace the complete array.
+The prefix is transient presentation data, not a new persisted protocol. Object
+identity is stable during display; selection, list contents, and the mutation
+epoch change during editing. Successful removal clears selection; repeated
+clicks cannot silently remove the next row. Unchanged refreshes keep selection.
+
+### Component Design
+
+- List presentation: `data_object_editor.smalls` builds owned row keys and
+  dispatches removal commands. Existing VirtualListHost owns strings until the
+  next refresh. No pointers or duplicate source snapshots are retained.
+- Command boundary: `toolset_backend.*` validates selection, snapshots at most
+  1,024 rows, and invokes existing replacement/undo functions. Missing selection,
+  stale context, invalid index/object, oversized arrays, or invalid source values
+  reject without mutation. Existing replacement handles allocation failures.
+- Controls: `object_workbench_view.cpp`, `ui/panel.rml`, and `ui/panel.rcss`
+  reuse the existing collection action bar and SmallS event binding.
+
+### Implementation Map
+
+Modify those presentation/command files, the Encounter drop call site in
+`project_resource_drag.cpp` to supply its undo label, focused command/RML tests,
+and `tools/client/README.md`. No new subsystem, dependency, or serializer.
+
+### Data Flow
+
+Live arrays -> context-prefixed indexed rows -> selected row -> current-context
+validation -> complete before/after arrays -> existing replacement and undo ->
+cleared selection and ordinary workbench refresh -> existing save/reload.
+
+### Build Sequence
+
+1. Add context keys and the two removal commands, then wire the minus buttons.
+2. Cover actual SmallS/command dispatch, undo/redo, empty lists, stale selection,
+   duplicates, and native save/reload; check generated RML controls.
+3. Build client/tests, run focused suites, format C++, and check the diff.
+
+### Critical Details
+
+Removal performs O(n) sequential copying/validation and retains O(n) before/after
+data in the existing undo record on the UI thread. The context prefix adds a
+bounded string per presented row. There is no performance target or measured
+speedup claim. No new worker, lock, hot loop, or pointer-heavy path is introduced.
+The active-context prefix is a true singleton query because only one object
+workbench is active; mutation still replaces the complete array batch.
+
+Simplification pass: reuse replacement/undo/save instead of adding removal
+ownership or a serializer; compute the prefix once per list refresh; use the
+existing single selection and clear it after success. No generic collection
+editor, multi-select state, caching, or new history model is needed.
+
+Done requires command and UI binding evidence, exact surviving order including
+duplicate entries, one dirty/undo publication, no mutation on stale/error input,
+and persisted removal after reload. A wrong-row removal, changed unrelated
+object, lost undo, or failed save/reload disproves completion. Desktop interaction
+and verification results are recorded after implementation.
+
+Verified: `rollnw-client` and `rollnw_test` build in the existing Release build.
+All 60 focused tests pass (14.924 seconds): Encounter/Sound replacements, native
+document saves, RML templates and bindings, managed/virtual lists, resource drag,
+Sound workbench behavior, and runtime replacement. The new integration case
+dispatches each actual minus button, preserves duplicate-entry order, rejects
+missing/out-of-range/stale selections and changed owners, verifies a single
+mutation/undo publication, and saves/reloads both blueprint and containing CAF
+documents. Empty lists also survive save/reload and undo/redo. Formatting and
+`git diff --check` pass. Manual desktop pointer/keyboard use remains unverified;
+RML layout and event dispatch were exercised with the test render interface.
+
+Final self-check: both commands reuse complete-array replacement, reject invalid
+boundaries before mutation, and retain no new source snapshot or ownership state.
+The simplification pass removed repeated list initialization within each refresh
+and retained the existing undo/save protocol. Context prefixes are computed once
+per refresh; unchanged refreshes preserve selection and successful removal clears
+it. No speculative parameter, generalized editor, pointer-heavy hot path, or
+performance claim was added. The stated completion criteria have automated
+evidence, with desktop validation explicitly excluded.
+
+Selection-feedback follow-up: Encounter and Sound already used the shared list
+controller and `selected` row class, but collection rows lacked selected/hover
+styles. The shared collection stylesheet now uses the existing highlighted
+background and gold left edge, with padding compensation to keep text aligned.
+The integration case now activates a row cell and checks the computed selected
+background/border, persistence during hover, and clearing after removal for both
+types. Client/tests build; all 32 selected RML/template tests pass, along with
+formatting and diff checks. No new selection state or runtime path was added.
+
 Status: object-workbench vertical slices implemented and verified through
 2026-08-19; Item appearance ownership updated 2026-09-01.
 
@@ -668,8 +787,9 @@ an explicit status message.
 Encounter and Sound insertion are implemented as bounded batches of at most
 1,024 entries. Each command snapshots the complete ordered source array,
 rejects stale or invalid input before mutation, and restores the exact prior
-array on undo. Removal and explicit reordering remain unresolved because those
-interactions have not been selected.
+array on undo. Both surfaces now provide selected-entry removal through the
+minus button. Sound resources also support drag reordering. Encounter field
+editing and explicit Encounter reordering remain unresolved.
 
 Store insertion is a bounded batch of at most 1,024 detached live Items. Every
 row names one of the five real inventory categories; category is never inferred
