@@ -456,7 +456,7 @@ jobs:
         timeout-minutes: 10
         with:
           ppa: ppa:ubuntu-toolchain-r/test
-          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev
+          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev
 
       - name: linux - select gcc
         run: |
@@ -538,6 +538,20 @@ jobs:
           cmake "-DPACKAGE_ROOT=$ARTIFACT_DIR/$PACKAGE_ROOT" \
             '-DTOOLS=rollnw-client;mudl;smalls;smalls-lsp;smalls-datagen' \
             -P scripts/ci/validate_tool_packages.cmake
+          python3 - "$ARTIFACT_DIR/$PACKAGE_ROOT/bin/libSDL3.so.0" <<'PY'
+          import ctypes
+          import sys
+
+          sdl = ctypes.CDLL(sys.argv[1])
+          sdl.SDL_GetNumVideoDrivers.restype = ctypes.c_int
+          sdl.SDL_GetVideoDriver.argtypes = [ctypes.c_int]
+          sdl.SDL_GetVideoDriver.restype = ctypes.c_char_p
+          drivers = {sdl.SDL_GetVideoDriver(i).decode() for i in range(sdl.SDL_GetNumVideoDrivers())}
+          print('Packaged SDL video drivers:', ', '.join(sorted(drivers)))
+          missing = {'wayland', 'x11'} - drivers
+          if missing:
+              sys.exit('Packaged SDL is missing required video drivers: ' + ', '.join(sorted(missing)))
+          PY
           printf '%s\n' "$PACKAGE_ROOT" > "$ARTIFACT_DIR/package-root.txt"
           echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
 
@@ -974,7 +988,7 @@ jobs:
         timeout-minutes: 10
         with:
           ppa: ppa:ubuntu-toolchain-r/test
-          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libwayland-dev wayland-protocols libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev xvfb xauth
+          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev xvfb xauth
 
       - name: linux - select gcc
         run: |
