@@ -37,6 +37,10 @@ blueprints and other resources open in their own tabs. Switching tabs preserves
 your edits, and undo/redo belongs to the document being edited. Opening another
 area reuses the Area tab and prompts if the current area has unsaved changes.
 
+The project tree hides Git metadata and applies project-local `.gitignore`
+files, including nested rules and `!` exceptions. Matching is case-sensitive
+and controls tree visibility independently of Git tracking; Git is not required.
+
 Select an object in the viewport or placed-object list to inspect it. The
 workbench combines general **Details** with focused editors for appearance,
 creature progression, item properties, inventory, and other supported data.

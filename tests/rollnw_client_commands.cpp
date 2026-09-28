@@ -496,11 +496,14 @@ TEST(ClientProject, RecentPreferencesSkipMalformedRowsAndBoundHistory)
     EXPECT_TRUE(projects.empty());
 }
 
-TEST(ClientProject, BrowserOmitsGitDirectoriesAndWorktreeFiles)
+TEST(ClientProject, BrowserOmitsCacheDirectoriesAndGitMetadata)
 {
     const std::filesystem::path root = "tmp/client_project_hidden_git";
     std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root / ".RoLlNw" / "cache");
     ASSERT_TRUE(initialize_project(root, "Hidden Git").ok);
+    std::filesystem::create_directories(root / ".rollnw" / "cache" / "area_maps");
+    std::ofstream{root / ".rollnw" / "cache" / "area_maps" / "start.png"} << "cache";
     std::filesystem::create_directories(root / ".git" / "objects");
     std::filesystem::create_directories(root / "shared" / "nested");
     {
@@ -511,21 +514,141 @@ TEST(ClientProject, BrowserOmitsGitDirectoriesAndWorktreeFiles)
         std::ofstream output{root / "shared" / "nested" / ".git"};
         output << "gitdir: elsewhere";
     }
-    {
-        std::ofstream output{root / ".gitignore"};
-        output << "ignored";
+    const std::array git_files{".gitignore", ".gitattributes", ".gitmodules"};
+    for (const auto* filename : git_files) {
+        std::ofstream{root / filename} << "# Git metadata\n";
+        std::ofstream{root / "shared" / "nested" / filename} << "# Git metadata\n";
     }
+    std::filesystem::create_directories(root / "shared" / "mixed_case");
+    std::ofstream{root / "shared" / "mixed_case" / ".GiTaTtRiBuTeS"} << "git metadata";
+    std::ofstream{root / "shared" / "mixed_case" / ".GiT"} << "gitdir: elsewhere";
+    std::ofstream{root / "ordinary.txt"} << "Ordinary project file";
+    std::ofstream{root / ".gitignore.backup"} << "Not Git metadata";
     const auto tree = load_project_tree(root);
     ASSERT_TRUE(tree.ok) << tree.message;
     EXPECT_EQ(find_node(tree.root, ".git"), nullptr);
     EXPECT_EQ(find_node(tree.root, "shared/nested/.git"), nullptr);
-    EXPECT_NE(find_node(tree.root, ".gitignore"), nullptr);
+    for (const auto* filename : git_files) {
+        EXPECT_EQ(find_node(tree.root, filename), nullptr);
+        EXPECT_EQ(find_node(tree.root, "shared/nested/" + std::string{filename}), nullptr);
+        EXPECT_TRUE(std::filesystem::exists(root / filename));
+        EXPECT_TRUE(std::filesystem::exists(root / "shared" / "nested" / filename));
+    }
+    EXPECT_EQ(find_node(tree.root, "shared/mixed_case/.GiTaTtRiBuTeS"), nullptr);
+    EXPECT_EQ(find_node(tree.root, "shared/mixed_case/.GiT"), nullptr);
+    EXPECT_NE(find_node(tree.root, "ordinary.txt"), nullptr);
+    EXPECT_NE(find_node(tree.root, ".gitignore.backup"), nullptr);
+    EXPECT_EQ(find_node(tree.root, ".rollnw"), nullptr);
+    EXPECT_EQ(find_node(tree.root, ".RoLlNw"), nullptr);
+    EXPECT_EQ(find_node(tree.root, ".rollnw/cache/area_maps/start.png"), nullptr);
     const auto filtered = load_project_tree(root, "git");
     ASSERT_TRUE(filtered.ok) << filtered.message;
     EXPECT_EQ(find_node(filtered.root, ".git"), nullptr);
     EXPECT_EQ(find_node(filtered.root, "shared/nested/.git"), nullptr);
+    for (const auto* filename : git_files) {
+        EXPECT_EQ(find_node(filtered.root, filename), nullptr);
+        EXPECT_EQ(find_node(filtered.root, "shared/nested/" + std::string{filename}), nullptr);
+    }
+    EXPECT_EQ(find_node(filtered.root, "shared/mixed_case/.GiTaTtRiBuTeS"), nullptr);
+    EXPECT_EQ(find_node(filtered.root, "shared/mixed_case/.GiT"), nullptr);
+    EXPECT_NE(find_node(filtered.root, ".gitignore.backup"), nullptr);
     EXPECT_TRUE(std::filesystem::exists(root / ".git" / "config"));
     EXPECT_TRUE(std::filesystem::exists(root / "shared" / "nested" / ".git"));
+    const auto cached = load_project_tree(root, "start");
+    ASSERT_TRUE(cached.ok) << cached.message;
+    EXPECT_EQ(find_node(cached.root, ".rollnw"), nullptr);
+    EXPECT_EQ(find_node(cached.root, ".rollnw/cache/area_maps/start.png"), nullptr);
+    EXPECT_TRUE(std::filesystem::exists(root / ".rollnw" / "cache" / "area_maps" / "start.png"));
+}
+
+TEST(ClientProject, BrowserAppliesNestedGitignoreRulesBeforeSearchingAndGrouping)
+{
+    const std::filesystem::path root = "tmp/client_project_gitignore";
+    std::filesystem::remove_all(root);
+    ASSERT_TRUE(initialize_project(root, "Ignore rules").ok);
+    const std::string patterns = "\xef\xbb\xbf*.tmp\r\n"
+                                 "# Portable project-tree rules\r\n!important.tmp\r\n/root_only.txt\r\nbuild/\r\n"
+                                 "**/cache/\r\nassets/**/scratch?.[ch]\r\n"
+                                 "generated/*\r\n!generated/keep/\r\n!generated/keep/**\r\n"
+                                 "blocked/\r\n!blocked/keep.txt\r\nrange[0-9].txt\r\n"
+                                 "[!a]note.txt\r\n\\#scratch\r\n\\!scratch\r\nspace\\ name.txt\r\n"
+                                 "trim.txt   \r\nliteral\\[1\\].txt\r\ncolon[[:digit:]].txt\r\n"
+                                 "broken[\r\ndangling\\\r\n!.git/\r\n!.rollnw/\r\n";
+    std::ofstream{root / ".gitignore", std::ios::binary} << patterns;
+    struct Case {
+        const char* path;
+        bool visible;
+    };
+    const std::array cases{
+        Case{"ordinary.txt", true},
+        Case{"hidden.tmp", false},
+        Case{"important.tmp", true},
+        Case{"nested/keep.tmp", true},
+        Case{"nested/deeper/keep.tmp", true},
+        Case{"sibling/keep.tmp", false},
+        Case{"nested/local.txt", false},
+        Case{"sibling/local.txt", true},
+        Case{"root_only.txt", false},
+        Case{"nested/root_only.txt", true},
+        Case{"build/keep.txt", false},
+        Case{"nested/build/keep.txt", false},
+        Case{"cache/data.txt", false},
+        Case{"nested/cache/data.txt", false},
+        Case{"assets/scratch1.c", false},
+        Case{"assets/a/b/scratch2.h", false},
+        Case{"assets/a/scratch12.c", true},
+        Case{"other/assets/scratch1.c", true},
+        Case{"generated/drop.txt", false},
+        Case{"generated/keep/data.txt", true},
+        Case{"generated/keep/nested/data.txt", true},
+        Case{"blocked/keep.txt", false},
+        Case{"range2.txt", false},
+        Case{"rangea.txt", true},
+        Case{"bnote.txt", false},
+        Case{"anote.txt", true},
+        Case{"#scratch", false},
+        Case{"!scratch", false},
+        Case{"space name.txt", false},
+        Case{"trim.txt", false},
+        Case{"literal[1].txt", false},
+        Case{"colon3.txt", false},
+        Case{"colonz.txt", true},
+        Case{"broken[", true},
+        Case{"dangling", true},
+        Case{"directory_only", true},
+        Case{"shared/areas/ignored.caf.json", false},
+    };
+    for (const auto& row : cases) {
+        const auto file = root / row.path;
+        std::filesystem::create_directories(file.parent_path());
+        std::ofstream{file} << "fixture";
+    }
+    std::ofstream{root / "nested" / ".gitignore"} << "!keep.tmp\nlocal.txt\n";
+    std::ofstream{root / "shared" / "areas" / ".gitignore"} << "ignored.caf.json\n";
+    {
+        std::ofstream append{root / ".gitignore", std::ios::app};
+        append << "directory_only/\n";
+    }
+    for (const auto* query : {"", "txt"}) {
+        const auto tree = load_project_tree(root, query);
+        ASSERT_TRUE(tree.ok) << tree.message;
+        for (const auto& row : cases) {
+            SCOPED_TRACE(row.path);
+            const bool shown = find_node(tree.root, row.path) != nullptr;
+            if (*query == '\0' || !row.visible) { EXPECT_EQ(shown, row.visible); }
+            EXPECT_TRUE(std::filesystem::is_regular_file(root / row.path));
+        }
+        EXPECT_EQ(find_node(tree.root, ".rollnw"), nullptr);
+        EXPECT_EQ(find_node(tree.root, ".gitignore"), nullptr);
+        EXPECT_EQ(find_node(tree.root, "nested/.gitignore"), nullptr);
+    }
+    // A refresh rereads rules instead of retaining a stale matcher.
+    std::ofstream{root / ".gitignore"} << "ordinary.txt\n";
+    const auto refreshed = load_project_tree(root);
+    ASSERT_TRUE(refreshed.ok) << refreshed.message;
+    EXPECT_EQ(find_node(refreshed.root, "ordinary.txt"), nullptr);
+    EXPECT_NE(find_node(refreshed.root, "hidden.tmp"), nullptr);
+    EXPECT_NE(find_node(refreshed.root, "blocked/keep.txt"), nullptr);
 }
 
 TEST(ClientProject, PersistsValidatedPreviewTestActorWithoutChangingManifestVersion)

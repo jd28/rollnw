@@ -1,6 +1,7 @@
 #include "project.hpp"
 
 #include "area_map.hpp"
+#include "project_ignore.hpp"
 
 #include <nw/formats/Dialog.hpp>
 #include <nw/formats/Faction.hpp>
@@ -26,6 +27,7 @@
 #include <nw/resources/StaticErf.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/serialization/Gff.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -676,15 +678,6 @@ void ensure_resource_name_services()
     (void)nw::kernel::services().add<nw::kernel::Strings>();
 }
 
-bool is_hidden_project_directory(const fs::path& relative_path)
-{
-    if (relative_path.empty()) {
-        return false;
-    }
-    const fs::path& root = *relative_path.begin();
-    return root == ".rollnw";
-}
-
 fs::path project_tree_label_cache_path(const fs::path& project_dir)
 {
     return project_dir / kProjectTreeLabelCachePath;
@@ -1104,10 +1097,16 @@ bool scan_project_tree_directory(const fs::path& project_dir,
     const fs::path& relative_directory,
     std::string_view query,
     ProjectLabelCache& cache,
+    std::vector<ProjectIgnoreRule>& ignore_rules,
     ProjectTreeNode& parent,
     size_t& node_count,
     std::string& error)
 {
+    const auto inherited_rules = ignore_rules.size();
+    const auto restore_rules = create_scope_exit([&] { ignore_rules.resize(inherited_rules); });
+    if (!append_project_ignore_rules(directory, relative_directory, ignore_rules, error)) {
+        return false;
+    }
     std::error_code ec;
     std::vector<fs::directory_entry> entries;
     for (const auto& entry : fs::directory_iterator(directory, fs::directory_options::skip_permission_denied, ec)) {
@@ -1117,12 +1116,15 @@ bool scan_project_tree_directory(const fs::path& project_dir,
         }
 
         const fs::path relative_path = relative_directory / entry.path().filename();
-        // Git metadata can be a directory or a worktree pointer file.
-        if (relative_path.filename() == ".git") {
+        // Hide Git metadata at every depth, including worktree pointer files.
+        // Fold only the filename so platform path separators and casing agree.
+        const auto filename = to_lower_ascii(entry.path().filename().string());
+        if (filename == ".git" || filename == ".gitignore"
+            || filename == ".gitattributes" || filename == ".gitmodules") {
             continue;
         }
         std::error_code entry_ec;
-        if (entry.is_directory(entry_ec) && is_hidden_project_directory(relative_path)) {
+        if (relative_directory.empty() && filename == ".rollnw" && entry.is_directory(entry_ec)) {
             continue;
         }
         if (entry.is_regular_file(entry_ec) && should_hide_project_tree_file(relative_path)) {
@@ -1135,6 +1137,8 @@ bool scan_project_tree_directory(const fs::path& project_dir,
         error = "Failed to read project directory " + directory.string() + ": " + ec.message();
         return false;
     }
+
+    filter_project_entries(relative_directory, ignore_rules, entries);
 
     std::unordered_map<std::string, AreaGroup> area_groups;
     for (const auto& entry : entries) {
@@ -1170,7 +1174,7 @@ bool scan_project_tree_directory(const fs::path& project_dir,
         ProjectTreeNode node = make_project_tree_node(project_dir, relative_path, entry, cache);
 
         if (node.is_directory()) {
-            if (!scan_project_tree_directory(project_dir, entry.path(), relative_path, query, cache, node, node_count, error)) {
+            if (!scan_project_tree_directory(project_dir, entry.path(), relative_path, query, cache, ignore_rules, node, node_count, error)) {
                 return false;
             }
         }
@@ -1505,7 +1509,8 @@ ProjectTreeResult load_project_tree(const fs::path& project_dir, std::string_vie
     ProjectLabelCache label_cache = load_project_label_cache(project_dir);
 
     std::string error;
-    if (!scan_project_tree_directory(project_dir, project_dir, {}, query, label_cache, result.root, result.node_count, error)) {
+    std::vector<ProjectIgnoreRule> ignore_rules;
+    if (!scan_project_tree_directory(project_dir, project_dir, {}, query, label_cache, ignore_rules, result.root, result.node_count, error)) {
         result.message = std::move(error);
         return result;
     }

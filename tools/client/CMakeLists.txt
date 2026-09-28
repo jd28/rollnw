@@ -26,6 +26,7 @@ add_library(rollnw_client_core STATIC
     pc_input.cpp
     preview_session.cpp
     project.cpp
+    project_ignore.cpp
     resource_document.cpp
     script_commands.cpp
     shell_controller.cpp
