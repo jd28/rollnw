@@ -1,3 +1,4 @@
+#include "browser_view.hpp"
 #include "client_rml_file_interface.hpp"
 
 #include <nw/kernel/Kernel.hpp>
@@ -126,7 +127,7 @@ TEST(ClientRmlFiles, FilesystemAndFileProtocolPreservePositionsAndExplicitMissin
     const auto path = source_root / "tools/client/ui/panel.rml";
     const auto expected = file_bytes(path);
     ASSERT_GT(expected.size(), 3);
-    for (const auto& url : {path.string(), "file://" + path.generic_string()}) {
+    for (const auto& url : {path.string(), "file://" + path.generic_string(), nw::toolset::rml_file_source(path)}) {
         SCOPED_TRACE(url);
         const auto handle = files.Open(url);
         ASSERT_NE(handle, 0);

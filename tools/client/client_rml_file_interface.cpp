@@ -37,6 +37,7 @@ Rml::FileHandle ClientRmlFileInterface::Open(const Rml::String& path)
     }
 
     Rml::String fallback_path = path;
+    std::replace(fallback_path.begin(), fallback_path.end(), '|', ':');
     constexpr std::string_view file_protocol = "file://";
     if (fallback_path.rfind(file_protocol, 0) == 0) {
         fallback_path.erase(0, file_protocol.size());
@@ -47,7 +48,6 @@ Rml::FileHandle ClientRmlFileInterface::Open(const Rml::String& path)
         }
 #endif
     }
-    std::replace(fallback_path.begin(), fallback_path.end(), '|', ':');
     if (auto* fallback = std::fopen(fallback_path.c_str(), "rb")) {
         auto* file = new RmlResourceFile{};
         file->fallback = fallback;
