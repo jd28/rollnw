@@ -96,6 +96,36 @@ TEST_F(ClientSdlRuntime, BootstrapHelpersBorrowActualWindowAndRetainPacingConfig
     }
 }
 
+TEST_F(ClientSdlRuntime, UiScaleDefaultsToDisplayAndRejectsMalformedOverrides)
+{
+    ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
+    auto* window = SDL_CreateWindow("scale", 320, 200, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    ASSERT_NE(window, nullptr);
+    const auto destroy = create_scope_exit([&] { SDL_DestroyWindow(window); });
+    std::optional<std::string> previous;
+    if (const auto* value = std::getenv("ROLLNW_TOOLSET_UI_SCALE")) { previous = value; }
+    const auto restore = create_scope_exit([&] {
+        if (previous) {
+            SDL_setenv_unsafe("ROLLNW_TOOLSET_UI_SCALE", previous->c_str(), 1);
+        } else {
+            SDL_unsetenv_unsafe("ROLLNW_TOOLSET_UI_SCALE");
+        }
+    });
+    ASSERT_EQ(SDL_unsetenv_unsafe("ROLLNW_TOOLSET_UI_SCALE"), 0);
+    const float display_scale = SDL_GetWindowDisplayScale(window);
+    ASSERT_GT(display_scale, 0.0f);
+    EXPECT_FLOAT_EQ(nw::toolset::client_ui_scale(window), display_scale);
+    EXPECT_FLOAT_EQ(nw::toolset::client_ui_scale(nullptr), 1.0f);
+    for (const auto* value : {"", "0", "-1", "nan", "inf", "1.5oops", "1e999", "1e30", "1e-30", "4.1"}) {
+        ASSERT_EQ(SDL_setenv_unsafe("ROLLNW_TOOLSET_UI_SCALE", value, 1), 0);
+        EXPECT_FLOAT_EQ(nw::toolset::client_ui_scale(window), display_scale) << value;
+    }
+    for (const auto* value : {"1", "1.5", "1.844", "2"}) {
+        ASSERT_EQ(SDL_setenv_unsafe("ROLLNW_TOOLSET_UI_SCALE", value, 1), 0);
+        EXPECT_FLOAT_EQ(nw::toolset::client_ui_scale(window), std::strtof(value, nullptr));
+    }
+}
+
 TEST_F(ClientSdlRuntime, InvalidDriverReturnsFailureWithoutAWindow)
 {
     ASSERT_TRUE(SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "client-sdl-no-such-driver"));

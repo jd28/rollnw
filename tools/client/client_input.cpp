@@ -65,8 +65,8 @@ bool focused_element_has_id(Rml::Context* context, const char* id)
 
 Rml::Vector2f to_context_point(SDL_Window* window, float x, float y)
 {
-    (void)window;
-    return Rml::Vector2f{x, y};
+    const float density = window ? SDL_GetWindowPixelDensity(window) : 1.0f;
+    return Rml::Vector2f{x * density, y * density};
 }
 
 namespace {
@@ -95,7 +95,9 @@ Rml::Element* element_at_mouse(Rml::Context* context, SDL_Window* window, const 
         return nullptr;
     }
 
-    return context->GetElementAtPoint(Rml::Vector2f{static_cast<float>(mouse.x), static_cast<float>(mouse.y)});
+    const auto point = to_context_point(window, mouse.x, mouse.y);
+    if (!coordinate(point.x) || !coordinate(point.y)) { return nullptr; }
+    return context->GetElementAtPoint(point);
 }
 
 void blur_focused_object_variable_input(

@@ -1,8 +1,8 @@
 .creature_classes_editor {
   display: block;
   flex: 1;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
   overflow-y: auto;
   overflow-x: hidden;
   background: #13191e;
@@ -10,35 +10,35 @@
 
 .creature_classes_header {
   display: flex;
-  height: 29px;
-  padding: 0px 10px;
-  border-bottom: 1px #303a43;
+  height: 29dp;
+  padding: 0dp 10dp;
+  border-bottom: 1dp #303a43;
   background: #1c252c;
   color: #aeb8c3;
-  font-size: 12px;
+  font-size: 12dp;
   font-weight: 700;
-  line-height: 29px;
+  line-height: 29dp;
   box-sizing: border-box;
 }
 
 .creature_classes_header span:first-child {
   flex: 1;
-  min-width: 0px;
+  min-width: 0dp;
 }
 
 .creature_classes_header span:last-child {
-  flex: 0 0 104px;
+  flex: 0 0 104dp;
   text-align: center;
 }
 
 .creature_class_row {
   display: flex;
-  height: 31px;
-  border-bottom: 1px #29333c;
+  height: 31dp;
+  border-bottom: 1dp #29333c;
   background: #151b21;
   color: #eef2f5;
-  font-size: 12px;
-  line-height: 30px;
+  font-size: 12dp;
+  line-height: 30dp;
   box-sizing: border-box;
 }
 
@@ -48,9 +48,9 @@
 
 .creature_class_name {
   flex: 1;
-  min-width: 0px;
-  padding: 0px 10px 0px 14px;
-  border-right: 1px #29333c;
+  min-width: 0dp;
+  padding: 0dp 10dp 0dp 14dp;
+  border-right: 1dp #29333c;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -58,5 +58,5 @@
 }
 
 .creature_class_level_controls {
-  flex: 0 0 104px;
+  flex: 0 0 104dp;
 }

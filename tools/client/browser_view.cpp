@@ -4,6 +4,7 @@
 #include "workspace_view.hpp"
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/Elements/ElementFormControl.h>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/resources/ResourceManager.hpp>
@@ -15,13 +16,13 @@
 namespace nw::toolset {
 namespace {
 
-constexpr float kVirtualTreeRowHeightPx = 26.0f;
+constexpr float kVirtualTreeRowHeightDp = 26.0f;
 constexpr size_t kVirtualTreeOverscanRows = 8;
 constexpr size_t kInvalidVirtualIndex = std::numeric_limits<size_t>::max();
-constexpr int kHomeAreaRowHeightPx = 190;
+constexpr int kHomeAreaRowHeightDp = 190;
 constexpr int kHomeAreaOverscanRows = 2;
-constexpr int kHomeAreaMinimumCardWidthPx = 240;
-constexpr int kHomeAreaCardGapPx = 8;
+constexpr int kHomeAreaMinimumCardWidthDp = 240;
+constexpr int kHomeAreaCardGapDp = 8;
 constexpr int kHomeAreaMaximumColumns = 4;
 
 struct VirtualRowWindow {
@@ -363,8 +364,8 @@ VirtualRowWindow virtual_row_window_for(Rml::Element* list, size_t row_count)
 
     const float client_height = std::max(list->GetClientHeight(), list->GetOffsetHeight());
     const float scroll_top = std::max(0.0f, list->GetScrollTop());
-    const size_t first_visible = std::min(row_count, static_cast<size_t>(scroll_top / kVirtualTreeRowHeightPx));
-    const size_t visible_count = static_cast<size_t>(std::ceil(client_height / kVirtualTreeRowHeightPx)) + 1;
+    const size_t first_visible = std::min(row_count, static_cast<size_t>(scroll_top / (kVirtualTreeRowHeightDp * Rml::ElementUtilities::GetDensityIndependentPixelRatio(list))));
+    const size_t visible_count = static_cast<size_t>(std::ceil(client_height / (kVirtualTreeRowHeightDp * Rml::ElementUtilities::GetDensityIndependentPixelRatio(list)))) + 1;
     window.start = first_visible > kVirtualTreeOverscanRows ? first_visible - kVirtualTreeOverscanRows : 0;
     window.end = std::min(row_count, first_visible + visible_count + kVirtualTreeOverscanRows);
     return window;
@@ -402,7 +403,7 @@ void append_project_tree_row_markup(const ProjectTreeRow& row,
     markup += std::to_string(row_index);
     markup += "\" style=\"padding-left: ";
     markup += std::to_string(6 + std::max(0, row.depth) * 12);
-    markup += "px;\">";
+    markup += "dp;\">";
     markup += "<span class=\"tree_twisty";
     markup += is_container ? (collapsed ? " collapsed" : " expanded") : " leaf";
     markup += "\"></span>";
@@ -440,8 +441,8 @@ bool render_project_tree_window(Rml::ElementDocument* doc, BrowserViewState& sta
     } else {
         if (window.start > 0) {
             markup += "<div class=\"tree_spacer\" style=\"height: ";
-            markup += std::to_string(static_cast<int>(std::lround(static_cast<float>(window.start) * kVirtualTreeRowHeightPx)));
-            markup += "px;\"></div>";
+            markup += std::to_string(static_cast<int>(std::lround(static_cast<float>(window.start) * kVirtualTreeRowHeightDp)));
+            markup += "dp;\"></div>";
         }
 
         for (size_t i = window.start; i < window.end; ++i) {
@@ -450,8 +451,8 @@ bool render_project_tree_window(Rml::ElementDocument* doc, BrowserViewState& sta
 
         if (window.end < row_count) {
             markup += "<div class=\"tree_spacer\" style=\"height: ";
-            markup += std::to_string(static_cast<int>(std::lround(static_cast<float>(row_count - window.end) * kVirtualTreeRowHeightPx)));
-            markup += "px;\"></div>";
+            markup += std::to_string(static_cast<int>(std::lround(static_cast<float>(row_count - window.end) * kVirtualTreeRowHeightDp)));
+            markup += "dp;\"></div>";
         }
     }
 
@@ -584,7 +585,7 @@ void refresh_home_area_catalog(BrowserViewState& state, const ToolsetBackend& ba
 
     state.home_areas = backend.list_areas(state.home_area_query);
     state.home_area_generation = generation;
-    state.home_area_list.set_row_height(kHomeAreaRowHeightPx);
+    state.home_area_list.set_row_height(kHomeAreaRowHeightDp);
     state.home_area_list.set_overscan(kHomeAreaOverscanRows);
     state.home_area_list.set_scroll_top(0);
     state.rendered_home_area_count = kInvalidVirtualIndex;
@@ -642,10 +643,11 @@ bool sync_home_area_window(Rml::ElementDocument* doc, BrowserViewState& state, b
         return false;
     }
 
-    const int list_width = std::max(1, static_cast<int>(std::lround(std::max(list->GetClientWidth(), list->GetOffsetWidth()))));
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
+    const int list_width = std::max(1, static_cast<int>(std::lround(std::max(list->GetClientWidth(), list->GetOffsetWidth()) / scale)));
     const int columns = std::clamp(
-        (list_width + kHomeAreaCardGapPx)
-            / (kHomeAreaMinimumCardWidthPx + kHomeAreaCardGapPx),
+        (list_width + kHomeAreaCardGapDp)
+            / (kHomeAreaMinimumCardWidthDp + kHomeAreaCardGapDp),
         1,
         kHomeAreaMaximumColumns);
     const int logical_rows = static_cast<int>((state.home_areas.size()
@@ -653,9 +655,9 @@ bool sync_home_area_window(Rml::ElementDocument* doc, BrowserViewState& state, b
         / static_cast<size_t>(columns));
     state.home_area_list.set_total_rows(logical_rows);
     state.home_area_list.set_viewport_height(std::max(0,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight())))));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale))));
     state.home_area_list.set_scroll_top(std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop()))));
+        static_cast<int>(std::lround(list->GetScrollTop() / scale))));
     const auto range = state.home_area_list.compute_range();
     if (!force
         && state.rendered_home_area_count == state.home_areas.size()
@@ -673,7 +675,7 @@ bool sync_home_area_window(Rml::ElementDocument* doc, BrowserViewState& state, b
         if (range.top_spacer_px > 0) {
             markup += "<div class=\"home_area_spacer\" style=\"height:";
             markup += std::to_string(range.top_spacer_px);
-            markup += "px;\"></div>";
+            markup += "dp;\"></div>";
         }
         for (int row = range.start; row < range.end; ++row) {
             markup += "<div class=\"home_area_grid_row\">";
@@ -690,7 +692,7 @@ bool sync_home_area_window(Rml::ElementDocument* doc, BrowserViewState& state, b
         if (range.bottom_spacer_px > 0) {
             markup += "<div class=\"home_area_spacer\" style=\"height:";
             markup += std::to_string(range.bottom_spacer_px);
-            markup += "px;\"></div>";
+            markup += "dp;\"></div>";
         }
     }
 

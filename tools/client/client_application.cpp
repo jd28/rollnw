@@ -74,11 +74,11 @@ int run_client_application(const char* executable)
     }
     const auto renderer_cleanup = create_scope_exit([&] { renderer.shutdown(); });
 
-    uint32_t width_u32 = static_cast<uint32_t>(width);
-    uint32_t height_u32 = static_cast<uint32_t>(height);
+    uint32_t width_u32 = static_cast<uint32_t>(frame_width);
+    uint32_t height_u32 = static_cast<uint32_t>(frame_height);
     renderer.bootstrap_swapchain(width_u32, height_u32);
-    width = static_cast<int>(width_u32);
-    height = static_cast<int>(height_u32);
+    frame_width = static_cast<int>(width_u32);
+    frame_height = static_cast<int>(height_u32);
     if (!renderer.is_swapchain_valid()) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create swapchain after bootstrap — cannot continue");
         return 1;
@@ -102,12 +102,12 @@ int run_client_application(const char* executable)
     }
 
     nw::toolset::ClientRmlRuntime rml_runtime{ui_dir, nw::kernel::resman()};
-    if (!rml_runtime.initialize(system_interface, *rml_renderer, client_base_path(), {width, height})) {
+    if (!rml_runtime.initialize(system_interface, *rml_renderer, client_base_path(), {frame_width, frame_height})) {
         return 1;
     }
     auto* context = rml_runtime.contexts().toolset;
-    renderer.on_resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height), context);
-    if (!rml_runtime.create_overlay_contexts({width, height})) {
+    renderer.on_resize(static_cast<uint32_t>(frame_width), static_cast<uint32_t>(frame_height), context);
+    if (!rml_runtime.create_overlay_contexts({frame_width, frame_height})) {
         return 1;
     }
     auto* fps_context = rml_runtime.contexts().fps;
@@ -116,14 +116,10 @@ int run_client_application(const char* executable)
     const nw::Resource command_modals_rml{nw::Resref{"ui/command_modals"}, nw::ResourceType::rml};
 
     {
-        float dp_ratio = 1.0f;
-        if (const char* override = std::getenv("ROLLNW_TOOLSET_UI_SCALE")) {
-            const float v = std::strtof(override, nullptr);
-            if (v > 0.0f) dp_ratio = v;
+        const float dp_ratio = client_ui_scale(window);
+        for (auto* ui_context : {context, fps_context, palette_context}) {
+            ui_context->SetDensityIndependentPixelRatio(dp_ratio);
         }
-        context->SetDensityIndependentPixelRatio(dp_ratio);
-        fps_context->SetDensityIndependentPixelRatio(dp_ratio);
-        palette_context->SetDensityIndependentPixelRatio(dp_ratio);
     }
 
     ClientApplicationState state;

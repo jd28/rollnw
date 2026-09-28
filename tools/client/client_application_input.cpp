@@ -388,6 +388,16 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             hide_object_variable_warning_tooltip(doc, state);
             set_recent_hover(doc, state, -1);
             break;
+        case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED: {
+            const float scale = client_ui_scale(window);
+            for (auto* ui_context : {context, fps_context, palette_context}) {
+                ui_context->SetDensityIndependentPixelRatio(scale);
+            }
+            apply_bottom_dock_height(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::bottom).size_px);
+            apply_left_dock_width(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::left).size_px);
+            // The SDL backend would otherwise overwrite the configured override.
+            continue;
+        }
         case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
             const auto pixels = query_window_pixels(window);
             surfaces.frame_width = pixels.first;
@@ -401,7 +411,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             surfaces.width = window_size.first;
             surfaces.height = window_size.second;
             log_window_metrics(window, "resized");
-            renderer.on_resize(static_cast<uint32_t>(surfaces.width), static_cast<uint32_t>(surfaces.height), context);
+            renderer.on_resize(static_cast<uint32_t>(surfaces.frame_width), static_cast<uint32_t>(surfaces.frame_height), context);
             fps_context->SetDimensions(Rml::Vector2i(surfaces.frame_width, surfaces.frame_height));
             palette_context->SetDimensions(Rml::Vector2i(surfaces.frame_width, surfaces.frame_height));
             apply_bottom_dock_height(doc, state, window, state.shell.docks.pane(nw::toolset::DockRegion::bottom).size_px);

@@ -1,6 +1,6 @@
 .object_workbench.creature_workbench {
-  flex-basis: 440px;
-  width: 440px;
+  flex-basis: 440dp;
+  width: 440dp;
 }
 
 #creature_object_header {
@@ -13,8 +13,8 @@
 .creature_workbench_surface {
   display: none;
   flex: 1;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
 }
 .creature_workbench_surface.active {
   display: flex;
@@ -22,22 +22,22 @@
 }
 
 .creature_data_header {
-  border-top: 1px #36414c;
+  border-top: 1dp #36414c;
 }
 
 #creature_sheet_rows .property_tree_name {
-  padding-left: 22px;
+  padding-left: 22dp;
 }
 #creature_sheet_rows .property_tree_cells.section .property_tree_name {
-  padding-left: 8px;
+  padding-left: 8dp;
 }
 
 .creature_surface_dynamic {
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
 }
 
 .creature_appearance_main, .creature_appearance_modal {
@@ -49,16 +49,16 @@
 
 #creature_workbench_overlays {
   position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 0px;
-  height: 0px;
+  left: 0dp;
+  top: 0dp;
+  width: 0dp;
+  height: 0dp;
 }
 
 #creature_workbench_dynamic_overlays {
   position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 0px;
-  height: 0px;
+  left: 0dp;
+  top: 0dp;
+  width: 0dp;
+  height: 0dp;
 }

@@ -8,6 +8,7 @@
 #include "toolset_backend.hpp"
 #include "workspace.hpp"
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <charconv>
@@ -22,9 +23,9 @@
 
 namespace nw::toolset {
 namespace {
-constexpr int kAppearanceRowHeightPx = 30;
+constexpr int kAppearanceRowHeightDp = 30;
 constexpr int kAppearanceOverscanRows = 4;
-constexpr int kSoundCatalogRowHeightPx = 34;
+constexpr int kSoundCatalogRowHeightDp = 34;
 constexpr int kSoundCatalogOverscanRows = 4;
 std::string escape_html(std::string_view text)
 {
@@ -304,7 +305,7 @@ void configure_appearance_list(AppearanceViewState& state)
     if (state.appearance_list_configured) {
         return;
     }
-    state.appearance_list.set_row_height(kAppearanceRowHeightPx);
+    state.appearance_list.set_row_height(kAppearanceRowHeightDp);
     state.appearance_list.set_overscan(kAppearanceOverscanRows);
     state.appearance_list_configured = true;
 }
@@ -343,7 +344,7 @@ void configure_sound_catalog_list(AppearanceViewState& state)
     if (state.sound_catalog_list_configured) {
         return;
     }
-    state.sound_catalog_list.set_row_height(kSoundCatalogRowHeightPx);
+    state.sound_catalog_list.set_row_height(kSoundCatalogRowHeightDp);
     state.sound_catalog_list.set_overscan(kSoundCatalogOverscanRows);
     state.sound_catalog_list_configured = true;
 }
@@ -642,10 +643,11 @@ bool sync_appearance_window(Rml::ElementDocument* doc, AppearanceViewState& stat
     }
 
     configure_appearance_list(state);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale)));
     const int observed_scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     int scroll_top = observed_scroll_top;
     state.appearance_list.set_viewport_height(viewport_height);
     state.appearance_list.set_scroll_top(scroll_top);
@@ -664,7 +666,7 @@ bool sync_appearance_window(Rml::ElementDocument* doc, AppearanceViewState& stat
         && range.end == state.rendered_appearance_range.end;
     if (stable_markup) {
         if (request_scroll) {
-            list->SetScrollTop(static_cast<float>(scroll_top));
+            list->SetScrollTop(static_cast<float>(scroll_top) * scale);
         }
     } else {
         std::string markup;
@@ -685,7 +687,7 @@ bool sync_appearance_window(Rml::ElementDocument* doc, AppearanceViewState& stat
         }
 
         list->SetInnerRML(markup);
-        list->SetScrollTop(static_cast<float>(scroll_top));
+        list->SetScrollTop(static_cast<float>(scroll_top) * scale);
         state.rendered_appearance_range = range;
         state.rendered_appearance_row_count = row_count;
         state.appearance_rendered = true;
@@ -759,11 +761,13 @@ bool sync_sound_catalog_window(
     }
 
     configure_sound_catalog_list(state);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
         static_cast<int>(std::lround(std::max(
-            list->GetClientHeight(), list->GetOffsetHeight()))));
+                                         list->GetClientHeight(), list->GetOffsetHeight())
+            / scale)));
     const int scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     state.sound_catalog_list.set_viewport_height(viewport_height);
     state.sound_catalog_list.set_scroll_top(scroll_top);
     const auto range = state.sound_catalog_list.compute_range();
@@ -794,7 +798,7 @@ bool sync_sound_catalog_window(
     }
 
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     state.rendered_sound_catalog_range = range;
     state.rendered_sound_catalog_row_count = row_count;
     state.sound_catalog_rendered = true;
@@ -1353,10 +1357,10 @@ void append_creature_color_selector_markup(std::string& content_markup, const Ap
     content_markup += "\"/><div class=\"creature_color_selection\" style=\"left:";
     content_markup += std::to_string(
         (selected->value % kPltPaletteColumns) * kPltPaletteCellPx);
-    content_markup += "px;top:";
+    content_markup += "dp;top:";
     content_markup += std::to_string(
         (selected->value / kPltPaletteColumns) * kPltPaletteCellPx);
-    content_markup += "px\"></div></div></div></div>";
+    content_markup += "dp\"></div></div></div></div>";
 }
 
 bool commit_active_appearance_selection(AppearanceViewState& state, ToolsetBackend& backend, ShellController& shell, const CommandContext& context, int32_t value)
@@ -1482,7 +1486,7 @@ AppearanceSelectorKeyEffect handle_appearance_selector_key(const SDL_KeyboardEve
         const int scroll_top = state.appearance_list.scroll_top_for_index(selected);
         state.appearance_list.set_scroll_top(scroll_top);
         if (auto* list = find_el(doc, "appearance_rows")) {
-            list->SetScrollTop(static_cast<float>(scroll_top));
+            list->SetScrollTop(static_cast<float>(scroll_top) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(list));
         }
         state.appearance_rendered = false;
         sync_appearance_window(doc, state, target, true);
@@ -1521,7 +1525,7 @@ AppearanceSelectorKeyEffect handle_appearance_selector_key(const SDL_KeyboardEve
             = state.sound_catalog_list.scroll_top_for_index(selected);
         state.sound_catalog_list.set_scroll_top(scroll_top);
         if (auto* list = find_el(doc, "sound_catalog_rows")) {
-            list->SetScrollTop(static_cast<float>(scroll_top));
+            list->SetScrollTop(static_cast<float>(scroll_top) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(list));
         }
         state.sound_catalog_rendered = false;
         sync_sound_catalog_window(doc, state, target, resource_generation, true);

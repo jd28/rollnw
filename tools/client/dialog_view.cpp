@@ -3,6 +3,7 @@
 
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
+#include <RmlUi/Core/ElementUtilities.h>
 
 #include <algorithm>
 #include <charconv>
@@ -14,7 +15,7 @@
 namespace nw::toolset {
 namespace {
 
-constexpr int kDialogRowHeightPx = 34;
+constexpr int kDialogRowHeightDp = 34;
 constexpr int kDialogOverscanRows = 10;
 
 std::string escape_html(std::string_view text)
@@ -130,7 +131,7 @@ public:
         }
         markup += "\" style=\"padding-left:";
         markup += std::to_string(indent);
-        markup += "px\"><span class=\"tree_twisty";
+        markup += "dp\"><span class=\"tree_twisty";
         markup += !row.is_link && row.child_count > 0 ? " expanded" : " leaf";
         markup += "\"></span><span class=\"dialog_row_text\">";
         if (!speaker.empty()) {
@@ -163,7 +164,7 @@ void configure_list(DialogViewState& state)
     if (state.list_configured) {
         return;
     }
-    state.list.set_row_height(kDialogRowHeightPx);
+    state.list.set_row_height(kDialogRowHeightDp);
     state.list.set_overscan(kDialogOverscanRows);
     state.list_configured = true;
 }
@@ -354,9 +355,10 @@ bool sync_dialog_view(Rml::ElementDocument* document,
     }
 
     configure_list(state);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
-    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale)));
+    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     state.list.set_viewport_height(viewport_height);
     state.list.set_scroll_top(scroll_top);
     const auto range = state.list.compute_range();
@@ -383,7 +385,7 @@ bool sync_dialog_view(Rml::ElementDocument* document,
     }
 
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     state.rendered_range = range;
     state.rendered_row_count = row_count;
     state.rendered = true;

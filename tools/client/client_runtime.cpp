@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -70,6 +71,19 @@ std::pair<int, int> query_window_size(SDL_Window* window)
     int window_h = 0;
     SDL_GetWindowSize(window, &window_w, &window_h);
     return {window_w, window_h};
+}
+
+float client_ui_scale(SDL_Window* window)
+{
+    if (const char* override = std::getenv("ROLLNW_TOOLSET_UI_SCALE")) {
+        char* end = nullptr;
+        const float value = std::strtof(override, &end);
+        if (end != override && *end == '\0' && std::isfinite(value) && value >= 0.5f && value <= 4.0f) {
+            return value;
+        }
+    }
+    const float scale = window ? SDL_GetWindowDisplayScale(window) : 0.0f;
+    return std::isfinite(scale) && scale > 0.0f ? scale : 1.0f;
 }
 
 void log_window_metrics(SDL_Window* window, const char* label)
@@ -185,7 +199,7 @@ bool ClientSdlRuntime::create_window()
         return false;
     }
     window_ = SDL_CreateWindow("rollnw | client", 1280, 720,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (!window_) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateWindow failed: %s", SDL_GetError());
         return false;

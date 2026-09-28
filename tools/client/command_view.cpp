@@ -5,6 +5,7 @@
 #include "toolset_backend.hpp"
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/StringUtilities.h>
 
 #include <SDL3/SDL.h>
@@ -564,41 +565,44 @@ void sync_command_form_combobox(CommandViewState& state, bool force)
     popup->SetClass("active", visible);
     if (!visible) { return; }
 
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(popup);
     const nw::toolset::VirtualComboBoxRect anchor{
         .x = static_cast<int>(std::lround(
-            field->GetAbsoluteLeft() - bounds->GetAbsoluteLeft())),
+            (field->GetAbsoluteLeft() - bounds->GetAbsoluteLeft()) / scale)),
         .y = static_cast<int>(std::lround(
-            field->GetAbsoluteTop() - bounds->GetAbsoluteTop())),
-        .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
-        .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
+            (field->GetAbsoluteTop() - bounds->GetAbsoluteTop()) / scale)),
+        .width = static_cast<int>(std::lround(field->GetOffsetWidth() / scale)),
+        .height = static_cast<int>(std::lround(field->GetOffsetHeight() / scale)),
     };
     const nw::toolset::VirtualComboBoxRect bounds_rect{
         .width = static_cast<int>(std::lround(std::max(
-            bounds->GetClientWidth(), bounds->GetOffsetWidth()))),
+                                                  bounds->GetClientWidth(), bounds->GetOffsetWidth())
+            / scale)),
         .height = static_cast<int>(std::lround(std::max(
-            bounds->GetClientHeight(), bounds->GetOffsetHeight()))),
+                                                   bounds->GetClientHeight(), bounds->GetOffsetHeight())
+            / scale)),
     };
     const auto placement = state.command_form_combobox.place_popup(
         anchor, bounds_rect);
     if (placement.width <= 0 || placement.height <= 0) { return; }
     if (!state.command_form_combobox_placement
         || *state.command_form_combobox_placement != placement) {
-        popup->SetProperty("left", std::to_string(placement.left) + "px");
-        popup->SetProperty("top", std::to_string(placement.top) + "px");
-        popup->SetProperty("width", std::to_string(placement.width) + "px");
-        popup->SetProperty("height", std::to_string(placement.height) + "px");
+        popup->SetProperty("left", std::to_string(placement.left) + "dp");
+        popup->SetProperty("top", std::to_string(placement.top) + "dp");
+        popup->SetProperty("width", std::to_string(placement.width) + "dp");
+        popup->SetProperty("height", std::to_string(placement.height) + "dp");
         state.command_form_combobox_placement = placement;
     }
 
     const int observed_scroll_top = std::max(0,
-        static_cast<int>(std::lround(popup->GetScrollTop())));
+        static_cast<int>(std::lround(popup->GetScrollTop() / scale)));
     auto update = state.command_form_combobox.update(
         placement.height, observed_scroll_top, force);
     if (update.replace_markup) {
         popup->SetInnerRML(update.markup);
     }
     if (update.set_scroll) {
-        popup->SetScrollTop(static_cast<float>(update.scroll_top));
+        popup->SetScrollTop(static_cast<float>(update.scroll_top) * scale);
     }
 }
 

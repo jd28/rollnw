@@ -1,5 +1,6 @@
 #include "shell_view.hpp"
 #include "client_input.hpp"
+#include "client_runtime.hpp"
 #include "shell_controller.hpp"
 #include "toolset_backend.hpp"
 
@@ -19,7 +20,7 @@
 namespace nw::toolset {
 namespace {
 
-constexpr int kBottomDockViewportReservePx = 96;
+constexpr int kBottomDockViewportReserveDp = 96;
 constexpr const char* kLogCallbackId = "rollnw.client.output_log";
 constexpr size_t kMaxPendingLogLines = 512;
 
@@ -53,14 +54,6 @@ Rml::Element* find_ancestor_with_class(Rml::Element* element, const char* name)
         if (element->IsClassSet(name)) { return element; }
     }
     return nullptr;
-}
-
-std::pair<int, int> query_window_size(SDL_Window* window)
-{
-    int window_w = 0;
-    int window_h = 0;
-    SDL_GetWindowSize(window, &window_w, &window_h);
-    return {window_w, window_h};
 }
 
 std::string escape_html(std::string_view text)
@@ -164,16 +157,16 @@ bool get_input_cursor_byte_position(Rml::ElementDocument* doc, const char* id, s
 
 int bottom_dock_available_height_px(SDL_Window* window)
 {
-    const auto window_size = query_window_size(window);
-    const int window_height = window_size.second > 0 ? window_size.second : 720;
-    return std::max(1, window_height - kBottomDockViewportReservePx);
+    const auto window_size = query_window_pixels(window);
+    const int window_height = window_size.second > 0 ? static_cast<int>(std::lround(static_cast<float>(window_size.second) / client_ui_scale(window))) : 720;
+    return std::max(1, window_height - kBottomDockViewportReserveDp);
 }
 
 int left_dock_available_width_px(SDL_Window* window)
 {
-    const auto window_size = query_window_size(window);
-    const int window_width = window_size.first > 0 ? window_size.first : 1280;
-    return std::max(1, window_width - kBottomDockViewportReservePx);
+    const auto window_size = query_window_pixels(window);
+    const int window_width = window_size.first > 0 ? static_cast<int>(std::lround(static_cast<float>(window_size.first) / client_ui_scale(window))) : 1280;
+    return std::max(1, window_width - kBottomDockViewportReserveDp);
 }
 
 int clamp_left_dock_width_px(const ShellController& shell, int width_px, SDL_Window* window)
@@ -278,12 +271,12 @@ void apply_shell_layout(Rml::ElementDocument* doc, const ShellController& shell,
         && left_dock_visible_for_active_tab(shell);
     if (auto* panel = doc->GetElementById("panel")) {
         panel->SetProperty("display", show_left_dock ? "flex" : "none");
-        panel->SetProperty("width", std::to_string(left.size_px) + "px");
-        panel->SetProperty("bottom", std::to_string(panel_bottom_px) + "px");
+        panel->SetProperty("width", std::to_string(left.size_px) + "dp");
+        panel->SetProperty("bottom", std::to_string(panel_bottom_px) + "dp");
     }
     if (auto* workspace = doc->GetElementById("workspace_shell")) {
-        workspace->SetProperty("left", std::to_string(show_left_dock ? left.size_px : 0) + "px");
-        workspace->SetProperty("bottom", std::to_string(play_preview_active ? 0 : panel_bottom_px) + "px");
+        workspace->SetProperty("left", std::to_string(show_left_dock ? left.size_px : 0) + "dp");
+        workspace->SetProperty("bottom", std::to_string(play_preview_active ? 0 : panel_bottom_px) + "dp");
     }
 }
 
@@ -308,7 +301,7 @@ void apply_bottom_dock_height(Rml::ElementDocument* doc, ShellController& shell,
     shell.set_bottom_dock_size_px(height_px);
 
     if (auto* dock = doc->GetElementById("bottom_dock")) {
-        dock->SetProperty("height", std::to_string(height_px) + "px");
+        dock->SetProperty("height", std::to_string(height_px) + "dp");
     }
     apply_shell_layout(doc, shell, preview);
 }
@@ -335,7 +328,7 @@ bool begin_bottom_dock_resize(Rml::Context* context,
     }
 
     const auto& bottom = shell.docks.pane(nw::toolset::DockRegion::bottom);
-    const double measured = std::round(static_cast<double>(dock->GetOffsetHeight()));
+    const double measured = std::round(static_cast<double>(dock->GetOffsetHeight() / Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc)));
     const int measured_height = std::isfinite(measured) && measured > 0.0
         ? bounded_dock_resize_request(measured)
         : 0;
@@ -361,7 +354,7 @@ bool update_bottom_dock_resize(Rml::ElementDocument* doc, ShellViewState& state,
         return false;
     }
     const double requested = static_cast<double>(state.bottom_dock_resize_start_height_px)
-        - std::round(static_cast<double>(point.y) - static_cast<double>(state.bottom_dock_resize_start_y));
+        - std::round((static_cast<double>(point.y) - static_cast<double>(state.bottom_dock_resize_start_y)) / static_cast<double>(Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc)));
     const int requested_height = bounded_dock_resize_request(requested);
     apply_bottom_dock_height(doc, shell, window, requested_height, preview);
     return true;
@@ -400,7 +393,7 @@ bool begin_left_dock_resize(Rml::Context* context,
     }
 
     const auto& left = shell.docks.pane(nw::toolset::DockRegion::left);
-    const double measured = std::round(static_cast<double>(panel->GetOffsetWidth()));
+    const double measured = std::round(static_cast<double>(panel->GetOffsetWidth() / Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc)));
     const int measured_width = std::isfinite(measured) && measured > 0.0
         ? bounded_dock_resize_request(measured)
         : 0;
@@ -426,7 +419,7 @@ bool update_left_dock_resize(Rml::ElementDocument* doc, ShellViewState& state, S
         return false;
     }
     const double requested = static_cast<double>(state.left_dock_resize_start_width_px)
-        + std::round(static_cast<double>(point.x) - static_cast<double>(state.left_dock_resize_start_x));
+        + std::round((static_cast<double>(point.x) - static_cast<double>(state.left_dock_resize_start_x)) / static_cast<double>(Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc)));
     const int requested_width = bounded_dock_resize_request(requested);
     apply_left_dock_width(doc, shell, window, requested_width, preview);
     return true;

@@ -1,57 +1,57 @@
 .creature_accessory_editor {
   display: block;
   width: 100%;
-  margin-top: 14px;
+  margin-top: 14dp;
   box-sizing: border-box;
 }
 .creature_accessory_editor .appearance_catalog_editor {
   display: block;
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 8dp;
   box-sizing: border-box;
 }
 .creature_accessory_title {
   display: block;
   width: 100%;
-  height: 24px;
+  height: 24dp;
   color: #dce3ea;
-  font-size: 12px;
+  font-size: 12dp;
   font-weight: 700;
-  line-height: 24px;
+  line-height: 24dp;
   box-sizing: border-box;
 }
 .creature_color_editor {
   display: block;
   width: 100%;
-  margin-top: 14px;
+  margin-top: 14dp;
   box-sizing: border-box;
 }
 .creature_color_title {
-  height: 24px;
+  height: 24dp;
   color: #dce3ea;
-  font-size: 12px;
+  font-size: 12dp;
   font-weight: 700;
-  line-height: 24px;
+  line-height: 24dp;
 }
 .creature_color_fields {
   display: flex;
   width: 100%;
-  height: 42px;
-  border-top: 1px #36414c;
-  border-bottom: 1px #36414c;
+  height: 42dp;
+  border-top: 1dp #36414c;
+  border-bottom: 1dp #36414c;
   background: #151b21;
   box-sizing: border-box;
 }
 .creature_color_field {
   display: flex;
   flex: 1;
-  min-width: 0px;
-  height: 40px;
-  padding: 7px 5px;
-  border-right: 1px #303b45;
+  min-width: 0dp;
+  height: 40dp;
+  padding: 7dp 5dp;
+  border-right: 1dp #303b45;
   color: #cbd3da;
-  font-size: 11px;
-  line-height: 24px;
+  font-size: 11dp;
+  line-height: 24dp;
   box-sizing: border-box;
   cursor: pointer;
 }
@@ -63,17 +63,17 @@
 }
 .creature_color_field span {
   flex: 1;
-  min-width: 0px;
-  margin-left: 5px;
+  min-width: 0dp;
+  margin-left: 5dp;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .creature_color_swatch {
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
-  border: 1px #56616b;
+  flex: 0 0 24dp;
+  width: 24dp;
+  height: 24dp;
+  border: 1dp #56616b;
   box-sizing: border-box;
 }
 .creature_color_selector {
@@ -81,25 +81,25 @@
 }
 .creature_color_channels {
   display: flex;
-  flex: 0 0 37px;
+  flex: 0 0 37dp;
   width: 100%;
-  min-width: 0px;
-  height: 37px;
-  padding: 4px 10px 5px 10px;
-  border-bottom: 1px #303943;
+  min-width: 0dp;
+  height: 37dp;
+  padding: 4dp 10dp 5dp 10dp;
+  border-bottom: 1dp #303943;
   background: #171d23;
   box-sizing: border-box;
 }
 .creature_color_channel {
   flex: 1;
-  min-width: 0px;
-  height: 28px;
-  padding: 0px 5px;
-  border-bottom: 2px transparent;
+  min-width: 0dp;
+  height: 28dp;
+  padding: 0dp 5dp;
+  border-bottom: 2dp transparent;
   color: #9faab5;
-  font-size: 11px;
+  font-size: 11dp;
   font-weight: 700;
-  line-height: 26px;
+  line-height: 26dp;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -118,9 +118,9 @@
 .creature_color_palette_body {
   display: flex;
   flex: 1;
-  min-width: 0px;
-  min-height: 0px;
-  padding: 10px;
+  min-width: 0dp;
+  min-height: 0dp;
+  padding: 10dp;
   justify-content: center;
   align-items: flex-start;
   overflow: auto;
@@ -130,25 +130,25 @@
 .creature_color_palette {
   position: relative;
   display: block;
-  flex: 0 0 384px;
-  width: 384px;
-  height: 264px;
+  flex: 0 0 384dp;
+  width: 384dp;
+  height: 264dp;
   background: #0b0f12;
   cursor: pointer;
 }
 .creature_color_palette img {
   position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 384px;
-  height: 264px;
+  left: 0dp;
+  top: 0dp;
+  width: 384dp;
+  height: 264dp;
   pointer-events: none;
 }
 .creature_color_selection {
   position: absolute;
-  width: 24px;
-  height: 24px;
-  border: 2px #31f36a;
+  width: 24dp;
+  height: 24dp;
+  border: 2dp #31f36a;
   box-sizing: border-box;
   pointer-events: none;
 }

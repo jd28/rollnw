@@ -5,6 +5,7 @@
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
+#include <RmlUi/Core/ElementUtilities.h>
 
 #include <algorithm>
 #include <charconv>
@@ -255,7 +256,7 @@ void append_spacer(std::string& markup, int height)
     }
     markup += "<div class=\"managed_list_spacer\" style=\"height:";
     markup += std::to_string(height);
-    markup += "px\"></div>";
+    markup += "dp\"></div>";
 }
 
 std::string column_width(int columns)
@@ -352,11 +353,11 @@ std::string render_window(std::string_view list_id,
         }
     } else {
         const std::string item_style = "width:" + column_width(window.columns)
-            + "%;height:" + std::to_string(window.row_height) + "px";
+            + "%;height:" + std::to_string(window.row_height) + "dp";
         for (int row = window.range.start; row < window.range.end; ++row) {
             markup += "<div class=\"managed_list_grid_row\" style=\"height:";
             markup += std::to_string(window.row_height);
-            markup += "px\">";
+            markup += "dp\">";
             const int first = row * window.columns;
             const int end = std::min(
                 first + window.columns, static_cast<int>(window.items.size()));
@@ -517,7 +518,7 @@ bool position_managed_list_popups(Rml::ElementDocument* document)
                 bounds->GetClientHeight(), bounds->GetOffsetHeight()))),
         };
         const auto placement = place_virtual_combobox_popup(
-            anchor_rect, bounds_rect, *popup_height);
+            anchor_rect, bounds_rect, static_cast<int>(std::lround(static_cast<float>(*popup_height) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(popup))));
         if (placement.width <= 0 || placement.height <= 0) {
             continue;
         }
@@ -572,9 +573,10 @@ bool sync_managed_lists(Rml::ElementDocument* document,
         }
         const int viewport_height = std::max(1,
             static_cast<int>(std::lround(std::max(
-                element->GetClientHeight(), element->GetOffsetHeight()))));
+                                             element->GetClientHeight(), element->GetOffsetHeight())
+                / Rml::ElementUtilities::GetDensityIndependentPixelRatio(element))));
         const int observed_scroll_top = std::max(0,
-            static_cast<int>(std::lround(element->GetScrollTop())));
+            static_cast<int>(std::lround(element->GetScrollTop() / Rml::ElementUtilities::GetDensityIndependentPixelRatio(element))));
         auto& record = render_state.lists[list_id];
         int scroll_top = observed_scroll_top;
         if (record.requested_scroll_top >= 0) {
@@ -627,7 +629,7 @@ bool sync_managed_lists(Rml::ElementDocument* document,
                 "data-empty-text", "No rows.");
             element->SetInnerRML(
                 render_managed_list_window(list_id, *window, empty_text));
-            element->SetScrollTop(static_cast<float>(scroll_top));
+            element->SetScrollTop(static_cast<float>(scroll_top) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(element));
             record.range = window->range;
             record.revision = window->revision;
             record.row_count = row_count;
@@ -637,7 +639,7 @@ bool sync_managed_lists(Rml::ElementDocument* document,
         }
         if (request_scroll) {
             if (!replace) {
-                element->SetScrollTop(static_cast<float>(scroll_top));
+                element->SetScrollTop(static_cast<float>(scroll_top) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(element));
                 record.requested_scroll_top = -1;
             } else {
                 record.requested_scroll_top = scroll_top;
@@ -883,9 +885,10 @@ bool cycle_managed_list_element(
 
     const int viewport_height = std::max(1,
         static_cast<int>(std::lround(std::max(
-            list->GetClientHeight(), list->GetOffsetHeight()))));
+                                         list->GetClientHeight(), list->GetOffsetHeight())
+            / Rml::ElementUtilities::GetDensityIndependentPixelRatio(list))));
     const int scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(list->GetScrollTop() / Rml::ElementUtilities::GetDensityIndependentPixelRatio(list))));
     const auto next_scroll = host.move_and_activate(
         list_id, delta, viewport_height, scroll_top);
     if (!next_scroll) {
@@ -893,7 +896,7 @@ bool cycle_managed_list_element(
     }
     if (list_id == source_list_id
         && list->IsClassSet("managed_list_rows")) {
-        list->SetScrollTop(static_cast<float>(*next_scroll));
+        list->SetScrollTop(static_cast<float>(*next_scroll) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(list));
     }
     return true;
 }

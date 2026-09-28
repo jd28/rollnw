@@ -129,7 +129,7 @@ std::string render_virtual_list(const VirtualListController& ctrl,
     if (range.top_spacer_px > 0) {
         out += "<div class=\"vl_spacer\" style=\"display:block;height:";
         out += std::to_string(range.top_spacer_px);
-        out += "px\"></div>";
+        out += "dp\"></div>";
     }
 
     // Visible rows
@@ -159,7 +159,7 @@ std::string render_virtual_list(const VirtualListController& ctrl,
     if (range.bottom_spacer_px > 0) {
         out += "<div class=\"vl_spacer\" style=\"display:block;height:";
         out += std::to_string(range.bottom_spacer_px);
-        out += "px\"></div>";
+        out += "dp\"></div>";
     }
 
     return out;

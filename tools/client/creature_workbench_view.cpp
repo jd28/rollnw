@@ -10,6 +10,7 @@
 #include <nw/smalls/runtime.hpp>
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 
 #include <algorithm>
 #include <charconv>
@@ -18,9 +19,9 @@
 
 namespace nw::toolset {
 namespace {
-constexpr int kCreatureFeatRowHeightPx = 30;
+constexpr int kCreatureFeatRowHeightDp = 30;
 constexpr int kCreatureFeatOverscanRows = 8;
-constexpr int kCreatureSpellRowHeightPx = 30;
+constexpr int kCreatureSpellRowHeightDp = 30;
 constexpr int kCreatureSpellOverscanRows = 8;
 std::string escape_html(std::string_view text)
 {
@@ -253,7 +254,7 @@ void configure_creature_feat_list(CreatureWorkbenchViewState& state)
     if (state.creature_feat_list_configured) {
         return;
     }
-    state.creature_feat_list.set_row_height(kCreatureFeatRowHeightPx);
+    state.creature_feat_list.set_row_height(kCreatureFeatRowHeightDp);
     state.creature_feat_list.set_overscan(kCreatureFeatOverscanRows);
     state.creature_feat_list_configured = true;
 }
@@ -263,7 +264,7 @@ void configure_creature_spell_list(CreatureWorkbenchViewState& state)
     if (state.creature_spell_list_configured) {
         return;
     }
-    state.creature_spell_list.set_row_height(kCreatureSpellRowHeightPx);
+    state.creature_spell_list.set_row_height(kCreatureSpellRowHeightDp);
     state.creature_spell_list.set_overscan(kCreatureSpellOverscanRows);
     state.creature_spell_list_configured = true;
 }
@@ -304,9 +305,10 @@ bool sync_creature_feat_window(Rml::ElementDocument* doc, CreatureWorkbenchViewS
     }
 
     configure_creature_feat_list(state);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
-    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale)));
+    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     state.creature_feat_list.set_viewport_height(viewport_height);
     state.creature_feat_list.set_scroll_top(scroll_top);
     const auto range = state.creature_feat_list.compute_range();
@@ -336,7 +338,7 @@ bool sync_creature_feat_window(Rml::ElementDocument* doc, CreatureWorkbenchViewS
     }
 
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     if (auto* count = find_el(doc, "creature_feat_count")) {
         count->SetInnerRML(active_creature_feats_match_tab(state, target)
                 ? std::to_string(state.creature_feats.rows.size())
@@ -575,9 +577,10 @@ bool sync_creature_spell_window(Rml::ElementDocument* doc, CreatureWorkbenchView
     }
 
     configure_creature_spell_list(state);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
-    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale)));
+    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     state.creature_spell_list.set_viewport_height(viewport_height);
     state.creature_spell_list.set_scroll_top(scroll_top);
     const auto range = state.creature_spell_list.compute_range();
@@ -615,7 +618,7 @@ bool sync_creature_spell_window(Rml::ElementDocument* doc, CreatureWorkbenchView
     }
 
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     if (auto* count = find_el(doc, "creature_spell_count")) {
         count->SetInnerRML(active_creature_spells_match_tab(state, target)
                 ? std::to_string(state.creature_spell_matches.size())
@@ -639,17 +642,18 @@ bool sync_creature_spell_filter_window(
         return false;
     }
 
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale)));
     const int observed_scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     auto update = state.creature_spell_combobox.update(
         viewport_height, observed_scroll_top, force);
     if (update.replace_markup) {
         list->SetInnerRML(update.markup);
     }
     if (update.set_scroll) {
-        list->SetScrollTop(static_cast<float>(update.scroll_top));
+        list->SetScrollTop(static_cast<float>(update.scroll_top) * scale);
     }
 
     bool positioned = false;
@@ -657,23 +661,23 @@ bool sync_creature_spell_filter_window(
     auto* workbench = find_el(doc, "object_workbench");
     if (field && workbench) {
         const nw::toolset::VirtualComboBoxRect anchor{
-            .x = static_cast<int>(std::lround(field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft())),
-            .y = static_cast<int>(std::lround(field->GetAbsoluteTop() - workbench->GetAbsoluteTop())),
-            .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
-            .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
+            .x = static_cast<int>(std::lround((field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft()) / scale)),
+            .y = static_cast<int>(std::lround((field->GetAbsoluteTop() - workbench->GetAbsoluteTop()) / scale)),
+            .width = static_cast<int>(std::lround(field->GetOffsetWidth() / scale)),
+            .height = static_cast<int>(std::lround(field->GetOffsetHeight() / scale)),
         };
         const nw::toolset::VirtualComboBoxRect bounds{
-            .width = static_cast<int>(std::lround(workbench->GetClientWidth())),
-            .height = static_cast<int>(std::lround(workbench->GetClientHeight())),
+            .width = static_cast<int>(std::lround(workbench->GetClientWidth() / scale)),
+            .height = static_cast<int>(std::lround(workbench->GetClientHeight() / scale)),
         };
         const auto placement = state.creature_spell_combobox.place_popup(anchor, bounds);
         if (placement.width > 0 && placement.height > 0
             && (!state.creature_spell_popup_placement
                 || *state.creature_spell_popup_placement != placement)) {
-            list->SetProperty("left", std::to_string(placement.left) + "px");
-            list->SetProperty("top", std::to_string(placement.top) + "px");
-            list->SetProperty("width", std::to_string(placement.width) + "px");
-            list->SetProperty("height", std::to_string(placement.height) + "px");
+            list->SetProperty("left", std::to_string(placement.left) + "dp");
+            list->SetProperty("top", std::to_string(placement.top) + "dp");
+            list->SetProperty("width", std::to_string(placement.width) + "dp");
+            list->SetProperty("height", std::to_string(placement.height) + "dp");
             state.creature_spell_popup_placement = placement;
             positioned = true;
         }
@@ -785,13 +789,13 @@ void append_creature_workbench_overlay_markup(
             const auto& placement = *state.creature_spell_popup_placement;
             markup += " style=\"left:";
             markup += std::to_string(placement.left);
-            markup += "px;top:";
+            markup += "dp;top:";
             markup += std::to_string(placement.top);
-            markup += "px;width:";
+            markup += "dp;width:";
             markup += std::to_string(placement.width);
-            markup += "px;height:";
+            markup += "dp;height:";
             markup += std::to_string(placement.height);
-            markup += "px\"";
+            markup += "dp\"";
         }
         markup += "><div class=\"property_tree_empty\">"
                   "Loading choices...</div></div>";

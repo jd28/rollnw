@@ -8,6 +8,7 @@
 #include <nw/resources/ResourceManager.hpp>
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/Elements/ElementFormControl.h>
 #include <RmlUi/Core/StringUtilities.h>
 
@@ -23,7 +24,7 @@
 namespace nw::toolset {
 namespace {
 
-constexpr int kAreaTilePaletteRowHeightPx = 58;
+constexpr int kAreaTilePaletteRowHeightDp = 58;
 constexpr int kAreaTilePaletteOverscanRows = 3;
 
 constexpr std::array<std::string_view, 32> kMainLightNames{
@@ -283,7 +284,7 @@ void configure_area_tile_palette_list(AreaTileEditorState& editor)
     if (editor.list_configured) {
         return;
     }
-    editor.list.set_row_height(kAreaTilePaletteRowHeightPx);
+    editor.list.set_row_height(kAreaTilePaletteRowHeightDp);
     editor.list.set_overscan(kAreaTilePaletteOverscanRows);
     editor.list_configured = true;
 }
@@ -683,11 +684,13 @@ bool sync_area_tile_palette_window(
         force = true;
     }
     configure_area_tile_palette_list(editor);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
         static_cast<int>(std::lround(std::max(
-            list->GetClientHeight(), list->GetOffsetHeight()))));
+                                         list->GetClientHeight(), list->GetOffsetHeight())
+            / scale)));
     const int scroll_top = std::max(0,
-        static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     editor.list.set_viewport_height(viewport_height);
     editor.list.set_scroll_top(scroll_top);
     const auto range = editor.list.compute_range();
@@ -719,7 +722,7 @@ bool sync_area_tile_palette_window(
             editor.list, AreaTilePaletteListAdapter{editor.palette});
     }
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     editor.rendered_range = range;
     editor.rendered_row_count = row_count;
     editor.rendered = true;

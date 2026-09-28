@@ -12,6 +12,8 @@ struct VirtualListRange {
     int bottom_spacer_px;
 };
 
+// Client controllers use density-independent pixels. Convert measured DOM pixels
+// at the view boundary; render_virtual_list emits dp lengths for the spacers.
 class VirtualListController {
 public:
     VirtualListController() = default;
@@ -60,9 +62,9 @@ public:
 
 // Produces innerHTML for the scroll container:
 //
-//   <div class="vl_spacer" style="display:block;height:Xpx"></div> ← top spacer
+//   <div class="vl_spacer" style="display:block;height:Xdp"></div> ← top spacer
 //   <div class="vl_row [extras] [selected]" data-key="N">…</div>  ← visible rows only
-//   <div class="vl_spacer" style="display:block;height:Xpx"></div> ← bottom spacer
+//   <div class="vl_spacer" style="display:block;height:Xdp"></div> ← bottom spacer
 //
 // data-key uses adapter.row_key(i), defaulting to absolute row index.
 // Returns an empty string if the adapter reports zero rows.

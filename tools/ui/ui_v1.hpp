@@ -13,6 +13,7 @@
 
 namespace nw::toolset {
 
+// Row heights and viewport/scroll coordinates in this protocol are dp.
 struct UiListConfig {
     int row_height = 30;
     int overscan = 6;

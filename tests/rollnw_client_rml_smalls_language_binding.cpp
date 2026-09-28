@@ -923,8 +923,8 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     auto* selection = selections.front();
     ASSERT_NE(selection->GetProperty("left"), nullptr);
     ASSERT_NE(selection->GetProperty("top"), nullptr);
-    EXPECT_EQ(selection->GetProperty("left")->ToString(), "240px");
-    EXPECT_EQ(selection->GetProperty("top")->ToString(), "48px");
+    EXPECT_EQ(selection->GetProperty("left")->ToString(), "240dp");
+    EXPECT_EQ(selection->GetProperty("top")->ToString(), "48dp");
 
     input.color_channel = 2;
     item_model.refresh(input);
@@ -1029,7 +1029,7 @@ TEST(ClientRmlTemplates, DoorWorkbenchExpandsNativeAppearanceStructure)
     EXPECT_GT(search->GetOffsetWidth(), 0.0f);
     EXPECT_EQ(search->GetOffsetHeight(), 28.0f);
     ASSERT_NE(search->GetProperty("line-height"), nullptr);
-    EXPECT_EQ(search->GetProperty("line-height")->ToString(), "28px");
+    EXPECT_EQ(search->GetProperty("line-height")->ToString(), "28dp");
     EXPECT_GT(layout_row->GetOffsetWidth(), 0.0f);
     EXPECT_EQ(layout_row->GetOffsetHeight(), 34.0f);
     EXPECT_FLOAT_EQ(name->GetOffsetWidth(), layout_row->GetOffsetWidth());

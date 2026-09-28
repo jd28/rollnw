@@ -11,6 +11,7 @@
 #include <nw/objects/Store.hpp>
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 
 #include <algorithm>
 #include <array>
@@ -22,7 +23,7 @@
 namespace nw::toolset {
 namespace {
 
-constexpr int kCreatureInventoryCellPx = 32;
+constexpr int kCreatureInventoryCellDp = 32;
 constexpr float kWorkspaceTabDragThresholdPx = 5.0f;
 
 Rml::Element* find_el(Rml::ElementDocument* document, const char* id)
@@ -111,15 +112,15 @@ void set_project_blueprint_drop_target(Rml::ElementDocument* doc,
 
     if (target.kind == ProjectBlueprintDropTargetKind::inventory) {
         if (auto* overlay = find_el(doc, "creature_inventory_drop_target")) {
-            const int top = (target.row - drag.height + 1) * kCreatureInventoryCellPx;
+            const int top = (target.row - drag.height + 1) * kCreatureInventoryCellDp;
             overlay->SetProperty("display", "block");
             overlay->SetProperty("left",
-                std::to_string(target.column * kCreatureInventoryCellPx) + "px");
-            overlay->SetProperty("top", std::to_string(top) + "px");
+                std::to_string(target.column * kCreatureInventoryCellDp) + "dp");
+            overlay->SetProperty("top", std::to_string(top) + "dp");
             overlay->SetProperty("width",
-                std::to_string(drag.width * kCreatureInventoryCellPx) + "px");
+                std::to_string(drag.width * kCreatureInventoryCellDp) + "dp");
             overlay->SetProperty("height",
-                std::to_string(drag.height * kCreatureInventoryCellPx) + "px");
+                std::to_string(drag.height * kCreatureInventoryCellDp) + "dp");
             overlay->SetClass("valid", valid);
             overlay->SetClass("invalid", !valid);
         }
@@ -563,8 +564,8 @@ bool update_project_blueprint_drag(Rml::Context* context, Rml::ElementDocument* 
 
     const float left = board->GetAbsoluteLeft() + board->GetClientLeft();
     const float top = board->GetAbsoluteTop() + board->GetClientTop();
-    const int column = static_cast<int>((point.x - left) / kCreatureInventoryCellPx);
-    const int visual_row = static_cast<int>((point.y - top) / kCreatureInventoryCellPx);
+    const int column = static_cast<int>((point.x - left) / (kCreatureInventoryCellDp * Rml::ElementUtilities::GetDensityIndependentPixelRatio(board)));
+    const int visual_row = static_cast<int>((point.y - top) / (kCreatureInventoryCellDp * Rml::ElementUtilities::GetDensityIndependentPixelRatio(board)));
     ProjectBlueprintDropTarget target{
         .kind = ProjectBlueprintDropTargetKind::inventory,
         .page = inventory_page,

@@ -5,10 +5,12 @@
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/ElementDocument.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/StringUtilities.h>
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -41,34 +43,34 @@ Rml::ElementDocument* load_viewer_fps_document(Rml::Context& context)
     body {
       width: 100%;
       height: 100%;
-      margin: 0px;
-      padding: 0px;
+      margin: 0dp;
+      padding: 0dp;
       background: transparent;
       font-family: RollnwMono;
     }
     #viewer_fps_overlay {
       position: absolute;
       display: none;
-      width: 430px;
-      height: 54px;
-      padding: 3px 7px;
-      border: 1px #41505d;
+      width: 430dp;
+      height: 54dp;
+      padding: 3dp 7dp;
+      border: 1dp #41505d;
       background: #101820;
       color: #e6eef3;
       font-family: RollnwMono;
-      font-size: 11px;
+      font-size: 11dp;
       font-weight: normal;
-      line-height: 15px;
+      line-height: 15dp;
       text-align: right;
     }
     #play_preview_viewport_overlay {
       position: absolute;
       display: none;
-      width: 320px;
-      height: 50px;
-      padding: 7px 12px 8px 12px;
-      border: 1px #9b835d;
-      border-radius: 3px;
+      width: 320dp;
+      height: 50dp;
+      padding: 7dp 12dp 8dp 12dp;
+      border: 1dp #9b835d;
+      border-radius: 3dp;
       background: #0d1217dd;
       pointer-events: none;
     }
@@ -76,25 +78,25 @@ Rml::ElementDocument* load_viewer_fps_document(Rml::Context& context)
       display: block;
       width: 100%;
       color: #eadcc3;
-      font-size: 17px;
+      font-size: 17dp;
       font-weight: bold;
-      line-height: 21px;
+      line-height: 21dp;
     }
     .play_preview_viewport_help {
       display: block;
       width: 100%;
       color: #aeb8c3;
-      font-size: 11px;
+      font-size: 11dp;
       font-weight: normal;
-      line-height: 14px;
+      line-height: 14dp;
     }
     .play_preview_viewport_error {
       display: block;
       width: 100%;
       color: #ff9a8a;
-      font-size: 11px;
+      font-size: 11dp;
       font-weight: normal;
-      line-height: 14px;
+      line-height: 14dp;
     }
   </style>
 </head>
@@ -592,16 +594,17 @@ void sync_viewer_fps_overlay(Rml::ElementDocument* fps_doc,
     }
 
     const bool verbose = viewer_fps_overlay_verbose();
-    const int overlay_width = verbose ? 776 : 446;
-    constexpr int kOverlayMargin = 8;
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(overlay);
+    const int overlay_width = static_cast<int>(std::lround((verbose ? 776 : 446) * scale));
+    const int kOverlayMargin = static_cast<int>(std::lround(8 * scale));
     const int rect_width = static_cast<int>(rect.width);
     const int left = std::max(rect.x + kOverlayMargin, rect.x + rect_width - overlay_width - kOverlayMargin);
     const int top = rect.y + kOverlayMargin;
 
     overlay->SetInnerRML(format_viewer_fps_rml(state, forward_plus_enabled, debug_mode));
     overlay->SetProperty("display", "block");
-    overlay->SetProperty("width", std::to_string(verbose ? 760 : 430) + "px");
-    overlay->SetProperty("height", std::to_string(verbose ? 144 : 54) + "px");
+    overlay->SetProperty("width", std::to_string(verbose ? 760 : 430) + "dp");
+    overlay->SetProperty("height", std::to_string(verbose ? 144 : 54) + "dp");
     overlay->SetProperty("left", std::to_string(left) + "px");
     overlay->SetProperty("top", std::to_string(top) + "px");
 }

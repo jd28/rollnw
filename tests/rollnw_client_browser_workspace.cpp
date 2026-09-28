@@ -136,6 +136,100 @@ protected:
     Rml::ElementDocument* document = nullptr;
 };
 
+TEST_F(ClientBrowserWorkspace, DisplayScaleKeepsShellGeometryAndTreeScrollAligned)
+{
+    ShellController shell;
+    shell.set_showing_project_tree(true);
+    BrowserViewState browser;
+    // Deliberately long fixture exercises virtualization beyond the first page.
+    for (int i = 0; i < 100; ++i) {
+        browser.project_rows.push_back({ProjectTreeNode{.id = std::to_string(i), .label = "Tree row " + std::to_string(i)}});
+    }
+    for (const float scale : {1.0f, 1.5f, 1.844f, 2.0f, 1.0f}) {
+        SCOPED_TRACE(scale);
+        context->SetDensityIndependentPixelRatio(scale);
+        context->SetDimensions({static_cast<int>(1200 * scale), static_cast<int>(700 * scale)});
+        apply_left_dock_width(document, shell, nullptr, 320, {});
+        context->Update();
+        EXPECT_NEAR(document->GetElementById("panel")->GetOffsetWidth(), 320 * scale, 1.0f);
+        EXPECT_NEAR(document->GetComputedValues().font_size(), 15 * scale, 1.0f);
+        auto* list = document->GetElementById("recent_list");
+        ASSERT_NE(list, nullptr);
+        ASSERT_TRUE(render_project_tree_window(document, browser, true));
+        context->Update();
+        list->SetScrollTop(26 * 40 * scale);
+        context->Update();
+        (void)render_project_tree_window(document, browser, false);
+        context->Update();
+        EXPECT_LE(browser.rendered_project_row_start, 40u);
+        EXPECT_GT(browser.rendered_project_row_end, 41u);
+        Rml::ElementList rows;
+        list->GetElementsByClassName(rows, "tree_item");
+        const auto found = std::ranges::find_if(rows, [](auto* row) {
+            return row->template GetAttribute<int>("data-key", -1) == 41;
+        });
+        ASSERT_NE(found, rows.end());
+        auto* row = *found;
+        EXPECT_NEAR(row->GetOffsetHeight(), 26 * scale, 1.0f);
+        EXPECT_NEAR(row->GetAbsoluteTop() - list->GetAbsoluteOffset(Rml::BoxArea::Content).y, 26 * scale, 2.0f);
+        const Rml::Vector2f point{row->GetAbsoluteLeft() + 20 * scale, row->GetAbsoluteTop() + 10 * scale};
+        EXPECT_EQ(recent_item_at_point(document, point), row);
+    }
+}
+
+TEST_F(ClientBrowserWorkspace, DisplayScaleKeepsAreaCardsAndManagedListsVirtualized)
+{
+    BrowserViewState browser;
+    ToolsetBackend backend;
+    refresh_home_area_catalog(browser, backend, true);
+    VirtualListHost host;
+    ASSERT_TRUE(host.create("scaled-rows", {.row_height = 34}));
+    std::vector<UiListItem> items;
+    for (int i = 0; i < 100; ++i) {
+        browser.home_areas.push_back({.name = "Area " + std::to_string(i), .resref = "area" + std::to_string(i)});
+        items.push_back({.key = std::to_string(i), .cells = {"Row " + std::to_string(i)}});
+    }
+    ASSERT_TRUE(host.set_items("scaled-rows", std::move(items)));
+    document->SetInnerRML("<div id='home_area_list' class='home_area_list' style='width:520dp;height:380dp;'></div>"
+                          "<div id='scaled_rows' class='managed_list_rows data_collection_rows' data-list-id='scaled-rows' style='width:520dp;height:340dp;overflow:auto;'></div>");
+    ManagedListRenderState managed;
+    for (const float scale : {1.0f, 1.5f, 1.844f, 2.0f, 1.0f}) {
+        SCOPED_TRACE(scale);
+        context->SetDensityIndependentPixelRatio(scale);
+        context->SetDimensions({static_cast<int>(1200 * scale), static_cast<int>(900 * scale)});
+        context->Update();
+        ASSERT_TRUE(sync_home_area_window(document, browser, true, true));
+        ASSERT_TRUE(sync_managed_lists(document, host, managed, true));
+        context->Update();
+        auto* areas = document->GetElementById("home_area_list");
+        auto* rows = document->GetElementById("scaled_rows");
+        areas->SetScrollTop(190 * 20 * scale);
+        rows->SetScrollTop(34 * 40 * scale);
+        context->Update();
+        (void)sync_home_area_window(document, browser, true, false);
+        (void)sync_managed_lists(document, host, managed, false);
+        context->Update();
+        EXPECT_EQ(browser.rendered_home_area_columns, 2);
+        EXPECT_LE(browser.rendered_home_area_range.start, 20);
+        EXPECT_GT(browser.rendered_home_area_range.end, 20);
+        Rml::ElementList cards;
+        areas->GetElementsByClassName(cards, "home_area_card");
+        ASSERT_FALSE(cards.empty());
+        EXPECT_NEAR(cards.front()->GetOffsetHeight(), 182 * scale, 1.0f);
+        const auto& range = managed.lists.at("scaled-rows").range;
+        EXPECT_LE(range.start, 40);
+        EXPECT_GT(range.end, 41);
+        Rml::ElementList managed_rows;
+        rows->GetElementsByClassName(managed_rows, "managed_list_row");
+        const auto found = std::ranges::find_if(managed_rows, [](auto* row) {
+            return row->template GetAttribute<int>("data-index", -1) == 41;
+        });
+        ASSERT_NE(found, managed_rows.end());
+        EXPECT_NEAR((*found)->GetOffsetHeight(), 34 * scale, 1.0f);
+        EXPECT_NEAR((*found)->GetAbsoluteTop() - rows->GetAbsoluteTop(), 34 * scale, 2.0f);
+    }
+}
+
 TEST_F(ClientBrowserWorkspace, ReplacedAreaMapTextureReloadsFromSameSource)
 {
     const auto map_path = std::filesystem::absolute(
@@ -1437,15 +1531,15 @@ TEST_F(ClientShellView, DockClampsAndPreviewLayoutRestoreTheEditor)
     EXPECT_EQ(shell.docks.pane(DockRegion::bottom).size_px, 624);
     auto* workspace = document->GetElementById("workspace_shell");
     ASSERT_NE(workspace, nullptr);
-    EXPECT_EQ(workspace->GetProperty("left")->ToString(), "640px");
-    EXPECT_EQ(workspace->GetProperty("bottom")->ToString(), "624px");
+    EXPECT_EQ(workspace->GetProperty("left")->ToString(), "640dp");
+    EXPECT_EQ(workspace->GetProperty("bottom")->ToString(), "624dp");
     apply_shell_layout(document, shell, {true, true});
     EXPECT_TRUE(document->IsClassSet("play_preview_placement_pending"));
-    EXPECT_EQ(workspace->GetProperty("left")->ToString(), "0px");
-    EXPECT_EQ(workspace->GetProperty("bottom")->ToString(), "0px");
+    EXPECT_EQ(workspace->GetProperty("left")->ToString(), "0dp");
+    EXPECT_EQ(workspace->GetProperty("bottom")->ToString(), "0dp");
     apply_shell_layout(document, shell, {});
     EXPECT_FALSE(document->IsClassSet("play_preview_active"));
-    EXPECT_EQ(workspace->GetProperty("left")->ToString(), "640px");
+    EXPECT_EQ(workspace->GetProperty("left")->ToString(), "640dp");
     apply_left_dock_width(document, shell, nullptr, 1, {});
     apply_bottom_dock_height(document, shell, nullptr, 1, {});
     EXPECT_EQ(shell.docks.pane(DockRegion::left).size_px, 260);

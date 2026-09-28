@@ -7,6 +7,7 @@
 #include "toolset_backend.hpp"
 #include "workspace.hpp"
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/Elements/ElementFormControlInput.h>
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -25,9 +26,9 @@
 #include <utility>
 namespace nw::toolset {
 namespace {
-constexpr int kObjectDetailsRowHeightPx = 30;
+constexpr int kObjectDetailsRowHeightDp = 30;
 constexpr int kObjectDetailsOverscanRows = 8;
-constexpr int kObjectVariableRowHeightPx = 34;
+constexpr int kObjectVariableRowHeightDp = 34;
 constexpr int kObjectVariableOverscanRows = 8;
 std::string escape_html(std::string_view text)
 {
@@ -169,7 +170,7 @@ public:
             markup += " alternate";
         }
         markup += "\"><div class=\"property_tree_name\" style=\"padding-left:";
-        markup += section ? "8px;\">" : "22px;\">";
+        markup += section ? "8dp;\">" : "22dp;\">";
         markup += "<span class=\"tree_twisty leaf\"></span><span class=\"property_tree_label\">";
         markup += escape_html(snapshot_.text_view(row.label));
         markup += "</span></div><div class=\"property_tree_value";
@@ -1112,10 +1113,15 @@ void sync_object_variable_warning_tooltip(Rml::ElementDocument* doc,
         tooltip->SetInnerRML(escape_html(description));
     }
 
-    constexpr int margin = 8;
-    constexpr int pointer_offset = 14;
-    constexpr int preferred_width = 280;
-    constexpr int estimated_height = 54;
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(tooltip);
+    const int margin = static_cast<int>(std::lround(8 * scale));
+    if (viewport_width <= 2 * margin || viewport_height <= 2 * margin) {
+        hide_object_variable_warning_tooltip(doc, state);
+        return;
+    }
+    const int pointer_offset = static_cast<int>(std::lround(14 * scale));
+    const int preferred_width = static_cast<int>(std::lround(280 * scale));
+    const int estimated_height = static_cast<int>(std::lround(54 * scale));
     const int width = std::min(preferred_width, viewport_width - 2 * margin);
     const int max_left = std::max(margin, viewport_width - width - margin);
     const int left = std::clamp(
@@ -1248,7 +1254,7 @@ void configure_object_variable_list(ObjectWorkbenchViewState& state)
     if (state.object_variable_list_configured) {
         return;
     }
-    state.object_variable_list.set_row_height(kObjectVariableRowHeightPx);
+    state.object_variable_list.set_row_height(kObjectVariableRowHeightDp);
     state.object_variable_list.set_overscan(kObjectVariableOverscanRows);
     state.object_variable_list_configured = true;
 }
@@ -1269,7 +1275,7 @@ void configure_details_list(ObjectWorkbenchViewState& state)
     if (state.details_list_configured) {
         return;
     }
-    state.details_list.set_row_height(kObjectDetailsRowHeightPx);
+    state.details_list.set_row_height(kObjectDetailsRowHeightDp);
     state.details_list.set_overscan(kObjectDetailsOverscanRows);
     state.details_list_configured = true;
 }
@@ -1424,17 +1430,18 @@ bool sync_object_details_combobox(
         return false;
     }
 
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(field);
     const nw::toolset::VirtualComboBoxRect anchor{
         .x = static_cast<int>(std::lround(
-            field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft())),
+            (field->GetAbsoluteLeft() - workbench->GetAbsoluteLeft()) / scale)),
         .y = static_cast<int>(std::lround(
-            field->GetAbsoluteTop() - workbench->GetAbsoluteTop())),
-        .width = static_cast<int>(std::lround(field->GetOffsetWidth())),
-        .height = static_cast<int>(std::lround(field->GetOffsetHeight())),
+            (field->GetAbsoluteTop() - workbench->GetAbsoluteTop()) / scale)),
+        .width = static_cast<int>(std::lround(field->GetOffsetWidth() / scale)),
+        .height = static_cast<int>(std::lround(field->GetOffsetHeight() / scale)),
     };
     const nw::toolset::VirtualComboBoxRect bounds{
-        .width = static_cast<int>(std::lround(workbench->GetClientWidth())),
-        .height = static_cast<int>(std::lround(workbench->GetClientHeight())),
+        .width = static_cast<int>(std::lround(workbench->GetClientWidth() / scale)),
+        .height = static_cast<int>(std::lround(workbench->GetClientHeight() / scale)),
     };
     const auto placement = state.object_details_combobox.place_popup(
         anchor, bounds);
@@ -1445,23 +1452,23 @@ bool sync_object_details_combobox(
     bool changed = false;
     if (!state.object_details_combobox_placement
         || *state.object_details_combobox_placement != placement) {
-        popup->SetProperty("left", std::to_string(placement.left) + "px");
-        popup->SetProperty("top", std::to_string(placement.top) + "px");
-        popup->SetProperty("width", std::to_string(placement.width) + "px");
-        popup->SetProperty("height", std::to_string(placement.height) + "px");
+        popup->SetProperty("left", std::to_string(placement.left) + "dp");
+        popup->SetProperty("top", std::to_string(placement.top) + "dp");
+        popup->SetProperty("width", std::to_string(placement.width) + "dp");
+        popup->SetProperty("height", std::to_string(placement.height) + "dp");
         state.object_details_combobox_placement = placement;
         changed = true;
     }
 
     const int observed_scroll_top = std::max(0,
-        static_cast<int>(std::lround(popup->GetScrollTop())));
+        static_cast<int>(std::lround(popup->GetScrollTop() / scale)));
     auto update = state.object_details_combobox.update(
         placement.height, observed_scroll_top, force);
     if (update.replace_markup) {
         popup->SetInnerRML(update.markup);
     }
     if (update.set_scroll) {
-        popup->SetScrollTop(static_cast<float>(update.scroll_top));
+        popup->SetScrollTop(static_cast<float>(update.scroll_top) * scale);
     }
     return changed || update.replace_markup || update.set_scroll;
 }
@@ -1480,8 +1487,9 @@ bool sync_object_variable_window(Rml::ElementDocument* doc, ObjectWorkbenchViewS
     const int viewport_height = std::max(1,
         static_cast<int>(std::lround(
             std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int scroll_top = std::max(
-        0, static_cast<int>(std::lround(list->GetScrollTop())));
+        0, static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     state.object_variable_list.set_viewport_height(viewport_height);
     state.object_variable_list.set_scroll_top(scroll_top);
     const auto range = state.object_variable_list.compute_range();
@@ -1515,7 +1523,7 @@ bool sync_object_variable_window(Rml::ElementDocument* doc, ObjectWorkbenchViewS
     }
 
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     if (auto* count = find_el(doc, "object_variable_count")) {
         count->SetInnerRML(std::to_string(row_count));
     }
@@ -1633,9 +1641,10 @@ bool sync_object_details_window(Rml::ElementDocument* doc, ObjectWorkbenchViewSt
     }
 
     configure_details_list(state);
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(list);
     const int viewport_height = std::max(1,
-        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()))));
-    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop())));
+        static_cast<int>(std::lround(std::max(list->GetClientHeight(), list->GetOffsetHeight()) / scale)));
+    const int scroll_top = std::max(0, static_cast<int>(std::lround(list->GetScrollTop() / scale)));
     state.details_list.set_viewport_height(viewport_height);
     state.details_list.set_scroll_top(scroll_top);
     const auto range = state.details_list.compute_range();
@@ -1669,7 +1678,7 @@ bool sync_object_details_window(Rml::ElementDocument* doc, ObjectWorkbenchViewSt
     }
 
     list->SetInnerRML(markup);
-    list->SetScrollTop(static_cast<float>(scroll_top));
+    list->SetScrollTop(static_cast<float>(scroll_top) * scale);
     if (auto* count = find_el(doc, "property_tree_count")) {
         count->SetInnerRML(std::to_string(active_details_row_count(state, workspace)));
     }

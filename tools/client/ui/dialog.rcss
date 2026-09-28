@@ -7,8 +7,8 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
   overflow: hidden;
   background: #171a1f;
   color: #dce3ea;
@@ -17,53 +17,53 @@
 .dialog_summary {
   display: flex;
   align-items: center;
-  flex: 0 0 34px;
-  height: 34px;
-  min-height: 34px;
-  gap: 18px;
-  padding: 0px 12px;
-  border-bottom: 1px #303943;
+  flex: 0 0 34dp;
+  height: 34dp;
+  min-height: 34dp;
+  gap: 18dp;
+  padding: 0dp 12dp;
+  border-bottom: 1dp #303943;
   background: #151b21;
   color: #9faab5;
-  font-size: 11px;
+  font-size: 11dp;
   font-weight: 700;
-  line-height: 33px;
+  line-height: 33dp;
   text-transform: uppercase;
   box-sizing: border-box;
 }
 .dialog_summary_words {
   color: #dce3ea;
-  font-size: 12px;
+  font-size: 12dp;
 }
 .dialog_body {
   display: flex;
   flex: 1;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
   overflow: hidden;
 }
 .dialog_outline {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-width: 360px;
-  min-height: 0px;
+  min-width: 360dp;
+  min-height: 0dp;
   overflow: hidden;
   background: #13191e;
 }
 .dialog_pane_header {
   display: flex;
   align-items: center;
-  flex: 0 0 30px;
-  height: 30px;
-  min-height: 30px;
-  padding: 0px 12px;
-  border-bottom: 1px #36414c;
+  flex: 0 0 30dp;
+  height: 30dp;
+  min-height: 30dp;
+  padding: 0dp 12dp;
+  border-bottom: 1dp #36414c;
   background: #1c242b;
   color: #bac4ce;
-  font-size: 11px;
+  font-size: 11dp;
   font-weight: 700;
-  line-height: 29px;
+  line-height: 29dp;
   text-transform: uppercase;
   box-sizing: border-box;
 }
@@ -74,8 +74,8 @@
 .dialog_rows {
   display: block;
   flex: 1;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
   overflow-y: auto;
   overflow-x: hidden;
   background: #10161b;
@@ -83,9 +83,9 @@
 .dialog_row {
   display: block;
   width: 100%;
-  height: 34px;
-  min-width: 0px;
-  border-bottom: 1px #29333c;
+  height: 34dp;
+  min-width: 0dp;
+  border-bottom: 1dp #29333c;
   background: #151b21;
   color: #dbe2e8;
   box-sizing: border-box;
@@ -97,7 +97,7 @@
 }
 .dialog_row.selected {
   background: #29343f;
-  border-left: 2px #a78d62;
+  border-left: 2dp #a78d62;
 }
 .dialog_row * {
   pointer-events: none;
@@ -106,9 +106,9 @@
   display: flex;
   align-items: center;
   width: 100%;
-  height: 33px;
-  min-width: 0px;
-  padding-right: 9px;
+  height: 33dp;
+  min-width: 0dp;
+  padding-right: 9dp;
   box-sizing: border-box;
 }
 .dialog_row_entry .dialog_row_text {
@@ -120,7 +120,7 @@
 .dialog_row_cells.link .dialog_row_text,
 .dialog_row_cells.link .dialog_row_speaker {
   color: #c4ccd4;
-  font-size: 13px;
+  font-size: 13dp;
 }
 .dialog_row_entry .tree_twisty.expanded {
   border-top-color: #91c77b;
@@ -130,10 +130,10 @@
 }
 .dialog_row_text {
   flex: 1;
-  min-width: 0px;
+  min-width: 0dp;
   overflow: hidden;
-  font-size: 12px;
-  line-height: 33px;
+  font-size: 12dp;
+  line-height: 33dp;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -143,14 +143,14 @@
 }
 .dialog_row_badge {
   flex: 0 0 auto;
-  margin-left: 7px;
-  padding: 1px 5px;
-  border: 1px #5b6671;
-  border-radius: 2px;
+  margin-left: 7dp;
+  padding: 1dp 5dp;
+  border: 1dp #5b6671;
+  border-radius: 2dp;
   color: #abb6c0;
-  font-size: 9px;
+  font-size: 9dp;
   font-weight: 700;
-  line-height: 13px;
+  line-height: 13dp;
   text-transform: uppercase;
 }
 .dialog_row_badge.link {
@@ -158,10 +158,10 @@
   color: #c4ccd4;
 }
 .dialog_empty {
-  padding: 18px 16px;
+  padding: 18dp 16dp;
   color: #8f9daa;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12dp;
+  line-height: 17dp;
 }
 .dialog_empty.error {
   color: #e29898;
@@ -169,26 +169,26 @@
 .dialog_inspector {
   display: flex;
   flex-direction: column;
-  flex: 0 0 390px;
-  width: 390px;
-  min-width: 300px;
-  min-height: 0px;
+  flex: 0 0 390dp;
+  width: 390dp;
+  min-width: 300dp;
+  min-height: 0dp;
   overflow: hidden;
-  border-left: 1px #36414c;
+  border-left: 1dp #36414c;
   background: #151b21;
   box-sizing: border-box;
 }
 .dialog_inspector_header {
   display: flex;
   align-items: center;
-  flex: 0 0 40px;
-  min-height: 40px;
-  padding: 0px 12px;
-  border-bottom: 1px #36414c;
+  flex: 0 0 40dp;
+  min-height: 40dp;
+  padding: 0dp 12dp;
+  border-bottom: 1dp #36414c;
   color: #f0f3f6;
-  font-size: 14px;
+  font-size: 14dp;
   font-weight: 700;
-  line-height: 39px;
+  line-height: 39dp;
   box-sizing: border-box;
 }
 .dialog_inspector_header_badges {
@@ -198,71 +198,71 @@
 .dialog_inspector_scroll {
   display: block;
   flex: 1;
-  min-width: 0px;
-  min-height: 0px;
+  min-width: 0dp;
+  min-height: 0dp;
   overflow-y: auto;
 }
 .dialog_inspector_text {
-  padding: 13px 12px;
-  border-bottom: 1px #303943;
+  padding: 13dp 12dp;
+  border-bottom: 1dp #303943;
   background: #10161b;
   color: #e7ebef;
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 13dp;
+  line-height: 19dp;
   white-space: normal;
 }
 .dialog_inspector_group {
   display: block;
-  border-bottom: 1px #303943;
+  border-bottom: 1dp #303943;
 }
 .dialog_inspector_group_title {
-  height: 26px;
-  padding: 0px 12px;
+  height: 26dp;
+  padding: 0dp 12dp;
   background: #1c242b;
   color: #aeb8c3;
-  font-size: 10px;
+  font-size: 10dp;
   font-weight: 700;
-  line-height: 25px;
+  line-height: 25dp;
   text-transform: uppercase;
   box-sizing: border-box;
 }
 .dialog_inspector_field {
   display: flex;
-  min-height: 30px;
-  border-top: 1px #252e36;
+  min-height: 30dp;
+  border-top: 1dp #252e36;
   color: #ccd4dc;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 11dp;
+  line-height: 16dp;
   box-sizing: border-box;
 }
 .dialog_inspector_label {
-  flex: 0 0 118px;
-  width: 118px;
-  padding: 7px 9px 6px 12px;
+  flex: 0 0 118dp;
+  width: 118dp;
+  padding: 7dp 9dp 6dp 12dp;
   color: #919eaa;
   box-sizing: border-box;
 }
 .dialog_inspector_value {
   flex: 1;
-  min-width: 0px;
-  padding: 7px 12px 6px 9px;
-  border-left: 1px #303943;
+  min-width: 0dp;
+  padding: 7dp 12dp 6dp 9dp;
+  border-left: 1dp #303943;
   color: #dce3ea;
   word-break: break-word;
   box-sizing: border-box;
 }
 .dialog_inspector_empty {
-  padding: 18px 16px;
+  padding: 18dp 16dp;
   color: #8f9daa;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: 12dp;
+  line-height: 17dp;
 }
-@media (max-width: 900px) {
+@media (max-width: 900dp) {
   .dialog_inspector {
-    flex-basis: 320px;
-    width: 320px;
+    flex-basis: 320dp;
+    width: 320dp;
   }
   .dialog_outline {
-    min-width: 280px;
+    min-width: 280dp;
   }
 }

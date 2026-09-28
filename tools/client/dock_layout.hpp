@@ -18,6 +18,7 @@ enum class DockRegion {
 struct DockPaneState {
     DockRegion region = DockRegion::left;
     bool visible = false;
+    // Persisted field names are retained; sizes are density-independent pixels.
     int size_px = 0;
     int min_size_px = 0;
     int max_size_px = 0;

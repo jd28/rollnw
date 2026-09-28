@@ -35,7 +35,7 @@ std::string swatch_rect(int32_t value)
 
 std::string pixel_offset(int32_t cell)
 {
-    return std::to_string(cell * palette_display_cell_size) + "px";
+    return std::to_string(cell * palette_display_cell_size) + "dp";
 }
 
 std::string model_field_id(int32_t part, int32_t axis)
@@ -85,8 +85,8 @@ struct ItemEditorDataModel::Impl {
         color_title.clear();
         model_focus_id.clear();
         selected_palette.clear();
-        selected_left = "0px";
-        selected_top = "0px";
+        selected_left = "0dp";
+        selected_top = "0dp";
         error.clear();
     }
 

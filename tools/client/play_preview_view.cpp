@@ -3,6 +3,7 @@
 #include "shell_controller.hpp"
 
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <RmlUi/Core/Elements/ElementFormControl.h>
 #include <fmt/format.h>
 
@@ -122,7 +123,7 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
         return;
     }
 
-    constexpr int kOverlayMargin = 8;
+    const int kOverlayMargin = static_cast<int>(std::lround(8 * Rml::ElementUtilities::GetDensityIndependentPixelRatio(overlay)));
     const auto& rect = *viewer_viewport;
     const bool navigation_debug
         = nw::toolset::toolset_preview_navigation_debug(
@@ -149,8 +150,8 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
             : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
               "<div class=\"play_preview_viewport_help\">F9 or Escape to return | F8 navigation debug</div>");
     overlay->SetProperty("display", "block");
-    overlay->SetProperty("width", placement_failed || preview.selecting_actor ? "500px" : "320px");
-    overlay->SetProperty("height", placement_failed || preview.selecting_actor ? "66px" : "50px");
+    overlay->SetProperty("width", placement_failed || preview.selecting_actor ? "500dp" : "320dp");
+    overlay->SetProperty("height", placement_failed || preview.selecting_actor ? "66dp" : "50dp");
     overlay->SetProperty("left", std::to_string(rect.x + kOverlayMargin) + "px");
     overlay->SetProperty("top", std::to_string(rect.y + kOverlayMargin) + "px");
 }

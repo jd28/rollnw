@@ -19,6 +19,9 @@ void start_client_kernel(const std::filesystem::path& install,
 std::pair<int, int> query_window_pixels(SDL_Window*);
 std::pair<int, int> query_window_size(SDL_Window*);
 void log_window_metrics(SDL_Window*, const char* label);
+// One window's UI configuration. A finite override in [0.5, 4] wins; otherwise
+// use SDL's display scale, falling back to 1 for an unavailable display.
+float client_ui_scale(SDL_Window*);
 // Four current candidates in existing order; missing/invalid assets return empty.
 std::filesystem::path resolve_client_ui_dir();
 // Unset/empty/0/false/off/no (case-insensitive) enable pacing; others uncap.

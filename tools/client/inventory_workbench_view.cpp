@@ -15,7 +15,7 @@
 
 namespace nw::toolset {
 namespace {
-constexpr int kCreatureInventoryCellPx = 32;
+constexpr int kCreatureInventoryCellDp = 32;
 std::string escape_html(std::string_view text)
 {
     std::string out;
@@ -175,15 +175,15 @@ std::string render_creature_inventory_page(const InventoryWorkbenchViewState& st
         markup = "<div class=\"property_tree_empty\">Waiting for a live object inventory.</div>";
     } else {
         markup.reserve(9000);
-        const int board_width = state.creature_inventory.column_count * kCreatureInventoryCellPx;
-        const int board_height = state.creature_inventory.row_count * kCreatureInventoryCellPx;
+        const int board_width = state.creature_inventory.column_count * kCreatureInventoryCellDp;
+        const int board_height = state.creature_inventory.row_count * kCreatureInventoryCellDp;
         markup += "<div id=\"creature_inventory_board\" class=\"creature_inventory_board\" style=\"flex-basis:";
         markup += std::to_string(board_width);
-        markup += "px;width:";
+        markup += "dp;width:";
         markup += std::to_string(board_width);
-        markup += "px;height:";
+        markup += "dp;height:";
         markup += std::to_string(board_height);
-        markup += "px\">";
+        markup += "dp\">";
         const int cell_count = state.creature_inventory.row_count
             * state.creature_inventory.column_count;
         for (int index = 0; index < cell_count; ++index) {
@@ -195,10 +195,10 @@ std::string render_creature_inventory_page(const InventoryWorkbenchViewState& st
             if (row.page != state.creature_inventory_page) {
                 continue;
             }
-            const int top = (row.row - row.height + 1) * kCreatureInventoryCellPx;
-            const int left = row.column * kCreatureInventoryCellPx;
-            const int width = row.width * kCreatureInventoryCellPx;
-            const int height = row.height * kCreatureInventoryCellPx;
+            const int top = (row.row - row.height + 1) * kCreatureInventoryCellDp;
+            const int left = row.column * kCreatureInventoryCellDp;
+            const int width = row.width * kCreatureInventoryCellDp;
+            const int height = row.height * kCreatureInventoryCellDp;
             auto label = state.creature_inventory.text_view(row.name);
             if (label.empty()) {
                 label = state.creature_inventory.text_view(row.resref);
@@ -215,13 +215,13 @@ std::string render_creature_inventory_page(const InventoryWorkbenchViewState& st
             markup += escape_html(label);
             markup += "\" style=\"left:";
             markup += std::to_string(left);
-            markup += "px;top:";
+            markup += "dp;top:";
             markup += std::to_string(top);
-            markup += "px;width:";
+            markup += "dp;width:";
             markup += std::to_string(width);
-            markup += "px;height:";
+            markup += "dp;height:";
             markup += std::to_string(height);
-            markup += "px\">";
+            markup += "dp\">";
             const auto icon_source = state.creature_inventory.text_view(row.icon_source);
             if (!icon_source.empty()) {
                 markup += "<img class=\"creature_inventory_item_icon\" src=\"";
@@ -348,13 +348,13 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
             if (row.assigned() && !icon_source.empty()) {
                 content_markup += "<span class=\"creature_equipment_item_frame\" style=\"width:";
                 content_markup += std::to_string(row.icon_visible_width);
-                content_markup += "px;height:";
+                content_markup += "dp;height:";
                 content_markup += std::to_string(row.icon_visible_height);
-                content_markup += "px\"><img class=\"creature_equipment_item_icon\" style=\"left:-";
+                content_markup += "dp\"><img class=\"creature_equipment_item_icon\" style=\"left:-";
                 content_markup += std::to_string(row.icon_visible_x);
-                content_markup += "px;top:-";
+                content_markup += "dp;top:-";
                 content_markup += std::to_string(row.icon_visible_y);
-                content_markup += "px\" src=\"";
+                content_markup += "dp\" src=\"";
                 content_markup += escape_html(icon_source);
                 content_markup += "\"/></span>";
             } else if (!row.assigned()) {
