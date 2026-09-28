@@ -8,6 +8,8 @@ already-verified VSIX rather than rebuilding after approval.
 
 The distribution workflow starts on `release: published`, so the release entry
 can be visible before its assets pass CI. Consider draft-to-published promotion
-if atomic visibility becomes a release requirement. Artifact signing/provenance
-also needs an explicit credential/trust policy; SHA256SUMS is integrity metadata,
-not a signature. No LTS/backport support is promised by dated snapshots.
+if atomic visibility becomes a release requirement. Windows Artifact Signing is
+prepared in CI; complete the environment setup and manual signing check before
+enabling it. Cross-platform provenance remains open;
+SHA256SUMS is integrity metadata, not a signature. No LTS/backport support is
+promised by dated snapshots.

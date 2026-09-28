@@ -69,6 +69,10 @@ archives those same verified install trees and attaches assets plus SHA256SUMS.
 Creating a Git tag alone does not publish these distribution assets. The release
 entry may be visible while its builds run; successful asset publication is gated.
 
+When `WINDOWS_SIGNING_ENABLED` is `true`, CI signs and timestamps Windows
+executables and DLLs with Azure Artifact Signing before creating the release ZIP.
+Signature verification must pass before assets are published.
+
 ## VS Code extension
 
 The extension keeps its own `tools/vscode-smalls/package.json` version. Prepare

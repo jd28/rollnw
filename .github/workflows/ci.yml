@@ -17,6 +17,11 @@ on:
     types:
       - published
   workflow_dispatch:
+    inputs:
+      sign_windows:
+        description: Test Windows signing on main without publishing a release
+        type: boolean
+        default: false
 
 env:
   buildDir: "${{ github.workspace }}/build/"
@@ -758,9 +763,82 @@ jobs:
         run: |
           ccache -s
 
+  windows-tools-sign:
+    needs: windows-tools-package
+    if: >-
+      needs.windows-tools-package.result == 'success' &&
+      ((github.event_name == 'release' && vars.WINDOWS_SIGNING_ENABLED == 'true') ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.sign_windows))
+    runs-on: windows-2022
+    timeout-minutes: 20
+    name: Sign Windows Tools
+    environment: windows-signing
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: download verified windows tools
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-tools-package
+          path: tmp/windows-signing
+
+      - name: Azure login with OIDC
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: sign Windows binaries
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_SIGNING_CERTIFICATE_PROFILE }}
+          files-folder: ${{ github.workspace }}/tmp/windows-signing
+          files-folder-filter: exe,dll
+          files-folder-recurse: true
+          append-signature: true
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-azure-cli-credential: false
+
+      - name: verify package signatures and timestamps
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/signtool.exe" |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (!$signtool) { throw "Windows SDK SignTool was not found." }
+          $binaries = @(Get-ChildItem tmp/windows-signing -Recurse -File |
+            Where-Object { $_.Extension -in '.exe', '.dll' })
+          if ($binaries.Count -eq 0) { throw "No Windows binaries to verify." }
+          foreach ($binary in $binaries) {
+            & $signtool.FullName verify /pa /all /tw $binary.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Signature or timestamp verification failed: $($binary.FullName)"
+            }
+          }
+
+      - name: upload signed windows tools artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-tools-package-signed
+          if-no-files-found: error
+          path: tmp/windows-signing
+
   release-packages:
-    needs: [linux-tools-package, windows-tools-package, macos-tools-package, linux-renderer-headless]
-    if: github.event_name == 'release'
+    needs: [linux-tools-package, windows-tools-package, windows-tools-sign, macos-tools-package, linux-renderer-headless]
+    if: >-
+      !cancelled() && github.event_name == 'release' &&
+      needs.linux-tools-package.result == 'success' &&
+      needs.windows-tools-package.result == 'success' &&
+      needs.macos-tools-package.result == 'success' &&
+      needs.linux-renderer-headless.result == 'success' &&
+      ((vars.WINDOWS_SIGNING_ENABLED == 'true' && needs.windows-tools-sign.result == 'success') ||
+       (vars.WINDOWS_SIGNING_ENABLED != 'true' && needs.windows-tools-sign.result == 'skipped'))
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     name: Release Packages
@@ -783,7 +861,7 @@ jobs:
       - name: download windows tools artifact
         uses: actions/download-artifact@v8
         with:
-          name: windows-tools-package
+          name: ${{ vars.WINDOWS_SIGNING_ENABLED == 'true' && 'windows-tools-package-signed' || 'windows-tools-package' }}
           path: tmp/release/windows
 
       - name: download macOS tools artifact
