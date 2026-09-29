@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "tag": "2026.09.27",
+  "tag": "2026.09.28",
   "tools": {
-    "mudl": "0.5.0",
-    "rollnw-client": "0.2.0",
-    "smalls": "0.1.0",
-    "smalls-datagen": "0.1.0",
-    "smalls-lsp": "0.1.0"
+    "mudl": "0.5.1",
+    "rollnw-client": "0.2.1",
+    "smalls": "0.1.1",
+    "smalls-datagen": "0.1.1",
+    "smalls-lsp": "0.1.1"
   }
 }
