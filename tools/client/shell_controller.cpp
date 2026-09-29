@@ -64,6 +64,20 @@ void ShellController::set_command_palette_visible(bool visible) noexcept
     command_palette_visible = visible;
 }
 
+void ShellController::set_object_editor_visible(bool visible) noexcept
+{
+    if (docks.pane(DockRegion::right).visible == visible) { return; }
+    docks.set_visible(DockRegion::right, visible);
+    object_editor_visibility_dirty = true;
+}
+
+void ShellController::set_module_properties_visible(bool visible) noexcept
+{
+    if (docks.module_properties_visible == visible) { return; }
+    docks.module_properties_visible = visible;
+    object_editor_visibility_dirty = true;
+}
+
 void ShellController::set_terminal_visible(bool visible)
 {
     if (visible) {

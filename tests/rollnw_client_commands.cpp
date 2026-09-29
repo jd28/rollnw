@@ -253,9 +253,9 @@ TEST(ClientDockLayout, ActivatesBottomWidgets)
     EXPECT_TRUE(docks.contains_widget(DockRegion::left, "project_navigator"));
     EXPECT_TRUE(docks.contains_widget(DockRegion::left, "area_navigator"));
 
-    EXPECT_FALSE(right.visible);
-    EXPECT_EQ(right.size_px, 320);
-    EXPECT_EQ(right.active_widget, "inspector");
+    EXPECT_TRUE(right.visible);
+    EXPECT_EQ(right.size_px, 0);
+    EXPECT_EQ(right.active_widget, "object_workbench");
 
     EXPECT_FALSE(bottom.visible);
     EXPECT_EQ(bottom.active_widget, "output");

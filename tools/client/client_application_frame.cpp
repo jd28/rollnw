@@ -69,6 +69,7 @@ void refresh_client_queries(ClientApplicationSurfaces& surfaces, ClientRenderer&
     }
 
     synchronize_client_mutations(renderer, state, context, doc);
+    sync_object_editor_visibility(doc, state);
     nw::toolset::refresh_object_workbench_queries(doc, state.workbench,
         state.workspace, state.backend, state.backend_ready ? nw::kernel::resman().generation() : 0);
     if (state.area_tile_editor.stroke.active

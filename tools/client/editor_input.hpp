@@ -16,6 +16,7 @@ namespace nw::toolset {
 enum class EditorShortcutAction : uint8_t { none,
     palette_toggle,
     output_toggle,
+    object_editor_toggle,
     terminal_toggle,
     close_tab,
     save_tab,

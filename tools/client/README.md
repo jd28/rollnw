@@ -55,6 +55,7 @@ Smalls access.
 | Ctrl+W | Close the active closable tab. |
 | Ctrl+Z / Ctrl+Y | Undo / redo. |
 | Ctrl+J | Toggle Output. |
+| Ctrl+Shift+E | Toggle properties beside the viewport or module browser (hidden by default for modules). |
 | Backtick | Toggle the terminal. |
 | F9 | Enter or leave play preview. |
 

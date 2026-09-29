@@ -127,9 +127,11 @@ void execute_palette_command(SDL_Window* window,
 
     const bool was_showing_areas = state.shell.showing_areas;
     const bool was_showing_project = state.shell.showing_project_tree;
+    const auto previous_tab_id = state.workspace.active_tab_id();
     const auto result = dispatch_command_flow(state, command_id, {}, nw::toolset::CommandSource::palette);
+    const bool editor_visibility_changed = state.shell.object_editor_visibility_dirty;
     sync_shell_visibility(context, palette_context, doc, palette_doc, state);
-    refresh_workspace_view(doc, state);
+    if (!editor_visibility_changed || state.workspace.active_tab_id() != previous_tab_id) { refresh_workspace_view(doc, state); }
     if (result.ok()
         && (state.shell.showing_areas
             || state.shell.showing_project_tree

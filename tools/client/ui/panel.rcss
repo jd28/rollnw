@@ -453,6 +453,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .play_preview_active #bottom_dock.visible,
 .play_preview_active #workspace_tab_bar,
 .play_preview_active .workspace_area_toolbar,
+.play_preview_active #right_dock_resize_grabber,
 .play_preview_active .object_workbench {
   display: none;
 }
@@ -1318,6 +1319,26 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .workspace_area_tabs .object_workbench_tab {
   padding-left: 10dp;
   padding-right: 10dp;
+}
+#right_dock_resize_grabber {
+  flex: 0 0 6dp;
+  width: 6dp;
+  background: #11161b;
+  border-right: 1dp #303943;
+  cursor: resize;
+}
+#right_dock_resize_grabber:hover {
+  background: #23313a;
+  border-color: #657884;
+}
+.workspace_preview_body.editor_hidden .object_workbench,
+.workspace_preview_body.editor_hidden #right_dock_resize_grabber,
+.workspace_home_surface.editor_hidden .object_workbench,
+.workspace_home_surface.editor_hidden #right_dock_resize_grabber {
+  display: none;
+}
+.workspace_preview_body.editor_hidden .workspace_viewer_viewport {
+  margin-right: 10dp;
 }
 .workspace_viewer_viewport {
   flex: 1;

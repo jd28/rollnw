@@ -31,6 +31,9 @@ void load_dock_preferences(const nlohmann::json& prefs, nw::toolset::DockLayout&
     if (ui == prefs.end() || !ui->is_object()) {
         return;
     }
+    if (auto it = ui->find("module_properties_visible"); it != ui->end() && it->is_boolean()) {
+        docks.module_properties_visible = it->get<bool>();
+    }
     const auto dock_values = ui->find("docks");
     if (dock_values == ui->end() || !dock_values->is_object()) {
         return;
@@ -40,6 +43,10 @@ void load_dock_preferences(const nlohmann::json& prefs, nw::toolset::DockLayout&
         const std::string region_name{nw::toolset::dock_region_name(region)};
         const auto dock = dock_values->find(region_name);
         if (dock == dock_values->end() || !dock->is_object()) {
+            continue;
+        }
+        // Older clients persisted an unused, hidden inspector placeholder.
+        if (region == DockRegion::right && dock->value("active_widget", nlohmann::json{}) == "inspector") {
             continue;
         }
 
@@ -65,6 +72,7 @@ void write_dock_preferences(nlohmann::json& prefs, const nw::toolset::DockLayout
     if (!ui.is_object()) {
         ui = nlohmann::json::object();
     }
+    ui["module_properties_visible"] = docks.module_properties_visible;
     auto& dock_values = ui["docks"];
     if (!dock_values.is_object()) {
         dock_values = nlohmann::json::object();

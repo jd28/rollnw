@@ -1546,6 +1546,34 @@ void ToolsetBackend::register_native_commands()
         });
 
     register_or_log(CommandSpec{
+                        "rollnw.client.object_editor.toggle",
+                        "Toggle Object Editor",
+                        "Show or hide properties beside the module browser or 3D viewport",
+                        "shell",
+                        {"editor.toggle"},
+                        CommandScope::global,
+                        CommandFlags::none,
+                        "Ctrl+Shift+E",
+                        "rollnw.client.object_editor.toggle",
+                    },
+        [this](const CommandInvocation&, CommandContext&) {
+            if (!shell_) {
+                return command_result(CommandStatus::failed, "Shell unavailable", CommandOutputChannel::error);
+            }
+            const auto* tab = workspace_ ? workspace_->active_tab() : nullptr;
+            const bool module_browser = tab && tab->kind == WorkspaceTabKind::home;
+            const bool visible = !(module_browser ? shell_->docks.module_properties_visible : shell_->docks.pane(DockRegion::right).visible);
+            if (module_browser) {
+                shell_->set_module_properties_visible(visible);
+            } else {
+                shell_->set_object_editor_visible(visible);
+            }
+            return command_result(CommandStatus::success,
+                visible ? "Object editor shown" : "Object editor hidden",
+                CommandOutputChannel::none);
+        });
+
+    register_or_log(CommandSpec{
                         "area.toggle_lights",
                         "Toggle Area Lights",
                         "Turn authored area lights on or off in 3D viewports",
@@ -3641,6 +3669,7 @@ void ToolsetBackend::register_native_commands()
             }
             workspace_->ensure_default_tabs(std::move(title));
             bridge_->publish_active_object(object);
+            if (shell_) { shell_->set_module_properties_visible(true); }
             return command_result(CommandStatus::success,
                 "Opened Module Details", CommandOutputChannel::none);
         });

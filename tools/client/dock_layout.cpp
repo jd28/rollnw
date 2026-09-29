@@ -23,12 +23,13 @@ DockPaneState make_right_dock()
 {
     DockPaneState pane;
     pane.region = DockRegion::right;
-    pane.visible = false;
-    pane.size_px = 320;
-    pane.min_size_px = 240;
-    pane.max_size_px = 640;
-    pane.active_widget = "inspector";
-    pane.widgets = {"inspector"};
+    pane.visible = true;
+    // Until the first drag, retain each editor's stylesheet width.
+    pane.size_px = 0;
+    pane.min_size_px = 320;
+    pane.max_size_px = 960;
+    pane.active_widget = "object_workbench";
+    pane.widgets = {"object_workbench"};
     return pane;
 }
 

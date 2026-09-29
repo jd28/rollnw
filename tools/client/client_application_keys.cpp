@@ -313,6 +313,14 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             return ClientEventFlow::finish;
         }
 
+        if (shortcut == nw::toolset::EditorShortcutAction::object_editor_toggle) {
+            cancel_area_tile_stroke(renderer, state);
+            append_command_result(state, dispatch_command(state, "rollnw.client.object_editor.toggle", {}, nw::toolset::CommandSource::shortcut));
+            sync_object_editor_visibility(doc, state);
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
+
         if (shortcut == nw::toolset::EditorShortcutAction::terminal_toggle) {
             append_command_result(state, dispatch_command(state, "rollnw.client.terminal.toggle", {}, nw::toolset::CommandSource::shortcut));
             toggle_terminal(doc, state, state.shell.terminal_visible());
@@ -339,9 +347,11 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
                 } else if (ensure_backend_ready(state)) {
                     const bool was_showing_areas = state.shell.showing_areas;
                     const bool was_showing_project = state.shell.showing_project_tree;
+                    const auto previous_tab_id = state.workspace.active_tab_id();
                     auto result = state.backend.console_execute(line, command_context(state, nw::toolset::CommandSource::terminal));
                     result = resolve_command_result(
                         state, std::move(result), true);
+                    const bool editor_visibility_changed = state.shell.object_editor_visibility_dirty;
                     if (result.ok() && state.shell.showing_project_tree) {
                         remember_recent_project(state, state.backend.current_project_dir());
                     }
@@ -353,7 +363,7 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
                             || state.shell.showing_project_tree != was_showing_project)) {
                         refresh_recent_list(doc, state);
                     }
-                    refresh_workspace_view(doc, state);
+                    if (!editor_visibility_changed || state.workspace.active_tab_id() != previous_tab_id) { refresh_workspace_view(doc, state); }
                 } else {
                     append_terminal(state, "error", "Backend initialization failed");
                 }

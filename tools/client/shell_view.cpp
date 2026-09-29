@@ -200,6 +200,29 @@ bool left_dock_visible_for_active_tab(const ShellController& shell)
     return shell.showing_project_tree || shell.showing_areas;
 }
 
+Rml::Element* right_dock_panel(Rml::ElementDocument* doc)
+{
+    auto* divider = doc ? doc->GetElementById("right_dock_resize_grabber") : nullptr;
+    auto* panel = divider ? divider->GetNextSibling() : nullptr;
+    return panel && panel->IsClassSet("object_workbench") ? panel : nullptr;
+}
+
+int right_dock_available_width_px(Rml::ElementDocument* doc, const ShellController& shell)
+{
+    const float scale = Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc);
+    const int width = static_cast<int>(static_cast<float>(doc->GetContext()->GetDimensions().x) / scale);
+    const int left = left_dock_visible_for_active_tab(shell) ? shell.docks.pane(DockRegion::left).size_px : 0;
+    // Reserve a usable viewport, its margins, and the six-dp divider.
+    return std::max(1, width - left - 240 - 26);
+}
+
+int clamp_right_dock_width_px(Rml::ElementDocument* doc, const ShellController& shell, int requested)
+{
+    const auto& right = shell.docks.pane(DockRegion::right);
+    const int available = right_dock_available_width_px(doc, shell);
+    return std::clamp(requested, std::min(right.min_size_px, available), std::min(right.max_size_px, available));
+}
+
 } // namespace
 
 LoguruOutputCapture::LoguruOutputCapture()
@@ -278,6 +301,52 @@ void apply_shell_layout(Rml::ElementDocument* doc, const ShellController& shell,
         workspace->SetProperty("left", std::to_string(show_left_dock ? left.size_px : 0) + "dp");
         workspace->SetProperty("bottom", std::to_string(play_preview_active ? 0 : panel_bottom_px) + "dp");
     }
+    if (auto* panel = right_dock_panel(doc)) {
+        const auto& right = shell.docks.pane(DockRegion::right);
+        panel->GetParentNode()->SetClass("editor_hidden", !object_editor_visible(doc, shell));
+        const int available = right_dock_available_width_px(doc, shell);
+        panel->SetProperty("min-width", std::to_string(std::min(right.min_size_px, available)) + "dp");
+        panel->SetProperty("max-width", std::to_string(available) + "dp");
+        if (right.size_px > 0) {
+            const auto width = std::to_string(clamp_right_dock_width_px(doc, shell, right.size_px)) + "dp";
+            panel->SetProperty("width", width);
+            panel->SetProperty("flex-basis", width);
+        }
+    }
+}
+
+void apply_right_dock_width(Rml::ElementDocument* doc, ShellController& shell, int requested_width_px, ShellPreviewLayout preview)
+{
+    if (!right_dock_panel(doc) || requested_width_px <= 0) { return; }
+    shell.docks.set_size_px(DockRegion::right, clamp_right_dock_width_px(doc, shell, requested_width_px));
+    apply_shell_layout(doc, shell, preview);
+}
+
+bool object_editor_visible(Rml::ElementDocument* doc, const ShellController& shell)
+{
+    const auto* panel = right_dock_panel(doc);
+    if (!panel) { return false; }
+    return panel->GetParentNode()->IsClassSet("workspace_home_surface")
+        ? shell.docks.module_properties_visible
+        : shell.docks.pane(DockRegion::right).visible;
+}
+
+bool sync_object_editor_visibility(Rml::ElementDocument* doc, ShellController& shell, ShellPreviewLayout preview)
+{
+    if (!doc || !shell.object_editor_visibility_dirty) { return false; }
+    shell.object_editor_visibility_dirty = false;
+    auto* panel = right_dock_panel(doc);
+    if (panel && !object_editor_visible(doc, shell)) {
+        auto* focus = doc->GetContext()->GetFocusElement();
+        for (auto* ancestor = focus; ancestor; ancestor = ancestor->GetParentNode()) {
+            if (ancestor == panel) {
+                focus->Blur();
+                break;
+            }
+        }
+    }
+    apply_shell_layout(doc, shell, preview);
+    return true;
 }
 
 void apply_left_dock_width(Rml::ElementDocument* doc, ShellController& shell, SDL_Window* window, int requested_width_px, ShellPreviewLayout preview)
@@ -432,6 +501,50 @@ bool end_left_dock_resize(ShellViewState& state)
     }
 
     state.left_dock_resizing = false;
+    SDL_CaptureMouse(false);
+    return true;
+}
+
+bool begin_right_dock_resize(Rml::Context* context, SDL_Window* window,
+    Rml::ElementDocument* doc, ShellViewState& state, ShellController& shell,
+    const SDL_MouseButtonEvent& mouse)
+{
+    if (mouse.button != SDL_BUTTON_LEFT || !context || !doc || !object_editor_visible(doc, shell)) { return false; }
+    const auto point = to_context_point(window, mouse.x, mouse.y);
+    if (!std::isfinite(point.x) || !std::isfinite(point.y)) { return false; }
+    auto* hit = context->GetElementAtPoint(point);
+    if (!find_ancestor_with_id(hit, "right_dock_resize_grabber")) { return false; }
+    auto* panel = right_dock_panel(doc);
+    if (!panel) { return false; }
+    const double width = std::round(static_cast<double>(panel->GetOffsetWidth() / Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc)));
+    if (!std::isfinite(width) || width <= 0) { return false; }
+    state.right_dock_resizing = true;
+    state.right_dock_resize_start_x = point.x;
+    state.right_dock_resize_start_width_px = bounded_dock_resize_request(width);
+    SDL_CaptureMouse(true);
+    return true;
+}
+
+bool update_right_dock_resize(Rml::ElementDocument* doc, ShellViewState& state,
+    ShellController& shell, SDL_Window* window, const SDL_MouseMotionEvent& motion, ShellPreviewLayout preview)
+{
+    if (!state.right_dock_resizing) { return false; }
+    const auto point = to_context_point(window, motion.x, motion.y);
+    if (!object_editor_visible(doc, shell) || preview.active
+        || !std::isfinite(point.x) || !std::isfinite(state.right_dock_resize_start_x)) {
+        (void)end_right_dock_resize(state);
+        return true;
+    }
+    const double requested = static_cast<double>(state.right_dock_resize_start_width_px)
+        - std::round((static_cast<double>(point.x) - static_cast<double>(state.right_dock_resize_start_x)) / static_cast<double>(Rml::ElementUtilities::GetDensityIndependentPixelRatio(doc)));
+    apply_right_dock_width(doc, shell, std::max(1, bounded_dock_resize_request(requested)), preview);
+    return true;
+}
+
+bool end_right_dock_resize(ShellViewState& state)
+{
+    if (!state.right_dock_resizing) { return false; }
+    state.right_dock_resizing = false;
     SDL_CaptureMouse(false);
     return true;
 }

@@ -207,6 +207,10 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
             dispatch.native_handled = true;
             return ClientEventFlow::finish;
         }
+        if (end_right_dock_resize(state)) {
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
 
         const auto point = to_context_point(window, event.button.x, event.button.y);
         const bool workspace_tab_was_dragging = state.workspace_view.workspace_tab_dragging;
@@ -264,7 +268,10 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
 
             if (auto area_surface_click = nw::toolset::capture_area_workspace_surface_click(hit)) {
                 if (!release_workspace_mouse_up()) { return ClientEventFlow::finish; }
-                if (area_surface_click->surface) { (void)set_area_workspace_surface(renderer, state, *area_surface_click->surface); }
+                if (area_surface_click->surface) {
+                    (void)set_area_workspace_surface(renderer, state, *area_surface_click->surface);
+                    set_object_editor_visible(doc, state, true);
+                }
                 refresh_workspace_content(doc, state);
                 sync_area_tile_palette_window(doc, state, true);
                 handled = true;

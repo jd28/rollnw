@@ -1,5 +1,6 @@
 #include "client_application_shell.hpp"
 #include "client_application_commands.hpp"
+#include "client_application_input.hpp"
 #include "client_preferences.hpp"
 #include <RmlUi/Core.h>
 #include <SDL3/SDL.h>
@@ -69,6 +70,46 @@ bool end_left_dock_resize(ClientApplicationState& state)
     if (!nw::toolset::end_left_dock_resize(state.shell_view)) { return false; }
     save_ui_preferences(state.shell_view.preferences_path, state.shell.docks, state.browser.recent_projects);
     return true;
+}
+
+bool begin_right_dock_resize(Rml::Context* context, SDL_Window* window, Rml::ElementDocument* doc,
+    ClientApplicationState& state, const SDL_MouseButtonEvent& mouse)
+{
+    return nw::toolset::begin_right_dock_resize(context, window, doc, state.shell_view, state.shell, mouse);
+}
+
+bool update_right_dock_resize(Rml::ElementDocument* doc, ClientApplicationState& state, SDL_Window* window, const SDL_MouseMotionEvent& motion)
+{
+    if (!nw::toolset::update_right_dock_resize(doc, state.shell_view, state.shell, window, motion, shell_preview_layout(state))) { return false; }
+    state.workbench.object_workbench_tab_scroll_pending = true;
+    return true;
+}
+
+bool end_right_dock_resize(ClientApplicationState& state)
+{
+    if (!nw::toolset::end_right_dock_resize(state.shell_view)) { return false; }
+    save_ui_preferences(state.shell_view.preferences_path, state.shell.docks, state.browser.recent_projects);
+    return true;
+}
+
+void set_object_editor_visible(Rml::ElementDocument* doc, ClientApplicationState& state, bool visible)
+{
+    state.shell.set_object_editor_visible(visible);
+    sync_object_editor_visibility(doc, state);
+}
+
+void sync_object_editor_visibility(Rml::ElementDocument* doc, ClientApplicationState& state)
+{
+    if (!nw::toolset::sync_object_editor_visibility(doc, state.shell, shell_preview_layout(state))) { return; }
+    (void)nw::toolset::end_right_dock_resize(state.shell_view);
+    if (!nw::toolset::object_editor_visible(doc, state.shell)
+        && !state.command_view.command_palette_restore_focus_id.empty()
+        && find_ancestor_with_class(doc->GetElementById(state.command_view.command_palette_restore_focus_id), "object_workbench")) {
+        state.command_view.command_palette_restore_focus_id.clear();
+        state.command_view.command_palette_restore_viewport_focus = doc->GetElementById("workspace_viewer_viewport") != nullptr;
+    }
+    state.workbench.object_workbench_tab_scroll_pending = true;
+    save_ui_preferences(state.shell_view.preferences_path, state.shell.docks, state.browser.recent_projects);
 }
 
 bool consume_terminal_toggle_text_input(ClientApplicationState& state, const SDL_Event& event)
@@ -150,6 +191,7 @@ void sync_shell_visibility(Rml::Context* context,
     Rml::ElementDocument* palette_doc,
     ClientApplicationState& state)
 {
+    sync_object_editor_visibility(doc, state);
     toggle_command_palette(context, palette_context, doc, palette_doc, state, state.shell.command_palette_visible);
     refresh_bottom_dock_view(doc, state);
 }

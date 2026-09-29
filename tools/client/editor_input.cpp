@@ -20,6 +20,12 @@ EditorShortcutAction shortcut_action(const EditorShortcutInput& input) noexcept
             : EditorShortcutAction::none;
     case SDLK_J:
         return modifiers & SDL_KMOD_CTRL ? EditorShortcutAction::output_toggle : EditorShortcutAction::none;
+    case SDLK_E:
+        if (!input.repeat && (modifiers & SDL_KMOD_CTRL) && (modifiers & SDL_KMOD_SHIFT)
+            && !(modifiers & (SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+            return EditorShortcutAction::object_editor_toggle;
+        }
+        break;
     case SDLK_GRAVE:
         return !(modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))
             ? EditorShortcutAction::terminal_toggle

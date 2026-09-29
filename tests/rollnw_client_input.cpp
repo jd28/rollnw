@@ -723,11 +723,19 @@ TEST(ClientEditorInput, ApplicationShortcutBatchesKeepTheCurrentModifierAndRepea
         EditorShortcutInput{SDLK_Z, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, false},
         EditorShortcutInput{SDLK_A, SDL_KMOD_CTRL, false},
         EditorShortcutInput{SDLK_UNKNOWN, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, false},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_CAPS, false},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_CTRL | SDL_KMOD_SHIFT, true},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_CTRL, false},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_SHIFT, false},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_ALT, false},
+        EditorShortcutInput{SDLK_E, SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_GUI, false},
     };
     const std::array expected{A::palette_toggle, A::none, A::output_toggle, A::none,
         A::terminal_toggle, A::none, A::none, A::none, A::close_tab, A::none, A::none,
         A::save_tab, A::save_all, A::none, A::none, A::none, A::undo, A::redo,
-        A::none, A::none, A::none};
+        A::none, A::none, A::none,
+        A::object_editor_toggle, A::object_editor_toggle, A::none, A::none, A::none, A::none, A::none};
     std::array<A, inputs.size()> actions;
     actions.fill(A::redo);
     ASSERT_TRUE(resolve_editor_shortcut_actions(inputs, actions));

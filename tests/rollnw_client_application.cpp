@@ -185,6 +185,9 @@ TEST_F(ClientPreferences, RoundTripRetainsUnrelatedKeysAndDropsLegacyFields)
 {
     DockLayout docks;
     docks.pane(DockRegion::left).size_px = 411;
+    docks.pane(DockRegion::right).size_px = 570;
+    docks.pane(DockRegion::right).visible = false;
+    docks.module_properties_visible = true;
     docks.pane(DockRegion::bottom).visible = true;
     std::vector<RecentProjectEntry> recent{{"Example", "/example project", "not persisted"}};
     ASSERT_TRUE(save_ui_preferences(path, docks, recent));
@@ -204,6 +207,9 @@ TEST_F(ClientPreferences, RoundTripRetainsUnrelatedKeysAndDropsLegacyFields)
     std::vector<RecentProjectEntry> projects;
     load_ui_preferences(path, loaded, projects);
     EXPECT_EQ(loaded.pane(DockRegion::left).size_px, 411);
+    EXPECT_EQ(loaded.pane(DockRegion::right).size_px, 570);
+    EXPECT_FALSE(loaded.pane(DockRegion::right).visible);
+    EXPECT_TRUE(loaded.module_properties_visible);
     EXPECT_TRUE(loaded.pane(DockRegion::bottom).visible);
     ASSERT_EQ(projects.size(), 1u);
     EXPECT_EQ(projects[0].name, "Example");
@@ -216,6 +222,22 @@ TEST_F(ClientPreferences, RoundTripRetainsUnrelatedKeysAndDropsLegacyFields)
     EXPECT_FALSE(prefs.contains("left_dock_width_px"));
     EXPECT_FALSE(prefs.contains("bottom_dock_height_px"));
     EXPECT_FALSE(prefs.contains("terminal_height_px"));
+}
+
+TEST_F(ClientPreferences, LegacyInspectorDoesNotHideTheObjectEditor)
+{
+    std::filesystem::create_directories(path.parent_path());
+    {
+        std::ofstream output{path};
+        output << R"({"ui":{"docks":{"right":{"size_px":320,"visible":false,"active_widget":"inspector"}}}})";
+    }
+    DockLayout docks;
+    std::vector<RecentProjectEntry> projects;
+    load_ui_preferences(path, docks, projects);
+    EXPECT_TRUE(docks.pane(DockRegion::right).visible);
+    EXPECT_EQ(docks.pane(DockRegion::right).size_px, 0);
+    EXPECT_EQ(docks.pane(DockRegion::right).active_widget, "object_workbench");
+    EXPECT_FALSE(docks.module_properties_visible);
 }
 
 TEST_F(ClientPreferences, MissingMalformedAndInvalidValuesPreserveExistingPolicy)
@@ -236,12 +258,13 @@ TEST_F(ClientPreferences, MissingMalformedAndInvalidValuesPreserveExistingPolicy
     EXPECT_EQ(recent.size(), 1u);
     {
         std::ofstream output{path};
-        output << R"({"ui":{"docks":{"left":{"size_px":-10,"visible":"wrong","active_widget":"missing"}}},"projects":{"recent":[{"path":"/one","name":"One"},{"path":"/one"},{"path":""},7]}})";
+        output << R"({"ui":{"module_properties_visible":"wrong","docks":{"left":{"size_px":-10,"visible":"wrong","active_widget":"missing"}}},"projects":{"recent":[{"path":"/one","name":"One"},{"path":"/one"},{"path":""},7]}})";
     }
     const auto widget = docks.pane(DockRegion::left).active_widget;
     load_ui_preferences(path, docks, recent);
     EXPECT_EQ(docks.pane(DockRegion::left).size_px, 0);
     EXPECT_EQ(docks.pane(DockRegion::left).active_widget, widget);
+    EXPECT_FALSE(docks.module_properties_visible);
     ASSERT_EQ(recent.size(), 1u);
     EXPECT_EQ(recent[0].path, "/one");
     EXPECT_FALSE(save_ui_preferences({}, docks, recent));

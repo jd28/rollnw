@@ -28,7 +28,7 @@ nw::toolset::ClientInputOwnership client_input_ownership(const ClientApplication
     using namespace nw::toolset;
     const bool preview = state.play_preview.session.active() || state.play_preview.placement_pending();
     const auto map = client_input_map(ClientControlRole::editor, preview);
-    const bool ui_pointer_gesture = state.shell_view.bottom_dock_resizing || state.shell_view.left_dock_resizing
+    const bool ui_pointer_gesture = state.shell_view.bottom_dock_resizing || state.shell_view.left_dock_resizing || state.shell_view.right_dock_resizing
         || state.shell_view.output_selection.dragging || state.workspace_view.workspace_tab_dragging
         || state.managed_list_reorder.active() || state.project_blueprint_drag.active();
     return {
@@ -270,6 +270,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             clear_workspace_tab_drag(state);
             (void)end_bottom_dock_resize(state);
             (void)end_left_dock_resize(state);
+            (void)end_right_dock_resize(state);
             state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
             state.shell_view.output_selection.dragging = false;
             state.browser.pressed_recent_index = -1;
@@ -373,6 +374,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             break;
         case SDL_EVENT_WINDOW_FOCUS_LOST:
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+            if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST) { (void)end_right_dock_resize(state); }
             if (state.project_blueprint_drag.active()) {
                 cancel_project_blueprint_drag(doc, state);
                 state.browser.pressed_recent_index = -1;

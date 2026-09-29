@@ -39,6 +39,7 @@ public:
 
     bool output_dirty = true;
     bool terminal_dirty = true;
+    bool object_editor_visibility_dirty = false;
 
     std::vector<std::pair<std::string, std::string>> output_lines;
     std::vector<std::pair<std::string, std::string>> terminal_lines;
@@ -48,6 +49,8 @@ public:
     void set_command_palette_visible(bool visible) noexcept;
     void set_terminal_visible(bool visible);
     void set_output_panel_visible(bool visible);
+    void set_object_editor_visible(bool visible) noexcept;
+    void set_module_properties_visible(bool visible) noexcept;
     [[nodiscard]] bool terminal_visible() const noexcept;
     [[nodiscard]] bool output_panel_visible() const noexcept;
     [[nodiscard]] bool bottom_dock_visible() const noexcept;

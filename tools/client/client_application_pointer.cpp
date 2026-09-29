@@ -255,6 +255,10 @@ ClientEventFlow process_client_pointer_down(SDL_Event& event, ClientInputDispatc
             dispatch.native_handled = true;
             return ClientEventFlow::finish;
         }
+        if (begin_right_dock_resize(context, window, doc, state, event.button)) {
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
 
         state.browser.pressed_recent_index = -1;
         const auto point = to_context_point(window, event.button.x, event.button.y);
@@ -335,6 +339,10 @@ ClientEventFlow process_client_pointer_motion(SDL_Event& event, ClientInputDispa
             return ClientEventFlow::finish;
         }
         if (update_left_dock_resize(doc, state, window, event.motion)) {
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
+        if (update_right_dock_resize(doc, state, window, event.motion)) {
             dispatch.native_handled = true;
             return ClientEventFlow::finish;
         }

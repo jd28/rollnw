@@ -1348,7 +1348,345 @@ TEST(ClientShellLogCapture, SdkMessagesOwnTextKeepBoundedOrderAndRemoveTheCallba
     RecordProperty("captured_log_row_bytes", sizeof(CapturedLogLine));
 }
 
-class ClientShellView : public ClientBrowserWorkspace { };
+class ClientShellView : public ClientBrowserWorkspace {
+protected:
+    void show_editor(AreaWorkspaceSurface surface = AreaWorkspaceSurface::properties,
+        WorkspaceTabKind kind = WorkspaceTabKind::area, nw::ObjectType type = nw::ObjectType::invalid)
+    {
+        WorkspaceState workspace;
+        ToolsetBackend backend;
+        ObjectWorkbenchViewState workbench;
+        workbench.object_details.object.type = type;
+        workspace.open_tab("editor", "Editor", kind);
+        std::string markup;
+        append_workspace_document_markup(markup, *workspace.active_tab(), workspace,
+            backend, workbench, surface, AreaTileEditorState{}, DialogViewState{}, nw::ObjectHandle{});
+        document->GetElementById("workspace_content")->SetInnerRML(markup);
+    }
+};
+
+TEST_F(ClientShellView, EditorDividerResizesAtDisplayScaleAndHidePreservesControls)
+{
+    ShellController shell;
+    shell.set_showing_areas(true);
+    for (const float scale : {1.0f, 1.5f, 2.0f}) {
+        SCOPED_TRACE(scale);
+        shell.docks.set_size_px(DockRegion::right, 0);
+        context->SetDensityIndependentPixelRatio(scale);
+        context->SetDimensions({static_cast<int>(1600 * scale), static_cast<int>(900 * scale)});
+        show_editor();
+        apply_shell_layout(document, shell, {});
+        context->Update();
+        auto* panel = document->GetElementById("object_workbench");
+        auto* divider = document->GetElementById("right_dock_resize_grabber");
+        auto* viewport = document->GetElementById("workspace_viewer_viewport");
+        ASSERT_NE(panel, nullptr);
+        ASSERT_NE(divider, nullptr);
+        ASSERT_NE(viewport, nullptr);
+        EXPECT_NEAR(panel->GetOffsetWidth(), 440 * scale, 1.0f);
+        panel->SetInnerRML("<input id='draft' type='text' value='Unsaved text' />");
+        auto* draft = document->GetElementById("draft");
+        ASSERT_NE(draft, nullptr);
+        context->Update();
+
+        ShellViewState view;
+        SDL_MouseButtonEvent button{};
+        button.button = SDL_BUTTON_LEFT;
+        button.x = divider->GetAbsoluteLeft() + 3 * scale;
+        button.y = divider->GetAbsoluteTop() + 20 * scale;
+        ASSERT_TRUE(begin_right_dock_resize(context, nullptr, document, view, shell, button));
+        SDL_MouseMotionEvent motion{};
+        motion.x = button.x - 100 * scale;
+        EXPECT_TRUE(update_right_dock_resize(document, view, shell, nullptr, motion, {}));
+        context->Update();
+        EXPECT_EQ(shell.docks.pane(DockRegion::right).size_px, 540);
+        EXPECT_NEAR(panel->GetOffsetWidth(), 540 * scale, 1.0f);
+        EXPECT_TRUE(end_right_dock_resize(view));
+        EXPECT_FALSE(end_right_dock_resize(view));
+        const auto viewport_width = viewport->GetOffsetWidth();
+
+        draft->Focus();
+        shell.set_object_editor_visible(false);
+        EXPECT_TRUE(sync_object_editor_visibility(document, shell, {}));
+        context->Update();
+        EXPECT_FALSE(panel->IsVisible());
+        EXPECT_FALSE(divider->IsVisible());
+        EXPECT_NE(context->GetFocusElement(), draft);
+        EXPECT_EQ(document->GetElementById("object_editor_toggle"), nullptr);
+        EXPECT_GT(viewport->GetOffsetWidth(), viewport_width + 500 * scale);
+        EXPECT_FALSE(begin_right_dock_resize(context, nullptr, document, view, shell, button));
+        shell.set_object_editor_visible(true);
+        EXPECT_TRUE(sync_object_editor_visibility(document, shell, {}));
+        context->Update();
+        EXPECT_EQ(document->GetElementById("draft"), draft);
+        EXPECT_EQ(rmlui_dynamic_cast<Rml::ElementFormControl*>(draft)->GetValue(), "Unsaved text");
+        EXPECT_NEAR(panel->GetOffsetWidth(), 540 * scale, 1.0f);
+        EXPECT_NEAR(viewport->GetOffsetWidth(), viewport_width, 1.0f);
+    }
+}
+
+TEST_F(ClientShellView, EditorLayoutSurvivesRefreshAndLeavesDataOnlyEditorsVisible)
+{
+    ShellController shell;
+    context->SetDimensions({1600, 900});
+    shell.docks.set_size_px(DockRegion::right, 580);
+    shell.docks.set_visible(DockRegion::right, false);
+    for (const auto surface : {AreaWorkspaceSurface::properties, AreaWorkspaceSurface::objects, AreaWorkspaceSurface::tiles}) {
+        show_editor(surface);
+        apply_shell_layout(document, shell, {});
+        context->Update();
+        auto* divider = document->GetElementById("right_dock_resize_grabber");
+        ASSERT_NE(divider, nullptr);
+        auto* panel = divider->GetNextSibling();
+        ASSERT_NE(panel, nullptr);
+        EXPECT_FALSE(panel->IsVisible());
+        shell.set_object_editor_visible(true);
+        EXPECT_TRUE(sync_object_editor_visibility(document, shell, {}));
+        context->Update();
+        EXPECT_NEAR(panel->GetOffsetWidth(), 580, 1.0f);
+        apply_shell_layout(document, shell, {true, false});
+        context->Update();
+        EXPECT_FALSE(panel->IsVisible());
+        EXPECT_FALSE(divider->IsVisible());
+        apply_shell_layout(document, shell, {});
+        context->Update();
+        EXPECT_TRUE(panel->IsVisible());
+        shell.set_object_editor_visible(false);
+        EXPECT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    }
+    for (const auto type : {nw::ObjectType::creature, nw::ObjectType::item, nw::ObjectType::door, nw::ObjectType::placeable}) {
+        SCOPED_TRACE(static_cast<int>(type));
+        shell.docks.set_size_px(DockRegion::right, 0);
+        shell.docks.set_visible(DockRegion::right, true);
+        show_editor(AreaWorkspaceSurface::properties, WorkspaceTabKind::preview, type);
+        apply_shell_layout(document, shell, {});
+        context->Update();
+        auto* panel = document->GetElementById("object_workbench");
+        ASSERT_NE(panel, nullptr);
+        EXPECT_NEAR(panel->GetOffsetWidth(), type == nw::ObjectType::item ? 560 : 440, 1.0f);
+        apply_right_dock_width(document, shell, 580, {});
+        context->Update();
+        EXPECT_NEAR(panel->GetOffsetWidth(), 580, 1.0f);
+        shell.set_object_editor_visible(false);
+        EXPECT_TRUE(sync_object_editor_visibility(document, shell, {}));
+        context->Update();
+        EXPECT_FALSE(panel->IsVisible());
+    }
+    show_editor(AreaWorkspaceSurface::properties, WorkspaceTabKind::preview, nw::ObjectType::sound);
+    apply_shell_layout(document, shell, {});
+    context->Update();
+    EXPECT_EQ(document->GetElementById("object_editor_toggle"), nullptr);
+    EXPECT_EQ(document->GetElementById("right_dock_resize_grabber"), nullptr);
+    auto* panel = document->GetElementById("object_workbench");
+    ASSERT_NE(panel, nullptr);
+    EXPECT_TRUE(panel->IsVisible());
+    EXPECT_GT(panel->GetOffsetWidth(), 1500);
+    shell.set_object_editor_visible(false);
+    EXPECT_FALSE(sync_object_editor_visibility(document, shell, {}));
+    EXPECT_FALSE(shell.docks.pane(DockRegion::right).visible);
+}
+
+TEST_F(ClientShellView, EditorResizeClampsAndCancelsInvalidOrStaleDrags)
+{
+    ShellController shell;
+    shell.set_showing_areas(true);
+    context->SetDimensions({1600, 900});
+    show_editor();
+    apply_shell_layout(document, shell, {});
+    context->Update();
+    ShellViewState view;
+    view.right_dock_resizing = true;
+    view.right_dock_resize_start_x = 500;
+    view.right_dock_resize_start_width_px = 440;
+    SDL_MouseMotionEvent motion{};
+    motion.x = -2000000000.0f;
+    EXPECT_TRUE(update_right_dock_resize(document, view, shell, nullptr, motion, {}));
+    EXPECT_EQ(shell.docks.pane(DockRegion::right).size_px, 960);
+    motion.x = 2000000000.0f;
+    EXPECT_TRUE(update_right_dock_resize(document, view, shell, nullptr, motion, {}));
+    EXPECT_EQ(shell.docks.pane(DockRegion::right).size_px, 320);
+    motion.x = std::numeric_limits<float>::quiet_NaN();
+    EXPECT_TRUE(update_right_dock_resize(document, view, shell, nullptr, motion, {}));
+    EXPECT_FALSE(view.right_dock_resizing);
+    EXPECT_EQ(shell.docks.pane(DockRegion::right).size_px, 320);
+
+    shell.docks.set_size_px(DockRegion::right, 580);
+    context->SetDimensions({720, 700});
+    apply_shell_layout(document, shell, {});
+    context->Update();
+    EXPECT_LE(document->GetElementById("object_workbench")->GetOffsetWidth(), 100);
+    EXPECT_GE(document->GetElementById("workspace_viewer_viewport")->GetOffsetWidth(), 240);
+    context->SetDimensions({1600, 900});
+    apply_shell_layout(document, shell, {});
+    context->Update();
+    EXPECT_NEAR(document->GetElementById("object_workbench")->GetOffsetWidth(), 580, 1.0f);
+
+    view.right_dock_resizing = true;
+    document->GetElementById("workspace_content")->SetInnerRML("");
+    motion.x = 400;
+    EXPECT_TRUE(update_right_dock_resize(document, view, shell, nullptr, motion, {}));
+    EXPECT_FALSE(view.right_dock_resizing);
+    EXPECT_EQ(shell.docks.pane(DockRegion::right).size_px, 580);
+}
+
+TEST_F(ClientShellView, EditorCommandUsesSharedVisibilityForPaletteShortcutAndTerminal)
+{
+    ShellController shell;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(nullptr, &shell, &workspace);
+    const auto unbind = create_scope_exit([] { script_command_host().bind(nullptr, nullptr); });
+    const auto commands = backend.list_commands("Toggle Object Editor");
+    const auto spec = std::ranges::find(commands, "rollnw.client.object_editor.toggle", &CommandSpec::id);
+    ASSERT_NE(spec, commands.end());
+    EXPECT_EQ(spec->default_binding, "Ctrl+Shift+E");
+    show_editor();
+    apply_shell_layout(document, shell, {});
+    context->Update();
+    auto* panel = document->GetElementById("object_workbench");
+    ASSERT_NE(panel, nullptr);
+    panel->SetInnerRML("<input id='draft' type='text' value='Unsaved text' />");
+    auto* draft = document->GetElementById("draft");
+    ASSERT_NE(draft, nullptr);
+    for (const auto command_source : {CommandSource::palette, CommandSource::shortcut, CommandSource::terminal}) {
+        CommandContext command{.source = command_source, .workspace = &workspace};
+        const auto execute = [&] {
+            return command_source == CommandSource::terminal
+                ? backend.console_execute("editor.toggle", command)
+                : backend.execute_command("rollnw.client.object_editor.toggle", {}, command);
+        };
+        ASSERT_TRUE(execute().ok());
+        EXPECT_FALSE(shell.docks.pane(DockRegion::right).visible);
+        ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+        EXPECT_FALSE(sync_object_editor_visibility(document, shell, {}));
+        context->Update();
+        EXPECT_FALSE(panel->IsVisible());
+        ASSERT_TRUE(execute().ok());
+        ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+        context->Update();
+        EXPECT_TRUE(panel->IsVisible());
+        EXPECT_EQ(document->GetElementById("draft"), draft);
+        EXPECT_EQ(rmlui_dynamic_cast<Rml::ElementFormControl*>(draft)->GetValue(), "Unsaved text");
+        EXPECT_EQ(workspace.undo_count(), 0);
+    }
+    backend.bind(nullptr, nullptr, &workspace);
+    EXPECT_EQ(backend.execute_command("rollnw.client.object_editor.toggle", {}, {}).status, CommandStatus::failed);
+}
+
+TEST_F(ClientShellView, ModulePropertiesDefaultHiddenAndShareResizeWithoutChangingAreaVisibility)
+{
+    KernelServiceScope services;
+    ShellController shell;
+    WorkspaceState workspace;
+    RmlSmallsBridge bridge;
+    ToolsetBackend backend;
+    backend.bind(&bridge, &shell, &workspace);
+    const auto unbind = create_scope_exit([] { script_command_host().bind(nullptr, nullptr); });
+    EXPECT_EQ(backend.execute_command("toolset.module_properties", {}, {}).status, CommandStatus::rejected);
+    ASSERT_TRUE(backend.open_module("test_data/user/modules/DockerDemo.mod").ok());
+    ASSERT_EQ(workspace.active_tab()->kind, WorkspaceTabKind::home);
+    BrowserViewState browser;
+    ObjectWorkbenchViewState workbench;
+    workbench.object_details.object = backend.module_object();
+    const auto show_module = [&] {
+        std::string markup;
+        EXPECT_TRUE(append_workspace_home_start_markup(markup, browser, backend, {}, "test version"));
+        append_workspace_object_workbench_markup(markup, workspace, backend, workbench,
+            AreaWorkspaceSurface::properties, nw::ObjectHandle{});
+        markup += "</div>";
+        document->GetElementById("workspace_content")->SetInnerRML(markup);
+        apply_shell_layout(document, shell, {});
+        context->Update();
+    };
+    constexpr float scale = 1.5f;
+    context->SetDensityIndependentPixelRatio(scale);
+    context->SetDimensions({2400, 1350});
+    show_module();
+    auto* panel = document->GetElementById("object_workbench");
+    auto* divider = document->GetElementById("right_dock_resize_grabber");
+    auto* home = document->GetElementById("workspace_home");
+    ASSERT_NE(panel, nullptr);
+    ASSERT_NE(divider, nullptr);
+    ASSERT_NE(home, nullptr);
+    EXPECT_FALSE(panel->IsVisible());
+    EXPECT_FALSE(divider->IsVisible());
+    EXPECT_FALSE(shell.docks.module_properties_visible);
+    EXPECT_TRUE(shell.docks.pane(DockRegion::right).visible);
+    const float full_width = home->GetOffsetWidth();
+    auto* search = rmlui_dynamic_cast<Rml::ElementFormControl*>(document->GetElementById("home_area_search"));
+    ASSERT_NE(search, nullptr);
+    search->SetValue("Keep this filter");
+
+    ASSERT_TRUE(backend.console_execute("editor.toggle", {}).ok());
+    ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    context->Update();
+    EXPECT_TRUE(panel->IsVisible());
+    EXPECT_TRUE(divider->IsVisible());
+    EXPECT_NEAR(panel->GetOffsetWidth(), 440 * scale, 1.0f);
+    EXPECT_LT(home->GetOffsetWidth(), full_width - 400 * scale);
+    shell.set_object_editor_visible(false);
+    ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    context->Update();
+    EXPECT_TRUE(panel->IsVisible());
+
+    ShellViewState view;
+    SDL_MouseButtonEvent button{};
+    button.button = SDL_BUTTON_LEFT;
+    button.x = divider->GetAbsoluteLeft() + 3 * scale;
+    button.y = divider->GetAbsoluteTop() + 20 * scale;
+    ASSERT_TRUE(begin_right_dock_resize(context, nullptr, document, view, shell, button));
+    SDL_MouseMotionEvent motion{};
+    motion.x = button.x - 140 * scale;
+    ASSERT_TRUE(update_right_dock_resize(document, view, shell, nullptr, motion, {}));
+    EXPECT_TRUE(end_right_dock_resize(view));
+    context->Update();
+    EXPECT_EQ(shell.docks.pane(DockRegion::right).size_px, 580);
+    EXPECT_NEAR(panel->GetOffsetWidth(), 580 * scale, 1.0f);
+    panel->SetInnerRML("<input id='module_draft' type='text' value='Unsaved module edit' />");
+    auto* draft = document->GetElementById("module_draft");
+    ASSERT_NE(draft, nullptr);
+    context->Update();
+    draft->Focus();
+    ASSERT_TRUE(backend.execute_command("rollnw.client.object_editor.toggle", {}, {.source = CommandSource::shortcut}).ok());
+    ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    context->Update();
+    EXPECT_FALSE(panel->IsVisible());
+    EXPECT_NE(context->GetFocusElement(), draft);
+    EXPECT_NEAR(home->GetOffsetWidth(), full_width, 1.0f);
+    EXPECT_EQ(document->GetElementById("home_area_search"), search);
+    EXPECT_EQ(search->GetValue(), "Keep this filter");
+    ASSERT_TRUE(backend.execute_command("rollnw.client.object_editor.toggle", {}, {.source = CommandSource::palette}).ok());
+    ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    context->Update();
+    EXPECT_EQ(document->GetElementById("module_draft"), draft);
+    EXPECT_EQ(rmlui_dynamic_cast<Rml::ElementFormControl*>(draft)->GetValue(), "Unsaved module edit");
+    EXPECT_NEAR(panel->GetOffsetWidth(), 580 * scale, 1.0f);
+
+    ASSERT_TRUE(backend.console_execute("editor.toggle", {}).ok());
+    ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    ASSERT_TRUE(workspace.set_active_tab("area"));
+    show_editor();
+    apply_shell_layout(document, shell, {});
+    context->Update();
+    EXPECT_FALSE(document->GetElementById("object_workbench")->IsVisible());
+    ASSERT_TRUE(backend.console_execute("editor.toggle", {}).ok());
+    ASSERT_TRUE(sync_object_editor_visibility(document, shell, {}));
+    context->Update();
+    EXPECT_TRUE(document->GetElementById("object_workbench")->IsVisible());
+    EXPECT_FALSE(shell.docks.module_properties_visible);
+    ASSERT_TRUE(workspace.set_active_tab("home"));
+    show_module();
+    EXPECT_FALSE(document->GetElementById("object_workbench")->IsVisible());
+    ASSERT_TRUE(workspace.set_active_tab("area"));
+    ASSERT_TRUE(backend.execute_command("toolset.module_properties", {}, {}).ok());
+    EXPECT_EQ(workspace.active_tab()->kind, WorkspaceTabKind::home);
+    show_module();
+    EXPECT_TRUE(document->GetElementById("object_workbench")->IsVisible());
+    EXPECT_NEAR(document->GetElementById("object_workbench")->GetOffsetWidth(), 580 * scale, 1.0f);
+    EXPECT_TRUE(shell.docks.pane(DockRegion::right).visible);
+    EXPECT_TRUE(shell.docks.module_properties_visible);
+    EXPECT_EQ(workspace.undo_count(), 0);
+}
 
 TEST_F(ClientShellView, NativeShellClicksConsumeOnceAndOutputKeysUseOwnedUtf8Text)
 {

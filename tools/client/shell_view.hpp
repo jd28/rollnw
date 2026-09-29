@@ -85,10 +85,13 @@ struct ShellViewState {
     bool suppress_terminal_toggle_text_input = false;
     bool bottom_dock_resizing = false;
     bool left_dock_resizing = false;
+    bool right_dock_resizing = false;
     float bottom_dock_resize_start_y = 0.0f;
     int bottom_dock_resize_start_height_px = 0;
     float left_dock_resize_start_x = 0.0f;
     int left_dock_resize_start_width_px = 0;
+    float right_dock_resize_start_x = 0.0f;
+    int right_dock_resize_start_width_px = 0;
 };
 
 // Current facts only: active means session active or placement pending. No
@@ -136,6 +139,14 @@ void apply_left_dock_width(Rml::ElementDocument* doc, ShellController& shell,
     SDL_Window* window, int requested_width_px, ShellPreviewLayout preview);
 void apply_bottom_dock_height(Rml::ElementDocument* doc, ShellController& shell,
     SDL_Window* window, int requested_height_px, ShellPreviewLayout preview);
+void apply_right_dock_width(Rml::ElementDocument* doc, ShellController& shell,
+    int requested_width_px, ShellPreviewLayout preview);
+// Visibility preference for the displayed side panel; absent panels return false.
+[[nodiscard]] bool object_editor_visible(Rml::ElementDocument* doc, const ShellController& shell);
+// Consume a shell visibility change without rebuilding controls. Data-only
+// workbenches stay full-width; true asks the caller to persist the preference.
+bool sync_object_editor_visibility(Rml::ElementDocument* doc, ShellController& shell,
+    ShellPreviewLayout preview);
 // Native pointer coordinates are validated by client_input before these calls.
 // Pane sizes clamp to the available window; non-positive requests are ignored.
 [[nodiscard]] bool begin_bottom_dock_resize(Rml::Context* context, SDL_Window* window,
@@ -144,13 +155,19 @@ void apply_bottom_dock_height(Rml::ElementDocument* doc, ShellController& shell,
 [[nodiscard]] bool begin_left_dock_resize(Rml::Context* context, SDL_Window* window,
     Rml::ElementDocument* doc, ShellViewState& state, ShellController& shell,
     const SDL_MouseButtonEvent& mouse);
+[[nodiscard]] bool begin_right_dock_resize(Rml::Context* context, SDL_Window* window,
+    Rml::ElementDocument* doc, ShellViewState& state, ShellController& shell,
+    const SDL_MouseButtonEvent& mouse);
 [[nodiscard]] bool update_bottom_dock_resize(Rml::ElementDocument* doc, ShellViewState& state,
     ShellController& shell, SDL_Window* window, const SDL_MouseMotionEvent& motion, ShellPreviewLayout preview);
 [[nodiscard]] bool update_left_dock_resize(Rml::ElementDocument* doc, ShellViewState& state,
     ShellController& shell, SDL_Window* window, const SDL_MouseMotionEvent& motion, ShellPreviewLayout preview);
+[[nodiscard]] bool update_right_dock_resize(Rml::ElementDocument* doc, ShellViewState& state,
+    ShellController& shell, SDL_Window* window, const SDL_MouseMotionEvent& motion, ShellPreviewLayout preview);
 // Release reports whether root should persist the current pane/history batch.
 [[nodiscard]] bool end_bottom_dock_resize(ShellViewState& state);
 [[nodiscard]] bool end_left_dock_resize(ShellViewState& state);
+[[nodiscard]] bool end_right_dock_resize(ShellViewState& state);
 [[nodiscard]] bool consume_terminal_toggle_text_input(ShellViewState& state, const SDL_Event& event);
 
 void refresh_terminal_view(Rml::ElementDocument* doc, const ShellController& shell);

@@ -30,6 +30,8 @@
 namespace nw::toolset {
 namespace {
 
+constexpr std::string_view kEditorDivider = "<div id=\"right_dock_resize_grabber\" title=\"Drag to resize the editor panel\"></div>";
+
 Rml::Element* find_el(Rml::ElementDocument* doc, const char* id)
 {
     return doc ? doc->GetElementById(id) : nullptr;
@@ -322,6 +324,7 @@ void append_workspace_document_markup(std::string& content_markup, const Workspa
         content_markup += "</div></div>";
         content_markup += "<div class=\"workspace_preview_body workspace_area_body\">";
         nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
+        content_markup += kEditorDivider;
         if (surface == AreaWorkspaceSurface::tiles) {
             nw::toolset::append_area_tile_palette_markup(content_markup, tile_editor);
         } else {
@@ -332,6 +335,8 @@ void append_workspace_document_markup(std::string& content_markup, const Workspa
     }
 
     if (active_tab.kind == nw::toolset::WorkspaceTabKind::preview) {
+        const bool data_only = data_workbench_only(workbench.object_details.object.type,
+            workbench.object_workbench_surface);
         content_markup += "<div class=\"workspace_area_surface workspace_viewer_surface\">";
         content_markup += "<div class=\"workspace_area_toolbar\"><div class=\"workspace_area_title\">";
         content_markup += escape_html(active_tab.title);
@@ -339,12 +344,12 @@ void append_workspace_document_markup(std::string& content_markup, const Workspa
         content_markup += escape_html(workspace_tab_detail(active_tab));
         content_markup += "</div></div>";
         content_markup += "<div class=\"workspace_preview_body";
-        if (data_workbench_only(workbench.object_details.object.type,
-                workbench.object_workbench_surface)) {
+        if (data_only) {
             content_markup += " data_workbench_only";
         }
         content_markup += "\">";
         nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
+        if (!data_only) { content_markup += kEditorDivider; }
         append_workspace_object_workbench_markup(content_markup, workspace, backend, workbench, surface, active_area);
         content_markup += "</div></div>";
         return;
@@ -1075,6 +1080,7 @@ bool append_workspace_home_start_markup(std::string& content_markup, BrowserView
         content_markup += "<div id=\"home_area_list\" class=\"home_area_list\"></div></div>";
     }
     content_markup += "</div></div>";
+    if (module_open) { content_markup += kEditorDivider; }
     return module_open;
 }
 

@@ -30,6 +30,9 @@ class DockLayout {
 public:
     DockLayout();
 
+    // Module browsing has its own visibility preference; width is shared.
+    bool module_properties_visible = false;
+
     [[nodiscard]] DockPaneState& pane(DockRegion region) noexcept;
     [[nodiscard]] const DockPaneState& pane(DockRegion region) const noexcept;
 

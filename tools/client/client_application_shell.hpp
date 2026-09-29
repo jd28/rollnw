@@ -28,6 +28,13 @@ bool update_left_dock_resize(Rml::ElementDocument* doc, ClientApplicationState& 
 
 bool end_left_dock_resize(ClientApplicationState& state);
 
+bool begin_right_dock_resize(Rml::Context* context, SDL_Window* window, Rml::ElementDocument* doc,
+    ClientApplicationState& state, const SDL_MouseButtonEvent& mouse);
+bool update_right_dock_resize(Rml::ElementDocument* doc, ClientApplicationState& state, SDL_Window* window, const SDL_MouseMotionEvent& motion);
+bool end_right_dock_resize(ClientApplicationState& state);
+void set_object_editor_visible(Rml::ElementDocument* doc, ClientApplicationState& state, bool visible);
+void sync_object_editor_visibility(Rml::ElementDocument* doc, ClientApplicationState& state);
+
 bool consume_terminal_toggle_text_input(ClientApplicationState& state, const SDL_Event& event);
 
 void remember_recent_project(ClientApplicationState& state, const std::filesystem::path& project_dir);
