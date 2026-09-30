@@ -304,6 +304,7 @@ VmaAllocator create_allocator(VulkanCore* vk)
 Core* create_core(const CoreConfig& desc)
 {
     auto* vk = new VulkanCore();
+    vk->validation_enabled = desc.enable_validation;
 
     VkResult volk_result = volkInitialize();
     if (volk_result != VK_SUCCESS) {
@@ -335,6 +336,8 @@ Core* create_core(const CoreConfig& desc)
 void destroy_core(Core* core)
 {
     auto* vk = as_vulkan(core);
+    if (!vk) { return; }
+    GFX_CHECK(!vk->context, "destroy_context must precede destroy_core");
 
     if (vk->allocator != VK_NULL_HANDLE) {
         vmaDestroyAllocator(vk->allocator);

@@ -27,14 +27,14 @@
         }                                                            \
     } while (0)
 
-#define VK_CHECK(x)                                                          \
-    do {                                                                     \
-        VkResult err = x;                                                    \
-        if (err != VK_SUCCESS) {                                             \
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,                       \
+#define VK_CHECK(x)                                                                     \
+    do {                                                                                \
+        VkResult err = x;                                                               \
+        if (err != VK_SUCCESS) {                                                        \
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,                                  \
                 "Vulkan error %d at %s:%d", static_cast<int>(err), __FILE__, __LINE__); \
-            std::abort();                                                    \
-        }                                                                    \
+            std::abort();                                                               \
+        }                                                                               \
     } while (0)
 
 namespace nw::gfx {
@@ -86,6 +86,8 @@ inline VkImageAspectFlags image_aspect_flags(VkFormat format)
 // ============================================================================
 
 struct VulkanCore {
+    VulkanContext* context = nullptr;
+    bool validation_enabled = false;
     VkInstance instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
@@ -118,6 +120,7 @@ struct VulkanImage {
     uint32_t mip_levels = 1;
     uint32_t bindless_slot = 0;
     bool owned = true;
+    bool render_target = false;
 };
 
 struct VulkanRenderTarget {
@@ -134,6 +137,8 @@ struct VulkanBuffer {
     bool cpu_visible = false;
 };
 
+// Global generation indices preserve existing handles; payloads belong to
+// their recorded core and must be released before that core is destroyed.
 extern Pool<Buffer, VulkanBuffer> g_buffer_pool;
 
 struct VulkanShader {
@@ -210,6 +215,9 @@ struct VulkanCommandList {
         bool valid = false;
     };
     BoundResources bound_resources;
+    bool pipeline_bind_failed = false;
+    bool vertex_bind_failed = false;
+    bool index_bind_failed = false;
     bool resource_bind_failed = false;
     bool recording = false;
     bool in_render_pass = false;
@@ -225,6 +233,8 @@ struct PerFrame {
 
 struct VulkanContext {
     VulkanCore* core = nullptr;
+    ResourceStats resource_stats{};
+    bool trace_resources = false;
     SDL_Window* window = nullptr;
     bool headless = false;
 
@@ -341,6 +351,9 @@ inline void begin_command_buffer(VulkanContext* ctx, uint32_t frame_index)
     frame.cmds.bound_index_size = 0;
     frame.cmds.descriptor_buffers_bound = false;
     frame.cmds.bound_resources = {};
+    frame.cmds.pipeline_bind_failed = false;
+    frame.cmds.vertex_bind_failed = false;
+    frame.cmds.index_bind_failed = false;
     frame.cmds.resource_bind_failed = false;
     frame.cmds.recording = true;
     frame.cmds.in_render_pass = false;

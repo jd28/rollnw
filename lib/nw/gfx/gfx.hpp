@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <limits>
+#include <source_location>
+#include <span>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -147,10 +149,36 @@ struct RenderTarget;
 struct Shader;
 struct Texture;
 
+// One live context per core. Reject a second context without acquiring resources.
+// Destroy context-owned resources and the context before destroying its core.
 Context* create_context(Core* core, const ContextDesc& desc);
 void destroy_context(Context* ctx);
 bool resize_context(Context* ctx, uint32_t width, uint32_t height);
-void wait_idle(Context* ctx);
+void wait_idle(Context* ctx, std::source_location source = std::source_location::current());
+
+// Cumulative calling-thread resource costs. Snapshot before/after an operation
+// to measure it; high-water fields cover the lifetime of the context.
+struct ResourceStats {
+    uint64_t upload_batch_count = 0;
+    uint64_t upload_texture_count = 0;
+    uint64_t upload_mip_count = 0;
+    uint64_t upload_bytes = 0;
+    uint64_t upload_failure_count = 0;
+    uint64_t staging_allocation_count = 0;
+    uint64_t staging_allocation_bytes = 0;
+    uint64_t staging_high_water_bytes = 0;
+    uint64_t largest_payload_bytes = 0;
+    uint64_t upload_command_pool_count = 0;
+    uint64_t upload_command_buffer_count = 0;
+    uint64_t upload_submission_count = 0;
+    uint64_t upload_wait_count = 0;
+    uint64_t idle_wait_count = 0;
+    double upload_seconds = 0;
+    double upload_wait_seconds = 0;
+    double idle_wait_seconds = 0;
+};
+
+ResourceStats resource_stats(Context* ctx) noexcept;
 
 // Public frame-slot count used by gfx and render per-frame upload arenas.
 inline constexpr uint32_t kFramesInFlight = 2;
@@ -187,6 +215,9 @@ struct CommandStats {
     uint64_t descriptor_allocation_failure_count = 0;
     uint64_t descriptor_ring_capacity_bytes = 0;
     uint64_t descriptor_ring_required_bytes = 0;
+    uint64_t pipeline_bind_failure_count = 0;
+    uint64_t vertex_buffer_bind_failure_count = 0;
+    uint64_t index_buffer_bind_failure_count = 0;
     uint64_t resource_bind_failure_count = 0;
     uint64_t dropped_draw_count = 0;
     uint64_t dropped_dispatch_count = 0;
@@ -351,6 +382,20 @@ struct TextureMipData {
     uint32_t height = 0;
 };
 
+// Borrowed upload records, in caller order. A single base mip generates the
+// target's remaining mips; otherwise supply its exact complete mip chain.
+// Targets must be distinct live single-layer RGBA8/sRGB/RGBA16F textures.
+// Positive extents follow the target's mip progression, with exact checked
+// byte sizes and non-null data. Validation rejects the whole batch unchanged.
+// Empty batches succeed without work. Inputs may be released after return:
+// successful uploads complete on the graphics queue before returning.
+struct TextureUpload {
+    Handle<Texture> texture;
+    std::span<const TextureMipData> mips;
+};
+
+bool upload_textures(Context* ctx, std::span<const TextureUpload> uploads);
+
 Handle<Texture> create_texture(Context* ctx, const TextureDesc& desc);
 void destroy_texture(Context* ctx, Handle<Texture> handle);
 bool upload_texture_rgba8(Context* ctx, Handle<Texture> handle, const void* data, size_t size);
@@ -359,13 +404,11 @@ bool upload_texture_rgba16f_mips(Context* ctx, Handle<Texture> handle, const Tex
 
 struct RenderTargetAttachment {
     Handle<Texture> texture;
-    uint32_t mip_level = 0;
-    uint32_t layer = 0;
     bool clear = true;
 };
 
 struct RenderTargetDesc {
-    RenderTargetAttachment color[4];
+    RenderTargetAttachment color; // mip zero, layer zero
     RenderTargetAttachment depth;
 };
 
@@ -495,6 +538,9 @@ void cmd_end_render(CommandList* cmd);
 GpuTimerScope cmd_begin_gpu_timer(CommandList* cmd, const char* label);
 void cmd_end_gpu_timer(CommandList* cmd, GpuTimerScope scope);
 
+// Invalid pipeline/vertex/index/resource binds reject subsequent draws (and
+// pipeline/resource failures reject dispatches). Each successful rebind clears
+// only its own failure; render-pass begin resets all binding validity.
 void cmd_bind_pipeline(CommandList* cmd, Handle<Pipeline> pipeline);
 void cmd_bind_vertex_buffer(CommandList* cmd, Handle<Buffer> buffer, uint32_t stride);
 void cmd_bind_vertex_buffer(CommandList* cmd, Handle<Buffer> buffer, uint32_t stride, uint32_t offset);

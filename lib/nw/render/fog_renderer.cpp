@@ -137,7 +137,7 @@ bool FogRenderer::ensure_resources(uint32_t width, uint32_t height)
     }
 
     nw::gfx::RenderTargetDesc rt_desc{};
-    rt_desc.color[0].texture = color_texture_;
+    rt_desc.color.texture = color_texture_;
     rt_desc.depth.texture = depth_texture_;
     render_target_ = nw::gfx::create_render_target(ctx_, rt_desc);
     if (!render_target_.valid()) {

@@ -365,6 +365,7 @@ endif()
 if(TARGET nw-render)
     target_sources(rollnw_test PRIVATE
         render_gfx_bindless.cpp
+        render_gfx_resources.cpp
         render_frame_storage_arena.cpp
         render_model_asset.cpp
         render_pipeline_cache.cpp
@@ -490,8 +491,12 @@ if(CMAKE_HOST_UNIX)
 endif()
 
 if(TARGET rollnw-client)
+    target_include_directories(rollnw_test SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/external/RmlUi-6.2/Backends)
     target_sources(rollnw_test PRIVATE
         rollnw_client_application.cpp
+        rollnw_client_gfx_resources.cpp
+        ../tools/client/rml_nwgfx_renderer.cpp
+        ../tools/client/rml_nwgfx_shaders.cpp
         rollnw_client_project_import.cpp
         rollnw_client_blueprint_jobs.cpp
     )

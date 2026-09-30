@@ -23,6 +23,7 @@
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Sound.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/render/area_tile_grid.hpp>
 #include <nw/render/render_service.hpp>
@@ -4008,6 +4009,14 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
         case nw::ObjectType::waypoint:
             EXPECT_EQ(object.type, nw::ObjectType::waypoint);
             EXPECT_TRUE(contains_object(live_area->waypoints));
+            break;
+        case nw::ObjectType::sound:
+            EXPECT_EQ(object.type, nw::ObjectType::sound);
+            EXPECT_TRUE(contains_object(live_area->sounds));
+            break;
+        case nw::ObjectType::store:
+            EXPECT_EQ(object.type, nw::ObjectType::store);
+            EXPECT_TRUE(contains_object(live_area->stores));
             break;
         case nw::ObjectType::tile:
         case nw::ObjectType::invalid:

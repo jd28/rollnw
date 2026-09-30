@@ -5,6 +5,8 @@
 #include <stb/stb_image_write.h>
 
 #include <algorithm>
+#include <bit>
+#include <bitset>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -169,35 +171,22 @@ void write_bindless_sampler_descriptor(VulkanContext* ctx)
         ctx->core->descriptor_buffer_props.samplerDescriptorSize, out);
 }
 
-bool render_target_attachment_supported(
-    const RenderTargetAttachment& attachment, const char* name, bool allow_texture) noexcept
+bool render_target_desc_supported(VulkanContext* ctx, const RenderTargetDesc& desc) noexcept
 {
-    if (attachment.mip_level != 0 || attachment.layer != 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-            "RenderTargetDesc %s mip/layer attachments are not implemented", name);
-        return false;
-    }
-    if (!allow_texture && attachment.texture.valid()) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-            "RenderTargetDesc %s attachment is not implemented", name);
+    const auto* color = ctx->texture_pool_.get(desc.color.texture);
+    const auto* depth = ctx->texture_pool_.get(desc.depth.texture);
+    const auto valid_attachment = [](const VulkanImage* image, bool expect_depth) {
+        return image && image->render_target && image->layers == 1 && image->mip_levels == 1
+            && ((image_aspect_flags(image->format) & VK_IMAGE_ASPECT_DEPTH_BIT) != 0) == expect_depth;
+    };
+    if ((!color && !depth)
+        || (desc.color.texture.valid() && !valid_attachment(color, false))
+        || (desc.depth.texture.valid() && !valid_attachment(depth, true))
+        || (color && depth && (color->width != depth->width || color->height != depth->height))) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "RenderTargetDesc requires live single-level color/depth attachments of matching extent");
         return false;
     }
     return true;
-}
-
-bool render_target_desc_supported(const RenderTargetDesc& desc) noexcept
-{
-    if (!render_target_attachment_supported(desc.color[0], "color[0]", true)) {
-        return false;
-    }
-    for (size_t i = 1; i < 4; ++i) {
-        char name[16]{};
-        std::snprintf(name, sizeof(name), "color[%zu]", i);
-        if (!render_target_attachment_supported(desc.color[i], name, false)) {
-            return false;
-        }
-    }
-    return render_target_attachment_supported(desc.depth, "depth", true);
 }
 
 } // namespace
@@ -350,7 +339,8 @@ static void transition_image_layout(
     VkAccessFlags dst_access,
     VkPipelineStageFlags src_stage,
     VkPipelineStageFlags dst_stage,
-    VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT)
+    VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT,
+    uint32_t base_mip = 0, uint32_t mip_count = 1)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -362,8 +352,8 @@ static void transition_image_layout(
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = image;
     barrier.subresourceRange.aspectMask = aspect_mask;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseMipLevel = base_mip;
+    barrier.subresourceRange.levelCount = mip_count;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
@@ -377,6 +367,8 @@ static VkAccessFlags layout_access_mask(VkImageLayout layout)
         return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
         return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    case VK_IMAGE_LAYOUT_GENERAL:
+        return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
     case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
         return VK_ACCESS_SHADER_READ_BIT;
     case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
@@ -398,6 +390,7 @@ static VkPipelineStageFlags layout_stage_mask(VkImageLayout layout)
         return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
         return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    case VK_IMAGE_LAYOUT_GENERAL:
     case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
         return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
@@ -912,7 +905,12 @@ void destroy_pipeline(Context* ctx, Handle<Pipeline> handle)
 Handle<Texture> create_texture(Context* ctx, const TextureDesc& desc)
 {
     auto* c = as_vulkan(ctx);
-    if (!c || desc.width == 0 || desc.height == 0 || desc.layers == 0 || desc.mip_levels == 0) {
+    if (!c || desc.width == 0 || desc.height == 0 || desc.layers == 0 || desc.mip_levels == 0
+        || to_vk_format(desc.format) == VK_FORMAT_UNDEFINED
+        || desc.width > c->core->properties.limits.maxImageDimension2D
+        || desc.height > c->core->properties.limits.maxImageDimension2D
+        || desc.layers > c->core->properties.limits.maxImageArrayLayers
+        || desc.mip_levels > std::bit_width(std::max(desc.width, desc.height))) {
         return {};
     }
     if (desc.sampled && c->bindless_texture_capacity != 0 && c->free_bindless_texture_slots.empty()
@@ -929,6 +927,7 @@ Handle<Texture> create_texture(Context* ctx, const TextureDesc& desc)
     tex.mip_levels = desc.mip_levels;
     tex.layers = desc.layers;
     tex.owned = true;
+    tex.render_target = desc.render_target;
 
     bool depth = is_depth_format(tex.format);
 
@@ -1013,383 +1012,263 @@ void destroy_texture(Context* ctx_ptr, Handle<Texture> handle)
     ctx->texture_pool_.destroy(handle);
 }
 
-static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, const void* data, size_t size, size_t bytes_per_pixel)
-{
-    auto* ctx = as_vulkan(ctx_ptr);
-    auto* tex = ctx->texture_pool_.get(handle);
-    if (!tex || !data || tex->image == VK_NULL_HANDLE) {
-        return false;
-    }
+namespace {
+struct UploadObservation {
+    VulkanContext* ctx;
+    uint64_t start = SDL_GetTicksNS();
+    uint64_t textures = 1;
+    uint64_t mips = 0;
+    uint64_t bytes = 0;
+    uint64_t largest_payload_bytes = 0;
+    bool success = false;
 
-    const size_t expected_size = static_cast<size_t>(tex->width) * static_cast<size_t>(tex->height) * bytes_per_pixel;
-    if (size != expected_size) {
-        return false;
-    }
-
-    VkBuffer staging_buffer = VK_NULL_HANDLE;
-    VmaAllocation staging_alloc = VK_NULL_HANDLE;
-
-    VkBufferCreateInfo staging_info{};
-    staging_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    staging_info.size = size;
-    staging_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-    VmaAllocationCreateInfo alloc_info{};
-    alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
-    alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-    VmaAllocationInfo mapped_info{};
-    VkResult staging_result = vmaCreateBuffer(ctx->core->allocator, &staging_info, &alloc_info, &staging_buffer, &staging_alloc, &mapped_info);
-    if (staging_result != VK_SUCCESS) {
-        return false;
-    }
-    std::memcpy(mapped_info.pMappedData, data, size);
-
-    VkCommandPool command_pool = VK_NULL_HANDLE;
-    VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-    VkFence fence = VK_NULL_HANDLE;
-
-    VkCommandPoolCreateInfo pool_info{};
-    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-    pool_info.queueFamilyIndex = ctx->core->graphics_queue_family;
-    VK_CHECK(vkCreateCommandPool(ctx->core->device, &pool_info, nullptr, &command_pool));
-
-    VkCommandBufferAllocateInfo cmd_alloc{};
-    cmd_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmd_alloc.commandPool = command_pool;
-    cmd_alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmd_alloc.commandBufferCount = 1;
-    VK_CHECK(vkAllocateCommandBuffers(ctx->core->device, &cmd_alloc, &command_buffer));
-
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(command_buffer, &begin_info));
-
-    const VkImageLayout source_layout = tex->layout;
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = tex->image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = tex->mip_levels;
-    barrier.oldLayout = source_layout;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkCmdPipelineBarrier(command_buffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &barrier);
-
-    VkBufferImageCopy region{};
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageExtent.width = tex->width;
-    region.imageExtent.height = tex->height;
-    region.imageExtent.depth = 1;
-
-    vkCmdCopyBufferToImage(command_buffer, staging_buffer, tex->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-    if (tex->mip_levels > 1) {
-        int32_t mip_width = static_cast<int32_t>(tex->width);
-        int32_t mip_height = static_cast<int32_t>(tex->height);
-
-        for (uint32_t level = 1; level < tex->mip_levels; ++level) {
-            VkImageMemoryBarrier mip_barrier{};
-            mip_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            mip_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            mip_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            mip_barrier.image = tex->image;
-            mip_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            mip_barrier.subresourceRange.baseArrayLayer = 0;
-            mip_barrier.subresourceRange.layerCount = 1;
-            mip_barrier.subresourceRange.baseMipLevel = level - 1;
-            mip_barrier.subresourceRange.levelCount = 1;
-            mip_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            mip_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            mip_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            mip_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            vkCmdPipelineBarrier(command_buffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                0,
-                0,
-                nullptr,
-                0,
-                nullptr,
-                1,
-                &mip_barrier);
-
-            VkImageBlit blit{};
-            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blit.srcSubresource.mipLevel = level - 1;
-            blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
-            blit.srcOffsets[1] = {mip_width, mip_height, 1};
-            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blit.dstSubresource.mipLevel = level;
-            blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
-            blit.dstOffsets[1] = {std::max(1, mip_width / 2), std::max(1, mip_height / 2), 1};
-            vkCmdBlitImage(command_buffer,
-                tex->image,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                tex->image,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1,
-                &blit,
-                VK_FILTER_LINEAR);
-
-            mip_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            mip_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            mip_barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            mip_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            vkCmdPipelineBarrier(command_buffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                0,
-                0,
-                nullptr,
-                0,
-                nullptr,
-                1,
-                &mip_barrier);
-
-            mip_width = std::max(1, mip_width / 2);
-            mip_height = std::max(1, mip_height / 2);
+    ~UploadObservation()
+    {
+        const double seconds = static_cast<double>(SDL_GetTicksNS() - start) * kNanosecondsToSeconds;
+        auto& stats = ctx->resource_stats;
+        ++stats.upload_batch_count;
+        stats.upload_seconds += seconds;
+        if (success) {
+            stats.upload_texture_count += textures;
+            stats.upload_mip_count += mips;
+            stats.upload_bytes += bytes;
+            stats.largest_payload_bytes = std::max(stats.largest_payload_bytes, largest_payload_bytes);
+        } else {
+            ++stats.upload_failure_count;
         }
-
-        barrier.subresourceRange.baseMipLevel = tex->mip_levels - 1;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        vkCmdPipelineBarrier(command_buffer,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            0,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            1,
-            &barrier);
-    } else {
-        transition_image_layout(command_buffer, tex->image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        if (ctx->trace_resources) {
+            SDL_Log("gfx-resource upload start_ns=%llu textures=%llu mips=%llu bytes=%llu seconds=%.9f success=%d",
+                static_cast<unsigned long long>(start), static_cast<unsigned long long>(textures),
+                static_cast<unsigned long long>(mips), static_cast<unsigned long long>(bytes), seconds, success);
+        }
     }
+};
+} // namespace
 
-    VK_CHECK(vkEndCommandBuffer(command_buffer));
+namespace {
 
-    VkFenceCreateInfo fence_info{};
-    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    VK_CHECK(vkCreateFence(ctx->core->device, &fence_info, nullptr, &fence));
-
-    VkSubmitInfo submit{};
-    submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit.commandBufferCount = 1;
-    submit.pCommandBuffers = &command_buffer;
-    VK_CHECK(vkQueueSubmit(ctx->core->graphics_queue, 1, &submit, fence));
-
-    // Use a 5-second timeout instead of UINT64_MAX to avoid infinite hangs
-    constexpr uint64_t k_fence_timeout_ns = 5'000'000'000; // 5 seconds
-    VkResult wait_result = vkWaitForFences(ctx->core->device, 1, &fence, VK_TRUE, k_fence_timeout_ns);
-    if (wait_result != VK_SUCCESS) {
-        vkDestroyFence(ctx->core->device, fence, nullptr);
-        vkFreeCommandBuffers(ctx->core->device, command_pool, 1, &command_buffer);
-        vkDestroyCommandPool(ctx->core->device, command_pool, nullptr);
-        vmaDestroyBuffer(ctx->core->allocator, staging_buffer, staging_alloc);
-        return false;
-    }
-
-    vkDestroyFence(ctx->core->device, fence, nullptr);
-    vkFreeCommandBuffers(ctx->core->device, command_pool, 1, &command_buffer);
-    vkDestroyCommandPool(ctx->core->device, command_pool, nullptr);
-    vmaDestroyBuffer(ctx->core->allocator, staging_buffer, staging_alloc);
-
-    tex->layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    if (bindless_texture_index_valid(tex->bindless_slot)) {
-        write_bindless_texture_descriptor(ctx, tex->bindless_slot, tex);
+bool prepare_texture_uploads(VulkanContext* ctx, std::span<const TextureUpload> uploads,
+    std::vector<VkBufferImageCopy>& regions, size_t& staging_bytes, UploadObservation& observation)
+{
+    std::bitset<Pool<Texture, VulkanImage>::max_capacity()> seen;
+    for (const auto& upload : uploads) {
+        const auto* tex = ctx->texture_pool_.get(upload.texture);
+        if (!tex || !tex->image || tex->layers != 1 || upload.mips.empty() || !upload.mips.data()
+            || (upload.mips.size() != 1 && upload.mips.size() != tex->mip_levels)) {
+            return false;
+        }
+        if (seen.test(upload.texture.index())) { return false; }
+        seen.set(upload.texture.index());
+        size_t bytes_per_pixel = 0;
+        switch (tex->format) {
+        case VK_FORMAT_R8G8B8A8_UNORM:
+        case VK_FORMAT_R8G8B8A8_SRGB:
+            bytes_per_pixel = 4;
+            break;
+        case VK_FORMAT_R16G16B16A16_SFLOAT:
+            bytes_per_pixel = 8;
+            break;
+        default:
+            return false;
+        }
+        if (tex->width == 0 || tex->height == 0 || tex->mip_levels == 0
+            || tex->mip_levels > std::bit_width(std::max(tex->width, tex->height))) {
+            return false;
+        }
+        if (upload.mips.size() == 1 && tex->mip_levels > 1) {
+            VkFormatProperties properties{};
+            vkGetPhysicalDeviceFormatProperties(ctx->core->physical_device, tex->format, &properties);
+            constexpr VkFormatFeatureFlags required = VK_FORMAT_FEATURE_BLIT_SRC_BIT
+                | VK_FORMAT_FEATURE_BLIT_DST_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+            if ((properties.optimalTilingFeatures & required) != required) { return false; }
+        }
+        uint32_t width = tex->width;
+        uint32_t height = tex->height;
+        uint64_t texture_bytes = 0;
+        for (size_t level = 0; level < upload.mips.size(); ++level) {
+            const auto& mip = upload.mips[level];
+            if (!mip.data || mip.width != width || mip.height != height) { return false; }
+            constexpr size_t limit = std::numeric_limits<size_t>::max();
+            if (width > limit / height || static_cast<size_t>(width) * height > limit / bytes_per_pixel) {
+                return false;
+            }
+            const size_t bytes = static_cast<size_t>(width) * height * bytes_per_pixel;
+            // Eight-byte offsets satisfy the texel block alignment of both formats.
+            if (mip.size != bytes || staging_bytes > limit - 7) { return false; }
+            const size_t offset = (staging_bytes + 7) & ~size_t{7};
+            if (bytes > limit - offset || bytes > std::numeric_limits<VkDeviceSize>::max() - offset) {
+                return false;
+            }
+            VkBufferImageCopy region{};
+            region.bufferOffset = offset;
+            region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, static_cast<uint32_t>(level), 0, 1};
+            region.imageExtent = {width, height, 1};
+            regions.push_back(region);
+            staging_bytes = offset + bytes;
+            texture_bytes += bytes;
+            width = std::max(1u, width / 2u);
+            height = std::max(1u, height / 2u);
+        }
+        observation.bytes += texture_bytes;
+        observation.mips += tex->mip_levels;
+        observation.largest_payload_bytes = std::max(observation.largest_payload_bytes, texture_bytes);
     }
     return true;
 }
 
-static bool upload_texture_pixels_mips(
-    Context* ctx_ptr, Handle<Texture> handle, const TextureMipData* levels, size_t level_count, size_t bytes_per_pixel)
+// Owns only this synchronous submission. After submission, failures are fatal:
+// reclaiming memory while the GPU may still read it is never a recovery path.
+struct UploadResources {
+    VulkanCore* core;
+    VkBuffer staging = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+    VkCommandPool pool = VK_NULL_HANDLE;
+    VkFence fence = VK_NULL_HANDLE;
+
+    ~UploadResources()
+    {
+        if (fence) { vkDestroyFence(core->device, fence, nullptr); }
+        if (pool) { vkDestroyCommandPool(core->device, pool, nullptr); }
+        if (staging) { vmaDestroyBuffer(core->allocator, staging, allocation); }
+    }
+};
+
+void record_texture_uploads(VkCommandBuffer commands, VkBuffer staging, VulkanContext* ctx,
+    std::span<const TextureUpload> uploads, std::span<const VkBufferImageCopy> regions)
 {
+    size_t first_region = 0;
+    for (const auto& upload : uploads) {
+        const auto& tex = *ctx->texture_pool_.get(upload.texture);
+        transition_image_layout(commands, tex.image, tex.layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            layout_access_mask(tex.layout), VK_ACCESS_TRANSFER_WRITE_BIT,
+            layout_stage_mask(tex.layout), VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT, 0, tex.mip_levels);
+        vkCmdCopyBufferToImage(commands, staging, tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            static_cast<uint32_t>(upload.mips.size()), regions.data() + first_region);
+        first_region += upload.mips.size();
+
+        if (upload.mips.size() == 1 && tex.mip_levels > 1) {
+            int32_t width = static_cast<int32_t>(tex.width);
+            int32_t height = static_cast<int32_t>(tex.height);
+            for (uint32_t level = 1; level < tex.mip_levels; ++level) {
+                transition_image_layout(commands, tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1);
+                VkImageBlit blit{};
+                blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 0, 1};
+                blit.srcOffsets[1] = {width, height, 1};
+                blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, level, 0, 1};
+                blit.dstOffsets[1] = {std::max(1, width / 2), std::max(1, height / 2), 1};
+                vkCmdBlitImage(commands, tex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+                transition_image_layout(commands, tex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, layout_stage_mask(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+                    VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1);
+                width = std::max(1, width / 2);
+                height = std::max(1, height / 2);
+            }
+            transition_image_layout(commands, tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, layout_stage_mask(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+                VK_IMAGE_ASPECT_COLOR_BIT, tex.mip_levels - 1, 1);
+        } else {
+            transition_image_layout(commands, tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT, layout_stage_mask(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+                VK_IMAGE_ASPECT_COLOR_BIT, 0, tex.mip_levels);
+        }
+    }
+}
+} // namespace
+
+bool upload_textures(Context* ctx_ptr, std::span<const TextureUpload> uploads)
+{
+    NW_PROFILE_SCOPE_N("nw::gfx::upload_textures");
     auto* ctx = as_vulkan(ctx_ptr);
-    auto* tex = ctx->texture_pool_.get(handle);
-    if (!tex || !levels || tex->image == VK_NULL_HANDLE || level_count == 0 || tex->layers != 1) {
-        return false;
-    }
-    if (tex->mip_levels != level_count) {
-        return false;
-    }
-
-    size_t total_size = 0;
-    uint32_t expected_width = tex->width;
-    uint32_t expected_height = tex->height;
-    for (size_t level = 0; level < level_count; ++level) {
-        const auto& mip = levels[level];
-        if (!mip.data || mip.width != expected_width || mip.height != expected_height) {
+    if (!ctx) { return false; }
+    if (uploads.empty()) { return true; }
+    if (!uploads.data()) { return false; }
+    UploadObservation observation{ctx};
+    observation.textures = uploads.size();
+    size_t staging_bytes = 0;
+    std::vector<VkBufferImageCopy> regions;
+    try {
+        if (!prepare_texture_uploads(ctx, uploads, regions, staging_bytes, observation)) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "gfx: rejected texture upload batch before submission");
             return false;
         }
-        const size_t expected_size = static_cast<size_t>(mip.width) * static_cast<size_t>(mip.height) * bytes_per_pixel;
-        if (mip.size != expected_size) {
-            return false;
-        }
-        total_size += mip.size;
-        expected_width = std::max(1u, expected_width / 2u);
-        expected_height = std::max(1u, expected_height / 2u);
+    } catch (const std::bad_alloc&) {
+        return false;
     }
 
-    VkBuffer staging_buffer = VK_NULL_HANDLE;
-    VmaAllocation staging_alloc = VK_NULL_HANDLE;
-
+    UploadResources resources{ctx->core};
     VkBufferCreateInfo staging_info{};
     staging_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    staging_info.size = total_size;
+    staging_info.size = staging_bytes;
     staging_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
     VmaAllocationCreateInfo alloc_info{};
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
     alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-    VmaAllocationInfo mapped_info{};
-    VkResult staging_result = vmaCreateBuffer(ctx->core->allocator, &staging_info, &alloc_info, &staging_buffer, &staging_alloc, &mapped_info);
-    if (staging_result != VK_SUCCESS) {
-        return false;
+    VmaAllocationInfo mapped{};
+    if (vmaCreateBuffer(ctx->core->allocator, &staging_info, &alloc_info,
+            &resources.staging, &resources.allocation, &mapped)
+        != VK_SUCCESS) { return false; }
+    auto& stats = ctx->resource_stats;
+    ++stats.staging_allocation_count;
+    stats.staging_allocation_bytes += staging_bytes;
+    stats.staging_high_water_bytes = std::max<uint64_t>(stats.staging_high_water_bytes, staging_bytes);
+    size_t region = 0;
+    for (const auto& upload : uploads) {
+        for (const auto& mip : upload.mips) {
+            std::memcpy(static_cast<uint8_t*>(mapped.pMappedData) + regions[region++].bufferOffset, mip.data, mip.size);
+        }
     }
-
-    size_t offset = 0;
-    std::vector<VkBufferImageCopy> regions(level_count);
-    for (size_t level = 0; level < level_count; ++level) {
-        const auto& mip = levels[level];
-        std::memcpy(static_cast<uint8_t*>(mapped_info.pMappedData) + offset, mip.data, mip.size);
-
-        auto& region = regions[level];
-        region.bufferOffset = offset;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = static_cast<uint32_t>(level);
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageExtent.width = mip.width;
-        region.imageExtent.height = mip.height;
-        region.imageExtent.depth = 1;
-        offset += mip.size;
-    }
-
-    VkCommandPool command_pool = VK_NULL_HANDLE;
-    VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-    VkFence fence = VK_NULL_HANDLE;
+    if (vmaFlushAllocation(ctx->core->allocator, resources.allocation, 0, VK_WHOLE_SIZE) != VK_SUCCESS) { return false; }
 
     VkCommandPoolCreateInfo pool_info{};
     pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     pool_info.queueFamilyIndex = ctx->core->graphics_queue_family;
-    VK_CHECK(vkCreateCommandPool(ctx->core->device, &pool_info, nullptr, &command_pool));
-
-    VkCommandBufferAllocateInfo cmd_alloc{};
-    cmd_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmd_alloc.commandPool = command_pool;
-    cmd_alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmd_alloc.commandBufferCount = 1;
-    VK_CHECK(vkAllocateCommandBuffers(ctx->core->device, &cmd_alloc, &command_buffer));
-
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(command_buffer, &begin_info));
-
-    const VkImageLayout source_layout = tex->layout;
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = tex->image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = tex->mip_levels;
-    barrier.oldLayout = source_layout;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkCmdPipelineBarrier(command_buffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &barrier);
-
-    vkCmdCopyBufferToImage(
-        command_buffer, staging_buffer, tex->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        static_cast<uint32_t>(regions.size()), regions.data());
-
-    transition_image_layout(command_buffer, tex->image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_ACCESS_TRANSFER_WRITE_BIT,
-        VK_ACCESS_SHADER_READ_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-    VK_CHECK(vkEndCommandBuffer(command_buffer));
-
+    if (vkCreateCommandPool(ctx->core->device, &pool_info, nullptr, &resources.pool) != VK_SUCCESS) { return false; }
+    ++stats.upload_command_pool_count;
+    VkCommandBufferAllocateInfo command_info{};
+    command_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    command_info.commandPool = resources.pool;
+    command_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    command_info.commandBufferCount = 1;
+    VkCommandBuffer commands = VK_NULL_HANDLE;
+    if (vkAllocateCommandBuffers(ctx->core->device, &command_info, &commands) != VK_SUCCESS) { return false; }
+    ++stats.upload_command_buffer_count;
+    VkCommandBufferBeginInfo begin{};
+    begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    if (vkBeginCommandBuffer(commands, &begin) != VK_SUCCESS) { return false; }
+    record_texture_uploads(commands, resources.staging, ctx, uploads, regions);
+    if (vkEndCommandBuffer(commands) != VK_SUCCESS) { return false; }
     VkFenceCreateInfo fence_info{};
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    VK_CHECK(vkCreateFence(ctx->core->device, &fence_info, nullptr, &fence));
+    if (vkCreateFence(ctx->core->device, &fence_info, nullptr, &resources.fence) != VK_SUCCESS) { return false; }
 
     VkSubmitInfo submit{};
     submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit.commandBufferCount = 1;
-    submit.pCommandBuffers = &command_buffer;
-    VK_CHECK(vkQueueSubmit(ctx->core->graphics_queue, 1, &submit, fence));
-
-    constexpr uint64_t k_fence_timeout_ns = 5'000'000'000;
-    VkResult wait_result = vkWaitForFences(ctx->core->device, 1, &fence, VK_TRUE, k_fence_timeout_ns);
-    if (wait_result != VK_SUCCESS) {
-        vkDestroyFence(ctx->core->device, fence, nullptr);
-        vkFreeCommandBuffers(ctx->core->device, command_pool, 1, &command_buffer);
-        vkDestroyCommandPool(ctx->core->device, command_pool, nullptr);
-        vmaDestroyBuffer(ctx->core->allocator, staging_buffer, staging_alloc);
-        return false;
+    submit.pCommandBuffers = &commands;
+    VK_CHECK(vkQueueSubmit(ctx->core->graphics_queue, 1, &submit, resources.fence));
+    ++stats.upload_submission_count;
+    const uint64_t wait_start = SDL_GetTicksNS();
+    VK_CHECK(vkWaitForFences(ctx->core->device, 1, &resources.fence, VK_TRUE, 5'000'000'000));
+    ++stats.upload_wait_count;
+    stats.upload_wait_seconds += static_cast<double>(SDL_GetTicksNS() - wait_start) * kNanosecondsToSeconds;
+    for (const auto& upload : uploads) {
+        auto* tex = ctx->texture_pool_.get(upload.texture);
+        tex->layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        if (bindless_texture_index_valid(tex->bindless_slot)) {
+            write_bindless_texture_descriptor(ctx, tex->bindless_slot, tex);
+        }
     }
-
-    vkDestroyFence(ctx->core->device, fence, nullptr);
-    vkFreeCommandBuffers(ctx->core->device, command_pool, 1, &command_buffer);
-    vkDestroyCommandPool(ctx->core->device, command_pool, nullptr);
-    vmaDestroyBuffer(ctx->core->allocator, staging_buffer, staging_alloc);
-
-    tex->layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    if (bindless_texture_index_valid(tex->bindless_slot)) {
-        write_bindless_texture_descriptor(ctx, tex->bindless_slot, tex);
-    }
+    observation.success = true;
     return true;
 }
 
@@ -1414,9 +1293,9 @@ void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target, RenderL
     VkImage image = VK_NULL_HANDLE;
     VkImageView view = VK_NULL_HANDLE;
     bool use_swapchain_color = false;
-    const bool has_color_attachment = rt->desc.color[0].texture.valid();
+    const bool has_color_attachment = rt->desc.color.texture.valid();
     if (has_color_attachment) {
-        color_tex = ctx->texture_pool_.get(rt->desc.color[0].texture);
+        color_tex = ctx->texture_pool_.get(rt->desc.color.texture);
         if (!color_tex) {
             return;
         }
@@ -1467,7 +1346,7 @@ void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target, RenderL
         color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         color_attachment.imageView = view;
         color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        color_attachment.loadOp = (color_load_op == RenderLoadOp::load || !rt->desc.color[0].clear)
+        color_attachment.loadOp = (color_load_op == RenderLoadOp::load || !rt->desc.color.clear)
             ? VK_ATTACHMENT_LOAD_OP_LOAD
             : VK_ATTACHMENT_LOAD_OP_CLEAR;
         color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1516,6 +1395,9 @@ void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target, RenderL
     cmd->bound_index_buffer = {};
     cmd->bound_index_size = 0;
     cmd->bound_resources = {};
+    cmd->pipeline_bind_failed = false;
+    cmd->vertex_bind_failed = false;
+    cmd->index_bind_failed = false;
     cmd->resource_bind_failed = false;
     cmd->descriptor_buffers_bound = false;
 
@@ -1545,8 +1427,8 @@ void cmd_end_render(CommandList* cmd_ptr)
     vkCmdEndRendering(cmd->buffer);
 
     if (ctx && rt) {
-        if (rt->desc.color[0].texture.valid()) {
-            if (auto* color_tex = ctx->texture_pool_.get(rt->desc.color[0].texture)) {
+        if (rt->desc.color.texture.valid()) {
+            if (auto* color_tex = ctx->texture_pool_.get(rt->desc.color.texture)) {
                 if (color_tex->image != VK_NULL_HANDLE) {
                     transition_image_layout(cmd->buffer, color_tex->image,
                         color_tex->layout,
@@ -1630,13 +1512,26 @@ void cmd_end_gpu_timer(CommandList* cmd_ptr, GpuTimerScope scope)
     timer.ended = true;
 }
 
+static void report_failed_bind(VulkanCommandList* cmd, const char* kind) noexcept
+{
+    if (cmd->context && cmd->context->core->validation_enabled) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "gfx: invalid %s bind; following draws are rejected until a valid rebind", kind);
+    }
+}
+
 void cmd_bind_pipeline(CommandList* cmd_ptr, Handle<Pipeline> handle)
 {
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     auto* pipeline = g_pipeline_pool.get(handle);
-    if (!cmd || !pipeline) {
+    if (!cmd) { return; }
+    if (!pipeline || !cmd->context || pipeline->core != cmd->context->core) {
+        cmd->bound_pipeline = {};
+        cmd->pipeline_bind_failed = true;
+        ++cmd->stats.pipeline_bind_failure_count;
+        report_failed_bind(cmd, "pipeline");
         return;
     }
+    cmd->pipeline_bind_failed = false;
     if (cmd->bound_pipeline == handle) {
         ++cmd->stats.pipeline_bind_skipped_count;
         return;
@@ -1655,9 +1550,16 @@ void cmd_bind_vertex_buffer(CommandList* cmd_ptr, Handle<Buffer> handle, uint32_
 {
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     auto* buffer = g_buffer_pool.get(handle);
-    if (!cmd || !buffer) {
+    if (!cmd) { return; }
+    if (!buffer || !cmd->context || buffer->core != cmd->context->core
+        || stride == 0 || offset >= buffer->size) {
+        cmd->bound_vertex_buffer = {};
+        cmd->vertex_bind_failed = true;
+        ++cmd->stats.vertex_buffer_bind_failure_count;
+        report_failed_bind(cmd, "vertex buffer");
         return;
     }
+    cmd->vertex_bind_failed = false;
     if (cmd->bound_vertex_buffer == handle
         && cmd->bound_vertex_stride == stride
         && cmd->bound_vertex_offset == offset) {
@@ -1676,9 +1578,16 @@ void cmd_bind_index_buffer(CommandList* cmd_ptr, Handle<Buffer> handle, uint32_t
 {
     auto* cmd = reinterpret_cast<VulkanCommandList*>(cmd_ptr);
     auto* buffer = g_buffer_pool.get(handle);
-    if (!cmd || !buffer) {
+    if (!cmd) { return; }
+    if (!buffer || !cmd->context || buffer->core != cmd->context->core
+        || (index_size != 2 && index_size != 4)) {
+        cmd->bound_index_buffer = {};
+        cmd->index_bind_failed = true;
+        ++cmd->stats.index_buffer_bind_failure_count;
+        report_failed_bind(cmd, "index buffer");
         return;
     }
+    cmd->index_bind_failed = false;
     if (cmd->bound_index_buffer == handle && cmd->bound_index_size == index_size) {
         ++cmd->stats.index_buffer_bind_skipped_count;
         return;
@@ -1771,6 +1680,7 @@ static void fail_resource_bind(VulkanCommandList* cmd) noexcept
     cmd->bound_resources = {};
     cmd->resource_bind_failed = true;
     ++cmd->stats.resource_bind_failure_count;
+    report_failed_bind(cmd, "resources");
 }
 
 static bool bind_descriptor_buffers(VulkanCommandList* cmd)
@@ -1806,7 +1716,7 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     TextureFilter texture_filter, const VulkanBuffer* uniform2, uint32_t uniform2_offset, uint32_t uniform2_size)
 {
     auto* ctx = cmd ? cmd->context : nullptr;
-    if (!cmd || !ctx || !pipeline) {
+    if (!cmd || !ctx || !pipeline || pipeline->core != ctx->core) {
         return false;
     }
 
@@ -1820,12 +1730,12 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     VkDeviceSize& ring_offset = ctx->descriptor_ring_offset[cmd->pool_index];
 
     if (pipeline->uses_draw_uniforms
-        && (!uniform || uniform_offset > uniform->size || uniform_size == 0
+        && (!uniform || uniform->core != ctx->core || uniform_offset > uniform->size || uniform_size == 0
             || uniform_size > uniform->size - uniform_offset)) {
         return false;
     }
     if (pipeline->uses_draw_uniforms2
-        && (!uniform2 || uniform2_offset > uniform2->size || uniform2_size == 0
+        && (!uniform2 || uniform2->core != ctx->core || uniform2_offset > uniform2->size || uniform2_size == 0
             || uniform2_size > uniform2->size - uniform2_offset)) {
         return false;
     }
@@ -1836,7 +1746,7 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     if (pipeline->uses_storage_buffer) {
         for (uint32_t i = 0; i < pipeline->storage_buffer_count; ++i) {
             storage_buffers[i] = g_buffer_pool.get(storages[i].buffer);
-            if (!storage_buffers[i] || storages[i].offset > storage_buffers[i]->size) {
+            if (!storage_buffers[i] || storage_buffers[i]->core != ctx->core || storages[i].offset > storage_buffers[i]->size) {
                 return false;
             }
             storage_ranges[i] = storages[i].size != 0
@@ -2158,7 +2068,7 @@ void cmd_draw(CommandList* cmd_ptr, uint32_t vertex_count, uint32_t instance_cou
     if (!cmd) {
         return;
     }
-    if (cmd->resource_bind_failed) {
+    if (cmd->pipeline_bind_failed || cmd->vertex_bind_failed || cmd->index_bind_failed || cmd->resource_bind_failed) {
         ++cmd->stats.dropped_draw_count;
         return;
     }
@@ -2175,7 +2085,7 @@ void cmd_draw_indexed(CommandList* cmd_ptr, uint32_t index_count, uint32_t insta
     if (!cmd) {
         return;
     }
-    if (cmd->resource_bind_failed) {
+    if (cmd->pipeline_bind_failed || cmd->vertex_bind_failed || cmd->index_bind_failed || cmd->resource_bind_failed) {
         ++cmd->stats.dropped_draw_count;
         return;
     }
@@ -2193,7 +2103,7 @@ void cmd_draw_indexed_base_instance(CommandList* cmd_ptr, uint32_t index_count, 
     if (!cmd) {
         return;
     }
-    if (cmd->resource_bind_failed) {
+    if (cmd->pipeline_bind_failed || cmd->vertex_bind_failed || cmd->index_bind_failed || cmd->resource_bind_failed) {
         ++cmd->stats.dropped_draw_count;
         return;
     }
@@ -2212,7 +2122,7 @@ void cmd_draw_indexed_indirect(CommandList* cmd_ptr, IndirectDrawSpan commands, 
     if (!cmd || !command_buffer || !command_buffer->buffer || draw_count == 0) {
         return;
     }
-    if (cmd->resource_bind_failed) {
+    if (cmd->pipeline_bind_failed || cmd->vertex_bind_failed || cmd->index_bind_failed || cmd->resource_bind_failed) {
         cmd->stats.dropped_draw_count += draw_count;
         return;
     }
@@ -2246,7 +2156,7 @@ void cmd_draw_indexed_indirect_count(CommandList* cmd_ptr, IndirectDrawSpan comm
     if (!cmd || !command_buffer || !command_buffer->buffer || !count || !count->buffer || max_draw_count == 0) {
         return;
     }
-    if (cmd->resource_bind_failed) {
+    if (cmd->pipeline_bind_failed || cmd->vertex_bind_failed || cmd->index_bind_failed || cmd->resource_bind_failed) {
         cmd->stats.dropped_draw_count += max_draw_count;
         return;
     }
@@ -2269,7 +2179,7 @@ void cmd_dispatch(CommandList* cmd_ptr, uint32_t group_count_x, uint32_t group_c
     if (!cmd) {
         return;
     }
-    if (cmd->resource_bind_failed) {
+    if (cmd->pipeline_bind_failed || cmd->resource_bind_failed) {
         ++cmd->stats.dropped_dispatch_count;
         return;
     }
@@ -2341,7 +2251,7 @@ BindlessTextureIndex get_bindless_texture_index(Context* ctx_ptr, Handle<Texture
 Handle<RenderTarget> create_render_target(Context* ctx, const RenderTargetDesc& desc)
 {
     auto* c = as_vulkan(ctx);
-    if (!c || !render_target_desc_supported(desc)) {
+    if (!c || !render_target_desc_supported(c, desc)) {
         return {};
     }
 
@@ -2355,9 +2265,7 @@ void destroy_render_target(Context* ctx, Handle<RenderTarget> handle)
     auto* rt = c->render_target_pool_.get(handle);
     if (!rt) return;
 
-    for (auto& att : rt->desc.color) {
-        if (att.texture.valid()) destroy_texture(ctx, att.texture);
-    }
+    if (rt->desc.color.texture.valid()) destroy_texture(ctx, rt->desc.color.texture);
     if (rt->desc.depth.texture.valid()) destroy_texture(ctx, rt->desc.depth.texture);
 
     c->render_target_pool_.destroy(handle);
@@ -2468,8 +2376,26 @@ void destroy_swapchain(VulkanContext* ctx)
 
 Context* create_context(Core* core, const ContextDesc& desc)
 {
+    auto* vk = as_vulkan(core);
+    if (!vk || vk->context || desc.width == 0 || desc.height == 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "create_context requires an unused core and positive extent");
+        return nullptr;
+    }
     auto* ctx = new VulkanContext();
-    ctx->core = as_vulkan(core);
+    ctx->core = vk;
+    vk->context = ctx;
+    ctx->trace_resources = SDL_getenv("ROLLNW_GFX_TRACE_RESOURCES") != nullptr;
+    if (ctx->trace_resources) {
+        VkPhysicalDeviceDriverProperties driver{};
+        driver.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+        VkPhysicalDeviceProperties2 properties{};
+        properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        properties.pNext = &driver;
+        vkGetPhysicalDeviceProperties2(vk->physical_device, &properties);
+        SDL_Log("gfx-resource device name=%s driver=%s info=%s api=%u", properties.properties.deviceName,
+            driver.driverName, driver.driverInfo, properties.properties.apiVersion);
+    }
+
     ctx->window = desc.window;
     ctx->width = desc.width;
     ctx->height = desc.height;
@@ -2500,7 +2426,7 @@ Context* create_context(Core* core, const ContextDesc& desc)
         };
 
         RenderTargetDesc rt_desc = {};
-        rt_desc.color[0].texture = create_texture(as_gfx(ctx), color_desc);
+        rt_desc.color.texture = create_texture(as_gfx(ctx), color_desc);
         rt_desc.depth.texture = create_texture(as_gfx(ctx), depth_desc);
 
         ctx->default_render_target = create_render_target(as_gfx(ctx), rt_desc);
@@ -2520,14 +2446,16 @@ Context* create_context(Core* core, const ContextDesc& desc)
             VulkanImage img{
                 .image = VK_NULL_HANDLE, // Image
                 .view = VK_NULL_HANDLE,
+                .format = ctx->swapchain_format,
                 .width = ctx->width,
                 .height = ctx->height,
                 .layers = 1,
                 .mip_levels = 1,
                 .owned = false,
+                .render_target = true,
             };
 
-            rt_desc.color[0].texture = ctx->texture_pool_.insert(std::move(img));
+            rt_desc.color.texture = ctx->texture_pool_.insert(std::move(img));
             rt_desc.depth.texture = create_texture(as_gfx(ctx), depth_desc);
 
             ctx->swapchain_render_targets[i] = create_render_target(as_gfx(ctx), rt_desc);
@@ -2655,8 +2583,9 @@ Context* create_context(Core* core, const ContextDesc& desc)
 void destroy_context(Context* ctx_ptr)
 {
     auto* ctx = as_vulkan(ctx_ptr);
+    if (!ctx) { return; }
 
-    vkDeviceWaitIdle(ctx->core->device);
+    wait_idle(as_gfx(ctx));
 
     if (ctx->headless) {
         destroy_render_target(ctx_ptr, ctx->default_render_target);
@@ -2711,16 +2640,29 @@ void destroy_context(Context* ctx_ptr)
     }
     destroy_persistent_buffer(ctx, ctx->bindless_texture_table, ctx->bindless_texture_table_alloc);
 
+    ctx->core->context = nullptr;
     delete ctx;
 }
 
-void wait_idle(Context* ctx_ptr)
+ResourceStats resource_stats(Context* ctx_ptr) noexcept
+{
+    const auto* ctx = as_vulkan(ctx_ptr);
+    return ctx ? ctx->resource_stats : ResourceStats{};
+}
+
+void wait_idle(Context* ctx_ptr, std::source_location source)
 {
     auto* ctx = as_vulkan(ctx_ptr);
-    if (!ctx) {
-        return;
+    if (!ctx) { return; }
+    const uint64_t start = SDL_GetTicksNS();
+    VK_CHECK(vkDeviceWaitIdle(ctx->core->device));
+    const double seconds = static_cast<double>(SDL_GetTicksNS() - start) * kNanosecondsToSeconds;
+    ++ctx->resource_stats.idle_wait_count;
+    ctx->resource_stats.idle_wait_seconds += seconds;
+    if (ctx->trace_resources) {
+        SDL_Log("gfx-resource idle start_ns=%llu seconds=%.9f source=%s:%u reason=%s",
+            static_cast<unsigned long long>(start), seconds, source.file_name(), source.line(), source.function_name());
     }
-    vkDeviceWaitIdle(ctx->core->device);
 }
 
 bool get_frame_info(Context* ctx_ptr, FrameInfo& out) noexcept
@@ -2805,7 +2747,7 @@ static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height
     }
 
     VkDevice device = ctx->core->device;
-    vkDeviceWaitIdle(device);
+    wait_idle(as_gfx(ctx));
 
     for (uint32_t i = 0; i < ctx->swapchain_image_count; ++i) {
         destroy_render_target(ctx_ptr, ctx->swapchain_render_targets[i]);
@@ -2837,14 +2779,16 @@ static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height
         VulkanImage img{
             .image = VK_NULL_HANDLE,
             .view = VK_NULL_HANDLE,
+            .format = ctx->swapchain_format,
             .width = ctx->width,
             .height = ctx->height,
             .layers = 1,
             .mip_levels = 1,
             .owned = false,
+            .render_target = true,
         };
 
-        rt_desc.color[0].texture = ctx->texture_pool_.insert(std::move(img));
+        rt_desc.color.texture = ctx->texture_pool_.insert(std::move(img));
         rt_desc.depth.texture = create_texture(ctx_ptr, depth_desc);
         ctx->swapchain_render_targets[i] = create_render_target(ctx_ptr, rt_desc);
 
@@ -2861,22 +2805,37 @@ static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height
     return true;
 }
 
-bool upload_texture_rgba8(Context* ctx_ptr, Handle<Texture> handle, const void* data, size_t size)
+namespace {
+bool upload_texture_base(Context* ctx, Handle<Texture> handle, const void* data, size_t size, bool half_float)
 {
-    NW_PROFILE_SCOPE_N("nw::gfx::upload_texture_rgba8");
-    return upload_texture_pixels(ctx_ptr, handle, data, size, 4);
+    auto* context = as_vulkan(ctx);
+    const auto* tex = context ? context->texture_pool_.get(handle) : nullptr;
+    if (!tex || (half_float ? tex->format != VK_FORMAT_R16G16B16A16_SFLOAT : tex->format != VK_FORMAT_R8G8B8A8_UNORM && tex->format != VK_FORMAT_R8G8B8A8_SRGB)) {
+        return false;
+    }
+    const TextureMipData mip{data, size, tex->width, tex->height};
+    const TextureUpload upload{handle, {&mip, 1}};
+    return upload_textures(ctx, {&upload, 1});
+}
+} // namespace
+
+bool upload_texture_rgba8(Context* ctx, Handle<Texture> handle, const void* data, size_t size)
+{
+    return upload_texture_base(ctx, handle, data, size, false);
 }
 
-bool upload_texture_rgba16f(Context* ctx_ptr, Handle<Texture> handle, const void* data, size_t size)
+bool upload_texture_rgba16f(Context* ctx, Handle<Texture> handle, const void* data, size_t size)
 {
-    NW_PROFILE_SCOPE_N("nw::gfx::upload_texture_rgba16f");
-    return upload_texture_pixels(ctx_ptr, handle, data, size, 8);
+    return upload_texture_base(ctx, handle, data, size, true);
 }
 
-bool upload_texture_rgba16f_mips(Context* ctx_ptr, Handle<Texture> handle, const TextureMipData* levels, size_t count)
+bool upload_texture_rgba16f_mips(Context* ctx, Handle<Texture> handle, const TextureMipData* levels, size_t count)
 {
-    NW_PROFILE_SCOPE_N("nw::gfx::upload_texture_rgba16f_mips");
-    return upload_texture_pixels_mips(ctx_ptr, handle, levels, count, 8);
+    auto* context = as_vulkan(ctx);
+    const auto* tex = context ? context->texture_pool_.get(handle) : nullptr;
+    if (!tex || tex->format != VK_FORMAT_R16G16B16A16_SFLOAT || !levels || count != tex->mip_levels) { return false; }
+    const TextureUpload upload{handle, {levels, count}};
+    return upload_textures(ctx, {&upload, 1});
 }
 
 CommandList* begin_frame(Context* ctx_ptr)
@@ -3031,7 +2990,7 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
     VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     if (ctx->headless) {
         auto* rt = ctx->render_target_pool_.get(ctx->default_render_target);
-        auto* color_tex = rt ? ctx->texture_pool_.get(rt->desc.color[0].texture) : nullptr;
+        auto* color_tex = rt ? ctx->texture_pool_.get(rt->desc.color.texture) : nullptr;
         if (!color_tex) {
             vmaDestroyBuffer(ctx->core->allocator, readback_buffer, readback_alloc);
             return false;
@@ -3073,7 +3032,7 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
 
     if (ctx->headless) {
         auto* rt = ctx->render_target_pool_.get(ctx->default_render_target);
-        auto* color_tex = rt ? ctx->texture_pool_.get(rt->desc.color[0].texture) : nullptr;
+        auto* color_tex = rt ? ctx->texture_pool_.get(rt->desc.color.texture) : nullptr;
         if (color_tex) {
             color_tex->layout = current_layout;
         }
@@ -3082,7 +3041,7 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
     }
 
     end_frame(ctx_ptr);
-    vkDeviceWaitIdle(ctx->core->device);
+    wait_idle(as_gfx(ctx));
 
     const bool is_bgra = !ctx->headless
         && (ctx->swapchain_format == VK_FORMAT_B8G8R8A8_UNORM

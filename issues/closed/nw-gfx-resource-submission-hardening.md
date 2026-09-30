@@ -1,6 +1,103 @@
 # nw::gfx Resource Submission and Lifetime Hardening
 
-Status: open.
+Status: closed on 2026-09-30. Implementation and verification evidence below;
+asynchronous completion remains a separate measured investigation.
+
+## Execution plan (2026-09-30)
+
+### Patterns & Conventions Found
+
+- Current `vulkan_context.cpp:1016,1237` independently allocate/submit/wait for
+  base-level and supplied-mip uploads. `model_asset.cpp:356` and
+  `nwn/render_asset_cache.cpp:194` consume decoded CPU pixels on the calling
+  thread. `VulkanContext` owns textures; buffer/shader/pipeline pools are global
+  and their payloads identify their core.
+- All current context creation sites (client, mudl and headless fixtures) use
+  one context per core. Public attachment users select only color zero.
+- Reuse SDL timers/logging, CommandStats, VMA, spans/contiguous vectors, the
+  existing area benchmark and headless graphics fixtures; preserve snake_case,
+  explicit failure returns, and clang-format.
+
+### Architecture Decision
+
+Implement the full issue in measured stages: instrumentation/baseline, truthful
+contracts and deterministic binding rejection, synchronous upload batching,
+caller migration, matched measurement and the completion gate. Limit work to
+the current graphics queue and two frame slots. Plan B for negligible batching
+benefit is the issue's explicit evidence-based performance closure; correctness
+fixes remain required. Unsafe submitted-work cleanup is never a fallback.
+
+### Component Design
+
+- Upload protocol/backend: caller-owned mip spans -> validated aligned regions
+  -> one VMA staging allocation and submission -> completed shader-readable
+  textures. Invalid shapes, formats, duplicate/stale handles and checked-size
+  overflow reject the complete batch before allocation. Zero rows are a no-op.
+  Generated mips and exact supplied chains are the two observed inputs.
+- Statistics: context-owned cumulative counts/times plus opt-in timestamped
+  transaction/wait traces, consumed by the existing mudl JSON report. Capture
+  CPU upload time, allocation/command/submission/wait counts and staging bytes;
+  measure process peak memory externally on identical runs.
+- Bind validity: per-command state, reset at pass begin, rejects draws after
+  failed pipeline/vertex/index/resource binds with counters and diagnostics.
+- Context/render target: one active context per core and one color/depth
+  attachment at mip/layer zero. Root context creation is a genuine singleton
+  lifetime operation; no unsupported multi-context protocol is introduced.
+
+### Implementation Map
+
+Modify `gfx.hpp`, Vulkan core/internal/context files, render-target call sites,
+real batch-capable upload callers in render/client/mudl, mudl benchmark reporting,
+and focused gfx/render tests. Add only focused protocol validation/test files
+if needed to exercise overflow without allocating impossible textures. Preserve
+measurement artifacts and closure evidence with this issue; any completion
+follow-up is a separate local issue.
+
+### Data Flow
+
+Real input is RGBA8/sRGB or RGBA16F decoded images and ordered mip arrays;
+texture dimensions/formats are stable after allocation, while pixel payloads
+change on loads/preview edits. Images must have positive exact mip dimensions,
+one layer, exact checked byte sizes and a live context-owned target. Invalid
+data rejects; no draw or upload may silently reuse a stale binding/layout.
+Writes are resident texture data, explicit layout state, command statistics and
+diagnostics. Authored resources are read only throughout measurement.
+
+ASSUMPTION: uploads are concentrated at load and preview transitions, with
+little steady-frame traffic — affects whether synchronous batches suffice;
+the baseline trace must establish counts, sizes, timing and actual overlap.
+The most common texture size/count distribution is not yet measured.
+
+### Build Sequence
+
+1. Add counters and timestamped upload/wait observations without changing the
+   upload algorithm. Capture area load/switch, object preview, UI texture and
+   ordinary frame inputs, GPU/driver identity, validation and screenshots.
+2. Enforce context/attachment/binding contracts with regressions; implement
+   separate batch validation and one synchronous submission, then migrate
+   only actual overlapping decoded-payload transactions.
+3. Re-run identical workloads and required edge cases, compare frame counters
+   and images, make the completion decision, simplify, audit every criterion,
+   and move this issue to closed only after evidence establishes completion.
+
+### Critical Details
+
+Desktop CPU plus Vulkan GPU, one calling thread/queue, asynchronous existing
+frame work and immediate resource destruction constrain lifetime decisions.
+Cost is O(textures + mips + copied bytes), one packed temporary allocation of
+the aligned payload sum, and one submission/wait per batch. Linear copy/record
+passes follow validation. Existing generation handles identify textures at the
+API boundary; indexed flat region arrays drive recording. No pointer-heavy
+frame path is added. Latency, rather than sustained streaming throughput, is
+the measurement target; no numerical gain is assumed.
+
+Simplification: perform validation once, remove duplicated uploader machinery
+and unsupported attachment states, retain synchronous completion, and avoid
+new scheduling/allocator/queue policies. Done is every existing Done/Testing
+item plus the baseline/after evidence and completion gate. Any changed image,
+validation error, partially modified rejected batch, stale draw, lost ownership,
+or unaccounted wait disproves completion. Run focused and affected headless
+regressions, build all consumers, format, and check the diff.
 
 Tier: 2. This touches public resource contracts, upload submission, GPU
 completion, and backend ownership.
@@ -321,33 +418,33 @@ GPU-visible state can no longer be rolled back safely.
 ## Build Sequence
 
 - Phase 1: make contracts truthful
-  - [ ] Verify and enforce the one-context-per-core constraint, or record the
+  - [x] Verify and enforce the one-context-per-core constraint, or record the
         concrete call site that disproves it before changing pool ownership.
-  - [ ] Reduce `RenderTargetDesc` to the shape all current callers and the
+  - [x] Reduce `RenderTargetDesc` to the shape all current callers and the
         backend implement.
-  - [ ] Make every invalid command bind poison the pending draw and add tests
+  - [x] Make every invalid command bind poison the pending draw and add tests
         proving stale bindings cannot be consumed.
 - Phase 2: observe upload transactions
-  - [ ] Add upload counters and wall-time reporting without changing behavior.
-  - [ ] Capture representative area load, area switch, object preview, and UI
+  - [x] Add upload counters and wall-time reporting without changing behavior.
+  - [x] Capture representative area load, area switch, object preview, and UI
         texture traces, including count and byte distributions.
-  - [ ] Define the natural batch boundaries from overlapping decoded-payload
+  - [x] Define the natural batch boundaries from overlapping decoded-payload
         lifetimes in those traces.
 - Phase 3: implement the synchronous batch transform
-  - [ ] Add and test `upload_textures` validation as a separate pass.
-  - [ ] Replace duplicated upload implementations with one packed staging
+  - [x] Add and test `upload_textures` validation as a separate pass.
+  - [x] Replace duplicated upload implementations with one packed staging
         allocation and one recorded submission per batch.
-  - [ ] Migrate real batch-capable callers; retain singular wrappers only for
+  - [x] Migrate real batch-capable callers; retain singular wrappers only for
         genuinely isolated uploads.
-  - [ ] Record before/after load wall time, allocations, submissions, waits,
+  - [x] Record before/after load wall time, allocations, submissions, waits,
         uploaded bytes, validation output, and rendered screenshots.
 - Phase 4: completion decision gate
-  - [ ] Record every `wait_idle` call during a representative authoring session
+  - [x] Record every `wait_idle` call during a representative authoring session
         with its reason and CPU duration.
-  - [ ] If scoped upload waits or resource replacement materially stall that
+  - [x] If scoped upload waits or resource replacement materially stall that
         trace, file a separate issue with the observed completion/lifetime data
         and an explicit retirement protocol.
-  - [ ] Otherwise retain synchronous batch completion and immediate destruction;
+  - [x] Otherwise retain synchronous batch completion and immediate destruction;
         do not add timeline or deferred-reclamation states.
 
 ## Simplification Pass
@@ -429,3 +526,164 @@ lifetimes never overlap enough to form batches, or that upload setup/wait time
 is negligible relative to required byte transfer. In that case, keep the
 singular upload path and close the performance portion without adding scheduler
 state; retain the correctness and contract fixes.
+
+## Completion evidence (2026-09-30)
+
+The public/backend contracts and synchronous batch path are implemented. The
+completion decision is to retain synchronous uploads and immediate destruction
+under the documented caller completion policy. The measured large-load wait
+cost has a separate [upload completion investigation](../gfx-texture-upload-completion.md);
+it does not authorize an asynchronous uploader or general deferred reclamation.
+
+### Implemented contracts
+
+- `create_context` rejects a second live context on a core, null cores and zero
+  extents before acquiring resources. All production creation sites use that
+  cardinality. Destroying a core with a live context fails loudly. Global
+  buffer/shader/pipeline handles retain their existing core ownership.
+- Render targets have one color and one depth attachment at mip/layer zero.
+  Validation rejects missing/stale attachments, incorrect formats or usage,
+  extra layers/mips and mismatched extents. Attachment ownership is preserved.
+- Failed pipeline/vertex/index/resource binds invalidate their own cached
+  state, increment counters and diagnose validation-enabled calls. All draw
+  variants reject poisoned state; dispatch checks pipeline/resource failures.
+  A successful bind clears only its own failure. Frame/pass begin resets state.
+- `upload_textures` validates the whole borrowed span before staging allocation
+  or submission. Duplicate/stale handles, unsupported formats/layers, malformed
+  mip chains, null payloads and checked byte/alignment overflow reject without
+  changing any target. A base mip generates the remaining chain; supplied mips
+  must cover the entire chain. Empty batches do no work.
+- The common path packs one mapped VMA buffer, records one command buffer and
+  submits/waits once. RAII handles failures before submission. Submission or
+  completion errors use the existing fatal Vulkan policy: the former timeout
+  path could free storage still in use by the GPU. Success publishes every mip
+  in shader-readable layout and permits immediate release of caller pixels.
+- Five shared fallback textures and three PBR environment textures are real
+  batches. Model and NWN-cache decoders, PLT recoloring and RmlUi callbacks
+  normally expose one image at a time and retain thin batch-of-one wrappers.
+  No decoded image is retained solely to construct a larger batch. Cache upload
+  failures now destroy incomplete textures and return the existing fallback.
+- `ResourceStats`, area-benchmark JSON and opt-in
+  `ROLLNW_GFX_TRACE_RESOURCES=1` expose resource counts, byte totals, high-water
+  staging size, upload/wait durations and device identity. Every backend
+  whole-device wait goes through the traced `wait_idle` with its source/reason.
+
+### Matched measurements
+
+Linux Release, AMD Radeon 890M Graphics (RADV STRIX1), Mesa 26.2.2-arch1.1.
+The baseline executable was preserved after instrumentation and before upload
+or contract changes. Each area has one warmup process followed by five paired
+before/after processes; each process renders two warmup and ten measured frames
+at 1280x720 with validation. Upload CPU time includes its fence waits.
+
+| Workload | Quantity | Before median | After median |
+| --- | --- | ---: | ---: |
+| DockerDemo `start` | Area load | 13.999 ms | 14.204 ms |
+| `start` | Upload CPU / fence waits | 3.472 / 1.863 ms | 3.945 / 2.282 ms |
+| `start` | Process peak RSS | 324,324 KiB | 324,464 KiB |
+| Awakening `pvp_area_2` | Area load | 1,149.426 ms | 1,071.855 ms |
+| `pvp_area_2` | Upload CPU / fence waits | 306.941 / 127.323 ms | 275.345 / 116.858 ms |
+| `pvp_area_2` | Process peak RSS | 370,724 KiB | 370,956 KiB |
+
+These ranges overlap: the large-area load ranges are 1,030.088–1,382.620 ms
+before and 1,058.987–1,115.129 ms after. No general load-time speedup is claimed.
+RSS is whole-process peak memory, not an exact GPU residency measurement.
+
+The `start` load itself remains 11 textures, 98 resulting mips and 6,299,648
+uploaded bytes; `pvp_area_2` remains 1,035 textures, 9,367 resulting mips and
+677,414,400 uploaded bytes. Each still has one staging allocation, command pool,
+command buffer, submission and wait per decoded texture. Largest payload and
+peak temporary staging are 1,048,576 bytes in both cases. The large-area trace's
+most frequent individual upload is 1,048,576 bytes (596 occurrences), followed
+by 262,144 bytes (165) and 65,536 bytes (112). These observed single-image
+lifetimes constrain the batching benefit.
+
+The fixed fallback setup changes each allocation/command/submission/wait count
+from 5 to 1 for the same 1,040 source bytes; aligned staging high-water changes
+from 1,024 to 1,056 bytes. The PBR environment changes each count from 3 to 1
+for the same 890,200 source bytes; peak staging changes from 524,288 to 890,200
+bytes. The supplied specular chain contains nine mips. PBR screenshots match
+exactly despite packing all three textures together.
+
+All 100 corresponding area frames have identical command and per-pass command
+counters; the new bind-failure counters are zero. Five paired screenshots
+(`start`, `pvp_area_2`, three material-sphere runs) have zero changed RGB pixels
+and zero maximum channel difference. Area validation reports contain zero
+warnings/errors. The PBR logs retain four pre-existing Vulkan PERFORMANCE
+interface advisories in both versions, with no Vulkan VALIDATION messages.
+
+The machine-readable [measurements](gfx-hardening-evidence/measurements.json)
+retain every measured load sample, cumulative counters, process commands/RSS,
+timestamped representative upload/wait traces, size histograms, pixel comparison
+results and executable hashes. The [baseline instrumentation patch](gfx-hardening-evidence/baseline-instrumentation.patch)
+identifies the observation-only baseline changes. Representative final images:
+[small area](gfx-hardening-evidence/start-1.png),
+[large area](gfx-hardening-evidence/pvp_area_2-1.png),
+[PBR mip chains](gfx-hardening-evidence/pbr-0.png).
+All 609 pre-recorded authored area files retain their
+[SHA256 values](gfx-hardening-evidence/area-input-hashes.json). This comparison
+covers the area files, not every resource in the external module.
+
+### Completion gate and verification limits
+
+The matched `pvp_area_2 -> ms_4city -> pvp_area_2` sweep records every wait with
+its reason. Its three scene-boundary idle waits total 0.063 ms before and
+0.072 ms after (maximum 0.031 / 0.041 ms). Benchmark-driven waits are recorded
+separately and must not be attributed to authoring interaction.
+
+The real RmlUi renderer lifecycle fixture keeps the normal two-frame queue
+active through area/chicken-preview/area switches, text geometry replacement,
+generated texture creation/release and shutdown. It checks that text produces
+draws, follows the client's layout-before-viewport ordering, and captures both
+the scene and UI. It includes rejected malformed pixels. The initial font
+family mistake in the fixture was corrected before accepting its evidence.
+The client Home startup trace also records eight isolated font/UI uploads in
+both versions; its timed termination is startup evidence only, not shutdown
+evidence. Graceful shutdown is covered by the lifecycle fixture.
+
+The aggregate 116.858 ms of upload fence waiting during the large load warrants
+the linked investigation into decode/transfer overlap. It is not a single
+117 ms stall, and removing a CPU wait does not remove required GPU work.
+Measured live scene waits do not justify a general resource retirement system.
+
+Validation covers Linux headless Vulkan on the host Radeon GPU, with additional
+software-Vulkan checks. Windows, interactive desktop pointer operation, resize
+and presentation behavior on a windowed swapchain, and forced device-loss/OOM
+fault injection were not tested. The lifecycle fixture explicitly skips when
+the required desktop tile assets are unavailable; they were available here.
+Fatal post-submission failure behavior was reviewed, not deliberately triggered.
+
+### Simplification and final self-check
+
+Release builds passed for `rollnw-client`, `mudl` and `rollnw_test`. The initial
+affected renderer/client/mudl run passed 419 of 420 tests; its single area-marker
+assertion also failed in the preserved baseline. The fixture now accepts and
+checks actual Sound/Store object membership. The final focused run passes that
+case and the corrected UI lifecycle case: all 420 distinct affected cases have
+passing evidence across the two runs, with no skips. This is not a claim that
+the entire repository test suite was run. The five new gfx protocol tests
+include real mip readback, whole-batch rejection/content preservation, overflow,
+context/attachment contracts and independent bind-failure recovery.
+
+The [initial broad report](gfx-hardening-evidence/regressions.xml) preserves the
+original failure; the [final focused report](gfx-hardening-evidence/final-focused.xml)
+and [trace](gfx-hardening-evidence/final-focused.log) record the corrections.
+The final [scene/UI capture](gfx-hardening-evidence/client-resource-transitions.png)
+was visually inspected. Its seven scene-boundary idle waits total 0.389 ms,
+maximum 0.192 ms. C++ formatting and `git diff --check` passed.
+
+Validation happens once outside the sequential copy/record passes. Two uploader
+implementations and unsupported render-target states were removed. Fixed known
+texture groups reuse flat arrays; isolated callbacks reuse the same batch path.
+No transfer queue, worker, persistent staging allocator, timeline, retirement
+queue, generalized resource model or speculative frame-binding redesign was
+added. Texture generation indices remain the established public identity;
+flat mip regions and contiguous input spans drive the cold upload transform.
+Pixel pointers are borrowed only because existing decoders own those buffers;
+the uploader copies them and never retains them. Context creation is the
+documented singleton exception. Cost and memory bounds are stated above.
+
+All original contracts and failure criteria were audited against the focused
+tests, real input traces and matched images. Remaining asynchronous-completion
+questions are recorded in the active local follow-up instead of being hidden
+behind TODOs or unsupported performance claims.

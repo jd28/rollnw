@@ -516,6 +516,9 @@ nw::gfx::CommandStats command_stats_delta(
     result.descriptor_allocation_failure_count = counter_delta(after.descriptor_allocation_failure_count, before.descriptor_allocation_failure_count);
     result.descriptor_ring_capacity_bytes = after.descriptor_ring_capacity_bytes;
     result.descriptor_ring_required_bytes = counter_delta(after.descriptor_ring_required_bytes, before.descriptor_ring_required_bytes);
+    result.pipeline_bind_failure_count = counter_delta(after.pipeline_bind_failure_count, before.pipeline_bind_failure_count);
+    result.vertex_buffer_bind_failure_count = counter_delta(after.vertex_buffer_bind_failure_count, before.vertex_buffer_bind_failure_count);
+    result.index_buffer_bind_failure_count = counter_delta(after.index_buffer_bind_failure_count, before.index_buffer_bind_failure_count);
     result.resource_bind_failure_count = counter_delta(after.resource_bind_failure_count, before.resource_bind_failure_count);
     result.dropped_draw_count = counter_delta(after.dropped_draw_count, before.dropped_draw_count);
     result.dropped_dispatch_count = counter_delta(after.dropped_dispatch_count, before.dropped_dispatch_count);

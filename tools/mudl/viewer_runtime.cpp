@@ -92,6 +92,9 @@ json command_stats_json(const nw::gfx::CommandStats& stats)
         {"descriptor_allocation_failures", stats.descriptor_allocation_failure_count},
         {"descriptor_ring_capacity_bytes", stats.descriptor_ring_capacity_bytes},
         {"descriptor_ring_required_bytes", stats.descriptor_ring_required_bytes},
+        {"pipeline_bind_failures", stats.pipeline_bind_failure_count},
+        {"vertex_buffer_bind_failures", stats.vertex_buffer_bind_failure_count},
+        {"index_buffer_bind_failures", stats.index_buffer_bind_failure_count},
         {"resource_bind_failures", stats.resource_bind_failure_count},
         {"dropped_draws", stats.dropped_draw_count},
         {"dropped_dispatches", stats.dropped_dispatch_count},
@@ -1096,6 +1099,9 @@ json area_sweep_frame_stats_json(const nw::render::viewer::ViewerFrameStats& sta
                          {"descriptor_allocation_failures", stats.total_command_stats.descriptor_allocation_failure_count},
                          {"descriptor_ring_capacity_bytes", stats.total_command_stats.descriptor_ring_capacity_bytes},
                          {"descriptor_ring_required_bytes", stats.total_command_stats.descriptor_ring_required_bytes},
+                         {"pipeline_bind_failures", stats.total_command_stats.pipeline_bind_failure_count},
+                         {"vertex_buffer_bind_failures", stats.total_command_stats.vertex_buffer_bind_failure_count},
+                         {"index_buffer_bind_failures", stats.total_command_stats.index_buffer_bind_failure_count},
                          {"resource_bind_failures", stats.total_command_stats.resource_bind_failure_count},
                          {"dropped_draws", stats.total_command_stats.dropped_draw_count},
                          {"uniform_allocations", stats.total_command_stats.uniform_allocation_count},
@@ -2318,6 +2324,31 @@ void render_frame(AppState& state)
     nw::gfx::end_frame(state.gfx_context);
 }
 
+namespace {
+json resource_stats_json(const nw::gfx::ResourceStats& stats)
+{
+    return json{
+        {"upload_batch_count", stats.upload_batch_count},
+        {"upload_texture_count", stats.upload_texture_count},
+        {"upload_mip_count", stats.upload_mip_count},
+        {"upload_bytes", stats.upload_bytes},
+        {"upload_failure_count", stats.upload_failure_count},
+        {"staging_allocation_count", stats.staging_allocation_count},
+        {"staging_allocation_bytes", stats.staging_allocation_bytes},
+        {"staging_high_water_bytes", stats.staging_high_water_bytes},
+        {"largest_payload_bytes", stats.largest_payload_bytes},
+        {"upload_command_pool_count", stats.upload_command_pool_count},
+        {"upload_command_buffer_count", stats.upload_command_buffer_count},
+        {"upload_submission_count", stats.upload_submission_count},
+        {"upload_wait_count", stats.upload_wait_count},
+        {"idle_wait_count", stats.idle_wait_count},
+        {"upload_seconds", stats.upload_seconds},
+        {"upload_wait_seconds", stats.upload_wait_seconds},
+        {"idle_wait_seconds", stats.idle_wait_seconds},
+    };
+}
+} // namespace
+
 int run_area_benchmark_command(AppState& state, std::string_view area_resref,
     std::string_view module_path, std::string_view user_path,
     int frames, int warmup_frames, bool lights_enabled, bool shadows_enabled,
@@ -2352,6 +2383,8 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                                            .forward_plus_policy = &forward_plus_policy,
                                        });
 
+    const auto resources_before_load = nw::gfx::resource_stats(state.gfx_context);
+    const uint64_t load_start = SDL_GetTicksNS();
     LOG_F(INFO, "Area benchmark loading '{}'", area_resref);
     if (!prepare_area_session_for_benchmark(
             session, area_resref, viewport,
@@ -2360,6 +2393,8 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
             visibility_cone_half_angle_degrees)) {
         return 1;
     }
+    const double load_seconds = static_cast<double>(SDL_GetTicksNS() - load_start) * 1.0e-9;
+    const auto resources_after_load = nw::gfx::resource_stats(state.gfx_context);
     if (area_time_seconds) {
         session.set_area_day_night_elapsed_seconds(*area_time_seconds, false);
     }
@@ -2451,6 +2486,12 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
     // clang-format off
     json report{
         {"area", std::string(area_resref)},
+        {"load_seconds", load_seconds},
+        {"resources_before_load", resource_stats_json(resources_before_load)},
+        {"resources_after_load", resource_stats_json(resources_after_load)},
+        {"resources_after_frames", resource_stats_json(nw::gfx::resource_stats(state.gfx_context))},
+        {"validation", {{"warnings", nw::gfx::validation_report(state.gfx_core).warning_count},
+                           {"errors", nw::gfx::validation_report(state.gfx_core).error_count}}},
         {"module", benchmark_path_metadata_json(module_path)},
         {"user_path", benchmark_path_metadata_json(user_path)},
         {"frames", frames},
@@ -2549,6 +2590,9 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"descriptor_allocation_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.descriptor_allocation_bytes; })},
                 {"descriptor_allocation_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.descriptor_allocation_failure_count; })},
                 {"descriptor_ring_required_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.descriptor_ring_required_bytes; })},
+                {"pipeline_bind_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.pipeline_bind_failure_count; })},
+                {"vertex_buffer_bind_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.vertex_buffer_bind_failure_count; })},
+                {"index_buffer_bind_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.index_buffer_bind_failure_count; })},
                 {"resource_bind_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.resource_bind_failure_count; })},
                 {"dropped_draws", counter_summary([](const auto& stats) { return stats.total_command_stats.dropped_draw_count; })},
                 {"uniform_allocations", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_allocation_count; })},

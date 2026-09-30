@@ -1,0 +1,492 @@
+diff --git a/issues/nw-gfx-resource-submission-hardening.md b/issues/nw-gfx-resource-submission-hardening.md
+index a7f836fcd..137567e05 100644
+--- a/issues/nw-gfx-resource-submission-hardening.md
++++ b/issues/nw-gfx-resource-submission-hardening.md
+@@ -2,6 +2,102 @@
+ 
+ Status: open.
+ 
++## Execution plan (2026-09-30)
++
++### Patterns & Conventions Found
++
++- Current `vulkan_context.cpp:1016,1237` independently allocate/submit/wait for
++  base-level and supplied-mip uploads. `model_asset.cpp:356` and
++  `nwn/render_asset_cache.cpp:194` consume decoded CPU pixels on the calling
++  thread. `VulkanContext` owns textures; buffer/shader/pipeline pools are global
++  and their payloads identify their core.
++- All current context creation sites (client, mudl and headless fixtures) use
++  one context per core. Public attachment users select only color zero.
++- Reuse SDL timers/logging, CommandStats, VMA, spans/contiguous vectors, the
++  existing area benchmark and headless graphics fixtures; preserve snake_case,
++  explicit failure returns, and clang-format.
++
++### Architecture Decision
++
++Implement the full issue in measured stages: instrumentation/baseline, truthful
++contracts and deterministic binding rejection, synchronous upload batching,
++caller migration, matched measurement and the completion gate. Limit work to
++the current graphics queue and two frame slots. Plan B for negligible batching
++benefit is the issue's explicit evidence-based performance closure; correctness
++fixes remain required. Unsafe submitted-work cleanup is never a fallback.
++
++### Component Design
++
++- Upload protocol/backend: caller-owned mip spans -> validated aligned regions
++  -> one VMA staging allocation and submission -> completed shader-readable
++  textures. Invalid shapes, formats, duplicate/stale handles and checked-size
++  overflow reject the complete batch before allocation. Zero rows are a no-op.
++  Generated mips and exact supplied chains are the two observed inputs.
++- Statistics: context-owned cumulative counts/times plus opt-in timestamped
++  transaction/wait traces, consumed by the existing mudl JSON report. Capture
++  CPU upload time, allocation/command/submission/wait counts and staging bytes;
++  measure process peak memory externally on identical runs.
++- Bind validity: per-command state, reset at pass begin, rejects draws after
++  failed pipeline/vertex/index/resource binds with counters and diagnostics.
++- Context/render target: one active context per core and one color/depth
++  attachment at mip/layer zero. Root context creation is a genuine singleton
++  lifetime operation; no unsupported multi-context protocol is introduced.
++
++### Implementation Map
++
++Modify `gfx.hpp`, Vulkan core/internal/context files, render-target call sites,
++real batch-capable upload callers in render/client/mudl, mudl benchmark reporting,
++and focused gfx/render tests. Add only focused protocol validation/test files
++if needed to exercise overflow without allocating impossible textures. Preserve
++measurement artifacts and closure evidence with this issue; any completion
++follow-up is a separate local issue.
++
++### Data Flow
++
++Real input is RGBA8/sRGB or RGBA16F decoded images and ordered mip arrays;
++texture dimensions/formats are stable after allocation, while pixel payloads
++change on loads/preview edits. Images must have positive exact mip dimensions,
++one layer, exact checked byte sizes and a live context-owned target. Invalid
++data rejects; no draw or upload may silently reuse a stale binding/layout.
++Writes are resident texture data, explicit layout state, command statistics and
++diagnostics. Authored resources are read only throughout measurement.
++
++ASSUMPTION: uploads are concentrated at load and preview transitions, with
++little steady-frame traffic — affects whether synchronous batches suffice;
++the baseline trace must establish counts, sizes, timing and actual overlap.
++The most common texture size/count distribution is not yet measured.
++
++### Build Sequence
++
++1. Add counters and timestamped upload/wait observations without changing the
++   upload algorithm. Capture area load/switch, object preview, UI texture and
++   ordinary frame inputs, GPU/driver identity, validation and screenshots.
++2. Enforce context/attachment/binding contracts with regressions; implement
++   separate batch validation and one synchronous submission, then migrate
++   only actual overlapping decoded-payload transactions.
++3. Re-run identical workloads and required edge cases, compare frame counters
++   and images, make the completion decision, simplify, audit every criterion,
++   and move this issue to closed only after evidence establishes completion.
++
++### Critical Details
++
++Desktop CPU plus Vulkan GPU, one calling thread/queue, asynchronous existing
++frame work and immediate resource destruction constrain lifetime decisions.
++Cost is O(textures + mips + copied bytes), one packed temporary allocation of
++the aligned payload sum, and one submission/wait per batch. Linear copy/record
++passes follow validation. Existing generation handles identify textures at the
++API boundary; indexed flat region arrays drive recording. No pointer-heavy
++frame path is added. Latency, rather than sustained streaming throughput, is
++the measurement target; no numerical gain is assumed.
++
++Simplification: perform validation once, remove duplicated uploader machinery
++and unsupported attachment states, retain synchronous completion, and avoid
++new scheduling/allocator/queue policies. Done is every existing Done/Testing
++item plus the baseline/after evidence and completion gate. Any changed image,
++validation error, partially modified rejected batch, stale draw, lost ownership,
++or unaccounted wait disproves completion. Run focused and affected headless
++regressions, build all consumers, format, and check the diff.
++
+ Tier: 2. This touches public resource contracts, upload submission, GPU
+ completion, and backend ownership.
+ 
+diff --git a/lib/nw/gfx/backends/vulkan/vulkan_context.cpp b/lib/nw/gfx/backends/vulkan/vulkan_context.cpp
+index c434c04fc..8b3fcf92c 100644
+--- a/lib/nw/gfx/backends/vulkan/vulkan_context.cpp
++++ b/lib/nw/gfx/backends/vulkan/vulkan_context.cpp
+@@ -1013,9 +1013,41 @@ void destroy_texture(Context* ctx_ptr, Handle<Texture> handle)
+     ctx->texture_pool_.destroy(handle);
+ }
+ 
++namespace {
++struct UploadObservation {
++    VulkanContext* ctx;
++    uint64_t start = SDL_GetTicksNS();
++    uint64_t textures = 1;
++    uint64_t mips = 0;
++    uint64_t bytes = 0;
++    bool success = false;
++
++    ~UploadObservation()
++    {
++        const double seconds = static_cast<double>(SDL_GetTicksNS() - start) * kNanosecondsToSeconds;
++        auto& stats = ctx->resource_stats;
++        ++stats.upload_batch_count;
++        stats.upload_seconds += seconds;
++        if (success) {
++            stats.upload_texture_count += textures;
++            stats.upload_mip_count += mips;
++            stats.upload_bytes += bytes;
++        } else {
++            ++stats.upload_failure_count;
++        }
++        if (ctx->trace_resources) {
++            SDL_Log("gfx-resource upload start_ns=%llu textures=%llu mips=%llu bytes=%llu seconds=%.9f success=%d",
++                static_cast<unsigned long long>(start), static_cast<unsigned long long>(textures),
++                static_cast<unsigned long long>(mips), static_cast<unsigned long long>(bytes), seconds, success);
++        }
++    }
++};
++} // namespace
++
+ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, const void* data, size_t size, size_t bytes_per_pixel)
+ {
+     auto* ctx = as_vulkan(ctx_ptr);
++    UploadObservation observation{ctx};
+     auto* tex = ctx->texture_pool_.get(handle);
+     if (!tex || !data || tex->image == VK_NULL_HANDLE) {
+         return false;
+@@ -1026,6 +1058,9 @@ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, cons
+         return false;
+     }
+ 
++    observation.bytes = size;
++    observation.mips = tex->mip_levels;
++    ctx->resource_stats.largest_payload_bytes = std::max<uint64_t>(ctx->resource_stats.largest_payload_bytes, size);
+     VkBuffer staging_buffer = VK_NULL_HANDLE;
+     VmaAllocation staging_alloc = VK_NULL_HANDLE;
+ 
+@@ -1045,6 +1080,10 @@ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, cons
+     }
+     std::memcpy(mapped_info.pMappedData, data, size);
+ 
++    ++ctx->resource_stats.staging_allocation_count;
++    ctx->resource_stats.staging_allocation_bytes += staging_info.size;
++    ctx->resource_stats.staging_high_water_bytes = std::max<uint64_t>(ctx->resource_stats.staging_high_water_bytes, staging_info.size);
++
+     VkCommandPool command_pool = VK_NULL_HANDLE;
+     VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+     VkFence fence = VK_NULL_HANDLE;
+@@ -1054,6 +1093,7 @@ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, cons
+     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+     pool_info.queueFamilyIndex = ctx->core->graphics_queue_family;
+     VK_CHECK(vkCreateCommandPool(ctx->core->device, &pool_info, nullptr, &command_pool));
++    ++ctx->resource_stats.upload_command_pool_count;
+ 
+     VkCommandBufferAllocateInfo cmd_alloc{};
+     cmd_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+@@ -1061,6 +1101,7 @@ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, cons
+     cmd_alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+     cmd_alloc.commandBufferCount = 1;
+     VK_CHECK(vkAllocateCommandBuffers(ctx->core->device, &cmd_alloc, &command_buffer));
++    ++ctx->resource_stats.upload_command_buffer_count;
+ 
+     VkCommandBufferBeginInfo begin_info{};
+     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+@@ -1210,10 +1251,14 @@ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, cons
+     submit.commandBufferCount = 1;
+     submit.pCommandBuffers = &command_buffer;
+     VK_CHECK(vkQueueSubmit(ctx->core->graphics_queue, 1, &submit, fence));
++    ++ctx->resource_stats.upload_submission_count;
+ 
+     // Use a 5-second timeout instead of UINT64_MAX to avoid infinite hangs
+     constexpr uint64_t k_fence_timeout_ns = 5'000'000'000; // 5 seconds
++    const uint64_t wait_start = SDL_GetTicksNS();
+     VkResult wait_result = vkWaitForFences(ctx->core->device, 1, &fence, VK_TRUE, k_fence_timeout_ns);
++    ++ctx->resource_stats.upload_wait_count;
++    ctx->resource_stats.upload_wait_seconds += static_cast<double>(SDL_GetTicksNS() - wait_start) * kNanosecondsToSeconds;
+     if (wait_result != VK_SUCCESS) {
+         vkDestroyFence(ctx->core->device, fence, nullptr);
+         vkFreeCommandBuffers(ctx->core->device, command_pool, 1, &command_buffer);
+@@ -1231,6 +1276,7 @@ static bool upload_texture_pixels(Context* ctx_ptr, Handle<Texture> handle, cons
+     if (bindless_texture_index_valid(tex->bindless_slot)) {
+         write_bindless_texture_descriptor(ctx, tex->bindless_slot, tex);
+     }
++    observation.success = true;
+     return true;
+ }
+ 
+@@ -1238,6 +1284,7 @@ static bool upload_texture_pixels_mips(
+     Context* ctx_ptr, Handle<Texture> handle, const TextureMipData* levels, size_t level_count, size_t bytes_per_pixel)
+ {
+     auto* ctx = as_vulkan(ctx_ptr);
++    UploadObservation observation{ctx};
+     auto* tex = ctx->texture_pool_.get(handle);
+     if (!tex || !levels || tex->image == VK_NULL_HANDLE || level_count == 0 || tex->layers != 1) {
+         return false;
+@@ -1263,6 +1310,9 @@ static bool upload_texture_pixels_mips(
+         expected_height = std::max(1u, expected_height / 2u);
+     }
+ 
++    observation.bytes = total_size;
++    observation.mips = level_count;
++    ctx->resource_stats.largest_payload_bytes = std::max<uint64_t>(ctx->resource_stats.largest_payload_bytes, total_size);
+     VkBuffer staging_buffer = VK_NULL_HANDLE;
+     VmaAllocation staging_alloc = VK_NULL_HANDLE;
+ 
+@@ -1299,6 +1349,10 @@ static bool upload_texture_pixels_mips(
+         offset += mip.size;
+     }
+ 
++    ++ctx->resource_stats.staging_allocation_count;
++    ctx->resource_stats.staging_allocation_bytes += staging_info.size;
++    ctx->resource_stats.staging_high_water_bytes = std::max<uint64_t>(ctx->resource_stats.staging_high_water_bytes, staging_info.size);
++
+     VkCommandPool command_pool = VK_NULL_HANDLE;
+     VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+     VkFence fence = VK_NULL_HANDLE;
+@@ -1308,6 +1362,7 @@ static bool upload_texture_pixels_mips(
+     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+     pool_info.queueFamilyIndex = ctx->core->graphics_queue_family;
+     VK_CHECK(vkCreateCommandPool(ctx->core->device, &pool_info, nullptr, &command_pool));
++    ++ctx->resource_stats.upload_command_pool_count;
+ 
+     VkCommandBufferAllocateInfo cmd_alloc{};
+     cmd_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+@@ -1315,6 +1370,7 @@ static bool upload_texture_pixels_mips(
+     cmd_alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+     cmd_alloc.commandBufferCount = 1;
+     VK_CHECK(vkAllocateCommandBuffers(ctx->core->device, &cmd_alloc, &command_buffer));
++    ++ctx->resource_stats.upload_command_buffer_count;
+ 
+     VkCommandBufferBeginInfo begin_info{};
+     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+@@ -1370,9 +1426,13 @@ static bool upload_texture_pixels_mips(
+     submit.commandBufferCount = 1;
+     submit.pCommandBuffers = &command_buffer;
+     VK_CHECK(vkQueueSubmit(ctx->core->graphics_queue, 1, &submit, fence));
++    ++ctx->resource_stats.upload_submission_count;
+ 
+     constexpr uint64_t k_fence_timeout_ns = 5'000'000'000;
++    const uint64_t wait_start = SDL_GetTicksNS();
+     VkResult wait_result = vkWaitForFences(ctx->core->device, 1, &fence, VK_TRUE, k_fence_timeout_ns);
++    ++ctx->resource_stats.upload_wait_count;
++    ctx->resource_stats.upload_wait_seconds += static_cast<double>(SDL_GetTicksNS() - wait_start) * kNanosecondsToSeconds;
+     if (wait_result != VK_SUCCESS) {
+         vkDestroyFence(ctx->core->device, fence, nullptr);
+         vkFreeCommandBuffers(ctx->core->device, command_pool, 1, &command_buffer);
+@@ -1390,6 +1450,7 @@ static bool upload_texture_pixels_mips(
+     if (bindless_texture_index_valid(tex->bindless_slot)) {
+         write_bindless_texture_descriptor(ctx, tex->bindless_slot, tex);
+     }
++    observation.success = true;
+     return true;
+ }
+ 
+@@ -2470,6 +2531,7 @@ Context* create_context(Core* core, const ContextDesc& desc)
+ {
+     auto* ctx = new VulkanContext();
+     ctx->core = as_vulkan(core);
++    ctx->trace_resources = SDL_getenv("ROLLNW_GFX_TRACE_RESOURCES") != nullptr;
+     ctx->window = desc.window;
+     ctx->width = desc.width;
+     ctx->height = desc.height;
+@@ -2656,7 +2718,7 @@ void destroy_context(Context* ctx_ptr)
+ {
+     auto* ctx = as_vulkan(ctx_ptr);
+ 
+-    vkDeviceWaitIdle(ctx->core->device);
++    wait_idle(as_gfx(ctx));
+ 
+     if (ctx->headless) {
+         destroy_render_target(ctx_ptr, ctx->default_render_target);
+@@ -2714,13 +2776,25 @@ void destroy_context(Context* ctx_ptr)
+     delete ctx;
+ }
+ 
+-void wait_idle(Context* ctx_ptr)
++ResourceStats resource_stats(Context* ctx_ptr) noexcept
++{
++    const auto* ctx = as_vulkan(ctx_ptr);
++    return ctx ? ctx->resource_stats : ResourceStats{};
++}
++
++void wait_idle(Context* ctx_ptr, std::source_location source)
+ {
+     auto* ctx = as_vulkan(ctx_ptr);
+-    if (!ctx) {
+-        return;
++    if (!ctx) { return; }
++    const uint64_t start = SDL_GetTicksNS();
++    VK_CHECK(vkDeviceWaitIdle(ctx->core->device));
++    const double seconds = static_cast<double>(SDL_GetTicksNS() - start) * kNanosecondsToSeconds;
++    ++ctx->resource_stats.idle_wait_count;
++    ctx->resource_stats.idle_wait_seconds += seconds;
++    if (ctx->trace_resources) {
++        SDL_Log("gfx-resource idle start_ns=%llu seconds=%.9f source=%s:%u reason=%s",
++            static_cast<unsigned long long>(start), seconds, source.file_name(), source.line(), source.function_name());
+     }
+-    vkDeviceWaitIdle(ctx->core->device);
+ }
+ 
+ bool get_frame_info(Context* ctx_ptr, FrameInfo& out) noexcept
+@@ -2805,7 +2879,7 @@ static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height
+     }
+ 
+     VkDevice device = ctx->core->device;
+-    vkDeviceWaitIdle(device);
++    wait_idle(as_gfx(ctx));
+ 
+     for (uint32_t i = 0; i < ctx->swapchain_image_count; ++i) {
+         destroy_render_target(ctx_ptr, ctx->swapchain_render_targets[i]);
+@@ -3082,7 +3156,7 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
+     }
+ 
+     end_frame(ctx_ptr);
+-    vkDeviceWaitIdle(ctx->core->device);
++    wait_idle(as_gfx(ctx));
+ 
+     const bool is_bgra = !ctx->headless
+         && (ctx->swapchain_format == VK_FORMAT_B8G8R8A8_UNORM
+diff --git a/lib/nw/gfx/backends/vulkan/vulkan_internal.hpp b/lib/nw/gfx/backends/vulkan/vulkan_internal.hpp
+index 317974b9f..d68fe056a 100644
+--- a/lib/nw/gfx/backends/vulkan/vulkan_internal.hpp
++++ b/lib/nw/gfx/backends/vulkan/vulkan_internal.hpp
+@@ -27,14 +27,14 @@
+         }                                                            \
+     } while (0)
+ 
+-#define VK_CHECK(x)                                                          \
+-    do {                                                                     \
+-        VkResult err = x;                                                    \
+-        if (err != VK_SUCCESS) {                                             \
+-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,                       \
++#define VK_CHECK(x)                                                                     \
++    do {                                                                                \
++        VkResult err = x;                                                               \
++        if (err != VK_SUCCESS) {                                                        \
++            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,                                  \
+                 "Vulkan error %d at %s:%d", static_cast<int>(err), __FILE__, __LINE__); \
+-            std::abort();                                                    \
+-        }                                                                    \
++            std::abort();                                                               \
++        }                                                                               \
+     } while (0)
+ 
+ namespace nw::gfx {
+@@ -225,6 +225,8 @@ struct PerFrame {
+ 
+ struct VulkanContext {
+     VulkanCore* core = nullptr;
++    ResourceStats resource_stats{};
++    bool trace_resources = false;
+     SDL_Window* window = nullptr;
+     bool headless = false;
+ 
+diff --git a/lib/nw/gfx/gfx.hpp b/lib/nw/gfx/gfx.hpp
+index 53f05717f..e32c9631b 100644
+--- a/lib/nw/gfx/gfx.hpp
++++ b/lib/nw/gfx/gfx.hpp
+@@ -4,6 +4,7 @@
+ 
+ #include <cstdint>
+ #include <limits>
++#include <source_location>
+ #include <string>
+ #include <type_traits>
+ #include <utility>
+@@ -150,7 +151,31 @@ struct Texture;
+ Context* create_context(Core* core, const ContextDesc& desc);
+ void destroy_context(Context* ctx);
+ bool resize_context(Context* ctx, uint32_t width, uint32_t height);
+-void wait_idle(Context* ctx);
++void wait_idle(Context* ctx, std::source_location source = std::source_location::current());
++
++// Cumulative calling-thread resource costs. Snapshot before/after an operation
++// to measure it; high-water fields cover the lifetime of the context.
++struct ResourceStats {
++    uint64_t upload_batch_count = 0;
++    uint64_t upload_texture_count = 0;
++    uint64_t upload_mip_count = 0;
++    uint64_t upload_bytes = 0;
++    uint64_t upload_failure_count = 0;
++    uint64_t staging_allocation_count = 0;
++    uint64_t staging_allocation_bytes = 0;
++    uint64_t staging_high_water_bytes = 0;
++    uint64_t largest_payload_bytes = 0;
++    uint64_t upload_command_pool_count = 0;
++    uint64_t upload_command_buffer_count = 0;
++    uint64_t upload_submission_count = 0;
++    uint64_t upload_wait_count = 0;
++    uint64_t idle_wait_count = 0;
++    double upload_seconds = 0;
++    double upload_wait_seconds = 0;
++    double idle_wait_seconds = 0;
++};
++
++ResourceStats resource_stats(Context* ctx) noexcept;
+ 
+ // Public frame-slot count used by gfx and render per-frame upload arenas.
+ inline constexpr uint32_t kFramesInFlight = 2;
+diff --git a/tools/mudl/viewer_runtime.cpp b/tools/mudl/viewer_runtime.cpp
+index ed0d4e142..0877752d3 100644
+--- a/tools/mudl/viewer_runtime.cpp
++++ b/tools/mudl/viewer_runtime.cpp
+@@ -2318,6 +2318,31 @@ void render_frame(AppState& state)
+     nw::gfx::end_frame(state.gfx_context);
+ }
+ 
++namespace {
++json resource_stats_json(const nw::gfx::ResourceStats& stats)
++{
++    return json{
++        {"upload_batch_count", stats.upload_batch_count},
++        {"upload_texture_count", stats.upload_texture_count},
++        {"upload_mip_count", stats.upload_mip_count},
++        {"upload_bytes", stats.upload_bytes},
++        {"upload_failure_count", stats.upload_failure_count},
++        {"staging_allocation_count", stats.staging_allocation_count},
++        {"staging_allocation_bytes", stats.staging_allocation_bytes},
++        {"staging_high_water_bytes", stats.staging_high_water_bytes},
++        {"largest_payload_bytes", stats.largest_payload_bytes},
++        {"upload_command_pool_count", stats.upload_command_pool_count},
++        {"upload_command_buffer_count", stats.upload_command_buffer_count},
++        {"upload_submission_count", stats.upload_submission_count},
++        {"upload_wait_count", stats.upload_wait_count},
++        {"idle_wait_count", stats.idle_wait_count},
++        {"upload_seconds", stats.upload_seconds},
++        {"upload_wait_seconds", stats.upload_wait_seconds},
++        {"idle_wait_seconds", stats.idle_wait_seconds},
++    };
++}
++} // namespace
++
+ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
+     std::string_view module_path, std::string_view user_path,
+     int frames, int warmup_frames, bool lights_enabled, bool shadows_enabled,
+@@ -2352,6 +2377,8 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
+                                            .forward_plus_policy = &forward_plus_policy,
+                                        });
+ 
++    const auto resources_before_load = nw::gfx::resource_stats(state.gfx_context);
++    const uint64_t load_start = SDL_GetTicksNS();
+     LOG_F(INFO, "Area benchmark loading '{}'", area_resref);
+     if (!prepare_area_session_for_benchmark(
+             session, area_resref, viewport,
+@@ -2360,6 +2387,8 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
+             visibility_cone_half_angle_degrees)) {
+         return 1;
+     }
++    const double load_seconds = static_cast<double>(SDL_GetTicksNS() - load_start) * 1.0e-9;
++    const auto resources_after_load = nw::gfx::resource_stats(state.gfx_context);
+     if (area_time_seconds) {
+         session.set_area_day_night_elapsed_seconds(*area_time_seconds, false);
+     }
+@@ -2451,6 +2480,12 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
+     // clang-format off
+     json report{
+         {"area", std::string(area_resref)},
++        {"load_seconds", load_seconds},
++        {"resources_before_load", resource_stats_json(resources_before_load)},
++        {"resources_after_load", resource_stats_json(resources_after_load)},
++        {"resources_after_frames", resource_stats_json(nw::gfx::resource_stats(state.gfx_context))},
++        {"validation", {{"warnings", nw::gfx::validation_report(state.gfx_core).warning_count},
++                           {"errors", nw::gfx::validation_report(state.gfx_core).error_count}}},
+         {"module", benchmark_path_metadata_json(module_path)},
+         {"user_path", benchmark_path_metadata_json(user_path)},
+         {"frames", frames},

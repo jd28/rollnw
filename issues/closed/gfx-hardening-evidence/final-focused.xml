@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0" disabled="0" errors="0" time="1.799" timestamp="2026-09-30T12:40:24.604" name="AllTests">
+  <testsuite name="RenderViewerPreparedDraws" tests="1" failures="0" disabled="0" skipped="0" errors="0" time="0.998" timestamp="2026-09-30T12:40:24.604">
+    <testcase name="AreaLoadUsesRenderModelPathForNonHumanoidCreatures" file="/home/josh/projects/rollnw/tests/render_viewer_prepared_draws.cpp" line="3817" status="run" result="completed" time="0.998" timestamp="2026-09-30T12:40:24.604" classname="RenderViewerPreparedDraws" />
+  </testsuite>
+  <testsuite name="ClientGfxResources" tests="1" failures="0" disabled="0" skipped="0" errors="0" time="0.8" timestamp="2026-09-30T12:40:25.603">
+    <testcase name="AreaPreviewAndUiTransitionsRetireSubmittedResourcesSafely" file="/home/josh/projects/rollnw/tests/rollnw_client_gfx_resources.cpp" line="16" status="run" result="completed" time="0.8" timestamp="2026-09-30T12:40:25.603" classname="ClientGfxResources" />
+  </testsuite>
+</testsuites>

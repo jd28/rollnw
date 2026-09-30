@@ -203,7 +203,10 @@ nw::gfx::Handle<nw::gfx::Texture> create_uploaded_rgba_texture(
     if (!texture.valid()) {
         return {};
     }
-    nw::gfx::upload_texture_rgba8(ctx, texture, pixels.data(), pixels.size());
+    if (!nw::gfx::upload_texture_rgba8(ctx, texture, pixels.data(), pixels.size())) {
+        nw::gfx::destroy_texture(ctx, texture);
+        return {};
+    }
     return texture;
 }
 
@@ -349,12 +352,20 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
             texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
             return fallback_texture;
         }
-        nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
+        if (!nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size())) {
+            nw::gfx::destroy_texture(ctx_, texture);
+            texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
+            return fallback_texture;
+        }
         upload_bytes = rgba.size();
     } else if (image->channels() == 3) {
         std::vector<uint8_t> rgba(pixel_count * 4);
         expand_rgb_to_rgba(rgba.data(), image->data(), image->width(), image->height(), restore_tga_file_rows);
-        nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
+        if (!nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size())) {
+            nw::gfx::destroy_texture(ctx_, texture);
+            texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
+            return fallback_texture;
+        }
         upload_bytes = rgba.size();
     } else {
         LOG_F(WARNING, "Texture {} has unsupported {} channels", name.view(), image->channels());
@@ -509,7 +520,11 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_texture(
         texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
         return fallback_texture;
     }
-    nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size());
+    if (!nw::gfx::upload_texture_rgba8(ctx_, texture, rgba.data(), rgba.size())) {
+        nw::gfx::destroy_texture(ctx_, texture);
+        texture_cache_[cache_key] = CachedTexture{.texture = fallback_texture};
+        return fallback_texture;
+    }
     texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = rgba.size(), .owned = true};
     return texture;
 }
@@ -554,7 +569,10 @@ nw::gfx::Handle<nw::gfx::Texture> RenderAssetCache::get_or_load_raw_plt_texture(
         packed[i * 4 + 3] = src[i].color == 255 ? 0 : 255;
     }
 
-    nw::gfx::upload_texture_rgba8(ctx_, texture, packed.data(), packed.size());
+    if (!nw::gfx::upload_texture_rgba8(ctx_, texture, packed.data(), packed.size())) {
+        nw::gfx::destroy_texture(ctx_, texture);
+        return {};
+    }
     texture_cache_[cache_key] = CachedTexture{.texture = texture, .upload_bytes = packed.size(), .owned = true};
     return texture;
 }

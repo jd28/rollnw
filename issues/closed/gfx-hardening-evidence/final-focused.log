@@ -1,0 +1,701 @@
+date       time         ( uptime  ) [ thread name/id ]                   file:line     v| 
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             loguru.cpp:606   INFO| arguments: ./rollnw_test --gtest_filter=RenderViewerPreparedDraws.AreaLoadUsesRenderModelPathForNonHumanoidCreatures:ClientGfxResources.* --gtest_output=xml:/tmp/gfx-hardening/host/final-focused.xml
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             loguru.cpp:609   INFO| Current dir: /home/josh/projects/rollnw/build/tests
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             loguru.cpp:611   INFO| stderr verbosity: 0
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             loguru.cpp:612   INFO| -----------------------------------
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             Config.cpp:56    INFO| kernel: initializing config system
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             Config.cpp:57    INFO| kernel: root directory: /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             Config.cpp:58    INFO| kernel: user directory: test_data/user/
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]             Kernel.cpp:210   INFO| kernel: starting kernel services
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=320, chunk_size=1024
+2026-09-30 12:40:24.098 (   0.000s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=120, chunk_size=1024
+2026-09-30 12:40:24.101 (   0.003s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=320, chunk_size=1024
+2026-09-30 12:40:24.101 (   0.003s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=120, chunk_size=1024
+2026-09-30 12:40:24.102 (   0.004s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/stdlib/core
+2026-09-30 12:40:24.102 (   0.004s) [main thread     ]            runtime.cpp:3250  INFO| [runtime] Added module path: stdlib/core
+2026-09-30 12:40:24.103 (   0.005s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/stdlib/nwn1
+2026-09-30 12:40:24.103 (   0.005s) [main thread     ]            runtime.cpp:3250  INFO| [runtime] Added module path: stdlib/nwn1
+2026-09-30 12:40:24.106 (   0.008s) [main thread     ]    ResourceManager.cpp:117   INFO| kernel: resource system initializing...
+2026-09-30 12:40:24.114 (   0.016s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/test_data/user/development
+2026-09-30 12:40:24.114 (   0.016s) [main thread     ]    ResourceManager.cpp:436    ERR| [resman] attempting to add invalid override container: 'test_data/user//portraits'
+2026-09-30 12:40:24.115 (   0.017s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/prt
+2026-09-30 12:40:24.115 (   0.017s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//override'
+2026-09-30 12:40:24.115 (   0.017s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/ovr'
+2026-09-30 12:40:24.116 (   0.018s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//ambient'
+2026-09-30 12:40:24.116 (   0.018s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//music'
+2026-09-30 12:40:24.118 (   0.020s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/amb
+2026-09-30 12:40:24.121 (   0.023s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/mus
+2026-09-30 12:40:24.121 (   0.023s) [main thread     ]          StaticErf.cpp:122   INFO| [resources] erf: loading - 'test_data/user/patch/hak_with_description.hak'
+2026-09-30 12:40:24.121 (   0.023s) [main thread     ]          StaticErf.cpp:231   INFO| [resources] erf: loaded 1 resources - 'test_data/user/patch/hak_with_description.hak'
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:257   INFO| [resources] key: loading - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_retail.key'
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/ovr.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:342   INFO| [resources] key: loaded 93 resources - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_retail.key'
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:257   INFO| [resources] key: loading - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_base.key'
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_textures.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_shaders.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_dag01.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/templates.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_models.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tds.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/textures_01.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_textures.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_ui.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tcm02.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_trm02.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tms.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_scripts.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/editor.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_2da.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_tiles.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_ttf02.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_models.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_xp2_sounds.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/sounds.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tdc01.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_tiles.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_loadscreens.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp3.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_sounds.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_creatures.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/txpk_misc.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_templates.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_templates.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tde.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_nui.bif
+2026-09-30 12:40:24.122 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_templates.bif
+2026-09-30 12:40:24.123 (   0.024s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tin.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tin01.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tdc.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_misc.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/music.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/textures_02.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2patch.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tss13.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_ttf.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_textures.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/loadscreens.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_gui.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tts02.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_voicesets.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tcn.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_trs02.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_soundsets.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/ini.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/models_02.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tic.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tdm.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_ttr.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_xp1_sounds.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_portraits.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_dialog.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_convo.bif
+2026-09-30 12:40:24.123 (   0.025s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/models_01.bif
+2026-09-30 12:40:24.147 (   0.049s) [main thread     ]          StaticKey.cpp:342   INFO| [resources] key: loaded 113489 resources - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_base.key'
+2026-09-30 12:40:24.147 (   0.049s) [main thread     ]    ResourceManager.cpp:161   INFO| kernel: resource system initialized (40ms)
+2026-09-30 12:40:24.147 (   0.049s) [main thread     ]    ResourceManager.cpp:166   INFO| kernel: resource system building resource registry...
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]    ResourceManager.cpp:170   INFO| kernel: resource system resource registry built (4ms)
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.cpp:305   INFO| [runtime] Initializing Runtime and registering internal types
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.cpp:760   INFO| [runtime] Registered 23 types
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.cpp:3051  INFO| [runtime] Registered 38 binary ops, 6 unary ops
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.ResRef': size=8, alignment=8
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.Resource': size=16, alignment=8
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.TextRef': size=4, alignment=4
+2026-09-30 12:40:24.151 (   0.053s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.types
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.effects
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.item.ItemProperty': size=28, alignment=4
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.item.BaseItemInfo': size=72, alignment=8
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.item
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.object
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.area
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.creature.AppearanceInfo': size=56, alignment=8
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.creature.CreatureAccessoryModelInfo': size=16, alignment=8
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.creature
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.door.DoorAppearanceInfo': size=16, alignment=8
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.door
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.placeable.PlaceableAppearanceInfo': size=24, alignment=8
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.placeable
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.module
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.combat
+2026-09-30 12:40:24.152 (   0.054s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.visual
+2026-09-30 12:40:24.156 (   0.058s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.item.ItemProperty' matches C++ layout
+2026-09-30 12:40:24.157 (   0.059s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.item.BaseItemInfo' matches C++ layout
+2026-09-30 12:40:24.157 (   0.059s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.creature.AppearanceInfo' matches C++ layout
+2026-09-30 12:40:24.157 (   0.059s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.creature.CreatureAccessoryModelInfo' matches C++ layout
+2026-09-30 12:40:24.157 (   0.059s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.door.DoorAppearanceInfo' matches C++ layout
+2026-09-30 12:40:24.157 (   0.059s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.placeable.PlaceableAppearanceInfo' matches C++ layout
+2026-09-30 12:40:24.525 (   0.427s) [main thread     ]            effects.cpp:546   INFO| kernel: effect system initializing...
+2026-09-30 12:40:24.526 (   0.428s) [main thread     ]            effects.cpp:553   INFO|   ... published item property catalog: 88 definitions, 31 cost rows, 12 parameter rows
+2026-09-30 12:40:24.526 (   0.428s) [main thread     ]            effects.cpp:565   INFO| kernel: effect system initialized. (0ms)
+2026-09-30 12:40:24.526 (   0.428s) [main thread     ]    TilesetRegistry.cpp:190   INFO| kernel: tileset registry initializing...
+2026-09-30 12:40:24.537 (   0.439s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in trm02.set
+2026-09-30 12:40:24.537 (   0.439s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 5 of 1644 tile topology rows are unavailable in trm02.set
+2026-09-30 12:40:24.540 (   0.442s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 15 of 69 tile topology rows are unavailable in tib01.set
+2026-09-30 12:40:24.543 (   0.445s) [main thread     ]    TilesetRegistry.cpp:245   WARN| [tilesets] topology catalogs are unavailable in bad_doors.set; exact rendering remains available
+2026-09-30 12:40:24.543 (   0.445s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 1 door counts outside [0, 64] and 0 malformed door slots in bad_doors.set
+2026-09-30 12:40:24.543 (   0.445s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 1 of 1 tile topology rows are unavailable in bad_doors.set
+2026-09-30 12:40:24.565 (   0.467s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 6 malformed door slots in tcm02.set
+2026-09-30 12:40:24.565 (   0.467s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 1 of 1872 tile topology rows are unavailable in tcm02.set
+2026-09-30 12:40:24.580 (   0.482s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 4 of 1306 tile topology rows are unavailable in trs02.set
+2026-09-30 12:40:24.584 (   0.486s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in tin01.set
+2026-09-30 12:40:24.598 (   0.500s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 12 malformed door slots in tss13.set
+2026-09-30 12:40:24.601 (   0.503s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in ttd01.set
+2026-09-30 12:40:24.603 (   0.505s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in ttf02.set
+2026-09-30 12:40:24.603 (   0.505s) [main thread     ]    TilesetRegistry.cpp:208   INFO| kernel: tileset registry tilesets loaded: 34
+2026-09-30 12:40:24.603 (   0.505s) [main thread     ]    TilesetRegistry.cpp:209   INFO| kernel: tileset registry initialized (77ms)
+Note: Google Test filter = RenderViewerPreparedDraws.AreaLoadUsesRenderModelPathForNonHumanoidCreatures:ClientGfxResources.*
+[==========] Running 2 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from RenderViewerPreparedDraws
+[ RUN      ] RenderViewerPreparedDraws.AreaLoadUsesRenderModelPathForNonHumanoidCreatures
+2026-09-30 12:40:24.604 (   0.506s) [main thread     ]             Kernel.cpp:240   INFO| kernel: shutting down kernel services
+2026-09-30 12:40:24.604 (   0.506s) [main thread     ]            runtime.cpp:273   INFO| [runtime] Runtime destructor starting
+2026-09-30 12:40:24.605 (   0.507s) [main thread     ]            runtime.cpp:297   INFO| [runtime] Runtime destructor completed
+2026-09-30 12:40:24.614 (   0.516s) [main thread     ]             Kernel.cpp:210   INFO| kernel: starting kernel services
+2026-09-30 12:40:24.614 (   0.516s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=320, chunk_size=1024
+2026-09-30 12:40:24.614 (   0.516s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=120, chunk_size=1024
+2026-09-30 12:40:24.615 (   0.517s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=320, chunk_size=1024
+2026-09-30 12:40:24.615 (   0.517s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=120, chunk_size=1024
+2026-09-30 12:40:24.615 (   0.517s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/stdlib/core
+2026-09-30 12:40:24.615 (   0.517s) [main thread     ]            runtime.cpp:3250  INFO| [runtime] Added module path: stdlib/core
+2026-09-30 12:40:24.616 (   0.518s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/stdlib/nwn1
+2026-09-30 12:40:24.616 (   0.518s) [main thread     ]            runtime.cpp:3250  INFO| [runtime] Added module path: stdlib/nwn1
+2026-09-30 12:40:24.618 (   0.520s) [main thread     ]    ResourceManager.cpp:117   INFO| kernel: resource system initializing...
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/test_data/user/development
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    ResourceManager.cpp:436    ERR| [resman] attempting to add invalid override container: 'test_data/user//portraits'
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/prt
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//override'
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/ovr'
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//ambient'
+2026-09-30 12:40:24.621 (   0.523s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//music'
+2026-09-30 12:40:24.623 (   0.525s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/amb
+2026-09-30 12:40:24.624 (   0.526s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/mus
+2026-09-30 12:40:24.624 (   0.526s) [main thread     ]          StaticErf.cpp:122   INFO| [resources] erf: loading - 'test_data/user/patch/hak_with_description.hak'
+2026-09-30 12:40:24.624 (   0.526s) [main thread     ]          StaticErf.cpp:231   INFO| [resources] erf: loaded 1 resources - 'test_data/user/patch/hak_with_description.hak'
+2026-09-30 12:40:24.624 (   0.526s) [main thread     ]          StaticKey.cpp:257   INFO| [resources] key: loading - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_retail.key'
+2026-09-30 12:40:24.624 (   0.526s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/ovr.bif
+2026-09-30 12:40:24.624 (   0.526s) [main thread     ]          StaticKey.cpp:342   INFO| [resources] key: loaded 93 resources - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_retail.key'
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:257   INFO| [resources] key: loading - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_base.key'
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_textures.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_shaders.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_dag01.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/templates.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_models.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tds.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/textures_01.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_textures.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_ui.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tcm02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_trm02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tms.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_scripts.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/editor.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_2da.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_tiles.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_ttf02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_models.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_xp2_sounds.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/sounds.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tdc01.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_tiles.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_loadscreens.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp3.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_sounds.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_creatures.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/txpk_misc.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_templates.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_templates.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tde.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_nui.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_templates.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tin.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tin01.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tdc.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_misc.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/music.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/textures_02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2patch.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tss13.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_ttf.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_textures.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/loadscreens.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_gui.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tts02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_voicesets.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tcn.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_trs02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_soundsets.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/ini.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/models_02.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tic.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tdm.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_ttr.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_xp1_sounds.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_portraits.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_dialog.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_convo.bif
+2026-09-30 12:40:24.625 (   0.527s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/models_01.bif
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]          StaticKey.cpp:342   INFO| [resources] key: loaded 113489 resources - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_base.key'
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]    ResourceManager.cpp:161   INFO| kernel: resource system initialized (16ms)
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]            runtime.cpp:305   INFO| [runtime] Initializing Runtime and registering internal types
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]            runtime.cpp:760   INFO| [runtime] Registered 23 types
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]            runtime.cpp:3051  INFO| [runtime] Registered 38 binary ops, 6 unary ops
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.ResRef': size=8, alignment=8
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.Resource': size=16, alignment=8
+2026-09-30 12:40:24.634 (   0.536s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.TextRef': size=4, alignment=4
+2026-09-30 12:40:24.635 (   0.536s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.types
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.effects
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.item.ItemProperty': size=28, alignment=4
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.item.BaseItemInfo': size=72, alignment=8
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.item
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.object
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.area
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.creature.AppearanceInfo': size=56, alignment=8
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.creature.CreatureAccessoryModelInfo': size=16, alignment=8
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.creature
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.door.DoorAppearanceInfo': size=16, alignment=8
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.door
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.placeable.PlaceableAppearanceInfo': size=24, alignment=8
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.placeable
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.module
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.combat
+2026-09-30 12:40:24.635 (   0.537s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.visual
+2026-09-30 12:40:24.636 (   0.538s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.item.ItemProperty' matches C++ layout
+2026-09-30 12:40:24.636 (   0.538s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.item.BaseItemInfo' matches C++ layout
+2026-09-30 12:40:24.637 (   0.539s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.creature.AppearanceInfo' matches C++ layout
+2026-09-30 12:40:24.637 (   0.539s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.creature.CreatureAccessoryModelInfo' matches C++ layout
+2026-09-30 12:40:24.637 (   0.539s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.door.DoorAppearanceInfo' matches C++ layout
+2026-09-30 12:40:24.637 (   0.539s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.placeable.PlaceableAppearanceInfo' matches C++ layout
+2026-09-30 12:40:24.671 (   0.573s) [main thread     ]    ResourceManager.cpp:180   INFO| resman: loading module container: test_data/user/modules/DockerDemo.mod
+2026-09-30 12:40:24.671 (   0.573s) [main thread     ]          StaticErf.cpp:122   INFO| [resources] erf: loading - 'test_data/user/modules/DockerDemo.mod'
+2026-09-30 12:40:24.673 (   0.575s) [main thread     ]          StaticErf.cpp:231   INFO| [resources] erf: loaded 14 resources - 'test_data/user/modules/DockerDemo.mod'
+2026-09-30 12:40:24.673 (   0.575s) [main thread     ]    ResourceManager.cpp:166   INFO| kernel: resource system building resource registry...
+2026-09-30 12:40:24.677 (   0.579s) [main thread     ]    ResourceManager.cpp:170   INFO| kernel: resource system resource registry built (3ms)
+2026-09-30 12:40:25.007 (   0.909s) [main thread     ]            effects.cpp:546   INFO| kernel: effect system initializing...
+2026-09-30 12:40:25.007 (   0.909s) [main thread     ]            effects.cpp:553   INFO|   ... published item property catalog: 88 definitions, 31 cost rows, 12 parameter rows
+2026-09-30 12:40:25.007 (   0.909s) [main thread     ]            effects.cpp:565   INFO| kernel: effect system initialized. (0ms)
+2026-09-30 12:40:25.007 (   0.909s) [main thread     ]    TilesetRegistry.cpp:190   INFO| kernel: tileset registry initializing...
+2026-09-30 12:40:25.008 (   0.910s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in ttf02.set
+2026-09-30 12:40:25.022 (   0.924s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in trm02.set
+2026-09-30 12:40:25.022 (   0.924s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 5 of 1644 tile topology rows are unavailable in trm02.set
+2026-09-30 12:40:25.025 (   0.927s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in ttd01.set
+2026-09-30 12:40:25.049 (   0.951s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 6 malformed door slots in tcm02.set
+2026-09-30 12:40:25.049 (   0.951s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 1 of 1872 tile topology rows are unavailable in tcm02.set
+2026-09-30 12:40:25.050 (   0.952s) [main thread     ]    TilesetRegistry.cpp:245   WARN| [tilesets] topology catalogs are unavailable in bad_doors.set; exact rendering remains available
+2026-09-30 12:40:25.050 (   0.952s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 1 door counts outside [0, 64] and 0 malformed door slots in bad_doors.set
+2026-09-30 12:40:25.050 (   0.952s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 1 of 1 tile topology rows are unavailable in bad_doors.set
+2026-09-30 12:40:25.062 (   0.964s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 15 of 69 tile topology rows are unavailable in tib01.set
+2026-09-30 12:40:25.072 (   0.974s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 4 of 1306 tile topology rows are unavailable in trs02.set
+2026-09-30 12:40:25.075 (   0.977s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 12 malformed door slots in tss13.set
+2026-09-30 12:40:25.078 (   0.980s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in tin01.set
+2026-09-30 12:40:25.094 (   0.996s) [main thread     ]    TilesetRegistry.cpp:208   INFO| kernel: tileset registry tilesets loaded: 34
+2026-09-30 12:40:25.094 (   0.996s) [main thread     ]    TilesetRegistry.cpp:209   INFO| kernel: tileset registry initialized (86ms)
+2026-09-30 12:40:25.094 (   0.996s) [main thread     ]             Kernel.cpp:448   INFO| kernel: loaded module 'demo' in 479ms
+gfx-resource device name=AMD Radeon 890M Graphics (RADV STRIX1) driver=radv info=Mesa 26.2.2-arch1.1 api=4211042
+2026-09-30 12:40:25.109 (   1.011s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/lib/nw/render/shaders
+2026-09-30 12:40:25.110 (   1.012s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tools/mudl/shaders
+2026-09-30 12:40:25.113 (   1.015s) [main thread     ]    shader_provider.cpp:142   INFO| DXC available for runtime HLSL compilation
+2026-09-30 12:40:25.128 (   1.030s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: forward_plus_cull.cs.hlsl
+2026-09-30 12:40:25.129 (   1.031s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_fog_composite.vs.hlsl
+2026-09-30 12:40:25.133 (   1.035s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_fog_composite.ps.hlsl
+2026-09-30 12:40:25.135 (   1.037s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_particle_billboard.vs.hlsl
+2026-09-30 12:40:25.136 (   1.038s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_particle_path.vs.hlsl
+2026-09-30 12:40:25.141 (   1.043s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_particle_billboard.ps.hlsl
+2026-09-30 12:40:25.146 (   1.048s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_static.vs.hlsl
+2026-09-30 12:40:25.150 (   1.052s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_static_instanced.vs.hlsl
+2026-09-30 12:40:25.154 (   1.056s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_skinned.vs.hlsl
+2026-09-30 12:40:25.211 (   1.113s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_static.ps.hlsl
+2026-09-30 12:40:25.260 (   1.162s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_nwn_static.ps.hlsl
+2026-09-30 12:40:25.265 (   1.167s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_water.vs.hlsl
+2026-09-30 12:40:25.322 (   1.224s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_water.ps.hlsl
+2026-09-30 12:40:25.327 (   1.229s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_shadow.ps.hlsl
+gfx-resource upload start_ns=233171722 textures=5 mips=5 bytes=1040 seconds=0.000836796 success=1
+2026-09-30 12:40:25.329 (   1.231s) [main thread     ]preview_render_resource:30    INFO| PreviewRenderResources initialized
+2026-09-30 12:40:25.331 (   1.233s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_grid.vs.hlsl
+2026-09-30 12:40:25.335 (   1.237s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_grid.ps.hlsl
+2026-09-30 12:40:25.337 (   1.239s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_shape.vs.hlsl
+2026-09-30 12:40:25.338 (   1.240s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_shape.ps.hlsl
+2026-09-30 12:40:25.340 (   1.242s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_area_tile_grid.vs.hlsl
+2026-09-30 12:40:25.343 (   1.245s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_sound_debug_dot.vs.hlsl
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4586  INFO| Loaded area test_area tileset=ttf02 : 16x16 tiles=256 loaded_models=263 static_assets=16 static_local_hits=245 static_retained_hits=0 static_imports=16 static_asset_failures=0 flags interior=false underground=false cycle=1 night=0 tile_lights=0 object_lights=0 light_slot_tiles=0 local_lights=0 colored_lights=0 light_color_max=0.00 light_radius=[0.00..0.00] light_intensity=[0.00..0.00] light_scale[r=0.75, i=0.42] creatures=1/1 doors=1/1 items=1/1 placeables=1/1 waypoints=1/1 triggers=2/2 encounters=1/1 debug_indices=66 demand=2ms deserialize=12ms placement[x=5..155, y=5..155]
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_p03_01 count=22
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_a09_01 count=23
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_o03_01 count=33
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_p02_01 count=25
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_o04_01 count=27
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_p04_01 count=35
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_p15_01 count=1
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_o02_01 count=31
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_p01_01 count=29
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_o01_01 count=29
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model ttf02_p18_01 count=1
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]      preview_scene.cpp:4662  INFO| Area render cache test_area records=263 static=261 dynamic=2 prepared_draws=262 surfaces[geometries=11 instances=256 triangles=11 bytes=41996] max_prepared_record=2 chunks=256/256 max_chunk=2 pass[o/w/t]=263/0/0 shadow_casters=0 source[tile/creature/door/item/placeable/waypoint/unknown]=256/1/1/1/1/1/2
+2026-09-30 12:40:25.359 (   1.261s) [main thread     ]            session.cpp:708   INFO| Viewer session: loaded area 'test_area' models=263 build=16.316 ms replace=0.034 ms total=16.349 ms
+gfx-resource idle start_ns=264688488 seconds=0.000017522 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=265207960 seconds=0.000142537 source=/home/josh/projects/rollnw/tests/render_viewer_prepared_draws.cpp:249 reason=bool {anonymous}::render_viewer_frame(nw::gfx::Context*, nw::render::viewer::ViewerSession&, const nw::render::viewer::ViewerViewport&, std::string&, int32_t)
+gfx-resource idle start_ns=265580347 seconds=0.000225352 source=/home/josh/projects/rollnw/tests/render_viewer_prepared_draws.cpp:249 reason=bool {anonymous}::render_viewer_frame(nw::gfx::Context*, nw::render::viewer::ViewerSession&, const nw::render::viewer::ViewerViewport&, std::string&, int32_t)
+gfx-resource idle start_ns=265815958 seconds=0.000001252 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+2026-09-30 12:40:25.361 (   1.263s) [main thread     ]            session.cpp:876   INFO| Viewer session: refreshed 1 live object visual(s), models 1 -> 1 in 0ms
+gfx-resource idle start_ns=265986467 seconds=0.000093074 source=/home/josh/projects/rollnw/tests/render_viewer_prepared_draws.cpp:249 reason=bool {anonymous}::render_viewer_frame(nw::gfx::Context*, nw::render::viewer::ViewerSession&, const nw::render::viewer::ViewerViewport&, std::string&, int32_t)
+gfx-resource idle start_ns=501473543 seconds=0.000025839 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=502101388 seconds=0.000179226 source=/home/josh/projects/rollnw/tests/render_viewer_prepared_draws.cpp:249 reason=bool {anonymous}::render_viewer_frame(nw::gfx::Context*, nw::render::viewer::ViewerSession&, const nw::render::viewer::ViewerViewport&, std::string&, int32_t)
+gfx-resource idle start_ns=502293859 seconds=0.000002224 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=502405989 seconds=0.000001282 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=502425996 seconds=0.000001062 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=502570286 seconds=0.000001373 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=502781451 seconds=0.000001343 source=/home/josh/projects/rollnw/lib/nw/render/viewer/device.cpp:83 reason=void nw::render::viewer::ViewerDevice::shutdown()
+gfx-resource idle start_ns=502798944 seconds=0.000001042 source=/home/josh/projects/rollnw/lib/nw/render/nwn/render_asset_cache.cpp:237 reason=void nw::render::nwn::RenderAssetCache::clear()
+gfx-resource idle start_ns=502979212 seconds=0.000001272 source=/home/josh/projects/rollnw/tests/render_viewer_prepared_draws.cpp:70 reason={anonymous}::TestGfxRuntime::~TestGfxRuntime()
+gfx-resource idle start_ns=502982418 seconds=0.000001022 source=/home/josh/projects/rollnw/lib/nw/gfx/backends/vulkan/vulkan_context.cpp:2588 reason=void nw::gfx::destroy_context(Context*)
+[       OK ] RenderViewerPreparedDraws.AreaLoadUsesRenderModelPathForNonHumanoidCreatures (998 ms)
+[----------] 1 test from RenderViewerPreparedDraws (998 ms total)
+
+[----------] 1 test from ClientGfxResources
+[ RUN      ] ClientGfxResources.AreaPreviewAndUiTransitionsRetireSubmittedResourcesSafely
+gfx-resource device name=AMD Radeon 890M Graphics (RADV STRIX1) driver=radv info=Mesa 26.2.2-arch1.1 api=4211042
+2026-09-30 12:40:25.613 (   1.515s) [main thread     ]             Kernel.cpp:240   INFO| kernel: shutting down kernel services
+2026-09-30 12:40:25.614 (   1.516s) [main thread     ]            runtime.cpp:273   INFO| [runtime] Runtime destructor starting
+2026-09-30 12:40:25.614 (   1.516s) [main thread     ]            runtime.cpp:297   INFO| [runtime] Runtime destructor completed
+2026-09-30 12:40:25.624 (   1.526s) [main thread     ]             Kernel.cpp:210   INFO| kernel: starting kernel services
+2026-09-30 12:40:25.624 (   1.526s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=320, chunk_size=1024
+2026-09-30 12:40:25.624 (   1.526s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=120, chunk_size=1024
+2026-09-30 12:40:25.626 (   1.528s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=320, chunk_size=1024
+2026-09-30 12:40:25.626 (   1.528s) [main thread     ]         HandlePool.cpp:18    INFO| [TypedHandlePool] Created pool: object_size=120, chunk_size=1024
+2026-09-30 12:40:25.626 (   1.528s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/stdlib/core
+2026-09-30 12:40:25.626 (   1.528s) [main thread     ]            runtime.cpp:3250  INFO| [runtime] Added module path: stdlib/core
+2026-09-30 12:40:25.627 (   1.529s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/stdlib/nwn1
+2026-09-30 12:40:25.627 (   1.529s) [main thread     ]            runtime.cpp:3250  INFO| [runtime] Added module path: stdlib/nwn1
+2026-09-30 12:40:25.628 (   1.530s) [main thread     ]    ResourceManager.cpp:117   INFO| kernel: resource system initializing...
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/build/tests/test_data/user/development
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    ResourceManager.cpp:436    ERR| [resman] attempting to add invalid override container: 'test_data/user//portraits'
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/prt
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//override'
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/ovr'
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//ambient'
+2026-09-30 12:40:25.632 (   1.534s) [main thread     ]    ResourceManager.cpp:389    ERR| [resman] attempting to add invalid base container 'test_data/user//music'
+2026-09-30 12:40:25.634 (   1.536s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/amb
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/mus
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]          StaticErf.cpp:122   INFO| [resources] erf: loading - 'test_data/user/patch/hak_with_description.hak'
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]          StaticErf.cpp:231   INFO| [resources] erf: loaded 1 resources - 'test_data/user/patch/hak_with_description.hak'
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]          StaticKey.cpp:257   INFO| [resources] key: loading - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_retail.key'
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/ovr.bif
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]          StaticKey.cpp:342   INFO| [resources] key: loaded 93 resources - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_retail.key'
+2026-09-30 12:40:25.635 (   1.537s) [main thread     ]          StaticKey.cpp:257   INFO| [resources] key: loading - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_base.key'
+2026-09-30 12:40:25.636 (   1.537s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_textures.bif
+2026-09-30 12:40:25.636 (   1.537s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_shaders.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_dag01.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/templates.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_models.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tds.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/textures_01.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_textures.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_ui.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tcm02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_trm02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tms.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_scripts.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/editor.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_2da.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_tiles.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_ttf02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_models.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_xp2_sounds.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/sounds.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tdc01.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_tiles.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_loadscreens.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp3.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_sounds.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_creatures.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/txpk_misc.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_templates.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_templates.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tde.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_nui.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp1_templates.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tin.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tin01.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tdc.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/bd_misc.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/music.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/textures_02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2patch.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tss13.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_ttf.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/xp2_textures.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/loadscreens.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_gui.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_tts02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_voicesets.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tcn.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/tileset_trs02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_soundsets.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/ini.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/models_02.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tic.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_tdm.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/aurora_ttr.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_xp1_sounds.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/os_portraits.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/base_dialog.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/en_convo.bif
+2026-09-30 12:40:25.636 (   1.538s) [main thread     ]          StaticKey.cpp:307   INFO| [resources] key: added bif - data/models_01.bif
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]          StaticKey.cpp:342   INFO| [resources] key: loaded 113489 resources - '/home/josh/.local/share/Steam/steamapps/common/Neverwinter Nights/data/nwn_base.key'
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]    ResourceManager.cpp:161   INFO| kernel: resource system initialized (18ms)
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.cpp:305   INFO| [runtime] Initializing Runtime and registering internal types
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.cpp:760   INFO| [runtime] Registered 23 types
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.cpp:3051  INFO| [runtime] Registered 38 binary ops, 6 unary ops
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.ResRef': size=8, alignment=8
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.Resource': size=16, alignment=8
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.hpp:1790  INFO| [runtime] Registered value_type 'core.types.TextRef': size=4, alignment=4
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.types
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.effects
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.item.ItemProperty': size=28, alignment=4
+2026-09-30 12:40:25.647 (   1.549s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.item.BaseItemInfo': size=72, alignment=8
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.item
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.object
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.area
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.creature.AppearanceInfo': size=56, alignment=8
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.creature.CreatureAccessoryModelInfo': size=16, alignment=8
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.creature
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.door.DoorAppearanceInfo': size=16, alignment=8
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.door
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.hpp:1813  INFO| [native] Registered native struct 'core.placeable.PlaceableAppearanceInfo': size=24, alignment=8
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.placeable
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.module
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.combat
+2026-09-30 12:40:25.648 (   1.550s) [main thread     ]            runtime.cpp:5441  INFO| [runtime] Finalized C++ module: core.visual
+2026-09-30 12:40:25.649 (   1.551s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.item.ItemProperty' matches C++ layout
+2026-09-30 12:40:25.649 (   1.551s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.item.BaseItemInfo' matches C++ layout
+2026-09-30 12:40:25.650 (   1.552s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.creature.AppearanceInfo' matches C++ layout
+2026-09-30 12:40:25.650 (   1.552s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.creature.CreatureAccessoryModelInfo' matches C++ layout
+2026-09-30 12:40:25.650 (   1.552s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.door.DoorAppearanceInfo' matches C++ layout
+2026-09-30 12:40:25.650 (   1.552s) [main thread     ]            runtime.cpp:5387  INFO| [native] Validated native struct 'core.placeable.PlaceableAppearanceInfo' matches C++ layout
+2026-09-30 12:40:25.687 (   1.589s) [main thread     ]    ResourceManager.cpp:180   INFO| resman: loading module container: test_data/user/modules/DockerDemo.mod
+2026-09-30 12:40:25.687 (   1.589s) [main thread     ]          StaticErf.cpp:122   INFO| [resources] erf: loading - 'test_data/user/modules/DockerDemo.mod'
+2026-09-30 12:40:25.687 (   1.589s) [main thread     ]          StaticErf.cpp:231   INFO| [resources] erf: loaded 14 resources - 'test_data/user/modules/DockerDemo.mod'
+2026-09-30 12:40:25.687 (   1.589s) [main thread     ]    ResourceManager.cpp:166   INFO| kernel: resource system building resource registry...
+2026-09-30 12:40:25.691 (   1.593s) [main thread     ]    ResourceManager.cpp:170   INFO| kernel: resource system resource registry built (4ms)
+2026-09-30 12:40:26.003 (   1.905s) [main thread     ]            effects.cpp:546   INFO| kernel: effect system initializing...
+2026-09-30 12:40:26.004 (   1.906s) [main thread     ]            effects.cpp:553   INFO|   ... published item property catalog: 88 definitions, 31 cost rows, 12 parameter rows
+2026-09-30 12:40:26.004 (   1.906s) [main thread     ]            effects.cpp:565   INFO| kernel: effect system initialized. (0ms)
+2026-09-30 12:40:26.004 (   1.906s) [main thread     ]    TilesetRegistry.cpp:190   INFO| kernel: tileset registry initializing...
+2026-09-30 12:40:26.007 (   1.909s) [main thread     ]    TilesetRegistry.cpp:245   WARN| [tilesets] topology catalogs are unavailable in bad_doors.set; exact rendering remains available
+2026-09-30 12:40:26.007 (   1.909s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 1 door counts outside [0, 64] and 0 malformed door slots in bad_doors.set
+2026-09-30 12:40:26.007 (   1.909s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 1 of 1 tile topology rows are unavailable in bad_doors.set
+2026-09-30 12:40:26.012 (   1.914s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in ttd01.set
+2026-09-30 12:40:26.028 (   1.930s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in trm02.set
+2026-09-30 12:40:26.028 (   1.930s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 5 of 1644 tile topology rows are unavailable in trm02.set
+2026-09-30 12:40:26.034 (   1.936s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in ttf02.set
+2026-09-30 12:40:26.052 (   1.954s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 12 malformed door slots in tss13.set
+2026-09-30 12:40:26.073 (   1.975s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 6 malformed door slots in tcm02.set
+2026-09-30 12:40:26.074 (   1.976s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 1 of 1872 tile topology rows are unavailable in tcm02.set
+2026-09-30 12:40:26.076 (   1.978s) [main thread     ]    TilesetRegistry.cpp:314   WARN| [tilesets] ignored 0 door counts outside [0, 64] and 1 malformed door slots in tin01.set
+2026-09-30 12:40:26.088 (   1.990s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 4 of 1306 tile topology rows are unavailable in trs02.set
+2026-09-30 12:40:26.089 (   1.991s) [main thread     ]    TilesetRegistry.cpp:329   WARN| [tilesets] 15 of 69 tile topology rows are unavailable in tib01.set
+2026-09-30 12:40:26.091 (   1.993s) [main thread     ]    TilesetRegistry.cpp:208   INFO| kernel: tileset registry tilesets loaded: 34
+2026-09-30 12:40:26.091 (   1.993s) [main thread     ]    TilesetRegistry.cpp:209   INFO| kernel: tileset registry initialized (87ms)
+2026-09-30 12:40:26.091 (   1.993s) [main thread     ]             Kernel.cpp:448   INFO| kernel: loaded module 'demo' in 466ms
+2026-09-30 12:40:26.092 (   1.994s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/lib/nw/render/shaders
+2026-09-30 12:40:26.096 (   1.998s) [main thread     ]    shader_provider.cpp:142   INFO| DXC available for runtime HLSL compilation
+2026-09-30 12:40:26.110 (   2.012s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: forward_plus_cull.cs.hlsl
+2026-09-30 12:40:26.112 (   2.014s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_fog_composite.vs.hlsl
+2026-09-30 12:40:26.115 (   2.017s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_fog_composite.ps.hlsl
+2026-09-30 12:40:26.119 (   2.021s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_particle_billboard.vs.hlsl
+2026-09-30 12:40:26.120 (   2.022s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_particle_path.vs.hlsl
+2026-09-30 12:40:26.125 (   2.027s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_particle_billboard.ps.hlsl
+2026-09-30 12:40:26.130 (   2.032s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_static.vs.hlsl
+2026-09-30 12:40:26.133 (   2.035s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_static_instanced.vs.hlsl
+2026-09-30 12:40:26.137 (   2.039s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_skinned.vs.hlsl
+2026-09-30 12:40:26.191 (   2.093s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_static.ps.hlsl
+2026-09-30 12:40:26.238 (   2.140s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_nwn_static.ps.hlsl
+2026-09-30 12:40:26.244 (   2.146s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_water.vs.hlsl
+2026-09-30 12:40:26.297 (   2.199s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_water.ps.hlsl
+2026-09-30 12:40:26.301 (   2.203s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_pbr_shadow.ps.hlsl
+WARNING: [VK/PERFORMANCE] vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location 3 not consumed by vertex shader.
+WARNING: [VK/PERFORMANCE] vkCreateGraphicsPipelines(): pCreateInfos[0] (SPIR-V Interface) [VK_SHADER_STAGE_VERTEX_BIT] has an Output value declared at Location 6 Component 0, but there is no corresponding Input declared in [VK_SHADER_STAGE_FRAGMENT_BIT].
+This is not invalid, but the write to the unused Output is discarded.
+The Output variable is:
+  pointer to Output -> float32
+WARNING: [VK/PERFORMANCE] vkCreateGraphicsPipelines(): pCreateInfos[0] (SPIR-V Interface) [VK_SHADER_STAGE_VERTEX_BIT] has an Output value declared at Location 6 Component 0, but there is no corresponding Input declared in [VK_SHADER_STAGE_FRAGMENT_BIT].
+This is not invalid, but the write to the unused Output is discarded.
+The Output variable is:
+  pointer to Output -> float32
+WARNING: [VK/PERFORMANCE] vkCreateGraphicsPipelines(): pCreateInfos[0] (SPIR-V Interface) [VK_SHADER_STAGE_VERTEX_BIT] has an Output value declared at Location 6 Component 0, but there is no corresponding Input declared in [VK_SHADER_STAGE_FRAGMENT_BIT].
+This is not invalid, but the write to the unused Output is discarded.
+The Output variable is:
+  pointer to Output -> float32
+gfx-resource upload start_ns=1207327614 textures=5 mips=5 bytes=1040 seconds=0.000884546 success=1
+2026-09-30 12:40:26.303 (   2.205s) [main thread     ]preview_render_resource:30    INFO| PreviewRenderResources initialized
+2026-09-30 12:40:26.305 (   2.207s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_grid.vs.hlsl
+2026-09-30 12:40:26.309 (   2.211s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_grid.ps.hlsl
+2026-09-30 12:40:26.310 (   2.212s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_shape.vs.hlsl
+2026-09-30 12:40:26.311 (   2.213s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_debug_shape.ps.hlsl
+2026-09-30 12:40:26.314 (   2.216s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_area_tile_grid.vs.hlsl
+2026-09-30 12:40:26.316 (   2.218s) [main thread     ]    shader_provider.cpp:281   INFO| Successfully compiled shader: render_sound_debug_dot.vs.hlsl
+2026-09-30 12:40:26.317 (   2.219s) [main thread     ]    StaticDirectory.cpp:36    INFO| [resources] dir: loading - /home/josh/projects/rollnw/tools/client/ui
+Loaded font face 'RollnwSans' [regular] from 'memory'.
+Loaded font face 'RollnwSans' [weight=500] from 'memory'.
+Loaded font face 'RollnwSans' [weight=600] from 'memory'.
+Loaded font face 'RollnwSans' [bold] from 'memory'.
+Loaded font face 'RollnwMono' [regular] from 'memory'.
+gfx-resource upload start_ns=1223890639 textures=1 mips=6 bytes=4096 seconds=0.000556121 success=1
+gfx-resource upload start_ns=1230195841 textures=1 mips=10 bytes=1048576 seconds=0.000612216 success=1
+gfx-resource upload start_ns=1231627611 textures=1 mips=10 bytes=1048576 seconds=0.000300783 success=1
+gfx-resource upload start_ns=1231967938 textures=1 mips=6 bytes=4096 seconds=0.000163196 success=1
+gfx-resource upload start_ns=1232341508 textures=1 mips=9 bytes=262144 seconds=0.000225261 success=1
+gfx-resource upload start_ns=1233350356 textures=1 mips=10 bytes=1048576 seconds=0.000242334 success=1
+gfx-resource upload start_ns=1234376036 textures=1 mips=10 bytes=1048576 seconds=0.000273081 success=1
+gfx-resource upload start_ns=1234872696 textures=1 mips=9 bytes=262144 seconds=0.000178043 success=1
+gfx-resource upload start_ns=1235901021 textures=1 mips=10 bytes=1048576 seconds=0.000235020 success=1
+gfx-resource upload start_ns=1236823207 textures=1 mips=9 bytes=262144 seconds=0.000344074 success=1
+gfx-resource upload start_ns=1237424633 textures=1 mips=9 bytes=262144 seconds=0.000250579 success=1
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4586  INFO| Loaded area start tileset=tic01 : 4x4 tiles=16 loaded_models=22 static_assets=4 static_local_hits=18 static_retained_hits=0 static_imports=4 static_asset_failures=0 flags interior=true underground=false cycle=0 night=1 tile_lights=20 object_lights=0 light_slot_tiles=13 local_lights=20 colored_lights=7 light_color_max=1.00 light_radius=[4.92..7.54] light_intensity=[0.23..0.23] light_scale[r=0.82, i=0.52] creatures=0/0 doors=0/0 items=0/0 placeables=6/6 waypoints=0/0 triggers=0/0 encounters=0/0 debug_indices=0 demand=0ms deserialize=0ms placement[x=5..35, y=5..35]
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_j01_01 count=4
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_o20_01 count=12
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(0, 0) count=3
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(0, 0) count=1
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(8, 8) count=2
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(8, 8) count=3
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(8, 8) count=1
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 31) source=(8, 8) count=1
+2026-09-30 12:40:26.333 (   2.235s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]      preview_scene.cpp:4662  INFO| Area render cache start records=22 static=16 dynamic=6 prepared_draws=160 surfaces[geometries=2 instances=16 triangles=159 bytes=9260] max_prepared_record=37 chunks=16/16 max_chunk=3 pass[o/w/t]=17/0/0 shadow_casters=17 source[tile/creature/door/item/placeable/waypoint/unknown]=16/0/0/0/6/0/0
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model plc_l07 instance 16: ozz
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 17: ozz
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 18: ozz
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 19: ozz
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 20: ozz
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 21: ozz
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]            session.cpp:587   INFO| Viewer session: primed 6 particle systems (250 live particles, 1000 ms)
+2026-09-30 12:40:26.334 (   2.236s) [main thread     ]            session.cpp:708   INFO| Viewer session: loaded area 'start' models=22 build=15.356 ms replace=0.224 ms total=15.580 ms
+gfx-resource upload start_ns=1239144652 textures=1 mips=1 bytes=131072 seconds=0.000232085 success=1
+gfx-resource upload start_ns=1240986791 textures=1 mips=9 bytes=262144 seconds=0.000345847 success=1
+gfx-resource idle start_ns=1244165751 seconds=0.000083477 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource upload start_ns=1245310484 textures=1 mips=6 bytes=4096 seconds=0.000350927 success=1
+gfx-resource upload start_ns=1247063235 textures=1 mips=10 bytes=1048576 seconds=0.000381654 success=1
+gfx-resource upload start_ns=1248247011 textures=1 mips=10 bytes=1048576 seconds=0.000281697 success=1
+gfx-resource upload start_ns=1248561199 textures=1 mips=6 bytes=4096 seconds=0.000150091 success=1
+gfx-resource upload start_ns=1248921744 textures=1 mips=9 bytes=262144 seconds=0.000201407 success=1
+gfx-resource upload start_ns=1249929831 textures=1 mips=10 bytes=1048576 seconds=0.000252563 success=1
+gfx-resource upload start_ns=1251055017 textures=1 mips=10 bytes=1048576 seconds=0.000279203 success=1
+gfx-resource upload start_ns=1251562407 textures=1 mips=9 bytes=262144 seconds=0.000199794 success=1
+gfx-resource upload start_ns=1252597735 textures=1 mips=10 bytes=1048576 seconds=0.000278491 success=1
+gfx-resource upload start_ns=1253241690 textures=1 mips=9 bytes=262144 seconds=0.000252333 success=1
+gfx-resource upload start_ns=1253761654 textures=1 mips=9 bytes=262144 seconds=0.000256470 success=1
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4586  INFO| Loaded area start tileset=tic01 : 4x4 tiles=16 loaded_models=22 static_assets=4 static_local_hits=18 static_retained_hits=0 static_imports=4 static_asset_failures=0 flags interior=true underground=false cycle=0 night=1 tile_lights=20 object_lights=0 light_slot_tiles=13 local_lights=20 colored_lights=7 light_color_max=1.00 light_radius=[4.92..7.54] light_intensity=[0.23..0.23] light_scale[r=0.82, i=0.52] creatures=0/0 doors=0/0 items=0/0 placeables=6/6 waypoints=0/0 triggers=0/0 encounters=0/0 debug_indices=0 demand=0ms deserialize=0ms placement[x=5..35, y=5..35]
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_j01_01 count=4
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_o20_01 count=12
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(0, 0) count=3
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(0, 0) count=1
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(8, 8) count=2
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(8, 8) count=3
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 31) source=(8, 8) count=1
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(8, 8) count=1
+2026-09-30 12:40:26.349 (   2.251s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]      preview_scene.cpp:4662  INFO| Area render cache start records=22 static=16 dynamic=6 prepared_draws=160 surfaces[geometries=2 instances=16 triangles=159 bytes=9260] max_prepared_record=37 chunks=16/16 max_chunk=3 pass[o/w/t]=17/0/0 shadow_casters=17 source[tile/creature/door/item/placeable/waypoint/unknown]=16/0/0/0/6/0/0
+gfx-resource idle start_ns=1254949337 seconds=0.000011351 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model plc_l07 instance 16: ozz
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 17: ozz
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 18: ozz
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 19: ozz
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 20: ozz
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 21: ozz
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]            session.cpp:587   INFO| Viewer session: primed 6 particle systems (250 live particles, 1000 ms)
+2026-09-30 12:40:26.350 (   2.252s) [main thread     ]            session.cpp:708   INFO| Viewer session: loaded area 'start' models=22 build=9.975 ms replace=0.244 ms total=10.219 ms
+gfx-resource upload start_ns=1256527000 textures=1 mips=1 bytes=64 seconds=0.000403185 success=1
+ERROR: gfx: rejected texture upload batch before submission
+gfx-resource upload start_ns=1256959830 textures=1 mips=0 bytes=0 seconds=0.000003858 success=0
+gfx-resource idle start_ns=1259506688 seconds=0.000040696 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource upload start_ns=1260378740 textures=1 mips=6 bytes=4096 seconds=0.000237054 success=1
+gfx-resource upload start_ns=1261893345 textures=1 mips=10 bytes=1048576 seconds=0.000344696 success=1
+gfx-resource upload start_ns=1263033650 textures=1 mips=10 bytes=1048576 seconds=0.000266950 success=1
+gfx-resource upload start_ns=1263333291 textures=1 mips=6 bytes=4096 seconds=0.000198121 success=1
+gfx-resource upload start_ns=1263742016 textures=1 mips=9 bytes=262144 seconds=0.000213740 success=1
+gfx-resource upload start_ns=1264741687 textures=1 mips=10 bytes=1048576 seconds=0.000285805 success=1
+gfx-resource upload start_ns=1265816289 textures=1 mips=10 bytes=1048576 seconds=0.000316522 success=1
+gfx-resource upload start_ns=1266349186 textures=1 mips=9 bytes=262144 seconds=0.000196538 success=1
+gfx-resource upload start_ns=1267369376 textures=1 mips=10 bytes=1048576 seconds=0.000286867 success=1
+gfx-resource upload start_ns=1268004555 textures=1 mips=9 bytes=262144 seconds=0.000253314 success=1
+gfx-resource upload start_ns=1268492318 textures=1 mips=9 bytes=262144 seconds=0.000199373 success=1
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4586  INFO| Loaded area start tileset=tic01 : 4x4 tiles=16 loaded_models=22 static_assets=4 static_local_hits=18 static_retained_hits=0 static_imports=4 static_asset_failures=0 flags interior=true underground=false cycle=0 night=1 tile_lights=20 object_lights=0 light_slot_tiles=13 local_lights=20 colored_lights=7 light_color_max=1.00 light_radius=[4.92..7.54] light_intensity=[0.23..0.23] light_scale[r=0.82, i=0.52] creatures=0/0 doors=0/0 items=0/0 placeables=6/6 waypoints=0/0 triggers=0/0 encounters=0/0 debug_indices=0 demand=0ms deserialize=0ms placement[x=5..35, y=5..35]
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_o20_01 count=12
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_j01_01 count=4
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(0, 0) count=3
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(0, 0) count=1
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(8, 8) count=2
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(8, 8) count=3
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 31) source=(8, 8) count=1
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(8, 8) count=1
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]      preview_scene.cpp:4662  INFO| Area render cache start records=22 static=16 dynamic=6 prepared_draws=160 surfaces[geometries=2 instances=16 triangles=159 bytes=9260] max_prepared_record=37 chunks=16/16 max_chunk=3 pass[o/w/t]=17/0/0 shadow_casters=17 source[tile/creature/door/item/placeable/waypoint/unknown]=16/0/0/0/6/0/0
+gfx-resource idle start_ns=1269603618 seconds=0.000010470 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model plc_l07 instance 16: ozz
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 17: ozz
+2026-09-30 12:40:26.364 (   2.266s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 18: ozz
+2026-09-30 12:40:26.365 (   2.266s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 19: ozz
+2026-09-30 12:40:26.365 (   2.267s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 20: ozz
+2026-09-30 12:40:26.365 (   2.267s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 21: ozz
+2026-09-30 12:40:26.365 (   2.267s) [main thread     ]            session.cpp:587   INFO| Viewer session: primed 6 particle systems (250 live particles, 1000 ms)
+2026-09-30 12:40:26.365 (   2.267s) [main thread     ]            session.cpp:708   INFO| Viewer session: loaded area 'start' models=22 build=9.541 ms replace=0.228 ms total=9.769 ms
+gfx-resource upload start_ns=1271086484 textures=1 mips=1 bytes=64 seconds=0.000410879 success=1
+ERROR: gfx: rejected texture upload batch before submission
+gfx-resource upload start_ns=1271527690 textures=1 mips=0 bytes=0 seconds=0.000001062 success=0
+gfx-resource idle start_ns=1273920860 seconds=0.000036538 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource upload start_ns=1274729363 textures=1 mips=6 bytes=4096 seconds=0.000250068 success=1
+gfx-resource upload start_ns=1276216206 textures=1 mips=10 bytes=1048576 seconds=0.000284994 success=1
+gfx-resource upload start_ns=1277753173 textures=1 mips=10 bytes=1048576 seconds=0.000535623 success=1
+gfx-resource upload start_ns=1278338369 textures=1 mips=6 bytes=4096 seconds=0.000207739 success=1
+gfx-resource upload start_ns=1278822465 textures=1 mips=9 bytes=262144 seconds=0.000327813 success=1
+gfx-resource upload start_ns=1280180507 textures=1 mips=10 bytes=1048576 seconds=0.000307105 success=1
+gfx-resource upload start_ns=1281477304 textures=1 mips=10 bytes=1048576 seconds=0.000391684 success=1
+gfx-resource upload start_ns=1282570100 textures=1 mips=9 bytes=262144 seconds=0.000494606 success=1
+gfx-resource upload start_ns=1283841500 textures=1 mips=10 bytes=1048576 seconds=0.000312124 success=1
+gfx-resource upload start_ns=1284593989 textures=1 mips=9 bytes=262144 seconds=0.000273101 success=1
+gfx-resource upload start_ns=1285079107 textures=1 mips=9 bytes=262144 seconds=0.000190426 success=1
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4586  INFO| Loaded area start tileset=tic01 : 4x4 tiles=16 loaded_models=22 static_assets=4 static_local_hits=18 static_retained_hits=0 static_imports=4 static_asset_failures=0 flags interior=true underground=false cycle=0 night=1 tile_lights=20 object_lights=0 light_slot_tiles=13 local_lights=20 colored_lights=7 light_color_max=1.00 light_radius=[4.92..7.54] light_intensity=[0.23..0.23] light_scale[r=0.82, i=0.52] creatures=0/0 doors=0/0 items=0/0 placeables=6/6 waypoints=0/0 triggers=0/0 encounters=0/0 debug_indices=0 demand=0ms deserialize=0ms placement[x=5..35, y=5..35]
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_j01_01 count=4
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4637  INFO| Area tile model tic01_o20_01 count=12
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(8, 8) count=3
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(8, 8) count=2
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(0, 31) source=(0, 0) count=1
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 31) source=(8, 8) count=1
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(8, 8) count=1
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(0, 0) count=3
+2026-09-30 12:40:26.380 (   2.282s) [main thread     ]      preview_scene.cpp:4646  INFO| Area tile light slots main=(31, 0) source=(9, 9) count=1
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]      preview_scene.cpp:4662  INFO| Area render cache start records=22 static=16 dynamic=6 prepared_draws=160 surfaces[geometries=2 instances=16 triangles=159 bytes=9260] max_prepared_record=37 chunks=16/16 max_chunk=3 pass[o/w/t]=17/0/0 shadow_casters=17 source[tile/creature/door/item/placeable/waypoint/unknown]=16/0/0/0/6/0/0
+gfx-resource idle start_ns=1286271418 seconds=0.000013957 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model plc_l07 instance 16: ozz
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 17: ozz
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 18: ozz
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 19: ozz
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 20: ozz
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]preview_model_animation:176   INFO| RenderModel animation backend for model tnp_gmist instance 21: ozz
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]            session.cpp:587   INFO| Viewer session: primed 6 particle systems (250 live particles, 1000 ms)
+2026-09-30 12:40:26.381 (   2.283s) [main thread     ]            session.cpp:708   INFO| Viewer session: loaded area 'start' models=22 build=11.841 ms replace=0.282 ms total=12.123 ms
+gfx-resource upload start_ns=1288087758 textures=1 mips=1 bytes=64 seconds=0.000367298 success=1
+ERROR: gfx: rejected texture upload batch before submission
+gfx-resource upload start_ns=1288486405 textures=1 mips=0 bytes=0 seconds=0.000001012 success=0
+gfx-resource idle start_ns=1289815973 seconds=0.000702936 source=/home/josh/projects/rollnw/lib/nw/gfx/backends/vulkan/vulkan_context.cpp:3044 reason=bool nw::gfx::capture_screenshot(Context*, CommandList*, const char*)
+gfx-resource idle start_ns=1302996857 seconds=0.000192310 source=/home/josh/projects/rollnw/lib/nw/render/viewer/session.cpp:235 reason=void nw::render::viewer::{anonymous}::wait_for_preview_resources_idle(nw::render::viewer::PreviewRenderResources*)
+gfx-resource idle start_ns=1303960751 seconds=0.000006843 source=/home/josh/projects/rollnw/lib/nw/render/viewer/device.cpp:83 reason=void nw::render::viewer::ViewerDevice::shutdown()
+gfx-resource idle start_ns=1304049978 seconds=0.000002755 source=/home/josh/projects/rollnw/lib/nw/render/nwn/render_asset_cache.cpp:237 reason=void nw::render::nwn::RenderAssetCache::clear()
+gfx-resource idle start_ns=1304672363 seconds=0.000003927 source=/home/josh/projects/rollnw/tools/client/rml_nwgfx_renderer.cpp:288 reason=void RmlNwgfxRenderer::shutdown()
+gfx-resource idle start_ns=1304821803 seconds=0.000004017 source=/home/josh/projects/rollnw/lib/nw/render/viewer/device.cpp:83 reason=void nw::render::viewer::ViewerDevice::shutdown()
+gfx-resource idle start_ns=1304827664 seconds=0.000001462 source=/home/josh/projects/rollnw/lib/nw/gfx/backends/vulkan/vulkan_context.cpp:2588 reason=void nw::gfx::destroy_context(Context*)
+[       OK ] ClientGfxResources.AreaPreviewAndUiTransitionsRetireSubmittedResourcesSafely (800 ms)
+[----------] 1 test from ClientGfxResources (800 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 2 test suites ran. (1799 ms total)
+[  PASSED  ] 2 tests.
+2026-09-30 12:40:26.403 (   2.305s) [main thread     ]             Kernel.cpp:240   INFO| kernel: shutting down kernel services
+2026-09-30 12:40:26.404 (   2.306s) [main thread     ]            runtime.cpp:273   INFO| [runtime] Runtime destructor starting
+2026-09-30 12:40:26.404 (   2.306s) [main thread     ]            runtime.cpp:297   INFO| [runtime] Runtime destructor completed
+2026-09-30 12:40:26.414 (   2.316s) [main thread     ]             loguru.cpp:485   INFO| atexit

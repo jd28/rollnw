@@ -600,59 +600,6 @@ std::vector<glm::vec4> generate_brdf_lut(uint32_t size)
     return pixels;
 }
 
-nw::gfx::Handle<nw::gfx::Texture> create_rgba16f_texture(
-    nw::gfx::Context* ctx, uint32_t width, uint32_t height, const std::vector<uint16_t>& pixels)
-{
-    nw::gfx::TextureDesc desc{};
-    desc.width = width;
-    desc.height = height;
-    desc.format = nw::gfx::Fmt::RGBA16F;
-    auto texture = nw::gfx::create_texture(ctx, desc);
-    if (!texture.valid()) {
-        return {};
-    }
-    if (!nw::gfx::upload_texture_rgba16f(ctx, texture, pixels.data(), pixels.size() * sizeof(uint16_t))) {
-        nw::gfx::destroy_texture(ctx, texture);
-        return {};
-    }
-    return texture;
-}
-
-nw::gfx::Handle<nw::gfx::Texture> create_rgba16f_mip_texture(
-    nw::gfx::Context* ctx, uint32_t width, uint32_t height, const std::vector<std::vector<uint16_t>>& mips)
-{
-    std::vector<nw::gfx::TextureMipData> uploads;
-    uploads.reserve(mips.size());
-
-    uint32_t mip_width = width;
-    uint32_t mip_height = height;
-    for (const auto& mip : mips) {
-        uploads.push_back(nw::gfx::TextureMipData{
-            .data = mip.data(),
-            .size = mip.size() * sizeof(uint16_t),
-            .width = mip_width,
-            .height = mip_height,
-        });
-        mip_width = std::max(1u, mip_width / 2u);
-        mip_height = std::max(1u, mip_height / 2u);
-    }
-
-    nw::gfx::TextureDesc desc{};
-    desc.width = width;
-    desc.height = height;
-    desc.mip_levels = static_cast<uint32_t>(mips.size());
-    desc.format = nw::gfx::Fmt::RGBA16F;
-    auto texture = nw::gfx::create_texture(ctx, desc);
-    if (!texture.valid()) {
-        return {};
-    }
-    if (!nw::gfx::upload_texture_rgba16f_mips(ctx, texture, uploads.data(), uploads.size())) {
-        nw::gfx::destroy_texture(ctx, texture);
-        return {};
-    }
-    return texture;
-}
-
 std::string effective_static_pbr_environment_path(const AppState& state)
 {
     return state.static_pbr_environment_path.empty()
@@ -678,25 +625,30 @@ bool load_static_pbr_ibl_textures(AppState& state)
     const auto specular_mips = generate_specular_prefilter_mips(*env, kSpecularWidth, kSpecularHeight);
     const auto brdf_pixels = pack_rgba16f_pixels(generate_brdf_lut(kBrdfLutSize));
 
-    auto diffuse_texture = create_rgba16f_texture(state.gfx_context, kDiffuseWidth, kDiffuseHeight, diffuse_pixels);
-    if (!diffuse_texture.valid()) {
-        LOG_F(WARNING, "Failed to create static PBR irradiance texture");
-        return false;
+    const nw::gfx::TextureMipData diffuse_mip{diffuse_pixels.data(), diffuse_pixels.size() * sizeof(uint16_t), kDiffuseWidth, kDiffuseHeight};
+    const nw::gfx::TextureMipData brdf_mip{brdf_pixels.data(), brdf_pixels.size() * sizeof(uint16_t), kBrdfLutSize, kBrdfLutSize};
+    std::vector<nw::gfx::TextureMipData> specular_uploads;
+    uint32_t width = kSpecularWidth;
+    uint32_t height = kSpecularHeight;
+    for (const auto& mip : specular_mips) {
+        specular_uploads.push_back({mip.data(), mip.size() * sizeof(uint16_t), width, height});
+        width = std::max(1u, width / 2);
+        height = std::max(1u, height / 2);
     }
-
-    auto specular_texture = create_rgba16f_mip_texture(
-        state.gfx_context, kSpecularWidth, kSpecularHeight, specular_mips);
-    if (!specular_texture.valid()) {
-        nw::gfx::destroy_texture(state.gfx_context, diffuse_texture);
-        LOG_F(WARNING, "Failed to create static PBR specular prefilter texture");
-        return false;
-    }
-
-    auto brdf_texture = create_rgba16f_texture(state.gfx_context, kBrdfLutSize, kBrdfLutSize, brdf_pixels);
-    if (!brdf_texture.valid()) {
+    auto diffuse_texture = nw::gfx::create_texture(state.gfx_context,
+        {.width = kDiffuseWidth, .height = kDiffuseHeight, .format = nw::gfx::Fmt::RGBA16F});
+    auto specular_texture = nw::gfx::create_texture(state.gfx_context,
+        {.width = kSpecularWidth, .height = kSpecularHeight, .mip_levels = static_cast<uint32_t>(specular_uploads.size()), .format = nw::gfx::Fmt::RGBA16F});
+    auto brdf_texture = nw::gfx::create_texture(state.gfx_context,
+        {.width = kBrdfLutSize, .height = kBrdfLutSize, .format = nw::gfx::Fmt::RGBA16F});
+    const std::array uploads{nw::gfx::TextureUpload{diffuse_texture, {&diffuse_mip, 1}},
+        nw::gfx::TextureUpload{specular_texture, specular_uploads},
+        nw::gfx::TextureUpload{brdf_texture, {&brdf_mip, 1}}};
+    if (!nw::gfx::upload_textures(state.gfx_context, uploads)) {
         nw::gfx::destroy_texture(state.gfx_context, diffuse_texture);
         nw::gfx::destroy_texture(state.gfx_context, specular_texture);
-        LOG_F(WARNING, "Failed to create static PBR BRDF LUT texture");
+        nw::gfx::destroy_texture(state.gfx_context, brdf_texture);
+        LOG_F(WARNING, "Failed to upload static PBR environment textures");
         return false;
     }
 

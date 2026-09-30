@@ -18,47 +18,6 @@ namespace nw::render {
 
 namespace {
 
-nw::gfx::Handle<nw::gfx::Texture> create_solid_texture(nw::gfx::Context* ctx, nw::gfx::Fmt format,
-    std::array<uint8_t, 4> pixel)
-{
-    nw::gfx::TextureDesc desc{};
-    desc.width = 1;
-    desc.height = 1;
-    desc.format = format;
-    auto texture = nw::gfx::create_texture(ctx, desc);
-    if (texture.valid()) {
-        nw::gfx::upload_texture_rgba8(ctx, texture, pixel.data(), pixel.size());
-    }
-    return texture;
-}
-
-nw::gfx::Handle<nw::gfx::Texture> create_missing_texture(nw::gfx::Context* ctx)
-{
-    constexpr uint32_t size = 16;
-    constexpr uint32_t cell_size = 4;
-    std::array<uint8_t, size * size * 4> pixels{};
-    for (uint32_t y = 0; y < size; ++y) {
-        for (uint32_t x = 0; x < size; ++x) {
-            const bool magenta = ((x / cell_size) + (y / cell_size)) % 2 == 0;
-            const size_t offset = (static_cast<size_t>(y) * size + x) * 4;
-            pixels[offset + 0] = magenta ? 255 : 0;
-            pixels[offset + 1] = 0;
-            pixels[offset + 2] = magenta ? 255 : 0;
-            pixels[offset + 3] = 255;
-        }
-    }
-
-    nw::gfx::TextureDesc desc{};
-    desc.width = size;
-    desc.height = size;
-    desc.format = nw::gfx::Fmt::RGBA8Srgb;
-    auto texture = nw::gfx::create_texture(ctx, desc);
-    if (texture.valid()) {
-        nw::gfx::upload_texture_rgba8(ctx, texture, pixels.data(), pixels.size());
-    }
-    return texture;
-}
-
 bool create_zero_storage_buffer(nw::gfx::Context* ctx, nw::gfx::Handle<nw::gfx::Buffer>& out)
 {
     nw::gfx::BufferDesc desc{};
@@ -464,19 +423,52 @@ bool ModelGpuBackend::initialize(nw::render::ShaderProvider& shader_provider)
 
 void ModelGpuBackend::initialize_shared_fallback_textures()
 {
-    // Preserve the existing startup policy: fallback texture allocation is
-    // best-effort, and invalid handles remain visible to the existing resource
-    // and bindless texture error paths.
-    default_albedo_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8Srgb, {255, 255, 255, 255});
-    fallback_texture_ = create_missing_texture(ctx_);
-    fallback_normal_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8, {128, 128, 255, 255});
-    fallback_surface_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8, {
-                                                                            kModelSurfaceNeutralOcclusion,
-                                                                            kModelSurfaceNeutralRoughness,
-                                                                            kModelSurfaceNeutralMetallic,
-                                                                            kModelSurfaceNeutralAlpha,
-                                                                        });
-    fallback_emissive_ = create_solid_texture(ctx_, nw::gfx::Fmt::RGBA8Srgb, {0, 0, 0, 255});
+    const std::array<std::array<uint8_t, 4>, 4> solid_pixels{{
+        {255, 255, 255, 255},
+        {128, 128, 255, 255},
+        {kModelSurfaceNeutralOcclusion, kModelSurfaceNeutralRoughness, kModelSurfaceNeutralMetallic, kModelSurfaceNeutralAlpha},
+        {0, 0, 0, 255},
+    }};
+    constexpr uint32_t size = 16;
+    std::array<uint8_t, size * size * 4> missing_pixels{};
+    for (uint32_t y = 0; y < size; ++y) {
+        for (uint32_t x = 0; x < size; ++x) {
+            const bool magenta = ((x / 4) + (y / 4)) % 2 == 0;
+            const size_t offset = (static_cast<size_t>(y) * size + x) * 4;
+            missing_pixels[offset] = missing_pixels[offset + 2] = magenta ? 255 : 0;
+            missing_pixels[offset + 3] = 255;
+        }
+    }
+    const std::array formats{nw::gfx::Fmt::RGBA8Srgb, nw::gfx::Fmt::RGBA8,
+        nw::gfx::Fmt::RGBA8, nw::gfx::Fmt::RGBA8Srgb, nw::gfx::Fmt::RGBA8Srgb};
+    std::array<nw::gfx::Handle<nw::gfx::Texture>, 5> textures;
+    std::array<nw::gfx::TextureMipData, 5> mips;
+    std::array<nw::gfx::TextureUpload, 5> uploads;
+    size_t count = 0;
+    for (size_t i = 0; i < textures.size(); ++i) {
+        const bool missing = i == solid_pixels.size();
+        const uint32_t extent = missing ? size : 1u;
+        textures[i] = nw::gfx::create_texture(ctx_, {.width = extent, .height = extent, .format = formats[i]});
+        if (!textures[i].valid()) { continue; }
+        mips[count] = {missing ? missing_pixels.data() : solid_pixels[i].data(),
+            missing ? missing_pixels.size() : solid_pixels[i].size(), extent, extent};
+        uploads[count] = {textures[i], {&mips[count], 1}};
+        ++count;
+    }
+    // Preserve best-effort allocation. A rejected upload leaves no apparently
+    // usable texture behind; callers already handle invalid fallback indices.
+    if (!nw::gfx::upload_textures(ctx_, std::span{uploads}.first(count))) {
+        for (auto& texture : textures) {
+            nw::gfx::destroy_texture(ctx_, texture);
+            texture = {};
+        }
+        LOG_F(ERROR, "Failed to upload shared model fallback textures");
+    }
+    default_albedo_ = textures[0];
+    fallback_normal_ = textures[1];
+    fallback_surface_ = textures[2];
+    fallback_emissive_ = textures[3];
+    fallback_texture_ = textures[4];
 }
 
 nw::gfx::BindlessTextureIndex ModelGpuBackend::fallback_albedo_index() const

@@ -6,6 +6,7 @@ Later completed work records its own date and verification limits.
 
 | Issue | Completion evidence |
 | --- | --- |
+| [Gfx resource submission and lifetime hardening](nw-gfx-resource-submission-hardening.md) | Batch uploads, truthful context/attachment contracts and bind-failure rejection; 420 affected cases verified across broad/focused runs, 100 frame-counter comparisons and five pixel-identical captures. Linux Radeon measurements retained; upload completion investigation remains active. |
 | [Client main refactor](client-main-refactor.md) | Implementation, supported automated validation and user manual acceptance. |
 | [Desktop validation](client-main-refactor-desktop-validation.md) | User tested the refactor and reported that all looks good; detailed coverage was not itemized. |
 | [Sound slider ownership](client-sound-slider-owner.md) | Replacement-owner regression and focused normal/sanitized checks passed after repair. |
