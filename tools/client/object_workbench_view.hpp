@@ -55,6 +55,7 @@ enum class ObjectWorkbenchCommandKind : uint8_t {
     variable_remove,
     variable_type,
     integer_step,
+    encounter_spawn_single,
     boolean,
     door_state,
 };

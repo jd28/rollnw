@@ -111,11 +111,11 @@ bool synchronize_area_viewport_structure(
     cancel_area_object_placement(renderer, state);
     cancel_area_object_drag(renderer, state);
     cancel_area_tile_stroke(renderer, state);
-    if (!renderer.rebuild_live_viewer_area(
+    if (!renderer.synchronize_live_viewer_area(
             area, renderer.active_viewer_object())) {
         if (report_failure) {
             append_output(state, "error",
-                "The area viewport is stale because its structural rebuild failed");
+                "The area viewport is stale because its structural synchronization failed");
         }
         return false;
     }

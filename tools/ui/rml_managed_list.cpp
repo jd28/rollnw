@@ -279,7 +279,8 @@ void append_item(std::string& markup,
     const UiListWindow& window,
     int index,
     std::string_view extra_class,
-    std::string_view style)
+    std::string_view style,
+    int checkbox_cell)
 {
     const auto& item = window.items[static_cast<size_t>(index)];
     markup += "<div class=\"managed_list_row";
@@ -325,7 +326,18 @@ void append_item(std::string& markup,
         markup += "\" data-cell=\"";
         markup += std::to_string(cell);
         markup += "\">";
-        markup += escape_markup(item.cells[static_cast<size_t>(cell)]);
+        const auto& value = item.cells[static_cast<size_t>(cell)];
+        if (enabled && cell == checkbox_cell && (value == "0" || value == "1")) {
+            markup += "<span class=\"managed_list_checkbox\" data-current=\"";
+            markup += value;
+            markup += "\"><span class=\"managed_list_checkbox_box";
+            if (value == "1") { markup += " checked"; }
+            markup += "\">";
+            if (value == "1") { markup += "&#10003;"; }
+            markup += "</span></span>";
+        } else {
+            markup += escape_markup(value);
+        }
         markup += "</span>";
     }
     markup += "</div>";
@@ -333,7 +345,7 @@ void append_item(std::string& markup,
 
 std::string render_window(std::string_view list_id,
     const UiListWindow& window,
-    std::string_view empty_text)
+    std::string_view empty_text, int checkbox_cell)
 {
     if (window.items.empty()) {
         std::string markup = "<div class=\"managed_list_empty\">";
@@ -349,7 +361,7 @@ std::string render_window(std::string_view list_id,
     append_spacer(markup, window.range.top_spacer_px);
     if (window.columns == 1) {
         for (int index = window.range.start; index < window.range.end; ++index) {
-            append_item(markup, list_id, window, index, {}, {});
+            append_item(markup, list_id, window, index, {}, {}, checkbox_cell);
         }
     } else {
         const std::string item_style = "width:" + column_width(window.columns)
@@ -363,7 +375,7 @@ std::string render_window(std::string_view list_id,
                 first + window.columns, static_cast<int>(window.items.size()));
             for (int index = first; index < end; ++index) {
                 append_item(markup, list_id, window, index,
-                    "managed_list_grid_item", item_style);
+                    "managed_list_grid_item", item_style, checkbox_cell);
             }
             markup += "</div>";
         }
@@ -543,9 +555,9 @@ bool position_managed_list_popups(Rml::ElementDocument* document)
 
 std::string render_managed_list_window(std::string_view list_id,
     const UiListWindow& window,
-    std::string_view empty_text)
+    std::string_view empty_text, int checkbox_cell)
 {
-    return render_window(list_id, window, empty_text);
+    return render_window(list_id, window, empty_text, checkbox_cell);
 }
 
 bool sync_managed_lists(Rml::ElementDocument* document,
@@ -628,7 +640,8 @@ bool sync_managed_lists(Rml::ElementDocument* document,
             const std::string empty_text = element->GetAttribute<Rml::String>(
                 "data-empty-text", "No rows.");
             element->SetInnerRML(
-                render_managed_list_window(list_id, *window, empty_text));
+                render_managed_list_window(list_id, *window, empty_text,
+                    element->GetAttribute<int>("data-checkbox-cell", -1)));
             element->SetScrollTop(static_cast<float>(scroll_top) * Rml::ElementUtilities::GetDensityIndependentPixelRatio(element));
             record.range = window->range;
             record.revision = window->revision;

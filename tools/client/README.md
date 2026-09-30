@@ -79,9 +79,23 @@ or Item blueprints from the project tree to preview and place new instances.
 Creatures require walkable ground; Placeables and Items allow authored height
 within the area's bounds. Doors snap to compatible, unoccupied tileset hooks.
 
-Encounter spawn-point markers can be added, moved, or removed in the area.
+Encounter spawn-point markers can be added, moved, rotated, or removed in the area.
+Only the selected Encounter's points are visible and selectable. They are
+NWN's native `spawnpoint.mdl` triangular prisms, 2.5 metres high, with our
+numbers just above the top. Their color matches the encounter outline.
+Each prism follows its point's facing. Numbers start at 1
+and follow the encounter's saved spawn-point order; deleting a point renumbers
+the remaining points, and undo restores the original order. With an Encounter
+selected, Shift-click walkable ground to add a point; select a marker to move
+it, Ctrl+wheel to rotate it in 15-degree steps, or press Delete to remove it.
 Sound objects show a selectable radius; use the mouse
 wheel with a selected Sound to adjust its maximum radius.
+
+Object placement, cancellation, deletion, duplication, appearance changes, and
+blueprint instance updates preserve unrelated particles and animations, including
+undo/redo. Tile edits update changed tiles in the live area. Sound playback
+settings do not reset viewport visuals. Opening another area or using Reload
+starts a new scene.
 
 ### Terrain and tiles
 
@@ -116,7 +130,11 @@ base-item type. Continue editing in the new blueprint's workbench.
 
 Focused editors cover creature appearance, classes, feats, spells, inventory,
 and equipment, as well as item appearance and properties. Encounter **Spawns**
-and Sound **Sounds** support adding and removing entries; Sound entries can
+and Sound **Sounds** support adding and removing entries. In **Spawns**, toggle
+the **Single** checkbox directly in the row to change Single Spawn.
+CR is read-only and comes from the Creature blueprint. These edits support undo/redo and save in
+both blueprints and areas. Spawn-point numbers identify positions in the area,
+independently of this Creature list. Sound entries can
 also be reordered by dragging.
 
 **Save as New Blueprint** creates a copy of the selected object without changing
@@ -167,8 +185,6 @@ an installation.
 ## Current limits
 
 - Editing does not yet cover every object field or NWToolset workflow.
-- Individual Encounter spawn fields are not editable yet; spawn-point markers
-  can be edited in the area viewport.
 - Moving inventory Items into the world and picking up ground Items are not
   supported. Area drops create new instances from blueprints.
 - Save All saves open modified native documents. It is not autosave or a

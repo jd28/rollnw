@@ -180,13 +180,15 @@ bool item_bounds_near_pointer(glm::vec2 pixel, const glm::mat4& view_projection,
 }
 
 std::optional<uint32_t> debug_shape_selection_index(
-    const PreviewScene& scene, nw::ObjectHandle object) noexcept
+    const PreviewScene& scene, nw::ObjectHandle object,
+    std::optional<uint32_t> subindex = std::nullopt) noexcept
 {
     const size_t range_count = std::min<size_t>(
         scene.debug_shape_selection_ranges.size(),
         static_cast<size_t>(std::numeric_limits<uint32_t>::max()));
     for (size_t range_index = 0; range_index < range_count; ++range_index) {
-        if (scene.debug_shape_selection_ranges[range_index].object == object) {
+        const auto& range = scene.debug_shape_selection_ranges[range_index];
+        if (range.object == object && (!subindex || range.subindex == *subindex)) {
             return static_cast<uint32_t>(range_index);
         }
     }
@@ -730,70 +732,30 @@ bool ViewerSession::load_live_object(nw::ObjectHandle object, std::string_view s
     return true;
 }
 
-bool ViewerSession::rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
+bool ViewerSession::synchronize_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
     if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area
         || scene_->root_object != area) {
         return false;
     }
-
-    auto* live_area = nw::kernel::objects().get<nw::Area>(area);
-    if (!live_area) {
+    const auto subindex = active_area_debug_subindex(selected_object);
+    wait_for_preview_resources_idle(preview_resources_);
+    auto result = viewer::synchronize_area_rows(*scene_, *preview_resources_, preview_scene_load_options_);
+    if (!result.ok()) {
+        LOG_F(ERROR, "Viewer session: failed to synchronize live area '{}': {}", loaded_source_, result.diagnostic);
         return false;
     }
-
-    const auto rebuild_start = Clock::now();
-    auto replacement = build_live_area_scene(
-        *preview_resources_, *live_area, loaded_source_, preview_scene_load_options_);
-    if (!replacement) {
-        LOG_F(ERROR, "Viewer session: failed to rebuild live area '{}'", loaded_source_);
-        return false;
-    }
-
-    const Camera saved_camera = camera_;
-    const float saved_scene_time = scene_time_seconds_;
-    const float saved_day_night_time = area_day_night_elapsed_seconds_;
-    AreaObjectSelection replacement_selection;
-    if (selected_object.type != nw::ObjectType::invalid) {
-        const auto handles = replacement->area_render_scene
-            ? replacement->area_render_scene->object_handles()
-            : std::span<const nw::ObjectHandle>{};
-        if (std::find(handles.begin(), handles.end(), selected_object) == handles.end()) {
-            const auto debug_range_index = debug_shape_selection_index(*replacement, selected_object);
-            if (debug_range_index) {
-                replacement_selection = {
-                    .record_index = *debug_range_index,
-                    .object = selected_object,
-                    .source = AreaObjectSelectionSource::debug_shape,
-                    .status = AreaObjectSelectionStatus::hit,
-                };
-            } else if (!placed_object_belongs_to_area(selected_object, area.id)) {
-                selected_object = nw::ObjectHandle{};
+    clear_area_object_selection();
+    if (nw::kernel::objects().valid(selected_object)) {
+        set_area_object_selection(selected_object);
+        if (subindex != UINT32_MAX) {
+            if (const auto index = debug_shape_selection_index(*scene_, selected_object, subindex)) {
+                active_area_selection_ = {.record_index = *index, .object = selected_object, .source = AreaObjectSelectionSource::debug_shape, .status = AreaObjectSelectionStatus::hit};
             }
         }
     }
-    replacement->active_object = selected_object;
-
-    replacement->owns_root_object = scene_->owns_root_object;
-    scene_->owns_root_object = false;
-    if (!set_scene(std::move(replacement), ViewerSceneKind::area, loaded_source_)) {
-        return false;
-    }
-    active_area_selection_ = replacement_selection;
-
-    camera_ = saved_camera;
-    scene_time_seconds_ = saved_scene_time;
-    if (supports_area_day_night_cycle(*scene_)) {
-        set_area_day_night_elapsed_seconds(saved_day_night_time, false);
-    }
-    bootstrap_scene_playback(*scene_);
-    const auto rebuild_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        Clock::now() - rebuild_start);
-    const size_t record_count = scene_->area_render_scene
-        ? scene_->area_render_scene->stats().record_count
-        : 0;
-    LOG_F(INFO, "Viewer session: rebuilt live area '{}' records={} in {}ms",
-        loaded_source_, record_count, rebuild_ms.count());
+    area_frame_.clear();
+    area_frame_.reserve_for_scene(*scene_->area_render_scene);
     return true;
 }
 
@@ -810,6 +772,7 @@ AreaTransientVisualResult ViewerSession::refresh_live_area_tiles(
             = "Viewer session does not contain the requested live area",
         };
     }
+    wait_for_preview_resources_idle(preview_resources_);
     return nw::render::viewer::refresh_live_area_tiles(
         *scene_, *preview_resources_, tile_indices);
 }
@@ -881,6 +844,8 @@ ObjectVisualRefreshResult ViewerSession::refresh_live_object_visuals(
         };
     }
 
+    const auto selected = scene_->active_object;
+    const auto subindex = active_area_debug_subindex(selected);
     // refresh_object_visuals removes scene-owned models. The gfx contract
     // destroys their resources immediately, so prior frame use must complete.
     wait_for_preview_resources_idle(preview_resources_);
@@ -891,6 +856,16 @@ ObjectVisualRefreshResult ViewerSession::refresh_live_object_visuals(
         LOG_F(WARNING, "Viewer session: failed to refresh live object visuals: {}",
             result.diagnostic);
         return result;
+    }
+
+    if (scene_kind_ == ViewerSceneKind::area) {
+        clear_area_object_selection();
+        set_area_object_selection(selected);
+        if (subindex != UINT32_MAX) {
+            if (const auto index = debug_shape_selection_index(*scene_, selected, subindex)) {
+                active_area_selection_ = {.record_index = *index, .object = selected, .source = AreaObjectSelectionSource::debug_shape, .status = AreaObjectSelectionStatus::hit};
+            }
+        }
     }
 
     const auto refresh_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -904,10 +879,57 @@ ObjectVisualRefreshResult ViewerSession::refresh_live_object_visuals(
     return result;
 }
 
+ObjectVisualRefreshResult ViewerSession::refresh_live_area_debug_geometry(
+    std::span<const nw::ObjectHandle> objects)
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::area) {
+        return {.status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area"};
+    }
+    const auto selected = active_area_selection_.object;
+    const bool debug_selection = active_area_selection_.status == AreaObjectSelectionStatus::hit
+        && active_area_selection_.source == AreaObjectSelectionSource::debug_shape;
+    auto subindex = active_area_debug_subindex(selected);
+    const auto point_range = [selected](const auto& range) {
+        return range.object == selected && range.subindex != UINT32_MAX;
+    };
+    const auto old_point_count = std::ranges::count_if(scene_->debug_shape_selection_ranges, point_range);
+    auto result = viewer::refresh_area_debug_geometry(*scene_, objects);
+    if (!result.ok()) {
+        if (result.status != ObjectVisualRefreshStatus::empty) {
+            LOG_F(WARNING, "Viewer session: failed to refresh debug geometry: {}", result.diagnostic);
+        }
+        return result;
+    }
+    if (debug_selection) {
+        // Insertion/deletion changes ordinal identity: return to the footprint.
+        if (old_point_count != std::ranges::count_if(scene_->debug_shape_selection_ranges, point_range)) {
+            subindex = UINT32_MAX;
+        }
+        active_area_selection_ = {};
+        for (size_t index = 0; index < scene_->debug_shape_selection_ranges.size(); ++index) {
+            const auto& range = scene_->debug_shape_selection_ranges[index];
+            if (range.object == selected && range.subindex == subindex) {
+                active_area_selection_ = {.record_index = static_cast<uint32_t>(index),
+                    .object = selected,
+                    .source = AreaObjectSelectionSource::debug_shape,
+                    .status = AreaObjectSelectionStatus::hit};
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 bool ViewerSession::refresh_live_object_visual(nw::ObjectHandle object)
 {
     const std::array objects{object};
-    return refresh_live_object_visuals(objects).ok();
+    if (scene_kind_ == ViewerSceneKind::area && object.type == nw::ObjectType::encounter) {
+        return refresh_live_area_debug_geometry(objects).ok();
+    }
+    const bool refreshed = refresh_live_object_visuals(objects).ok();
+    if (refreshed && scene_kind_ == ViewerSceneKind::area) { set_area_object_selection(object); }
+    return refreshed;
 }
 
 bool ViewerSession::load_object_file(const std::filesystem::path& path)
@@ -1971,11 +1993,14 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
                     case DebugShapeCategory::waypoint:
                         range_visible = true;
                         break;
+                    case DebugShapeCategory::light:
                     case DebugShapeCategory::general:
                         break;
                     }
                 }
-                if (range_visible && range.object == active_area_selection_.object) {
+                if (range_visible && range.object == active_area_selection_.object
+                    && (range.debug_shape_range_index >= scene_->debug_shape_ranges.size()
+                        || scene_->debug_shape_ranges[range.debug_shape_range_index].visible_for(scene_->active_object))) {
                     debug_renderer_->render_selection_bounds(
                         command_list,
                         range.bounds,

@@ -4,6 +4,7 @@
 #include "preview_scene.hpp"
 
 #include <nw/gfx/gfx.hpp>
+#include <nw/kernel/ModelCache.hpp>
 #include <nw/log.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/ObjectManager.hpp>
@@ -12,24 +13,32 @@
 #include <nw/objects/Trigger.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/profiles/nwn1/toolset_visual.hpp>
+#include <nw/render/nwn/model_loader.hpp>
 #include <nw/render/render_context.hpp>
 #include <nw/render/shader_provider.hpp>
+#include <nw/util/scope_exit.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <limits>
+#include <new>
 #include <span>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace nw::render::viewer {
 
 namespace {
+
+constexpr glm::vec4 kEncounterColor{1.0f, 0.18f, 0.72f, 0.9f};
 
 struct DebugGridVertex {
     glm::vec3 position{0.0f};
@@ -538,6 +547,7 @@ namespace {
 bool debug_shape_category_enabled(DebugShapeCategory category, DebugShapeOptions options) noexcept
 {
     switch (category) {
+    case DebugShapeCategory::light:
     case DebugShapeCategory::general:
         return true;
     case DebugShapeCategory::trigger:
@@ -671,23 +681,116 @@ bool append_debug_shape_selection_range(
     return true;
 }
 
-void append_debug_spawn_marker(PreviewScene& scene, const nw::ObjectSpawnPoint& spawn_point)
+std::vector<glm::vec3> load_spawn_marker_triangles()
 {
-    constexpr float k_marker_z_offset = 0.16f;
-    constexpr float k_marker_width = 0.08f;
-    const glm::vec4 color{1.0f, 0.22f, 0.18f, 0.95f};
-    const glm::vec3 origin = spawn_point.position + glm::vec3{0.0f, 0.0f, k_marker_z_offset};
-    const glm::vec3 forward{std::cos(spawn_point.orientation), std::sin(spawn_point.orientation), 0.0f};
-    const glm::vec3 right{-forward.y, forward.x, 0.0f};
+    auto& models = nw::kernel::models();
+    const auto* mdl = models.load("spawnpoint");
+    if (!mdl) { return {}; }
+    const auto release = create_scope_exit([&] { models.release("spawnpoint"); });
+    auto imported = nw::render::nwn::import_nwn_model_asset(*mdl);
+    if (!imported.asset) { return {}; }
 
-    append_debug_segment(scene, origin - forward * 0.25f, origin + forward * 0.65f, color, k_marker_width);
-    append_debug_segment(scene, origin - right * 0.25f, origin + right * 0.25f, color, k_marker_width);
-    append_debug_triangle(
-        scene,
-        origin + forward * 0.85f,
-        origin + forward * 0.5f + right * 0.2f,
-        origin + forward * 0.5f - right * 0.2f,
-        color);
+    std::vector<glm::vec3> triangles;
+    for (const auto& primitive : imported.asset->primitives) {
+        if (primitive.uses_skinned_vertices() || primitive.indices.size() % 3 != 0) {
+            return {};
+        }
+        for (const auto index : primitive.indices) {
+            if (index >= primitive.vertices.size()) { return {}; }
+            const auto position = glm::vec3{primitive.transform * glm::vec4{primitive.vertices[index].position, 1.0f}};
+            if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)) {
+                return {};
+            }
+            triangles.push_back(position);
+        }
+    }
+    return triangles;
+}
+
+void append_debug_spawn_markers(PreviewScene& scene, nw::ObjectHandle encounter,
+    std::span<const nw::ObjectSpawnPoint> spawn_points)
+{
+    // Seven-segment digits are baked with the marker, with no font/texture or
+    // per-frame label work. Segment order: top, upper right, lower right,
+    // bottom, lower left, upper left, middle.
+    static constexpr std::array<uint8_t, 10> digits{
+        0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
+    static constexpr std::array<std::array<glm::vec2, 2>, 7> segments{{
+        {{{0.0f, 1.0f}, {0.4f, 1.0f}}},
+        {{{0.4f, 1.0f}, {0.4f, 0.5f}}},
+        {{{0.4f, 0.5f}, {0.4f, 0.0f}}},
+        {{{0.4f, 0.0f}, {0.0f, 0.0f}}},
+        {{{0.0f, 0.0f}, {0.0f, 0.5f}}},
+        {{{0.0f, 0.5f}, {0.0f, 1.0f}}},
+        {{{0.0f, 0.5f}, {0.4f, 0.5f}}},
+    }};
+    if (spawn_points.empty()) { return; }
+    if (spawn_points.size() > UINT32_MAX) {
+        LOG_F(ERROR, "Encounter spawn-point markers exceed the picking index range");
+        return;
+    }
+    const auto triangles = load_spawn_marker_triangles();
+    if (triangles.empty()) {
+        LOG_F(WARNING, "Encounter spawn-point model 'spawnpoint' has no usable static triangles");
+        return;
+    }
+    // At most ten decimal digits, seven strokes each, two triangles per stroke.
+    constexpr size_t max_label_vertices = 10 * 7 * 6;
+    const size_t used = std::max(scene.debug_shape_vertices.size(), scene.debug_shape_indices.size());
+    if (used > UINT32_MAX || triangles.size() > UINT32_MAX - max_label_vertices
+        || spawn_points.size() > (UINT32_MAX - used) / (triangles.size() + max_label_vertices)) {
+        LOG_F(ERROR, "Encounter spawn-point geometry exceeds the debug index range");
+        return;
+    }
+    Bounds model_bounds{.min = triangles.front(), .max = triangles.front()};
+    for (const auto& vertex : triangles) {
+        model_bounds.min = glm::min(model_bounds.min, vertex);
+        model_bounds.max = glm::max(model_bounds.max, vertex);
+    }
+    for (size_t index = 0; index < spawn_points.size(); ++index) {
+        const auto& spawn = spawn_points[index];
+        const size_t first_index = scene.debug_shape_indices.size();
+        const float cosine = std::cos(spawn.orientation);
+        const float sine = std::sin(spawn.orientation);
+        const auto placed = [&](glm::vec3 point) {
+            return spawn.position + glm::vec3{cosine * point.x - sine * point.y, sine * point.x + cosine * point.y, point.z};
+        };
+        for (size_t triangle = 0; triangle < triangles.size(); triangle += 3) {
+            append_debug_triangle(scene, placed(triangles[triangle]), placed(triangles[triangle + 1]),
+                placed(triangles[triangle + 2]), kEncounterColor);
+        }
+        auto label_center = model_bounds.center();
+        label_center.z = model_bounds.max.z + 0.05f;
+        const auto top = placed(label_center);
+
+        std::array<char, 10> number{};
+        const auto formatted = std::to_chars(number.data(), number.data() + number.size(), index + 1);
+        const size_t length = static_cast<size_t>(formatted.ptr - number.data());
+        const float label_width = static_cast<float>(length) * 0.55f - 0.15f;
+        // A horizontal number at the top stays readable from above without
+        // mirrored back faces or overlapping labels from crossed planes.
+        const auto label_origin = top - glm::vec3{label_width * 0.5f, 0.5f, 0.0f};
+        for (size_t digit = 0; digit < length; ++digit) {
+            const auto mask = digits[static_cast<size_t>(number[digit] - '0')];
+            const auto digit_origin = label_origin + glm::vec3{static_cast<float>(digit) * 0.55f, 0.0f, 0.0f};
+            for (size_t segment = 0; segment < segments.size(); ++segment) {
+                if (!(mask & (1u << segment))) { continue; }
+                const auto a = segments[segment][0];
+                const auto b = segments[segment][1];
+                const auto delta = glm::normalize(b - a);
+                const glm::vec2 side{-delta.y * 0.035f, delta.x * 0.035f};
+                const auto point = [&](glm::vec2 p) { return digit_origin + glm::vec3{p, 0.0f}; };
+                append_debug_triangle(scene, point(a + side), point(b + side), point(b - side), {1.0f, 1.0f, 1.0f, 1.0f});
+                append_debug_triangle(scene, point(a + side), point(b - side), point(a - side), {1.0f, 1.0f, 1.0f, 1.0f});
+            }
+        }
+        const uint32_t range = append_debug_shape_range(scene, DebugShapeCategory::encounter, first_index);
+        if (range != kInvalidAreaRenderRecordIndex) {
+            scene.debug_shape_ranges[range].selected_object = encounter;
+            append_debug_shape_selection_range(scene, DebugShapeCategory::encounter,
+                encounter, range, {}, static_cast<uint32_t>(index));
+        }
+    }
 }
 
 bool append_debug_object_range(
@@ -909,7 +1012,7 @@ bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& e
             object_spatial_transform(encounter),
             k_floor_z_offset);
         append_debug_polygon_outline(
-            scene, floor_points, {1.0f, 0.18f, 0.72f, 0.9f}, k_outline_width);
+            scene, floor_points, kEncounterColor, k_outline_width);
     }
 
     const uint32_t footprint_range_index = append_debug_shape_range(
@@ -925,24 +1028,7 @@ bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& e
     }
 
     if (geometry) {
-        for (size_t spawn_index = 0;
-            spawn_index < geometry->spawn_points.size(); ++spawn_index) {
-            const size_t first_spawn_index
-                = scene.debug_shape_indices.size();
-            const auto& spawn_point = geometry->spawn_points[spawn_index];
-            append_debug_spawn_marker(scene, spawn_point);
-            const uint32_t spawn_range_index = append_debug_shape_range(
-                scene, DebugShapeCategory::encounter, first_spawn_index);
-            if (spawn_range_index != kInvalidAreaRenderRecordIndex
-                && spawn_index <= UINT32_MAX) {
-                append_debug_shape_selection_range(scene,
-                    DebugShapeCategory::encounter,
-                    encounter.handle(),
-                    spawn_range_index,
-                    {},
-                    static_cast<uint32_t>(spawn_index));
-            }
-        }
+        append_debug_spawn_markers(scene, encounter.handle(), geometry->spawn_points);
     }
     return scene.debug_shape_indices.size() > first_debug_index
         && append_debug_object_range(scene,
@@ -1049,6 +1135,266 @@ bool append_store_debug_geometry(PreviewScene& scene, const nw::Store& store)
             first_object_vertex, first_sound_dot);
 }
 
+bool append_debug_geometry(PreviewScene& destination, const PreviewScene& source)
+{
+    const size_t vertex_base = destination.debug_shape_vertices.size();
+    const size_t index_base = destination.debug_shape_indices.size();
+    const size_t range_base = destination.debug_shape_ranges.size();
+    const size_t sound_dot_base = destination.sound_debug_dot_instances.size();
+    const size_t point_base = destination.debug_shape_selection_points.size();
+    if (vertex_base > std::numeric_limits<uint32_t>::max()
+        || index_base > std::numeric_limits<uint32_t>::max()
+        || range_base > std::numeric_limits<uint32_t>::max()
+        || sound_dot_base > std::numeric_limits<uint32_t>::max()
+        || point_base > std::numeric_limits<uint32_t>::max()
+        || source.debug_shape_vertices.size()
+            > std::numeric_limits<uint32_t>::max() - vertex_base
+        || source.debug_shape_indices.size()
+            > std::numeric_limits<uint32_t>::max() - index_base
+        || source.debug_shape_ranges.size()
+            > std::numeric_limits<uint32_t>::max() - range_base
+        || source.sound_debug_dot_instances.size()
+            > std::numeric_limits<uint32_t>::max() - sound_dot_base
+        || source.debug_shape_selection_points.size()
+            > std::numeric_limits<uint32_t>::max() - point_base) {
+        return false;
+    }
+
+    destination.debug_shape_vertices.insert(
+        destination.debug_shape_vertices.end(),
+        source.debug_shape_vertices.begin(),
+        source.debug_shape_vertices.end());
+    for (const uint32_t index : source.debug_shape_indices) {
+        destination.debug_shape_indices.push_back(
+            index + static_cast<uint32_t>(vertex_base));
+    }
+    for (auto range : source.debug_shape_ranges) {
+        range.first_index += static_cast<uint32_t>(index_base);
+        destination.debug_shape_ranges.push_back(range);
+    }
+    destination.sound_debug_dot_instances.insert(
+        destination.sound_debug_dot_instances.end(),
+        source.sound_debug_dot_instances.begin(),
+        source.sound_debug_dot_instances.end());
+    destination.debug_shape_selection_points.insert(
+        destination.debug_shape_selection_points.end(),
+        source.debug_shape_selection_points.begin(),
+        source.debug_shape_selection_points.end());
+    for (auto range : source.debug_shape_selection_ranges) {
+        if (range.debug_shape_range_index != kInvalidAreaRenderRecordIndex) {
+            range.debug_shape_range_index += static_cast<uint32_t>(range_base);
+        }
+        range.first_point += static_cast<uint32_t>(point_base);
+        destination.debug_shape_selection_ranges.push_back(range);
+    }
+    for (auto range : source.debug_shape_object_ranges) {
+        range.first_vertex += static_cast<uint32_t>(vertex_base);
+        range.first_sound_dot += static_cast<uint32_t>(sound_dot_base);
+        destination.debug_shape_object_ranges.push_back(range);
+    }
+    return true;
+}
+
+ObjectVisualRefreshResult refresh_area_debug_geometry(
+    PreviewScene& scene, std::span<const nw::ObjectHandle> objects)
+{
+    if (objects.empty()) { return {}; }
+    const auto reject = [](std::string diagnostic) {
+        return ObjectVisualRefreshResult{.status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = std::move(diagnostic)};
+    };
+    if (!scene.is_area || scene.root_object.type != nw::ObjectType::area
+        || !nw::kernel::objects().get<nw::Area>(scene.root_object)
+        || objects.size() > UINT32_MAX) {
+        return reject("Debug geometry refresh requires a live area and a bounded object batch");
+    }
+    try {
+        PreviewScene replacement;
+        for (size_t index = 0; index < objects.size(); ++index) {
+            const auto object = objects[index];
+            const auto* spatial = nw::kernel::objects().components().find_spatial(object);
+            if (!nw::kernel::objects().valid(object) || !spatial || spatial->area != scene.root_object.id
+                || std::find(objects.begin(), objects.begin() + index, object) != objects.begin() + index) {
+                return reject("Debug geometry refresh target is stale, duplicated or outside the area");
+            }
+            if (object.type == nw::ObjectType::encounter) {
+                const auto* geometry = nw::kernel::objects().components().find_geometry(object);
+                if (geometry) {
+                    for (const auto& point : geometry->spawn_points) {
+                        if (!std::isfinite(point.position.x) || !std::isfinite(point.position.y)
+                            || !std::isfinite(point.position.z) || !std::isfinite(point.orientation)) {
+                            return reject("Encounter spawn point is non-finite");
+                        }
+                    }
+                }
+                // Empty encounters legitimately produce no overlay rows.
+                (void)append_encounter_debug_geometry(replacement,
+                    *nw::kernel::objects().get<nw::Encounter>(object));
+            } else if (object.type == nw::ObjectType::sound) {
+                const auto visual = nwn1::sound_toolset_visual_state(object);
+                bool model_loaded = false;
+                for (size_t model = 0; model < scene.static_area_model_info.size(); ++model) {
+                    if (scene.static_area_model_info[model].object == object && scene.static_model_instance(model)) {
+                        model_loaded = true;
+                        break;
+                    }
+                }
+                (void)append_sound_debug_geometry(replacement,
+                    *nw::kernel::objects().get<nw::Sound>(object), visual ? &*visual : nullptr, model_loaded);
+            } else {
+                return reject("Debug geometry refresh supports only Encounters and Sounds");
+            }
+        }
+
+        return replace_area_debug_geometry(scene, objects, replacement);
+    } catch (const std::bad_alloc&) {
+        return {.status = ObjectVisualRefreshStatus::failed, .diagnostic = "Debug geometry refresh allocation failed"};
+    } catch (const std::length_error&) {
+        return {.status = ObjectVisualRefreshStatus::failed, .diagnostic = "Debug geometry refresh exceeds container capacity"};
+    }
+}
+
+ObjectVisualRefreshResult replace_area_debug_geometry(
+    PreviewScene& scene, std::span<const nw::ObjectHandle> objects,
+    const PreviewScene& replacement, bool replace_lights)
+{
+    const auto reject = [](const char* diagnostic) {
+        return ObjectVisualRefreshResult{.status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = diagnostic};
+    };
+    const auto changed = [objects](nw::ObjectHandle object) {
+        return std::find(objects.begin(), objects.end(), object) != objects.end();
+    };
+    const auto valid_range = [](uint32_t first, uint32_t count, size_t size) {
+        return first <= size && count <= size - first;
+    };
+    try {
+        if (scene.debug_shape_vertices.size() > UINT32_MAX || scene.debug_shape_indices.size() > UINT32_MAX
+            || scene.debug_shape_ranges.size() > UINT32_MAX || scene.debug_shape_selection_points.size() > UINT32_MAX
+            || scene.sound_debug_dot_instances.size() > UINT32_MAX) {
+            return reject("Debug geometry exceeds the index range");
+        }
+        // Before compaction UINT32_MAX marks removed rows. Afterward each entry
+        // gives the number of retained rows preceding it, including an end slot.
+        std::vector<uint32_t> vertices(scene.debug_shape_vertices.size() + 1);
+        std::vector<uint32_t> dots(scene.sound_debug_dot_instances.size() + 1);
+        std::vector<uint32_t> points(scene.debug_shape_selection_points.size() + 1);
+        if (replace_lights) {
+            for (const auto& range : scene.debug_shape_ranges) {
+                if (range.category != DebugShapeCategory::light) { continue; }
+                if (!valid_range(range.first_index, range.index_count, scene.debug_shape_indices.size())) {
+                    return reject("Light debug draw range is invalid");
+                }
+                for (size_t index = range.first_index; index < static_cast<size_t>(range.first_index) + range.index_count; ++index) {
+                    const auto vertex = scene.debug_shape_indices[index];
+                    if (vertex >= scene.debug_shape_vertices.size()) { return reject("Light debug vertex index is invalid"); }
+                    vertices[vertex] = UINT32_MAX;
+                }
+            }
+        }
+        for (const auto& range : scene.debug_shape_object_ranges) {
+            if (!valid_range(range.first_vertex, range.vertex_count, scene.debug_shape_vertices.size())
+                || !valid_range(range.first_sound_dot, range.sound_dot_count, scene.sound_debug_dot_instances.size())) {
+                return reject("Debug object range is invalid");
+            }
+            if (changed(range.object)) {
+                std::fill_n(vertices.begin() + range.first_vertex, range.vertex_count, UINT32_MAX);
+                std::fill_n(dots.begin() + range.first_sound_dot, range.sound_dot_count, UINT32_MAX);
+            }
+        }
+        for (const auto& range : scene.debug_shape_selection_ranges) {
+            if (!valid_range(range.first_point, range.point_count, scene.debug_shape_selection_points.size())) {
+                return reject("Debug selection polygon range is invalid");
+            }
+            if (changed(range.object)) {
+                std::fill_n(points.begin() + range.first_point, range.point_count, UINT32_MAX);
+            }
+        }
+        PreviewScene retained;
+        const auto compact = [](const auto& source, auto& destination, auto& offsets) {
+            destination.reserve(source.size());
+            for (size_t index = 0; index < source.size(); ++index) {
+                const bool remove = offsets[index] == UINT32_MAX;
+                offsets[index] = static_cast<uint32_t>(destination.size());
+                if (!remove) { destination.push_back(source[index]); }
+            }
+            offsets.back() = static_cast<uint32_t>(destination.size());
+        };
+        compact(scene.debug_shape_vertices, retained.debug_shape_vertices, vertices);
+        compact(scene.sound_debug_dot_instances, retained.sound_debug_dot_instances, dots);
+        compact(scene.debug_shape_selection_points, retained.debug_shape_selection_points, points);
+
+        std::vector<uint32_t> indices(scene.debug_shape_indices.size() + 1);
+        retained.debug_shape_indices.reserve(scene.debug_shape_indices.size());
+        for (size_t index = 0; index < scene.debug_shape_indices.size(); ++index) {
+            const uint32_t vertex = scene.debug_shape_indices[index];
+            if (vertex >= scene.debug_shape_vertices.size()) {
+                return reject("Debug vertex index is invalid");
+            }
+            indices[index] = static_cast<uint32_t>(retained.debug_shape_indices.size());
+            if (vertices[vertex] != vertices[static_cast<size_t>(vertex) + 1]) {
+                retained.debug_shape_indices.push_back(vertices[vertex]);
+            }
+        }
+        indices.back() = static_cast<uint32_t>(retained.debug_shape_indices.size());
+        std::vector<uint32_t> ranges(scene.debug_shape_ranges.size(), UINT32_MAX);
+        for (size_t index = 0; index < scene.debug_shape_ranges.size(); ++index) {
+            auto range = scene.debug_shape_ranges[index];
+            if (!valid_range(range.first_index, range.index_count, scene.debug_shape_indices.size())) {
+                return reject("Debug draw range is invalid");
+            }
+            const uint32_t count = indices[static_cast<size_t>(range.first_index) + range.index_count] - indices[range.first_index];
+            if (count == 0) { continue; }
+            if (count != range.index_count) {
+                return reject("Debug draw range crosses object ownership");
+            }
+            range.first_index = indices[range.first_index];
+            ranges[index] = static_cast<uint32_t>(retained.debug_shape_ranges.size());
+            retained.debug_shape_ranges.push_back(range);
+        }
+        for (auto range : scene.debug_shape_selection_ranges) {
+            if (changed(range.object)) { continue; }
+            if (range.debug_shape_range_index != kInvalidAreaRenderRecordIndex) {
+                if (range.debug_shape_range_index >= ranges.size()
+                    || ranges[range.debug_shape_range_index] == UINT32_MAX) {
+                    return reject("Debug selection draw range is invalid");
+                }
+                range.debug_shape_range_index = ranges[range.debug_shape_range_index];
+            }
+            if (points[static_cast<size_t>(range.first_point) + range.point_count] - points[range.first_point] != range.point_count) {
+                return reject("Debug selection polygon crosses object ownership");
+            }
+            range.first_point = points[range.first_point];
+            retained.debug_shape_selection_ranges.push_back(range);
+        }
+        for (auto range : scene.debug_shape_object_ranges) {
+            if (changed(range.object)) { continue; }
+            if (vertices[static_cast<size_t>(range.first_vertex) + range.vertex_count] - vertices[range.first_vertex] != range.vertex_count
+                || dots[static_cast<size_t>(range.first_sound_dot) + range.sound_dot_count] - dots[range.first_sound_dot] != range.sound_dot_count) {
+                return reject("Debug object ranges overlap");
+            }
+            range.first_vertex = vertices[range.first_vertex];
+            range.first_sound_dot = dots[range.first_sound_dot];
+            retained.debug_shape_object_ranges.push_back(range);
+        }
+        if (!append_debug_geometry(retained, replacement)) {
+            return reject("Debug geometry replacement exceeds the index range");
+        }
+        scene.debug_shape_vertices.swap(retained.debug_shape_vertices);
+        scene.debug_shape_indices.swap(retained.debug_shape_indices);
+        scene.debug_shape_ranges.swap(retained.debug_shape_ranges);
+        scene.sound_debug_dot_instances.swap(retained.sound_debug_dot_instances);
+        scene.debug_shape_selection_points.swap(retained.debug_shape_selection_points);
+        scene.debug_shape_selection_ranges.swap(retained.debug_shape_selection_ranges);
+        scene.debug_shape_object_ranges.swap(retained.debug_shape_object_ranges);
+        return {.status = ObjectVisualRefreshStatus::success, .object_count = static_cast<uint32_t>(objects.size())};
+    } catch (const std::bad_alloc&) {
+        return {.status = ObjectVisualRefreshStatus::failed, .diagnostic = "Debug geometry refresh allocation failed"};
+    } catch (const std::length_error&) {
+        return {.status = ObjectVisualRefreshStatus::failed, .diagnostic = "Debug geometry refresh exceeds container capacity"};
+    }
+}
+
 void SceneDebugRenderer::render_debug_shapes(
     nw::gfx::CommandList* cmd, const PreviewScene& scene, const nw::render::RenderContext& ctx, DebugShapeOptions options)
 {
@@ -1062,12 +1408,15 @@ void SceneDebugRenderer::render_debug_shapes(
         const uint32_t* index_data = scene.debug_shape_indices.data();
         size_t index_count = scene.debug_shape_indices.size();
         std::vector<uint32_t> filtered_indices;
-        const bool filter_by_category = (!options.triggers || !options.encounters)
-            && !scene.debug_shape_ranges.empty();
-        if (filter_by_category) {
+        const bool filter_ranges = !scene.debug_shape_ranges.empty()
+            && (!options.triggers || !options.encounters
+                || std::any_of(scene.debug_shape_ranges.begin(), scene.debug_shape_ranges.end(),
+                    [&](const auto& range) { return !range.visible_for(scene.active_object); }));
+        if (filter_ranges) {
             filtered_indices.reserve(scene.debug_shape_indices.size());
             for (const auto& range : scene.debug_shape_ranges) {
-                if (!debug_shape_category_enabled(range.category, options)) {
+                if (!debug_shape_category_enabled(range.category, options)
+                    || !range.visible_for(scene.active_object)) {
                     continue;
                 }
 

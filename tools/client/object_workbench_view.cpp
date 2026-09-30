@@ -1995,11 +1995,11 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
                           "class=\"data_object_collection smalls_refresh\" "
                           "onrefresh=\"encounter_spawns_refresh()\">"
                           "<div class=\"data_collection_header encounter_spawn_header\">"
-                          "<span>Creature</span><span>CR</span><span>Appearance</span><span>Single</span>"
+                          "<span>Creature</span><span>CR</span><span>Single</span>"
                           "</div><div class=\"data_collection_summary managed_list_title\" "
                           "data-list-id=\"data.encounter.spawns\"></div>"
                           "<div class=\"data_collection_rows encounter_spawn_rows managed_list_rows\" "
-                          "tabindex=\"0\" "
+                          "tabindex=\"0\" data-checkbox-cell=\"2\" "
                           "data-list-id=\"data.encounter.spawns\" "
                           "data-empty-text=\"This encounter has no spawn entries.\"></div>"
                           "<div class=\"data_collection_action_bar\">"
@@ -2156,6 +2156,21 @@ std::optional<ObjectWorkbenchCommandClick> capture_object_workbench_command_clic
             click.args.push_back(CommandArg::positional_string(value));
         }
     };
+    if (auto* checkbox = find_ancestor_with_class(hit, "managed_list_checkbox")) {
+        auto* row = find_ancestor_with_class(checkbox, "managed_list_row");
+        if (!row || row->GetAttribute<Rml::String>("data-list-id", "") != "data.encounter.spawns") {
+            return std::nullopt;
+        }
+        click.release_phase = ClientRmlForwardPhase::after_native;
+        const auto current = parse_decimal_int32(checkbox->GetAttribute<Rml::String>("data-current", ""));
+        if (current && (*current == 0 || *current == 1)) {
+            click.kind = ObjectWorkbenchCommandKind::encounter_spawn_single;
+            args({row->GetAttribute<Rml::String>("data-key", ""),
+                row->GetAttribute<Rml::String>("data-index", ""),
+                std::to_string(*current), std::to_string(1 - *current)});
+        }
+        return finish();
+    }
     bool add = false;
     for (auto* cursor = hit; cursor; cursor = cursor->GetParentNode()) {
         if (cursor->GetId() == "object_variable_add") {
@@ -2560,6 +2575,10 @@ bool execute_object_workbench_command_click(ObjectWorkbenchCommandClick& click,
     const char* command = nullptr;
     size_t arg_count = 3;
     switch (kind) {
+    case ObjectWorkbenchCommandKind::encounter_spawn_single:
+        command = "toolset.encounter.spawns.set_single";
+        arg_count = 4;
+        break;
     case ObjectWorkbenchCommandKind::variable_add:
         command = "object.variables.add";
         arg_count = 0;

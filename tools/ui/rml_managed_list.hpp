@@ -56,15 +56,18 @@ struct ManagedListReorderState {
 
 // Renders the viewport-bounded rows in one immutable host window. Grid
 // windows retain flat item indices while grouping markup by logical row.
+// An optional checkbox cell (0..3) displays exact "0"/"1" values as checkboxes;
+// other values remain escaped text. No cell is editable without a caller handler.
 [[nodiscard]] std::string render_managed_list_window(
     std::string_view list_id,
     const UiListWindow& window,
-    std::string_view empty_text);
+    std::string_view empty_text, int checkbox_cell = -1);
 
 // Synchronizes every .managed_list_rows element in the document with the
 // fixed-row list named by its data-list-id attribute. An element with
 // data-scroll-selected="true" reveals a changed selection once, while later
 // user scrolling remains unconstrained.
+// data-checkbox-cell declares the checkbox column for this list's lifetime.
 bool sync_managed_lists(Rml::ElementDocument* document,
     VirtualListHost& host,
     ManagedListRenderState& render_state,

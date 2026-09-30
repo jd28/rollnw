@@ -470,13 +470,13 @@ bool ClientRenderer::sync_viewer_area_object_spatial(nw::ObjectHandle object)
     return false;
 }
 
-bool ClientRenderer::rebuild_live_viewer_area(
+bool ClientRenderer::synchronize_live_viewer_area(
     nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
     switch (backend_) {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     case Backend::nwgfx:
-        return nwgfx_.rebuild_live_viewer_area(area, selected_object);
+        return nwgfx_.synchronize_live_viewer_area(area, selected_object);
 #endif
     case Backend::none:
         break;
@@ -524,6 +524,20 @@ bool ClientRenderer::rebuild_live_viewer_object(nw::ObjectHandle object)
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     case Backend::nwgfx:
         return nwgfx_.rebuild_live_viewer_object(object);
+#endif
+    case Backend::none:
+        break;
+    }
+    (void)object;
+    return false;
+}
+
+bool ClientRenderer::refresh_live_viewer_debug_geometry(nw::ObjectHandle object)
+{
+    switch (backend_) {
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    case Backend::nwgfx:
+        return nwgfx_.refresh_live_viewer_debug_geometry(object);
 #endif
     case Backend::none:
         break;

@@ -373,7 +373,7 @@ size_t append_render_model_light_rows(
                     = scene.debug_shape_indices.size();
                 append_debug_light_marker(scene, scene_light);
                 append_debug_shape_range(scene,
-                    DebugShapeCategory::general, first_debug_index);
+                    DebugShapeCategory::light, first_debug_index);
             }
         });
 }
@@ -403,6 +403,18 @@ SceneLocalLightTuning scene_local_light_tuning(const PreviewScene& scene) noexce
     return SceneLocalLightTuning{.radius_scale = 0.75f, .intensity_scale = 0.42f};
 }
 
+bool refresh_scene_light_debug_geometry(PreviewScene& scene)
+{
+    if (!scene_light_debug_markers_enabled()) { return true; }
+    PreviewScene replacement;
+    for (const auto& light : scene.local_lights) {
+        const auto first_index = replacement.debug_shape_indices.size();
+        append_debug_light_marker(replacement, light);
+        append_debug_shape_range(replacement, DebugShapeCategory::light, first_index);
+    }
+    return replace_area_debug_geometry(scene, {}, replacement, true).ok();
+}
+
 SceneTileLightSlots scene_tile_light_slots(const nw::AreaTile& tile) noexcept
 {
     return SceneTileLightSlots{
@@ -416,7 +428,7 @@ SceneTileLightSlots scene_tile_light_slots(const nw::AreaTile& tile) noexcept
 size_t append_placeable_table_light(
     PreviewScene& scene,
     const nw::Location& location,
-    const nw::ObjectVisualLight& lighting)
+    const nw::ObjectVisualLight& lighting, nw::ObjectHandle object)
 {
     constexpr float k_base_radius = 6.0f;
     constexpr float k_base_intensity = 0.86f;
@@ -446,6 +458,7 @@ size_t append_placeable_table_light(
         .base_radius = k_base_radius,
         .base_intensity = k_base_intensity,
         .source = SceneLocalLightSource::placeable_table,
+        .object = object,
         .dynamic = 0,
         .affect_dynamic = 1,
     };
@@ -453,7 +466,7 @@ size_t append_placeable_table_light(
     if (viewer_tile_light_debug_shapes_enabled()) {
         const size_t first_debug_index = scene.debug_shape_indices.size();
         append_debug_light_marker(scene, light);
-        append_debug_shape_range(scene, DebugShapeCategory::general, first_debug_index);
+        append_debug_shape_range(scene, DebugShapeCategory::light, first_debug_index);
     }
     return 1;
 }
@@ -461,13 +474,13 @@ size_t append_placeable_table_light(
 size_t append_placeable_table_lights(
     PreviewScene& scene,
     const nw::Location& location,
-    const nw::ObjectVisualState* visual)
+    const nw::ObjectVisualState* visual, nw::ObjectHandle object)
 {
     if (!visual) { return 0; }
 
     size_t result = 0;
     for (const auto& light : visual->lights) {
-        result += append_placeable_table_light(scene, location, light);
+        result += append_placeable_table_light(scene, location, light, object);
     }
     return result;
 }

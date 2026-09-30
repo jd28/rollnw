@@ -29,6 +29,7 @@
 #include <nw/render/viewer/preview_nwn_creature.hpp>
 #include <nw/render/viewer/preview_object.hpp>
 #include <nw/render/viewer/preview_scene.hpp>
+#include <nw/render/viewer/scene_debug.hpp>
 #include <nw/render/viewer/scene_lights.hpp>
 #include <nw/render/viewer/session.hpp>
 #include <nw/resources/assets.hpp>
@@ -1323,7 +1324,7 @@ TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuild
     ASSERT_FALSE(live_area->creatures.empty());
     const auto child = live_area->creatures.front()->handle();
     live_area->creatures.front()->comment = "unsaved area edit";
-    ASSERT_TRUE(session->rebuild_live_area(area, child));
+    ASSERT_TRUE(session->synchronize_live_area(area, child));
     EXPECT_FALSE(session->scene()->owns_root_object);
 
     const std::array paths{
@@ -1360,7 +1361,7 @@ TEST(RenderViewerPreparedDraws, WorkspaceDocumentsSurviveSceneSwitchesAndRebuild
     EXPECT_EQ(session->scene()->root_object, area);
     EXPECT_EQ(live_area->creatures.front()->handle(), child);
     EXPECT_EQ(live_area->creatures.front()->comment, "unsaved area edit");
-    ASSERT_TRUE(session->rebuild_live_area(area, child));
+    ASSERT_TRUE(session->synchronize_live_area(area, child));
     EXPECT_FALSE(session->load_live_object(nw::ObjectHandle{}, "missing"));
     EXPECT_EQ(session->scene()->root_object, area);
     // A UI close releases documents before the next frame clears old visuals.
@@ -1563,7 +1564,7 @@ TEST(RenderViewerPreparedDraws, DroppedItemsRemainSelectableAfterAreaFrame)
     nw::toolset::CommandContext context;
     const auto placed = nw::toolset::place_area_objects(area, loaded.objects, "Drop items", context);
     ASSERT_TRUE(placed.ok()) << placed.message;
-    ASSERT_TRUE(session->rebuild_live_area(area, loaded.objects.front()));
+    ASSERT_TRUE(session->synchronize_live_area(area, loaded.objects.front()));
     ASSERT_TRUE(session->refresh_live_object_visuals(loaded.objects).ok());
     const viewer::ViewerViewport viewport{0, 0, 256, 256};
     ASSERT_TRUE(session->fit_to_scene(viewport));
@@ -1722,7 +1723,7 @@ TEST(RenderViewerPreparedDraws, EditableAreaDoorsKeepSelectionGeometryAtLiveTran
     EXPECT_EQ(stale_animation.matched_model_count, 0u);
     EXPECT_TRUE(session->restore_area_door_animation_lease(stale_lease));
 
-    ASSERT_TRUE(session->rebuild_live_area(area, replacement));
+    ASSERT_TRUE(session->synchronize_live_area(area, replacement));
     scene = session->scene();
     ASSERT_NE(scene, nullptr);
     ASSERT_NE(scene->area_render_scene, nullptr);
@@ -2006,6 +2007,474 @@ TEST(RenderViewerPreparedDraws, EncounterBlueprintPreviewsAndRebuildsSpawnGroup)
 
     session.reset();
     EXPECT_FALSE(nw::kernel::objects().valid(encounter));
+}
+
+TEST(RenderViewerPreparedDraws, EncounterMarkersRefreshWithoutRestartingAreaParticles)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    const auto shader_roots = viewer_shader_roots();
+    if (shader_roots.empty()) { GTEST_SKIP() << "viewer shader roots unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = shader_roots}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    session->set_preview_scene_load_options({.area_object_editing = true});
+    ASSERT_TRUE(session->load_area("test_area"));
+    session->set_area_debug_enabled(true);
+    session->set_area_encounters_enabled(true);
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    auto* area = nw::kernel::objects().get<nw::Area>(scene->root_object);
+    ASSERT_NE(area, nullptr);
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    std::string failure;
+    // Suppress selection outlines while measuring the actual marker draws.
+    const auto draw_indices = [&] {
+        session->set_area_object_selection_enabled(false);
+        EXPECT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+        session->set_area_object_selection_enabled(true);
+        return session->last_frame_stats().debug_command_stats.draw_index_count;
+    };
+    const auto baseline = draw_indices();
+    std::array<nw::ObjectHandle, 2> encounters;
+    std::array<uint64_t, 2> marker_indices{};
+    uint64_t footprint_indices = 0;
+    for (size_t index = 0; index < encounters.size(); ++index) {
+        auto* encounter = nw::kernel::objects().make<nw::Encounter>();
+        ASSERT_NE(encounter, nullptr);
+        area->encounters.push_back(encounter);
+        encounters[index] = encounter->handle();
+        auto& components = nw::kernel::objects().components();
+        ASSERT_TRUE(components.set_area(encounter->handle(), area->handle().id));
+        const std::array footprint{
+            glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{2.0f, 0.0f, 0.0f},
+            glm::vec3{2.0f, 2.0f, 0.0f}, glm::vec3{0.0f, 2.0f, 0.0f}};
+        ASSERT_TRUE(components.set_geometry(encounter->handle(), footprint));
+        std::vector<nw::ObjectSpawnPoint> points;
+        for (size_t point = 0; point <= index; ++point) {
+            points.push_back({.position = {20.0f + 10.0f * static_cast<float>(index),
+                                  20.0f + 3.0f * static_cast<float>(point), 0.0f},
+                .orientation = glm::radians(90.0f * static_cast<float>(point))});
+        }
+        ASSERT_TRUE(components.set_spawn_points(encounter->handle(), points));
+        const auto first_range = scene->debug_shape_ranges.size();
+        ASSERT_TRUE(viewer::append_encounter_debug_geometry(*scene, *encounter));
+        footprint_indices += scene->debug_shape_ranges[first_range].index_count;
+        for (size_t range = first_range + 1; range < scene->debug_shape_ranges.size(); ++range) {
+            marker_indices[index] += scene->debug_shape_ranges[range].index_count;
+        }
+    }
+    ASSERT_GT(marker_indices[0], 0u);
+    ASSERT_GT(marker_indices[1], marker_indices[0]);
+    EXPECT_EQ(draw_indices(), baseline + footprint_indices);
+    ASSERT_TRUE(session->set_area_object_selection(encounters[0]));
+    EXPECT_EQ(draw_indices(), baseline + footprint_indices + marker_indices[0]);
+    ASSERT_TRUE(session->set_area_object_selection(encounters[1]));
+    EXPECT_EQ(draw_indices(), baseline + footprint_indices + marker_indices[1]);
+    uint64_t encounter_footprint_indices = 0;
+    for (const auto& range : scene->debug_shape_ranges) {
+        if (range.category == viewer::DebugShapeCategory::encounter
+            && range.selected_object.type == nw::ObjectType::invalid) {
+            encounter_footprint_indices += range.index_count;
+        }
+    }
+    session->set_area_encounters_enabled(false);
+    EXPECT_EQ(draw_indices(), baseline + footprint_indices - encounter_footprint_indices);
+    session->set_area_encounters_enabled(true);
+    EXPECT_EQ(draw_indices(), baseline + footprint_indices + marker_indices[1]);
+    session->camera().set_orbit_view({30.0f, 21.5f, 1.25f}, 8.0f, -70.0f, 50.0f);
+    session->set_area_object_selection_enabled(false);
+    auto* cmd = nw::gfx::begin_frame(gfx.context);
+    ASSERT_NE(cmd, nullptr);
+    session->render(cmd, viewport);
+    ASSERT_TRUE(nw::gfx::capture_screenshot(gfx.context, cmd, "tmp/encounter-native-markers.png"));
+    session->set_area_object_selection_enabled(true);
+    ASSERT_TRUE(session->clear_area_object_selection());
+    EXPECT_EQ(draw_indices(), baseline + footprint_indices);
+
+    // Real native candle model/emitter, kept alive across point edits.
+    nw::GffBuilder candle_source{nw::Placeable::serial_id};
+    candle_source.top.add_field("TemplateResRef", nw::Resref{"test_candle"});
+    candle_source.top.add_field("Appearance", uint32_t{384});
+    candle_source.top.add_field("AnimationState", uint8_t{0});
+    candle_source.build();
+    nw::ResourceData candle_data;
+    candle_data.bytes = candle_source.to_byte_array();
+    nw::Gff candle_gff{std::move(candle_data)};
+    ASSERT_TRUE(candle_gff.valid());
+    auto* candle = nw::kernel::objects().make<nw::Placeable>();
+    ASSERT_NE(candle, nullptr);
+    area->placeables.push_back(candle);
+    ASSERT_TRUE(nw::deserialize(candle, candle_gff.toplevel(), nw::SerializationProfile::blueprint));
+    ASSERT_TRUE(nw::kernel::objects().components().set_area(candle->handle(), area->handle().id));
+    const std::array candle_objects{candle->handle()};
+    const auto appended = session->append_area_transient_visuals(candle_objects);
+    ASSERT_TRUE(appended.ok()) << appended.diagnostic;
+    for (int tick = 0; tick < 10; ++tick) {
+        session->tick(100);
+    }
+    ASSERT_FALSE(scene->particles.empty());
+    const auto models_before = scene->static_model_instance_handles;
+    const auto* particles_before = scene->particles.data();
+    const auto* area_records_before = scene->area_render_scene.get();
+    const auto static_cache_before = area_records_before->static_cache_generation();
+    std::vector<nw::render::ParticleSystemInstance> systems_before;
+    std::vector<float> animations_before;
+    size_t live_particles = 0;
+    for (const auto& particles : scene->particles) {
+        systems_before.push_back(particles.system);
+        animations_before.push_back(particles.animation_time);
+        live_particles += particles.system.particles.core.age.size();
+    }
+    ASSERT_GT(live_particles, 0u);
+    const auto expect_playback_preserved = [&] {
+        ASSERT_EQ(session->scene(), scene);
+        EXPECT_EQ(scene->static_model_instance_handles, models_before);
+        EXPECT_EQ(scene->area_render_scene.get(), area_records_before);
+        EXPECT_EQ(scene->area_render_scene->static_cache_generation(), static_cache_before);
+        ASSERT_EQ(scene->particles.data(), particles_before);
+        ASSERT_EQ(scene->particles.size(), systems_before.size());
+        for (size_t index = 0; index < systems_before.size(); ++index) {
+            const auto& current = scene->particles[index];
+            const auto& before = systems_before[index];
+            EXPECT_EQ(current.animation_time, animations_before[index]);
+            EXPECT_EQ(current.system.effect, before.effect);
+            EXPECT_EQ(current.system.particles.core.age, before.particles.core.age);
+            EXPECT_EQ(current.system.particles.core.position, before.particles.core.position);
+            ASSERT_EQ(current.system.emitters.size(), before.emitters.size());
+            for (size_t emitter = 0; emitter < before.emitters.size(); ++emitter) {
+                EXPECT_EQ(current.system.emitters[emitter].time, before.emitters[emitter].time);
+                EXPECT_EQ(current.system.emitters[emitter].random_seed, before.emitters[emitter].random_seed);
+                EXPECT_EQ(current.system.emitters[emitter].spawn_accumulator, before.emitters[emitter].spawn_accumulator);
+            }
+        }
+    };
+    // Ordinary object rotation uses the existing in-place spatial batch too.
+    auto spatial = *nw::kernel::objects().components().find_spatial(candle->handle());
+    spatial.orientation = {0.0f, 1.0f, 0.0f};
+    const std::array spatial_rows{spatial};
+    EXPECT_GT(session->update_area_object_spatial_states(spatial_rows).render_model_root_count, 0u);
+    expect_playback_preserved();
+
+    ASSERT_TRUE(session->set_area_object_selection(encounters[1]));
+    const glm::vec4 clip = session->camera().get_projection_matrix()
+        * session->camera().get_view_matrix() * glm::vec4{29.75f, 23.25f, 1.25f, 1.0f};
+    const glm::vec2 pixel = (glm::vec2{clip} / clip.w + 1.0f) * 128.0f;
+    ASSERT_EQ(session->select_area_object(pixel.x, pixel.y, viewport).object, encounters[1]);
+    ASSERT_EQ(session->active_area_debug_subindex(encounters[1]), 1u);
+    auto& components = nw::kernel::objects().components();
+    const auto* geometry = components.find_geometry(encounters[1]);
+    ASSERT_NE(geometry, nullptr);
+    std::vector<nw::ObjectSpawnPoint> points{geometry->spawn_points.begin(), geometry->spawn_points.end()};
+    for (float angle : {0.25f, -0.25f}) {
+        points[1].orientation += angle;
+        ASSERT_TRUE(components.set_spawn_points(encounters[1], points));
+        ASSERT_TRUE(session->refresh_live_object_visual(encounters[1]));
+        expect_playback_preserved();
+        EXPECT_EQ(session->active_area_debug_subindex(encounters[1]), 1u);
+    }
+    auto moved = points;
+    moved[1].position.x -= 1.0f;
+    nw::toolset::CommandContext edit_context;
+    auto command = nw::toolset::commit_encounter_spawn_point_edit(
+        {.area = area->handle(), .encounter = encounters[1], .before = points, .after = moved},
+        "Move point", edit_context);
+    ASSERT_TRUE(command.ok()) << command.message;
+    ASSERT_TRUE(command.undo_action);
+    ASSERT_TRUE(session->refresh_live_object_visual(encounters[1]));
+    expect_playback_preserved();
+    ASSERT_TRUE(command.undo_action->undo(edit_context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(encounters[1]));
+    expect_playback_preserved();
+    ASSERT_TRUE(command.undo_action->redo(edit_context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(encounters[1]));
+    expect_playback_preserved();
+    points = moved;
+    points.erase(points.begin());
+    ASSERT_TRUE(components.set_spawn_points(encounters[1], points));
+    ASSERT_TRUE(session->refresh_live_object_visual(encounters[1]));
+    expect_playback_preserved();
+    EXPECT_EQ(session->active_area_debug_subindex(encounters[1]), UINT32_MAX);
+    EXPECT_EQ(session->active_object(), encounters[1]);
+    points.push_back({.position = {32.0f, 23.0f, 0.0f}, .orientation = 0.5f});
+    ASSERT_TRUE(components.set_spawn_points(encounters[1], points));
+    ASSERT_TRUE(session->refresh_live_object_visual(encounters[1]));
+    expect_playback_preserved();
+    session->tick(100);
+    bool advanced = false;
+    for (size_t index = 0; index < scene->particles.size(); ++index) {
+        for (size_t emitter = 0; emitter < systems_before[index].emitters.size(); ++emitter) {
+            advanced |= scene->particles[index].system.emitters[emitter].time
+                != systems_before[index].emitters[emitter].time;
+        }
+    }
+    EXPECT_TRUE(advanced);
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+}
+
+TEST(RenderViewerPreparedDraws, AreaEditsPreserveUnrelatedPlayback)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    session->set_preview_scene_load_options({.area_object_editing = true});
+    ASSERT_TRUE(session->load_area("test_area"));
+    auto* scene = session->scene();
+    auto* area = nw::kernel::objects().get<nw::Area>(scene->root_object);
+    ASSERT_NE(area, nullptr);
+    auto& components = nw::kernel::objects().components();
+    nw::toolset::CommandContext context;
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    const auto camera = session->camera().get_view_matrix();
+
+    nw::GffBuilder source{nw::Placeable::serial_id};
+    source.top.add_field("TemplateResRef", nw::Resref{"test_candle"});
+    source.top.add_field("Appearance", uint32_t{384});
+    source.top.add_field("AnimationState", uint8_t{0});
+    source.build();
+    nw::ResourceData data;
+    data.bytes = source.to_byte_array();
+    nw::Gff gff{std::move(data)};
+    auto* candle = nw::kernel::objects().make<nw::Placeable>();
+    ASSERT_NE(candle, nullptr);
+    ASSERT_TRUE(nw::deserialize(candle, gff.toplevel(), nw::SerializationProfile::blueprint));
+    area->placeables.push_back(candle);
+    ASSERT_TRUE(components.set_area(candle->handle(), area->handle().id));
+    ASSERT_TRUE(session->synchronize_live_area(area->handle(), candle->handle()));
+    for (int tick = 0; tick < 10; ++tick) {
+        session->tick(100);
+    }
+    const auto models_for = [&](nw::ObjectHandle object) {
+        std::vector<nw::render::ModelInstanceHandle> result;
+        for (size_t index = 0; index < scene->static_models.size(); ++index) {
+            if (scene->static_area_model_info[index].object == object) {
+                result.push_back(scene->static_model_instance_handles[index]);
+            }
+        }
+        return result;
+    };
+    const auto candle_models = models_for(candle->handle());
+    ASSERT_FALSE(candle_models.empty());
+    struct Playback {
+        nw::render::ModelInstanceHandle owner;
+        nw::render::ParticleSystemInstance system;
+        float animation_time;
+    };
+    std::vector<Playback> playback;
+    size_t live_particles = 0;
+    for (const auto& particles : scene->particles) {
+        if (std::find(candle_models.begin(), candle_models.end(), particles.owner_instance_handle) != candle_models.end()) {
+            playback.push_back({particles.owner_instance_handle, particles.system, particles.animation_time});
+            live_particles += particles.system.particles.core.age.size();
+        }
+    }
+    ASSERT_GT(live_particles, 0u);
+    const auto expect_preserved = [&] {
+        EXPECT_EQ(session->scene(), scene);
+        EXPECT_EQ(session->camera().get_view_matrix(), camera);
+        EXPECT_EQ(models_for(candle->handle()), candle_models);
+        for (const auto& before : playback) {
+            const auto current = std::ranges::find_if(scene->particles, [&](const auto& row) {
+                return row.owner_instance_handle == before.owner;
+            });
+            ASSERT_NE(current, scene->particles.end());
+            EXPECT_EQ(current->animation_time, before.animation_time);
+            EXPECT_EQ(current->system.particles.core.age, before.system.particles.core.age);
+            EXPECT_EQ(current->system.particles.core.position, before.system.particles.core.position);
+            ASSERT_EQ(current->system.emitters.size(), before.system.emitters.size());
+            for (size_t emitter = 0; emitter < before.system.emitters.size(); ++emitter) {
+                EXPECT_EQ(current->system.emitters[emitter].time, before.system.emitters[emitter].time);
+                EXPECT_EQ(current->system.emitters[emitter].random_seed, before.system.emitters[emitter].random_seed);
+                EXPECT_EQ(current->system.emitters[emitter].spawn_accumulator, before.system.emitters[emitter].spawn_accumulator);
+            }
+            ASSERT_LT(current->owner_model_index, scene->static_models.size());
+            EXPECT_EQ(scene->static_model_instance_handles[current->owner_model_index], before.owner);
+        }
+        for (size_t index = 0; index < scene->area_tile_model_indices.size(); ++index) {
+            const auto model = scene->area_tile_model_indices[index];
+            if (nw::area_tile_is_void(area->tiles[index])) {
+                EXPECT_EQ(model, nw::render::kInvalidModelInstanceIndex);
+            } else {
+                ASSERT_LT(model, scene->static_models.size());
+                EXPECT_EQ(scene->static_area_model_info[model].tile_x, index % area->width);
+                EXPECT_EQ(scene->static_area_model_info[model].tile_y, index / area->width);
+            }
+        }
+        std::string failure;
+        EXPECT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    };
+    const auto synchronize = [&] {
+        ASSERT_TRUE(session->synchronize_live_area(area->handle(), nw::toolset::object_mutation_state().object));
+        expect_preserved();
+    };
+
+    // Detached ghost cancellation, then promotion and undo/redo use the same
+    // authored membership comparison, including stale destroyed handles.
+    const std::array placements{nw::toolset::AreaObjectBlueprintPlacement{
+        .resource = {nw::Resref{"arrowcorpse001"}, nw::ResourceType::utp},
+        .transform = {.position = {5.0f, 5.0f, 0.0f}}}};
+    auto loaded = nw::toolset::load_area_object_blueprints(area->handle(), placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    ASSERT_TRUE(session->append_area_object_previews(loaded.objects, 0.45f).ok());
+    const auto cancelled = loaded.objects.front();
+    nw::kernel::objects().destroy(cancelled);
+    synchronize();
+    EXPECT_TRUE(models_for(cancelled).empty());
+    loaded = nw::toolset::load_area_object_blueprints(area->handle(), placements);
+    ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+    ASSERT_TRUE(session->append_area_object_previews(loaded.objects, 0.45f).ok());
+    auto placed = nw::toolset::place_area_objects(area->handle(), loaded.objects, "Place", context);
+    ASSERT_TRUE(placed.ok()) << placed.message;
+    ASSERT_TRUE(placed.undo_action);
+    synchronize();
+    const auto placed_handle = loaded.objects.front();
+    ASSERT_FALSE(models_for(placed_handle).empty());
+    auto authored = viewer::build_live_object_scene(*device.preview_resources(), placed_handle, "authored placement", {});
+    ASSERT_TRUE(authored);
+    ASSERT_EQ(authored->static_models.size(), 1u);
+    for (size_t index = 0; index < scene->static_models.size(); ++index) {
+        if (scene->static_area_model_info[index].object == placed_handle) {
+            const auto& materials = scene->static_models[index]->materials;
+            ASSERT_EQ(materials.size(), authored->static_models[0]->materials.size());
+            for (size_t material = 0; material < materials.size(); ++material) {
+                EXPECT_EQ(materials[material].albedo.a, authored->static_models[0]->materials[material].albedo.a);
+                EXPECT_EQ(materials[material].alpha_mode, authored->static_models[0]->materials[material].alpha_mode);
+            }
+        }
+    }
+    authored.reset();
+    ASSERT_TRUE(placed.undo_action->undo(context).ok());
+    synchronize();
+    EXPECT_TRUE(models_for(placed_handle).empty());
+    ASSERT_TRUE(placed.undo_action->redo(context).ok());
+    synchronize();
+    auto duplicated = nw::toolset::duplicate_area_objects(area->handle(), loaded.objects, "Duplicate", context);
+    ASSERT_TRUE(duplicated.ok()) << duplicated.message;
+    synchronize();
+    const auto duplicate = nw::toolset::object_mutation_state().object;
+    auto deleted = nw::toolset::delete_area_objects(area->handle(), std::array{duplicate}, "Delete", context);
+    ASSERT_TRUE(deleted.ok()) << deleted.message;
+    synchronize();
+    ASSERT_TRUE(deleted.undo_action->undo(context).ok());
+    synchronize();
+    ASSERT_TRUE(deleted.undo_action->redo(context).ok());
+    synchronize();
+
+    // A second candle exercises appearance replacement and owned light removal.
+    auto edit = nw::toolset::make_object_appearance_edit(nw::kernel::runtime(), placed_handle, 384);
+    ASSERT_TRUE(edit);
+    auto appearance = nw::toolset::commit_object_appearance_edit(std::move(*edit), "Appearance", context);
+    ASSERT_TRUE(appearance.ok()) << appearance.message;
+    ASSERT_TRUE(session->refresh_live_object_visual(placed_handle));
+    EXPECT_EQ(session->active_object(), placed_handle);
+    expect_preserved();
+    ASSERT_TRUE(appearance.undo_action->undo(context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(placed_handle));
+    expect_preserved();
+    ASSERT_TRUE(appearance.undo_action->redo(context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(placed_handle));
+    expect_preserved();
+
+    // Mixed overlay/model membership; Sound mode also updates its range dots
+    // when the toolset marker model is unavailable in the asset fixture.
+    auto* encounter = nw::kernel::objects().make<nw::Encounter>();
+    ASSERT_NE(encounter, nullptr);
+    area->encounters.push_back(encounter);
+    ASSERT_TRUE(components.set_area(encounter->handle(), area->handle().id));
+    const std::array footprint{glm::vec3{0, 0, 0}, glm::vec3{2, 0, 0}, glm::vec3{0, 2, 0}};
+    ASSERT_TRUE(components.set_geometry(encounter->handle(), footprint));
+    auto* sound = nw::kernel::objects().load_file<nw::Sound>("test_data/user/development/blue_bell.uts");
+    ASSERT_NE(sound, nullptr);
+    area->sounds.push_back(sound);
+    ASSERT_TRUE(components.set_area(sound->handle(), area->handle().id));
+    synchronize();
+    const auto sound_models = models_for(sound->handle());
+    const auto sound_dots_before = scene->sound_debug_dot_instances.size();
+    ASSERT_TRUE(set_object_propset_int(sound->handle(), "nwn1.propsets.SoundState", "positional", 1));
+    ASSERT_TRUE(session->refresh_live_object_visual(sound->handle()));
+    if (!sound_models.empty()) { EXPECT_NE(models_for(sound->handle()), sound_models); }
+    EXPECT_GT(scene->sound_debug_dot_instances.size(), sound_dots_before);
+    expect_preserved();
+    auto removed = nw::toolset::delete_area_objects(area->handle(), std::array{encounter->handle(), sound->handle()}, "Delete markers", context);
+    ASSERT_TRUE(removed.ok()) << removed.message;
+    synchronize();
+    EXPECT_TRUE(std::ranges::none_of(scene->debug_shape_object_ranges, [&](const auto& row) {
+        return row.object == encounter->handle() || row.object == sound->handle();
+    }));
+    ASSERT_TRUE(removed.undo_action->undo(context).ok());
+    synchronize();
+
+    // A missing play-preview door is repaired through the same batch visual
+    // path as a Door appearance edit, without disturbing other scene owners.
+    auto* door = nw::kernel::objects().load_file<nw::Door>("test_data/user/development/door_ttr_002.utd");
+    ASSERT_NE(door, nullptr);
+    area->doors.push_back(door);
+    ASSERT_TRUE(components.set_area(door->handle(), area->handle().id));
+    const std::array door_rows{door->handle()};
+    ASSERT_TRUE(session->refresh_live_object_visuals(door_rows).ok());
+    const auto door_models = models_for(door->handle());
+    ASSERT_FALSE(door_models.empty());
+    expect_preserved();
+    ASSERT_TRUE(session->refresh_live_object_visual(door->handle()));
+    EXPECT_NE(models_for(door->handle()), door_models);
+    expect_preserved();
+    synchronize();
+
+    // Exercise owner removal even for a table light without a model-node link.
+    scene->local_lights.push_back({.radius = 5.0f, .intensity = 1.0f, .source = viewer::SceneLocalLightSource::placeable_table, .object = placed_handle});
+    viewer::refresh_scene_local_light_render_data(*scene);
+
+    // Blueprint updates destroy the old handle before the renderer sees the replacement.
+    auto* replacement = nw::kernel::objects().load_file<nw::Placeable>("test_data/user/development/arrowcorpse001.utp");
+    ASSERT_NE(replacement, nullptr);
+    ASSERT_TRUE(components.set_area(replacement->handle(), area->handle().id));
+    auto member = std::ranges::find_if(area->placeables, [&](const auto* row) { return row->handle() == placed_handle; });
+    ASSERT_NE(member, area->placeables.end());
+    *member = replacement;
+    nw::kernel::objects().destroy(placed_handle);
+    synchronize();
+    EXPECT_TRUE(models_for(placed_handle).empty());
+    EXPECT_FALSE(models_for(replacement->handle()).empty());
+    EXPECT_TRUE(std::ranges::none_of(scene->local_lights, [&](const auto& row) { return row.object == placed_handle; }));
+
+    // Coalesced tile edits, void rows, restore, then an object compaction after
+    // tile append (tile rows need not precede every object row any more).
+    ASSERT_GE(area->tiles.size(), 2u);
+    const auto first = area->tiles[0];
+    const auto second = area->tiles[1];
+    area->tiles[0].orientation = (first.orientation + 1) % 4;
+    area->tiles[1].height += 1;
+    synchronize();
+    area->tiles[0].id = nw::kAreaTileVoidId;
+    area->tiles[1].id = nw::kAreaTileVoidId;
+    synchronize();
+    area->tiles[0] = first;
+    area->tiles[1] = second;
+    synchronize();
+    auto remove_replacement = nw::toolset::delete_area_objects(area->handle(), std::array{replacement->handle()}, "Delete replacement", context);
+    ASSERT_TRUE(remove_replacement.ok()) << remove_replacement.message;
+    synchronize();
+    area->tiles[0].height += 1;
+    ASSERT_TRUE(session->refresh_live_area_tiles(area->handle(), std::array<uint32_t, 1>{0}).ok());
+    expect_preserved();
+    const auto before_invalid = scene->static_model_instance_handles;
+    area->tiles[0].id = -2;
+    EXPECT_FALSE(session->synchronize_live_area(area->handle()));
+    EXPECT_EQ(scene->static_model_instance_handles, before_invalid);
+    area->tiles[0] = first;
+    synchronize();
+    session->tick(100);
+    EXPECT_NE(scene->particles.front().system.emitters.front().time, playback.front().system.emitters.front().time);
 }
 
 TEST(RenderViewerPreparedDraws, WaypointBlueprintLoadsAppearanceModel)
@@ -3138,7 +3607,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     ASSERT_TRUE(set_object_propset_int(
         area_waypoint->handle(), "nwn1.propsets.WaypointState", "appearance", 2));
     live_area->waypoints.push_back(area_waypoint);
-    ASSERT_TRUE(session->rebuild_live_area(area_handle, area_waypoint->handle()));
+    ASSERT_TRUE(session->synchronize_live_area(area_handle, area_waypoint->handle()));
     ASSERT_TRUE(session->clear_area_object_selection());
     scene = session->scene();
     ASSERT_NE(scene, nullptr);
@@ -3447,7 +3916,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     const nw::ObjectHandle duplicated_handle = nw::toolset::object_mutation_state().object;
     ASSERT_TRUE(nw::kernel::objects().valid(duplicated_handle));
 
-    ASSERT_TRUE(session->rebuild_live_area(area_handle, duplicated_handle));
+    ASSERT_TRUE(session->synchronize_live_area(area_handle, duplicated_handle));
     ASSERT_NE(session->scene(), nullptr);
     EXPECT_EQ(session->scene()->root_object, area_handle);
     EXPECT_EQ(session->active_object(), duplicated_handle);
@@ -3463,11 +3932,11 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
     const auto undone = duplicated.undo_action->undo(command_context);
     ASSERT_TRUE(undone.ok()) << undone.message;
     EXPECT_EQ(nw::toolset::object_mutation_state().object, selected_for_rebuild_handle);
-    ASSERT_TRUE(session->rebuild_live_area(area_handle, selected_for_rebuild_handle));
+    ASSERT_TRUE(session->synchronize_live_area(area_handle, selected_for_rebuild_handle));
     EXPECT_EQ(session->active_object(), selected_for_rebuild_handle);
     EXPECT_EQ(session->scene()->area_render_scene->stats().record_count, record_count_before_rebuild);
 
-    ASSERT_TRUE(session->rebuild_live_area(area_handle, debug_selection_handle));
+    ASSERT_TRUE(session->synchronize_live_area(area_handle, debug_selection_handle));
     EXPECT_EQ(session->active_object(), debug_selection_handle);
 
     auto* list_only_sound = nw::kernel::objects().make<nw::Sound>();
@@ -3491,7 +3960,7 @@ TEST(RenderViewerPreparedDraws, AreaLoadUsesRenderModelPathForNonHumanoidCreatur
             list_only_sound_approach),
         1.0f,
         1.0e-5f);
-    ASSERT_TRUE(session->rebuild_live_area(area_handle, list_only_sound->handle()));
+    ASSERT_TRUE(session->synchronize_live_area(area_handle, list_only_sound->handle()));
     EXPECT_EQ(session->active_object(), list_only_sound->handle());
 
     session->clear();

@@ -4794,7 +4794,7 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
         "test_data/user/development/boundelementallo.ute");
     ASSERT_NE(encounter, nullptr);
     verify_data_list(encounter->handle(), "encounter_spawns_refresh",
-        "data.encounter.spawns", 4);
+        "data.encounter.spawns", 3);
 
     const auto encounter_spawns_before = nw::toolset::snapshot_encounter_spawns(
         runtime, encounter->handle());
@@ -4907,6 +4907,182 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
 
     nw::toolset::smalls_rmlui_host().clear_active_object();
     nw::toolset::script_command_host().bind(nullptr, nullptr);
+}
+
+TEST(ClientRmlSmallsLanguageBinding, EncounterSingleSpawnCheckboxEditsInlineAndRejectsStaleClicks)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto& runtime = nw::kernel::runtime();
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    ShellController shell;
+    backend.bind(&bridge, &shell, &workspace);
+    ScriptCommandHostReset reset_commands;
+    ASSERT_TRUE(backend.initialize());
+    auto* encounter = nw::kernel::objects().load_file<nw::Encounter>(
+        "test_data/user/development/boundelementallo.ute");
+    ASSERT_NE(encounter, nullptr);
+    auto original = snapshot_encounter_spawns(runtime, encounter->handle());
+    ASSERT_TRUE(original);
+    ASSERT_FALSE(original->empty());
+    std::vector<EncounterSpawnRecord> before(3, original->front());
+    before[1].single_spawn = 0;
+    before[2].resref = nw::Resref{"missing_spawn_reference"};
+    ASSERT_TRUE(apply_encounter_spawn_edit(runtime,
+        {encounter->handle(), *original, before}, ObjectEditDirection::forward)
+            .ok());
+    auto& tab = workspace.open_tab("encounter-edit", "Encounter", WorkspaceTabKind::preview);
+    ASSERT_TRUE(tab.document.adopt(encounter->handle()));
+    CommandContext command;
+    command.workspace = &workspace;
+    command.active_tab_id = tab.id;
+    bridge.publish_active_object(encounter->handle());
+
+    RmlSmallsLanguageBinding binding;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(binding.initialize(runtime));
+    auto* context = Rml::CreateContext("encounter-spawn-edit", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    const auto cleanup = create_scope_exit([&] {
+        bridge.clear_active_object();
+        Rml::RemoveContext("encounter-spawn-edit");
+    });
+    auto* document = context->LoadDocument(
+        (std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui/panel.rml").string());
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    ObjectWorkbenchViewState view;
+    activate_object_workbench(view, encounter->handle(), command.active_tab_id);
+    view.object_workbench_surface = ObjectWorkbenchSurface::spawns;
+    std::string markup;
+    append_object_workbench_markup(markup, view, workspace, backend);
+    EXPECT_NE(markup.find("<span>CR</span>"), std::string::npos);
+    EXPECT_EQ(markup.find("<span>Appearance</span>"), std::string::npos);
+    document->GetElementById("workspace_content")->SetInnerRML(markup);
+    context->Update();
+    EXPECT_EQ(document->GetElementById("encounter_spawn_edit"), nullptr);
+    const auto refresh = [&] {
+        ASSERT_TRUE(runtime.execute_script("toolset.data_object_editor", "encounter_spawns_refresh", {}).ok());
+        ASSERT_TRUE(sync_managed_lists(document, ui_v1_host(), view.managed_lists, true));
+        context->Update();
+    };
+    const auto arguments = [&](int index, int desired) {
+        const auto window = ui_v1_host().window("data.encounter.spawns", 500, 0);
+        return std::vector<std::string>{window->items[index].key, std::to_string(index),
+            window->items[index].cells[2], std::to_string(desired)};
+    };
+    const auto submit = [&](const std::vector<std::string>& values) {
+        const std::vector<std::string_view> args{values.begin(), values.end()};
+        return backend.execute_command("toolset.encounter.spawns.set_single", args, command);
+    };
+    refresh();
+    Rml::ElementList boxes;
+    document->GetElementsByClassName(boxes, "managed_list_checkbox");
+    ASSERT_EQ(boxes.size(), before.size());
+    for (size_t index = 0; index < boxes.size(); ++index) {
+        EXPECT_GT(boxes[index]->GetOffsetWidth(), 0.0f);
+        EXPECT_GT(boxes[index]->GetOffsetHeight(), 0.0f);
+        EXPECT_EQ(boxes[index]->GetAttribute<int>("data-current", -1), before[index].single_spawn);
+        EXPECT_EQ(boxes[index]->GetChild(0)->IsClassSet("checked"), before[index].single_spawn != 0);
+    }
+    auto args = arguments(1, 0);
+    EXPECT_EQ(submit(args).status, CommandStatus::noop);
+    EXPECT_EQ(workspace.undo_count(), 0u);
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+    for (const auto& invalid : std::array<std::pair<size_t, std::string>, 7>{
+             {{0, "stale"}, {1, "-1"}, {1, "4294967296"}, {2, "1"},
+                 {3, "nan"}, {3, "2147483648"}, {3, "2"}}}) {
+        auto bad = args;
+        bad[invalid.first] = invalid.second;
+        EXPECT_EQ(submit(bad).status, CommandStatus::rejected);
+        EXPECT_EQ(snapshot_encounter_spawns(runtime, encounter->handle()), std::optional{before});
+    }
+    auto extra = args;
+    extra.push_back("123");
+    EXPECT_EQ(submit(extra).status, CommandStatus::rejected);
+    EXPECT_EQ(workspace.undo_count(), 0u);
+
+    // The clicked row is the target even when another row is selected.
+    ASSERT_TRUE(ui_v1_host().set_selected("data.encounter.spawns",
+        UiListSelection{.list_id = "data.encounter.spawns", .index = 0}, false));
+    auto click = capture_object_workbench_click(boxes[1]->GetChild(0), {}, view, workspace,
+        backend.module_generation(), nw::kernel::resman().generation());
+    ASSERT_TRUE(click);
+    auto stale_click = *click;
+    const auto epoch = object_mutation_state().epoch;
+    (void)apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+    auto after = before;
+    after[1].single_spawn = 1;
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, encounter->handle()), std::optional{after});
+    EXPECT_EQ(object_mutation_state().epoch, epoch + 1);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    (void)apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+    (void)apply_object_workbench_click(stale_click, document, view, workspace, backend, shell, command);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_EQ(submit(args).status, CommandStatus::rejected);
+    refresh();
+    boxes.clear();
+    document->GetElementsByClassName(boxes, "managed_list_checkbox");
+    ASSERT_EQ(boxes.size(), after.size());
+    EXPECT_TRUE(boxes[1]->GetChild(0)->IsClassSet("checked"));
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, encounter->handle()), std::optional{before});
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, encounter->handle()), std::optional{after});
+
+    const std::filesystem::path saved = "tmp/edited_encounter.ute.json";
+    ASSERT_TRUE(encounter->save(saved, "json"));
+    auto* reloaded = nw::kernel::objects().load_file<nw::Encounter>(saved);
+    ASSERT_NE(reloaded, nullptr);
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, reloaded->handle()), std::optional{after});
+    refresh();
+    const auto stale_args = arguments(0, 1 - after[0].single_spawn);
+    bridge.publish_active_object(reloaded->handle());
+    EXPECT_EQ(submit(stale_args).status, CommandStatus::rejected);
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, reloaded->handle()), std::optional{after});
+    bridge.publish_active_object(encounter->handle());
+    nw::kernel::objects().destroy(reloaded->handle());
+
+    // The same edit dirties and persists a containing CAF document, including
+    // Single Spawn on a row whose creature blueprint is unavailable.
+    auto* area = nw::kernel::objects().make_area(nw::Resref{"start"});
+    ASSERT_NE(area, nullptr);
+    ASSERT_EQ(workspace.active_tab()->document.release(), encounter->handle());
+    area->encounters.push_back(encounter);
+    {
+        std::ofstream placeholder{"tmp/edited_encounter_area.caf.json"};
+        ASSERT_TRUE(placeholder);
+        placeholder << "{}\n";
+    }
+    auto& area_tab = workspace.open_area_tab("edited_encounter_area.caf.json", "Area");
+    ASSERT_TRUE(area_tab.document.adopt(area->handle()));
+    command.active_tab_id = area_tab.id;
+    refresh();
+    args = arguments(2, 1 - after[2].single_spawn);
+    ASSERT_TRUE(submit(args).ok());
+    after[2].single_spawn = 1 - before[2].single_spawn;
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, encounter->handle()), std::optional{after});
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    ASSERT_TRUE(workspace.redo(command).ok());
+    const std::array<std::string_view, 1> ids{area_tab.id};
+    const auto saved_area = save_workspace_documents(workspace, "tmp", ids);
+    ASSERT_TRUE(saved_area.ok()) << saved_area.message;
+    std::ifstream file{"tmp/edited_encounter_area.caf.json"};
+    ASSERT_TRUE(file);
+    auto* reloaded_area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(reloaded_area, nullptr);
+    ASSERT_TRUE(nw::deserialize(reloaded_area, nlohmann::json::parse(file)));
+    ASSERT_EQ(reloaded_area->encounters.size(), area->encounters.size());
+    EXPECT_EQ(snapshot_encounter_spawns(runtime, reloaded_area->encounters.back()->handle()), std::optional{after});
+    reloaded_area->clear();
+    nw::kernel::objects().destroy(reloaded_area->handle());
 }
 
 TEST(ClientRmlSmallsLanguageBinding, DataCollectionRemovalRejectsStaleSelectionsAndPersists)

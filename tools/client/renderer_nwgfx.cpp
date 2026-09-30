@@ -401,10 +401,10 @@ bool ClientRendererNwgfx::sync_viewer_area_object_spatial(nw::ObjectHandle objec
     return viewer_viewport_ && viewer_viewport_->sync_area_object_spatial(object);
 }
 
-bool ClientRendererNwgfx::rebuild_live_viewer_area(
+bool ClientRendererNwgfx::synchronize_live_viewer_area(
     nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
-    return viewer_viewport_ && viewer_viewport_->rebuild_live_area(area, selected_object);
+    return viewer_viewport_ && viewer_viewport_->synchronize_live_area(area, selected_object);
 }
 
 bool ClientRendererNwgfx::refresh_live_viewer_area_tiles(
@@ -424,6 +424,11 @@ bool ClientRendererNwgfx::refresh_live_viewer_area_weather(
 bool ClientRendererNwgfx::rebuild_live_viewer_object(nw::ObjectHandle object)
 {
     return viewer_viewport_ && viewer_viewport_->rebuild_live_object(object);
+}
+
+bool ClientRendererNwgfx::refresh_live_viewer_debug_geometry(nw::ObjectHandle object)
+{
+    return viewer_viewport_ && viewer_viewport_->refresh_live_debug_geometry(object);
 }
 
 bool ClientRendererNwgfx::refresh_live_viewer_object_visual(nw::ObjectHandle object)

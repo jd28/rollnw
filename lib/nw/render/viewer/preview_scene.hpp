@@ -256,6 +256,7 @@ struct DebugShapeVertex {
 
 enum class DebugShapeCategory : uint8_t {
     general,
+    light,
     trigger,
     encounter,
     sound,
@@ -267,6 +268,13 @@ struct DebugShapeRange {
     DebugShapeCategory category = DebugShapeCategory::general;
     uint32_t first_index = 0;
     uint32_t index_count = 0;
+    // Invalid means always visible; spawn markers require their owner selected.
+    nw::ObjectHandle selected_object{};
+
+    [[nodiscard]] bool visible_for(nw::ObjectHandle active_object) const noexcept
+    {
+        return selected_object.type == nw::ObjectType::invalid || selected_object == active_object;
+    }
 };
 
 struct DebugShapeSelectionRange {
@@ -275,6 +283,8 @@ struct DebugShapeSelectionRange {
     uint32_t debug_shape_range_index = kInvalidAreaRenderRecordIndex;
     uint32_t first_point = 0;
     uint32_t point_count = 0;
+    // Encounter point markers use the zero-based spawn_points array index;
+    // their visible number is subindex + 1. UINT32_MAX denotes the footprint.
     uint32_t subindex = UINT32_MAX;
     float plane_z = 0.0f;
     DebugShapeCategory category = DebugShapeCategory::general;
@@ -325,6 +335,7 @@ struct SceneLocalLight {
     SceneLocalLightSource source = SceneLocalLightSource::authored_model;
     uint32_t model_index = kInvalidSceneLocalLightModelIndex;
     int32_t model_source_node_index = -1;
+    nw::ObjectHandle object{}; // Owner of table lights, including objects without a model.
     SceneTileLightSlots tile_light_slots{};
     uint16_t tile_x = 0;
     uint16_t tile_y = 0;
@@ -365,9 +376,13 @@ struct PreviewScene {
     std::vector<nw::render::ModelInstanceHandle> static_model_instance_handles;
     std::vector<uint32_t> static_model_attachment_binding_indices;
     std::vector<AreaRenderSourceInfo> static_area_model_info;
-    // Loaded once with the area. Row-major area tile index -> stable original
-    // model row; missing tile models leave an invalid index.
+    // Row-major area tile index -> current model row. Compaction repairs the
+    // indices; void tiles and missing models leave an invalid index.
     std::vector<uint32_t> area_tile_model_indices;
+    // Last successfully displayed authored rows. Reconciliation reads these
+    // only on editor mutations; frame traversal uses the model indices above.
+    std::vector<nw::AreaTile> area_tiles;
+    std::vector<nw::ObjectHandle> area_objects;
     AreaTileRefreshStats last_area_tile_refresh_stats;
     nw::render::ModelInstanceStore model_instances;
     nw::render::ModelMaterialOverrideStore material_overrides;
@@ -534,11 +549,19 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
 [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
     PreviewScene& scene,
     std::span<const nw::ObjectHandle> objects);
-// Batch replacement of live Creature or Item visual rows. The input is a
-// borrowed flat span of unique live handles already represented by the scene;
-// unsupported, duplicate, missing, or unrepresented rows reject the complete
-// batch. All replacement assets are built before scene mutation, and the scene
-// retains the appended render rows for its lifetime.
+// Main-thread batch contract: sorted authored membership is compared with
+// scene-owned snapshots, and only changed object/tile rows are replaced.
+// Stale removed handles are identities only; additions must be live members.
+// The scene, unchanged instances and particle playback retain their lifetime.
+// Invalid area shape or failed loads return a diagnostic for incremental retry.
+[[nodiscard]] ObjectVisualRefreshResult synchronize_area_rows(
+    PreviewScene& scene, PreviewRenderResources& resources,
+    PreviewSceneLoadOptions options = {});
+
+// Borrowed unique live handles: replace their models and overlays, including
+// missing area visuals. Standalone previews accept their single root only.
+// Stale, duplicate, non-finite and wrong-area additions reject. Replacement
+// assets are staged before mutation; unchanged instances and playback survive.
 [[nodiscard]] ObjectVisualRefreshResult refresh_object_visuals(
     PreviewScene& scene,
     PreviewRenderResources& resources,

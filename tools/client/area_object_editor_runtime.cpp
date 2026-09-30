@@ -478,8 +478,8 @@ void cancel_area_object_placement(ClientRenderer& renderer, AreaObjectPlacementS
         const auto selected = nw::kernel::objects().valid(placement.previous_selection)
             ? placement.previous_selection
             : nw::ObjectHandle{};
-        if (!renderer.rebuild_live_viewer_area(placement.area, selected)) {
-            shell.append_output("error", "Area object placement cancellation rebuild failed");
+        if (!renderer.synchronize_live_viewer_area(placement.area, selected)) {
+            shell.append_output("error", "Area object placement cancellation synchronization failed");
         }
     }
 }
@@ -736,8 +736,8 @@ void commit_area_object_placement(ClientRenderer& renderer, AreaObjectPlacementS
         const auto selected = nw::kernel::objects().valid(placement.previous_selection)
             ? placement.previous_selection
             : nw::ObjectHandle{};
-        if (!renderer.rebuild_live_viewer_area(placement.area, selected)) {
-            shell.append_output("error", "Area object placement rollback rebuild failed");
+        if (!renderer.synchronize_live_viewer_area(placement.area, selected)) {
+            shell.append_output("error", "Area object placement rollback synchronization failed");
         }
         shell.append_output("error", "Area object placement spatial commit failed");
         return;
@@ -756,8 +756,8 @@ void commit_area_object_placement(ClientRenderer& renderer, AreaObjectPlacementS
         const auto selected = nw::kernel::objects().valid(placement.previous_selection)
             ? placement.previous_selection
             : nw::ObjectHandle{};
-        if (!renderer.rebuild_live_viewer_area(placement.area, selected)) {
-            shell.append_output("error", "Area object placement rollback rebuild failed");
+        if (!renderer.synchronize_live_viewer_area(placement.area, selected)) {
+            shell.append_output("error", "Area object placement rollback synchronization failed");
         }
     }
 }

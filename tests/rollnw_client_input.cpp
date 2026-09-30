@@ -245,18 +245,21 @@ TEST_F(ClientInput, ConsumedNativeUiReleaseStillCompletesItsSdkPressOnce)
     ClientInputDispatchState dispatch{.native_handled = true};
     EXPECT_FALSE(client_input_forwarding_pending(dispatch));
     EXPECT_TRUE(forward_client_input(dispatch, ClientRmlRecipient::toolset,
-        ClientRmlForwardPhase::after_native, context, window, event).performed);
+        ClientRmlForwardPhase::after_native, context, window, event)
+            .performed);
     EXPECT_TRUE(dispatch.native_handled);
     EXPECT_EQ(dispatch.forwarding_phase, ClientRmlForwardPhase::after_native);
     EXPECT_EQ(std::count(recorder.events.begin(), recorder.events.end(), "mouseup"), 1);
     EXPECT_FALSE(target->IsPseudoClassSet("active"));
     EXPECT_FALSE(forward_client_input(dispatch, ClientRmlRecipient::toolset,
-        ClientRmlForwardPhase::after_native, context, window, event).performed);
+        ClientRmlForwardPhase::after_native, context, window, event)
+            .performed);
     EXPECT_EQ(std::count(recorder.events.begin(), recorder.events.end(), "mouseup"), 1);
     ClientInputDispatchState consumed_down{.native_handled = true};
     event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
     EXPECT_FALSE(forward_client_input(consumed_down, ClientRmlRecipient::toolset,
-        ClientRmlForwardPhase::after_native, context, window, event).performed);
+        ClientRmlForwardPhase::after_native, context, window, event)
+            .performed);
 }
 
 TEST_F(ClientInput, EarlyReleasePrecedesDomReplacementAndCannotForwardAgain)
@@ -751,7 +754,7 @@ TEST(ClientEditorInput, ApplicationShortcutBatchesKeepTheCurrentModifierAndRepea
 
 TEST(ClientEditorInput, WheelBatchesPreserveFocusModifiersAndRejectNonEditorRecipients)
 {
-    std::array<EditorWheelInput, 15> inputs;
+    std::array<EditorWheelInput, 21> inputs;
     inputs.fill({.recipient = ClientNativeRecipient::editor, .viewport = EditorViewportKind::area, .object_type = nw::ObjectType::placeable, .amount = 1});
     inputs[1].modifiers = SDL_KMOD_CTRL;
     inputs[2].modifiers = SDL_KMOD_SHIFT;
@@ -768,6 +771,16 @@ TEST(ClientEditorInput, WheelBatchesPreserveFocusModifiersAndRejectNonEditorReci
     inputs[12].recipient = static_cast<ClientNativeRecipient>(255);
     inputs[13].viewport = static_cast<EditorViewportKind>(255);
     inputs[14].object_type = static_cast<nw::ObjectType>(255);
+    for (size_t index = 15; index < inputs.size(); ++index) {
+        inputs[index].object_type = nw::ObjectType::encounter;
+        inputs[index].modifiers = SDL_KMOD_CTRL;
+        inputs[index].debug_subindex = 0;
+    }
+    inputs[16].debug_subindex = UINT32_MAX;
+    inputs[17].modifiers = SDL_KMOD_NONE;
+    inputs[18].modifiers = SDL_KMOD_CTRL | SDL_KMOD_SHIFT;
+    inputs[19].text_focused = true;
+    inputs[20].viewport = EditorViewportKind::preview;
     const std::array expected{
         EditorWheelActionKind::object_scale, EditorWheelActionKind::object_rotate,
         EditorWheelActionKind::camera_zoom, EditorWheelActionKind::camera_zoom,
@@ -775,7 +788,10 @@ TEST(ClientEditorInput, WheelBatchesPreserveFocusModifiersAndRejectNonEditorReci
         EditorWheelActionKind::camera_zoom, EditorWheelActionKind::camera_zoom,
         EditorWheelActionKind::none, EditorWheelActionKind::none, EditorWheelActionKind::none,
         EditorWheelActionKind::none, EditorWheelActionKind::none, EditorWheelActionKind::none,
-        EditorWheelActionKind::camera_zoom};
+        EditorWheelActionKind::camera_zoom,
+        EditorWheelActionKind::object_rotate, EditorWheelActionKind::camera_zoom,
+        EditorWheelActionKind::camera_zoom, EditorWheelActionKind::camera_zoom,
+        EditorWheelActionKind::camera_zoom, EditorWheelActionKind::camera_zoom};
     std::array<EditorWheelAction, inputs.size()> outputs{};
     ASSERT_TRUE(resolve_editor_wheel_actions(inputs, outputs));
     for (size_t i = 0; i < outputs.size(); ++i) {

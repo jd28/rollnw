@@ -1517,7 +1517,7 @@ TEST(ClientObjectEdits, SoundRadiusReplacementUsesTypedProfilePolicyAndReplays)
     nwk::objects().destroy(sound->handle());
 }
 
-TEST(ClientObjectEdits, SoundIntegerEditsRequestBaseVisualRebuild)
+TEST(ClientObjectEdits, OnlySoundPlacementEditsRequestVisualRefresh)
 {
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");
     ASSERT_TRUE(module);
@@ -1557,6 +1557,22 @@ TEST(ClientObjectEdits, SoundIntegerEditsRequestBaseVisualRebuild)
         nwn1::sound_toolset_visual_state(sound->handle())->random_position);
     EXPECT_EQ(nw::toolset::object_mutation_state().visual_kind,
         nw::toolset::ObjectVisualMutationKind::base_appearance);
+
+    for (const auto* field : {"active", "volume", "continuous", "looping", "random"}) {
+        const auto patch = sound_state_patch(sound, field, 0, 1);
+        const auto propset = nwk::runtime().find_propset_ref(patch.propset_type, sound->handle());
+        const auto* definition = nwk::runtime().get_struct_def(patch.propset_type);
+        const auto value = nwk::runtime().read_value_field_at_offset(
+            propset, definition->fields[patch.key].offset, nwk::runtime().int_type());
+        nw::toolset::ObjectEditBatch playback;
+        playback.kind = nw::toolset::ObjectEditKind::propset_int;
+        playback.patches.push_back(sound_state_patch(sound, field, value.data.ival, value.data.ival == 0 ? 1 : 0));
+        for (const auto direction : {nw::toolset::ObjectEditDirection::forward, nw::toolset::ObjectEditDirection::inverse}) {
+            ASSERT_TRUE(nw::toolset::apply_object_edits(nwk::runtime(), playback, direction).ok()) << field;
+            EXPECT_EQ(nw::toolset::object_mutation_state().kind, nw::toolset::ObjectMutationKind::properties) << field;
+            EXPECT_EQ(nw::toolset::object_mutation_state().visual_kind, nw::toolset::ObjectVisualMutationKind::none) << field;
+        }
+    }
 
     nwk::objects().destroy(sound->handle());
 }

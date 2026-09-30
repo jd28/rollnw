@@ -674,6 +674,32 @@ void ToolsetBackend::register_native_commands()
             });
     }
     register_hidden_editor_command(
+        "toolset.encounter.spawns.set_single",
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+            const auto prefix = data_object_list_key_prefix();
+            const auto index = parse_u32(command_arg_string(invocation.args, 1));
+            const auto current = parse_i32(command_arg_string(invocation.args, 2));
+            const auto desired = parse_i32(command_arg_string(invocation.args, 3));
+            if (invocation.args.size() != 4 || object.type != ObjectType::encounter
+                || prefix.empty() || !index || !current || !desired
+                || (*current != 0 && *current != 1) || (*desired != 0 && *desired != 1)
+                || command_arg_string(invocation.args, 0) != prefix + std::to_string(*index)) {
+                return command_result(CommandStatus::rejected,
+                    "The Encounter spawn checkbox is invalid or stale", CommandOutputChannel::warn);
+            }
+            auto before = snapshot_encounter_spawns(kernel::runtime(), object);
+            if (!before || *index >= before->size() || before->size() > 1024
+                || (*before)[*index].single_spawn != *current) {
+                return command_result(CommandStatus::rejected,
+                    "The Encounter spawn checkbox is invalid or stale", CommandOutputChannel::warn);
+            }
+            auto after = *before;
+            after[*index].single_spawn = *desired;
+            return replace_encounter_spawns({object, std::move(*before), std::move(after)},
+                "Set encounter Single Spawn", context);
+        });
+    register_hidden_editor_command(
         "toolset.sound.resources.reorder",
         [this](const CommandInvocation& invocation, CommandContext& context) {
             const auto source = parse_u32(

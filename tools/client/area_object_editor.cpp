@@ -122,7 +122,8 @@ bool area_object_placement_position_valid(nw::ObjectHandle area, glm::vec3 posit
 }
 
 std::optional<CommandResult> apply_area_object_wheel_action(const EditorWheelAction& action,
-    ToolsetBackend& backend, const CommandContext& context, ObjectHandle target)
+    ToolsetBackend& backend, const CommandContext& context, ObjectHandle target,
+    ObjectHandle area, uint32_t debug_subindex)
 {
     if (!std::isfinite(action.amount) || action.amount == 0) { return std::nullopt; }
     if (action.kind == EditorWheelActionKind::sound_radius) {
@@ -136,6 +137,24 @@ std::optional<CommandResult> apply_area_object_wheel_action(const EditorWheelAct
     }
     if (action.kind != EditorWheelActionKind::object_scale && action.kind != EditorWheelActionKind::object_rotate) { return std::nullopt; }
     const bool rotate = action.kind == EditorWheelActionKind::object_rotate;
+    if (target.type == ObjectType::encounter) {
+        const auto* geometry = kernel::objects().components().find_geometry(target);
+        if (!rotate || !geometry || debug_subindex >= geometry->spawn_points.size()
+            || geometry->spawn_points.size() > 1024) {
+            return CommandResult{.status = CommandStatus::rejected,
+                .message = "Select a current Encounter spawn point to rotate",
+                .output_channel = CommandOutputChannel::warn};
+        }
+        std::vector<ObjectSpawnPoint> before{geometry->spawn_points.begin(), geometry->spawn_points.end()};
+        auto after = before;
+        const float orientation = before[debug_subindex].orientation + glm::radians(action.amount * 15.0f);
+        // Keep finite angles bounded; the batch validator rejects nonfinite input.
+        after[debug_subindex].orientation = std::isfinite(orientation)
+            ? std::remainder(orientation, glm::radians(360.0f))
+            : orientation;
+        return backend.replace_encounter_spawn_points(
+            {.area = area, .encounter = target, .before = std::move(before), .after = std::move(after)}, context);
+    }
     const float value = rotate ? action.amount * 15.0f : std::pow(1.1f, action.amount);
     std::array<char, 64> buffer{};
     const auto formatted = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::general, std::numeric_limits<float>::max_digits10);

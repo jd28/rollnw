@@ -283,7 +283,8 @@ bool ToolsetBackend::reload_blueprint_documents(std::span<const std::string> ids
     }
     if (kernel::objects().valid(selected)) { bridge_->publish_active_object(selected); }
     if (kernel::objects().valid(selected_area)) { bridge_->publish_active_area(selected_area); }
-    if (shell_ && !ids.empty()) { ++shell_->viewer_area_reload_generation; }
+    // The viewport detects a replaced document root on its next draw. Other
+    // open documents must not force the current live area to reload.
     return true;
 }
 

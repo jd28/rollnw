@@ -227,13 +227,15 @@ public:
     // reject the transition and leave the current scene unchanged.
     bool load_live_object(nw::ObjectHandle object, std::string_view source);
     bool load_object_file(const std::filesystem::path& path);
-    bool rebuild_live_area(
+    bool synchronize_live_area(
         nw::ObjectHandle area, nw::ObjectHandle selected_object = nw::ObjectHandle{});
     [[nodiscard]] AreaTransientVisualResult refresh_live_area_tiles(
         nw::ObjectHandle area,
         std::span<const uint32_t> tile_indices);
     bool refresh_live_area_weather(nw::ObjectHandle area);
     bool rebuild_live_object(nw::ObjectHandle object);
+    [[nodiscard]] ObjectVisualRefreshResult refresh_live_area_debug_geometry(
+        std::span<const nw::ObjectHandle> objects);
     [[nodiscard]] ObjectVisualRefreshResult refresh_live_object_visuals(
         std::span<const nw::ObjectHandle> objects);
     bool refresh_live_object_visual(nw::ObjectHandle object);

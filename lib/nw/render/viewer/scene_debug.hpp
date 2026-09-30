@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nw/gfx/gfx.hpp>
+#include <nw/objects/ObjectHandle.hpp>
 #include <nw/render/area_tile_grid.hpp>
 
 #include <cstddef>
@@ -30,6 +31,7 @@ struct SoundToolsetVisualState;
 namespace nw::render::viewer {
 
 struct PreviewScene;
+struct ObjectVisualRefreshResult;
 struct DebugShapeVertex;
 struct SoundDebugDotInstance;
 enum class DebugShapeCategory : uint8_t;
@@ -128,6 +130,19 @@ void append_debug_segment(PreviewScene& scene, const glm::vec3& a, const glm::ve
 uint32_t append_debug_shape_range(PreviewScene& scene, DebugShapeCategory category, size_t first_index);
 bool append_trigger_debug_geometry(PreviewScene& scene, const nw::Trigger& trigger);
 bool append_encounter_debug_geometry(PreviewScene& scene, const nw::Encounter& encounter);
+bool append_debug_geometry(PreviewScene& destination, const PreviewScene& source);
+// Replace overlays for a batch of live area Encounters/Sounds. Inputs are borrowed
+// for the call; staged arrays publish only on success. Duplicate/stale/wrong-area
+// handles or malformed ranges reject, leaving the scene unchanged. No model,
+// light, particle, animation or GPU-resource lifetime changes occur.
+[[nodiscard]] ObjectVisualRefreshResult refresh_area_debug_geometry(
+    PreviewScene& scene, std::span<const nw::ObjectHandle> objects);
+// Replace overlay rows owned by the supplied identities with staged geometry.
+// Removed identities may be stale. No kernel objects are dereferenced. The
+// caller owns replacement for this call; only validated arrays are published.
+[[nodiscard]] ObjectVisualRefreshResult replace_area_debug_geometry(
+    PreviewScene& scene, std::span<const nw::ObjectHandle> objects,
+    const PreviewScene& replacement, bool replace_lights = false);
 bool append_sound_debug_geometry(
     PreviewScene& scene,
     const nw::Sound& sound,

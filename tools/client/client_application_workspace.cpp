@@ -67,20 +67,20 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                     == AreaWorkspaceSurface::objects
                 ? mutation.object
                 : nw::ObjectHandle{};
-            bool rebuilt = mutation.kind
+            bool synchronized = mutation.kind
                     == nw::toolset::ObjectMutationKind::area_tiles
                 && mutation.area_structure_epoch
                     == state.observed_area_structure_epoch + 1u
                 && !mutation.area_tile_indices.empty()
                 && renderer.refresh_live_viewer_area_tiles(
                     mutation.area, mutation.area_tile_indices);
-            if (!rebuilt) {
-                rebuilt = renderer.rebuild_live_viewer_area(
+            if (!synchronized) {
+                synchronized = renderer.synchronize_live_viewer_area(
                     mutation.area, selected);
             }
-            if (!rebuilt) {
+            if (!synchronized) {
                 state.stale_area_viewport = mutation.area;
-                append_output(state, "error", "Failed to rebuild the live area viewport after structural edit");
+                append_output(state, "error", "Failed to synchronize the live area viewport after structural edit");
             } else {
                 state.observed_area_structure_epoch
                     = mutation.area_structure_epoch;
@@ -144,16 +144,10 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                 bool refreshed = false;
                 if (mutation.visual_kind
                     == nw::toolset::ObjectVisualMutationKind::debug_geometry) {
-                    refreshed = area_tab && renderer.rebuild_live_viewer_area(renderer.area_viewer_object(), mutation.object);
+                    refreshed = area_tab && renderer.refresh_live_viewer_debug_geometry(mutation.object);
                 } else if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail
-                    || (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance
-                        && mutation.object.type == nw::ObjectType::creature)) {
+                    || mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance) {
                     refreshed = renderer.refresh_live_viewer_object_visual(mutation.object);
-                } else if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance) {
-                    refreshed = area_tab
-                        ? renderer.rebuild_live_viewer_area(
-                              renderer.area_viewer_object(), mutation.object)
-                        : renderer.rebuild_live_viewer_object(mutation.object);
                 }
                 if (!refreshed) {
                     append_output(state, "error", "Failed to refresh the live object viewport after visual edit");
@@ -162,7 +156,8 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
             if (area_tab
                 && state.area_workspace_surface
                     == AreaWorkspaceSurface::objects
-                && editable_area_object(mutation.object)) {
+                && editable_area_object(mutation.object)
+                && renderer.active_viewer_object() != mutation.object) {
                 renderer.set_viewer_area_object_selection(mutation.object);
             }
             if (mutation.object == state.workbench.object_details.object && active_object_details_matches_tab(state)) {

@@ -620,13 +620,15 @@ ClientEventFlow process_client_pointer_wheel(SDL_Event& event, ClientInputDispat
                     return ClientEventFlow::finish;
                 }
                 const auto object = renderer.active_viewer_object();
+                const auto debug_subindex = renderer.active_viewer_area_debug_subindex(object);
                 const std::array wheel_inputs{nw::toolset::EditorWheelInput{
                     .recipient = world_route.native,
                     .viewport = viewer_viewport->kind == WorkspaceViewerViewportKind::area ? nw::toolset::EditorViewportKind::area : nw::toolset::EditorViewportKind::preview,
                     .object_type = object.type,
                     .modifiers = modifiers,
                     .amount = event.wheel.y,
-                    .text_focused = focused_text_input(context)}};
+                    .text_focused = focused_text_input(context),
+                    .debug_subindex = debug_subindex}};
                 std::array<nw::toolset::EditorWheelAction, 1> wheel_actions{};
                 (void)nw::toolset::resolve_editor_wheel_actions(wheel_inputs, wheel_actions);
                 cancel_area_object_drag(renderer, state);
@@ -639,8 +641,10 @@ ClientEventFlow process_client_pointer_wheel(SDL_Event& event, ClientInputDispat
                     }
                 } else {
                     if (auto result = nw::toolset::apply_area_object_wheel_action(action, state.backend,
-                            command_context(state, nw::toolset::CommandSource::renderer), object)) {
-                        if (action.kind == nw::toolset::EditorWheelActionKind::sound_radius) {
+                            command_context(state, nw::toolset::CommandSource::renderer), object,
+                            renderer.area_viewer_object(), debug_subindex)) {
+                        if (action.kind == nw::toolset::EditorWheelActionKind::sound_radius
+                            || object.type == nw::ObjectType::encounter) {
                             append_command_result(state, *result);
                         } else {
                             nw::toolset::sync_area_object_after_command(renderer, state.shell, *result, state.smalls.active_object());

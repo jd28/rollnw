@@ -2306,6 +2306,83 @@ TEST_F(ClientObjectWorkbench, EditorWheelObjectCommandsKeepOneUndoAndExistingNum
     EXPECT_TRUE(workspace.active_tab()->undo_stack.empty());
 }
 
+TEST_F(ClientObjectWorkbench, EncounterPointWheelRotatesOnlySelectedPointAndDeleteReplays)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto& objects = nw::kernel::objects();
+    auto* area = objects.make<nw::Area>();
+    auto* encounter = objects.make<nw::Encounter>();
+    ASSERT_NE(area, nullptr);
+    ASSERT_NE(encounter, nullptr);
+    area->width = area->height = 2;
+    area->encounters.push_back(encounter);
+    ASSERT_TRUE(objects.components().set_area(encounter->handle(), area->handle().id));
+    auto& tab = workspace.open_area_tab("point-controls.caf.json", "Point Controls");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    activate(encounter->handle());
+    const std::vector<nw::ObjectSpawnPoint> before{
+        {.position = {2, 3, 0}, .orientation = 0.25f},
+        {.position = {7, 8, 0}, .orientation = 1.5f},
+    };
+    ASSERT_TRUE(objects.components().set_spawn_points(encounter->handle(), before));
+    const auto spatial_before = *objects.components().find_spatial(encounter->handle());
+    const auto snapshot = [&] {
+        const auto& points = objects.components().find_geometry(encounter->handle())->spawn_points;
+        return std::vector<nw::ObjectSpawnPoint>{points.begin(), points.end()};
+    };
+    for (const uint32_t invalid : {UINT32_MAX, 2u}) {
+        auto rejected = apply_area_object_wheel_action({EditorWheelActionKind::object_rotate, 1},
+            backend, command, encounter->handle(), area->handle(), invalid);
+        ASSERT_TRUE(rejected);
+        EXPECT_EQ(rejected->status, CommandStatus::rejected);
+    }
+    auto overflow = apply_area_object_wheel_action({EditorWheelActionKind::object_rotate, std::numeric_limits<float>::max()},
+        backend, command, encounter->handle(), area->handle(), 1);
+    ASSERT_TRUE(overflow);
+    EXPECT_EQ(overflow->status, CommandStatus::rejected);
+    EXPECT_EQ(snapshot(), before);
+    EXPECT_EQ(workspace.undo_count(), 0u);
+    auto after = before;
+    for (int step = 1; step <= 2; ++step) {
+        const auto result = apply_area_object_wheel_action({EditorWheelActionKind::object_rotate, 1},
+            backend, command, encounter->handle(), area->handle(), 1);
+        ASSERT_TRUE(result);
+        ASSERT_TRUE(result->ok()) << result->message;
+        after[1].orientation += glm::radians(15.0f);
+        EXPECT_EQ(snapshot(), after);
+        EXPECT_EQ(workspace.undo_count(), step);
+        EXPECT_EQ(objects.components().find_spatial(encounter->handle())->orientation, spatial_before.orientation);
+    }
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(snapshot(), before);
+    ASSERT_TRUE(workspace.redo(command).ok());
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(snapshot(), after);
+    auto deleted = after;
+    deleted.erase(deleted.begin());
+    const auto removed = backend.replace_encounter_spawn_points(
+        {.area = area->handle(), .encounter = encounter->handle(), .before = after, .after = deleted}, command);
+    ASSERT_TRUE(removed.ok()) << removed.message;
+    EXPECT_EQ(snapshot(), deleted);
+    EXPECT_TRUE(objects.valid(encounter->handle()));
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(snapshot(), after);
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(snapshot(), deleted);
+    nlohmann::json saved;
+    nw::serialize(area, saved);
+    auto* reloaded = objects.make<nw::Area>();
+    ASSERT_NE(reloaded, nullptr);
+    ASSERT_TRUE(nw::deserialize(reloaded, saved));
+    ASSERT_EQ(reloaded->encounters.size(), 1u);
+    const auto& restored = objects.components().find_geometry(reloaded->encounters[0]->handle())->spawn_points;
+    EXPECT_EQ(std::vector<nw::ObjectSpawnPoint>(restored.begin(), restored.end()), deleted);
+    reloaded->clear();
+    objects.destroy(reloaded->handle());
+}
+
 TEST_F(ClientObjectWorkbench, NativeSurfaceCaptureOwnsItsEnumAcrossSelectorDomReplacement)
 {
     ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);

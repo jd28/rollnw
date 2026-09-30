@@ -105,8 +105,10 @@ bool handle_area_object_edit_key(ClientRenderer& renderer, AreaObjectEditKey key
 // One already-routed object wheel action is a singleton command transaction.
 // Camera/unknown/nonfinite/zero actions do no work. Radius clamps to profile
 // minimum and drops nonfinite results; transform validation stays with backend.
+// An Encounter rotation targets only a valid spawn-point subindex in the area.
 std::optional<CommandResult> apply_area_object_wheel_action(const EditorWheelAction& action,
-    ToolsetBackend& backend, const CommandContext& context, ObjectHandle target);
+    ToolsetBackend& backend, const CommandContext& context, ObjectHandle target,
+    ObjectHandle area = ObjectHandle{}, uint32_t debug_subindex = UINT32_MAX);
 
 // The caller supplies current tab/selection facts and a current area viewport.
 // Invalid/stale hits cancel or reject; dragging pins the press viewport. Source

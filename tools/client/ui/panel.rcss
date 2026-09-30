@@ -2010,8 +2010,6 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .encounter_spawn_rows .cell_1 { flex: 1; }
 .encounter_spawn_header span:nth-child(3),
 .encounter_spawn_rows .cell_2 { flex: 1; }
-.encounter_spawn_header span:nth-child(4),
-.encounter_spawn_rows .cell_3 { flex: 1; }
 .sound_resource_header span,
 .sound_resource_rows .cell_0 {
   flex: 1;
@@ -2509,6 +2507,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   margin: 6dp 0dp;
   cursor: pointer;
 }
+.managed_list_checkbox,
 .object_details_boolean {
   display: flex;
   width: 100%;
@@ -2516,6 +2515,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   align-items: center;
   cursor: pointer;
 }
+.managed_list_checkbox_box,
 .object_details_boolean_box {
   display: block;
   width: 14dp;
@@ -2530,6 +2530,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   line-height: 14dp;
   text-align: center;
 }
+.managed_list_checkbox_box.checked,
 .object_details_boolean_box.checked {
   border-color: #a78d62;
   background: #a78d62;

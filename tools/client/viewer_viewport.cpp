@@ -795,13 +795,15 @@ struct ClientViewerViewport::Impl {
                 });
         };
         if (door_stats.rejected_input_count == 0 && !door_models_match()) {
-            (void)session->restore_area_door_animation_lease(
-                transient_door_animation_lease);
-            const auto area = session->scene()
-                ? session->scene()->root_object
-                : nw::ObjectHandle{};
-            const auto selected = session->active_object();
-            if (!session->rebuild_live_area(area, selected)) {
+            std::vector<nw::ObjectHandle> missing_doors;
+            for (const auto& input : transient_door_animation_inputs) {
+                if (std::ranges::none_of(transient_door_animation_lease.rows,
+                        [&](const auto& row) { return row.owner == input.owner; })) {
+                    missing_doors.push_back(input.owner);
+                }
+            }
+            (void)session->restore_area_door_animation_lease(transient_door_animation_lease);
+            if (!session->refresh_live_object_visuals(missing_doors).ok()) {
                 transient_door_animation_inputs.clear();
                 return false;
             }
@@ -1546,9 +1548,9 @@ struct ClientViewerViewport::Impl {
         return spatial && preview_area_object_spatial(*spatial);
     }
 
-    bool rebuild_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
+    bool synchronize_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
     {
-        if (!session || !session->rebuild_live_area(area, selected_object)) {
+        if (!session || !session->synchronize_live_area(area, selected_object)) {
             return false;
         }
         forget_area_tile_grid();
@@ -1558,6 +1560,12 @@ struct ClientViewerViewport::Impl {
     bool rebuild_live_object(nw::ObjectHandle object)
     {
         return session && session->rebuild_live_object(object);
+    }
+
+    bool refresh_live_debug_geometry(nw::ObjectHandle object)
+    {
+        const std::array objects{object};
+        return session && session->refresh_live_area_debug_geometry(objects).ok();
     }
 
     bool refresh_live_object_visual(nw::ObjectHandle object)
@@ -2015,10 +2023,10 @@ bool ClientViewerViewport::sync_area_object_spatial(nw::ObjectHandle object)
     return impl_ && impl_->sync_area_object_spatial(object);
 }
 
-bool ClientViewerViewport::rebuild_live_area(
+bool ClientViewerViewport::synchronize_live_area(
     nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
-    return impl_ && impl_->rebuild_live_area(area, selected_object);
+    return impl_ && impl_->synchronize_live_area(area, selected_object);
 }
 
 bool ClientViewerViewport::refresh_live_area_tiles(
@@ -2036,6 +2044,11 @@ bool ClientViewerViewport::refresh_live_area_weather(nw::ObjectHandle area)
 bool ClientViewerViewport::rebuild_live_object(nw::ObjectHandle object)
 {
     return impl_ && impl_->rebuild_live_object(object);
+}
+
+bool ClientViewerViewport::refresh_live_debug_geometry(nw::ObjectHandle object)
+{
+    return impl_ && impl_->refresh_live_debug_geometry(object);
 }
 
 bool ClientViewerViewport::refresh_live_object_visual(nw::ObjectHandle object)

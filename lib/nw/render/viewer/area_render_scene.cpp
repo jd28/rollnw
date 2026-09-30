@@ -939,6 +939,7 @@ bool debug_selection_category_enabled(
         return range.object.type == nw::ObjectType::store;
     case DebugShapeCategory::waypoint:
         return range.object.type == nw::ObjectType::waypoint;
+    case DebugShapeCategory::light:
     case DebugShapeCategory::general:
         return false;
     }
@@ -1142,6 +1143,8 @@ AreaObjectSelection select_area_object_geometry(
         for (size_t range_index = 0; range_index < debug_range_count; ++range_index) {
             const auto& range = scene.debug_shape_selection_ranges[range_index];
             if (!debug_selection_category_enabled(range, options)
+                || (range.debug_shape_range_index < scene.debug_shape_ranges.size()
+                    && !scene.debug_shape_ranges[range.debug_shape_range_index].visible_for(scene.active_object))
                 || !nw::kernel::objects().valid(range.object)
                 || (!candidates.empty()
                     && std::find(candidates.begin(), candidates.end(), range.object)

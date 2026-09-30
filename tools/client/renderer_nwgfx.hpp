@@ -120,12 +120,13 @@ public:
     bool end_toolset_preview_visuals() noexcept;
     [[nodiscard]] std::optional<glm::vec3> viewer_area_camera_focus() const noexcept;
     bool sync_viewer_area_object_spatial(nw::ObjectHandle object);
-    bool rebuild_live_viewer_area(nw::ObjectHandle area, nw::ObjectHandle selected_object);
+    bool synchronize_live_viewer_area(nw::ObjectHandle area, nw::ObjectHandle selected_object);
     bool refresh_live_viewer_area_tiles(
         nw::ObjectHandle area, std::span<const uint32_t> tile_indices);
     bool refresh_live_viewer_area_weather(nw::ObjectHandle area);
     bool rebuild_live_viewer_object(nw::ObjectHandle object);
     bool refresh_live_viewer_object_visual(nw::ObjectHandle object);
+    bool refresh_live_viewer_debug_geometry(nw::ObjectHandle object);
     bool clear_viewer_area_object_selection() noexcept;
     bool zoom_viewer_viewport(float wheel_delta, ClientViewportRect viewport);
     bool viewer_viewport_camera_command(ClientViewportCameraCommand command,

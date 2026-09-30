@@ -3534,7 +3534,7 @@ static std::unique_ptr<PreviewScene> load_placeable_scene(PreviewRenderResources
         resources, path, "Placeable", lookup_context, model->model.view(), true);
     if (scene) {
         scene->hold_animation = visual->hold_animation.view();
-        append_placeable_table_lights(*scene, nw::Location{}, visual);
+        append_placeable_table_lights(*scene, nw::Location{}, visual, placeable->handle());
         scene->root_object = placeable->handle();
         scene->active_object = scene->root_object;
         placeable.release();
@@ -4132,6 +4132,27 @@ std::unique_ptr<PreviewScene> load_preview_scene(PreviewRenderResources& resourc
     return scene;
 }
 
+static std::vector<nw::ObjectHandle> area_object_handles(const nw::Area& area)
+{
+    std::vector<nw::ObjectHandle> result;
+    const auto append = [&result](const auto& objects) {
+        for (const auto* object : objects) {
+            if (object) { result.push_back(object->handle()); }
+        }
+    };
+    append(area.creatures);
+    append(area.doors);
+    append(area.encounters);
+    append(area.items);
+    append(area.placeables);
+    append(area.sounds);
+    append(area.stores);
+    append(area.triggers);
+    append(area.waypoints);
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
 std::unique_ptr<PreviewScene> load_area_scene(PreviewRenderResources& resources, std::string_view area_resref)
 {
     return load_area_scene(resources, area_resref, default_preview_scene_load_options());
@@ -4213,6 +4234,8 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
     scene->area_height = loaded_area->height;
     scene->area_tile_model_indices.assign(
         loaded_area->tiles.size(), nw::render::kInvalidModelInstanceIndex);
+    scene->area_tiles.assign(loaded_area->tiles.begin(), loaded_area->tiles.end());
+    scene->area_objects = area_object_handles(*loaded_area);
     scene->area_flags = loaded_area->flags;
     scene->area_weather = loaded_area->weather;
     const float height_step = loaded_area->tileset->tile_height;
@@ -4389,7 +4412,7 @@ std::unique_ptr<PreviewScene> build_area_scene_impl(
 
         const auto* visual = placeable_visual_state(*placeable);
         const nw::Location location = object_spatial_location(*placeable);
-        loaded_area_object_model_lights += append_placeable_table_lights(*scene, location, visual);
+        loaded_area_object_model_lights += append_placeable_table_lights(*scene, location, visual, placeable->handle());
         const auto* model_ref = first_valid_visual_model(visual, options.visual_render_mode);
         if (!model_ref) {
             LOG_F(WARNING,
@@ -4840,25 +4863,25 @@ struct SceneModelRemoval {
     uint32_t removed_count = 0;
 };
 
-std::optional<SceneModelRemoval> remove_object_model_rows(
-    PreviewScene& scene, std::span<const nw::ObjectHandle> objects)
+std::optional<SceneModelRemoval> remove_model_rows(
+    PreviewScene& scene, std::span<const uint8_t> remove_render)
 {
-    if (!valid_scene_model_columns(scene)) {
+    if (!valid_scene_model_columns(scene) || remove_render.size() != scene.static_models.size()) {
         return std::nullopt;
     }
 
     SceneModelRemoval removal;
     removal.render_index_map.assign(scene.static_models.size(), nw::render::kInvalidModelInstanceIndex);
-    std::vector<uint8_t> remove_render(scene.static_models.size(), 0u);
     for (size_t i = 0; i < scene.static_models.size(); ++i) {
-        remove_render[i] = static_cast<uint8_t>(!scene.is_area
-            || contains_object(objects, scene.static_area_model_info[i].object));
         if (remove_render[i] != 0u) {
             removal.handles.push_back(scene.static_model_instance_handles[i]);
         }
     }
     if (removal.handles.empty()) {
-        return std::nullopt;
+        for (size_t index = 0; index < removal.render_index_map.size(); ++index) {
+            removal.render_index_map[index] = static_cast<uint32_t>(index);
+        }
+        return removal;
     }
 
     for (const auto& binding : scene.model_attachments) {
@@ -4917,17 +4940,17 @@ std::optional<SceneModelRemoval> remove_object_model_rows(
     }
 
     std::erase_if(scene.local_lights, [&remove_render](const SceneLocalLight& light) {
-        if (light.source != SceneLocalLightSource::authored_model) {
-            return false;
-        }
         return light.model_index < remove_render.size() && remove_render[light.model_index] != 0u;
     });
     for (auto& light : scene.local_lights) {
-        if (light.source != SceneLocalLightSource::authored_model) {
-            continue;
-        }
         if (light.model_index < removal.render_index_map.size()) {
             light.model_index = removal.render_index_map[light.model_index];
+        }
+    }
+
+    for (auto& index : scene.area_tile_model_indices) {
+        if (index < removal.render_index_map.size()) {
+            index = removal.render_index_map[index];
         }
     }
 
@@ -4937,64 +4960,23 @@ std::optional<SceneModelRemoval> remove_object_model_rows(
     return removal;
 }
 
-bool append_debug_geometry(PreviewScene& destination, const PreviewScene& source)
+std::optional<SceneModelRemoval> remove_object_model_rows(
+    PreviewScene& scene, std::span<const nw::ObjectHandle> objects)
 {
-    const size_t vertex_base = destination.debug_shape_vertices.size();
-    const size_t index_base = destination.debug_shape_indices.size();
-    const size_t range_base = destination.debug_shape_ranges.size();
-    const size_t sound_dot_base = destination.sound_debug_dot_instances.size();
-    const size_t point_base = destination.debug_shape_selection_points.size();
-    if (vertex_base > std::numeric_limits<uint32_t>::max()
-        || index_base > std::numeric_limits<uint32_t>::max()
-        || range_base > std::numeric_limits<uint32_t>::max()
-        || sound_dot_base > std::numeric_limits<uint32_t>::max()
-        || point_base > std::numeric_limits<uint32_t>::max()
-        || source.debug_shape_vertices.size()
-            > std::numeric_limits<uint32_t>::max() - vertex_base
-        || source.debug_shape_indices.size()
-            > std::numeric_limits<uint32_t>::max() - index_base
-        || source.debug_shape_ranges.size()
-            > std::numeric_limits<uint32_t>::max() - range_base
-        || source.sound_debug_dot_instances.size()
-            > std::numeric_limits<uint32_t>::max() - sound_dot_base
-        || source.debug_shape_selection_points.size()
-            > std::numeric_limits<uint32_t>::max() - point_base) {
-        return false;
+    if (!valid_scene_model_columns(scene)) { return std::nullopt; }
+    std::vector<uint8_t> removed(scene.static_models.size());
+    for (size_t index = 0; index < removed.size(); ++index) {
+        removed[index] = !scene.is_area
+            || contains_object(objects, scene.static_area_model_info[index].object);
     }
-
-    destination.debug_shape_vertices.insert(
-        destination.debug_shape_vertices.end(),
-        source.debug_shape_vertices.begin(),
-        source.debug_shape_vertices.end());
-    for (const uint32_t index : source.debug_shape_indices) {
-        destination.debug_shape_indices.push_back(
-            index + static_cast<uint32_t>(vertex_base));
+    auto result = remove_model_rows(scene, removed);
+    if (result) {
+        std::erase_if(scene.local_lights, [objects](const auto& light) {
+            return light.source == SceneLocalLightSource::placeable_table
+                && contains_object(objects, light.object);
+        });
     }
-    for (auto range : source.debug_shape_ranges) {
-        range.first_index += static_cast<uint32_t>(index_base);
-        destination.debug_shape_ranges.push_back(range);
-    }
-    destination.sound_debug_dot_instances.insert(
-        destination.sound_debug_dot_instances.end(),
-        source.sound_debug_dot_instances.begin(),
-        source.sound_debug_dot_instances.end());
-    destination.debug_shape_selection_points.insert(
-        destination.debug_shape_selection_points.end(),
-        source.debug_shape_selection_points.begin(),
-        source.debug_shape_selection_points.end());
-    for (auto range : source.debug_shape_selection_ranges) {
-        if (range.debug_shape_range_index != kInvalidAreaRenderRecordIndex) {
-            range.debug_shape_range_index += static_cast<uint32_t>(range_base);
-        }
-        range.first_point += static_cast<uint32_t>(point_base);
-        destination.debug_shape_selection_ranges.push_back(range);
-    }
-    for (auto range : source.debug_shape_object_ranges) {
-        range.first_vertex += static_cast<uint32_t>(vertex_base);
-        range.first_sound_dot += static_cast<uint32_t>(sound_dot_base);
-        destination.debug_shape_object_ranges.push_back(range);
-    }
-    return true;
+    return result;
 }
 
 } // namespace
@@ -5034,9 +5016,9 @@ AreaTransientVisualResult refresh_live_area_tiles(
         || scene.area_width != area->width
         || scene.area_height != area->height
         || scene.area_tile_model_indices.size() != area->tiles.size()
+        || scene.area_tiles.size() != area->tiles.size()
         || !std::isfinite(area->tileset->tile_height)
-        || area->tileset->tile_height <= 0.0f
-        || scene_light_debug_markers_enabled()) {
+        || area->tileset->tile_height <= 0.0f) {
         result.status = AreaTransientVisualStatus::invalid_input;
         result.diagnostic = "Live area tile refresh input is invalid";
         return result;
@@ -5069,9 +5051,8 @@ AreaTransientVisualResult refresh_live_area_tiles(
             return result;
         }
         const auto& tile = area->tiles[tile_index];
-        if (tile.id < 0
-            || static_cast<size_t>(tile.id)
-                >= area->tileset->tiles.size()
+        if (tile.id < nw::kAreaTileVoidId
+            || (!nw::area_tile_is_void(tile) && static_cast<size_t>(tile.id) >= area->tileset->tiles.size())
             || tile.orientation < 0 || tile.orientation >= 4) {
             result.status = AreaTransientVisualStatus::invalid_input;
             result.diagnostic
@@ -5080,19 +5061,21 @@ AreaTransientVisualResult refresh_live_area_tiles(
         }
         const uint32_t model_index
             = scene.area_tile_model_indices[tile_index];
-        const auto& tile_definition
-            = area->tileset->tiles[static_cast<size_t>(tile.id)];
-        auto model = load_area_static_model(static_model_cache, resources,
-            tile_definition.model, "live area tile refresh");
+        std::shared_ptr<nw::render::RenderModel> model;
+        if (!nw::area_tile_is_void(tile)) {
+            const auto& tile_definition = area->tileset->tiles[static_cast<size_t>(tile.id)];
+            model = load_area_static_model(static_model_cache, resources,
+                tile_definition.model, "live area tile refresh");
+        }
         const uint32_t tile_x
             = tile_index % static_cast<uint32_t>(area->width);
         const uint32_t tile_y
             = tile_index / static_cast<uint32_t>(area->width);
         glm::mat4 placement{1.0f};
-        if (model_index >= scene.static_models.size()
-            || !scene.static_models[model_index]
-            || !scene.static_model_instance(model_index)
-            || !model
+        if ((model_index != nw::render::kInvalidModelInstanceIndex
+                && (model_index >= scene.static_models.size()
+                    || !scene.static_models[model_index] || !scene.static_model_instance(model_index)))
+            || (!nw::area_tile_is_void(tile) && !model)
             || !nw::build_area_tile_world_transform(
                 area->tileset->tile_height,
                 nw::AreaTileTransformInput{
@@ -5124,7 +5107,8 @@ AreaTransientVisualResult refresh_live_area_tiles(
     if (std::adjacent_find(pending.begin(), pending.end(),
             [](const PendingTileRefresh& lhs,
                 const PendingTileRefresh& rhs) {
-                return lhs.model_index == rhs.model_index;
+                return lhs.model_index != nw::render::kInvalidModelInstanceIndex
+                    && lhs.model_index == rhs.model_index;
             })
         != pending.end()) {
         result.status = AreaTransientVisualStatus::invalid_input;
@@ -5132,15 +5116,44 @@ AreaTransientVisualResult refresh_live_area_tiles(
         return result;
     }
 
+    std::vector<uint8_t> remove_models(scene.static_models.size());
+    bool topology_changed = false;
+    for (const auto& row : pending) {
+        if (!row.model && row.model_index != nw::render::kInvalidModelInstanceIndex) {
+            remove_models[row.model_index] = 1;
+            topology_changed = true;
+        } else if (row.model && row.model_index == nw::render::kInvalidModelInstanceIndex) {
+            topology_changed = true;
+        }
+    }
+    if (topology_changed && !remove_model_rows(scene, remove_models)) {
+        result.status = AreaTransientVisualStatus::failed;
+        result.diagnostic = "Live area tile rows could not be isolated";
+        return result;
+    }
+    for (auto& row : pending) {
+        row.model_index = scene.area_tile_model_indices[row.tile_index];
+        if (row.model && row.model_index == nw::render::kInvalidModelInstanceIndex) {
+            row.model_index = add_placed_render_model(scene, row.model, row.placement);
+            if (row.model_index == nw::render::kInvalidModelInstanceIndex) {
+                result.status = AreaTransientVisualStatus::failed;
+                result.diagnostic = "Live area tile instance could not be appended";
+                return result;
+            }
+            scene.area_tile_model_indices[row.tile_index] = row.model_index;
+        }
+    }
+    std::sort(pending.begin(), pending.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.model_index < rhs.model_index;
+    });
     std::vector<uint32_t> model_indices;
     std::vector<uint32_t> replaced_model_indices;
     std::vector<nw::AreaTile> light_tiles;
-    model_indices.reserve(pending.size());
-    replaced_model_indices.reserve(pending.size());
-    light_tiles.reserve(pending.size());
     for (const auto& row : pending) {
-        model_indices.push_back(row.model_index);
-        light_tiles.push_back(row.tile);
+        if (row.model) {
+            model_indices.push_back(row.model_index);
+            light_tiles.push_back(row.tile);
+        }
     }
     refresh_stats.model_prepare_seconds
         = area_tile_refresh_elapsed_seconds(
@@ -5148,6 +5161,7 @@ AreaTransientVisualResult refresh_live_area_tiles(
     const auto instance_refresh_begin = AreaTileRefreshClock::now();
     scene.invalidate_runtime_update_indices();
     for (const auto& row : pending) {
+        if (!row.model) { continue; }
         auto* instance = scene.static_model_instance(row.model_index);
         if (scene.static_models[row.model_index] != row.model) {
             for (const auto material :
@@ -5199,6 +5213,7 @@ AreaTransientVisualResult refresh_live_area_tiles(
                         model_indices.end(), light.model_index);
             });
         for (const auto& row : pending) {
+            if (!row.model) { continue; }
             append_tile_render_model_lights(scene, row.model_index,
                 row.tile, row.tile_x, row.tile_y);
         }
@@ -5206,6 +5221,7 @@ AreaTransientVisualResult refresh_live_area_tiles(
         light_refresh
             = SceneTileLightRefreshStatus::reindexed_rows;
     }
+    if (topology_changed) { refresh_scene_local_light_render_data(scene); }
     refresh_stats.light_refresh_seconds
         = area_tile_refresh_elapsed_seconds(
             light_refresh_begin, AreaTileRefreshClock::now());
@@ -5215,21 +5231,26 @@ AreaTransientVisualResult refresh_live_area_tiles(
         = area_tile_refresh_elapsed_seconds(
             scene_summary_begin, AreaTileRefreshClock::now());
     const auto record_refresh_begin = AreaTileRefreshClock::now();
-    const bool records_rebuilt
-        = light_refresh == SceneTileLightRefreshStatus::stable_rows
-        ? scene.area_render_scene
-              ->rebuild_tile_records_with_stable_light_rows(scene,
-                  model_indices, replaced_model_indices,
-                  changed_light_indices)
-        : scene.area_render_scene->rebuild_tile_records(
-              scene, model_indices);
-    if (!records_rebuilt) {
-        scene.area_render_scene->rebuild(scene);
+    bool records_rebuilt = false;
+    if (!topology_changed) {
+        records_rebuilt = light_refresh == SceneTileLightRefreshStatus::stable_rows
+            ? scene.area_render_scene->rebuild_tile_records_with_stable_light_rows(
+                  scene, model_indices, replaced_model_indices, changed_light_indices)
+            : scene.area_render_scene->rebuild_tile_records(scene, model_indices);
     }
+    if (!records_rebuilt) { scene.area_render_scene->rebuild(scene); }
     refresh_stats.record_refresh_seconds
         = area_tile_refresh_elapsed_seconds(
             record_refresh_begin, AreaTileRefreshClock::now());
 
+    if (!refresh_scene_light_debug_geometry(scene)) {
+        result.status = AreaTransientVisualStatus::failed;
+        result.diagnostic = "Area light debug geometry refresh failed";
+        return result;
+    }
+    for (const auto& row : pending) {
+        scene.area_tiles[row.tile_index] = row.tile;
+    }
     result.status = AreaTransientVisualStatus::success;
     result.object_count = static_cast<uint32_t>(pending.size());
     result.model_count = static_cast<uint32_t>(pending.size());
@@ -5649,6 +5670,78 @@ AreaTransientVisualResult restore_area_tile_previews(
     return result;
 }
 
+static std::unique_ptr<PreviewScene> load_area_object_visual(
+    PreviewRenderResources& resources, nw::ObjectHandle object,
+    std::string_view origin, PreviewSceneLoadOptions options)
+{
+    std::unique_ptr<PreviewScene> preview;
+    if (object.type == nw::ObjectType::creature) {
+        auto* creature = nw::kernel::objects().get<nw::Creature>(object);
+        if (creature) {
+            preview = load_area_creature_scene(resources, *creature, origin, options);
+        }
+    } else if (object.type == nw::ObjectType::door) {
+        auto* door = nw::kernel::objects().get<nw::Door>(object);
+        if (door) {
+            preview = load_live_door_scene(
+                resources, *door, std::filesystem::path{origin}, false);
+        }
+    } else if (object.type == nw::ObjectType::item) {
+        auto* item = nw::kernel::objects().get<nw::Item>(object);
+        if (item) {
+            preview = load_area_item_scene(resources, *item, origin);
+        }
+    } else if (object.type == nw::ObjectType::placeable) {
+        auto* placeable = nw::kernel::objects().get<nw::Placeable>(object);
+        if (placeable) {
+            preview = load_area_placeable_scene(resources, *placeable, origin, options);
+        }
+    } else if (object.type == nw::ObjectType::sound) {
+        auto* sound = nw::kernel::objects().get<nw::Sound>(object);
+        if (sound) {
+            preview = load_live_sound_scene(resources, *sound, origin);
+        }
+    } else if (object.type == nw::ObjectType::store) {
+        auto* store = nw::kernel::objects().get<nw::Store>(object);
+        if (store) {
+            preview = load_live_store_scene(resources, *store, origin);
+        }
+    } else if (object.type == nw::ObjectType::waypoint) {
+        auto* waypoint = nw::kernel::objects().get<nw::Waypoint>(object);
+        if (waypoint) {
+            preview = load_live_waypoint_scene(
+                resources, *waypoint, std::filesystem::path{origin});
+            if (!preview || !scene_has_preview_model(*preview)) {
+                preview = std::make_unique<PreviewScene>();
+                if (!append_waypoint_debug_geometry(
+                        *preview, *waypoint)) {
+                    preview.reset();
+                }
+            }
+        }
+    } else if (object.type == nw::ObjectType::encounter || object.type == nw::ObjectType::trigger) {
+        preview = std::make_unique<PreviewScene>();
+        bool appended = false;
+        if (object.type == nw::ObjectType::encounter) {
+            const auto* encounter
+                = nw::kernel::objects().get<nw::Encounter>(object);
+            appended = encounter
+                && append_encounter_debug_geometry(*preview, *encounter);
+        } else if (object.type == nw::ObjectType::trigger) {
+            const auto* trigger
+                = nw::kernel::objects().get<nw::Trigger>(object);
+            appended = trigger
+                && append_trigger_debug_geometry(*preview, *trigger);
+        }
+        (void)appended; // Empty authored regions have no drawable rows.
+    }
+    if (preview && object.type == nw::ObjectType::waypoint) {
+        const auto* waypoint = nw::kernel::objects().get<nw::Waypoint>(object);
+        set_render_scene_root_placement(*preview, object_spatial_placement(*waypoint));
+    }
+    return preview;
+}
+
 AreaObjectPreviewAppendResult append_area_object_previews(
     PreviewScene& scene,
     PreviewRenderResources& resources,
@@ -5699,69 +5792,7 @@ AreaObjectPreviewAppendResult append_area_object_previews(
         }
 
         const std::string origin = fmt::format("placement preview {}", i);
-        std::unique_ptr<PreviewScene> preview;
-        if (object.type == nw::ObjectType::creature) {
-            auto* creature = nw::kernel::objects().get<nw::Creature>(object);
-            if (creature) {
-                preview = load_area_creature_scene(resources, *creature, origin, options);
-            }
-        } else if (object.type == nw::ObjectType::door) {
-            auto* door = nw::kernel::objects().get<nw::Door>(object);
-            if (door) {
-                preview = load_live_door_scene(
-                    resources, *door, std::filesystem::path{origin}, false);
-            }
-        } else if (object.type == nw::ObjectType::item) {
-            auto* item = nw::kernel::objects().get<nw::Item>(object);
-            if (item) {
-                preview = load_area_item_scene(resources, *item, origin);
-            }
-        } else if (object.type == nw::ObjectType::placeable) {
-            auto* placeable = nw::kernel::objects().get<nw::Placeable>(object);
-            if (placeable) {
-                preview = load_area_placeable_scene(resources, *placeable, origin, options);
-            }
-        } else if (object.type == nw::ObjectType::sound) {
-            auto* sound = nw::kernel::objects().get<nw::Sound>(object);
-            if (sound) {
-                preview = load_live_sound_scene(resources, *sound, origin);
-            }
-        } else if (object.type == nw::ObjectType::store) {
-            auto* store = nw::kernel::objects().get<nw::Store>(object);
-            if (store) {
-                preview = load_live_store_scene(resources, *store, origin);
-            }
-        } else if (object.type == nw::ObjectType::waypoint) {
-            auto* waypoint = nw::kernel::objects().get<nw::Waypoint>(object);
-            if (waypoint) {
-                preview = load_live_waypoint_scene(
-                    resources, *waypoint, std::filesystem::path{origin});
-                if (!preview || !scene_has_preview_model(*preview)) {
-                    preview = std::make_unique<PreviewScene>();
-                    if (!append_waypoint_debug_geometry(
-                            *preview, *waypoint)) {
-                        preview.reset();
-                    }
-                }
-            }
-        } else {
-            preview = std::make_unique<PreviewScene>();
-            bool appended = false;
-            if (object.type == nw::ObjectType::encounter) {
-                const auto* encounter
-                    = nw::kernel::objects().get<nw::Encounter>(object);
-                appended = encounter
-                    && append_encounter_debug_geometry(*preview, *encounter);
-            } else if (object.type == nw::ObjectType::trigger) {
-                const auto* trigger
-                    = nw::kernel::objects().get<nw::Trigger>(object);
-                appended = trigger
-                    && append_trigger_debug_geometry(*preview, *trigger);
-            }
-            if (!appended) {
-                preview.reset();
-            }
-        }
+        auto preview = load_area_object_visual(resources, object, origin, options);
         if (!preview
             || (!scene_has_preview_model(*preview)
                 && preview->debug_shape_indices.empty()
@@ -5927,7 +5958,7 @@ AreaTransientVisualResult remove_area_transient_visuals(
 
     const size_t light_count_before = scene.local_lights.size();
     auto removal = remove_object_model_rows(scene, objects);
-    if (!removal) {
+    if (!removal || removal->removed_count == 0) {
         result.status = AreaTransientVisualStatus::failed;
         result.diagnostic = "Area transient visual rows were not found";
         return result;
@@ -5946,6 +5977,151 @@ AreaTransientVisualResult remove_area_transient_visuals(
     result.object_count = static_cast<uint32_t>(objects.size());
     result.model_count = removal->removed_count;
     return result;
+}
+
+static ObjectVisualRefreshResult replace_area_object_visuals(
+    PreviewScene& scene, PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> removed,
+    std::span<const nw::ObjectHandle> added, PreviewSceneLoadOptions options)
+{
+    if (!valid_scene_model_columns(scene)) {
+        return {.status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = "Area object model columns are invalid"};
+    }
+    const auto finite = [](const glm::vec3& value) {
+        return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+    };
+    std::vector<std::unique_ptr<PreviewScene>> replacements;
+    PreviewScene geometry;
+    for (const auto object : added) {
+        const auto* spatial = nw::kernel::objects().components().find_spatial(object);
+        if (!nw::kernel::objects().valid(object) || !spatial
+            || spatial->area != scene.root_object.id
+            || !finite(spatial->position) || !finite(spatial->orientation) || !finite(spatial->scale)) {
+            return {.status = ObjectVisualRefreshStatus::invalid_input,
+                .diagnostic = "Area visual replacement contains a stale, non-finite or wrong-area object"};
+        }
+        if (const auto* shape = nw::kernel::objects().components().find_geometry(object)) {
+            if (!std::ranges::all_of(shape->points, finite)
+                || !std::ranges::all_of(shape->spawn_points, [&](const auto& point) {
+                       return finite(point.position) && std::isfinite(point.orientation);
+                   })) {
+                return {.status = ObjectVisualRefreshStatus::invalid_input,
+                    .diagnostic = "Area visual replacement geometry is non-finite"};
+            }
+        }
+        auto replacement = load_area_object_visual(resources, object, "area visual refresh", options);
+        if (!replacement || !append_debug_geometry(geometry, *replacement)) {
+            return {.status = ObjectVisualRefreshStatus::failed,
+                .diagnostic = "Area object visual construction failed"};
+        }
+        prime_scene_hold_animation(*replacement);
+        replacements.push_back(std::move(replacement));
+    }
+    // Overlay compaction validates every range before publishing it.
+    auto debug = replace_area_debug_geometry(scene, removed, geometry);
+    if (!debug.ok()) { return debug; }
+    const auto removal = remove_object_model_rows(scene, removed);
+    if (!removal) {
+        return {.status = ObjectVisualRefreshStatus::failed,
+            .diagnostic = "Area object model rows could not be isolated"};
+    }
+    size_t added_models = 0;
+    for (size_t index = 0; index < added.size(); ++index) {
+        const auto object = added[index];
+        added_models += append_render_models(scene, *replacements[index],
+            {.kind = object.type, .object = object, .static_candidate = !options.area_object_editing && object.type != nw::ObjectType::creature && object.type != nw::ObjectType::item});
+        if (object.type == nw::ObjectType::placeable) {
+            const auto* placeable = nw::kernel::objects().get<nw::Placeable>(object);
+            append_placeable_table_lights(scene, object_spatial_location(*placeable),
+                placeable_visual_state(*placeable), object);
+        }
+    }
+    refresh_scene_local_light_render_data(scene);
+    sync_model_instance_runtime_state(scene);
+    rebuild_scene_model_summaries(scene);
+    if (!scene.area_render_scene->rebuild_dynamic_records(scene, true)) {
+        scene.area_render_scene->rebuild(scene);
+    }
+    if (!refresh_scene_light_debug_geometry(scene)) {
+        return {.status = ObjectVisualRefreshStatus::failed,
+            .diagnostic = "Area light debug geometry refresh failed"};
+    }
+    return {.status = ObjectVisualRefreshStatus::success,
+        .object_count = static_cast<uint32_t>(removed.size()),
+        .removed_model_count = removal->removed_count,
+        .added_model_count = static_cast<uint32_t>(added_models)};
+}
+
+static bool same_area_tile(const nw::AreaTile& lhs, const nw::AreaTile& rhs)
+{
+    return lhs.id == rhs.id && lhs.height == rhs.height && lhs.orientation == rhs.orientation
+        && lhs.animloop1 == rhs.animloop1 && lhs.animloop2 == rhs.animloop2 && lhs.animloop3 == rhs.animloop3
+        && lhs.mainlight1 == rhs.mainlight1 && lhs.mainlight2 == rhs.mainlight2
+        && lhs.srclight1 == rhs.srclight1 && lhs.srclight2 == rhs.srclight2;
+}
+
+ObjectVisualRefreshResult synchronize_area_rows(
+    PreviewScene& scene, PreviewRenderResources& resources, PreviewSceneLoadOptions options)
+{
+    const auto* area = nw::kernel::objects().get<nw::Area>(scene.root_object);
+    if (!scene.is_area || !scene.area_render_scene || !area
+        || scene.area_width != area->width || scene.area_height != area->height
+        || scene.area_tiles.size() != area->tiles.size()) {
+        return {.status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = "Area synchronization requires unchanged area dimensions"};
+    }
+    try {
+        auto current = area_object_handles(*area);
+        if (std::adjacent_find(current.begin(), current.end()) != current.end()) {
+            return {.status = ObjectVisualRefreshStatus::invalid_input,
+                .diagnostic = "Area membership contains duplicate objects"};
+        }
+        std::vector<nw::ObjectHandle> added;
+        std::set_difference(current.begin(), current.end(), scene.area_objects.begin(), scene.area_objects.end(),
+            std::back_inserter(added));
+        std::vector<nw::ObjectHandle> removed;
+        std::set_difference(scene.area_objects.begin(), scene.area_objects.end(), current.begin(), current.end(),
+            std::back_inserter(removed));
+        // Detached placement previews are represented but not authored. A
+        // cancelled preview may already have been destroyed in the kernel.
+        const auto collect_detached = [&](nw::ObjectHandle object) {
+            if (object.type != nw::ObjectType::invalid
+                && !std::binary_search(current.begin(), current.end(), object)) {
+                removed.push_back(object);
+            }
+        };
+        for (const auto& row : scene.static_area_model_info) {
+            collect_detached(row.object);
+        }
+        for (const auto& row : scene.debug_shape_object_ranges) {
+            collect_detached(row.object);
+        }
+        removed.insert(removed.end(), added.begin(), added.end());
+        std::sort(removed.begin(), removed.end());
+        removed.erase(std::unique(removed.begin(), removed.end()), removed.end());
+        std::vector<uint32_t> tiles;
+        for (size_t index = 0; index < area->tiles.size(); ++index) {
+            if (!same_area_tile(area->tiles[index], scene.area_tiles[index])) {
+                tiles.push_back(static_cast<uint32_t>(index));
+            }
+        }
+        if (!tiles.empty()) {
+            auto refreshed = refresh_live_area_tiles(scene, resources, tiles);
+            if (!refreshed.ok()) {
+                return {.status = ObjectVisualRefreshStatus::failed, .diagnostic = std::move(refreshed.diagnostic)};
+            }
+        }
+        ObjectVisualRefreshResult result{.status = ObjectVisualRefreshStatus::success};
+        if (!removed.empty()) {
+            result = replace_area_object_visuals(scene, resources, removed, added, options);
+            if (!result.ok()) { return result; }
+        }
+        scene.area_objects = std::move(current);
+        return result;
+    } catch (const std::exception& ex) {
+        return {.status = ObjectVisualRefreshStatus::failed, .diagnostic = ex.what()};
+    }
 }
 
 ObjectVisualRefreshResult refresh_object_visuals(
@@ -5984,11 +6160,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
                 break;
             }
         }
-        if (!object_file_placement) {
-            result.status = ObjectVisualRefreshStatus::invalid_input;
-            result.diagnostic = "Object visual refresh could not read the object-file placement";
-            return result;
-        }
+        if (!object_file_placement) { object_file_placement = glm::mat4{1.0f}; }
     }
 
     std::vector<nw::ObjectHandle> ordered{objects.begin(), objects.end()};
@@ -5999,22 +6171,16 @@ ObjectVisualRefreshResult refresh_object_visuals(
         return result;
     }
 
+    if (scene.is_area) {
+        return replace_area_object_visuals(scene, resources, objects, objects, options);
+    }
+
     std::vector<std::unique_ptr<PreviewScene>> replacements;
     replacements.reserve(objects.size());
     std::vector<nw::ObjectType> replacement_kinds;
     replacement_kinds.reserve(objects.size());
     for (size_t i = 0; i < objects.size(); ++i) {
         const auto object = objects[i];
-        const bool represented = !scene.is_area
-            || std::any_of(scene.static_area_model_info.begin(), scene.static_area_model_info.end(),
-                [object](const auto& info) { return info.object == object; });
-        if (!represented) {
-            result.status = ObjectVisualRefreshStatus::invalid_input;
-            result.diagnostic
-                = "Object visual refresh contains an unrepresented object";
-            return result;
-        }
-
         std::unique_ptr<PreviewScene> replacement;
         nw::ObjectType kind = nw::ObjectType::invalid;
         switch (object.type) {
@@ -6030,12 +6196,16 @@ ObjectVisualRefreshResult refresh_object_visuals(
         case nw::ObjectType::item: {
             auto* item = nw::kernel::objects().get<nw::Item>(object);
             if (item) {
-                replacement = scene.is_area
-                    ? load_area_item_scene(resources, *item, fmt::format("visual refresh {}", i))
-                    : load_live_item_models(resources, *item, fmt::format("visual refresh {}", i));
+                replacement = load_live_item_models(resources, *item, fmt::format("visual refresh {}", i));
             }
             kind = nw::ObjectType::item;
         } break;
+        case nw::ObjectType::door:
+        case nw::ObjectType::placeable:
+        case nw::ObjectType::sound:
+            replacement = build_live_object_scene(resources, object, "visual refresh", options);
+            kind = object.type;
+            break;
         default:
             result.status = ObjectVisualRefreshStatus::invalid_input;
             result.diagnostic
@@ -6055,16 +6225,9 @@ ObjectVisualRefreshResult refresh_object_visuals(
         replacement_kinds.push_back(kind);
     }
 
-    const bool removed_object_lights = std::any_of(
-        scene.local_lights.begin(), scene.local_lights.end(),
-        [&scene, &objects](const SceneLocalLight& light) {
-            return light.source == SceneLocalLightSource::authored_model
-                && light.model_index < scene.static_area_model_info.size()
-                && std::find(objects.begin(), objects.end(),
-                       scene.static_area_model_info[light.model_index].object)
-                != objects.end();
-        });
-    const size_t light_count_before = scene.local_lights.size();
+    auto debug = replace_area_debug_geometry(scene, objects, *replacements.front());
+    if (!debug.ok()) { return debug; }
+
     auto removal = remove_object_model_rows(scene, objects);
     if (!removal) {
         result.status = ObjectVisualRefreshStatus::failed;
@@ -6082,17 +6245,16 @@ ObjectVisualRefreshResult refresh_object_visuals(
             });
     }
 
+    if (objects.front().type == nw::ObjectType::placeable) {
+        const auto* placeable = nw::kernel::objects().get<nw::Placeable>(objects.front());
+        append_placeable_table_lights(scene, nw::Location{}, placeable_visual_state(*placeable), objects.front());
+    }
     scene.active_object = objects.front();
     sync_model_instance_runtime_state(scene);
-    const bool light_topology_changed = removed_object_lights
-        || scene.local_lights.size() != light_count_before;
-    if (light_topology_changed) {
-        refresh_scene_local_light_render_data(scene);
-    }
-    if (scene.area_render_scene
-        && !scene.area_render_scene->rebuild_dynamic_records(
-            scene, light_topology_changed)) {
-        scene.area_render_scene->rebuild(scene);
+    refresh_scene_local_light_render_data(scene);
+    if (!refresh_scene_light_debug_geometry(scene)) {
+        return {.status = ObjectVisualRefreshStatus::failed,
+            .diagnostic = "Object light debug geometry refresh failed"};
     }
     if (!scene.load_report.source.empty() || !scene.load_report.kind.empty()) {
         const std::string report_source = scene.load_report.source;

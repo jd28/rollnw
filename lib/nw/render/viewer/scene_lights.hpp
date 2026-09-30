@@ -8,6 +8,7 @@
 #include <glm/mat4x4.hpp>
 
 namespace nw {
+struct ObjectHandle;
 struct AreaTile;
 struct Location;
 struct ObjectVisualLight;
@@ -36,15 +37,16 @@ enum class SceneTileLightRefreshStatus : uint8_t {
 
 SceneLocalLightTuning scene_local_light_tuning(const PreviewScene& scene) noexcept;
 [[nodiscard]] bool scene_light_debug_markers_enabled() noexcept;
+[[nodiscard]] bool refresh_scene_light_debug_geometry(PreviewScene& scene);
 SceneTileLightSlots scene_tile_light_slots(const nw::AreaTile& tile) noexcept;
 size_t append_placeable_table_light(
     PreviewScene& scene,
     const nw::Location& location,
-    const nw::ObjectVisualLight& lighting);
+    const nw::ObjectVisualLight& lighting, nw::ObjectHandle object);
 size_t append_placeable_table_lights(
     PreviewScene& scene,
     const nw::Location& location,
-    const nw::ObjectVisualState* visual);
+    const nw::ObjectVisualState* visual, nw::ObjectHandle object);
 size_t append_render_model_authored_lights(PreviewScene& scene, size_t model_index);
 size_t append_scene_authored_model_lights(PreviewScene& scene);
 size_t append_tile_render_model_lights(

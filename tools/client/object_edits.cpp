@@ -5172,7 +5172,11 @@ ObjectEditApplyResult apply_object_edits(
     }
 
     const bool sound_visual = batch.kind == ObjectEditKind::propset_int
-        && batch.patches.front().object.type == ObjectType::sound;
+        && batch.patches.front().object.type == ObjectType::sound
+        && std::ranges::any_of(batch.patches, [&runtime](const auto& patch) {
+               const auto* definition = runtime.get_struct_def(patch.propset_type);
+               return definition && (patch.key == definition->field_index("positional") || patch.key == definition->field_index("random_position"));
+           });
     const bool detail_visual = batch.kind == ObjectEditKind::creature_body_part
         || batch.kind == ObjectEditKind::creature_color
         || batch.kind == ObjectEditKind::creature_accessory

@@ -90,10 +90,10 @@ fn encounter_spawns_refresh(): array!(Command) {
             icon_source = "",
             cell0 = T.resref_to_string(spawn.resref),
             cell1 = f"{spawn.cr}",
-            cell2 = f"{spawn.appearance}",
-            cell3 = spawn.single_spawn != 0 ? "Yes" : "No",
-            cell_count = 4,
-            enabled_mask = 15,
+            cell2 = f"{spawn.single_spawn}",
+            cell3 = "",
+            cell_count = 3,
+            enabled_mask = 7,
         });
     }
     return count == 0

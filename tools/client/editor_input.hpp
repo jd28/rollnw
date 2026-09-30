@@ -89,6 +89,7 @@ struct EditorWheelInput {
     SDL_Keymod modifiers = SDL_KMOD_NONE;
     float amount = 0;
     bool text_focused = false;
+    uint32_t debug_subindex = UINT32_MAX;
 };
 struct EditorWheelAction {
     EditorWheelActionKind kind = EditorWheelActionKind::none;

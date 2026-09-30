@@ -172,7 +172,11 @@ bool resolve_editor_wheel_actions(std::span<const EditorWheelInput> inputs,
             || input.viewport > EditorViewportKind::preview || !std::isfinite(input.amount) || input.amount == 0) { continue; }
         action = {EditorWheelActionKind::camera_zoom, input.amount};
         if (input.viewport != EditorViewportKind::area || input.text_focused) { continue; }
-        if (input.object_type == ObjectType::sound
+        if (input.object_type == ObjectType::encounter && input.debug_subindex != UINT32_MAX
+            && (input.modifiers & SDL_KMOD_CTRL)
+            && !(input.modifiers & (SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
+            action.kind = EditorWheelActionKind::object_rotate;
+        } else if (input.object_type == ObjectType::sound
             && !(input.modifiers & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI | SDL_KMOD_SHIFT))) {
             action.kind = EditorWheelActionKind::sound_radius;
         } else if ((input.object_type == ObjectType::creature || input.object_type == ObjectType::item || input.object_type == ObjectType::placeable)

@@ -1040,6 +1040,13 @@ TEST(RenderViewerAreaSelection, SelectsEncounterFootprintAndSpawnMarkersSeparate
     EXPECT_LT(scene.debug_shape_selection_ranges[0].bounds.max.y, spawn_points[0].position.y);
     EXPECT_EQ(scene.debug_shape_selection_ranges[0].subindex, UINT32_MAX);
     EXPECT_EQ(scene.debug_shape_selection_ranges[1].subindex, 0u);
+    EXPECT_FLOAT_EQ(scene.debug_shape_selection_ranges[1].bounds.min.z, 1.0f);
+    EXPECT_FLOAT_EQ(scene.debug_shape_selection_ranges[1].bounds.max.z, 3.55f);
+    const auto footprint_color = scene.debug_shape_vertices[scene.debug_shape_indices[scene.debug_shape_ranges[0].first_index]].color;
+    for (size_t index = 0; index < 36; ++index) {
+        EXPECT_EQ(scene.debug_shape_vertices[scene.debug_shape_indices[scene.debug_shape_ranges[1].first_index + index]].color,
+            footprint_color);
+    }
     viewer::AreaRenderScene records;
     records.rebuild(scene);
 
@@ -1054,13 +1061,14 @@ TEST(RenderViewerAreaSelection, SelectsEncounterFootprintAndSpawnMarkersSeparate
     EXPECT_EQ(footprint_hit.source, viewer::AreaObjectSelectionSource::debug_shape);
     EXPECT_EQ(footprint_hit.object, encounter_handle);
     EXPECT_NEAR(footprint_hit.distance, 3.88f, 1.0e-5f);
-    const auto spawn_hit = viewer::select_area_object(
-        {
-            .origin = {20.0f, 30.0f, 5.0f},
-            .direction = {0.0f, 0.0f, -1.0f},
-        },
-        records,
-        scene);
+    const auto pick_spawn = [&] {
+        return viewer::select_area_object(
+            {.origin = {20.25f, 30.25f, 5.0f}, .direction = {0.0f, 0.0f, -1.0f}},
+            records, scene);
+    };
+    EXPECT_EQ(pick_spawn().status, viewer::AreaObjectSelectionStatus::miss);
+    scene.active_object = encounter_handle;
+    const auto spawn_hit = pick_spawn();
     ASSERT_EQ(spawn_hit.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(spawn_hit.record_index, 1u);
     EXPECT_EQ(spawn_hit.object, encounter_handle);
@@ -1073,6 +1081,81 @@ TEST(RenderViewerAreaSelection, SelectsEncounterFootprintAndSpawnMarkersSeparate
         records,
         scene);
     EXPECT_EQ(spawn_marker_miss.status, viewer::AreaObjectSelectionStatus::miss);
+    scene.active_object = live.make<nw::Encounter>();
+    EXPECT_EQ(pick_spawn().status, viewer::AreaObjectSelectionStatus::miss);
+    scene.active_object = nw::ObjectHandle{};
+    EXPECT_EQ(pick_spawn().status, viewer::AreaObjectSelectionStatus::miss);
+}
+
+TEST(RenderViewerAreaSelection, EncounterMarkersKeepTheirOrderedPointIndices)
+{
+    LiveObjects live;
+    const auto handle = live.make<nw::Encounter>();
+    auto* encounter = nw::kernel::objects().get<nw::Encounter>(handle);
+    ASSERT_NE(encounter, nullptr);
+    std::vector<nw::ObjectSpawnPoint> points;
+    for (size_t index = 0; index < 12; ++index) {
+        points.push_back({.position = {static_cast<float>(index) * 3.0f, 2.0f, 1.0f},
+            .orientation = glm::radians(90.0f * static_cast<float>(index % 4))});
+    }
+    const auto verify = [&] {
+        ASSERT_TRUE(nw::kernel::objects().components().set_spawn_points(handle, points));
+        viewer::PreviewScene scene;
+        scene.active_object = handle;
+        ASSERT_TRUE(viewer::append_encounter_debug_geometry(scene, *encounter));
+        ASSERT_EQ(scene.debug_shape_selection_ranges.size(), points.size());
+        viewer::AreaRenderScene records;
+        records.rebuild(scene);
+        for (size_t index = 0; index < points.size(); ++index) {
+            const auto& range = scene.debug_shape_selection_ranges[index];
+            EXPECT_EQ(range.subindex, index);
+            EXPECT_FLOAT_EQ(range.bounds.min.z, points[index].position.z);
+            EXPECT_FLOAT_EQ(range.bounds.max.z, points[index].position.z + 2.55f);
+            const auto rotation = glm::rotate(glm::mat4{1.0f}, points[index].orientation, glm::vec3{0.0f, 0.0f, 1.0f});
+            const auto rotated = [&](glm::vec3 value) { return glm::vec3{rotation * glm::vec4{value, 0.0f}}; };
+            // The native prism contributes twelve faces, before the number strokes.
+            const auto first = scene.debug_shape_ranges[range.debug_shape_range_index].first_index;
+            ASSERT_GE(scene.debug_shape_ranges[range.debug_shape_range_index].index_count, 36u);
+            nw::render::Bounds body{.min = glm::vec3{std::numeric_limits<float>::max()},
+                .max = glm::vec3{std::numeric_limits<float>::lowest()}};
+            for (size_t vertex = first; vertex < first + 36; ++vertex) {
+                const auto world = scene.debug_shape_vertices[scene.debug_shape_indices[vertex]].position;
+                const auto local = glm::vec3{glm::transpose(rotation) * glm::vec4{world - points[index].position, 0.0f}};
+                body.min = glm::min(body.min, local);
+                body.max = glm::max(body.max, local);
+            }
+            // Preserve the model's dimensions and authored node translation.
+            EXPECT_NEAR(body.min.x, -0.00515816f, 1.0e-5f);
+            EXPECT_NEAR(body.max.x, 0.49484184f, 1.0e-5f);
+            EXPECT_NEAR(body.min.y, -0.09392550f, 1.0e-5f);
+            EXPECT_NEAR(body.max.y, 0.87432048f, 1.0e-5f);
+            EXPECT_FLOAT_EQ(body.min.z, 0.0f);
+            EXPECT_FLOAT_EQ(body.max.z, 2.5f);
+            const auto hit = viewer::select_area_object(
+                {.origin = points[index].position + rotated({0.25f, -2.0f, 2.0f}),
+                    .direction = rotated({0.0f, 1.0f, 0.0f})},
+                records, scene);
+            ASSERT_EQ(hit.status, viewer::AreaObjectSelectionStatus::hit);
+            EXPECT_EQ(hit.object, handle);
+            EXPECT_EQ(hit.record_index, range.debug_shape_range_index);
+            EXPECT_NEAR(hit.distance, 1.9060745f, 1.0e-5f);
+            const auto above = viewer::select_area_object(
+                {.origin = points[index].position + glm::vec3{0.0f, -2.0f, 9.0f},
+                    .direction = {0.0f, 1.0f, 0.0f}},
+                records, scene);
+            EXPECT_EQ(above.status, viewer::AreaObjectSelectionStatus::miss);
+        }
+        // Numbers 1 and 2 have different stroke counts; 10 includes both digits.
+        ASSERT_GE(scene.debug_shape_ranges.size(), 10u);
+        EXPECT_LT(scene.debug_shape_ranges[0].index_count, scene.debug_shape_ranges[1].index_count);
+        EXPECT_GT(scene.debug_shape_ranges[9].index_count, scene.debug_shape_ranges[0].index_count);
+    };
+    verify();
+    const auto before = points;
+    points.erase(points.begin());
+    verify(); // The former point 2 is now point 1 at its unchanged position.
+    points = before;
+    verify();
 }
 
 TEST(RenderViewerAreaSelection, SelectsStoreAndWaypointDebugMarkers)
@@ -1114,6 +1197,112 @@ TEST(RenderViewerAreaSelection, SelectsStoreAndWaypointDebugMarkers)
         scene);
     ASSERT_EQ(waypoint_hit.status, viewer::AreaObjectSelectionStatus::hit);
     EXPECT_EQ(waypoint_hit.object, waypoint_handle);
+}
+
+TEST(RenderViewerAreaSelection, DebugRefreshBatchesPreserveUnrelatedGeometryAndRejectInvalidRanges)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    LiveObjects live;
+    const auto area = live.make<nw::Area>();
+    const std::array encounters{live.make<nw::Encounter>(), live.make<nw::Encounter>()};
+    auto& components = nw::kernel::objects().components();
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.root_object = area;
+    scene.owns_root_object = false;
+    viewer::append_debug_triangle(scene, {90, 0, 0}, {91, 0, 0}, {90, 1, 0}, {0, 1, 0, 1});
+    viewer::append_debug_shape_range(scene, viewer::DebugShapeCategory::general, 0);
+    for (size_t index = 0; index < encounters.size(); ++index) {
+        ASSERT_TRUE(components.set_area(encounters[index], area.id));
+        const std::array footprint{glm::vec3{0, 0, 0}, glm::vec3{2, 0, 0}, glm::vec3{2, 2, 0}};
+        const std::array points{nw::ObjectSpawnPoint{.position = {4.0f + 4.0f * static_cast<float>(index), 4, 0}, .orientation = 0}};
+        ASSERT_TRUE(components.set_geometry(encounters[index], footprint));
+        ASSERT_TRUE(components.set_spawn_points(encounters[index], points));
+        ASSERT_TRUE(viewer::append_encounter_debug_geometry(scene, *nw::kernel::objects().get<nw::Encounter>(encounters[index])));
+    }
+    auto* sound = make_test_sound(true);
+    ASSERT_NE(sound, nullptr);
+    live.handles.push_back(sound->handle());
+    ASSERT_TRUE(components.set_area(sound->handle(), area.id));
+    const auto visual = nwn1::sound_toolset_visual_state(sound->handle());
+    ASSERT_TRUE(visual);
+    ASSERT_TRUE(viewer::append_sound_debug_geometry(scene, *sound, &*visual, false));
+    const auto original_dots = scene.sound_debug_dot_instances;
+    const auto marker_vertices = [&](nw::ObjectHandle owner) {
+        std::vector<glm::vec3> vertices;
+        for (const auto& range : scene.debug_shape_object_ranges) {
+            if (range.object != owner) { continue; }
+            for (size_t index = range.first_vertex; index < static_cast<size_t>(range.first_vertex) + range.vertex_count; ++index) {
+                vertices.push_back(scene.debug_shape_vertices[index].position);
+            }
+        }
+        return vertices;
+    };
+    const auto untouched = marker_vertices(encounters[1]);
+    const std::array first{encounters[0]};
+    ASSERT_TRUE(components.set_spawn_points(encounters[0], {}));
+    ASSERT_TRUE(viewer::refresh_area_debug_geometry(scene, first).ok());
+    EXPECT_EQ(marker_vertices(encounters[1]), untouched);
+    ASSERT_EQ(scene.sound_debug_dot_instances.size(), original_dots.size());
+    for (size_t index = 0; index < original_dots.size(); ++index) {
+        EXPECT_EQ(scene.sound_debug_dot_instances[index].center_radius, original_dots[index].center_radius);
+    }
+    EXPECT_EQ(scene.debug_shape_vertices[0].position, (glm::vec3{90, 0, 0}));
+    scene.active_object = encounters[1];
+    viewer::AreaRenderScene records;
+    const auto hit = viewer::select_area_object({.origin = {8.25f, 4.25f, 10}, .direction = {0, 0, -1}}, records, scene);
+    ASSERT_EQ(hit.object, encounters[1]);
+    EXPECT_EQ(scene.debug_shape_selection_ranges[hit.record_index].subindex, 0u);
+
+    // Mixed supported batch, including a sound-dot buffer replacement.
+    const std::array added{nw::ObjectSpawnPoint{.position = {4, 4, 0}, .orientation = 1.0f},
+        nw::ObjectSpawnPoint{.position = {6, 4, 0}, .orientation = -0.5f}};
+    ASSERT_TRUE(components.set_spawn_points(encounters[0], added));
+    ASSERT_TRUE(nwn1::replace_sound_toolset_radius(sound->handle(), visual->distance_max, visual->distance_max + 2));
+    const std::array changed{encounters[0], sound->handle()};
+    ASSERT_TRUE(viewer::refresh_area_debug_geometry(scene, changed).ok());
+    EXPECT_EQ(marker_vertices(encounters[1]), untouched);
+    EXPECT_EQ(scene.debug_shape_vertices[0].color, (glm::vec4{0, 1, 0, 1}));
+    bool larger_sound = false;
+    for (size_t index = 0; index < original_dots.size(); ++index) {
+        larger_sound |= scene.sound_debug_dot_instances[index].center_radius != original_dots[index].center_radius;
+    }
+    EXPECT_TRUE(larger_sound);
+    for (const auto index : scene.debug_shape_indices) {
+        EXPECT_LT(index, scene.debug_shape_vertices.size());
+    }
+    for (const auto& range : scene.debug_shape_selection_ranges) {
+        EXPECT_LT(range.debug_shape_range_index, scene.debug_shape_ranges.size());
+        EXPECT_LE(static_cast<size_t>(range.first_point) + range.point_count, scene.debug_shape_selection_points.size());
+    }
+    const auto vertices_before = marker_vertices(encounters[0]);
+    const auto indices_before = scene.debug_shape_indices;
+    const auto rejected = [&](std::span<const nw::ObjectHandle> objects) {
+        EXPECT_FALSE(viewer::refresh_area_debug_geometry(scene, objects).ok());
+        EXPECT_EQ(marker_vertices(encounters[0]), vertices_before);
+        EXPECT_EQ(scene.debug_shape_indices, indices_before);
+    };
+    const std::array duplicate{encounters[0], encounters[0]};
+    rejected(duplicate);
+    const std::array invalid{nw::ObjectHandle{}};
+    rejected(invalid);
+    const std::array unsupported{area};
+    rejected(unsupported);
+    ASSERT_TRUE(components.set_area(encounters[0], nw::object_invalid));
+    rejected(first);
+    ASSERT_TRUE(components.set_area(encounters[0], area.id));
+    const auto saved_range = scene.debug_shape_ranges[0];
+    scene.debug_shape_ranges[0].index_count = UINT32_MAX;
+    rejected(first);
+    scene.debug_shape_ranges[0] = saved_range;
+    auto malformed = added;
+    malformed[0].orientation = std::numeric_limits<float>::quiet_NaN();
+    EXPECT_FALSE(components.set_spawn_points(encounters[0], malformed));
+    // Also reject a corrupted internal row, without changing the live overlay.
+    components.find_geometry(encounters[0])->spawn_points[0].orientation = malformed[0].orientation;
+    rejected(first);
+    ASSERT_TRUE(components.set_spawn_points(encounters[0], added));
+    EXPECT_EQ(viewer::refresh_area_debug_geometry(scene, {}).status, viewer::ObjectVisualRefreshStatus::empty);
 }
 
 TEST(RenderViewerAreaSelection, PositionalSoundUsesConcentricDottedRangeSpheres)
