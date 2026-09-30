@@ -5085,6 +5085,109 @@ TEST(ClientRmlSmallsLanguageBinding, EncounterSingleSpawnCheckboxEditsInlineAndR
     nw::kernel::objects().destroy(reloaded_area->handle());
 }
 
+TEST(ClientRmlSmallsLanguageBinding, StoreInventoryRemovalUsesCurrentManagedSelection)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto& runtime = nw::kernel::runtime();
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ScriptCommandHostReset reset_commands;
+    ASSERT_TRUE(backend.initialize());
+    RmlSmallsLanguageBinding binding;
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    ASSERT_TRUE(binding.initialize(runtime));
+    auto* context = Rml::CreateContext("store-inventory-removal", {1200, 700});
+    ASSERT_NE(context, nullptr);
+    const auto cleanup = create_scope_exit([&] {
+        bridge.clear_active_object();
+        Rml::RemoveContext("store-inventory-removal");
+    });
+    auto* document = context->LoadDocument(
+        (std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui/panel.rml").string());
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    auto* store = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
+    ASSERT_NE(store, nullptr);
+    auto& inventory = store->inventory().armor;
+    ASSERT_FALSE(inventory.items.empty());
+    const auto before = inventory.to_json(nw::SerializationProfile::instance);
+    const auto removed = nw::inventory_item_ptr(inventory.items.front())->handle();
+    workspace.open_tab("store", {}, WorkspaceTabKind::preview);
+    CommandContext command;
+    command.workspace = &workspace;
+    command.active_tab_id = workspace.active_tab_id();
+    bridge.publish_active_object(store->handle());
+    ObjectWorkbenchViewState view;
+    activate_object_workbench(view, store->handle(), command.active_tab_id);
+    view.object_workbench_surface = ObjectWorkbenchSurface::store_inventory;
+    std::string markup;
+    append_object_workbench_markup(markup, view, workspace, backend);
+    auto* content = document->GetElementById("workspace_content");
+    ASSERT_NE(content, nullptr);
+    content->SetInnerRML(markup);
+    context->Update();
+    auto* button = document->GetElementById("store_inventory_remove");
+    ASSERT_NE(button, nullptr);
+    EXPECT_GT(button->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(button->GetOffsetHeight(), 0.0f);
+    auto& host = ui_v1_host();
+    const auto refresh = [&] {
+        ASSERT_TRUE(runtime.execute_script("toolset.data_object_editor", "store_inventory_refresh", {}).ok());
+        ASSERT_TRUE(sync_managed_lists(document, host, view.managed_lists, true));
+        context->Update();
+    };
+    const auto select_first = [&] {
+        ASSERT_TRUE(host.set_selected("data.store.inventory",
+            UiListSelection{.list_id = "data.store.inventory", .index = 0}, false));
+    };
+    refresh();
+    EXPECT_EQ(backend.execute_command("toolset.store.inventory.remove", {}, command).status, CommandStatus::rejected);
+    select_first();
+    const auto selected = host.get_selected("data.store.inventory");
+    ASSERT_TRUE(selected);
+    ASSERT_TRUE(button->DispatchEvent("click", {}));
+    EXPECT_FALSE(inventory.has_item(nw::kernel::objects().get<nw::Item>(removed)));
+    EXPECT_TRUE(nw::kernel::objects().valid(removed));
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    EXPECT_EQ(host.get_selected("data.store.inventory")->index, -1);
+    ASSERT_TRUE(button->DispatchEvent("click", {}));
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), before);
+    // A still displayed row has an old epoch after undo and cannot delete again.
+    select_first();
+    EXPECT_EQ(backend.execute_command("toolset.store.inventory.remove", {}, command).status, CommandStatus::rejected);
+    EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), before);
+    refresh();
+    select_first();
+    auto* other = nw::kernel::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
+    ASSERT_NE(other, nullptr);
+    const auto other_before = other->inventory().armor.to_json(nw::SerializationProfile::instance);
+    bridge.publish_active_object(other->handle());
+    EXPECT_EQ(backend.execute_command("toolset.store.inventory.remove", {}, command).status, CommandStatus::rejected);
+    EXPECT_EQ(other->inventory().armor.to_json(nw::SerializationProfile::instance), other_before);
+    bridge.publish_active_object(removed);
+    EXPECT_EQ(backend.execute_command("toolset.store.inventory.remove", {}, command).status, CommandStatus::rejected);
+    bridge.publish_active_object(store->handle());
+    refresh();
+    select_first();
+    EXPECT_TRUE(backend.execute_command("toolset.store.inventory.remove", {}, command).ok());
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_TRUE(binding.diagnostics().empty());
+    bridge.clear_active_object();
+    workspace.clear();
+    EXPECT_FALSE(nw::kernel::objects().valid(removed));
+    nw::kernel::objects().destroy(store->handle());
+    nw::kernel::objects().destroy(other->handle());
+}
+
 TEST(ClientRmlSmallsLanguageBinding, DataCollectionRemovalRejectsStaleSelectionsAndPersists)
 {
     using namespace nw::toolset;

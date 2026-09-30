@@ -673,6 +673,73 @@ void ToolsetBackend::register_native_commands()
                 return result;
             });
     }
+    register_or_log(CommandSpec{
+                        .id = "toolset.store.inventory.remove",
+                        .title = "Remove Store inventory item",
+                        .category = "object",
+                        .scope = CommandScope::workspace,
+                        .flags = CommandFlags::hidden,
+                    },
+        [this](const CommandInvocation&, CommandContext& context) {
+            const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+            const auto selected = ui_v1_host().get_selected("data.store.inventory");
+            const auto prefix = data_object_list_key_prefix();
+            auto* store = object.type == ObjectType::store ? kernel::objects().get<Store>(object) : nullptr;
+            if (!store || prefix.empty() || !selected || selected->index < 0 || selected->index >= 1024) {
+                return command_result(CommandStatus::rejected,
+                    "Select a current Store inventory entry before removing it", CommandOutputChannel::warn);
+            }
+            const auto& inventory = store->inventory();
+            const std::array categories{&inventory.armor, &inventory.miscellaneous,
+                &inventory.potions, &inventory.rings, &inventory.weapons};
+            int32_t index = 0;
+            for (size_t category = 0; category < categories.size(); ++category) {
+                for (const auto& entry : categories[category]->items) {
+                    const auto* item = inventory_item_ptr(entry);
+                    if (!item) { continue; }
+                    if (index++ != selected->index) { continue; }
+                    if (selected->key != prefix + std::to_string(category) + ":" + std::to_string(selected->index)) {
+                        return command_result(CommandStatus::rejected,
+                            "The Store inventory selection is stale", CommandOutputChannel::warn);
+                    }
+                    const std::array items{item->handle()};
+                    auto result = remove_inventory_items(object, items, "Remove Store inventory item", context);
+                    if (result.ok()) {
+                        (void)ui_v1_host().set_selected("data.store.inventory",
+                            UiListSelection{.list_id = "data.store.inventory"}, false);
+                    }
+                    return result;
+                }
+            }
+            return command_result(CommandStatus::rejected,
+                "The Store inventory selection is unavailable", CommandOutputChannel::warn);
+        });
+    register_or_log(CommandSpec{
+                        .id = "object.inventory.remove",
+                        .title = "Remove inventory item",
+                        .category = "object",
+                        .scope = CommandScope::workspace,
+                        .flags = CommandFlags::hidden,
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto index = parse_u32(command_arg_string(invocation.args, 0));
+            const auto owner = bridge_ ? bridge_->active_object() : ObjectHandle{};
+            auto* object = kernel::objects().get_object_base(owner);
+            const auto* inventory = object && (owner.type == ObjectType::creature || owner.type == ObjectType::item || owner.type == ObjectType::placeable)
+                ? kernel::objects().components().find_inventory(*object)
+                : nullptr;
+            if (invocation.args.size() != 1 || !index || !inventory || *index >= inventory->items.size()) {
+                return command_result(CommandStatus::rejected,
+                    "Select a current inventory item before removing it", CommandOutputChannel::warn);
+            }
+            const auto* item = inventory_item_ptr(inventory->items[*index]);
+            if (!item) {
+                return command_result(CommandStatus::rejected,
+                    "The inventory item is unavailable", CommandOutputChannel::warn);
+            }
+            const std::array items{item->handle()};
+            return remove_inventory_items(owner, items, "Remove inventory item", context);
+        });
     register_hidden_editor_command(
         "toolset.encounter.spawns.set_single",
         [this](const CommandInvocation& invocation, CommandContext& context) {

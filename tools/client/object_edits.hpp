@@ -646,6 +646,13 @@ struct AreaObjectBlueprintLoadResult {
     std::string label,
     CommandContext& context);
 
+// Remove unique live Items from one Creature, Item, Placeable or Store inventory.
+// History owns detached trees; undo restores exact entries, order and occupancy.
+// Empty batches are no-ops. Invalid/stale membership rejects the entire batch.
+[[nodiscard]] CommandResult remove_inventory_items(
+    ObjectHandle owner, std::span<const ObjectHandle> items,
+    std::string label, CommandContext& context);
+
 // Structural commands receive a batch even though the current UI supplies one
 // selected object. Inputs are live handles owned by area; invalid, stale,
 // duplicate, unsupported, or non-member handles reject the complete batch.

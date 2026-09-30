@@ -24,11 +24,6 @@ const sound_resource_list = "data.sound.resources";
 const store_inventory_list = "data.store.inventory";
 const max_collection_rows = 1024;
 
-fn _ensure_lists(): bool {
-    var result = command_execute("toolset.data_objects.initialize", {});
-    return result.status == 0 || result.status == 4;
-}
-
 fn on_sound_resource_reorder(reorder: ListReorder) {
     command_execute("toolset.sound.resources.reorder", {
         f"{reorder.source_index}",
@@ -42,6 +37,10 @@ fn remove_selected_encounter_spawn() {
 
 fn remove_selected_sound_resource() {
     command_execute("toolset.sound.resources.remove", {});
+}
+
+fn remove_selected_store_item() {
+    command_execute("toolset.store.inventory.remove", {});
 }
 
 fn _row_key_prefix(): string {
@@ -138,7 +137,7 @@ fn sound_resources_refresh(): array!(Command) {
 }
 
 fn _append_store_rows(rows: array!(ListItem), store: Store,
-    category: string, inventory_category: int): int {
+    category: string, inventory_category: int, key_prefix: string): int {
     var count = ItemBase.store_inventory_item_count(store, inventory_category);
     var remaining = max_collection_rows - Array.len(rows);
     if (remaining <= 0) { return count; }
@@ -147,7 +146,7 @@ fn _append_store_rows(rows: array!(ListItem), store: Store,
     var item_rows = ItemPolicy.get_inventory_editor_rows(items);
     for (var item_row in item_rows) {
         Array.push(rows, ListItem {
-            key = f"{inventory_category}:{Array.len(rows)}",
+            key = f"{key_prefix}{inventory_category}:{Array.len(rows)}",
             icon_source = "",
             cell0 = category,
             cell1 = item_row.name,
@@ -161,7 +160,8 @@ fn _append_store_rows(rows: array!(ListItem), store: Store,
 }
 
 fn store_inventory_refresh(): array!(Command) {
-    if (!_ensure_lists()) { return {}; }
+    var key_prefix = _row_key_prefix();
+    if (key_prefix == "") { return _set_empty(store_inventory_list, "Store inventory unavailable."); }
     if (active_object_type() != (Const.object_type_store as int)) {
         return _set_empty(store_inventory_list, "Waiting for a live Store.");
     }
@@ -173,15 +173,15 @@ fn store_inventory_refresh(): array!(Command) {
 
     var rows: array!(ListItem) = {};
     var count = _append_store_rows(
-        rows, store, "Armor", ItemBase.store_inventory_armor);
+        rows, store, "Armor", ItemBase.store_inventory_armor, key_prefix);
     count += _append_store_rows(rows, store, "Miscellaneous",
-        ItemBase.store_inventory_miscellaneous);
+        ItemBase.store_inventory_miscellaneous, key_prefix);
     count += _append_store_rows(
-        rows, store, "Potions", ItemBase.store_inventory_potions);
+        rows, store, "Potions", ItemBase.store_inventory_potions, key_prefix);
     count += _append_store_rows(
-        rows, store, "Rings", ItemBase.store_inventory_rings);
+        rows, store, "Rings", ItemBase.store_inventory_rings, key_prefix);
     count += _append_store_rows(
-        rows, store, "Weapons", ItemBase.store_inventory_weapons);
+        rows, store, "Weapons", ItemBase.store_inventory_weapons, key_prefix);
     return count == 0
         ? _set_empty(store_inventory_list, "This store has no inventory items.")
         : _set_rows(store_inventory_list, rows, count);

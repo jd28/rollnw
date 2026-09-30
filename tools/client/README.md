@@ -137,6 +137,12 @@ both blueprints and areas. Spawn-point numbers identify positions in the area,
 independently of this Creature list. Sound entries can
 also be reordered by dragging.
 
+In Creature, container Item, Placeable, and Store inventories, select an item
+and click the **minus** button to remove it. Undo restores its contents, position,
+and original order, including Store category and infinite-stock status. Unequip
+an equipped item before removing it. Inventory removal saves with the blueprint
+or containing area.
+
 **Save as New Blueprint** creates a copy of the selected object without changing
 the original. Resource names must be unique for their type across project
 directories. Creation supports undo/redo; close the new blueprint's editor tab

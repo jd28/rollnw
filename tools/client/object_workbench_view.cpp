@@ -2060,7 +2060,13 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
                           "<div class=\"data_collection_rows store_inventory_rows managed_list_rows\" "
                           "tabindex=\"0\" "
                           "data-list-id=\"data.store.inventory\" "
-                          "data-empty-text=\"This store has no inventory items.\"></div></div>";
+                          "data-empty-text=\"This store has no inventory items.\"></div>"
+                          "<div class=\"data_collection_action_bar\">"
+                          "<button id=\"store_inventory_remove\" type=\"button\" "
+                          "class=\"data_collection_action remove\" title=\"Remove selected inventory item\" "
+                          "onclick=\"remove_selected_store_item()\">"
+                          "<span class=\"data_collection_action_mark horizontal\"></span>"
+                          "</button></div></div>";
     } else {
         content_markup += "<div class=\"property_tree_header\"><span class=\"property_tree_header_name\">Field</span>";
         content_markup += "<span class=\"property_tree_header_value\">Value</span>";

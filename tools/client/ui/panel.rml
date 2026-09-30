@@ -29,6 +29,7 @@ from toolset.data_object_editor import {
     encounter_spawns_refresh,
     remove_selected_encounter_spawn,
     remove_selected_sound_resource,
+    remove_selected_store_item,
     sound_resources_refresh,
     store_inventory_refresh,
 };

@@ -1194,6 +1194,357 @@ TEST(ClientObjectEdits, PlaceableItemPlacementUsesExactInventoryCellAcrossUndoRe
     EXPECT_TRUE(owner->inventory().has_item(item));
 }
 
+TEST(ClientObjectEdits, InventoryRemovalRestoresExactRowsAndPersistsAllOwners)
+{
+    using namespace nw::toolset;
+    ASSERT_TRUE(nwk::load_module("test_data/user/modules/DockerDemo.mod"));
+    const std::filesystem::path project = "tmp/client_inventory_removal";
+    std::filesystem::create_directories(project);
+    const auto verify = [&](auto* owner, nw::Inventory& inventory, const char* filename) {
+        using Object = std::remove_pointer_t<decltype(owner)>;
+        SCOPED_TRACE(filename);
+        std::array<nw::ObjectHandle, 3> added;
+        for (size_t index = 0; index < added.size(); ++index) {
+            auto* item = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+            ASSERT_NE(item, nullptr);
+            if (!inventory.can_add_item(item)) { ASSERT_TRUE(inventory.add_page()); }
+            ASSERT_TRUE(inventory.add_item(item));
+            added[index] = item->handle();
+            inventory.items.back().infinite = index == 0;
+        }
+        const auto before = inventory.to_json(nw::SerializationProfile::instance);
+        const auto before_grid = inventory.inventory_bitset;
+        const auto pages = inventory.pages();
+        std::vector<nw::InventoryItem> before_entries(inventory.items.begin(), inventory.items.end());
+        auto after = before;
+        after.erase(after.size() - 1);
+        after.erase(after.size() - 2);
+        WorkspaceState workspace;
+        auto& tab = workspace.open_tab(filename, filename, WorkspaceTabKind::preview);
+        tab.detail = filename;
+        ASSERT_TRUE(tab.document.adopt(owner->handle()));
+        CommandContext context;
+        context.workspace = &workspace;
+        context.active_tab_id = workspace.active_tab_id();
+        ASSERT_TRUE(owner->save(project / filename, "json"));
+        const std::array removed{added[2], added[0]};
+        const auto epoch = object_mutation_state().epoch;
+        auto result = remove_inventory_items(owner->handle(), removed, "Remove inventory items", context);
+        ASSERT_TRUE(result.ok()) << result.message;
+        ASSERT_TRUE(result.undo_action);
+        workspace.push_undo(*result.undo_action);
+        result.undo_action.reset();
+        EXPECT_EQ(object_mutation_state().epoch, epoch + 1);
+        EXPECT_EQ(object_mutation_state().kind, ObjectMutationKind::properties);
+        EXPECT_EQ(object_mutation_state().visual_kind, ObjectVisualMutationKind::none);
+        EXPECT_TRUE(workspace.active_tab()->dirty);
+        EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), after);
+        EXPECT_EQ(inventory.pages(), pages);
+        EXPECT_TRUE(nwk::objects().valid(added[0]));
+        EXPECT_TRUE(nwk::objects().valid(added[2]));
+
+        const auto check_persisted = [&] {
+            const std::array<std::string_view, 1> ids{filename};
+            const auto saved = save_workspace_documents(workspace, project, ids);
+            ASSERT_TRUE(saved.ok()) << saved.message;
+            EXPECT_FALSE(workspace.active_tab()->dirty);
+            auto* loaded = nwk::objects().load_file<Object>(project / filename);
+            ASSERT_NE(loaded, nullptr);
+            const auto& loaded_inventory = [&]() -> const nw::Inventory& {
+                if constexpr (std::is_same_v<Object, nw::Store>) {
+                    return loaded->inventory().potions;
+                } else {
+                    return loaded->inventory();
+                }
+            }();
+            EXPECT_EQ(loaded_inventory.to_json(nw::SerializationProfile::instance),
+                inventory.to_json(nw::SerializationProfile::instance));
+            nwk::objects().destroy(loaded->handle());
+        };
+        check_persisted();
+        ASSERT_TRUE(workspace.undo(context).ok());
+        EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), before);
+        EXPECT_EQ(inventory.inventory_bitset, before_grid);
+        ASSERT_EQ(inventory.items.size(), before_entries.size());
+        for (size_t index = 0; index < before_entries.size(); ++index) {
+            EXPECT_EQ(inventory.items[index].item, before_entries[index].item);
+            EXPECT_EQ(inventory.items[index].infinite, before_entries[index].infinite);
+        }
+        check_persisted();
+        ASSERT_TRUE(workspace.redo(context).ok());
+        EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), after);
+        check_persisted();
+
+        // The same owner and command also persist inside an Area document.
+        auto* area = nwk::objects().make_area(nw::Resref{"start"});
+        ASSERT_NE(area, nullptr);
+        EXPECT_EQ(tab.document.release(), owner->handle());
+        tab.undo_stack.clear();
+        tab.redo_stack.clear();
+        if constexpr (std::is_same_v<Object, nw::Creature>) {
+            area->creatures.push_back(owner);
+        } else if constexpr (std::is_same_v<Object, nw::Item>) {
+            area->items.push_back(owner);
+        } else if constexpr (std::is_same_v<Object, nw::Placeable>) {
+            area->placeables.push_back(owner);
+        } else {
+            area->stores.push_back(owner);
+        }
+        const std::string area_filename = std::string{filename} + ".caf.json";
+        {
+            std::ofstream placeholder{project / area_filename};
+            placeholder << "{}\n";
+        }
+        auto& area_tab = workspace.open_area_tab(area_filename, filename);
+        ASSERT_TRUE(area_tab.document.adopt(area->handle()));
+        context.active_tab_id = area_tab.id;
+        const std::array remaining{added[1]};
+        result = remove_inventory_items(owner->handle(), remaining, "Remove area inventory item", context);
+        ASSERT_TRUE(result.ok()) << result.message;
+        workspace.push_undo(*result.undo_action);
+        result.undo_action.reset();
+        EXPECT_TRUE(area_tab.dirty);
+        ASSERT_TRUE(workspace.undo(context).ok());
+        ASSERT_TRUE(workspace.redo(context).ok());
+        const std::array<std::string_view, 1> area_ids{area_tab.id};
+        const auto saved = save_workspace_documents(workspace, project, area_ids);
+        ASSERT_TRUE(saved.ok()) << saved.message;
+        std::ifstream file{project / area_filename};
+        ASSERT_TRUE(file);
+        auto* loaded_area = nwk::objects().make<nw::Area>();
+        ASSERT_NE(loaded_area, nullptr);
+        ASSERT_TRUE(nw::deserialize(loaded_area, nlohmann::json::parse(file)));
+        const auto& loaded_inventory = [&]() -> const nw::Inventory& {
+            if constexpr (std::is_same_v<Object, nw::Creature>) {
+                return loaded_area->creatures.back()->inventory();
+            } else if constexpr (std::is_same_v<Object, nw::Item>) {
+                return loaded_area->items.back()->inventory();
+            } else if constexpr (std::is_same_v<Object, nw::Placeable>) {
+                return loaded_area->placeables.back()->inventory();
+            } else {
+                return loaded_area->stores.back()->inventory().potions;
+            }
+        }();
+        EXPECT_EQ(loaded_inventory.to_json(nw::SerializationProfile::instance), inventory.to_json(nw::SerializationProfile::instance));
+        loaded_area->clear();
+        nwk::objects().destroy(loaded_area->handle());
+        workspace.clear();
+        for (const auto handle : added) {
+            EXPECT_FALSE(nwk::objects().valid(handle));
+        }
+    };
+    auto* creature = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    verify(creature, creature->inventory(), "owner.utc.json");
+    auto* item = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_NE(item, nullptr);
+    ASSERT_TRUE(write_item_stats_int(nwk::runtime(), item->handle(), "base_item", 66));
+    verify(item, item->inventory(), "owner.uti.json");
+    auto* placeable = nwk::objects().make<nw::Placeable>();
+    ASSERT_NE(placeable, nullptr);
+    verify(placeable, placeable->inventory(), "owner.utp.json");
+    auto* store = nwk::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
+    ASSERT_NE(store, nullptr);
+    verify(store, store->inventory().potions, "owner.utm.json");
+}
+
+TEST(ClientObjectEdits, InventoryRemovalOwnsNestedTreesOnlyWhileDetached)
+{
+    using namespace nw::toolset;
+    ASSERT_TRUE(nwk::load_module("test_data/user/modules/DockerDemo.mod"));
+    for (const bool undo_before_discard : {false, true}) {
+        auto* owner = nwk::objects().make<nw::Placeable>();
+        auto* bag = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+        auto* child = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+        ASSERT_NE(owner, nullptr);
+        ASSERT_NE(bag, nullptr);
+        ASSERT_NE(child, nullptr);
+        ASSERT_TRUE(write_item_stats_int(nwk::runtime(), bag->handle(), "base_item", 66));
+        ASSERT_TRUE(bag->inventory().add_item(child));
+        ASSERT_TRUE(owner->inventory().add_item(bag));
+        const auto bag_handle = bag->handle();
+        const auto child_handle = child->handle();
+        WorkspaceState workspace;
+        workspace.open_tab("inventory", {}, WorkspaceTabKind::preview);
+        CommandContext context;
+        context.workspace = &workspace;
+        context.active_tab_id = workspace.active_tab_id();
+        const std::array items{bag_handle};
+        auto result = remove_inventory_items(owner->handle(), items, "Remove bag", context);
+        ASSERT_TRUE(result.ok()) << result.message;
+        workspace.push_undo(*result.undo_action);
+        result.undo_action.reset();
+        EXPECT_TRUE(nwk::objects().valid(bag_handle));
+        EXPECT_TRUE(nwk::objects().valid(child_handle));
+        ASSERT_TRUE(workspace.undo(context).ok());
+        EXPECT_EQ(nw::inventory_item_ptr(owner->inventory().items.front()), bag);
+        EXPECT_EQ(nw::inventory_item_ptr(bag->inventory().items.front()), child);
+        if (!undo_before_discard) { ASSERT_TRUE(workspace.redo(context).ok()); }
+        workspace.clear();
+        EXPECT_EQ(nwk::objects().valid(bag_handle), undo_before_discard);
+        EXPECT_EQ(nwk::objects().valid(child_handle), undo_before_discard);
+        nwk::objects().destroy(owner->handle());
+        EXPECT_FALSE(nwk::objects().valid(bag_handle));
+        EXPECT_FALSE(nwk::objects().valid(child_handle));
+    }
+}
+
+TEST(ClientObjectEdits, InventoryRemovalRejectsInvalidBatchesAndStaleReplayAtomically)
+{
+    using namespace nw::toolset;
+    ASSERT_TRUE(nwk::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto* store = nwk::objects().load_file<nw::Store>("test_data/user/development/storethief002.utm");
+    ASSERT_NE(store, nullptr);
+    auto* first = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    auto* second = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    auto* foreign = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    ASSERT_NE(foreign, nullptr);
+    auto& armor = store->inventory().armor;
+    auto& potions = store->inventory().potions;
+    if (!armor.can_add_item(first)) { ASSERT_TRUE(armor.add_page()); }
+    if (!potions.can_add_item(second)) { ASSERT_TRUE(potions.add_page()); }
+    ASSERT_TRUE(armor.add_item(first));
+    ASSERT_TRUE(potions.add_item(second));
+    const auto before_armor = armor.to_json(nw::SerializationProfile::instance);
+    const auto before_potions = potions.to_json(nw::SerializationProfile::instance);
+    const auto first_handle = first->handle();
+    const auto second_handle = second->handle();
+    CommandContext context;
+    const auto epoch = object_mutation_state().epoch;
+    for (const auto& items : std::vector<std::vector<nw::ObjectHandle>>{
+             {first_handle, first_handle}, {first_handle, foreign->handle()}, {first_handle, nw::ObjectHandle{}},
+             std::vector<nw::ObjectHandle>(1025, first_handle)}) {
+        const auto result = remove_inventory_items(store->handle(), items, "Invalid removal", context);
+        EXPECT_EQ(result.status, CommandStatus::rejected);
+        EXPECT_FALSE(result.undo_action);
+        EXPECT_EQ(armor.to_json(nw::SerializationProfile::instance), before_armor);
+        EXPECT_EQ(potions.to_json(nw::SerializationProfile::instance), before_potions);
+        EXPECT_TRUE(nwk::objects().valid(first_handle));
+        EXPECT_TRUE(nwk::objects().valid(foreign->handle()));
+        EXPECT_EQ(object_mutation_state().epoch, epoch);
+    }
+    EXPECT_EQ(remove_inventory_items(store->handle(), {}, "Empty", context).status, CommandStatus::noop);
+    const std::array items{first_handle, second_handle};
+    EXPECT_EQ(remove_inventory_items(nw::ObjectHandle{}, items, "Invalid owner", context).status, CommandStatus::rejected);
+    const auto original_x = armor.items.back().pos_x;
+    armor.items.back().pos_x = UINT16_MAX;
+    EXPECT_EQ(remove_inventory_items(store->handle(), items, "Invalid grid", context).status, CommandStatus::rejected);
+    EXPECT_TRUE(armor.has_item(first));
+    EXPECT_TRUE(potions.has_item(second));
+    armor.items.back().pos_x = original_x;
+    auto result = remove_inventory_items(store->handle(), items, "Remove category batch", context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    EXPECT_FALSE(armor.has_item(first));
+    EXPECT_FALSE(potions.has_item(second));
+    const auto after_armor = armor.to_json(nw::SerializationProfile::instance);
+    auto& components = nwk::objects().components();
+    const auto layout = *components.find_item_layout(first_handle);
+    ASSERT_TRUE(components.set_item_layout(first_handle, layout.inventory_width + 1, layout.inventory_height));
+    EXPECT_EQ(result.undo_action->undo(context).status, CommandStatus::rejected);
+    EXPECT_EQ(armor.to_json(nw::SerializationProfile::instance), after_armor);
+    ASSERT_TRUE(components.set_item_layout(first_handle, layout.inventory_width, layout.inventory_height));
+    ASSERT_FALSE(potions.items.empty());
+    potions.items.front().infinite = !potions.items.front().infinite;
+    EXPECT_EQ(result.undo_action->undo(context).status, CommandStatus::rejected);
+    EXPECT_EQ(armor.to_json(nw::SerializationProfile::instance), after_armor);
+    potions.items.front().infinite = !potions.items.front().infinite;
+    ASSERT_TRUE(result.undo_action->undo(context).ok());
+    EXPECT_EQ(armor.to_json(nw::SerializationProfile::instance), before_armor);
+    EXPECT_EQ(potions.to_json(nw::SerializationProfile::instance), before_potions);
+    ASSERT_TRUE(result.undo_action->redo(context).ok());
+    const auto owner_handle = store->handle();
+    nwk::objects().destroy(owner_handle);
+    EXPECT_EQ(result.undo_action->undo(context).status, CommandStatus::rejected);
+    result.undo_action.reset();
+    EXPECT_FALSE(nwk::objects().valid(first_handle));
+    EXPECT_FALSE(nwk::objects().valid(second_handle));
+}
+
+TEST(ClientObjectEdits, InventoryRemovalPreservesSharedCellsAndEmptyPageCount)
+{
+    using namespace nw::toolset;
+    ASSERT_TRUE(nwk::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto* owner = nwk::objects().make<nw::Placeable>();
+    auto* first = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    auto* second = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_NE(owner, nullptr);
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    auto& inventory = owner->inventory();
+    ASSERT_TRUE(inventory.add_item(first));
+    auto overlapping = inventory.items.front();
+    overlapping.item = second->handle();
+    inventory.items.push_back(overlapping);
+    const auto before_grid = inventory.inventory_bitset;
+    const auto before = inventory.to_json(nw::SerializationProfile::instance);
+    const auto pages = inventory.pages();
+    CommandContext context;
+    const std::array single{first->handle()};
+    auto result = remove_inventory_items(owner->handle(), single, "Remove overlapping Item", context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    EXPECT_EQ(inventory.inventory_bitset, before_grid);
+    ASSERT_EQ(inventory.items.size(), 1u);
+    EXPECT_EQ(nw::inventory_item_ptr(inventory.items.front()), second);
+    ASSERT_TRUE(result.undo_action->undo(context).ok());
+    EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), before);
+    result.undo_action.reset();
+    const std::array both{first->handle(), second->handle()};
+    result = remove_inventory_items(owner->handle(), both, "Remove all Items", context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    EXPECT_TRUE(inventory.items.empty());
+    EXPECT_EQ(inventory.pages(), pages);
+    for (const auto& page : inventory.inventory_bitset) {
+        EXPECT_TRUE(page.none());
+    }
+    ASSERT_TRUE(result.undo_action->undo(context).ok());
+    EXPECT_EQ(inventory.to_json(nw::SerializationProfile::instance), before);
+    EXPECT_EQ(inventory.inventory_bitset, before_grid);
+    result.undo_action.reset();
+    nwk::objects().destroy(owner->handle());
+}
+
+TEST(ClientObjectEdits, InventoryRemovalComposesWithPlacementHistory)
+{
+    using namespace nw::toolset;
+    ASSERT_TRUE(nwk::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto* owner = nwk::objects().make<nw::Placeable>();
+    auto* item = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_NE(owner, nullptr);
+    ASSERT_NE(item, nullptr);
+    const auto item_handle = item->handle();
+    const auto* layout = nwk::objects().components().find_item_layout(item_handle);
+    ASSERT_NE(layout, nullptr);
+    const auto slot = owner->inventory().find_slot(layout->inventory_width, layout->inventory_height);
+    WorkspaceState workspace;
+    workspace.open_tab("inventory", {}, WorkspaceTabKind::preview);
+    CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    const std::array placements{ItemPlacement{.item = item_handle, .page = slot.page, .row = slot.row, .column = slot.col}};
+    auto result = place_items(owner->handle(), placements, "Place item", context);
+    ASSERT_TRUE(result.ok());
+    workspace.push_undo(*result.undo_action);
+    result.undo_action.reset();
+    const std::array removed{item_handle};
+    result = remove_inventory_items(owner->handle(), removed, "Remove item", context);
+    ASSERT_TRUE(result.ok());
+    workspace.push_undo(*result.undo_action);
+    result.undo_action.reset();
+    ASSERT_TRUE(workspace.undo(context).ok());
+    ASSERT_TRUE(workspace.undo(context).ok());
+    EXPECT_TRUE(owner->inventory().items.empty());
+    EXPECT_TRUE(nwk::objects().valid(item_handle));
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_TRUE(owner->inventory().has_item(item));
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_TRUE(owner->inventory().items.empty());
+    workspace.clear();
+    EXPECT_FALSE(nwk::objects().valid(item_handle));
+    nwk::objects().destroy(owner->handle());
+}
+
 TEST(ClientObjectEdits, EncounterSpawnReplacementPersistsAcrossUndoRedo)
 {
     auto module = nwk::load_module("test_data/user/modules/DockerDemo.mod");

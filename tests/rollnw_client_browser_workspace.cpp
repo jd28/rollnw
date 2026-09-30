@@ -4662,6 +4662,72 @@ TEST_F(ClientInventoryWorkbench, NativePagesAndSelectionShareTheThreeLiveGridOwn
     }
 }
 
+TEST_F(ClientInventoryWorkbench, NativeRemovalUsesCapturedSelectionAcrossGridOwners)
+{
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* item_owner = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+    auto* placeable = nw::kernel::objects().make<nw::Placeable>();
+    ASSERT_NE(actor, nullptr);
+    ASSERT_NE(item_owner, nullptr);
+    ASSERT_NE(placeable, nullptr);
+    for (const auto object : {actor->handle(), item_owner->handle(), placeable->handle()}) {
+        SCOPED_TRACE(object.to_ull());
+        auto* item = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+        ASSERT_NE(item, nullptr);
+        auto& grid = object == actor->handle() ? actor->inventory()
+            : object == item_owner->handle()   ? item_owner->inventory()
+                                               : placeable->inventory();
+        ASSERT_TRUE(grid.add_item(item));
+        activate(object);
+        InventoryWorkbenchViewState inventory;
+        rebuild_active_creature_inventory(inventory, object);
+        ASSERT_EQ(inventory.creature_inventory.status, InventoryViewStatus::ready);
+        const auto target = object_workbench_target(view, workspace);
+        std::string markup;
+        append_creature_inventory_markup(markup, inventory, target);
+        document->SetInnerRML(markup);
+        auto* button = document->GetElementById("creature_inventory_remove");
+        ASSERT_NE(button, nullptr);
+        auto click = capture_inventory_workbench_click(button, inventory, target, workspace, backend.module_generation());
+        ASSERT_TRUE(click);
+        EXPECT_EQ(click->kind, InventoryWorkbenchClickKind::none);
+        EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+        inventory.creature_inventory_selection = static_cast<int32_t>(inventory.creature_inventory.inventory.back().source_index);
+        click = capture_inventory_workbench_click(button, inventory, target, workspace, backend.module_generation());
+        ASSERT_TRUE(click);
+        ASSERT_EQ(click->kind, InventoryWorkbenchClickKind::remove);
+        EXPECT_EQ(click->inventory_item, item->handle());
+        const auto captured = *click;
+        auto wrong_owner = target;
+        wrong_owner.object = nw::ObjectHandle{};
+        EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, wrong_owner, workspace, backend, shell, command));
+        click = captured;
+        inventory.creature_inventory_selection = -1;
+        EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+        inventory.creature_inventory_selection = captured.selection;
+        click = captured;
+        // DOM replacement cannot invalidate the owning native command values.
+        document->SetInnerRML("<div>Refreshed</div>");
+        const auto undo_count = workspace.undo_count();
+        ASSERT_TRUE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+        EXPECT_FALSE(grid.has_item(item));
+        EXPECT_TRUE(nw::kernel::objects().valid(item->handle()));
+        EXPECT_EQ(inventory.creature_inventory_selection, -1);
+        EXPECT_EQ(workspace.undo_count(), undo_count + 1);
+        EXPECT_TRUE(workspace.active_tab()->dirty);
+        EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+        ASSERT_TRUE(workspace.undo(command).ok());
+        EXPECT_TRUE(grid.has_item(item));
+        rebuild_active_creature_inventory(inventory, object);
+        inventory.creature_inventory_selection = captured.selection;
+        click = captured;
+        EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+        ASSERT_TRUE(workspace.redo(command).ok());
+        EXPECT_FALSE(grid.has_item(item));
+    }
+}
+
 TEST_F(ClientInventoryWorkbench, NativeDenseSourceAndSlotChangesRejectBeforeAnEdit)
 {
     ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);

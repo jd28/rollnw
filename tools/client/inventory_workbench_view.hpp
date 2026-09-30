@@ -23,6 +23,7 @@ enum class InventoryWorkbenchClickKind : uint8_t {
     equipment,
     item,
     page,
+    remove,
 };
 
 // Schema 1: a selected UI edge owns its fixed semantic header and tab bytes.

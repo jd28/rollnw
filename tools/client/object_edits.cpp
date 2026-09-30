@@ -41,6 +41,7 @@
 #include <optional>
 #include <stdexcept>
 #include <tuple>
+#include <type_traits>
 #include <unordered_set>
 #include <utility>
 
@@ -5069,6 +5070,260 @@ CommandResult place_creature_items(ObjectHandle creature,
     CommandContext& context)
 {
     return place_items(creature, placements, std::move(label), context);
+}
+
+namespace {
+
+std::array<Inventory*, 5> removal_inventories(ObjectHandle owner)
+{
+    switch (owner.type) {
+    case ObjectType::creature:
+        if (auto* object = kernel::objects().get<Creature>(owner)) { return {&object->inventory()}; }
+        break;
+    case ObjectType::item:
+        if (auto* object = kernel::objects().get<Item>(owner)) { return {&object->inventory()}; }
+        break;
+    case ObjectType::placeable:
+        if (auto* object = kernel::objects().get<Placeable>(owner)) { return {&object->inventory()}; }
+        break;
+    case ObjectType::store:
+        if (auto* object = kernel::objects().get<Store>(owner)) {
+            auto& inventories = object->inventory();
+            return {&inventories.armor, &inventories.miscellaneous, &inventories.potions,
+                &inventories.rings, &inventories.weapons};
+        }
+        break;
+    default:
+        break;
+    }
+    return {};
+}
+
+struct InventoryRemovalSnapshot {
+    size_t category = 0;
+    int rows = 0;
+    int columns = 0;
+    std::vector<InventoryItem> before;
+    std::vector<InventoryItem> after;
+    std::vector<std::pair<int32_t, int32_t>> footprints;
+    std::vector<Inventory::Storage> before_occupancy;
+    std::vector<Inventory::Storage> after_occupancy;
+};
+
+struct InventoryRemovalState {
+    ObjectHandle owner{};
+    uint64_t generation = 0;
+    std::vector<ObjectHandle> items;
+    std::vector<InventoryRemovalSnapshot> inventories;
+    bool detached = false;
+
+    ~InventoryRemovalState()
+    {
+        if (!detached || kernel::services().generation() != generation) { return; }
+        auto* objects = kernel::services().get_mut<ObjectManager>();
+        if (!objects) { return; }
+        for (const auto item : items) {
+            if (objects->valid(item)) { objects->destroy(item); }
+        }
+    }
+};
+
+bool same_inventory_entry(const InventoryItem& lhs, const InventoryItem& rhs)
+{
+    return lhs.item == rhs.item && lhs.pos_x == rhs.pos_x
+        && lhs.pos_y == rhs.pos_y && lhs.infinite == rhs.infinite;
+}
+
+// Imported inventories may overlap footprints. Clear removed footprints first,
+// then retain every surviving footprint, including cells shared with a removal.
+bool update_removal_occupancy(const Inventory& inventory, const InventoryItem& entry,
+    std::vector<Inventory::Storage>& occupancy, bool occupied)
+{
+    const auto* item = inventory_item_ptr(entry);
+    const auto* layout = item
+        ? kernel::objects().components().find_item_layout(item->handle())
+        : nullptr;
+    const auto slot = inventory.xy_to_slot(entry.pos_x, entry.pos_y);
+    if (!layout || layout->inventory_width <= 0 || layout->inventory_height <= 0
+        || slot.page < 0 || static_cast<size_t>(slot.page) >= occupancy.size()
+        || slot.row < layout->inventory_height - 1 || slot.row >= inventory.rows()
+        || slot.col < 0 || layout->inventory_width > inventory.columns()
+        || slot.col > inventory.columns() - layout->inventory_width) { return false; }
+    for (int row = slot.row; row > slot.row - layout->inventory_height; --row) {
+        for (int column = slot.col; column < slot.col + layout->inventory_width; ++column) {
+            occupancy[slot.page].set(static_cast<size_t>(row * inventory.columns() + column), occupied);
+        }
+    }
+    return true;
+}
+
+ObjectEditApplyResult prepare_inventory_removals(InventoryRemovalState& state)
+{
+    const auto inventories = removal_inventories(state.owner);
+    if (!inventories[0]) {
+        return edit_result(ObjectEditStatus::invalid_batch, "Inventory removal owner is invalid");
+    }
+    std::ranges::sort(state.items);
+    if (std::adjacent_find(state.items.begin(), state.items.end()) != state.items.end()) {
+        return edit_result(ObjectEditStatus::invalid_batch, "Inventory removal Items must be unique");
+    }
+    std::vector<uint32_t> memberships(state.items.size(), 0);
+    for (size_t category = 0; category < inventories.size(); ++category) {
+        const auto* inventory = inventories[category];
+        if (!inventory) { continue; }
+        std::vector<size_t> removed;
+        for (size_t index = 0; index < inventory->items.size(); ++index) {
+            const auto* item = inventory_item_ptr(inventory->items[index]);
+            if (!item) { continue; }
+            const auto found = std::lower_bound(state.items.begin(), state.items.end(), item->handle());
+            if (found != state.items.end() && *found == item->handle()) {
+                ++memberships[static_cast<size_t>(found - state.items.begin())];
+                removed.push_back(index);
+            }
+        }
+        if (removed.empty()) { continue; }
+        if (inventory->rows() <= 0 || inventory->rows() > Inventory::max_rows
+            || inventory->columns() <= 0 || inventory->columns() > Inventory::max_columns
+            || inventory->pages() <= 0 || inventory->pages() > UINT8_MAX
+            || inventory->inventory_bitset.size() != static_cast<size_t>(inventory->pages())) {
+            return edit_result(ObjectEditStatus::invalid_batch, "Inventory removal grid is invalid");
+        }
+        InventoryRemovalSnapshot snapshot;
+        snapshot.category = category;
+        snapshot.rows = inventory->rows();
+        snapshot.columns = inventory->columns();
+        snapshot.before.assign(inventory->items.begin(), inventory->items.end());
+        snapshot.footprints.reserve(snapshot.before.size());
+        for (const auto& entry : snapshot.before) {
+            const auto* item = inventory_item_ptr(entry);
+            const auto* layout = item ? kernel::objects().components().find_item_layout(item->handle()) : nullptr;
+            if (!layout) {
+                return edit_result(ObjectEditStatus::invalid_batch, "Inventory contains an unavailable Item or footprint");
+            }
+            snapshot.footprints.emplace_back(layout->inventory_width, layout->inventory_height);
+        }
+        snapshot.before_occupancy = inventory->inventory_bitset;
+        snapshot.after_occupancy = snapshot.before_occupancy;
+        snapshot.after.reserve(snapshot.before.size() - removed.size());
+        for (const auto index : removed) {
+            if (!update_removal_occupancy(*inventory, snapshot.before[index], snapshot.after_occupancy, false)) {
+                return edit_result(ObjectEditStatus::invalid_batch, "Removed Item has an invalid inventory footprint");
+            }
+        }
+        size_t removed_index = 0;
+        for (size_t index = 0; index < snapshot.before.size(); ++index) {
+            if (removed_index < removed.size() && removed[removed_index] == index) {
+                ++removed_index;
+                continue;
+            }
+            const auto& entry = snapshot.before[index];
+            if (!update_removal_occupancy(*inventory, entry, snapshot.after_occupancy, true)) {
+                return edit_result(ObjectEditStatus::invalid_batch, "Surviving Item has an invalid inventory footprint");
+            }
+            snapshot.after.push_back(entry);
+        }
+        state.inventories.push_back(std::move(snapshot));
+    }
+    if (std::ranges::any_of(memberships, [](uint32_t count) { return count != 1; })) {
+        return edit_result(ObjectEditStatus::stale_value, "Inventory removal requires unique live membership in the selected owner");
+    }
+    return edit_result(ObjectEditStatus::success);
+}
+
+CommandResult replay_inventory_removals(InventoryRemovalState& state,
+    bool remove, std::string_view label, CommandContext& context)
+{
+    auto result = command_edit_result(CommandStatus::success, std::string{label}, CommandOutputChannel::none);
+    const auto reject = [] {
+        return command_edit_result(CommandStatus::rejected,
+            "Inventory removal is stale; owner, Items or inventory changed", CommandOutputChannel::warn);
+    };
+    if (state.generation != kernel::services().generation() || state.detached == remove) { return reject(); }
+    const auto inventories = removal_inventories(state.owner);
+    if (!inventories[0]) { return reject(); }
+    for (const auto item : state.items) {
+        if (!kernel::objects().valid(item)) { return reject(); }
+    }
+    for (const auto& snapshot : state.inventories) {
+        const auto* inventory = inventories[snapshot.category];
+        const auto& expected = remove ? snapshot.before : snapshot.after;
+        const auto& occupancy = remove ? snapshot.before_occupancy : snapshot.after_occupancy;
+        if (!inventory || inventory->rows() != snapshot.rows || inventory->columns() != snapshot.columns
+            || inventory->pages() != static_cast<int>(occupancy.size())
+            || inventory->inventory_bitset != occupancy
+            || snapshot.before.size() > inventory->items.capacity()
+            || !std::ranges::equal(inventory->items, expected, same_inventory_entry)) { return reject(); }
+        for (size_t index = 0; index < snapshot.before.size(); ++index) {
+            const auto* item = inventory_item_ptr(snapshot.before[index]);
+            const auto* layout = item ? kernel::objects().components().find_item_layout(item->handle()) : nullptr;
+            if (!layout || snapshot.footprints[index] != std::pair{layout->inventory_width, layout->inventory_height}) { return reject(); }
+        }
+    }
+    // All allocation and validation precedes publication. FixedVector capacity and
+    // occupancy sizes are unchanged; these entry copies cannot throw.
+    static_assert(std::is_nothrow_copy_constructible_v<InventoryItem>);
+    for (const auto& snapshot : state.inventories) {
+        auto& inventory = *inventories[snapshot.category];
+        const auto& replacement = remove ? snapshot.after : snapshot.before;
+        const auto& occupancy = remove ? snapshot.after_occupancy : snapshot.before_occupancy;
+        inventory.items.clear();
+        for (const auto& entry : replacement) {
+            inventory.items.push_back(entry);
+        }
+        std::copy(occupancy.begin(), occupancy.end(), inventory.inventory_bitset.begin());
+    }
+    state.detached = remove;
+    ++g_mutation_state.epoch;
+    g_mutation_state.kind = ObjectMutationKind::properties;
+    g_mutation_state.visual_kind = ObjectVisualMutationKind::none;
+    g_mutation_state.object = state.owner;
+    mark_context_dirty(context);
+    return result;
+}
+
+} // namespace
+
+CommandResult remove_inventory_items(ObjectHandle owner, std::span<const ObjectHandle> items,
+    std::string label, CommandContext& context)
+{
+    if (items.empty()) {
+        return command_edit_result(CommandStatus::noop, "No inventory Items selected", CommandOutputChannel::none);
+    }
+    if (items.size() > 1024) {
+        return command_edit_result(CommandStatus::rejected, "Inventory removal batch exceeds 1,024 Items", CommandOutputChannel::warn);
+    }
+    if (context.workspace) {
+        const auto* tab = context.workspace->active_tab();
+        if (!tab || (tab->kind != WorkspaceTabKind::preview && tab->kind != WorkspaceTabKind::area)) {
+            return command_edit_result(CommandStatus::rejected,
+                "Inventory removal requires a blueprint preview or area tab", CommandOutputChannel::warn);
+        }
+    }
+    try {
+        auto state = std::make_shared<InventoryRemovalState>();
+        state->owner = owner;
+        state->generation = kernel::services().generation();
+        state->items.assign(items.begin(), items.end());
+        const auto prepared = prepare_inventory_removals(*state);
+        if (!prepared.ok()) {
+            return command_edit_result(CommandStatus::rejected, prepared.diagnostic, CommandOutputChannel::warn);
+        }
+        auto action = std::make_shared<CommandUndoAction>();
+        action->label = label;
+        action->undo = [state, label](CommandContext& undo_context) {
+            return replay_inventory_removals(*state, false, "Undo " + label, undo_context);
+        };
+        action->redo = [state, label](CommandContext& redo_context) {
+            return replay_inventory_removals(*state, true, "Redo " + label, redo_context);
+        };
+        auto result = replay_inventory_removals(*state, true, label, context);
+        if (result.ok()) { result.undo_action = std::move(action); }
+        return result;
+    } catch (const std::bad_alloc&) {
+        return command_edit_result(CommandStatus::failed, "Inventory removal allocation failed", CommandOutputChannel::error);
+    } catch (const std::length_error&) {
+        return command_edit_result(CommandStatus::failed, "Inventory removal exceeds container capacity", CommandOutputChannel::error);
+    }
 }
 
 ObjectEditApplyResult apply_object_edits(

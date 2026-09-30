@@ -405,7 +405,12 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
     content_markup += "</span></div><div id=\"creature_inventory_page_surface\" "
                       "class=\"creature_inventory_page_surface\">";
     content_markup += render_creature_inventory_page(state, target);
-    content_markup += "</div></div>";
+    content_markup += "</div><div class=\"data_collection_action_bar\">"
+                      "<button id=\"creature_inventory_remove\" type=\"button\" "
+                      "class=\"creature_inventory_remove data_collection_action remove\" "
+                      "title=\"Remove selected inventory item\">"
+                      "<span class=\"data_collection_action_mark horizontal\"></span>"
+                      "</button></div></div>";
 }
 
 std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
@@ -422,11 +427,17 @@ std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
         control = find_ancestor_with_class(hit, "creature_inventory_page");
         kind = InventoryWorkbenchClickKind::page;
     }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "creature_inventory_remove");
+        kind = InventoryWorkbenchClickKind::remove;
+    }
     if (!control) { return std::nullopt; }
     InventoryWorkbenchClick click;
     click.release_phase = ClientRmlForwardPhase::before_native;
-    const auto index = control_integer(control, kind == InventoryWorkbenchClickKind::equipment ? "data-slot" : kind == InventoryWorkbenchClickKind::item ? "data-key"
-                                                                                                                                                         : "data-page");
+    const auto index = kind == InventoryWorkbenchClickKind::remove
+        ? std::optional{state.creature_inventory_selection}
+        : control_integer(control, kind == InventoryWorkbenchClickKind::equipment ? "data-slot" : kind == InventoryWorkbenchClickKind::item ? "data-key"
+                                                                                                                                            : "data-page");
     if (!index || *index < 0 || !workspace.active_tab() || !active_creature_inventory_matches_tab(state, target)
         || state.creature_inventory.object != target.object || !object_has_grid_inventory(target.object.type)) { return click; }
     const auto& inventory = state.creature_inventory;
@@ -441,7 +452,7 @@ std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
                 || inventory.inventory[selected].item.type != ObjectType::item) { return click; }
             click.inventory_item = inventory.inventory[selected].item;
         }
-    } else if (kind == InventoryWorkbenchClickKind::item) {
+    } else if (kind == InventoryWorkbenchClickKind::item || kind == InventoryWorkbenchClickKind::remove) {
         if (static_cast<size_t>(*index) >= inventory.inventory.size()) { return click; }
         const auto& row = inventory.inventory[static_cast<size_t>(*index)];
         if (row.source_index != static_cast<uint32_t>(*index) || row.item.type != ObjectType::item) { return click; }
@@ -466,7 +477,7 @@ bool apply_inventory_workbench_click(InventoryWorkbenchClick& click,
     ShellController& shell, const CommandContext& context)
 {
     const auto kind = std::exchange(click.kind, InventoryWorkbenchClickKind::none);
-    if (kind == InventoryWorkbenchClickKind::none || kind > InventoryWorkbenchClickKind::page || click.index < 0
+    if (kind == InventoryWorkbenchClickKind::none || kind > InventoryWorkbenchClickKind::remove || click.index < 0
         || click.release_phase != ClientRmlForwardPhase::before_native || !active_creature_inventory_matches_tab(state, target)
         || target.object != click.object || state.creature_inventory.object != click.object
         || !workspace.active_tab() || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id
@@ -488,6 +499,17 @@ bool apply_inventory_workbench_click(InventoryWorkbenchClick& click,
     if (kind == InventoryWorkbenchClickKind::item) {
         if (click.inventory_item.type != ObjectType::item || live_inventory_item(*inventory, click.index) != click.inventory_item) { return false; }
         state.creature_inventory_selection = click.index;
+        return true;
+    }
+    if (kind == InventoryWorkbenchClickKind::remove) {
+        if (click.index != click.selection || click.inventory_item.type != ObjectType::item
+            || live_inventory_item(*inventory, click.index) != click.inventory_item) { return false; }
+        CommandInvocation invocation;
+        invocation.command_id = "object.inventory.remove";
+        invocation.args.push_back(CommandArg::positional_string(std::to_string(click.index)));
+        const auto result = backend.execute_command(std::move(invocation), context);
+        if (result.ok()) { state.creature_inventory_selection = -1; }
+        append_command_results(shell, {&result, 1});
         return true;
     }
     const auto* creature = kernel::objects().get<Creature>(click.object);
