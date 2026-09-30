@@ -59,6 +59,11 @@ public:
         uint64_t module_generation,
         std::string_view resource_path,
         nw::toolset::ObjectDocument& document);
+    bool render_item_preview(nw::gfx::CommandList* command_list,
+        nw::ObjectHandle mannequin, nw::ObjectHandle item, uint64_t revision,
+        ClientViewportRect viewport, int32_t dt_ms);
+    bool drag_item_preview(float dx, float dy);
+    bool zoom_item_preview(float delta);
     void clear();
     void shutdown();
     bool drag(ClientViewportDragMode mode, float delta_x, float delta_y, ClientViewportRect viewport);

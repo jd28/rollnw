@@ -2280,6 +2280,11 @@ fn update_standalone_visual(item: Item, use_default_fallback: bool): bool {
 }
 
 fn update_visual_for_slot(creature: Creature, item: Item, slot: base.EquipIndex): bool {
+    // The creature body pass owns chest rows. Clearing them here can erase the
+    // armor just rebuilt by the creature callback, depending on callback order.
+    if (slot == Const.equip_index_chest) {
+        return O.is_valid(creature);
+    }
     if (!Visual.clear_visual_slot(creature, slot as int)) {
         return false;
     }

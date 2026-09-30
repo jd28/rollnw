@@ -91,6 +91,7 @@ add_executable(rollnw-client
     dialog_view.cpp
     editor_input.cpp
     item_editor.cpp
+    item_preview.cpp
     item_editor_data_model.cpp
     loading_view.cpp
     loading_runtime.cpp

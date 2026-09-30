@@ -455,6 +455,7 @@ if(TARGET RmlUi::RmlUi)
         ../tools/client/inventory_workbench_view.cpp
         ../tools/client/appearance_view.cpp
         ../tools/client/item_editor.cpp
+        ../tools/client/item_preview.cpp
         ../tools/client/item_editor_data_model.cpp
         ../tools/client/toolset_backend.cpp
         ../tools/client/blueprint_commands.cpp

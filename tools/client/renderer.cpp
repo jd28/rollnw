@@ -83,15 +83,17 @@ Rml::RenderInterface* ClientRenderer::render_interface()
 
 void ClientRenderer::set_rml_generated_textures(
     const std::vector<nw::toolset::RmlGeneratedTexture>* item_icons,
-    const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles) noexcept
+    const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles,
+    const std::vector<nw::toolset::RmlGeneratedTexture>* item_preview) noexcept
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
-        nwgfx_.set_rml_generated_textures(item_icons, area_tiles);
+        nwgfx_.set_rml_generated_textures(item_icons, area_tiles, item_preview);
     }
 #else
     (void)item_icons;
     (void)area_tiles;
+    (void)item_preview;
 #endif
 }
 
@@ -749,4 +751,37 @@ void ClientRenderer::shutdown()
 #endif
 
     backend_ = Backend::none;
+}
+
+bool ClientRenderer::render_item_preview(nw::ObjectHandle mannequin, nw::ObjectHandle item,
+    uint64_t revision, ClientViewportRect viewport, int32_t dt_ms)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) { return nwgfx_.render_item_preview(mannequin, item, revision, viewport, dt_ms); }
+#endif
+    (void)mannequin;
+    (void)item;
+    (void)revision;
+    (void)viewport;
+    (void)dt_ms;
+    return false;
+}
+
+bool ClientRenderer::drag_item_preview(float dx, float dy)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) { return nwgfx_.drag_item_preview(dx, dy); }
+#endif
+    (void)dx;
+    (void)dy;
+    return false;
+}
+
+bool ClientRenderer::zoom_item_preview(float delta)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) { return nwgfx_.zoom_item_preview(delta); }
+#endif
+    (void)delta;
+    return false;
 }

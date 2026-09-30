@@ -134,6 +134,15 @@ ClientEventFlow process_client_pointer_down(SDL_Event& event, ClientInputDispatc
                 top_hit = context->GetElementAtPoint(point);
             }
         }
+        if (!state.loading.module_dialog_open
+            && top_hit && top_hit->GetId() == "item_preview_viewport"
+            && state.workbench.item_preview.mannequin.object().type == nw::ObjectType::creature) {
+            state.workbench.item_preview.dragging = true;
+            state.viewer_viewport_last_point = point;
+            system_interface.SetMouseCursor("grabbing");
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
         if (auto viewer_viewport = active_workspace_viewer_viewport_request(doc, state, frame_width, frame_height);
             viewer_viewport
             && point_within_viewport(viewer_viewport->rect, point)
@@ -220,6 +229,8 @@ ClientEventFlow process_client_pointer_down(SDL_Event& event, ClientInputDispatc
                     == AreaWorkspaceSurface::objects
                 && event.button.button == SDL_BUTTON_LEFT) {
                 const bool control_pressed = (SDL_GetModState() & SDL_KMOD_CTRL) != 0;
+                state.workbench.inventory_item_parents.clear();
+                state.workbench.inventory_item_area = nw::ObjectHandle{};
                 renderer.select_viewer_area_object(
                     point.x,
                     point.y,
@@ -348,6 +359,18 @@ ClientEventFlow process_client_pointer_motion(SDL_Event& event, ClientInputDispa
         }
 
         const auto point = to_context_point(window, event.motion.x, event.motion.y);
+        if (state.workbench.item_preview.dragging) {
+            const auto previous = state.viewer_viewport_last_point;
+            state.viewer_viewport_last_point = point;
+            if ((event.motion.state & (SDL_BUTTON_LMASK | SDL_BUTTON_MMASK | SDL_BUTTON_RMASK)) != 0) {
+                renderer.drag_item_preview(point.x - previous.x, point.y - previous.y);
+            } else {
+                state.workbench.item_preview.dragging = false;
+                system_interface.SetMouseCursor("arrow");
+            }
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
         auto* top_hit = context ? context->GetElementAtPoint(point) : nullptr;
         sync_object_variable_warning_tooltip(doc, state, top_hit, point,
             frame_width, frame_height);
@@ -580,6 +603,12 @@ ClientEventFlow process_client_pointer_wheel(SDL_Event& event, ClientInputDispat
         auto* wheel_hit = context
             ? context->GetElementAtPoint(point)
             : nullptr;
+        if (!state.loading.module_dialog_open
+            && wheel_hit && wheel_hit->GetId() == "item_preview_viewport") {
+            renderer.zoom_item_preview(event.wheel.y);
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
         if (nw::toolset::combobox_popup_contains_element(
                 wheel_hit)) {
             // RmlUi scrolls the open popup. Focused-field cycling is
@@ -640,6 +669,11 @@ ClientEventFlow process_client_pointer_wheel(SDL_Event& event, ClientInputDispat
                         state.area_tile_editor.cursor_update_pending = true;
                     }
                 } else {
+                    if (!state.workbench.inventory_item_parents.empty()) {
+                        state.workbench.inventory_item_parents.clear();
+                        state.workbench.inventory_item_area = nw::ObjectHandle{};
+                        state.smalls.publish_active_object(object);
+                    }
                     if (auto result = nw::toolset::apply_area_object_wheel_action(action, state.backend,
                             command_context(state, nw::toolset::CommandSource::renderer), object,
                             renderer.area_viewer_object(), debug_subindex)) {

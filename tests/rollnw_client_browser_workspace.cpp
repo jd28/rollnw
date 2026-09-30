@@ -18,6 +18,7 @@
 #include "script_commands.hpp"
 #include "shell_view.hpp"
 #include "smalls_rmlui.hpp"
+#include "smalls_ui_v1.hpp"
 #include "smalls_view.hpp"
 #include "workspace_view.hpp"
 
@@ -1454,7 +1455,7 @@ TEST_F(ClientShellView, EditorLayoutSurvivesRefreshAndLeavesDataOnlyEditorsVisib
         shell.set_object_editor_visible(false);
         EXPECT_TRUE(sync_object_editor_visibility(document, shell, {}));
     }
-    for (const auto type : {nw::ObjectType::creature, nw::ObjectType::item, nw::ObjectType::door, nw::ObjectType::placeable}) {
+    for (const auto type : {nw::ObjectType::creature, nw::ObjectType::door, nw::ObjectType::placeable}) {
         SCOPED_TRACE(static_cast<int>(type));
         shell.docks.set_size_px(DockRegion::right, 0);
         shell.docks.set_visible(DockRegion::right, true);
@@ -1463,7 +1464,7 @@ TEST_F(ClientShellView, EditorLayoutSurvivesRefreshAndLeavesDataOnlyEditorsVisib
         context->Update();
         auto* panel = document->GetElementById("object_workbench");
         ASSERT_NE(panel, nullptr);
-        EXPECT_NEAR(panel->GetOffsetWidth(), type == nw::ObjectType::item ? 560 : 440, 1.0f);
+        EXPECT_NEAR(panel->GetOffsetWidth(), 440, 1.0f);
         apply_right_dock_width(document, shell, 580, {});
         context->Update();
         EXPECT_NEAR(panel->GetOffsetWidth(), 580, 1.0f);
@@ -1472,18 +1473,20 @@ TEST_F(ClientShellView, EditorLayoutSurvivesRefreshAndLeavesDataOnlyEditorsVisib
         context->Update();
         EXPECT_FALSE(panel->IsVisible());
     }
-    show_editor(AreaWorkspaceSurface::properties, WorkspaceTabKind::preview, nw::ObjectType::sound);
-    apply_shell_layout(document, shell, {});
-    context->Update();
-    EXPECT_EQ(document->GetElementById("object_editor_toggle"), nullptr);
-    EXPECT_EQ(document->GetElementById("right_dock_resize_grabber"), nullptr);
-    auto* panel = document->GetElementById("object_workbench");
-    ASSERT_NE(panel, nullptr);
-    EXPECT_TRUE(panel->IsVisible());
-    EXPECT_GT(panel->GetOffsetWidth(), 1500);
-    shell.set_object_editor_visible(false);
-    EXPECT_FALSE(sync_object_editor_visibility(document, shell, {}));
-    EXPECT_FALSE(shell.docks.pane(DockRegion::right).visible);
+    for (const auto type : {nw::ObjectType::sound, nw::ObjectType::item}) {
+        show_editor(AreaWorkspaceSurface::properties, WorkspaceTabKind::preview, type);
+        apply_shell_layout(document, shell, {});
+        context->Update();
+        EXPECT_EQ(document->GetElementById("object_editor_toggle"), nullptr);
+        EXPECT_EQ(document->GetElementById("right_dock_resize_grabber"), nullptr);
+        auto* panel = document->GetElementById("object_workbench");
+        ASSERT_NE(panel, nullptr);
+        EXPECT_TRUE(panel->IsVisible());
+        EXPECT_GT(panel->GetOffsetWidth(), 1500);
+        shell.set_object_editor_visible(false);
+        EXPECT_FALSE(sync_object_editor_visibility(document, shell, {}));
+        EXPECT_FALSE(shell.docks.pane(DockRegion::right).visible);
+    }
 }
 
 TEST_F(ClientShellView, EditorResizeClampsAndCancelsInvalidOrStaleDrags)
@@ -4549,6 +4552,49 @@ TEST_F(ClientCreatureWorkbench, RealSpellFiltersRejectStaleAndInvalidChoices)
 
 class ClientInventoryWorkbench : public ClientObjectWorkbench {
 protected:
+    bool load_placed_item_fixture()
+    {
+        if (!nw::kernel::load_module("test_data/user/modules/DockerDemo.mod")) { return false; }
+        return backend.initialize();
+    }
+
+    bool make_container(nw::Item& item)
+    {
+        auto& runtime = nw::kernel::runtime();
+        const auto type = runtime.type_id("nwn1.propsets.ItemStats", false);
+        const auto* definition = runtime.get_struct_def(type);
+        if (!definition) { return false; }
+        const auto field = definition->field_index("base_item");
+        return field != UINT32_MAX && runtime.write_value_field_at_offset(runtime.find_propset_ref(type, item.handle()), definition->fields[field].offset, runtime.int_type(), nw::smalls::Value::make_int(66));
+    }
+
+    int instance_value(nw::ObjectHandle item)
+    {
+        const auto* locals = nw::kernel::objects().components().find_locals(item);
+        return locals ? locals->get_int("instance_value") : 0;
+    }
+
+    void show_inventory(nw::ObjectHandle owner)
+    {
+        smalls_rmlui_host().publish_active_object(owner);
+        activate_object_workbench(view, owner, workspace.active_tab_id());
+        command.active_tab_id = workspace.active_tab_id();
+        view.object_workbench_surface = ObjectWorkbenchSurface::inventory;
+        view.inventory_view.creature_inventory_selection = 0;
+        std::string markup;
+        append_creature_inventory_markup(markup, view.inventory_view, object_workbench_target(view, workspace));
+        document->SetInnerRML(markup);
+    }
+
+    std::optional<ObjectWorkbenchClick> capture_action(const char* class_name)
+    {
+        Rml::ElementList controls;
+        document->GetElementsByClassName(controls, class_name);
+        return controls.empty() ? std::nullopt
+                                : capture_object_workbench_click(controls.front(), {}, view, workspace,
+                                      backend.module_generation(), nw::kernel::resman().generation());
+    }
+
     void use_icon_fixture(nw::ObjectHandle item)
     {
         auto& components = nw::kernel::objects().components();
@@ -4559,6 +4605,437 @@ protected:
         }
     }
 };
+
+TEST_F(ClientInventoryWorkbench, ItemPreviewOwnsArmorCopyAndGenderNeverMutatesSource)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto& runtime = nw::kernel::runtime();
+    auto* actor = objects.load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* item = objects.load<nw::Item>("x2_it_mbelt001");
+    ASSERT_TRUE(actor && item);
+    const auto type = runtime.type_id("nwn1.propsets.ItemStats", false);
+    const auto* definition = runtime.get_struct_def(type);
+    ASSERT_NE(definition, nullptr);
+    const auto field = definition->field_index("base_item");
+    ASSERT_NE(field, UINT32_MAX);
+    ASSERT_TRUE(runtime.write_value_field_at_offset(runtime.find_propset_ref(type, item->handle()),
+        definition->fields[field].offset, runtime.int_type(), nw::smalls::Value::make_int(16)));
+    nlohmann::json before_actor, before_item;
+    ASSERT_TRUE(nw::serialize(actor, before_actor, nw::SerializationProfile::instance));
+    ASSERT_TRUE(nw::serialize(item, before_item, nw::SerializationProfile::instance));
+    ItemPreviewState preview;
+    const auto epoch = object_mutation_state().epoch;
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), actor->handle(), epoch));
+    ASSERT_TRUE(preview.armor);
+    ASSERT_NE(preview.mannequin.object().type, nw::ObjectType::invalid) << preview.diagnostic;
+    const auto original_mannequin = preview.mannequin.object();
+    auto* mannequin = objects.get<nw::Creature>(original_mannequin);
+    ASSERT_NE(mannequin, nullptr);
+    const auto copy = nw::get_equipped_item(mannequin, nw::EquipIndex::chest);
+    ASSERT_NE(copy, nullptr);
+    const auto copy_handle = copy->handle();
+    EXPECT_NE(copy_handle, item->handle());
+    nlohmann::json copied;
+    ASSERT_TRUE(nw::serialize(copy, copied, nw::SerializationProfile::instance));
+    EXPECT_EQ(copied, before_item);
+    const auto revision = preview.revision;
+    EXPECT_FALSE(refresh_item_preview(preview, item->handle(), actor->handle(), epoch));
+    EXPECT_EQ(preview.revision, revision);
+    EXPECT_FALSE(select_item_preview_gender(preview, actor->handle(), 1));
+    EXPECT_FALSE(select_item_preview_gender(preview, item->handle(), 2));
+    for (int gender : {1, 0}) {
+        ASSERT_TRUE(select_item_preview_gender(preview, item->handle(), gender));
+        ASSERT_TRUE(refresh_item_preview(preview, item->handle(), actor->handle(), epoch));
+        ASSERT_NE(preview.mannequin.object().type, nw::ObjectType::invalid) << preview.diagnostic;
+        EXPECT_EQ(preview.displayed_gender, gender);
+        auto value = nw::smalls::Value::make_object(preview.mannequin.object());
+        value.type_id = runtime.object_subtype_for_tag(nw::ObjectType::creature);
+        const auto result = runtime.execute_script("nwn1.creature_state", "get_gender", {value});
+        ASSERT_TRUE(result.ok()) << result.error_message;
+        EXPECT_EQ(result.value.data.ival, gender);
+    }
+    EXPECT_FALSE(objects.valid(original_mannequin));
+    EXPECT_FALSE(objects.valid(copy_handle));
+    nlohmann::json after_actor, after_item;
+    ASSERT_TRUE(nw::serialize(actor, after_actor, nw::SerializationProfile::instance));
+    ASSERT_TRUE(nw::serialize(item, after_item, nw::SerializationProfile::instance));
+    EXPECT_EQ(after_actor, before_actor);
+    EXPECT_EQ(after_item, before_item);
+    EXPECT_EQ(object_mutation_state().epoch, epoch);
+
+    // Store/standalone armor has the same preview with the human fallback.
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, epoch));
+    ASSERT_NE(preview.mannequin.object().type, nw::ObjectType::invalid) << preview.diagnostic;
+    EXPECT_EQ(object_appearance(runtime, preview.mannequin.object()), *nw::Appearance::make(6));
+    const auto last_mannequin = preview.mannequin.object();
+    ASSERT_TRUE(refresh_item_preview(preview, nw::ObjectHandle{}, nw::ObjectHandle{}, epoch));
+    EXPECT_FALSE(objects.valid(last_mannequin));
+    EXPECT_TRUE(objects.valid(item->handle()));
+    EXPECT_TRUE(objects.valid(actor->handle()));
+    objects.destroy(item->handle());
+    objects.destroy(actor->handle());
+}
+
+TEST_F(ClientInventoryWorkbench, ArmorEquipCyclesPreserveBodyRowsInEitherCallbackOrder)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto& runtime = nw::kernel::runtime();
+    auto* armor = objects.load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(armor, nullptr);
+    ObjectDocument armor_owner;
+    ASSERT_TRUE(armor_owner.adopt(armor->handle()));
+    ItemPreviewState preview;
+    ASSERT_TRUE(refresh_item_preview(preview, armor->handle(), nw::ObjectHandle{}, 1));
+    auto* actor = objects.get<nw::Creature>(preview.mannequin.object());
+    ASSERT_NE(actor, nullptr) << preview.diagnostic;
+    const auto* equipped = nw::get_equipped_item(actor, nw::EquipIndex::chest);
+    ASSERT_NE(equipped, nullptr);
+    const auto item = equipped->handle();
+    const auto body_rows = [&] {
+        const auto* visual = objects.components().find_visual(actor->handle());
+        EXPECT_NE(visual, nullptr);
+        return visual ? std::ranges::count_if(visual->models, [](const auto& row) {
+            return row.kind == nw::ObjectVisualModelKind::creature_model_part;
+        })
+                      : 0;
+    };
+    const auto armored_rows = body_rows();
+    ASSERT_GT(armored_rows, 1);
+    auto actor_value = nw::smalls::Value::make_object(actor->handle());
+    actor_value.type_id = runtime.object_subtype_for_tag(nw::ObjectType::creature);
+    auto item_value = nw::smalls::Value::make_object(item);
+    item_value.type_id = runtime.object_subtype_for_tag(nw::ObjectType::item);
+    const auto slot = nw::smalls::Value::make_int(static_cast<int32_t>(nw::EquipIndex::chest));
+    for (bool creature_first : {true, false}) {
+        SCOPED_TRACE(creature_first);
+        auto edit = make_creature_inventory_unequip_edit(actor->handle(), nw::EquipIndex::chest);
+        ASSERT_TRUE(edit);
+        ASSERT_TRUE(apply_creature_inventory_edits(*edit, ObjectEditDirection::forward).ok());
+        EXPECT_GT(body_rows(), 1);
+        ASSERT_TRUE(apply_creature_inventory_edits(*edit, ObjectEditDirection::inverse).ok());
+        EXPECT_EQ(body_rows(), armored_rows);
+        // Callback registration order depends on which object types were loaded
+        // first. Both legal orders must leave the complete equipped body intact.
+        const std::array modules = creature_first
+            ? std::array{"nwn1.creature", "nwn1.item"}
+            : std::array{"nwn1.item", "nwn1.creature"};
+        for (const auto* module : modules) {
+            const auto* function = std::string_view{module} == "nwn1.creature"
+                ? "_on_item_equipped_update_creature_visual"
+                : "_on_item_equipped_update_visual";
+            const auto result = runtime.execute_script(module, function, {actor_value, item_value, slot});
+            ASSERT_TRUE(result.ok()) << result.error_message;
+        }
+        EXPECT_EQ(body_rows(), armored_rows);
+        EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::chest)->handle(), item);
+    }
+}
+
+TEST_F(ClientInventoryWorkbench, ItemPreviewDoesNotCreateMannequinsForOrdinaryItems)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto* item = objects.load<nw::Item>("nw_wswss001");
+    ASSERT_NE(item, nullptr);
+    ItemPreviewState preview;
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, 1));
+    EXPECT_FALSE(preview.armor);
+    EXPECT_EQ(preview.mannequin.object().type, nw::ObjectType::invalid);
+    EXPECT_FALSE(select_item_preview_gender(preview, item->handle(), 1));
+    EXPECT_FALSE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, 1));
+    const auto handle = item->handle();
+    objects.destroy(handle);
+    EXPECT_TRUE(refresh_item_preview(preview, handle, nw::ObjectHandle{}, 1));
+    EXPECT_EQ(preview.item.type, nw::ObjectType::invalid);
+}
+
+TEST_F(ClientInventoryWorkbench, PlacedInventoryItemsNavigateBackAndUseAreaHistoryAndSave)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto* area = objects.make_area(nw::Resref{"start"});
+    auto* actor = objects.load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* container = objects.load<nw::Item>("x2_it_mbelt001");
+    auto* placeable = objects.make<nw::Placeable>();
+    ASSERT_TRUE(area && actor && container && placeable);
+    ASSERT_TRUE(make_container(*container));
+    area->creatures.push_back(actor);
+    area->items.push_back(container);
+    area->placeables.push_back(placeable);
+    const auto project = std::filesystem::path{"tmp/client_placed_item_editing"};
+    std::filesystem::create_directories(project);
+    std::ofstream{project / "inventory.caf.json"} << "{}\n";
+    auto& tab = workspace.open_area_tab("inventory.caf.json", "Inventory");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    command.area_object = area->handle();
+    const auto area_tab_id = tab.id;
+    const auto initial_tabs = workspace.tabs().size();
+
+    for (const auto owner : {actor->handle(), container->handle(), placeable->handle()}) {
+        SCOPED_TRACE(owner.to_ull());
+        auto* item = objects.load<nw::Item>("nw_wswss001");
+        ASSERT_NE(item, nullptr);
+        auto& inventory = owner == actor->handle() ? actor->inventory()
+            : owner == container->handle()         ? container->inventory()
+                                                   : placeable->inventory();
+        ASSERT_TRUE(inventory.add_item(item));
+        show_inventory(owner);
+        auto click = capture_action("inventory_item_edit");
+        ASSERT_TRUE(click);
+        document->SetInnerRML("<div>DOM replaced before release</div>");
+        auto effect = apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+        ASSERT_TRUE(effect.refresh_content);
+        EXPECT_EQ(view.object_details.object, item->handle());
+        EXPECT_EQ(smalls_rmlui_host().active_object(), item->handle());
+        EXPECT_EQ(view.inventory_item_parents.size(), 1u);
+        EXPECT_EQ(displayed_area_workbench_object(view, workspace, owner), item->handle());
+        EXPECT_EQ(workspace.active_tab()->document.object(), area->handle());
+        EXPECT_EQ(workspace.tabs().size(), initial_tabs);
+        EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+
+        const auto before = instance_value(item->handle());
+        objects.components().get_or_create_locals(item->handle())->set_int("instance_value", before); // The field already exists for the ordinary editor command.
+        const auto undo_count = workspace.undo_count();
+        auto edited = backend.execute_command("object.variables.set_value", {"instance_value", "1", "37"}, command);
+        ASSERT_TRUE(edited.ok()) << edited.message;
+        EXPECT_EQ(instance_value(item->handle()), 37);
+        EXPECT_EQ(workspace.undo_count(), undo_count + 1);
+        EXPECT_TRUE(workspace.active_tab()->dirty);
+
+        document->SetInnerRML("<div id='item_surface_details'></div><div id='item_object_header'>"
+                              "<button id='item_object_back' class='area_object_list_back'>Back</button></div>");
+        hydrate_object_workbench(document, view, workspace);
+        auto back = capture_action("inventory_item_back");
+        ASSERT_TRUE(back);
+        ASSERT_TRUE(apply_object_workbench_click(*back, document, view, workspace, backend, shell, command).refresh_content);
+        EXPECT_EQ(view.object_details.object, owner);
+        EXPECT_EQ(view.object_workbench_surface, ObjectWorkbenchSurface::inventory);
+        EXPECT_EQ(view.inventory_view.creature_inventory_selection, 0);
+        EXPECT_TRUE(view.inventory_item_parents.empty());
+        ASSERT_TRUE(workspace.undo(command).ok());
+        EXPECT_EQ(instance_value(item->handle()), before);
+        ASSERT_TRUE(workspace.redo(command).ok());
+        EXPECT_EQ(instance_value(item->handle()), 37);
+    }
+    const std::array<std::string_view, 1> tabs{area_tab_id};
+    auto saved = save_workspace_documents(workspace, project, tabs);
+    ASSERT_TRUE(saved.ok()) << saved.message;
+    EXPECT_FALSE(workspace.active_tab()->dirty);
+    std::ifstream input{project / "inventory.caf.json"};
+    const auto json = nlohmann::json::parse(input);
+    auto* loaded = objects.make<nw::Area>();
+    ASSERT_TRUE(deserialize(loaded, json));
+    EXPECT_EQ(instance_value(nw::inventory_item_ptr(loaded->creatures.back()->inventory().items.front())->handle()), 37);
+    EXPECT_EQ(instance_value(nw::inventory_item_ptr(loaded->items.back()->inventory().items.front())->handle()), 37);
+    EXPECT_EQ(instance_value(nw::inventory_item_ptr(loaded->placeables.back()->inventory().items.front())->handle()), 37);
+    loaded->clear();
+    objects.destroy(loaded->handle());
+    workspace.clear();
+}
+
+TEST_F(ClientInventoryWorkbench, NestedNavigationRejectsStaleClicksAndUnwindsDetachedItems)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto* area = objects.make<nw::Area>();
+    auto* owner = objects.make<nw::Placeable>();
+    auto* bag = objects.load<nw::Item>("x2_it_mbelt001");
+    auto* item = objects.load<nw::Item>("nw_wswss001");
+    ASSERT_TRUE(area && owner && bag && item);
+    ASSERT_TRUE(make_container(*bag));
+    area->placeables.push_back(owner);
+    ASSERT_TRUE(owner->inventory().add_item(bag));
+    ASSERT_TRUE(bag->inventory().add_item(item));
+    show_inventory(owner->handle());
+    EXPECT_FALSE(capture_action("inventory_item_edit")); // Blueprint tab has no control.
+    document->SetInnerRML("<button class='inventory_item_edit'>Forged blueprint action</button>");
+    auto click = capture_action("inventory_item_edit");
+    ASSERT_TRUE(click);
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    auto& tab = workspace.open_area_tab("nested.caf.json", "Nested");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    command.area_object = area->handle();
+    show_inventory(owner->handle());
+    click = capture_action("inventory_item_edit");
+    ASSERT_TRUE(click);
+    const auto captured = *click;
+    ++std::get<InventoryItemNavigationClick>(click->payload).module_generation;
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    click = captured;
+    ++std::get<InventoryItemNavigationClick>(click->payload).mutation_epoch;
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    const auto area_tab_id = workspace.active_tab_id();
+    ASSERT_TRUE(workspace.set_active_tab("first"));
+    click = captured;
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    ASSERT_TRUE(workspace.set_active_tab(area_tab_id));
+    click = captured;
+    view.inventory_view.creature_inventory_selection = -1;
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    view.inventory_view.creature_inventory_selection = 0;
+    click = captured;
+    ASSERT_TRUE(owner->inventory().remove_item(bag));
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    ASSERT_TRUE(owner->inventory().add_item(bag));
+    click = captured;
+    ASSERT_TRUE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    view.object_workbench_surface = ObjectWorkbenchSurface::inventory;
+    view.inventory_view.creature_inventory_selection = 0;
+    document->SetInnerRML("<div id='item_surface_details'></div><div id='item_surface_inventory'></div>");
+    hydrate_object_workbench(document, view, workspace);
+    click = capture_action("inventory_item_edit");
+    ASSERT_TRUE(click);
+    ASSERT_TRUE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    EXPECT_EQ(view.inventory_item_parents.size(), 2u);
+    EXPECT_EQ(displayed_area_workbench_object(view, workspace, owner->handle()), item->handle());
+    EXPECT_EQ(displayed_area_workbench_object(view, workspace, bag->handle()), bag->handle());
+    auto removed = remove_inventory_items(bag->handle(), std::array{item->handle()}, "Remove nested item", command);
+    ASSERT_TRUE(removed.ok()) << removed.message;
+    ASSERT_TRUE(removed.undo_action);
+    workspace.push_undo(std::move(*removed.undo_action));
+    removed.undo_action.reset();
+    auto rows = collect_placed_item_owners(area->handle());
+    ASSERT_TRUE(rows.error.empty()) << rows.error;
+    EXPECT_TRUE(reconcile_inventory_item_navigation(view, workspace, rows.rows));
+    EXPECT_EQ(view.object_details.object, bag->handle());
+    EXPECT_EQ(view.object_workbench_surface, ObjectWorkbenchSurface::inventory);
+    EXPECT_EQ(view.inventory_item_parents.size(), 1u);
+    EXPECT_EQ(view.inventory_view.creature_inventory_selection, -1);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_TRUE(bag->inventory().has_item(item));
+    EXPECT_EQ(view.object_details.object, bag->handle());
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_FALSE(bag->inventory().has_item(item));
+    ASSERT_TRUE(owner->inventory().remove_item(bag));
+    rows = collect_placed_item_owners(area->handle());
+    EXPECT_TRUE(reconcile_inventory_item_navigation(view, workspace, rows.rows));
+    EXPECT_EQ(view.object_details.object, owner->handle());
+    EXPECT_TRUE(view.inventory_item_parents.empty());
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    objects.destroy(bag->handle());
+    workspace.clear();
+}
+
+TEST_F(ClientInventoryWorkbench, EquippedItemEditPreservesSlotAndResolvesCreatureVisualOwner)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto* area = objects.make<nw::Area>();
+    auto* actor = objects.load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* item = objects.load<nw::Item>("x2_it_mbelt001");
+    ASSERT_TRUE(area && actor && item);
+    area->creatures.push_back(actor);
+    actor->equipment.equips[static_cast<size_t>(nw::EquipIndex::belt)] = item->handle();
+    auto& tab = workspace.open_area_tab("equipped.caf.json", "Equipped");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    command.area_object = area->handle();
+    show_inventory(actor->handle());
+    auto* edit_button = document->QuerySelector(".creature_equipment_edit[data-slot='10']");
+    ASSERT_NE(edit_button, nullptr);
+    context->Update();
+    EXPECT_GT(edit_button->GetOffsetWidth(), 0);
+    EXPECT_GT(edit_button->GetOffsetHeight(), 0);
+    const auto point = edit_button->GetAbsoluteOffset() + Rml::Vector2f{edit_button->GetOffsetWidth() / 2, edit_button->GetOffsetHeight() / 2};
+    EXPECT_EQ(context->GetElementAtPoint(point), edit_button);
+    auto click = capture_object_workbench_click(edit_button, {}, view, workspace,
+        backend.module_generation(), nw::kernel::resman().generation());
+    ASSERT_TRUE(click);
+    ASSERT_TRUE(std::holds_alternative<InventoryItemNavigationClick>(click->payload));
+    ASSERT_TRUE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    EXPECT_EQ(view.object_details.object, item->handle());
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), item);
+    EXPECT_EQ(workspace.undo_count(), 0u);
+    auto rows = collect_placed_item_owners(area->handle());
+    ASSERT_TRUE(rows.error.empty()) << rows.error;
+    const auto equipped = std::ranges::find_if(rows.rows, [&](const auto& row) { return row.object == item->handle(); });
+    ASSERT_NE(equipped, rows.rows.end());
+    EXPECT_EQ(equipped->visual_object, actor->handle());
+    EXPECT_EQ(rows.rows[equipped->parent].object, actor->handle());
+    EXPECT_EQ(rows.rows[equipped->root].object, actor->handle());
+    nlohmann::json instance;
+    ASSERT_TRUE(nw::serialize(actor, instance, nw::SerializationProfile::instance));
+    auto* reloaded = objects.make<nw::Creature>();
+    ASSERT_TRUE(nw::deserialize(reloaded, instance, nw::SerializationProfile::instance));
+    EXPECT_EQ(nw::get_equipped_item(reloaded, nw::EquipIndex::belt)->resref, item->resref);
+    objects.destroy(reloaded->handle());
+    ASSERT_TRUE(actor->inventory().add_item(item)); // Deliberate duplicate ownership is rejected as a batch.
+    rows = collect_placed_item_owners(area->handle());
+    EXPECT_FALSE(rows.error.empty());
+    EXPECT_TRUE(rows.rows.empty());
+    ASSERT_TRUE(actor->inventory().remove_item(item));
+    workspace.clear();
+}
+
+TEST_F(ClientInventoryWorkbench, PlacedStoreItemEditingUsesManagedSelectionAndSavesTheInstance)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto* area = objects.make_area(nw::Resref{"start"});
+    auto* store = objects.load_file<nw::Store>("test_data/user/development/storethief002.utm");
+    ASSERT_TRUE(area && store);
+    area->stores.push_back(store);
+    auto& tab = workspace.open_area_tab("store.caf.json", "Store");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    command.area_object = area->handle();
+    command.active_tab_id = tab.id;
+    smalls_rmlui_host().publish_active_object(store->handle());
+    activate_object_workbench(view, store->handle(), tab.id);
+    view.object_workbench_surface = ObjectWorkbenchSurface::store_inventory;
+    const auto refresh = [&] {
+        std::string markup;
+        append_object_workbench_markup(markup, view, workspace, backend);
+        document->SetInnerRML(markup);
+        return nw::kernel::runtime().execute_script("toolset.data_object_editor", "store_inventory_refresh", {}).ok();
+    };
+    ASSERT_TRUE(refresh());
+    auto& host = ui_v1_host();
+    auto click = capture_action("store_inventory_edit");
+    ASSERT_TRUE(click);
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    ASSERT_TRUE(host.set_selected("data.store.inventory", UiListSelection{.index = 57}, false));
+    click = capture_action("store_inventory_edit");
+    ASSERT_TRUE(click);
+    const auto captured = *click;
+    ASSERT_TRUE(host.set_selected("data.store.inventory", UiListSelection{.index = 0}, false));
+    EXPECT_FALSE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    ASSERT_TRUE(host.set_selected("data.store.inventory", UiListSelection{.index = 57}, false));
+    click = captured;
+    document->SetInnerRML("<div>New DOM</div>");
+    ASSERT_TRUE(apply_object_workbench_click(*click, document, view, workspace, backend, shell, command).refresh_content);
+    auto* item = nw::inventory_item_ptr(store->inventory().weapons.items.back());
+    ASSERT_NE(item, nullptr);
+    EXPECT_EQ(view.object_details.object, item->handle());
+    EXPECT_EQ(displayed_area_workbench_object(view, workspace, store->handle()), item->handle());
+    objects.components().get_or_create_locals(item->handle())->set_int("instance_value", 0);
+    const auto edited = backend.execute_command("object.variables.set_value", {"instance_value", "1", "23"}, command);
+    ASSERT_TRUE(edited.ok()) << edited.message;
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    document->SetInnerRML("<button class='inventory_item_back'>Back</button>");
+    auto back = capture_action("inventory_item_back");
+    ASSERT_TRUE(back);
+    ASSERT_TRUE(apply_object_workbench_click(*back, document, view, workspace, backend, shell, command).refresh_content);
+    EXPECT_EQ(view.object_workbench_surface, ObjectWorkbenchSurface::store_inventory);
+    EXPECT_EQ(view.object_details.object, store->handle());
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(instance_value(item->handle()), 0);
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(instance_value(item->handle()), 23);
+    const auto project = std::filesystem::path{"tmp/client_placed_item_editing"};
+    std::filesystem::create_directories(project);
+    std::ofstream{project / "store.caf.json"} << "{}\n";
+    const std::array<std::string_view, 1> tabs{command.active_tab_id};
+    auto saved = save_workspace_documents(workspace, project, tabs);
+    ASSERT_TRUE(saved.ok()) << saved.message;
+    std::ifstream input{project / "store.caf.json"};
+    auto* loaded = objects.make<nw::Area>();
+    ASSERT_TRUE(deserialize(loaded, nlohmann::json::parse(input)));
+    EXPECT_EQ(instance_value(nw::inventory_item_ptr(loaded->stores.back()->inventory().weapons.items.back())->handle()), 23);
+    loaded->clear();
+    objects.destroy(loaded->handle());
+    workspace.clear();
+}
 
 TEST_F(ClientInventoryWorkbench, NativeSelectionEquipmentAndUndoPreserveLiveItemIdentity)
 {

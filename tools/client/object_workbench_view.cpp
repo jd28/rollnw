@@ -19,7 +19,9 @@
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Strings.hpp>
 #include <nw/log.hpp>
+#include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/Store.hpp>
 #include <nw/resources/ResourceManager.hpp>
 #include <nw/smalls/runtime.hpp>
 #include <type_traits>
@@ -893,6 +895,11 @@ void hydrate_creature_workbench(Rml::ElementDocument* doc, const ObjectWorkbench
 void hydrate_item_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
 {
     if (!find_el(doc, "item_surface_details")) { return; }
+    if (auto* inventory = find_el(doc, "item_surface_inventory")) {
+        std::string markup;
+        append_creature_inventory_markup(markup, state.inventory_view, object_workbench_target(state, workspace));
+        inventory->SetInnerRML(markup);
+    }
     const auto surface = state.object_workbench_surface;
     struct ItemSurfaceElements {
         const char* tab_id;
@@ -931,6 +938,12 @@ void hydrate_item_workbench(Rml::ElementDocument* doc, const ObjectWorkbenchView
         && state.object_details.object.type == nw::ObjectType::item;
     if (auto* header = find_el(doc, "item_object_header")) {
         header->SetClass("visible", show_header);
+    }
+    if (auto* back = find_el(doc, "item_object_back")) {
+        const bool nested = show_header && !state.inventory_item_parents.empty();
+        back->SetClass("inventory_item_back", nested);
+        back->SetClass("area_object_list_back", !nested);
+        back->SetAttribute("title", nested ? "Back to " + live_object_display_name(state.inventory_item_parents.back().object) : std::string{"Back to placed objects"});
     }
     if (show_header) {
         if (auto* title = find_el(doc, "item_object_title")) {
@@ -1716,6 +1729,8 @@ void rebuild_object_workbench_snapshots(ObjectWorkbenchViewState& state, nw::Obj
 
 void clear_object_workbench_snapshots(ObjectWorkbenchViewState& state)
 {
+    state.inventory_item_parents.clear();
+    state.inventory_item_area = ObjectHandle{};
     state.pending_sound_volume.reset();
     clear_object_details_combobox_state(state);
     state.object_details = {};
@@ -2061,8 +2076,14 @@ void append_object_workbench_markup(std::string& content_markup, const ObjectWor
                           "tabindex=\"0\" "
                           "data-list-id=\"data.store.inventory\" "
                           "data-empty-text=\"This store has no inventory items.\"></div>"
-                          "<div class=\"data_collection_action_bar\">"
-                          "<button id=\"store_inventory_remove\" type=\"button\" "
+                          "<div class=\"data_collection_action_bar\">";
+        if (object_workbench_target(state, workspace).area_tab) {
+            content_markup += "<button class=\"store_inventory_edit data_collection_action panel_edit_button\" "
+                              "type=\"button\" title=\"Edit selected item\">"
+                              "<span class=\"panel_edit_icon\"><span class=\"panel_edit_cap\"></span>"
+                              "<span class=\"panel_edit_body\"></span><span class=\"panel_edit_tip\"></span></span></button>";
+        }
+        content_markup += "<button id=\"store_inventory_remove\" type=\"button\" "
                           "class=\"data_collection_action remove\" title=\"Remove selected inventory item\" "
                           "onclick=\"remove_selected_store_item()\">"
                           "<span class=\"data_collection_action_mark horizontal\"></span>"
@@ -2096,6 +2117,8 @@ void clear_object_workbench_children(ObjectWorkbenchViewState& state)
 
 void activate_object_workbench(ObjectWorkbenchViewState& state, ObjectHandle object, std::string_view tab_id)
 {
+    state.inventory_item_parents.clear();
+    state.inventory_item_area = ObjectHandle{};
     state.active_object_tab_id = tab_id;
     state.object_workbench_surface = default_object_workbench_surface();
     clear_active_appearances(state.appearance_view);
@@ -2124,6 +2147,85 @@ void activate_object_workbench(ObjectWorkbenchViewState& state, ObjectHandle obj
             clear_active_creature_inventory(state.inventory_view);
         }
     }
+}
+
+ObjectHandle displayed_area_workbench_object(const ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, ObjectHandle placed_selection)
+{
+    const auto* tab = workspace.active_tab();
+    if (tab && tab->kind == WorkspaceTabKind::area && state.active_object_tab_id == tab->id
+        && state.inventory_item_area == tab->document.object() && !state.inventory_item_parents.empty()
+        && state.inventory_item_parents.front().object == placed_selection
+        && kernel::objects().valid(state.object_details.object)) {
+        return state.object_details.object;
+    }
+    return placed_selection;
+}
+
+namespace {
+auto placed_item_owner_row(std::span<const PlacedItemOwnerRow> rows, ObjectHandle object)
+{
+    return std::ranges::find_if(rows, [object](const auto& row) { return row.object == object; });
+}
+
+size_t attached_inventory_item_depth(const ObjectWorkbenchViewState& state,
+    std::span<const PlacedItemOwnerRow> rows)
+{
+    size_t depth = 0;
+    uint32_t parent = UINT32_MAX;
+    // Snapshot parents precede children, so validate the path in one pass.
+    for (uint32_t index = 0; index < rows.size(); ++index) {
+        const auto object = depth < state.inventory_item_parents.size()
+            ? state.inventory_item_parents[depth].object
+            : state.object_details.object;
+        if (rows[index].object != object) { continue; }
+        if (rows[index].parent != parent) { return depth; }
+        parent = index;
+        if (++depth > state.inventory_item_parents.size()) { break; }
+    }
+    return depth;
+}
+
+void restore_inventory_item_parent(ObjectWorkbenchViewState& state, size_t index)
+{
+    auto parents = std::move(state.inventory_item_parents);
+    const auto area = state.inventory_item_area;
+    const auto parent = parents[index];
+    parents.resize(index);
+    // Copy the tab ID: activation writes its own string.
+    const auto tab_id = state.active_object_tab_id;
+    activate_object_workbench(state, parent.object, tab_id);
+    state.inventory_item_parents = std::move(parents);
+    state.inventory_item_area = state.inventory_item_parents.empty() ? ObjectHandle{} : area;
+    state.object_workbench_surface = parent.surface;
+    const auto& inventory = state.inventory_view.creature_inventory;
+    state.inventory_view.creature_inventory_page = parent.page >= 0 && parent.page < inventory.page_count ? parent.page : 0;
+    // Returning after undo/removal must not select a different row at an old index.
+    const auto selected = std::ranges::find_if(inventory.inventory,
+        [&](const auto& row) { return row.item == parent.selected_item; });
+    state.inventory_view.creature_inventory_selection = selected == inventory.inventory.end()
+        ? -1
+        : static_cast<int32_t>(selected->source_index);
+}
+} // namespace
+
+bool reconcile_inventory_item_navigation(ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
+    std::span<const PlacedItemOwnerRow> rows)
+{
+    if (state.inventory_item_parents.empty()) { return false; }
+    const auto* tab = workspace.active_tab();
+    const auto depth = tab && tab->kind == WorkspaceTabKind::area
+            && state.active_object_tab_id == tab->id && state.inventory_item_area == tab->document.object()
+        ? attached_inventory_item_depth(state, rows)
+        : 0;
+    if (depth == state.inventory_item_parents.size() + 1) { return false; }
+    if (depth != 0) {
+        restore_inventory_item_parent(state, depth - 1);
+    } else {
+        const auto tab_id = state.active_object_tab_id;
+        activate_object_workbench(state, ObjectHandle{}, tab_id);
+    }
+    return true;
 }
 
 bool refresh_object_workbench_snapshots(ObjectWorkbenchViewState& state, ObjectHandle object)
@@ -2814,11 +2916,133 @@ ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_Keyboa
     return ObjectWorkbenchFieldKeyEffect::none;
 }
 
+namespace {
+std::optional<InventoryItemNavigationClick> capture_inventory_item_navigation(Rml::Element* hit,
+    const ObjectWorkbenchViewState& state, const WorkspaceState& workspace, uint64_t module_generation)
+{
+    auto* back = find_ancestor_with_class(hit, "inventory_item_back");
+    auto* equipment = find_ancestor_with_class(hit, "creature_equipment_edit");
+    auto* inventory = find_ancestor_with_class(hit, "inventory_item_edit");
+    auto* store_control = find_ancestor_with_class(hit, "store_inventory_edit");
+    if (!back && !equipment && !inventory && !store_control) { return std::nullopt; }
+    InventoryItemNavigationClick click;
+    const auto target = object_workbench_target(state, workspace);
+    const auto* tab = workspace.active_tab();
+    if (!tab || !target.area_tab || !target.matches_active_tab || !target.details_ready
+        || tab->document.object().type != ObjectType::area) { return click; }
+    click.owner = target.object;
+    click.surface = target.surface;
+    click.area = tab->document.object();
+    click.tab_id = tab->id;
+    click.module_generation = module_generation;
+    click.mutation_epoch = object_mutation_state().epoch;
+    click.selection = state.inventory_view.creature_inventory_selection;
+    click.page = state.inventory_view.creature_inventory_page;
+    if (back) {
+        if (!state.inventory_item_parents.empty()) {
+            click.item = state.inventory_item_parents.back().object;
+            click.kind = InventoryItemNavigationClick::Kind::back;
+        }
+        return click;
+    }
+    if (store_control) {
+        const auto selected = ui_v1_host().get_selected("data.store.inventory");
+        const auto* store = kernel::objects().get<Store>(target.object);
+        if (!store || target.surface != ObjectWorkbenchSurface::store_inventory
+            || !selected || selected->index < 0 || selected->index >= 1024) { return click; }
+        const auto& source = store->inventory();
+        const std::array categories{&source.armor, &source.miscellaneous, &source.potions, &source.rings, &source.weapons};
+        const auto prefix = fmt::format("{}:{}:{}:", kernel::services().generation(),
+            target.object.to_ull(), click.mutation_epoch);
+        int32_t index = 0;
+        for (size_t category = 0; category < categories.size(); ++category) {
+            for (const auto& entry : categories[category]->items) {
+                const auto* item = inventory_item_ptr(entry);
+                if (!item) { continue; }
+                if (index++ != selected->index) { continue; }
+                if (selected->key != prefix + std::to_string(category) + ":" + std::to_string(selected->index)) { return click; }
+                click.item = item->handle();
+                click.store_key = selected->key;
+            }
+        }
+    } else {
+        const auto& source = state.inventory_view.creature_inventory;
+        if (target.surface != ObjectWorkbenchSurface::inventory || source.object != target.object
+            || source.status != InventoryViewStatus::ready) { return click; }
+        if (equipment) {
+            const auto slot = parse_decimal_int32(equipment->GetAttribute<Rml::String>("data-slot", ""));
+            if (!slot || *slot < 0 || static_cast<size_t>(*slot) >= source.equipment.size()) { return click; }
+            click.item = source.equipment[*slot].item;
+        } else {
+            if (click.selection < 0 || static_cast<size_t>(click.selection) >= source.inventory.size()) { return click; }
+            const auto& row = source.inventory[click.selection];
+            if (row.source_index != static_cast<uint32_t>(click.selection)) { return click; }
+            click.item = row.item;
+        }
+    }
+    if (click.item.type == ObjectType::item) { click.kind = InventoryItemNavigationClick::Kind::edit; }
+    return click;
+}
+
+bool apply_inventory_item_navigation(InventoryItemNavigationClick& click, ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, ToolsetBackend& backend, const CommandContext& context)
+{
+    const auto kind = std::exchange(click.kind, InventoryItemNavigationClick::Kind::none);
+    const auto* tab = workspace.active_tab();
+    if (kind == InventoryItemNavigationClick::Kind::none || kind > InventoryItemNavigationClick::Kind::back
+        || !tab || tab->kind != WorkspaceTabKind::area || tab->document.object() != click.area
+        || tab->id != click.tab_id || state.active_object_tab_id != click.tab_id
+        || state.object_workbench_surface != click.surface
+        || (!state.inventory_item_parents.empty() && state.inventory_item_area != click.area)
+        || state.object_details.object != click.owner || smalls_rmlui_host().active_object() != click.owner
+        || context.workspace != &workspace || context.active_tab_id != click.tab_id || context.area_object != click.area
+        || backend.module_generation() != click.module_generation || object_mutation_state().epoch != click.mutation_epoch
+        || state.inventory_view.creature_inventory_selection != click.selection
+        || state.inventory_view.creature_inventory_page != click.page) { return false; }
+    if (!click.store_key.empty()) {
+        const auto selected = ui_v1_host().get_selected("data.store.inventory");
+        if (!selected || selected->key != click.store_key) { return false; }
+    }
+    const auto owners = collect_placed_item_owners(click.area);
+    if (!owners.error.empty()) {
+        LOG_F(WARNING, "rollnw-client: %s", owners.error.c_str());
+        return false;
+    }
+    if (attached_inventory_item_depth(state, owners.rows) != state.inventory_item_parents.size() + 1) { return false; }
+    if (kind == InventoryItemNavigationClick::Kind::back) {
+        if (state.inventory_item_parents.empty() || state.inventory_item_parents.back().object != click.item) { return false; }
+        restore_inventory_item_parent(state, state.inventory_item_parents.size() - 1);
+    } else {
+        const std::span rows{owners.rows};
+        const auto child = placed_item_owner_row(rows, click.item);
+        if (child == rows.end() || child->parent == UINT32_MAX || rows[child->parent].object != click.owner) { return false; }
+        auto parents = std::move(state.inventory_item_parents);
+        const auto& inventory = state.inventory_view.creature_inventory.inventory;
+        const auto selected = click.selection >= 0 && static_cast<size_t>(click.selection) < inventory.size()
+            ? inventory[click.selection].item
+            : ObjectHandle{};
+        parents.push_back({click.owner, state.object_workbench_surface, click.page, selected});
+        activate_object_workbench(state, click.item, click.tab_id);
+        state.inventory_item_parents = std::move(parents);
+        state.inventory_item_area = click.area;
+    }
+    smalls_rmlui_host().publish_active_object(state.object_details.object);
+    return true;
+}
+} // namespace
+
 std::optional<ObjectWorkbenchClick> capture_object_workbench_click(Rml::Element* hit, Rml::Vector2f point,
     const ObjectWorkbenchViewState& state, const WorkspaceState& workspace,
     uint64_t module_generation, uint64_t resource_generation)
 {
     const auto target = object_workbench_target(state, workspace);
+    if (auto* control = find_ancestor_with_class(hit, "item_preview_gender")) {
+        const auto gender = parse_decimal_int32(control->GetAttribute<Rml::String>("data-gender", ""));
+        return ObjectWorkbenchClick{ItemPreviewGenderClick{target.object, gender.value_or(-1)}};
+    }
+    if (auto click = capture_inventory_item_navigation(hit, state, workspace, module_generation)) {
+        return ObjectWorkbenchClick{std::move(*click)};
+    }
     if (auto click = capture_color_editor_click(hit, point, state.appearance_view, target, workspace, module_generation, resource_generation)) {
         const auto phase = click->release_phase;
         return ObjectWorkbenchClick{std::move(*click), phase};
@@ -2934,6 +3158,15 @@ ObjectWorkbenchClickEffect apply_object_workbench_click(ObjectWorkbenchClick& cl
             }
         } else if constexpr (std::is_same_v<T, CreatureWorkbenchCommandClick>) {
             (void)execute_creature_workbench_command_click(payload, state.creature_view, target(), workspace, backend, shell, context);
+        } else if constexpr (std::is_same_v<T, ItemPreviewGenderClick>) {
+            if (target().matches_active_tab && state.object_details.object == payload.item) {
+                (void)select_item_preview_gender(state.item_preview, payload.item, payload.gender);
+            }
+        } else if constexpr (std::is_same_v<T, InventoryItemNavigationClick>) {
+            if (apply_inventory_item_navigation(payload, state, workspace, backend, context)) {
+                effect.refresh_content = true;
+                effect.finish = ObjectWorkbenchClickFinish::all_windows;
+            }
         }
         return effect;
     },

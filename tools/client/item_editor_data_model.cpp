@@ -65,7 +65,7 @@ struct ItemEditorDataModel::Impl {
         std::string display;
         std::string model_id;
         std::string variation_id;
-        std::vector<ColorRow> colors;
+        int32_t color = -1;
         bool split = false;
         bool model_active = false;
         bool variation_active = false;
@@ -137,13 +137,9 @@ struct ItemEditorDataModel::Impl {
                 && part.variation_active;
             if (source.per_part_colors) {
                 for (const auto& color : input.colors) {
-                    if (color.part != source.part || !valid_color_row(color)
-                        || std::ranges::find(part.colors, color.color,
-                               &ColorRow::color)
-                            != part.colors.end()) {
-                        continue;
-                    }
-                    part.colors.push_back(make_color_row(color, false));
+                    if (color.part != source.part || !valid_color_row(color)) { continue; }
+                    part.color = color.color;
+                    break;
                 }
             }
             parts.push_back(std::move(part));
@@ -354,7 +350,7 @@ struct ItemEditorDataModel::Impl {
             && part.RegisterMember("display", &PartRow::display)
             && part.RegisterMember("model_id", &PartRow::model_id)
             && part.RegisterMember("variation_id", &PartRow::variation_id)
-            && part.RegisterMember("colors", &PartRow::colors)
+            && part.RegisterMember("color", &PartRow::color)
             && part.RegisterMember("split", &PartRow::split)
             && part.RegisterMember("model_active", &PartRow::model_active)
             && part.RegisterMember(

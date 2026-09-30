@@ -153,6 +153,22 @@ void render_client_layout(ClientApplicationSurfaces& surfaces, ClientRenderer& r
 {
     auto* context = surfaces.context;
     auto* doc = surfaces.doc;
+    nw::ObjectHandle item{};
+    nw::ObjectHandle source{};
+    if (nw::toolset::active_object_matches_tab(state.workbench, state.workspace)
+        && state.workbench.object_details.object.type == nw::ObjectType::item) {
+        item = state.workbench.object_details.object;
+        for (auto it = state.workbench.inventory_item_parents.rbegin();
+            it != state.workbench.inventory_item_parents.rend(); ++it) {
+            if (it->object.type == nw::ObjectType::creature) {
+                source = it->object;
+                break;
+            }
+        }
+    }
+    (void)nw::toolset::refresh_item_preview(state.workbench.item_preview, item, source,
+        nw::toolset::object_mutation_state().epoch);
+    nw::toolset::hydrate_item_preview(doc, state.workbench.item_preview);
     context->Update();
     bool tab_scroll_layout_changed = false;
     if (state.workspace_view.workspace_tab_scroll_pending) {
@@ -255,15 +271,23 @@ std::optional<WorkspaceViewerViewportRequest> render_client_workspace(ClientAppl
         && !viewer_project_dir.empty()
         && data_workbench_only(state.workbench.object_details.object.type,
             state.workbench.object_workbench_surface);
+    const bool retained_item_area = !viewer_viewport && viewer_tab
+        && viewer_tab->kind == nw::toolset::WorkspaceTabKind::area
+        && nw::toolset::active_object_matches_tab(state.workbench, state.workspace)
+        && state.workbench.object_details.object.type == nw::ObjectType::item
+        && renderer.area_viewer_object() == viewer_tab->document.object();
     const bool viewer_requested = viewer_viewport.has_value()
-        || data_workbench_preview;
+        || data_workbench_preview || retained_item_area;
     if (viewer_requested) {
         sync_viewer_render_options(renderer, state);
         bool viewer_ready = false;
         WorkspaceViewerViewportKind viewer_kind = WorkspaceViewerViewportKind::preview;
         {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerViewport};
-            if (viewer_viewport) {
+            if (retained_item_area) {
+                viewer_kind = WorkspaceViewerViewportKind::area;
+                viewer_ready = true;
+            } else if (viewer_viewport) {
                 viewer_kind = viewer_viewport->kind;
                 viewer_ready = viewer_viewport->kind == WorkspaceViewerViewportKind::area
                     ? renderer.render_area_viewport(
@@ -314,6 +338,9 @@ std::optional<WorkspaceViewerViewportRequest> render_client_workspace(ClientAppl
                     && state.area_workspace_surface
                         == AreaWorkspaceSurface::properties
                 ? renderer.area_viewer_object()
+                : viewer_kind == WorkspaceViewerViewportKind::area
+                ? nw::toolset::displayed_area_workbench_object(state.workbench, state.workspace,
+                      renderer.active_viewer_object())
                 : renderer.active_viewer_object();
             if (object.type != nw::ObjectType::invalid) {
                 state.smalls.publish_active_object(object);
@@ -372,6 +399,17 @@ std::optional<WorkspaceViewerViewportRequest> render_client_workspace(ClientAppl
         append_output(state, "error", "Failed to synchronize the active creature Appearance preview");
     }
 
+    auto& preview = state.workbench.item_preview;
+    const auto rect = nw::toolset::element_viewport_rect(doc, "item_preview_viewport",
+        surfaces.frame_width, surfaces.frame_height);
+    const auto mannequin = rect && preview.item == state.workbench.object_details.object
+        ? preview.mannequin.object()
+        : nw::ObjectHandle{};
+    if (!renderer.render_item_preview(mannequin, preview.item, preview.revision,
+            rect.value_or(ClientViewportRect{}), frame_delta_ms)
+        && mannequin.type != nw::ObjectType::invalid) {
+        preview.diagnostic = "Armor mannequin could not be rendered with the loaded resources.";
+    }
     return viewer_viewport;
 }
 

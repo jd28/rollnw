@@ -1,0 +1,51 @@
+import core.object as O;
+import nwn1.creature as CreatureVisual;
+import nwn1.creature_state as Body;
+import nwn1.item as ItemVisual;
+import nwn1.rules as Rules;
+from nwn1.propsets import { CreatureAppearance, CreatureStats };
+
+fn requires_mannequin(item: Item): bool {
+    return ItemVisual.get_model_type(item) == Rules.item_model_type_armor;
+}
+
+// Only the private mannequin is writable. No world location, inventory, stats,
+// or equipment is copied from the source creature.
+fn configure_mannequin(target: Creature, source: Creature, gender: int): int {
+    if (target == O.invalid || target == source || gender < -1 || gender > 1) {
+        return -1;
+    }
+    var appearance = get_propset!(CreatureAppearance)(target);
+    var stats = get_propset!(CreatureStats)(target);
+    var use_source = source != O.invalid;
+    if (use_source) {
+        use_source = CreatureVisual.resolve_creature_model(Body.get_appearance(source)).humanoid;
+    }
+    // NWN's human appearance row; model resolution stays in the profile.
+    appearance.appearance = 6;
+    appearance.phenotype = 0;
+    stats.gender = 0;
+    for (var part = 0; part < Body.body_part_count; part += 1) {
+        var value = 1;
+        if (part == Body.body_part_belt || part == Body.body_part_shoulder_left
+            || part == Body.body_part_shoulder_right || part == Body.body_part_robe) {
+            value = 0;
+        }
+        if (use_source) { value = Body.get_body_part(source, part); }
+        Body.set_body_part(target, part, value);
+    }
+    if (use_source) {
+        var original = get_propset!(CreatureAppearance)(source);
+        appearance.appearance = original.appearance;
+        appearance.phenotype = original.phenotype;
+        appearance.tail = original.tail;
+        appearance.wings = original.wings;
+        for (var color = 0; color < Body.color_count; color += 1) {
+            Body.set_color(target, color, Body.get_color(source, color));
+        }
+        stats.gender = Body.get_gender(source);
+    }
+    if (gender >= 0) { stats.gender = gender; }
+    if (stats.gender != 0 && stats.gender != 1) { stats.gender = 0; }
+    return stats.gender;
+}

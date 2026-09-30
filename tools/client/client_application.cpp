@@ -164,7 +164,8 @@ int run_client_application(const char* executable)
     });
     renderer.set_rml_generated_textures(
         &state.workbench.inventory_view.item_icon_cache.textures,
-        &state.area_tile_editor.palette.textures);
+        &state.area_tile_editor.palette.textures,
+        &state.workbench.item_preview.icons.textures);
     state.backend.bind(&state.smalls, &state.shell, &state.workspace);
     state.backend_ready = state.backend.initialize();
     if (!state.backend_ready) {

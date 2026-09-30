@@ -311,6 +311,56 @@ struct ClientViewerViewport::Impl {
         return load_preview(resource_path, document, load_viewport);
     }
 
+    bool render_item_preview(nw::gfx::CommandList* command_list,
+        nw::ObjectHandle mannequin, nw::ObjectHandle item, uint64_t revision,
+        ClientViewportRect viewport, int32_t dt_ms)
+    {
+        if (mannequin.type == nw::ObjectType::invalid) {
+            item_session.reset();
+            preview_item = nw::ObjectHandle{};
+            preview_mannequin = nw::ObjectHandle{};
+            item_preview_ready = false;
+            return true;
+        }
+        if (!command_list || !viewport.valid() || !ensure_runtime()) { return false; }
+        if (!item_session) { item_session = device->make_session(); }
+        if (!item_session) { return false; }
+        if (preview_mannequin != mannequin || preview_revision != revision || preview_item != item) {
+            const bool retain_camera = preview_item == item && item_preview_ready;
+            const auto camera = item_session->camera();
+            preview_mannequin = mannequin;
+            preview_item = item;
+            preview_revision = revision;
+            item_preview_ready = item_session->load_live_object(mannequin, "Item mannequin");
+            if (item_preview_ready) {
+                if (retain_camera) {
+                    item_session->camera() = camera;
+                } else {
+                    item_session->fit_to_scene(to_viewer_viewport(viewport));
+                }
+            }
+        }
+        if (!item_preview_ready) { return false; }
+        item_session->tick(dt_ms);
+        item_session->render(command_list, to_viewer_viewport(viewport));
+        return true;
+    }
+
+    bool drag_item_preview(float dx, float dy)
+    {
+        if (!item_session || !item_preview_ready) { return false; }
+        item_session->camera().yaw(-dx * 0.35f);
+        item_session->camera().pitch(-dy * 0.25f);
+        return true;
+    }
+
+    bool zoom_item_preview(float delta)
+    {
+        if (!item_session || !item_preview_ready || delta == 0.0f) { return false; }
+        item_session->camera().move_forward(delta > 0 ? 4.0f : -4.0f, true);
+        return true;
+    }
+
     void discard_scene()
     {
         end_toolset_preview_visuals();
@@ -325,6 +375,10 @@ struct ClientViewerViewport::Impl {
 
     void clear()
     {
+        item_session.reset();
+        preview_mannequin = nw::ObjectHandle{};
+        preview_item = nw::ObjectHandle{};
+        item_preview_ready = false;
         discard_scene();
         clear_load_failures();
     }
@@ -1803,6 +1857,11 @@ struct ClientViewerViewport::Impl {
     uint64_t mounted_module_generation = 0;
     std::unique_ptr<viewer::ViewerDevice> device;
     std::unique_ptr<viewer::ViewerSession> session;
+    std::unique_ptr<viewer::ViewerSession> item_session;
+    nw::ObjectHandle preview_mannequin{};
+    nw::ObjectHandle preview_item{};
+    uint64_t preview_revision = 0;
+    bool item_preview_ready = false;
     std::string loaded_area_resref;
     std::string loaded_preview_resource;
     std::string failed_area_resource;
@@ -2113,4 +2172,21 @@ nw::ObjectHandle ClientViewerViewport::area_object() const noexcept
 bool ClientViewerViewport::matches_area_resource(std::string_view area_resource) const
 {
     return impl_ && impl_->matches_area_resource(area_resource);
+}
+
+bool ClientViewerViewport::render_item_preview(nw::gfx::CommandList* command_list,
+    nw::ObjectHandle mannequin, nw::ObjectHandle item, uint64_t revision,
+    ClientViewportRect viewport, int32_t dt_ms)
+{
+    return impl_->render_item_preview(command_list, mannequin, item, revision, viewport, dt_ms);
+}
+
+bool ClientViewerViewport::drag_item_preview(float dx, float dy)
+{
+    return impl_->drag_item_preview(dx, dy);
+}
+
+bool ClientViewerViewport::zoom_item_preview(float delta)
+{
+    return impl_->zoom_item_preview(delta);
 }

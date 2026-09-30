@@ -440,7 +440,7 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
         + (ui_resource_path / "item_editor.rml").generic_string()
         + "\"/><style>body, button, input { font-family: Inter; font-weight: normal; }</style>"
           "</head><body><div id=\"item-preview-body\" "
-          "class=\"workspace_preview_body data_workbench_only\">"
+          "class=\"workspace_preview_body data_workbench_only\" style=\"height:100%;\">"
           "<div id=\"workspace_viewer_viewport\" "
           "class=\"workspace_viewer_viewport\"></div>"
           "<template src=\"item-workbench\"></template></div>"
@@ -530,6 +530,37 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     ASSERT_NE(viewport, nullptr);
     ASSERT_NE(workbench, nullptr);
     EXPECT_EQ(viewport->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(workbench->GetOffsetWidth(), 1000.0f);
+    auto* item_preview = document->GetElementById("item_preview");
+    auto* mannequin_viewport = document->GetElementById("item_preview_viewport");
+    ASSERT_NE(item_preview, nullptr);
+    ASSERT_NE(mannequin_viewport, nullptr);
+    EXPECT_FALSE(mannequin_viewport->IsVisible(true));
+    item_preview->SetClass("armor", true);
+    context->Update();
+    EXPECT_GT(mannequin_viewport->GetClientWidth(), 100.0f);
+    EXPECT_GT(mannequin_viewport->GetClientHeight(), 100.0f);
+    Rml::ElementList genders;
+    item_preview->GetElementsByClassName(genders, "item_preview_gender");
+    ASSERT_EQ(genders.size(), 2u);
+    for (auto* button : genders) {
+        const auto point = button->GetAbsoluteOffset()
+            + Rml::Vector2f{button->GetOffsetWidth() / 2, button->GetOffsetHeight() / 2};
+        auto* hit = context->GetElementAtPoint(point);
+        while (hit && hit != button) {
+            hit = hit->GetParentNode();
+        }
+        EXPECT_EQ(hit, button);
+    }
+    Rml::ElementList tabs;
+    document->GetElementById("object_workbench_tab_track")->GetElementsByClassName(tabs, "object_workbench_tab");
+    ASSERT_FALSE(tabs.empty());
+    EXPECT_EQ(tabs.back()->GetId(), "item_tab_variables");
+    // The same Item template occupies the workspace for a placed instance.
+    const auto preview_width = item_preview->GetOffsetWidth();
+    preview_body->SetClass("workspace_area_body", true);
+    context->Update();
+    EXPECT_FLOAT_EQ(item_preview->GetOffsetWidth(), preview_width);
     EXPECT_GT(workbench->GetOffsetWidth(), 1000.0f);
     EXPECT_GT(property_catalog->GetOffsetWidth(), 300.0f);
     auto* applied_pane = document->QuerySelector(".item_property_pane.applied");
@@ -641,6 +672,20 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
 TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
 {
     CurrentPathScope source_root{ROLLNW_TEST_SOURCE_DIR};
+    struct BindingWarnings final : Rml::SystemInterface {
+        Rml::StringList messages;
+        bool LogMessage(Rml::Log::Type type, const Rml::String& message) override
+        {
+            if (message.find("Data array index out of bounds") != Rml::String::npos
+                || message.find("Could not get value from data variable") != Rml::String::npos) {
+                messages.push_back(message);
+            }
+            return Rml::SystemInterface::LogMessage(type, message);
+        }
+    } warnings;
+    auto* previous_system = Rml::GetSystemInterface();
+    Rml::SetSystemInterface(&warnings);
+    const auto restore_system = create_scope_exit([&] { Rml::SetSystemInterface(previous_system); });
     NullRenderInterface renderer;
     RmlScope rml{renderer};
     ASSERT_TRUE(rml.initialized());
@@ -789,7 +834,7 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     auto model_rows = bound_elements_by_class(*document, "item_model_row");
     ASSERT_EQ(model_rows.size(), 2);
     auto color_fields = bound_elements_by_class(*document, "item_color_field");
-    ASSERT_EQ(color_fields.size(), 2);
+    EXPECT_EQ(color_fields.size(), 1);
     auto model_fields = bound_elements_by_class(*document, "item_model_field");
     ASSERT_EQ(model_fields.size(), 3);
     auto composite_labels = bound_elements_by_class(
@@ -885,7 +930,8 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     ASSERT_NE(focused_model, nullptr);
     EXPECT_EQ(context->GetFocusElement(), focused_model);
     color_fields = bound_elements_by_class(*document, "item_color_field");
-    ASSERT_EQ(color_fields.size(), 2);
+    EXPECT_EQ(color_fields.size(), 1);
+    ASSERT_FALSE(color_fields.empty());
     ASSERT_TRUE(color_fields.front()->DispatchEvent("click", {}));
     ASSERT_EQ(invocations.back().command,
         "toolset.item.appearance.open_color");
@@ -934,6 +980,27 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
                                     ->GetInnerRML();
     EXPECT_NE(appearance_rml.find("Item color data is unavailable."),
         Rml::String::npos);
+
+    // Transition from a complete armor to a smaller item and then away from
+    // Items. Old row bindings must be gone before they read the shorter arrays.
+    parts.clear();
+    for (int32_t part = 0; part < 19; ++part) {
+        parts.push_back({.part = part, .value = 1, .label = "Armor part"});
+    }
+    input.parts = parts;
+    input.mode = nw::toolset::ItemEditorAppearanceMode::main;
+    item_model.refresh(input);
+    context->Update();
+    EXPECT_EQ(bound_elements_by_class(*document, "item_model_row").size(), 19u);
+    parts.resize(1);
+    input.parts = parts;
+    item_model.refresh(input);
+    context->Update();
+    EXPECT_EQ(bound_elements_by_class(*document, "item_model_row").size(), 1u);
+    item_model.refresh({});
+    context->Update();
+    EXPECT_TRUE(bound_elements_by_class(*document, "item_model_row").empty());
+    EXPECT_TRUE(warnings.messages.empty()) << (warnings.messages.empty() ? "" : warnings.messages.front());
 
     document->Close();
     item_model.shutdown();

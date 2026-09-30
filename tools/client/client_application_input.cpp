@@ -273,6 +273,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             (void)end_right_dock_resize(state);
             state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
             state.shell_view.output_selection.dragging = false;
+            state.workbench.item_preview.dragging = false;
             state.browser.pressed_recent_index = -1;
             nw::toolset::discard_runtime_pointer_input(state.runtime_input);
             nw::toolset::cancel_client_pointer_interactions(context, palette_context, event);
@@ -387,6 +388,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             }
             state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
             state.shell_view.output_selection.dragging = false;
+            state.workbench.item_preview.dragging = false;
             hide_object_variable_warning_tooltip(doc, state);
             set_recent_hover(doc, state, -1);
             break;

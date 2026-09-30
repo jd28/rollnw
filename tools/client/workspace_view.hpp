@@ -184,6 +184,9 @@ void append_workspace_subtabs_markup(std::string& markup, const WorkspaceTab& ta
 // workbench and closing surface tag. Recent history validation stays unchanged.
 [[nodiscard]] bool append_workspace_home_start_markup(std::string& markup, BrowserViewState& browser,
     const ToolsetBackend& backend, const LoadingViewState& loading, std::string_view version);
+[[nodiscard]] std::optional<ClientViewportRect> element_viewport_rect(
+    Rml::ElementDocument* doc, const char* id, int frame_width, int frame_height);
+
 [[nodiscard]] std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_request(
     Rml::ElementDocument* doc, const WorkspaceState& workspace,
     const ToolsetBackend& backend, int frame_width, int frame_height);

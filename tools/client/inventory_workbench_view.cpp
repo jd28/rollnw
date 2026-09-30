@@ -362,6 +362,13 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
                 content_markup += kCreatureEquipmentSlotAssets[index];
                 content_markup += "\"/>";
             }
+            if (target.area_tab && row.item.type == ObjectType::item) {
+                content_markup += "<button class=\"creature_equipment_edit panel_edit_button\" type=\"button\" "
+                                  "title=\"Edit equipped item\" data-slot=\"";
+                content_markup += std::to_string(index);
+                content_markup += "\"><span class=\"panel_edit_icon\"><span class=\"panel_edit_cap\"></span>"
+                                  "<span class=\"panel_edit_body\"></span><span class=\"panel_edit_tip\"></span></span></button>";
+            }
             content_markup += "</div>";
         };
 
@@ -405,8 +412,14 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
     content_markup += "</span></div><div id=\"creature_inventory_page_surface\" "
                       "class=\"creature_inventory_page_surface\">";
     content_markup += render_creature_inventory_page(state, target);
-    content_markup += "</div><div class=\"data_collection_action_bar\">"
-                      "<button id=\"creature_inventory_remove\" type=\"button\" "
+    content_markup += "</div><div class=\"data_collection_action_bar\">";
+    if (target.area_tab) {
+        content_markup += "<button class=\"inventory_item_edit data_collection_action panel_edit_button\" "
+                          "type=\"button\" title=\"Edit selected item\">"
+                          "<span class=\"panel_edit_icon\"><span class=\"panel_edit_cap\"></span>"
+                          "<span class=\"panel_edit_body\"></span><span class=\"panel_edit_tip\"></span></span></button>";
+    }
+    content_markup += "<button id=\"creature_inventory_remove\" type=\"button\" "
                       "class=\"creature_inventory_remove data_collection_action remove\" "
                       "title=\"Remove selected inventory item\">"
                       "<span class=\"data_collection_action_mark horizontal\"></span>"

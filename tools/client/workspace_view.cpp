@@ -322,9 +322,14 @@ void append_workspace_document_markup(std::string& content_markup, const Workspa
             content_markup += "</div>";
         }
         content_markup += "</div></div>";
-        content_markup += "<div class=\"workspace_preview_body workspace_area_body\">";
+        const bool item_workbench = surface == AreaWorkspaceSurface::objects
+            && active_object_matches_tab(workbench, workspace)
+            && workbench.object_details.object.type == ObjectType::item;
+        content_markup += item_workbench
+            ? "<div class=\"workspace_preview_body workspace_area_body data_workbench_only\">"
+            : "<div class=\"workspace_preview_body workspace_area_body\">";
         nw::toolset::append_workspace_viewport_markup(content_markup, active_tab);
-        content_markup += kEditorDivider;
+        if (!item_workbench) { content_markup += kEditorDivider; }
         if (surface == AreaWorkspaceSurface::tiles) {
             nw::toolset::append_area_tile_palette_markup(content_markup, tile_editor);
         } else {
@@ -977,6 +982,31 @@ Rml::Element* workspace_tab_element_at_point(Rml::ElementDocument* doc, std::str
     return visit(visit, tabs);
 }
 
+std::optional<ClientViewportRect> element_viewport_rect(
+    Rml::ElementDocument* doc, const char* id, int frame_width, int frame_height)
+{
+    if (!doc || frame_width <= 0 || frame_height <= 0) { return std::nullopt; }
+    auto* viewport_element = doc->GetElementById(id);
+    if (!viewport_element || !viewport_element->IsVisible(true)) {
+        return std::nullopt;
+    }
+
+    const float left_f = viewport_element->GetAbsoluteLeft() + viewport_element->GetClientLeft();
+    const float top_f = viewport_element->GetAbsoluteTop() + viewport_element->GetClientTop();
+    const float right_f = left_f + viewport_element->GetClientWidth();
+    const float bottom_f = top_f + viewport_element->GetClientHeight();
+
+    const int left = std::clamp(static_cast<int>(std::floor(left_f)), 0, frame_width);
+    const int top = std::clamp(static_cast<int>(std::floor(top_f)), 0, frame_height);
+    const int right = std::clamp(static_cast<int>(std::ceil(right_f)), left, frame_width);
+    const int bottom = std::clamp(static_cast<int>(std::ceil(bottom_f)), top, frame_height);
+    if (right - left < 8 || bottom - top < 8) {
+        return std::nullopt;
+    }
+
+    return ClientViewportRect{left, top, static_cast<uint32_t>(right - left), static_cast<uint32_t>(bottom - top)};
+}
+
 std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_request(
     Rml::ElementDocument* doc, const WorkspaceState& workspace, const ToolsetBackend& backend, int frame_width, int frame_height)
 {
@@ -997,23 +1027,8 @@ std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_r
         return std::nullopt;
     }
 
-    auto* viewport_element = doc->GetElementById("workspace_viewer_viewport");
-    if (!viewport_element) {
-        return std::nullopt;
-    }
-
-    const float left_f = viewport_element->GetAbsoluteLeft() + viewport_element->GetClientLeft();
-    const float top_f = viewport_element->GetAbsoluteTop() + viewport_element->GetClientTop();
-    const float right_f = left_f + viewport_element->GetClientWidth();
-    const float bottom_f = top_f + viewport_element->GetClientHeight();
-
-    const int left = std::clamp(static_cast<int>(std::floor(left_f)), 0, frame_width);
-    const int top = std::clamp(static_cast<int>(std::floor(top_f)), 0, frame_height);
-    const int right = std::clamp(static_cast<int>(std::ceil(right_f)), left, frame_width);
-    const int bottom = std::clamp(static_cast<int>(std::ceil(bottom_f)), top, frame_height);
-    if (right - left < 8 || bottom - top < 8) {
-        return std::nullopt;
-    }
+    const auto rect = element_viewport_rect(doc, "workspace_viewer_viewport", frame_width, frame_height);
+    if (!rect) { return std::nullopt; }
 
     return WorkspaceViewerViewportRequest{
         project_dir,
@@ -1022,12 +1037,7 @@ std::optional<WorkspaceViewerViewportRequest> active_workspace_viewer_viewport_r
         active_tab->kind == nw::toolset::WorkspaceTabKind::area
             ? WorkspaceViewerViewportKind::area
             : WorkspaceViewerViewportKind::preview,
-        ClientViewportRect{
-            left,
-            top,
-            static_cast<uint32_t>(right - left),
-            static_cast<uint32_t>(bottom - top),
-        },
+        *rect,
     };
 }
 

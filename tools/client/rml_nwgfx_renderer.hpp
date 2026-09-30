@@ -24,10 +24,12 @@ public:
     nw::gfx::CommandList* command_list() const noexcept { return command_list_; }
     void set_generated_textures(
         const std::vector<nw::toolset::RmlGeneratedTexture>* item_icons,
-        const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles) noexcept
+        const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles,
+        const std::vector<nw::toolset::RmlGeneratedTexture>* item_preview = nullptr) noexcept
     {
         item_icon_textures_ = item_icons;
         area_tile_textures_ = area_tiles;
+        item_preview_textures_ = item_preview;
     }
 
     Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> vertices, Rml::Span<const int> indices) override;
@@ -55,6 +57,7 @@ private:
     bool initialized_ = false;
     bool frame_active_ = false;
     bool warned_not_rendering_ = false;
+    const std::vector<nw::toolset::RmlGeneratedTexture>* item_preview_textures_ = nullptr;
     const std::vector<nw::toolset::RmlGeneratedTexture>* item_icon_textures_ = nullptr;
     const std::vector<nw::toolset::RmlGeneratedTexture>* area_tile_textures_ = nullptr;
 };

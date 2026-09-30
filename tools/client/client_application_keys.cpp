@@ -410,6 +410,11 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             if (!synchronize_area_viewport_structure(renderer, state, true)) {
                 dispatch.native_handled = true;
             } else {
+                if (!state.workbench.inventory_item_parents.empty()) {
+                    state.workbench.inventory_item_parents.clear();
+                    state.workbench.inventory_item_area = nw::ObjectHandle{};
+                    state.smalls.publish_active_object(renderer.active_viewer_object());
+                }
                 dispatch.native_handled = nw::toolset::handle_area_object_edit_key(renderer,
                     key_action.kind == nw::toolset::EditorKeyActionKind::remove_object
                         ? nw::toolset::AreaObjectEditKey::remove

@@ -1945,6 +1945,49 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .data_collection_action:active {
   background: #34434f;
 }
+.panel_edit_button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.panel_edit_icon {
+  display: block;
+  position: relative;
+  width: 4dp;
+  height: 15dp;
+  transform: rotate(45deg);
+}
+.panel_edit_icon, .panel_edit_icon * {
+  pointer-events: none;
+}
+.panel_edit_cap, .panel_edit_body {
+  position: absolute;
+  left: 0dp;
+  width: 4dp;
+  background: #aeb8c3;
+}
+.panel_edit_cap { top: 0dp; height: 2dp; }
+.panel_edit_body { top: 3dp; height: 8dp; }
+.panel_edit_tip {
+  position: absolute;
+  left: 0dp;
+  top: 12dp;
+  width: 0dp;
+  height: 0dp;
+  border-left: 2dp transparent;
+  border-right: 2dp transparent;
+  border-top: 3dp #aeb8c3;
+}
+.panel_edit_button:hover .panel_edit_cap,
+.panel_edit_button:hover .panel_edit_body,
+.panel_edit_button:focus .panel_edit_cap,
+.panel_edit_button:focus .panel_edit_body {
+  background: #ffffff;
+}
+.panel_edit_button:hover .panel_edit_tip,
+.panel_edit_button:focus .panel_edit_tip {
+  border-top-color: #ffffff;
+}
 .data_collection_action_mark {
   position: absolute;
   display: block;
@@ -3459,6 +3502,23 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 .creature_equipment_slot * {
   pointer-events: none;
+}
+.creature_equipment_slot .creature_equipment_edit {
+  position: absolute;
+  right: 0dp;
+  bottom: 0dp;
+  width: 24dp;
+  height: 24dp;
+  padding: 0dp;
+  border: 1dp #43505c;
+  background: #202a32;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.creature_equipment_slot .creature_equipment_edit:hover,
+.creature_equipment_slot .creature_equipment_edit:focus {
+  border-color: #bca36a;
+  background: #2b3741;
 }
 .creature_equipment_slot_icon {
   position: absolute;

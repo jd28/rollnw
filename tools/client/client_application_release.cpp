@@ -35,6 +35,12 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
     const int frame_width = surfaces.frame_width;
     const int frame_height = surfaces.frame_height;
 
+    if (state.workbench.item_preview.dragging) {
+        state.workbench.item_preview.dragging = false;
+        system_interface.SetMouseCursor("arrow");
+        dispatch.native_handled = true;
+        return ClientEventFlow::finish;
+    }
     if (state.area_tile_editor.stroke.active
         && event.button.button
             == state.area_tile_editor.stroke.pointer_button) {

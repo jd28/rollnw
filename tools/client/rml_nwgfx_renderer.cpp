@@ -633,10 +633,13 @@ void RmlNwgfxRenderer::ReleaseGeometry(Rml::CompiledGeometryHandle handle)
 Rml::TextureHandle RmlNwgfxRenderer::LoadTexture(Rml::Vector2i& texture_dimensions, const Rml::String& source)
 {
     texture_dimensions = Rml::Vector2i(0, 0);
-    if (item_icon_textures_ || area_tile_textures_) {
+    if (item_icon_textures_ || area_tile_textures_ || item_preview_textures_) {
         const auto* generated = item_icon_textures_
             ? nw::toolset::find_generated_texture(*item_icon_textures_, source)
             : nullptr;
+        if (!generated && item_preview_textures_) {
+            generated = nw::toolset::find_generated_texture(*item_preview_textures_, source);
+        }
         if (!generated && area_tile_textures_) {
             generated = nw::toolset::find_generated_texture(
                 *area_tile_textures_, source);

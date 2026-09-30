@@ -51,7 +51,8 @@ public:
     Rml::RenderInterface* render_interface();
     void set_rml_generated_textures(
         const std::vector<nw::toolset::RmlGeneratedTexture>* item_icons,
-        const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles) noexcept;
+        const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles,
+        const std::vector<nw::toolset::RmlGeneratedTexture>* item_preview = nullptr) noexcept;
     void begin_frame();
     [[nodiscard]] bool render_area_viewport(const std::filesystem::path& project_dir,
         uint64_t module_generation,
@@ -69,6 +70,10 @@ public:
         uint64_t module_generation,
         std::string_view resource_path,
         nw::toolset::ObjectDocument& document);
+    bool render_item_preview(nw::ObjectHandle mannequin, nw::ObjectHandle item,
+        uint64_t revision, ClientViewportRect viewport, int32_t dt_ms);
+    bool drag_item_preview(float dx, float dy);
+    bool zoom_item_preview(float delta);
     void clear_viewer_viewport();
     bool drag_viewer_viewport(ClientViewportDragMode mode,
         float delta_x,

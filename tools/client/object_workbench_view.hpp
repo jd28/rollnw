@@ -4,6 +4,7 @@
 #include "client_input_routes.hpp"
 #include "creature_workbench_view.hpp"
 #include "inventory_workbench_view.hpp"
+#include "item_preview.hpp"
 #include "object_edits.hpp"
 #include "object_workbench.hpp"
 #include "rml_managed_list.hpp"
@@ -155,9 +156,39 @@ struct PendingSoundVolume {
     int32_t desired = 0;
 };
 
+struct InventoryItemParentView {
+    ObjectHandle object{};
+    ObjectWorkbenchSurface surface = ObjectWorkbenchSurface::inventory;
+    int32_t page = 0;
+    ObjectHandle selected_item{};
+};
+
+// One displayed nested Item borrows the Area document's tree. Parent records
+// own presentation facts only, never objects or undo history.
+struct InventoryItemNavigationClick {
+    enum class Kind : uint8_t { none,
+        edit,
+        back };
+    Kind kind = Kind::none;
+    ObjectWorkbenchSurface surface = ObjectWorkbenchSurface::details;
+    ObjectHandle owner{}, item{}, area{};
+    uint64_t module_generation = 0;
+    uint64_t mutation_epoch = 0;
+    std::string tab_id;
+    std::string store_key;
+    int32_t selection = -1;
+    int32_t page = 0;
+};
+
+struct ItemPreviewGenderClick {
+    ObjectHandle item{};
+    int32_t gender = -1;
+};
+
 struct ObjectWorkbenchViewState {
     CreatureWorkbenchViewState creature_view;
     InventoryWorkbenchViewState inventory_view;
+    ItemPreviewState item_preview;
     AppearanceViewState appearance_view;
     ManagedListRenderState managed_lists;
     nw::toolset::ObjectDetailsSnapshot object_details;
@@ -174,6 +205,8 @@ struct ObjectWorkbenchViewState {
     nw::toolset::ObjectVariableSnapshot object_variables;
     nw::toolset::VirtualListController object_variable_list;
     std::string active_object_tab_id;
+    ObjectHandle inventory_item_area{};
+    std::vector<InventoryItemParentView> inventory_item_parents;
     LanguageID toolset_language = LanguageID::english;
     // No language means the String Reference editor is selected.
     std::optional<uint32_t> locstring_row;
@@ -216,7 +249,7 @@ bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
 using ObjectWorkbenchClickPayload = std::variant<ColorEditorClick, ObjectWorkbenchComboClick,
     PlacedAreaObjectClick, ObjectWorkbenchCommandClick, SoundResourceClick,
     AppearanceCatalogClick, ObjectWorkbenchSurfaceClick, InventoryWorkbenchClick,
-    CreatureWorkbenchCommandClick>;
+    CreatureWorkbenchCommandClick, InventoryItemNavigationClick, ItemPreviewGenderClick>;
 struct ObjectWorkbenchClick {
     ObjectWorkbenchClickPayload payload;
     ClientRmlForwardPhase release_phase = ClientRmlForwardPhase::before_native;
@@ -307,6 +340,13 @@ ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_Keyboa
 // switching creatures retains existing feat/spell queries. Mutation refresh keeps
 // source selection/page and class/metamagic. Stale mutation objects reject.
 void activate_object_workbench(ObjectWorkbenchViewState&, ObjectHandle object, std::string_view tab_id);
+// Frame routing is O(1): cold click/mutation boundaries validate attachments.
+[[nodiscard]] ObjectHandle displayed_area_workbench_object(const ObjectWorkbenchViewState&,
+    const WorkspaceState&, ObjectHandle placed_selection);
+// Unwind removed/replaced descendants to the last attached parent. Rows come
+// from collect_placed_item_owners; empty/rejected snapshots clear navigation.
+bool reconcile_inventory_item_navigation(ObjectWorkbenchViewState&, const WorkspaceState&,
+    std::span<const PlacedItemOwnerRow> rows);
 bool refresh_object_workbench_snapshots(ObjectWorkbenchViewState&, ObjectHandle object);
 void clear_object_workbench_children(ObjectWorkbenchViewState&);
 void hydrate_object_workbench(Rml::ElementDocument*, const ObjectWorkbenchViewState&, const WorkspaceState&);

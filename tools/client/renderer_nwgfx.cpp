@@ -144,9 +144,10 @@ Rml::RenderInterface* ClientRendererNwgfx::render_interface()
 
 void ClientRendererNwgfx::set_rml_generated_textures(
     const std::vector<nw::toolset::RmlGeneratedTexture>* item_icons,
-    const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles) noexcept
+    const std::vector<nw::toolset::RmlGeneratedTexture>* area_tiles,
+    const std::vector<nw::toolset::RmlGeneratedTexture>* item_preview) noexcept
 {
-    renderer_.set_generated_textures(item_icons, area_tiles);
+    renderer_.set_generated_textures(item_icons, area_tiles, item_preview);
 }
 
 void ClientRendererNwgfx::begin_frame()
@@ -564,4 +565,22 @@ void ClientRendererNwgfx::shutdown()
         core_ = nullptr;
     }
     window_ = nullptr;
+}
+
+bool ClientRendererNwgfx::render_item_preview(nw::ObjectHandle mannequin, nw::ObjectHandle item,
+    uint64_t revision, ClientViewportRect viewport, int32_t dt_ms)
+{
+    if (!viewer_viewport_) { return mannequin.type == nw::ObjectType::invalid; }
+    renderer_.finish_render_pass();
+    return viewer_viewport_->render_item_preview(renderer_.command_list(), mannequin, item, revision, viewport, dt_ms);
+}
+
+bool ClientRendererNwgfx::drag_item_preview(float dx, float dy)
+{
+    return viewer_viewport_ && viewer_viewport_->drag_item_preview(dx, dy);
+}
+
+bool ClientRendererNwgfx::zoom_item_preview(float delta)
+{
+    return viewer_viewport_ && viewer_viewport_->zoom_item_preview(delta);
 }

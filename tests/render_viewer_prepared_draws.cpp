@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
+#include "../tools/client/appearance_view.hpp"
+#include "../tools/client/item_preview.hpp"
 #include "../tools/client/object_edits.hpp"
+#include "../tools/client/object_workbench.hpp"
 #include "../tools/client/preview_session.hpp"
 #include "../tools/client/workspace.hpp"
 #include "../tools/ui/smalls_object_properties.hpp"
@@ -244,6 +247,211 @@ bool render_viewer_frame(
     nw::gfx::end_frame(context);
     nw::gfx::wait_idle(context);
     return true;
+}
+
+TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWorldSession)
+{
+    namespace viewer = nw::render::viewer;
+    // The development fixtures contain an intentionally truncated female rig.
+    // Render acceptance uses the install's complete bodies without that override.
+    const auto install = nw::kernel::config().install_path();
+    nw::kernel::services().shutdown();
+    nw::kernel::config().set_paths(install, "tmp/item_preview_render_user");
+    nw::kernel::services().start();
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    const std::array bodies{nw::Resource{"pmh0"sv, nw::ResourceType::mdl},
+        nw::Resource{"pfh0"sv, nw::ResourceType::mdl}};
+    if (!resource_payloads_available(bodies)) { GTEST_SKIP() << "full desktop human body assets unavailable"; }
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/ui/scripts/toolset");
+    auto* item = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(item, nullptr);
+    nw::toolset::ObjectDocument item_owner;
+    ASSERT_TRUE(item_owner.adopt(item->handle()));
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto world = device.make_session();
+    ASSERT_TRUE(world->load_area("start"));
+    const auto root = world->scene()->root_object;
+    const auto selected = world->active_object();
+    const auto world_scene = world->scene();
+    const auto camera = world->camera().get_view_matrix();
+    nw::toolset::ItemPreviewState preview;
+    const auto epoch = nw::toolset::object_mutation_state().epoch;
+    ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, epoch));
+    ASSERT_FALSE(preview.icon.empty()) << preview.diagnostic;
+    auto mannequin = device.make_session();
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    std::vector<std::string> previous_models;
+    for (int gender : {0, 1}) {
+        ASSERT_TRUE(nw::toolset::select_item_preview_gender(preview, item->handle(), gender));
+        ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, epoch));
+        ASSERT_NE(preview.mannequin.object().type, nw::ObjectType::invalid) << preview.diagnostic;
+        ASSERT_TRUE(mannequin->load_live_object(preview.mannequin.object(), "Armor mannequin"));
+        ASSERT_FALSE(mannequin->scene()->static_models.empty());
+        EXPECT_FALSE(mannequin->scene()->owns_root_object);
+        if (!previous_models.empty()) { EXPECT_NE(mannequin->scene()->load_report.model_names, previous_models); }
+        previous_models = mannequin->scene()->load_report.model_names;
+        ASSERT_TRUE(mannequin->fit_to_scene(viewport));
+        mannequin->camera().yaw(20.0f);
+        auto* commands = nw::gfx::begin_frame(gfx.context);
+        ASSERT_NE(commands, nullptr);
+        nw::gfx::cmd_begin_render(commands, {}, nw::gfx::RenderLoadOp::clear);
+        nw::gfx::cmd_end_render(commands);
+        mannequin->tick(16);
+        mannequin->render(commands, viewport);
+        ASSERT_TRUE(nw::gfx::capture_screenshot(gfx.context, commands,
+            gender == 0 ? "tmp/item-mannequin-male.png" : "tmp/item-mannequin-female.png"));
+        EXPECT_EQ(world->scene(), world_scene);
+        EXPECT_EQ(world->scene()->root_object, root);
+        EXPECT_EQ(world->active_object(), selected);
+        EXPECT_EQ(world->camera().get_view_matrix(), camera);
+    }
+    const auto before_icon = preview.icon;
+    const auto edit = nw::toolset::make_item_color_edits(runtime, item->handle(),
+        std::array{18}, std::array{0}, std::array{14});
+    ASSERT_TRUE(edit);
+    for (const auto direction : {nw::toolset::ObjectEditDirection::forward, nw::toolset::ObjectEditDirection::inverse}) {
+        ASSERT_TRUE(nw::toolset::apply_object_edits(runtime, *edit, direction).ok());
+        ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{},
+            nw::toolset::object_mutation_state().epoch));
+        ASSERT_TRUE(mannequin->load_live_object(preview.mannequin.object(), "Updated armor mannequin"));
+        if (direction == nw::toolset::ObjectEditDirection::forward) {
+            EXPECT_NE(preview.icon, before_icon);
+        } else {
+            EXPECT_EQ(preview.icon, before_icon);
+        }
+        EXPECT_EQ(world->scene(), world_scene);
+        EXPECT_EQ(world->active_object(), selected);
+        EXPECT_EQ(world->camera().get_view_matrix(), camera);
+    }
+}
+
+TEST(RenderViewerPreparedDraws, PlacedArmorEditsRefreshBodyMaterialsAndSurviveEquipCycles)
+{
+    namespace viewer = nw::render::viewer;
+    namespace toolset = nw::toolset;
+    const auto install = nw::kernel::config().install_path();
+    nw::kernel::services().shutdown();
+    nw::kernel::config().set_paths(install, "tmp/item_preview_render_user");
+    nw::kernel::services().start();
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    if (!resource_payloads_available(std::array{nw::Resource{"pmh0"sv, nw::ResourceType::mdl}})) {
+        GTEST_SKIP() << "full desktop human body assets unavailable";
+    }
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/ui/scripts/toolset");
+    auto& objects = nw::kernel::objects();
+    auto* source = objects.load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(source, nullptr);
+    toolset::ObjectDocument source_owner;
+    ASSERT_TRUE(source_owner.adopt(source->handle()));
+    toolset::ItemPreviewState seed;
+    ASSERT_TRUE(toolset::refresh_item_preview(seed, source->handle(), nw::ObjectHandle{}, 1));
+    auto* actor = objects.get<nw::Creature>(seed.mannequin.object());
+    ASSERT_NE(actor, nullptr) << seed.diagnostic;
+    const auto* armor = nw::get_equipped_item(actor, nw::EquipIndex::chest);
+    ASSERT_NE(armor, nullptr);
+    const auto item = armor->handle();
+
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto world = device.make_session();
+    world->set_preview_scene_load_options({.area_object_editing = true});
+    ASSERT_TRUE(world->load_area("start"));
+    auto* area = objects.get<nw::Area>(world->scene()->root_object);
+    ASSERT_NE(area, nullptr);
+    area->creatures.push_back(actor);
+    (void)seed.mannequin.release(); // The Area now owns this independent test creature.
+    ASSERT_TRUE(objects.components().set_area(actor->handle(), area->handle().id));
+    ASSERT_TRUE(world->synchronize_live_area(area->handle(), actor->handle()));
+    const auto* scene = world->scene();
+    const auto camera = world->camera().get_view_matrix();
+    const auto body_models = [&] {
+        return std::ranges::count_if(scene->static_area_model_info, [&](const auto& row) {
+            return row.object == actor->handle();
+        });
+    };
+    const auto torso_row = [&]() -> nw::ObjectVisualModel {
+        const auto* visual = objects.components().find_visual(actor->handle());
+        if (visual) {
+            for (const auto& row : visual->models) {
+                if (row.kind == nw::ObjectVisualModelKind::creature_model_part
+                    && row.slot == static_cast<int32_t>(nw::EquipIndex::chest) && row.part == 18) { return row; }
+            }
+        }
+        return {};
+    };
+    const auto before = torso_row();
+    ASSERT_FALSE(before.model.empty());
+    ASSERT_GT(body_models(), 1);
+    const auto refresh = [&] {
+        const auto owners = toolset::collect_placed_item_owners(area->handle());
+        ASSERT_TRUE(owners.error.empty()) << owners.error;
+        const auto equipped = std::ranges::find_if(owners.rows, [&](const auto& row) { return row.object == item; });
+        ASSERT_NE(equipped, owners.rows.end());
+        ASSERT_EQ(equipped->visual_object, actor->handle());
+        ASSERT_TRUE(toolset::update_appearance_preview_rows(equipped->visual_object, true));
+        ASSERT_TRUE(world->refresh_live_object_visual(equipped->visual_object));
+        EXPECT_EQ(world->scene(), scene);
+        EXPECT_EQ(world->active_object(), actor->handle());
+        EXPECT_EQ(world->camera().get_view_matrix(), camera);
+        EXPECT_GT(body_models(), 1);
+        std::string failure;
+        EXPECT_TRUE(render_viewer_frame(gfx.context, *world, {0, 0, 256, 256}, failure)) << failure;
+    };
+    const auto check_color = [&](int32_t expected) {
+        const auto torso = torso_row();
+        EXPECT_EQ(torso.plt_colors.data[nw::plt_layer_cloth1], expected);
+        bool found = false;
+        for (size_t index = 0; index < scene->static_models.size(); ++index) {
+            if (scene->static_area_model_info[index].object != actor->handle()
+                || scene->static_models[index]->name != torso.model.view()) { continue; }
+            const auto* instance = scene->model_instances.get(scene->static_model_instance_handles[index]);
+            ASSERT_NE(instance, nullptr);
+            for (const auto handle : instance->material_override_handles) {
+                const auto* material = scene->material_overrides.get(handle);
+                if (material && material->material.plt_enabled) {
+                    EXPECT_EQ(material->material.plt_colors1[0], static_cast<uint32_t>(expected));
+                    found = true;
+                }
+            }
+        }
+        EXPECT_TRUE(found) << "Edited torso must have a rendered PLT material";
+    };
+    const int32_t color = before.plt_colors.data[nw::plt_layer_cloth1] == 14 ? 15 : 14;
+    auto colors = toolset::make_item_color_edits(runtime, item, std::array{18}, std::array{0}, std::array{color});
+    ASSERT_TRUE(colors);
+    for (const auto direction : {toolset::ObjectEditDirection::forward, toolset::ObjectEditDirection::inverse}) {
+        ASSERT_TRUE(toolset::apply_object_edits(runtime, *colors, direction).ok());
+        refresh();
+        check_color(direction == toolset::ObjectEditDirection::forward
+                ? color
+                : before.plt_colors.data[nw::plt_layer_cloth1]);
+    }
+    auto models = toolset::make_item_model_part_edits(runtime, item, std::array{18}, std::array{1});
+    ASSERT_TRUE(models);
+    ASSERT_NE(models->patches.front().before, 1);
+    for (const auto direction : {toolset::ObjectEditDirection::forward, toolset::ObjectEditDirection::inverse}) {
+        ASSERT_TRUE(toolset::apply_object_edits(runtime, *models, direction).ok());
+        refresh();
+        EXPECT_EQ(torso_row().model_part, direction == toolset::ObjectEditDirection::forward ? 1 : models->patches.front().before);
+    }
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        auto edit = toolset::make_creature_inventory_unequip_edit(actor->handle(), nw::EquipIndex::chest);
+        ASSERT_TRUE(edit);
+        ASSERT_TRUE(toolset::apply_creature_inventory_edits(*edit, toolset::ObjectEditDirection::forward).ok());
+        ASSERT_TRUE(world->refresh_live_object_visual(actor->handle()));
+        EXPECT_GT(body_models(), 1);
+        ASSERT_TRUE(toolset::apply_creature_inventory_edits(*edit, toolset::ObjectEditDirection::inverse).ok());
+        refresh();
+        check_color(before.plt_colors.data[nw::plt_layer_cloth1]);
+    }
 }
 
 TEST(RenderViewerPreparedDraws, AreaTileGridSharesFlatEdgesAndPreservesHeightBreaks)
@@ -2317,6 +2525,54 @@ TEST(RenderViewerPreparedDraws, AreaEditsPreserveUnrelatedPlayback)
         ASSERT_TRUE(session->synchronize_live_area(area->handle(), nw::toolset::object_mutation_state().object));
         expect_preserved();
     };
+
+    // Item edits inside an Area rebuild the equipped creature, retaining the
+    // Item identity and the rest of the Area's animation/particle state.
+    auto* actor = nw::kernel::objects().load<nw::Creature>("nw_chicken");
+    auto* weapon = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/wduersc004.uti");
+    ASSERT_TRUE(actor && weapon);
+    ASSERT_TRUE(set_creature_appearance_propset_int(actor, "appearance", 23));
+    area->creatures.push_back(actor);
+    ASSERT_TRUE(components.set_area(actor->handle(), area->handle().id));
+    actor->equipment.equips[static_cast<size_t>(nw::EquipIndex::righthand)] = weapon->handle();
+    ASSERT_TRUE(session->synchronize_live_area(area->handle(), actor->handle()));
+    const auto weapon_handle = weapon->handle();
+    const auto weapon_models = item_model_resrefs_for_test(*weapon);
+    const auto actor_models = models_for(actor->handle());
+    ASSERT_FALSE(actor_models.empty());
+    const auto owners = nw::toolset::collect_placed_item_owners(area->handle());
+    ASSERT_TRUE(owners.error.empty()) << owners.error;
+    const auto equipped = std::ranges::find_if(owners.rows, [&](const auto& row) { return row.object == weapon_handle; });
+    ASSERT_NE(equipped, owners.rows.end());
+    ASSERT_EQ(equipped->visual_object, actor->handle());
+    std::optional<nw::toolset::ObjectEditBatch> weapon_edit;
+    for (size_t part = 0; part < nw::ObjectItemVisualState::model_part_count && !weapon_edit; ++part) {
+        for (int32_t value = 0; value < 256; ++value) {
+            auto candidate = nw::toolset::make_item_model_part_edits(nw::kernel::runtime(), weapon_handle,
+                std::array{static_cast<int32_t>(part)}, std::array{value});
+            if (candidate && candidate->patches.front().before != value) {
+                weapon_edit = std::move(candidate);
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(weapon_edit);
+    auto changed_weapon = nw::toolset::commit_object_edits(std::move(*weapon_edit), "Edit equipped Item", context);
+    ASSERT_TRUE(changed_weapon.ok()) << changed_weapon.message;
+    ASSERT_TRUE(changed_weapon.undo_action);
+    ASSERT_TRUE(session->refresh_live_object_visual(equipped->visual_object));
+    EXPECT_EQ(session->active_object(), actor->handle());
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand)->handle(), weapon_handle);
+    EXPECT_NE(models_for(actor->handle()), actor_models);
+    EXPECT_NE(item_model_resrefs_for_test(*weapon), weapon_models);
+    expect_preserved();
+    ASSERT_TRUE(changed_weapon.undo_action->undo(context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(equipped->visual_object));
+    EXPECT_EQ(item_model_resrefs_for_test(*weapon), weapon_models);
+    expect_preserved();
+    ASSERT_TRUE(changed_weapon.undo_action->redo(context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(equipped->visual_object));
+    expect_preserved();
 
     // Detached ghost cancellation, then promotion and undo/redo use the same
     // authored membership comparison, including stale destroyed handles.

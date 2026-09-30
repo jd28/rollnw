@@ -143,6 +143,21 @@ and original order, including Store category and infinite-stock status. Unequip
 an equipped item before removing it. Inventory removal saves with the blueprint
 or containing area.
 
+For placed instances in an Area, select an inventory item and click the **pencil**
+icon to open it in the Item editor. Occupied equipment slots have their own pencil
+icon. The **left arrow** returns to the owner's inventory, including nested containers.
+These edits use the Area's undo history and save inside its CAF; equipped visual
+changes update the creature. Blueprint inventories do not offer this action.
+
+Every Item workbench shows a live inventory icon. Armor also has a separate
+mannequin preview with **Male** and **Female** controls; drag the preview to
+rotate and scroll to zoom. Armor opened through a humanoid creature starts from
+a copy of that creature's appearance; other entry points use a human. Preview
+controls never change the placed creature. Returning with the left arrow restores
+the Area view and its camera. **Variables** is the last Item editor tab.
+Each colorable appearance part has one palette button; open it to choose among
+the part's cloth, leather, and metal color channels.
+
 **Save as New Blueprint** creates a copy of the selected object without changing
 the original. Resource names must be unique for their type across project
 directories. Creation supports undo/redo; close the new blueprint's editor tab

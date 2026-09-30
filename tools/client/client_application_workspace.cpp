@@ -119,6 +119,29 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
             }
             const auto* active_tab = state.workspace.active_tab();
             const bool area_tab = active_tab && active_tab->kind == nw::toolset::WorkspaceTabKind::area;
+            auto mutation_selection = mutation.object;
+            auto visual_object = mutation.object;
+            bool refresh_workbench = mutation.object == state.workbench.object_details.object;
+            if (area_tab && (mutation.object.type == ObjectType::item || !state.workbench.inventory_item_parents.empty())) {
+                const auto owners = collect_placed_item_owners(active_tab->document.object());
+                if (!owners.error.empty()) { append_output(state, "error", owners.error); }
+                if (reconcile_inventory_item_navigation(state.workbench, state.workspace, owners.rows)) {
+                    state.smalls.publish_active_object(state.workbench.object_details.object);
+                    refresh_workbench = true;
+                }
+                const auto row = std::ranges::find_if(owners.rows,
+                    [&](const auto& value) { return value.object == mutation.object; });
+                if (mutation.object.type == ObjectType::item) {
+                    // Detached items and inventory contents have no world visual.
+                    mutation_selection = row == owners.rows.end() ? ObjectHandle{} : owners.rows[row->root].object;
+                    visual_object = row == owners.rows.end() ? ObjectHandle{} : row->visual_object;
+                }
+                if (row != owners.rows.end()) {
+                    for (auto parent = row->parent; parent != UINT32_MAX; parent = owners.rows[parent].parent) {
+                        refresh_workbench |= owners.rows[parent].object == state.workbench.object_details.object;
+                    }
+                }
+            }
             if (mutation.kind
                 == nw::toolset::ObjectMutationKind::area_lighting) {
                 if (changed_area_visible
@@ -137,17 +160,18 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                         "Failed to rebuild the Encounter spawn preview after spawn-list edit");
                 }
             } else if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
-                if (state.workbench.appearance_view.appearance_body_preview_object == mutation.object
-                    && !update_appearance_preview_rows(mutation.object, false)) {
-                    append_output(state, "error", "Failed to refresh the creature Appearance preview");
-                }
-                bool refreshed = false;
-                if (mutation.visual_kind
-                    == nw::toolset::ObjectVisualMutationKind::debug_geometry) {
-                    refreshed = area_tab && renderer.refresh_live_viewer_debug_geometry(mutation.object);
-                } else if (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail
-                    || mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance) {
-                    refreshed = renderer.refresh_live_viewer_object_visual(mutation.object);
+                // An equipped Item edit materializes the Item's icon/ground
+                // visual. Refresh its wearer's body rows before rebuilding models.
+                const bool rows_ready = visual_object.type != ObjectType::creature
+                    || update_appearance_preview_rows(visual_object,
+                        state.workbench.appearance_view.appearance_body_preview_object != visual_object);
+                bool refreshed = visual_object.type == ObjectType::invalid;
+                if (rows_ready && mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::debug_geometry) {
+                    refreshed = area_tab && renderer.refresh_live_viewer_debug_geometry(visual_object);
+                } else if (rows_ready && visual_object.type != ObjectType::invalid
+                    && (mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::detail
+                        || mutation.visual_kind == nw::toolset::ObjectVisualMutationKind::base_appearance)) {
+                    refreshed = renderer.refresh_live_viewer_object_visual(visual_object);
                 }
                 if (!refreshed) {
                     append_output(state, "error", "Failed to refresh the live object viewport after visual edit");
@@ -156,19 +180,20 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
             if (area_tab
                 && state.area_workspace_surface
                     == AreaWorkspaceSurface::objects
-                && editable_area_object(mutation.object)
-                && renderer.active_viewer_object() != mutation.object) {
-                renderer.set_viewer_area_object_selection(mutation.object);
+                && editable_area_object(mutation_selection)
+                && renderer.active_viewer_object() != mutation_selection) {
+                renderer.set_viewer_area_object_selection(mutation_selection);
             }
-            if (mutation.object == state.workbench.object_details.object && active_object_details_matches_tab(state)) {
+            if (refresh_workbench && active_object_details_matches_tab(state)) {
+                const auto displayed_object = state.workbench.object_details.object;
                 bool workbench_rebuilt = false;
-                (void)nw::toolset::refresh_object_workbench_snapshots(state.workbench, mutation.object);
-                const bool smalls_appearance_mutation = mutation.object.type == nw::ObjectType::door
-                    || mutation.object.type == nw::ObjectType::item;
+                (void)nw::toolset::refresh_object_workbench_snapshots(state.workbench, displayed_object);
+                const bool smalls_appearance_mutation = displayed_object.type == nw::ObjectType::door
+                    || displayed_object.type == nw::ObjectType::item;
                 if (state.workbench.object_workbench_surface == ObjectWorkbenchSurface::appearance
-                    && appearance_catalog_kind(mutation.object.type)
-                    && mutation.object.type != nw::ObjectType::placeable) {
-                    rebuild_active_appearances(state, mutation.object);
+                    && appearance_catalog_kind(displayed_object.type)
+                    && displayed_object.type != nw::ObjectType::placeable) {
+                    rebuild_active_appearances(state, displayed_object);
                     if (mutation.kind == nw::toolset::ObjectMutationKind::visual) {
                         refresh_workspace_content(doc, state);
                         workbench_rebuilt = true;
