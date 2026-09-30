@@ -522,16 +522,6 @@ fn _resolve_body_part_value(value: int, mirror_value: int): int {
     return value;
 }
 
-fn _resolve_armor_part_value(value: int, mirror_value: int): int {
-    if (value == 0 || value == 255) {
-        if (mirror_value != 0 && mirror_value != 255) {
-            return mirror_value;
-        }
-        return value;
-    }
-    return value;
-}
-
 fn _body_part_tattoo_model_uses_tattoo_palette(part: int): bool {
     return part == Cre.body_part_bicep_left
         || part == Cre.body_part_bicep_right
@@ -827,7 +817,7 @@ fn _update_humanoid_visual_robe(
     }
 
     var robe_model = NativeCreature.body_part_model(
-        assembly, Cre.body_part_robe, robe_part, false);
+        assembly, Cre.body_part_robe, robe_part);
     if (_resref_empty(robe_model)) {
         return true;
     }
@@ -864,42 +854,23 @@ fn _update_humanoid_visual_body_part(
     var model_part = creature_model_part;
     var slot = Visual.visual_model_slot_none;
     var item_part = -1;
-    var prefer_mirror = false;
-    var mirror_part = NativeCreature.body_part_mirror(assembly, part);
 
     if (chest_is_armor) {
         var armor_part = _body_part_armor_part(part);
         if (armor_part >= 0) {
-            var raw_armor_model_part = NwnItem.get_visual_model_part(chest_item, armor_part);
-            var armor_model_part = raw_armor_model_part;
-            var inherited_from_mirror = false;
-            if (mirror_part >= 0) {
-                var mirror_armor_part = _body_part_armor_part(mirror_part);
-                if (mirror_armor_part >= 0) {
-                    var mirrored_model_part = NwnItem.get_visual_model_part(chest_item, mirror_armor_part);
-                    armor_model_part = _resolve_armor_part_value(armor_model_part, mirrored_model_part);
-                    inherited_from_mirror = (raw_armor_model_part == 0 || raw_armor_model_part == 255)
-                        && mirrored_model_part != 0
-                        && mirrored_model_part != 255;
-                    prefer_mirror = inherited_from_mirror;
-                    if (inherited_from_mirror) {
-                        item_part = mirror_armor_part;
-                    }
-                }
-            }
+            // Item None leaves this part unset; only creature body parts inherit variations.
+            var armor_model_part = NwnItem.get_visual_model_part(chest_item, armor_part);
             armor_model_part = _resolve_armor_skin_tattoo_model_part(part, creature_model_part, armor_model_part);
             if (armor_model_part > 0 && armor_model_part != 255) {
                 model_part = armor_model_part;
                 slot = Const.equip_index_chest as int;
-                if (item_part < 0) {
-                    item_part = armor_part;
-                }
+                item_part = armor_part;
             }
         }
     }
 
     var resolved = NativeCreature.body_part_model(
-        assembly, part, model_part, prefer_mirror);
+        assembly, part, model_part);
     if (_resref_empty(resolved)) {
         return true;
     }

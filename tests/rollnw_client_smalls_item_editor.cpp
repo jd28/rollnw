@@ -9,13 +9,17 @@
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/rules/items.hpp>
+#include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/runtime.hpp>
+
+#include <nlohmann/json.hpp>
 
 #include <array>
 #include <limits>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace nwk = nw::kernel;
 
@@ -560,15 +564,98 @@ TEST(ClientSmallsItemEditor, ColorRowsFollowBaseItemVisualShape)
     const auto* layered_colors = item_rows(
         runtime, item->handle(), "get_item_editor_color_rows");
     ASSERT_NE(layered_colors, nullptr);
-    ASSERT_EQ(layered_colors->size(), 6);
+    ASSERT_EQ(layered_colors->size(), 12);
     for (size_t index = 0; index < layered_colors->size(); ++index) {
         nw::smalls::Value row;
         ASSERT_TRUE(layered_colors->get_value(index, row, runtime));
-        EXPECT_EQ(read_int_field(runtime, row, "part"), 0);
+        EXPECT_EQ(read_int_field(runtime, row, "part"), index < 6 ? -1 : 0);
     }
 
     ASSERT_TRUE(write_item_stats_int(runtime, item->handle(), "base_item", 16));
-    EXPECT_EQ(color_count(), 19 * 6);
+    EXPECT_EQ(color_count(), 20 * 6);
+}
+
+TEST(ClientSmallsItemEditor, GlobalColorsPreserveOverridesThroughUndoAndSerialization)
+{
+    ASSERT_NE(nwk::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto* item = nwk::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(item, nullptr);
+    auto& runtime = nwk::runtime();
+    auto& components = nwk::objects().components();
+    auto* visuals = components.get_or_create_item_visuals(item->handle());
+    ASSERT_NE(visuals, nullptr);
+    const std::array<uint8_t, 6> original{1, 2, 3, 4, 5, 6};
+    visuals->model_colors = original;
+    visuals->part_colors.fill(255);
+    visuals->part_colors[18 * 6] = 31;
+    const auto original_parts = visuals->part_colors;
+    const std::array parts{-1, -1, -1, -1, -1, -1};
+    const std::array channels{0, 1, 2, 3, 4, 5};
+    const std::array values{14, 15, 16, 17, 18, 19};
+    auto edit = nw::toolset::make_item_color_edits(runtime, item->handle(), parts, channels, values);
+    ASSERT_TRUE(edit);
+    ASSERT_EQ(edit->patches.size(), 6u);
+
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:item", "Item", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    auto result = nw::toolset::commit_object_edits(std::move(*edit), "Set Item colors", context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    ASSERT_TRUE(result.undo_action);
+    workspace.push_undo(*result.undo_action);
+    const auto check_colors = [&](bool edited) {
+        const auto* current = components.find_item_visuals(item->handle());
+        ASSERT_NE(current, nullptr);
+        EXPECT_EQ(current->part_colors, original_parts);
+        for (size_t i = 0; i < channels.size(); ++i) {
+            EXPECT_EQ(current->model_colors[i], edited ? values[i] : original[i]);
+        }
+        for (const int32_t part : {0, 18}) {
+            const auto* rows = item_rows(runtime, item->handle(), "get_item_color_editor_rows", part);
+            ASSERT_NE(rows, nullptr);
+            ASSERT_EQ(rows->size(), 6u);
+            nw::smalls::Value row;
+            ASSERT_TRUE(rows->get_value(0, row, runtime));
+            EXPECT_EQ(read_int_field(runtime, row, "value"), part == 18 ? 31 : (edited ? values[0] : original[0]));
+            EXPECT_EQ(read_bool_field(runtime, row, "inherited"), part != 18);
+        }
+    };
+    check_colors(true);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    check_colors(false);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    check_colors(true);
+
+    for (const int32_t invalid : {-1, 176, 255}) {
+        EXPECT_FALSE(nw::toolset::make_item_color_edits(runtime, item->handle(), std::array{-1}, std::array{0}, std::array{invalid}));
+    }
+    EXPECT_FALSE(nw::toolset::make_item_color_edits(runtime, item->handle(), std::array{-1}, std::array{6}, std::array{0}));
+    // The complete protocol contains all globals and all part overrides.
+    std::vector<int32_t> all_parts, all_channels, all_values;
+    for (int32_t part = -1; part < 19; ++part) {
+        for (int32_t color = 0; color < 6; ++color) {
+            all_parts.push_back(part);
+            all_channels.push_back(color);
+            all_values.push_back(part == -1 ? values[color] : 255);
+        }
+    }
+    auto complete = nw::toolset::make_item_color_edits(runtime, item->handle(), all_parts, all_channels, all_values);
+    ASSERT_TRUE(complete);
+    EXPECT_EQ(complete->patches.size(), 120u);
+    check_colors(true);
+
+    nlohmann::json archive;
+    ASSERT_TRUE(nw::serialize(item, archive, nw::SerializationProfile::blueprint));
+    auto* restored = nwk::objects().make<nw::Item>();
+    ASSERT_NE(restored, nullptr);
+    ASSERT_TRUE(nw::deserialize(restored, archive, nw::SerializationProfile::blueprint));
+    const auto* restored_visuals = components.find_item_visuals(restored->handle());
+    ASSERT_NE(restored_visuals, nullptr);
+    EXPECT_EQ(restored_visuals->model_colors, components.find_item_visuals(item->handle())->model_colors);
+    EXPECT_EQ(restored_visuals->part_colors, original_parts);
+    nwk::objects().destroy(restored->handle());
 }
 
 TEST(ClientSmallsItemEditor, RejectsInvalidObjectsAndUnavailableParts)
@@ -646,7 +733,7 @@ TEST(ClientSmallsItemEditor, LayeredColorEditsRoundTripThroughOpaqueSmallsKeys)
     auto& runtime = nwk::runtime();
     ASSERT_TRUE(write_item_stats_int(runtime, item->handle(), "base_item", 17));
     const auto* rows = item_rows(
-        runtime, item->handle(), "get_item_editor_color_rows");
+        runtime, item->handle(), "get_item_color_editor_rows", 0);
     nw::smalls::Value row;
     ASSERT_NE(rows, nullptr);
     ASSERT_GT(rows->size(), 0);

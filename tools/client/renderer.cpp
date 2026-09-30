@@ -753,13 +753,13 @@ void ClientRenderer::shutdown()
     backend_ = Backend::none;
 }
 
-bool ClientRenderer::render_item_preview(nw::ObjectHandle mannequin, nw::ObjectHandle item,
+bool ClientRenderer::render_item_preview(nw::ObjectHandle object, nw::ObjectHandle item,
     uint64_t revision, ClientViewportRect viewport, int32_t dt_ms)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
-    if (backend_ == Backend::nwgfx) { return nwgfx_.render_item_preview(mannequin, item, revision, viewport, dt_ms); }
+    if (backend_ == Backend::nwgfx) { return nwgfx_.render_item_preview(object, item, revision, viewport, dt_ms); }
 #endif
-    (void)mannequin;
+    (void)object;
     (void)item;
     (void)revision;
     (void)viewport;

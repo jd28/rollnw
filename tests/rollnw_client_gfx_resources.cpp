@@ -18,6 +18,143 @@
 #include <array>
 #include <filesystem>
 
+TEST(ClientGfxResources, ItemAppearanceActionsAlignAtEditorWidths)
+{
+    using namespace nw::gfx;
+    const bool owns_video = (SDL_WasInit(SDL_INIT_VIDEO) & SDL_INIT_VIDEO) == 0;
+    if (owns_video) {
+        SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+        ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
+    }
+    const auto video = create_scope_exit([&] { if (owns_video) { SDL_QuitSubSystem(SDL_INIT_VIDEO); } });
+    auto* core = create_core({.app_name = "item-appearance-actions", .enable_validation = true});
+    ASSERT_NE(core, nullptr);
+    auto* ctx = create_context(core, {.width = 1000, .height = 760});
+    const auto graphics = create_scope_exit([&] {
+        if (ctx) { destroy_context(ctx); }
+        const auto report = validation_report(core);
+        EXPECT_EQ(report.error_count, 0u) << report.first_error;
+        EXPECT_EQ(report.warning_count, 0u) << report.first_warning;
+        destroy_core(core);
+    });
+    ASSERT_NE(ctx, nullptr);
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false));
+    auto* item = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(item, nullptr);
+    const auto item_cleanup = create_scope_exit([&] { nw::kernel::objects().destroy(item->handle()); });
+    nw::toolset::VirtualListHost lists;
+    nw::toolset::ItemEditor editor;
+    ASSERT_TRUE(editor.refresh(nw::kernel::runtime(), item->handle(), lists));
+    ASSERT_EQ(editor.appearance_input().parts.size(), 19u);
+    const std::filesystem::path root{ROLLNW_TEST_SOURCE_DIR};
+    RmlNwgfxRenderer renderer;
+    ASSERT_TRUE(renderer.initialize(core, ctx));
+    Rml::SystemInterface system;
+    nw::toolset::ClientRmlRuntime ui{root / "tools/client/ui", nw::kernel::resman()};
+    ASSERT_TRUE(ui.initialize(system, renderer, std::filesystem::path{ROLLNW_TEST_CLIENT_EXECUTABLE}.parent_path(), {1000, 760}));
+    auto* context = ui.contexts().toolset;
+    renderer.on_resize(1000, 760, context);
+    nw::toolset::ItemEditorDataModel model;
+    ASSERT_TRUE(model.initialize(*context, [](auto, auto, auto&) { return true; }));
+    model.refresh(editor.appearance_input());
+    // Render the actual editor pane; scene preview compositing is tested separately.
+    auto* document = context->LoadDocumentFromMemory(
+        "<rml><head><link type='text/css' href='ui/panel.rcss'/>"
+        "<link type='text/css' href='ui/item_editor.rcss'/>"
+        "<link type='text/template' href='ui/object_locstring_editor.rml'/>"
+        "<link type='text/template' href='ui/item_editor.rml'/>"
+        "<style>.object_workbench.item_workbench {width:100%; height:100%;} #item_preview {display:none;}</style>"
+        "</head><body><template src='item-workbench'/></body></rml>");
+    ASSERT_NE(document, nullptr);
+    document->Show();
+    context->Update();
+    auto* appearance = document->GetElementById("item_surface_appearance");
+    ASSERT_NE(appearance, nullptr);
+    appearance->SetClass("active", true);
+    document->GetElementById("item_tab_appearance")->SetClass("active", true);
+    std::filesystem::create_directories("tmp");
+    const auto capture = [&](const std::string& name) {
+        EXPECT_TRUE(renderer.begin_frame());
+        context->Update();
+        context->Render();
+        renderer.finish_render_pass();
+        EXPECT_TRUE(capture_screenshot(ctx, renderer.command_list(), name.c_str()));
+        // Screenshot submits its frame; resume renderer ownership before teardown.
+        EXPECT_TRUE(renderer.begin_frame());
+        context->Render();
+        renderer.end_frame();
+    };
+    const auto check_header_action = [&](const char* id) {
+        auto* button = document->GetElementById(id);
+        EXPECT_NE(button, nullptr);
+        if (!button) { return; }
+        EXPECT_TRUE(button->IsVisible(true));
+        auto* header = button->GetParentNode();
+        EXPECT_NEAR(button->GetOffsetHeight(), 27.0f, 0.1f);
+        EXPECT_NEAR(button->GetAbsoluteTop() + button->GetOffsetHeight() / 2,
+            header->GetAbsoluteTop() + (header->GetOffsetHeight() - 1) / 2, 1.0f);
+        EXPECT_NEAR(button->GetAbsoluteLeft() + button->GetOffsetWidth(),
+            header->GetAbsoluteLeft() + header->GetOffsetWidth() - 9, 1.0f);
+        auto* label = button->GetChild(0);
+        ASSERT_NE(label, nullptr);
+        EXPECT_GT(label->GetOffsetWidth(), 0.0f);
+        EXPECT_NEAR(label->GetAbsoluteLeft() + label->GetOffsetWidth() / 2,
+            button->GetAbsoluteLeft() + button->GetOffsetWidth() / 2, 1.0f);
+    };
+    for (const int width : {560, 1000}) {
+        SCOPED_TRACE(width);
+        document->GetElementById("object_workbench")->SetProperty("width", std::to_string(width) + "px");
+        ASSERT_TRUE(editor.close_appearance(lists));
+        model.refresh(editor.appearance_input());
+        context->Update();
+        auto* global_reset = document->GetElementById("item_global_reset");
+        auto* global_color = document->GetElementById("item_global_color");
+        ASSERT_NE(global_reset, nullptr);
+        ASSERT_NE(global_color, nullptr);
+        auto* header = global_reset->GetParentNode()->GetParentNode();
+        EXPECT_NEAR(global_reset->GetAbsoluteLeft() + global_reset->GetOffsetWidth(),
+            header->GetAbsoluteLeft() + header->GetOffsetWidth() - 9, 1.0f);
+        EXPECT_NEAR(global_reset->GetAbsoluteTop() + global_reset->GetOffsetHeight() / 2,
+            header->GetAbsoluteTop() + (header->GetOffsetHeight() - 1) / 2, 1.0f);
+        Rml::ElementList resets;
+        document->GetElementsByClassName(resets, "item_model_reset");
+        size_t visible_resets = 0;
+        for (auto* reset : resets) {
+            if (!reset->IsVisible(true)) { continue; }
+            ++visible_resets;
+            auto* color = reset->GetPreviousSibling();
+            ASSERT_NE(color, nullptr);
+            EXPECT_NEAR(reset->GetOffsetHeight(), color->GetOffsetHeight(), 0.1f);
+            EXPECT_NEAR(reset->GetOffsetWidth(), color->GetOffsetWidth(), 0.1f);
+            EXPECT_NEAR(reset->GetAbsoluteTop(), color->GetAbsoluteTop(), 0.1f);
+            EXPECT_NEAR(reset->GetAbsoluteLeft(), global_reset->GetAbsoluteLeft(), 1.0f);
+            EXPECT_NEAR(color->GetAbsoluteLeft(), global_color->GetAbsoluteLeft(), 1.0f);
+            auto* glyph = reset->GetChild(0);
+            ASSERT_NE(glyph, nullptr);
+            EXPECT_TRUE(glyph->IsClassSet("panel_close_glyph"));
+            EXPECT_NEAR(glyph->GetAbsoluteTop() + glyph->GetOffsetHeight() / 2,
+                reset->GetAbsoluteTop() + reset->GetOffsetHeight() / 2, 1.0f);
+        }
+        EXPECT_EQ(visible_resets, 20u);
+        Rml::ElementList part_resets;
+        document->GetElementsByClassName(part_resets, "item_part_model_reset");
+        EXPECT_EQ(std::count_if(part_resets.begin(), part_resets.end(), [](Rml::Element* reset) {
+            return reset->IsVisible(true) && reset->GetAttribute<Rml::String>("title", "") == "Clear variation (None)";
+        }),
+            1);
+        capture("tmp/item-appearance-actions-" + std::to_string(width) + ".png");
+        ASSERT_TRUE(editor.open_color(18, 0, lists));
+        model.refresh(editor.appearance_input());
+        context->Update();
+        check_header_action("item_color_inherit");
+        capture("tmp/item-inherit-action-" + std::to_string(width) + ".png");
+    }
+    model.shutdown();
+    ui.release_render_resources();
+    ui.shutdown();
+    renderer.shutdown();
+}
+
 TEST(ClientGfxResources, AreaPreviewAndUiTransitionsRetireSubmittedResourcesSafely)
 {
     using namespace nw::gfx;

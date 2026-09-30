@@ -402,13 +402,13 @@ std::optional<WorkspaceViewerViewportRequest> render_client_workspace(ClientAppl
     auto& preview = state.workbench.item_preview;
     const auto rect = nw::toolset::element_viewport_rect(doc, "item_preview_viewport",
         surfaces.frame_width, surfaces.frame_height);
-    const auto mannequin = rect && preview.item == state.workbench.object_details.object
-        ? preview.mannequin.object()
+    const auto object = rect && preview.item == state.workbench.object_details.object
+        ? preview.preview_object()
         : nw::ObjectHandle{};
-    if (!renderer.render_item_preview(mannequin, preview.item, preview.revision,
+    if (!renderer.render_item_preview(object, preview.item, preview.revision,
             rect.value_or(ClientViewportRect{}), frame_delta_ms)
-        && mannequin.type != nw::ObjectType::invalid) {
-        preview.diagnostic = "Armor mannequin could not be rendered with the loaded resources.";
+        && object.type != nw::ObjectType::invalid) {
+        preview.diagnostic = "3D preview unavailable. Check the loaded model resources.";
     }
     return viewer_viewport;
 }

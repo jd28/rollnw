@@ -140,7 +140,8 @@ std::optional<ItemEditorSnapshot> read_snapshot(
                     && read_bool(runtime, value, "per_part_colors",
                         row.per_part_colors)
                     && read_bool(runtime, value, "split_model_variation",
-                        row.split_model_variation);
+                        row.split_model_variation)
+                    && read_int(runtime, value, "reset_value", row.reset_value);
             })
         || !copy_rows(runtime,
             read_array(runtime, result.value, "colors"), snapshot.colors,

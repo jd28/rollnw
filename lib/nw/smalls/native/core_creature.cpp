@@ -341,17 +341,9 @@ bool body_part_option_exists(
 }
 
 nw::Resref body_part_model(
-    int32_t assembly, int32_t part_id, int32_t option_id, bool prefer_mirror)
+    int32_t assembly, int32_t part_id, int32_t option_id)
 {
     const auto& catalog = nw::kernel::rules().creature_body_parts;
-    if (prefer_mirror) {
-        const auto* part = catalog.part(assembly, part_id);
-        if (part && part->mirror_part_id >= 0) {
-            const auto* mirrored = catalog.option(
-                assembly, part->mirror_part_id, option_id);
-            if (mirrored && !mirrored->model.empty()) { return mirrored->model; }
-        }
-    }
     const auto* option = catalog.option(assembly, part_id, option_id);
     return option ? option->model : nw::Resref{};
 }

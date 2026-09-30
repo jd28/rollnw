@@ -4629,6 +4629,7 @@ TEST_F(ClientInventoryWorkbench, ItemPreviewOwnsArmorCopyAndGenderNeverMutatesSo
     ASSERT_TRUE(refresh_item_preview(preview, item->handle(), actor->handle(), epoch));
     ASSERT_TRUE(preview.armor);
     ASSERT_NE(preview.mannequin.object().type, nw::ObjectType::invalid) << preview.diagnostic;
+    EXPECT_EQ(preview.preview_object(), preview.mannequin.object());
     const auto original_mannequin = preview.mannequin.object();
     auto* mannequin = objects.get<nw::Creature>(original_mannequin);
     ASSERT_NE(mannequin, nullptr);
@@ -4739,16 +4740,36 @@ TEST_F(ClientInventoryWorkbench, ItemPreviewDoesNotCreateMannequinsForOrdinaryIt
     auto& objects = nw::kernel::objects();
     auto* item = objects.load<nw::Item>("nw_wswss001");
     ASSERT_NE(item, nullptr);
+    nlohmann::json before, after;
+    ASSERT_TRUE(nw::serialize(item, before, nw::SerializationProfile::instance));
     ItemPreviewState preview;
     ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, 1));
     EXPECT_FALSE(preview.armor);
+    EXPECT_EQ(preview.preview_object(), item->handle());
     EXPECT_EQ(preview.mannequin.object().type, nw::ObjectType::invalid);
     EXPECT_FALSE(select_item_preview_gender(preview, item->handle(), 1));
     EXPECT_FALSE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, 1));
     const auto handle = item->handle();
+    auto* armor = objects.load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(armor, nullptr);
+    ASSERT_TRUE(refresh_item_preview(preview, armor->handle(), nw::ObjectHandle{}, 1));
+    const auto mannequin = preview.preview_object();
+    ASSERT_EQ(mannequin.type, nw::ObjectType::creature);
+    ASSERT_TRUE(refresh_item_preview(preview, handle, nw::ObjectHandle{}, 1));
+    EXPECT_EQ(preview.preview_object(), handle);
+    EXPECT_FALSE(objects.valid(mannequin));
+    EXPECT_TRUE(objects.valid(armor->handle()));
+    ASSERT_TRUE(nw::serialize(item, after, nw::SerializationProfile::instance));
+    EXPECT_EQ(after, before);
+    ASSERT_TRUE(refresh_item_preview(preview, nw::ObjectHandle{}, nw::ObjectHandle{}, 1));
+    EXPECT_EQ(preview.preview_object().type, nw::ObjectType::invalid);
+    EXPECT_TRUE(objects.valid(handle));
+    ASSERT_TRUE(refresh_item_preview(preview, handle, nw::ObjectHandle{}, 1));
     objects.destroy(handle);
     EXPECT_TRUE(refresh_item_preview(preview, handle, nw::ObjectHandle{}, 1));
     EXPECT_EQ(preview.item.type, nw::ObjectType::invalid);
+    EXPECT_EQ(preview.preview_object().type, nw::ObjectType::invalid);
+    objects.destroy(armor->handle());
 }
 
 TEST_F(ClientInventoryWorkbench, PlacedInventoryItemsNavigateBackAndUseAreaHistoryAndSave)

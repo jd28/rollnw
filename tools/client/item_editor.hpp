@@ -51,6 +51,7 @@ struct ItemEditorPart {
     std::string detail;
     bool per_part_colors = false;
     bool split_model_variation = false;
+    int32_t reset_value = 1;
 };
 
 struct ItemEditorColor {

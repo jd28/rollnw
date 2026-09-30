@@ -65,6 +65,7 @@ struct ItemEditorDataModel::Impl {
         std::string display;
         std::string model_id;
         std::string variation_id;
+        std::string reset_title;
         int32_t color = -1;
         bool split = false;
         bool model_active = false;
@@ -78,6 +79,7 @@ struct ItemEditorDataModel::Impl {
         live = false;
         mode = static_cast<int32_t>(ItemEditorAppearanceMode::main);
         has_parts = false;
+        global_color = -1;
         color_valid = false;
         can_inherit = false;
         parts.clear();
@@ -106,6 +108,12 @@ struct ItemEditorDataModel::Impl {
 
     void build_main(ItemEditorAppearanceInput input)
     {
+        for (const auto& color : input.colors) {
+            if (color.part == -1 && valid_color_row(color)) {
+                global_color = color.color;
+                break;
+            }
+        }
         parts.reserve(input.parts.size());
         for (const auto& source : input.parts) {
             if (source.part < 0
@@ -124,6 +132,7 @@ struct ItemEditorDataModel::Impl {
                     : source.detail,
                 .model_id = model_field_id(source.part, 0),
                 .variation_id = model_field_id(source.part, 1),
+                .reset_title = source.reset_value == 0 ? "Clear variation (None)" : "Reset variation to 1",
                 .split = source.split_model_variation,
                 .model_active = input.model_part == source.part
                     && input.model_axis == 0,
@@ -160,7 +169,7 @@ struct ItemEditorDataModel::Impl {
         }
 
         if (input.color_part < 0) {
-            color_title = "Item Colors";
+            color_title = "Global colors";
         } else {
             const auto part = std::ranges::find(
                 input.parts, input.color_part, &ItemEditorPart::part);
@@ -285,6 +294,26 @@ struct ItemEditorDataModel::Impl {
         }
     }
 
+    void on_reset_model(Rml::DataModelHandle, Rml::Event&,
+        const Rml::VariantList& input)
+    {
+        std::array<int32_t, 1> arguments{};
+        if (read_arguments(input, arguments)) {
+            dispatch_command("toolset.item.appearance.reset_model", arguments,
+                model_field_id(arguments[0], 0));
+        }
+    }
+
+    void on_reset_models(Rml::DataModelHandle, Rml::Event&,
+        const Rml::VariantList& input)
+    {
+        std::array<int32_t, 0> arguments{};
+        if (read_arguments(input, arguments)) {
+            dispatch_command("toolset.item.appearance.reset_models", arguments,
+                "item_global_reset");
+        }
+    }
+
     void on_open_color(Rml::DataModelHandle, Rml::Event&,
         const Rml::VariantList& input)
     {
@@ -350,6 +379,7 @@ struct ItemEditorDataModel::Impl {
             && part.RegisterMember("display", &PartRow::display)
             && part.RegisterMember("model_id", &PartRow::model_id)
             && part.RegisterMember("variation_id", &PartRow::variation_id)
+            && part.RegisterMember("reset_title", &PartRow::reset_title)
             && part.RegisterMember("color", &PartRow::color)
             && part.RegisterMember("split", &PartRow::split)
             && part.RegisterMember("model_active", &PartRow::model_active)
@@ -367,6 +397,7 @@ struct ItemEditorDataModel::Impl {
         return constructor.Bind("live", &live)
             && constructor.Bind("mode", &mode)
             && constructor.Bind("has_parts", &has_parts)
+            && constructor.Bind("global_color", &global_color)
             && constructor.Bind("color_valid", &color_valid)
             && constructor.Bind("can_inherit", &can_inherit)
             && constructor.Bind("parts", &parts)
@@ -380,6 +411,10 @@ struct ItemEditorDataModel::Impl {
             && constructor.Bind("error", &error)
             && constructor.BindEventCallback(
                 "open_model", &Impl::on_open_model, this)
+            && constructor.BindEventCallback(
+                "reset_model", &Impl::on_reset_model, this)
+            && constructor.BindEventCallback(
+                "reset_models", &Impl::on_reset_models, this)
             && constructor.BindEventCallback("close_appearance",
                 &Impl::on_close, this)
             && constructor.BindEventCallback(
@@ -407,6 +442,7 @@ struct ItemEditorDataModel::Impl {
     std::string selected_top;
     std::string error;
     int32_t mode = static_cast<int32_t>(ItemEditorAppearanceMode::main);
+    int32_t global_color = -1;
     bool live = false;
     bool has_parts = false;
     bool color_valid = false;

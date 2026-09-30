@@ -27,6 +27,11 @@ struct ItemPreviewState {
     bool armor = false;
     bool dirty = true;
     bool dragging = false;
+
+    [[nodiscard]] ObjectHandle preview_object() const noexcept
+    {
+        return armor ? mannequin.object() : item;
+    }
 };
 
 // Cold singleton refresh. Invalid/stale identities clear the preview. Errors

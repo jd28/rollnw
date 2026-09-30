@@ -12,7 +12,9 @@
 #include <nw/objects/Placeable.hpp>
 #include <nw/objects/Player.hpp>
 #include <nw/objects/Store.hpp>
+#include <nw/profiles/nwn1/body_part_catalog.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
+#include <nw/resources/StaticDirectory.hpp>
 #include <nw/rules/combat.hpp>
 #include <nw/rules/feats.hpp>
 #include <nw/smalls/Array.hpp>
@@ -24,6 +26,7 @@
 #include <array>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <initializer_list>
 #include <limits>
 
@@ -1310,6 +1313,114 @@ TEST_F(SmallsEngineIntegration, Nwn1HumanoidArmorKeepsSideSpecificThighModels)
     EXPECT_EQ(right_thigh->model, nw::Resref{"pma0_legr004"});
 
     nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1HumanoidMirrorsBodyVariationsButKeepsArmorPartsIndependent)
+{
+    auto& rt = nw::kernel::runtime();
+    ASSERT_TRUE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto* creature = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(creature, nullptr);
+    ASSERT_TRUE(seed_creature_appearance_propset(creature, nw::Appearance::make(6), 1, 1));
+    ASSERT_TRUE(creature->instantiate());
+    auto* armor = nw::kernel::objects().make<nw::Item>();
+    ASSERT_NE(armor, nullptr);
+    ASSERT_TRUE(rollnw::tests::deserialize_item_from_gff(armor, {
+                                                                    .base_item = nw::BaseItem::make(16),
+                                                                    .model_shape = rollnw::tests::TestItemModelShape::layered,
+                                                                    .model_colors = {31, 32, 33, 34, 35, 36},
+                                                                }));
+    ASSERT_TRUE(armor->instantiate());
+    ASSERT_TRUE(nw::equip_item_in_slot(creature, armor, nw::EquipIndex::chest));
+
+    auto* script = rt.load_module_from_source("test.independent_armor_parts", R"(
+        import nwn1.creature as Cre;
+        import nwn1.creature_state as State;
+        import nwn1.item as Item;
+
+        fn update(target: Creature, armor: Item, left: int, right: int, reverse: bool): bool {
+            var body_parts: array!(int) = {State.body_part_thigh_left, State.body_part_thigh_right};
+            var body_values: array!(int) = {reverse ? 255 : 1, reverse ? 1 : 255};
+            if (!Cre.set_body_parts(target, body_parts, body_values)) { return false; }
+            var parts: array!(int) = {Item.item_model_part_armor_lshoul, Item.item_model_part_armor_rshoul};
+            var values: array!(int) = {left, right};
+            var colors: array!(int) = {Item.item_color_cloth1, Item.item_color_cloth1};
+            var color_values: array!(int) = {41, 42};
+            return Item.set_visual_model_parts(armor, parts, values)
+                && Item.set_visual_colors(armor, parts, colors, color_values)
+                && Cre.update_visual(target);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+    for (const auto values : {std::array{1, 0}, std::array{0, 1}, std::array{1, 1}, std::array{0, 0}}) {
+        SCOPED_TRACE(::testing::Message() << "shoulders " << values[0] << ", " << values[1]);
+        const auto result = rt.execute_script(script, "update", {
+                                                                    nwn1::bridge::make_object_arg(creature->handle()),
+                                                                    nwn1::bridge::make_object_arg(armor->handle()),
+                                                                    nw::smalls::Value::make_int(values[0]),
+                                                                    nw::smalls::Value::make_int(values[1]),
+                                                                    nw::smalls::Value::make_bool(values[0] == 0),
+                                                                });
+        ASSERT_TRUE(result.ok()) << result.error_message;
+        ASSERT_TRUE(result.value.data.bval);
+        const auto* visual = nw::kernel::objects().components().find_visual(creature->handle());
+        ASSERT_NE(visual, nullptr);
+        const std::array shoulder_anchors{nw::Resref{"lshoulder_g"}, nw::Resref{"rshoulder_g"}};
+        const std::array shoulder_models{nw::Resref{"pmh0_shol001"}, nw::Resref{"pmh0_shor001"}};
+        const std::array shoulder_parts{6, 16};
+        for (size_t side = 0; side < values.size(); ++side) {
+            const auto row = std::ranges::find(visual->models, shoulder_anchors[side], &nw::ObjectVisualModel::attach_to);
+            if (values[side] == 0) {
+                EXPECT_EQ(row, visual->models.end());
+            } else {
+                ASSERT_NE(row, visual->models.end());
+                EXPECT_EQ(row->model, shoulder_models[side]);
+                EXPECT_EQ(row->part, shoulder_parts[side]);
+                EXPECT_EQ(row->plt_colors.data[nw::plt_layer_cloth1], 41 + side);
+            }
+        }
+        const std::array thigh_anchors{nw::Resref{"lthigh_g"}, nw::Resref{"rthigh_g"}};
+        const std::array thigh_models{nw::Resref{"pmh0_legl001"}, nw::Resref{"pmh0_legr001"}};
+        for (size_t side = 0; side < thigh_anchors.size(); ++side) {
+            const auto row = std::ranges::find(visual->models, thigh_anchors[side], &nw::ObjectVisualModel::attach_to);
+            ASSERT_NE(row, visual->models.end());
+            EXPECT_EQ(row->model, thigh_models[side]);
+        }
+    }
+    nw::kernel::objects().destroy(armor->handle());
+    nw::kernel::objects().destroy(creature->handle());
+}
+
+TEST_F(SmallsEngineIntegration, Nwn1BodyPartCatalogFallsBackWithinTheSameSide)
+{
+    // Only resource names are input to catalog construction; mesh bytes are not read.
+    const fs::path path{"tmp/side-specific-body-catalog"};
+    fs::create_directories(path);
+    for (const auto name : {"pmh16_legl004.mdl", "pmh0_legl004.mdl", "pmh0_legr004.mdl", "pmh0_legl005.mdl"}) {
+        std::ofstream file{path / name};
+        ASSERT_TRUE(file.good());
+    }
+    nw::StaticDirectory directory{path};
+    nw::ResourceManager resources{nw::kernel::global_allocator()};
+    ASSERT_TRUE(resources.add_custom_container(&directory, false));
+    resources.build_registry();
+    nw::AppearanceArray appearances;
+    appearances.entries.push_back({.label = "Human", .model = nw::Resref{"h"}, .model_type = nw::AppearanceModelType::parts});
+    const std::array fallbacks{0};
+    nw::CreatureBodyPartCatalog catalog;
+    nw::String diagnostic;
+    ASSERT_TRUE(nwn1::build_body_part_catalog(appearances, fallbacks, resources, catalog, diagnostic)) << diagnostic;
+    const auto assembly = nwn1::body_part_assembly_id(0, 0, 16, 0);
+    ASSERT_GE(assembly, 0);
+    const auto* left = catalog.option(assembly, 16, 4);
+    const auto* right = catalog.option(assembly, 17, 4);
+    ASSERT_NE(left, nullptr);
+    ASSERT_NE(right, nullptr);
+    EXPECT_EQ(left->model, nw::Resref{"pmh16_legl004"});
+    EXPECT_EQ(right->model, nw::Resref{"pmh0_legr004"});
+    ASSERT_NE(catalog.option(assembly, 16, 5), nullptr);
+    EXPECT_EQ(catalog.option(assembly, 17, 5), nullptr);
 }
 
 TEST_F(SmallsEngineIntegration, Nwn1SetBodyPartsOwnsBatchValidationAndVisualUpdate)

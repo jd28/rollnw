@@ -1,11 +1,19 @@
 # rollnw Client Release Demo
 
-Status: open.
+Status: closed on 2026-09-30 by user acceptance of the published area-editing demo.
 
 Target: `rollnw-client` 0.2.0.
 
-The [published area-editing demo](https://youtu.be/PvT9pjiYuU0) records that
-focused workflow. The broader walkthrough and release checks below remain open.
+The [published area-editing demo](https://youtu.be/PvT9pjiYuU0) satisfies the
+accepted demo scope. The repository and client READMEs also link the existing
+overview video. The user confirmed that the area-editing demo was already done
+and accepted closing this issue; another walkthrough is not required.
+
+The original proposal and release checklist below are retained as history.
+Closure does not assert fresh manual verification of every listed operation,
+Windows behavior, or new performance/memory measurements. The remaining scoped
+measurement questions live in [area edit transition measurement](../rollnw-client-area-edit-transition-measurement.md)
+and [cache residency budgeting](../render-asset-cache-residency-budget.md).
 
 ## Goal
 
@@ -50,7 +58,7 @@ is captured and reported from the demonstrated build.
 
 ## Placement release checks
 
-The placement authoring slice is complete; these release checks remain open:
+The placement authoring slice was complete; these were the proposed release checks:
 
 - From a fresh process, verify blueprint drop, selection, drag/cancel, undo/redo,
   and save/reopen; confirm navigation-overlay legibility.

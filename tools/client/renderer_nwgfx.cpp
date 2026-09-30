@@ -567,12 +567,12 @@ void ClientRendererNwgfx::shutdown()
     window_ = nullptr;
 }
 
-bool ClientRendererNwgfx::render_item_preview(nw::ObjectHandle mannequin, nw::ObjectHandle item,
+bool ClientRendererNwgfx::render_item_preview(nw::ObjectHandle object, nw::ObjectHandle item,
     uint64_t revision, ClientViewportRect viewport, int32_t dt_ms)
 {
-    if (!viewer_viewport_) { return mannequin.type == nw::ObjectType::invalid; }
+    if (!viewer_viewport_) { return object.type == nw::ObjectType::invalid; }
     renderer_.finish_render_pass();
-    return viewer_viewport_->render_item_preview(renderer_.command_list(), mannequin, item, revision, viewport, dt_ms);
+    return viewer_viewport_->render_item_preview(renderer_.command_list(), object, item, revision, viewport, dt_ms);
 }
 
 bool ClientRendererNwgfx::drag_item_preview(float dx, float dy)

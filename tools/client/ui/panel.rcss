@@ -1924,7 +1924,8 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   background: #171e24;
   box-sizing: border-box;
 }
-.data_collection_action {
+.data_collection_action,
+.panel_icon_button {
   position: relative;
   flex: 0 0 28dp;
   width: 28dp;
@@ -1938,12 +1939,22 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   cursor: pointer;
 }
 .data_collection_action:hover,
-.data_collection_action:focus {
+.data_collection_action:focus,
+.panel_icon_button:hover,
+.panel_icon_button:focus {
   border-color: #bca36a;
   background: #2b3741;
 }
-.data_collection_action:active {
+.data_collection_action:active,
+.panel_icon_button:active {
   background: #34434f;
+}
+.panel_icon_button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: #aeb8c3;
 }
 .panel_edit_button {
   display: flex;
@@ -2159,18 +2170,26 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   background: #171d23;
   box-sizing: border-box;
 }
-.object_variable_toolbar button {
+.object_variable_toolbar button,
+.panel_action_button {
+  display: block;
+  flex: 0 0 auto;
   height: 27dp;
-  padding: 3dp 9dp;
+  padding: 0dp 9dp;
   border: 1dp #536371;
   border-radius: 2dp;
   background: #202930;
   color: #e4e9ed;
   font-size: 12dp;
+  line-height: 25dp;
+  text-align: center;
+  box-sizing: border-box;
   cursor: pointer;
 }
 .object_variable_toolbar button:hover,
-.object_variable_toolbar button:focus {
+.object_variable_toolbar button:focus,
+.panel_action_button:hover,
+.panel_action_button:focus {
   border-color: #a78d62;
   background: #28333d;
 }
@@ -2720,6 +2739,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 }
 .appearance_selector_header {
   display: flex;
+  align-items: center;
   flex: 0 0 38dp;
   height: 38dp;
   padding: 5dp 9dp;
@@ -3959,7 +3979,8 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .command_form button.command_form_close:focus {
   border-color: #536170; background: #303a44; color: #f0f3f6;
 }
-.command_form_close_glyph {
+.command_form_close_glyph,
+.panel_close_glyph {
   display: block; font-size: 17dp; font-weight: 700; line-height: 20dp; pointer-events: none;
 }
 .command_form_message { display: block; flex: none; width: 100%; margin-bottom: 4dp; color: #a7b0ba; line-height: 19dp; }

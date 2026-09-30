@@ -82,7 +82,22 @@
 
             <div data-if="error == '' &amp;&amp; live &amp;&amp; mode != 2 &amp;&amp; has_parts"
                  id="item_appearance_main" class="item_appearance_editor active">
-              <div class="item_editor_section_title">Models</div>
+              <div class="appearance_selector_header">
+                <span class="appearance_selector_title">Models</span>
+                <div data-if="global_color &gt;= 0" class="item_model_actions">
+                  <button id="item_global_color" class="panel_icon_button item_color_field visible" type="button"
+                          title="Edit global colors inherited by item parts"
+                          data-event-click="open_color(-1, global_color)">
+                    <span class="item_color_palette_icon">
+                      <span class="palette_dot red"></span><span class="palette_dot yellow"></span>
+                      <span class="palette_dot green"></span><span class="palette_dot blue"></span>
+                      <span class="palette_thumb"></span>
+                    </span>
+                  </button>
+                  <button id="item_global_reset" class="panel_icon_button item_model_reset" type="button"
+                          title="Reset all variations" data-event-click="reset_models()"><span class="panel_close_glyph">&#x00d7;</span></button>
+                </div>
+              </div>
               <div id="item_model_rows">
                 <!-- Keep row bindings below the loop so removed rows are retired first. -->
                 <div data-for="part : parts">
@@ -130,15 +145,19 @@
                       <span class="combobox_value item_model_value">{{ part.display }}</span>
                       <span class="combobox_arrow"><span class="combobox_arrow_indicator"></span></span>
                     </button>
-                    <button data-if="part.color &gt;= 0" class="item_color_field visible" type="button"
-                            data-attr-title="'Edit colors for ' + part.label"
-                            data-event-click="open_color(part.part, part.color)">
-                      <span class="item_color_palette_icon">
-                        <span class="palette_dot red"></span><span class="palette_dot yellow"></span>
-                        <span class="palette_dot green"></span><span class="palette_dot blue"></span>
-                        <span class="palette_thumb"></span>
-                      </span>
-                    </button>
+                    <div data-if="part.color &gt;= 0" class="item_model_actions">
+                      <button class="panel_icon_button item_color_field item_part_color_field visible" type="button"
+                              data-attr-title="'Edit colors for ' + part.label"
+                              data-event-click="open_color(part.part, part.color)">
+                        <span class="item_color_palette_icon">
+                          <span class="palette_dot red"></span><span class="palette_dot yellow"></span>
+                          <span class="palette_dot green"></span><span class="palette_dot blue"></span>
+                          <span class="palette_thumb"></span>
+                        </span>
+                      </button>
+                      <button class="panel_icon_button item_model_reset item_part_model_reset" type="button"
+                              data-attr-title="part.reset_title" data-event-click="reset_model(part.part)"><span class="panel_close_glyph">&#x00d7;</span></button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -163,7 +182,7 @@
 
             <div data-if="error == '' &amp;&amp; live &amp;&amp; mode == 2 &amp;&amp; color_valid"
                  id="item_color_selector" class="item_selector item_color_selector active">
-              <div class="item_selector_header">
+              <div class="appearance_selector_header">
                 <button id="item_color_selector_close" class="item_selector_close panel_back_button"
                         type="button" title="Back" data-event-click="close_appearance()">
                   <span class="panel_back_icon">
@@ -171,10 +190,10 @@
                     <span class="panel_back_shaft"></span>
                   </span>
                 </button>
-                <div class="item_selector_title">{{ color_title }}</div>
+                <div class="appearance_selector_title">{{ color_title }}</div>
                 <button data-if="can_inherit" id="item_color_inherit"
-                        class="item_color_inherit visible" type="button"
-                        data-event-click="inherit_color()">Inherit</button>
+                        class="panel_action_button" type="button"
+                        data-event-click="inherit_color()"><span>Inherit</span></button>
               </div>
               <div class="item_color_channels">
                 <div data-for="color : color_channels" class="item_color_channel_entry">
@@ -222,7 +241,7 @@
               </div>
               <div id="item_property_option_selector" class="item_selector managed_list_panel"
                   data-list-id="item.properties.options">
-                <div class="item_selector_header">
+                <div class="appearance_selector_header">
                   <button id="item_property_selector_close" class="item_selector_close panel_back_button" type="button"
                           title="Back" onclick="close_property_options()">
                     <span class="panel_back_icon">
@@ -230,7 +249,7 @@
                       <span class="panel_back_shaft"></span>
                     </span>
                   </button>
-                  <div id="item_property_selector_title" class="item_selector_title managed_list_title"
+                  <div id="item_property_selector_title" class="appearance_selector_title managed_list_title"
                        data-list-id="item.properties.options"></div>
                 </div>
                 <div id="item_property_option_rows" class="item_option_rows managed_list_rows"

@@ -48,7 +48,7 @@ const body_part_option_flag_armor = 4;
 [[native]] fn body_part_option_id_at(assembly: int, part: int, index: int): int;
 [[native]] fn body_part_option_flags_at(assembly: int, part: int, index: int): int;
 [[native]] fn body_part_option_exists(assembly: int, part: int, option: int): bool;
-[[native]] fn body_part_model(assembly: int, part: int, option: int, prefer_mirror: bool): ResRef;
+[[native]] fn body_part_model(assembly: int, part: int, option: int): ResRef;
 [[native]] fn set_vitals(obj: Creature, hp_current: int, hp_max: int): bool;
 [[native]] fn set_movement_rate(obj: Creature, value: float): bool;
 [[native]] fn get_vitals_hp_current(obj: Creature): int;

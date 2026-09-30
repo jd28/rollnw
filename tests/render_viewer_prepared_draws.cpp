@@ -41,6 +41,8 @@
 #include <nw/serialization/GffBuilder.hpp>
 #include <nw/smalls/runtime.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -291,7 +293,7 @@ TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWo
         ASSERT_TRUE(nw::toolset::select_item_preview_gender(preview, item->handle(), gender));
         ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, epoch));
         ASSERT_NE(preview.mannequin.object().type, nw::ObjectType::invalid) << preview.diagnostic;
-        ASSERT_TRUE(mannequin->load_live_object(preview.mannequin.object(), "Armor mannequin"));
+        ASSERT_TRUE(mannequin->load_live_object(preview.preview_object(), "Armor mannequin"));
         ASSERT_FALSE(mannequin->scene()->static_models.empty());
         EXPECT_FALSE(mannequin->scene()->owns_root_object);
         if (!previous_models.empty()) { EXPECT_NE(mannequin->scene()->load_report.model_names, previous_models); }
@@ -312,22 +314,120 @@ TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWo
         EXPECT_EQ(world->camera().get_view_matrix(), camera);
     }
     const auto before_icon = preview.icon;
-    const auto edit = nw::toolset::make_item_color_edits(runtime, item->handle(),
-        std::array{18}, std::array{0}, std::array{14});
-    ASSERT_TRUE(edit);
-    for (const auto direction : {nw::toolset::ObjectEditDirection::forward, nw::toolset::ObjectEditDirection::inverse}) {
-        ASSERT_TRUE(nw::toolset::apply_object_edits(runtime, *edit, direction).ok());
-        ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{},
-            nw::toolset::object_mutation_state().epoch));
-        ASSERT_TRUE(mannequin->load_live_object(preview.mannequin.object(), "Updated armor mannequin"));
-        if (direction == nw::toolset::ObjectEditDirection::forward) {
-            EXPECT_NE(preview.icon, before_icon);
-        } else {
-            EXPECT_EQ(preview.icon, before_icon);
+    for (const int32_t part : {-1, 18}) {
+        const auto edit = nw::toolset::make_item_color_edits(runtime, item->handle(),
+            std::array{part}, std::array{0}, std::array{14});
+        ASSERT_TRUE(edit);
+        for (const auto direction : {nw::toolset::ObjectEditDirection::forward, nw::toolset::ObjectEditDirection::inverse}) {
+            ASSERT_TRUE(nw::toolset::apply_object_edits(runtime, *edit, direction).ok());
+            ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{},
+                nw::toolset::object_mutation_state().epoch));
+            ASSERT_TRUE(mannequin->load_live_object(preview.preview_object(), "Updated armor mannequin"));
+            if (direction == nw::toolset::ObjectEditDirection::forward) {
+                EXPECT_NE(preview.icon, before_icon);
+            } else {
+                EXPECT_EQ(preview.icon, before_icon);
+            }
+            std::string failure;
+            EXPECT_TRUE(render_viewer_frame(gfx.context, *mannequin, viewport, failure)) << failure;
+            EXPECT_EQ(world->scene(), world_scene);
+            EXPECT_EQ(world->active_object(), selected);
+            EXPECT_EQ(world->camera().get_view_matrix(), camera);
         }
+    }
+}
+
+TEST(RenderViewerPreparedDraws, StandaloneItemPreviewsRenderWithoutChangingWorldSession)
+{
+    namespace viewer = nw::render::viewer;
+    namespace toolset = nw::toolset;
+    // Use full install models, not the generated triangle-only weapon fixtures.
+    const auto install = nw::kernel::config().install_path();
+    nw::kernel::services().shutdown();
+    nw::kernel::config().set_paths(install, "tmp/item_preview_render_user");
+    nw::kernel::services().start();
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    auto& runtime = nw::kernel::runtime();
+    runtime.add_module_path(std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/ui/scripts/toolset");
+    auto& objects = nw::kernel::objects();
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto world = device.make_session();
+    ASSERT_TRUE(world->load_area("start"));
+    const auto* world_scene = world->scene();
+    const auto world_root = world_scene->root_object;
+    const auto world_selected = world->active_object();
+    const auto world_camera = world->camera().get_view_matrix();
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    auto session = device.make_session();
+    toolset::ItemPreviewState preview;
+    for (const auto* resref : {"pl_aleu_shuriken", "nw_wswss001"}) {
+        SCOPED_TRACE(resref);
+        auto* item = std::string_view{resref} == "pl_aleu_shuriken"
+            ? objects.load_file<nw::Item>("test_data/user/development/pl_aleu_shuriken.uti")
+            : objects.load<nw::Item>(resref);
+        ASSERT_NE(item, nullptr);
+        toolset::ObjectDocument owner;
+        ASSERT_TRUE(owner.adopt(item->handle()));
+        nlohmann::json before, after;
+        ASSERT_TRUE(nw::serialize(item, before, nw::SerializationProfile::instance));
+        ASSERT_TRUE(toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{},
+            toolset::object_mutation_state().epoch));
+        EXPECT_FALSE(preview.armor);
+        EXPECT_EQ(preview.preview_object(), item->handle());
+        ASSERT_FALSE(preview.icon.empty()) << preview.diagnostic;
+        ASSERT_TRUE(session->load_live_object(preview.preview_object(), "Item preview"));
+        ASSERT_FALSE(session->scene()->static_models.empty());
+        EXPECT_FALSE(session->scene()->owns_root_object);
+        ASSERT_TRUE(session->fit_to_scene(viewport));
+        const auto bounds = session->scene()->current_bounds();
+        session->camera().set_orbit_view(bounds.center(), bounds.radius() * 2.5f, 135.0f, 20.0f);
+        auto* commands = nw::gfx::begin_frame(gfx.context);
+        ASSERT_NE(commands, nullptr);
+        nw::gfx::cmd_begin_render(commands, {}, nw::gfx::RenderLoadOp::clear);
+        nw::gfx::cmd_end_render(commands);
+        session->tick(16);
+        session->render(commands, viewport);
+        const auto screenshot = std::string{"tmp/item-preview-"} + resref + ".png";
+        ASSERT_TRUE(nw::gfx::capture_screenshot(gfx.context, commands, screenshot.c_str()));
+
+        const auto camera_before = session->camera().get_view_matrix();
+        session->camera().yaw(20.0f);
+        session->camera().move_forward(4.0f, true);
+        EXPECT_NE(session->camera().get_view_matrix(), camera_before);
+        if (std::string_view{resref} == "nw_wswss001") {
+            const auto model_names = session->scene()->load_report.model_names;
+            ASSERT_EQ(model_names.size(), 3u);
+            const auto edit = toolset::make_item_model_part_edits(runtime, item->handle(),
+                std::array{int32_t{0}}, std::array{int32_t{0}});
+            ASSERT_TRUE(edit);
+            for (const auto direction : {toolset::ObjectEditDirection::forward, toolset::ObjectEditDirection::inverse}) {
+                ASSERT_TRUE(toolset::apply_object_edits(runtime, *edit, direction).ok());
+                const auto revision = preview.revision;
+                ASSERT_TRUE(toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{},
+                    toolset::object_mutation_state().epoch));
+                EXPECT_GT(preview.revision, revision);
+                ASSERT_TRUE(session->load_live_object(preview.preview_object(), "Updated item preview"));
+                if (direction == toolset::ObjectEditDirection::forward) {
+                    EXPECT_NE(session->scene()->load_report.model_names, model_names);
+                } else {
+                    EXPECT_EQ(session->scene()->load_report.model_names, model_names);
+                }
+                std::string failure;
+                ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+            }
+        }
+        session->clear();
+        preview = toolset::ItemPreviewState{};
+        ASSERT_TRUE(objects.valid(item->handle()));
+        ASSERT_TRUE(nw::serialize(item, after, nw::SerializationProfile::instance));
+        EXPECT_EQ(after, before);
         EXPECT_EQ(world->scene(), world_scene);
-        EXPECT_EQ(world->active_object(), selected);
-        EXPECT_EQ(world->camera().get_view_matrix(), camera);
+        EXPECT_EQ(world->scene()->root_object, world_root);
+        EXPECT_EQ(world->active_object(), world_selected);
+        EXPECT_EQ(world->camera().get_view_matrix(), world_camera);
     }
 }
 
@@ -426,14 +526,16 @@ TEST(RenderViewerPreparedDraws, PlacedArmorEditsRefreshBodyMaterialsAndSurviveEq
         EXPECT_TRUE(found) << "Edited torso must have a rendered PLT material";
     };
     const int32_t color = before.plt_colors.data[nw::plt_layer_cloth1] == 14 ? 15 : 14;
-    auto colors = toolset::make_item_color_edits(runtime, item, std::array{18}, std::array{0}, std::array{color});
-    ASSERT_TRUE(colors);
-    for (const auto direction : {toolset::ObjectEditDirection::forward, toolset::ObjectEditDirection::inverse}) {
-        ASSERT_TRUE(toolset::apply_object_edits(runtime, *colors, direction).ok());
-        refresh();
-        check_color(direction == toolset::ObjectEditDirection::forward
-                ? color
-                : before.plt_colors.data[nw::plt_layer_cloth1]);
+    for (const int32_t part : {-1, 18}) {
+        auto colors = toolset::make_item_color_edits(runtime, item, std::array{part}, std::array{0}, std::array{color});
+        ASSERT_TRUE(colors);
+        for (const auto direction : {toolset::ObjectEditDirection::forward, toolset::ObjectEditDirection::inverse}) {
+            ASSERT_TRUE(toolset::apply_object_edits(runtime, *colors, direction).ok());
+            refresh();
+            check_color(direction == toolset::ObjectEditDirection::forward
+                    ? color
+                    : before.plt_colors.data[nw::plt_layer_cloth1]);
+        }
     }
     auto models = toolset::make_item_model_part_edits(runtime, item, std::array{18}, std::array{1});
     ASSERT_TRUE(models);

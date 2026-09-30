@@ -93,13 +93,6 @@ using ModelBatch = std::map<nw::String, PrefixModels>;
 
 nw::Vector<AssemblyLookup> assembly_lookup;
 
-const PartDescriptor* descriptor(int32_t part_id) noexcept
-{
-    const auto found = std::ranges::find(
-        part_descriptors, part_id, &PartDescriptor::part_id);
-    return found == part_descriptors.end() ? nullptr : &*found;
-}
-
 const nw::Resref* find_model(
     const ModelBatch& models,
     const nw::String& prefix,
@@ -119,27 +112,14 @@ nw::Resref resolve_model(
     const PartDescriptor& part,
     int32_t option_id)
 {
-    const auto* mirror = descriptor(part.mirror_part_id);
     if (const auto* model = find_model(
             models, assembly.prefix, part.token, option_id)) {
         return *model;
-    }
-    if (mirror) {
-        if (const auto* model = find_model(
-                models, assembly.prefix, mirror->token, option_id)) {
-            return *model;
-        }
     }
     if (assembly.fallback_prefix != assembly.prefix) {
         if (const auto* model = find_model(
                 models, assembly.fallback_prefix, part.token, option_id)) {
             return *model;
-        }
-        if (mirror) {
-            if (const auto* model = find_model(
-                    models, assembly.fallback_prefix, mirror->token, option_id)) {
-                return *model;
-            }
         }
     }
     return {};

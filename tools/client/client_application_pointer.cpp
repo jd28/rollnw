@@ -136,7 +136,7 @@ ClientEventFlow process_client_pointer_down(SDL_Event& event, ClientInputDispatc
         }
         if (!state.loading.module_dialog_open
             && top_hit && top_hit->GetId() == "item_preview_viewport"
-            && state.workbench.item_preview.mannequin.object().type == nw::ObjectType::creature) {
+            && state.workbench.item_preview.preview_object().type != nw::ObjectType::invalid) {
             state.workbench.item_preview.dragging = true;
             state.viewer_viewport_last_point = point;
             system_interface.SetMouseCursor("grabbing");

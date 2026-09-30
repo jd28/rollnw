@@ -128,6 +128,7 @@ void hydrate_item_preview(Rml::ElementDocument* document, const ItemPreviewState
     if (!document) { return; }
     if (auto* panel = document->GetElementById("item_preview")) {
         panel->SetClass("armor", state.armor);
+        panel->SetClass("preview_3d", state.preview_object().type != ObjectType::invalid);
         Rml::ElementList buttons;
         panel->GetElementsByClassName(buttons, "item_preview_gender");
         for (auto* button : buttons) {

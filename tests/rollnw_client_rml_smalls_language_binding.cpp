@@ -5,6 +5,7 @@
 #include "client_metrics.hpp"
 #include "command_view.hpp"
 #include "item_editor_data_model.hpp"
+#include "item_preview.hpp"
 #include "loading_view.hpp"
 #include "object_document.hpp"
 #include "object_edits.hpp"
@@ -536,8 +537,19 @@ TEST(ClientRmlTemplates, ItemWorkbenchExpandsBoundedAppearanceStructure)
     ASSERT_NE(item_preview, nullptr);
     ASSERT_NE(mannequin_viewport, nullptr);
     EXPECT_FALSE(mannequin_viewport->IsVisible(true));
+    nw::toolset::ItemPreviewState item_preview_state;
+    item_preview_state.item = nw::ObjectHandle{.type = nw::ObjectType::item};
+    hydrate_item_preview(document, item_preview_state);
+    context->Update();
+    EXPECT_TRUE(mannequin_viewport->IsVisible(true));
+    EXPECT_GT(mannequin_viewport->GetClientWidth(), 100.0f);
+    EXPECT_GT(mannequin_viewport->GetClientHeight(), 100.0f);
+    auto* preview_controls = document->GetElementById("item_preview_controls");
+    ASSERT_NE(preview_controls, nullptr);
+    EXPECT_FALSE(preview_controls->IsVisible(true));
     item_preview->SetClass("armor", true);
     context->Update();
+    EXPECT_TRUE(preview_controls->IsVisible(true));
     EXPECT_GT(mannequin_viewport->GetClientWidth(), 100.0f);
     EXPECT_GT(mannequin_viewport->GetClientHeight(), 100.0f);
     Rml::ElementList genders;
@@ -753,6 +765,10 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
             .label = "Duplicate",
         },
     };
+    const std::array global_labels{"Cloth 1", "Cloth 2", "Leather 1", "Leather 2", "Metal 1", "Metal 2"};
+    for (int32_t channel = 0; channel < 6; ++channel) {
+        colors.push_back({.part = -1, .color = channel, .value = 10 + channel, .stored_value = 10 + channel, .palette = channel / 2, .label = global_labels[channel]});
+    }
     nw::toolset::ItemEditorAppearanceInput input{
         .object = object,
         .parts = parts,
@@ -833,7 +849,7 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
 
     auto model_rows = bound_elements_by_class(*document, "item_model_row");
     ASSERT_EQ(model_rows.size(), 2);
-    auto color_fields = bound_elements_by_class(*document, "item_color_field");
+    auto color_fields = bound_elements_by_class(*document, "item_part_color_field");
     EXPECT_EQ(color_fields.size(), 1);
     auto model_fields = bound_elements_by_class(*document, "item_model_field");
     ASSERT_EQ(model_fields.size(), 3);
@@ -929,7 +945,15 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     focused_model = document->GetElementById("item_model_field_4_0");
     ASSERT_NE(focused_model, nullptr);
     EXPECT_EQ(context->GetFocusElement(), focused_model);
-    color_fields = bound_elements_by_class(*document, "item_color_field");
+    color_fields = bound_elements_by_class(*document, "item_part_color_field");
+    const auto reset_fields = bound_elements_by_class(*document, "item_part_model_reset");
+    ASSERT_EQ(reset_fields.size(), 1u);
+    EXPECT_EQ(reset_fields.front()->GetAttribute<Rml::String>("title", ""), "Reset variation to 1");
+    ASSERT_TRUE(reset_fields.front()->DispatchEvent("click", {}));
+    EXPECT_EQ(invocations.back().command, "toolset.item.appearance.reset_model");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{4}));
+    context->Update();
+    color_fields = bound_elements_by_class(*document, "item_part_color_field");
     EXPECT_EQ(color_fields.size(), 1);
     ASSERT_FALSE(color_fields.empty());
     ASSERT_TRUE(color_fields.front()->DispatchEvent("click", {}));
@@ -972,6 +996,42 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     EXPECT_EQ(selection->GetProperty("left")->ToString(), "240dp");
     EXPECT_EQ(selection->GetProperty("top")->ToString(), "48dp");
 
+    ASSERT_TRUE(color_close->DispatchEvent("click", {}));
+    context->Update();
+    auto* global_color = document->GetElementById("item_global_color");
+    ASSERT_NE(global_color, nullptr);
+    ASSERT_TRUE(global_color->IsVisible(true));
+    EXPECT_GT(global_color->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(global_color->GetOffsetHeight(), 0.0f);
+    auto* global_reset = document->GetElementById("item_global_reset");
+    ASSERT_NE(global_reset, nullptr);
+    ASSERT_TRUE(global_reset->DispatchEvent("click", {}));
+    context->Update();
+    EXPECT_EQ(invocations.back().command, "toolset.item.appearance.reset_models");
+    EXPECT_TRUE(invocations.back().arguments.empty());
+    global_color = document->GetElementById("item_global_color");
+    ASSERT_NE(global_color, nullptr);
+    ASSERT_TRUE(global_color->DispatchEvent("click", {}));
+    context->Update();
+    EXPECT_EQ(invocations.back().command, "toolset.item.appearance.open_color");
+    EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{-1, 0}));
+    channels = bound_elements_by_class(*document, "item_color_channel");
+    ASSERT_EQ(channels.size(), 6u);
+    auto* inherit = document->GetElementById("item_color_inherit");
+    EXPECT_TRUE(!inherit || !inherit->IsVisible(true));
+    for (int32_t channel = 0; channel < 6; ++channel) {
+        channels = bound_elements_by_class(*document, "item_color_channel");
+        ASSERT_TRUE(channels[channel]->DispatchEvent("click", {}));
+        context->Update();
+        EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{channel}));
+        palette_cells = bound_elements_by_class(*document, "item_color_palette_cell");
+        ASSERT_TRUE(palette_cells[42 + channel]->DispatchEvent("click", {}));
+        context->Update();
+        EXPECT_EQ(invocations.back().command, "toolset.item.appearance.apply_color");
+        EXPECT_EQ(invocations.back().arguments, (std::vector<int32_t>{42 + channel}));
+    }
+
+    input.color_part = 4;
     input.color_channel = 2;
     item_model.refresh(input);
     context->Update();
@@ -997,6 +1057,14 @@ TEST(ClientRmlTemplates, ItemAppearanceModelOwnsRowsEventsAndFocus)
     item_model.refresh(input);
     context->Update();
     EXPECT_EQ(bound_elements_by_class(*document, "item_model_row").size(), 1u);
+    colors.clear();
+    input.colors = colors;
+    item_model.refresh(input);
+    context->Update();
+    global_color = document->GetElementById("item_global_color");
+    EXPECT_TRUE(!global_color || !global_color->IsVisible(true));
+    global_reset = document->GetElementById("item_global_reset");
+    EXPECT_TRUE(!global_reset || !global_reset->IsVisible(true));
     item_model.refresh({});
     context->Update();
     EXPECT_TRUE(bound_elements_by_class(*document, "item_model_row").empty());
@@ -4775,6 +4843,37 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     EXPECT_FALSE(retained_model_options->visible);
     EXPECT_EQ(retained_model_options->selected_index, cycled_index);
 
+    // Reset is a single undoable variation edit, leaving colors and other parts alone.
+    const std::string reset_part_arg = std::to_string(opened_item_part);
+    ASSERT_TRUE(backend.execute_command(
+                           "object.item.set_model_part", {reset_part_arg, "0"}, item_context)
+            .ok());
+    ASSERT_TRUE(backend.execute_command("toolset.item.refresh", {}, item_context).ok());
+    const auto before_reset = *nw::kernel::objects().components().find_item_visuals(first_item->handle());
+    const auto undo_count_before_reset = workspace.undo_count();
+    ASSERT_TRUE(backend.execute_command(
+                           "toolset.item.appearance.reset_model", {reset_part_arg}, item_context)
+            .ok());
+    const auto* after_reset = nw::kernel::objects().components().find_item_visuals(first_item->handle());
+    auto expected_models = before_reset.model_parts;
+    expected_models[static_cast<size_t>(opened_item_part)] = 1;
+    EXPECT_EQ(after_reset->model_parts, expected_models);
+    EXPECT_EQ(after_reset->part_colors, before_reset.part_colors);
+    EXPECT_EQ(after_reset->model_colors, before_reset.model_colors);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_reset + 1);
+    ASSERT_TRUE(workspace.undo(item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts, before_reset.model_parts);
+    ASSERT_TRUE(workspace.redo(item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts, expected_models);
+    ASSERT_TRUE(backend.execute_command(
+                           "toolset.item.appearance.reset_model", {reset_part_arg}, item_context)
+            .ok());
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_reset + 1);
+    EXPECT_EQ(backend.execute_command(
+                         "toolset.item.appearance.reset_model", {"999"}, item_context)
+                  .status,
+        nw::toolset::CommandStatus::rejected);
+
     const auto first_models_before_stale_event
         = nw::kernel::objects().components().find_item_visuals(first_item->handle())->model_parts;
     const auto second_models_before_stale_event
@@ -4782,6 +4881,10 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     const size_t item_undo_count_before_stale_event = workspace.undo_count();
     nw::toolset::smalls_rmlui_host().publish_active_object(
         second_item->handle());
+    EXPECT_EQ(backend.execute_command(
+                         "toolset.item.appearance.reset_model", {reset_part_arg}, item_context)
+                  .status,
+        nw::toolset::CommandStatus::rejected);
     const std::array<std::string, 4> stale_model_args{
         "item.appearance.models", stale_model_key, "0", "-1"};
     const std::vector<std::string_view> stale_model_views{
@@ -4799,6 +4902,46 @@ TEST(ClientRmlSmallsLanguageBinding, CompilesRegisteredToolsetEditors)
     nw::toolset::smalls_rmlui_host().clear_active_object();
     nw::kernel::objects().destroy(first_item->handle());
     nw::kernel::objects().destroy(second_item->handle());
+
+    auto* armor = nw::kernel::objects().load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    ASSERT_NE(armor, nullptr);
+    nw::toolset::smalls_rmlui_host().publish_active_object(armor->handle());
+    ASSERT_TRUE(backend.execute_command("toolset.item.initialize", {}, item_context).ok());
+    ASSERT_TRUE(backend.execute_command("object.item.set_model_part", {"14", "20"}, item_context).ok());
+    ASSERT_TRUE(backend.execute_command("toolset.item.refresh", {}, item_context).ok());
+    const auto armor_before_reset = *nw::kernel::objects().components().find_item_visuals(armor->handle());
+    auto expected_armor = armor_before_reset.model_parts;
+    expected_armor[14] = 0;
+    const auto undo_count_before_robe_reset = workspace.undo_count();
+    ASSERT_TRUE(backend.execute_command("toolset.item.appearance.reset_model", {"14"}, item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(armor->handle())->model_parts, expected_armor);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_robe_reset + 1);
+    ASSERT_TRUE(workspace.undo(item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(armor->handle())->model_parts, armor_before_reset.model_parts);
+    ASSERT_TRUE(workspace.redo(item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(armor->handle())->model_parts, expected_armor);
+    ASSERT_TRUE(workspace.undo(item_context).ok());
+
+    const auto undo_count_before_armor_reset = workspace.undo_count();
+    const auto epoch_before_armor_reset = nw::toolset::object_mutation_state().epoch;
+    ASSERT_TRUE(backend.execute_command("toolset.item.appearance.reset_models", {}, item_context).ok());
+    expected_armor.fill(1);
+    expected_armor[14] = 0;
+    const auto* reset_armor = nw::kernel::objects().components().find_item_visuals(armor->handle());
+    EXPECT_EQ(reset_armor->model_parts, expected_armor);
+    EXPECT_EQ(reset_armor->part_colors, armor_before_reset.part_colors);
+    EXPECT_EQ(reset_armor->model_colors, armor_before_reset.model_colors);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_armor_reset + 1);
+    EXPECT_EQ(nw::toolset::object_mutation_state().epoch, epoch_before_armor_reset + 1);
+    ASSERT_TRUE(workspace.undo(item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(armor->handle())->model_parts, armor_before_reset.model_parts);
+    ASSERT_TRUE(workspace.redo(item_context).ok());
+    EXPECT_EQ(nw::kernel::objects().components().find_item_visuals(armor->handle())->model_parts, expected_armor);
+    EXPECT_EQ(backend.execute_command("toolset.item.appearance.reset_models", {}, item_context).status, nw::toolset::CommandStatus::noop);
+    EXPECT_EQ(workspace.undo_count(), undo_count_before_armor_reset + 1);
+    nw::toolset::smalls_rmlui_host().clear_active_object();
+    EXPECT_EQ(backend.execute_command("toolset.item.appearance.reset_models", {}, item_context).status, nw::toolset::CommandStatus::rejected);
+    nw::kernel::objects().destroy(armor->handle());
 
     nw::toolset::AppearanceCatalog door_catalog;
     ASSERT_TRUE(nw::toolset::build_appearance_catalog(

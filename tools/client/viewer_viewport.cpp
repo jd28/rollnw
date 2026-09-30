@@ -312,31 +312,39 @@ struct ClientViewerViewport::Impl {
     }
 
     bool render_item_preview(nw::gfx::CommandList* command_list,
-        nw::ObjectHandle mannequin, nw::ObjectHandle item, uint64_t revision,
+        nw::ObjectHandle object, nw::ObjectHandle item, uint64_t revision,
         ClientViewportRect viewport, int32_t dt_ms)
     {
-        if (mannequin.type == nw::ObjectType::invalid) {
+        if (object.type == nw::ObjectType::invalid) {
             item_session.reset();
             preview_item = nw::ObjectHandle{};
-            preview_mannequin = nw::ObjectHandle{};
+            preview_object = nw::ObjectHandle{};
             item_preview_ready = false;
             return true;
         }
         if (!command_list || !viewport.valid() || !ensure_runtime()) { return false; }
         if (!item_session) { item_session = device->make_session(); }
         if (!item_session) { return false; }
-        if (preview_mannequin != mannequin || preview_revision != revision || preview_item != item) {
+        if (preview_object != object || preview_revision != revision || preview_item != item) {
             const bool retain_camera = preview_item == item && item_preview_ready;
             const auto camera = item_session->camera();
-            preview_mannequin = mannequin;
+            preview_object = object;
             preview_item = item;
             preview_revision = revision;
-            item_preview_ready = item_session->load_live_object(mannequin, "Item mannequin");
+            item_preview_ready = item_session->load_live_object(object, "Item preview");
+            item_preview_ready = item_preview_ready && !item_session->scene()->static_models.empty();
             if (item_preview_ready) {
                 if (retain_camera) {
                     item_session->camera() = camera;
                 } else {
                     item_session->fit_to_scene(to_viewer_viewport(viewport));
+                    if (object.type == nw::ObjectType::item) {
+                        // Flat weapons need an oblique view; fit small items without
+                        // the general object camera's one-meter minimum distance.
+                        const auto bounds = item_session->scene()->current_bounds();
+                        item_session->camera().set_orbit_view(
+                            bounds.center(), bounds.radius() * 2.5f, 135.0f, 20.0f);
+                    }
                 }
             }
         }
@@ -376,7 +384,7 @@ struct ClientViewerViewport::Impl {
     void clear()
     {
         item_session.reset();
-        preview_mannequin = nw::ObjectHandle{};
+        preview_object = nw::ObjectHandle{};
         preview_item = nw::ObjectHandle{};
         item_preview_ready = false;
         discard_scene();
@@ -1858,7 +1866,7 @@ struct ClientViewerViewport::Impl {
     std::unique_ptr<viewer::ViewerDevice> device;
     std::unique_ptr<viewer::ViewerSession> session;
     std::unique_ptr<viewer::ViewerSession> item_session;
-    nw::ObjectHandle preview_mannequin{};
+    nw::ObjectHandle preview_object{};
     nw::ObjectHandle preview_item{};
     uint64_t preview_revision = 0;
     bool item_preview_ready = false;
@@ -2175,10 +2183,10 @@ bool ClientViewerViewport::matches_area_resource(std::string_view area_resource)
 }
 
 bool ClientViewerViewport::render_item_preview(nw::gfx::CommandList* command_list,
-    nw::ObjectHandle mannequin, nw::ObjectHandle item, uint64_t revision,
+    nw::ObjectHandle object, nw::ObjectHandle item, uint64_t revision,
     ClientViewportRect viewport, int32_t dt_ms)
 {
-    return impl_->render_item_preview(command_list, mannequin, item, revision, viewport, dt_ms);
+    return impl_->render_item_preview(command_list, object, item, revision, viewport, dt_ms);
 }
 
 bool ClientViewerViewport::drag_item_preview(float dx, float dy)

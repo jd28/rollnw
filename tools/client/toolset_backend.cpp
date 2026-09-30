@@ -917,6 +917,73 @@ void ToolsetBackend::register_native_commands()
                 && item_editor_.open_model(
                     kernel::runtime(), *part, *axis, ui_v1_host()));
         });
+    const auto reset_item_models = [this, stale_item_editor_result](
+                                       std::span<const ItemEditorPart> rows, CommandContext& context) {
+        if (!item_editor_is_current()) {
+            return stale_item_editor_result();
+        }
+        if (rows.empty() || std::ranges::any_of(rows, &ItemEditorPart::split_model_variation)) {
+            return command_result(CommandStatus::rejected,
+                "Invalid Item variation reset", CommandOutputChannel::warn);
+        }
+        std::vector<ItemEditorModelEdit> edits;
+        edits.reserve(rows.size());
+        for (const auto& row : rows) {
+            edits.push_back({row.part, row.reset_value});
+        }
+        std::ranges::sort(edits, {}, &ItemEditorModelEdit::part);
+        std::vector<int32_t> parts, values;
+        parts.reserve(edits.size());
+        values.reserve(edits.size());
+        for (const auto& edit : edits) {
+            parts.push_back(edit.part);
+            values.push_back(edit.value);
+        }
+        auto batch = make_item_model_part_edits(
+            kernel::runtime(), item_editor_.object(), parts, values);
+        if (!batch) {
+            return command_result(CommandStatus::rejected,
+                "Item variation reset could not be prepared", CommandOutputChannel::warn);
+        }
+        std::erase_if(batch->patches, [](const auto& patch) { return patch.before == patch.after; });
+        auto result = commit_object_edits(std::move(*batch), "Reset Item variations", context);
+        if (result.ok()) {
+            if (!item_editor_.close_appearance(ui_v1_host())
+                || !refresh_item_editor()) {
+                return command_result(CommandStatus::failed,
+                    "Item editor refresh failed", CommandOutputChannel::error);
+            }
+            result.message.clear();
+            result.output_channel = CommandOutputChannel::none;
+        }
+        return result;
+    };
+    register_or_log(CommandSpec{
+                        .id = "toolset.item.appearance.reset_model",
+                        .title = "Reset Item variation",
+                        .category = "editor",
+                        .scope = CommandScope::workspace,
+                        .flags = CommandFlags::hidden,
+                    },
+        [this, reset_item_models](const CommandInvocation& invocation, CommandContext& context) {
+            const auto part = parse_i32(command_arg_string(invocation.args, 0));
+            const auto rows = item_editor_.appearance_input().parts;
+            const auto row = part ? std::ranges::find(rows, *part, &ItemEditorPart::part) : rows.end();
+            return reset_item_models(row == rows.end()
+                    ? std::span<const ItemEditorPart>{}
+                    : rows.subspan(static_cast<size_t>(row - rows.begin()), 1),
+                context);
+        });
+    register_or_log(CommandSpec{
+                        .id = "toolset.item.appearance.reset_models",
+                        .title = "Reset Item variations",
+                        .category = "editor",
+                        .scope = CommandScope::workspace,
+                        .flags = CommandFlags::hidden,
+                    },
+        [this, reset_item_models](const CommandInvocation&, CommandContext& context) {
+            return reset_item_models(item_editor_.appearance_input().parts, context);
+        });
     register_hidden_editor_command(
         "toolset.item.appearance.close",
         [this, item_state_result](const CommandInvocation&, CommandContext&) {
