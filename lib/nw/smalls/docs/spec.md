@@ -1429,7 +1429,6 @@ Native interfaces bind C++ code to scripts for RPG game scripting. This is **not
 #### Design Philosophy
 
 - **Constrained scope** — Only expose what's needed for RPG game scripting
-- **Purpose-built** — Not trying to be pybind11 or handle arbitrary C++ code
 - **Types bend to the binder** — C++ APIs should adapt to the binding system, not vice versa
 - **Keep it simple** — Generational handles + ownership modes + mark-sweep GC
 

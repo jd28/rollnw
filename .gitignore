@@ -42,9 +42,8 @@ venv
 # macOS
 .DS_Store
 
-# python
+# Distribution artifacts
 dist/
-rollnw.egg-info/
 
 # VS Code extension artifacts
 tools/vscode-smalls/node_modules/

@@ -16,7 +16,6 @@ option(ROLLNW_BUILD_DOCS "Build documentation" OFF)
 option(ROLLNW_BUILD_RUNTIME_SCRIPTING "Build Luau scripting language" ON)
 option(ROLLNW_BUILD_TESTS "Build tests" OFF)
 option(ROLLNW_BUILD_FUZZERS "Build libFuzzer targets" OFF)
-option(ROLLNW_BUILD_PYTHON "Build python bindings" OFF)
 option(ROLLNW_BUILD_WITH_MIMALLOC "Build with mimalloc" OFF)
 option(ROLLNW_BUILD_TOOLS "Build CLI tools" OFF)
 option(ROLLNW_BUILD_RENDERER "Build SDL3 + Vulkan renderer tools" OFF)
@@ -27,10 +26,6 @@ option(ROLLNW_USE_SYSTEM_SDL "Prefer an installed shared SDL3 package for render
 
 if(ROLLNW_BUILD_TOOLS OR ROLLNW_BUILD_RENDERER OR ROLLNW_BUILD_TESTS)
 include(cmake/ToolVersions.cmake)
-endif()
-
-if(ROLLNW_BUILD_PYTHON AND ROLLNW_BUILD_WITH_MIMALLOC)
-message(FATAL_ERROR "Python bindings cannot be built with mimalloc")
 endif()
 
 # Generate compile_commands.json to make it easier to work with clang based tools

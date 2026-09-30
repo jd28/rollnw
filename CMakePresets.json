@@ -119,7 +119,7 @@
             "name": "ci-linux",
             "inherits": "linux",
             "displayName": "ci-linux",
-            "description": "Default build with tests and code coverage, no python",
+            "description": "Default build with tests and code coverage",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
