@@ -30,6 +30,18 @@ type ItemEffectRow {
     flags: int;
 };
 
+// Committed equipment facts, independent of animation timing and editor history.
+[[native]]
+type EquipmentChange {
+    slot: int;
+    before: object;
+    after: object;
+};
+
+// Storage only. Caller validates profile rules, then publishes effects/events.
+// All rows commit together; invalid/stale ownership or insufficient space rejects.
+[[native]] fn apply_equipment_changes(creature: Creature, changes: array!(EquipmentChange)): bool;
+
 const item_effect_op_ability_modifier = 1;
 const item_effect_op_attack_modifier = 2;
 const item_effect_op_bonus_spell_slot = 3;
@@ -93,6 +105,7 @@ type BaseItemInfo {
 [[native]] fn get_equipped_item(creature: Creature, slot: EquipIndex): Item;
 [[native]] fn unequip_item_in_slot(creature: Creature, slot: EquipIndex): Item;
 [[native]] fn inventory_add_item(owner: object, item: Item): bool;
+[[native]] fn inventory_has_item(owner: object, item: Item): bool;
 [[native]] fn inventory_remove_item(owner: object, item: Item): bool;
 [[native]] fn inventory_items(owner: object): array!(Item);
 

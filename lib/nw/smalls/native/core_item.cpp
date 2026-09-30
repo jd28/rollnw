@@ -1,3 +1,4 @@
+#include "../../objects/equipment_changes.hpp"
 #include "../stdlib.hpp"
 
 #include "../../formats/StaticTwoDA.hpp"
@@ -524,6 +525,11 @@ void register_core_item(Runtime& rt)
     }
 
     rt.module("core.item")
+        .native_struct<nw::EquipmentChange>("EquipmentChange")
+        .field("slot", &nw::EquipmentChange::slot)
+        .field("before", &nw::EquipmentChange::before)
+        .field("after", &nw::EquipmentChange::after)
+        .end_struct()
         .native_struct<ScriptItemProperty>("ItemProperty")
         .field("prop_type", &ScriptItemProperty::prop_type)
         .field("subtype", &ScriptItemProperty::subtype)
@@ -709,6 +715,22 @@ void register_core_item(Runtime& rt)
             return read_int_array(runtime, parts_value, parts)
                 && read_int_array(runtime, values_value, values)
                 && write_visual_model_parts(item_h, parts, values); })
+        .function("apply_equipment_changes", +[](nw::ObjectHandle creature_h, Value value) -> bool {
+            auto& runtime = nw::kernel::runtime();
+            const auto type = runtime.type_id("core.item.EquipmentChange");
+            const auto* array = runtime.get_array_typed(value.data.hptr);
+            if (!array || array->element_type() != type || array->size() > 18) { return false; }
+            std::array<nw::EquipmentChange, 18> changes{};
+            for (size_t i = 0; i < array->size(); ++i) {
+                Value row;
+                if (!array->get_value(i, row, runtime)) { return false; }
+                changes[i] = detail::value_cast<nw::EquipmentChange>(&runtime, row);
+            }
+            const auto batch = nw::prepare_equipment_changes(creature_h, std::span{changes}.first(array->size()));
+            return batch && nw::apply_equipment_changes(*batch); })
+        .function("inventory_has_item", +[](nw::ObjectHandle owner, nw::ObjectHandle item) -> bool {
+            const auto* inventory = as_inventory(owner);
+            return inventory && inventory->has_item(as_item(item)); })
         .function("equip_item_in_slot", +[](nw::ObjectHandle creature_h, nw::ObjectHandle item_h, int32_t slot) -> bool { return nw::equip_item_in_slot(
                                                                                                                               as_creature(creature_h), as_item(item_h), static_cast<nw::EquipIndex>(slot)); })
         .function("get_equipped_item", +[](nw::ObjectHandle creature_h, int32_t slot) -> nw::ObjectHandle {
@@ -730,8 +752,7 @@ void register_core_item(Runtime& rt)
         .function("inventory_items", +[](nw::ObjectHandle owner_h) -> Value {
             auto& runtime = nw::kernel::runtime();
             return make_inventory_item_array(runtime, as_inventory(owner_h)); })
-        .function("store_inventory_item_count", +[](nw::ObjectHandle store_h, int32_t category) -> int32_t {
-            return inventory_item_count(store_inventory(store_h, category)); })
+        .function("store_inventory_item_count", +[](nw::ObjectHandle store_h, int32_t category) -> int32_t { return inventory_item_count(store_inventory(store_h, category)); })
         .function("store_inventory_items", +[](nw::ObjectHandle store_h, int32_t category, int32_t maximum_items) -> Value {
             auto& runtime = nw::kernel::runtime();
             return make_inventory_item_array(

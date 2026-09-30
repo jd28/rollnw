@@ -5120,6 +5120,40 @@ TEST_F(ClientInventoryWorkbench, NativeSelectionEquipmentAndUndoPreserveLiveItem
     EXPECT_EQ(restored->infinite, before.infinite);
 }
 
+TEST_F(ClientInventoryWorkbench, SelectedInventoryItemReplacesOccupiedSlotInOneAction)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto& objects = nw::kernel::objects();
+    auto* actor = objects.load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* old = objects.load<nw::Item>("x2_it_mbelt001");
+    auto* incoming = objects.load<nw::Item>("x2_it_mbelt001");
+    ASSERT_TRUE(actor && old && incoming);
+    ASSERT_TRUE(nw::equip_item_in_slot(actor, old, nw::EquipIndex::belt));
+    ASSERT_TRUE(actor->inventory().add_item(incoming));
+    activate(actor->handle());
+    InventoryWorkbenchViewState inventory;
+    rebuild_active_creature_inventory(inventory, actor->handle());
+    inventory.creature_inventory_selection = 0;
+    const auto target = object_workbench_target(view, workspace);
+    document->SetInnerRML("<div id='target' class='creature_equipment_slot' data-slot='10'>Belt</div>");
+    auto click = capture_inventory_workbench_click(document->GetElementById("target"), inventory, target, workspace, backend.module_generation());
+    ASSERT_TRUE(click);
+    EXPECT_EQ(click->equipped_item, old->handle());
+    EXPECT_EQ(click->inventory_item, incoming->handle());
+    document->SetInnerRML("<div>Replaced DOM</div>");
+    ASSERT_TRUE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), incoming);
+    EXPECT_TRUE(actor->inventory().has_item(old));
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_EQ(inventory.creature_inventory_selection, -1);
+    EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), old);
+    EXPECT_TRUE(actor->inventory().has_item(incoming));
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), incoming);
+}
+
 TEST_F(ClientInventoryWorkbench, NativePagesAndSelectionShareTheThreeLiveGridOwnerTypes)
 {
     ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);

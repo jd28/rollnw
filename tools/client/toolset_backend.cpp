@@ -3668,7 +3668,7 @@ void ToolsetBackend::register_native_commands()
                 bridge_->active_object(), *inventory_index, static_cast<EquipIndex>(*slot_index));
             if (!edit) {
                 return command_result(CommandStatus::rejected,
-                    "Inventory row is stale, invalid, or the equipment slot is occupied",
+                    "Cannot equip item: stale selection, incompatible slot, or insufficient inventory space",
                     CommandOutputChannel::warn);
             }
             return commit_creature_inventory_edits(

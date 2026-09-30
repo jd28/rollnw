@@ -26,6 +26,7 @@ const item_part_color_count = item_model_color_count * item_model_part_count;
 var can_equip_callbacks: array!(fn(Creature, Item, base.EquipIndex): bool) = {};
 var on_equip_callbacks: array!(fn(Creature, Item, base.EquipIndex)) = {};
 var on_unequip_callbacks: array!(fn(Creature, Item, base.EquipIndex)) = {};
+var on_equipment_changed_callbacks: array!(fn(Creature, array!(base.EquipmentChange), bool)) = {};
 var on_visual_changed_callbacks: array!(fn(Item): bool) = {};
 
 var _cloakmodels_loaded = false;
@@ -312,6 +313,53 @@ fn add_on_unequip_callback(callback: fn(Creature, Item, base.EquipIndex)) {
     Array.push(on_unequip_callbacks, callback);
 }
 
+// Called after the whole batch and its item effects are committed. Gameplay
+// presentation may consume these facts; authoring=true suppresses gameplay
+// animation on editor commits/undo. This callback does not schedule actions.
+fn add_on_equipment_changed_callback(callback: fn(Creature, array!(base.EquipmentChange), bool)) {
+    Array.push(on_equipment_changed_callbacks, callback);
+}
+
+fn publish_equipment_changes(creature: Creature, changes: array!(base.EquipmentChange), authoring: bool) {
+    for (var change in changes) {
+        if (change.before != change.after && change.before != O.invalid) {
+            base.process_item_properties(creature, change.before as Item, base.EquipIndex(change.slot), true);
+        }
+    }
+    for (var change in changes) {
+        if (change.before != change.after && change.after != O.invalid) {
+            base.process_item_properties(creature, change.after as Item, base.EquipIndex(change.slot), false);
+        }
+    }
+    var committed: array!(base.EquipmentChange) = {};
+    for (var change in changes) {
+        if (change.before == change.after) { continue; }
+        Array.push(committed, change);
+        if (change.before != O.invalid) {
+            _dispatch_on_unequip(creature, change.before as Item, base.EquipIndex(change.slot));
+        }
+        if (change.after != O.invalid) {
+            _dispatch_on_equip(creature, change.after as Item, base.EquipIndex(change.slot));
+        }
+    }
+    if (Array.len(committed) > 0) {
+        for (var callback in on_equipment_changed_callbacks) { callback(creature, committed, authoring); }
+    }
+}
+
+// The caller's gameplay action chooses when to commit (for example at a draw
+// animation marker). Both ownership and game eligibility are checked here again.
+fn change_equipment(creature: Creature, changes: array!(base.EquipmentChange)): bool {
+    if (creature == O.invalid || Array.len(changes) > 18) { return false; }
+    for (var change in changes) {
+        if (change.after != O.invalid && change.before != change.after
+            && !can_equip_item(creature, change.after as Item, base.EquipIndex(change.slot))) { return false; }
+    }
+    if (!base.apply_equipment_changes(creature, changes)) { return false; }
+    publish_equipment_changes(creature, changes, false);
+    return true;
+}
+
 fn add_on_visual_changed_callback(callback: fn(Item): bool) {
     Array.push(on_visual_changed_callbacks, callback);
 }
@@ -356,14 +404,21 @@ fn _dispatch_on_visual_changed(item: Item): bool {
     return ok;
 }
 
-fn _equip_item_unchecked(creature: Creature, equipped: Item, slot: base.EquipIndex): bool {
+fn _equip_item_unchecked(creature: Creature, equipped: Item, slot: base.EquipIndex, authoring: bool): bool {
     if (creature == O.invalid || equipped == O.invalid) {
         return false;
     }
 
     var current = base.get_equipped_item(creature, slot);
+    if (current == equipped) { return true; }
+    if (base.inventory_has_item(creature as object, equipped)) {
+        var changes: array!(base.EquipmentChange) = {{slot = slot as int, before = current as object, after = equipped as object}};
+        if (!base.apply_equipment_changes(creature, changes)) { return false; }
+        publish_equipment_changes(creature, changes, authoring);
+        return true;
+    }
     if (current != O.invalid) {
-        var removed = unequip_item(creature, slot);
+        var removed = _unequip_item(creature, slot, authoring);
         if (removed == O.invalid) {
             return false;
         }
@@ -382,25 +437,23 @@ fn _equip_item_unchecked(creature: Creature, equipped: Item, slot: base.EquipInd
 
 fn equip_item(creature: Creature, equipped: Item, slot: base.EquipIndex): bool {
     return can_equip_item(creature, equipped, slot)
-        && _equip_item_unchecked(creature, equipped, slot);
+        && _equip_item_unchecked(creature, equipped, slot, false);
 }
 
-fn unequip_item(creature: Creature, slot: base.EquipIndex): Item {
-    var removed = base.unequip_item_in_slot(creature, slot);
+fn _unequip_item(creature: Creature, slot: base.EquipIndex, authoring: bool): Item {
+    var removed = base.get_equipped_item(creature, slot);
     if (removed == O.invalid) {
         return O.invalid as Item;
     }
 
-    base.process_item_properties(creature, removed, slot, true);
-    if (!base.inventory_add_item(creature as object, removed)) {
-        if (base.equip_item_in_slot(creature, removed, slot)) {
-            base.process_item_properties(creature, removed, slot, false);
-        }
-        return O.invalid as Item;
-    }
-
-    _dispatch_on_unequip(creature, removed, slot);
+    var changes: array!(base.EquipmentChange) = {{slot = slot as int, before = removed as object, after = O.invalid}};
+    if (!base.apply_equipment_changes(creature, changes)) { return O.invalid as Item; }
+    publish_equipment_changes(creature, changes, authoring);
     return removed;
+}
+
+fn unequip_item(creature: Creature, slot: base.EquipIndex): Item {
+    return _unequip_item(creature, slot, false);
 }
 
 fn valid_visual_color_index(color: int): bool {
@@ -1861,7 +1914,7 @@ fn equip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.Equip
     if (creature == O.invalid || !can_equip_item_for_authoring(item_obj, slot)) {
         return false;
     }
-    return _equip_item_unchecked(creature, item_obj, slot);
+    return _equip_item_unchecked(creature, item_obj, slot, true);
 }
 
 fn unequip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.EquipIndex): bool {
@@ -1870,7 +1923,7 @@ fn unequip_item_for_authoring(creature: Creature, item_obj: Item, slot: base.Equ
         || (base.get_equipped_item(creature, slot) as object) != (item_obj as object)) {
         return false;
     }
-    return (unequip_item(creature, slot) as object) == (item_obj as object);
+    return (_unequip_item(creature, slot, true) as object) == (item_obj as object);
 }
 
 fn _append_visual_row_count(

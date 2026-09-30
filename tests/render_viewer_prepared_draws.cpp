@@ -2677,6 +2677,29 @@ TEST(RenderViewerPreparedDraws, AreaEditsPreserveUnrelatedPlayback)
     ASSERT_TRUE(session->refresh_live_object_visual(equipped->visual_object));
     expect_preserved();
 
+    auto* replacement_weapon = nw::kernel::objects().load<nw::Item>("nw_wswss001");
+    ASSERT_NE(replacement_weapon, nullptr);
+    ASSERT_TRUE(actor->inventory().add_item(replacement_weapon));
+    auto swap = nw::toolset::make_creature_inventory_equip_edit(actor->handle(),
+        static_cast<uint32_t>(actor->inventory().items.size() - 1), nw::EquipIndex::righthand);
+    ASSERT_TRUE(swap);
+    auto swapped = nw::toolset::commit_creature_inventory_edits(std::move(*swap), "Replace weapon", context);
+    ASSERT_TRUE(swapped.ok()) << swapped.message;
+    ASSERT_TRUE(swapped.undo_action);
+    ASSERT_TRUE(session->refresh_live_object_visual(actor->handle()));
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), replacement_weapon);
+    EXPECT_TRUE(actor->inventory().has_item(weapon));
+    EXPECT_FALSE(models_for(actor->handle()).empty());
+    expect_preserved();
+    ASSERT_TRUE(swapped.undo_action->undo(context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(actor->handle()));
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), weapon);
+    expect_preserved();
+    ASSERT_TRUE(swapped.undo_action->redo(context).ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(actor->handle()));
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), replacement_weapon);
+    expect_preserved();
+
     // Detached ghost cancellation, then promotion and undo/redo use the same
     // authored membership comparison, including stale destroyed handles.
     const std::array placements{nw::toolset::AreaObjectBlueprintPlacement{

@@ -870,6 +870,87 @@ TEST_F(SmallsEngineIntegration, Nwn1ItemEquipApisProcessItemProperties)
     nw::kernel::objects().destroy(creature->handle());
 }
 
+TEST_F(SmallsEngineIntegration, EquipmentChangesPublishFinalStateAndRejectStaleOrIneligibleRequests)
+{
+    auto& rt = nw::kernel::runtime();
+    auto& objects = nw::kernel::objects();
+    auto* creature = objects.load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    ASSERT_NE(creature, nullptr);
+    rollnw::tests::TestItemGff old_spec{.base_item = nw::BaseItem::make(36)};
+    old_spec.properties.push_back({.type = 0, .subtype = 0, .cost_value = 2});
+    auto* old = rollnw::tests::make_item_from_gff(old_spec);
+    rollnw::tests::TestItemGff new_spec{.base_item = nw::BaseItem::make(36)};
+    new_spec.properties.push_back({.type = 0, .subtype = 0, .cost_value = 4});
+    auto* incoming = rollnw::tests::make_item_from_gff(new_spec);
+    ASSERT_TRUE(old && incoming);
+    ASSERT_TRUE(old->instantiate());
+    ASSERT_TRUE(incoming->instantiate());
+    ASSERT_TRUE(nwn1::equip_item(creature, old, nw::EquipIndex::arms));
+    ASSERT_TRUE(creature->inventory().add_item(incoming));
+    const auto source = R"(
+        import core.array as Array;
+        import core.item as Base;
+        import core.object as O;
+        import nwn1.item as Items;
+        import nwn1.creature as CreatureState;
+        from nwn1.constants import { ability_strength, equip_index_arms };
+
+        var expected_old: object = O.invalid;
+        var expected_new: object = O.invalid;
+        var expected_strength = 0;
+        var legacy_count = 0;
+        var batch_count = 0;
+        var valid = true;
+        var allow = true;
+
+        fn observe(creature: Creature, _item: Item, slot: Base.EquipIndex) {
+            legacy_count += 1;
+            if (Base.get_equipped_item(creature, slot) as object != expected_new
+                || !Base.inventory_has_item(creature as object, expected_old as Item)
+                || Base.inventory_has_item(creature as object, expected_new as Item)
+                || CreatureState.get_ability_score(creature, ability_strength) != expected_strength) {
+                valid = false;
+            }
+        }
+        fn committed(creature: Creature, changes: array!(Base.EquipmentChange), authoring: bool) {
+            batch_count += 1;
+            if (authoring || Array.len(changes) != 1 || changes[0].before != expected_old
+                || changes[0].after != expected_new || changes[0].slot != equip_index_arms as int) { valid = false; }
+        }
+        fn eligible(_creature: Creature, _item: Item, _slot: Base.EquipIndex): bool { return allow; }
+        fn main(creature: Creature, old: Item, incoming: Item): bool {
+            expected_old = old as object;
+            expected_new = incoming as object;
+            expected_strength = CreatureState.get_ability_score(creature, ability_strength) + 2;
+            Items.add_on_unequip_callback(observe);
+            Items.add_on_equip_callback(observe);
+            Items.add_on_equipment_changed_callback(committed);
+            Items.add_can_equip_callback(eligible);
+            var changes: array!(Base.EquipmentChange) = {{slot = equip_index_arms as int, before = old as object, after = incoming as object}};
+            allow = false;
+            if (Items.change_equipment(creature, changes) || batch_count != 0 || legacy_count != 0) { return false; }
+            allow = true;
+            if (!Items.change_equipment(creature, changes)) { return false; }
+            if (!valid || batch_count != 1 || legacy_count != 2) { return false; }
+            // A gameplay action held across the first commit is now stale.
+            if (Items.change_equipment(creature, changes) || batch_count != 1 || legacy_count != 2) { return false; }
+            var noop: array!(Base.EquipmentChange) = {{slot = equip_index_arms as int, before = incoming as object, after = incoming as object}};
+            return Items.change_equipment(creature, noop) && valid && batch_count == 1 && legacy_count == 2;
+        }
+    )";
+    auto* script = rt.load_module_from_source("test.equipment_changes", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+    const auto revision = creature->equipment.equip_version;
+    const auto result = rt.execute_script(script, "main",
+        {nwn1::bridge::make_object_arg(creature->handle()), nwn1::bridge::make_object_arg(old->handle()), nwn1::bridge::make_object_arg(incoming->handle())});
+    ASSERT_TRUE(result.ok()) << result.error_message;
+    EXPECT_TRUE(result.value.data.bval);
+    EXPECT_EQ(creature->equipment.equip_version, revision + 1);
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::arms), incoming);
+    EXPECT_TRUE(creature->inventory().has_item(old));
+}
+
 TEST_F(SmallsEngineIntegration, Nwn1EquipCallbacksUpdateVisualRowsForChangedSlot)
 {
     auto& rt = nw::kernel::runtime();

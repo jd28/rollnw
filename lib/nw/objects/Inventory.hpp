@@ -18,6 +18,8 @@ struct InventoryItem {
     uint16_t pos_x;
     uint16_t pos_y;
     Variant<Resref, ObjectHandle> item;
+
+    bool operator==(const InventoryItem&) const = default;
 };
 
 struct InventorySlot {

@@ -2900,142 +2900,10 @@ InventoryItem* find_inventory_item(Inventory& inventory, ObjectHandle item)
     return found == inventory.items.end() ? nullptr : &*found;
 }
 
-bool inventory_position_matches(const InventoryItem& entry, const CreatureInventoryPosition& position) noexcept
-{
-    return entry.pos_x == position.x
-        && entry.pos_y == position.y
-        && entry.infinite == position.infinite;
-}
-
-bool move_inventory_item_to(Inventory& inventory,
-    Item& item,
-    const CreatureInventoryPosition& position)
-{
-    auto* entry = find_inventory_item(inventory, item.handle());
-    const auto* layout = kernel::objects().components().find_item_layout(item.handle());
-    if (!entry || !layout || layout->inventory_width <= 0 || layout->inventory_height <= 0) {
-        return false;
-    }
-    if (entry->pos_x == position.x && entry->pos_y == position.y) {
-        entry->infinite = position.infinite;
-        return true;
-    }
-
-    const auto current = inventory.xy_to_slot(entry->pos_x, entry->pos_y);
-    const auto target = inventory.xy_to_slot(position.x, position.y);
-    if (!inventory.clear_item(current.page, current.row, current.col,
-            layout->inventory_width, layout->inventory_height)) {
-        return false;
-    }
-    if (!inventory.insert_item(target.page, target.row, target.col,
-            layout->inventory_width, layout->inventory_height)) {
-        (void)inventory.insert_item(current.page, current.row, current.col,
-            layout->inventory_width, layout->inventory_height);
-        return false;
-    }
-
-    entry->pos_x = position.x;
-    entry->pos_y = position.y;
-    entry->infinite = position.infinite;
-    return true;
-}
-
 ObjectHandle equipped_item_handle(const Creature& creature, EquipIndex slot)
 {
     auto* item = get_equipped_item(&creature, slot);
     return item ? item->handle() : ObjectHandle{};
-}
-
-ObjectEditApplyResult validate_creature_inventory_batch(
-    const CreatureInventoryEditBatch& batch, ObjectEditDirection direction)
-{
-    if (batch.rows.empty()) {
-        return edit_result(ObjectEditStatus::empty, "Creature inventory edit batch is empty");
-    }
-    auto* creature = kernel::objects().get<Creature>(batch.creature);
-    if (!creature || batch.creature.type != ObjectType::creature
-        || batch.rows.size() > 18) {
-        return edit_result(ObjectEditStatus::invalid_batch, "Creature inventory edit batch is invalid");
-    }
-
-    for (size_t index = 0; index < batch.rows.size(); ++index) {
-        const auto& row = batch.rows[index];
-        if (!valid_equip_index(row.slot)
-            || row.item.type != ObjectType::item
-            || !kernel::objects().get<Item>(row.item)) {
-            return edit_result(ObjectEditStatus::invalid_batch, "Creature inventory edit row is invalid");
-        }
-        for (size_t prior = 0; prior < index; ++prior) {
-            if (batch.rows[prior].slot == row.slot || batch.rows[prior].item == row.item) {
-                return edit_result(ObjectEditStatus::invalid_batch,
-                    "Creature inventory edit slots and items must be unique");
-            }
-        }
-
-        const auto* inventory_entry = find_inventory_item(creature->inventory(), row.item);
-        const ObjectHandle equipped = equipped_item_handle(*creature, row.slot);
-        const bool target_equipped = (batch.kind == CreatureInventoryEditKind::equip_from_inventory)
-            == (direction == ObjectEditDirection::forward);
-        if (target_equipped) {
-            if (!inventory_entry || equipped.type != ObjectType::invalid) {
-                return edit_result(ObjectEditStatus::stale_value,
-                    "Creature inventory or equipment changed before the edit was applied");
-            }
-            if (!can_place_creature_item_in_slot(row.item, row.slot)) {
-                return edit_result(ObjectEditStatus::invalid_batch,
-                    "Creature inventory item is incompatible with the equipment slot");
-            }
-            if (row.inventory_position_captured
-                && !inventory_position_matches(*inventory_entry, row.inventory_position)) {
-                return edit_result(ObjectEditStatus::stale_value,
-                    "Creature inventory position changed before the edit was applied");
-            }
-        } else {
-            if (equipped != row.item || inventory_entry) {
-                return edit_result(ObjectEditStatus::stale_value,
-                    "Creature inventory or equipment changed before the edit was applied");
-            }
-        }
-        if (direction == ObjectEditDirection::inverse && !row.inventory_position_captured) {
-            return edit_result(ObjectEditStatus::invalid_batch,
-                "Creature inventory edit has no captured inventory position");
-        }
-    }
-    return edit_result(ObjectEditStatus::success);
-}
-
-bool apply_creature_inventory_row(Creature& creature,
-    CreatureInventoryEditKind kind,
-    CreatureInventoryEditRow& row,
-    ObjectEditDirection direction)
-{
-    auto* item = kernel::objects().get<Item>(row.item);
-    if (!item) {
-        return false;
-    }
-    const bool target_equipped = (kind == CreatureInventoryEditKind::equip_from_inventory)
-        == (direction == ObjectEditDirection::forward);
-    if (target_equipped) {
-        return apply_authoring_equip(creature, *item, row.slot);
-    }
-
-    if (!apply_authoring_unequip(creature, *item, row.slot)) {
-        return false;
-    }
-    auto* entry = find_inventory_item(creature.inventory(), row.item);
-    if (!entry) {
-        (void)apply_authoring_equip(creature, *item, row.slot);
-        return false;
-    }
-    if (!row.inventory_position_captured) {
-        row.inventory_position = {entry->pos_x, entry->pos_y, entry->infinite};
-        row.inventory_position_captured = true;
-    }
-    if (!move_inventory_item_to(creature.inventory(), *item, row.inventory_position)) {
-        (void)apply_authoring_equip(creature, *item, row.slot);
-        return false;
-    }
-    return true;
 }
 
 CommandResult replay_creature_inventory_edits(std::shared_ptr<CreatureInventoryEditBatch> batch,
@@ -3050,7 +2918,10 @@ CommandResult replay_creature_inventory_edits(std::shared_ptr<CreatureInventoryE
             CommandOutputChannel::error);
     }
     mark_context_dirty(context);
-    return command_edit_result(CommandStatus::success, std::string{label}, CommandOutputChannel::none);
+    const bool warning = !applied.diagnostic.empty();
+    return command_edit_result(CommandStatus::success,
+        warning ? std::move(applied.diagnostic) : std::string{label},
+        warning ? CommandOutputChannel::warn : CommandOutputChannel::none);
 }
 
 CommandResult replay_object_variable_edits(const ObjectVariableEditBatch& batch,
@@ -4234,87 +4105,49 @@ std::optional<CreatureInventoryEditBatch> make_creature_inventory_equip_edit(
     ObjectHandle creature_handle, uint32_t inventory_index, EquipIndex slot)
 {
     auto* creature = kernel::objects().get<Creature>(creature_handle);
-    if (!creature || !valid_equip_index(slot)
-        || inventory_index >= creature->inventory().items.size()
-        || get_equipped_item(creature, slot)) {
-        return std::nullopt;
-    }
-    const auto& entry = creature->inventory().items[inventory_index];
-    auto* item = inventory_item_ptr(entry);
-    if (!item) {
-        return std::nullopt;
-    }
-
-    CreatureInventoryEditBatch result;
-    result.creature = creature_handle;
-    result.kind = CreatureInventoryEditKind::equip_from_inventory;
-    result.rows.push_back({
-        .item = item->handle(),
-        .slot = slot,
-        .inventory_position = {entry.pos_x, entry.pos_y, entry.infinite},
-        .inventory_position_captured = true,
-    });
-    return result;
+    if (!creature || !valid_equip_index(slot) || inventory_index >= creature->inventory().items.size()) { return std::nullopt; }
+    auto* item = inventory_item_ptr(creature->inventory().items[inventory_index]);
+    if (!item || !can_place_creature_item_in_slot(item->handle(), slot)) { return std::nullopt; }
+    const std::array changes{EquipmentChange{static_cast<int32_t>(slot), equipped_item_handle(*creature, slot), item->handle()}};
+    return prepare_equipment_changes(creature_handle, changes);
 }
 
 std::optional<CreatureInventoryEditBatch> make_creature_inventory_unequip_edit(
     ObjectHandle creature_handle, EquipIndex slot)
 {
     auto* creature = kernel::objects().get<Creature>(creature_handle);
-    auto* item = creature && valid_equip_index(slot)
-        ? get_equipped_item(creature, slot)
-        : nullptr;
-    if (!item) {
-        return std::nullopt;
-    }
-
-    CreatureInventoryEditBatch result;
-    result.creature = creature_handle;
-    result.kind = CreatureInventoryEditKind::unequip_to_inventory;
-    result.rows.push_back({
-        .item = item->handle(),
-        .slot = slot,
-    });
-    return result;
+    if (!creature || !valid_equip_index(slot)) { return std::nullopt; }
+    const auto item = equipped_item_handle(*creature, slot);
+    if (item.type != ObjectType::item) { return std::nullopt; }
+    const std::array changes{EquipmentChange{static_cast<int32_t>(slot), item, ObjectHandle{}}};
+    return prepare_equipment_changes(creature_handle, changes);
 }
 
 ObjectEditApplyResult apply_creature_inventory_edits(
     CreatureInventoryEditBatch& batch, ObjectEditDirection direction)
 {
-    auto validation = validate_creature_inventory_batch(batch, direction);
-    if (!validation.ok()) {
-        return validation;
-    }
-
-    auto* creature = kernel::objects().get<Creature>(batch.creature);
-    uint32_t applied_count = 0;
-    for (; applied_count < batch.rows.size(); ++applied_count) {
-        if (apply_creature_inventory_row(
-                *creature, batch.kind, batch.rows[applied_count], direction)) {
-            continue;
+    if (batch.changes.empty()) { return edit_result(ObjectEditStatus::empty, "Creature inventory edit batch is empty"); }
+    const bool reverse = direction == ObjectEditDirection::inverse;
+    for (const auto& change : batch.changes) {
+        const auto incoming = reverse ? change.before : change.after;
+        if (incoming.type != ObjectType::invalid
+            && !can_place_creature_item_in_slot(incoming, static_cast<EquipIndex>(change.slot))) {
+            return edit_result(ObjectEditStatus::invalid_batch, "Item is incompatible with the equipment slot");
         }
-
-        const auto rollback_direction = direction == ObjectEditDirection::forward
-            ? ObjectEditDirection::inverse
-            : ObjectEditDirection::forward;
-        bool rollback_ok = true;
-        while (applied_count > 0) {
-            --applied_count;
-            rollback_ok = apply_creature_inventory_row(
-                              *creature, batch.kind, batch.rows[applied_count], rollback_direction)
-                && rollback_ok;
-        }
-        return edit_result(ObjectEditStatus::failed,
-            rollback_ok
-                ? "Creature inventory policy rejected the edit; applied rows were rolled back"
-                : "Creature inventory edit and rollback both failed");
     }
-
+    if (!nwn1::bridge::ensure_nwn1_smalls_initialized()) {
+        return edit_result(ObjectEditStatus::failed, "Equipment policy is unavailable");
+    }
+    if (!nw::apply_equipment_changes(batch, reverse)) {
+        return edit_result(ObjectEditStatus::stale_value, "Inventory, equipment, or item dimensions changed before the edit was applied");
+    }
+    const bool notified = nwn1::bridge::publish_equipment_changes(batch.creature, batch.changes, reverse);
     ++g_mutation_state.epoch;
     g_mutation_state.kind = ObjectMutationKind::visual;
     g_mutation_state.visual_kind = ObjectVisualMutationKind::detail;
     g_mutation_state.object = batch.creature;
-    return {ObjectEditStatus::success, applied_count, {}};
+    return {ObjectEditStatus::success, static_cast<uint32_t>(batch.changes.size()),
+        notified ? std::string{} : "Equipment committed, but a profile callback failed; see Output"};
 }
 
 CommandResult commit_creature_inventory_edits(
@@ -4345,6 +4178,10 @@ CommandResult commit_creature_inventory_edits(
 
     mark_context_dirty(context);
     CommandResult result = command_edit_result(CommandStatus::success, label, CommandOutputChannel::none);
+    if (!applied.diagnostic.empty()) {
+        result.message = std::move(applied.diagnostic);
+        result.output_channel = CommandOutputChannel::warn;
+    }
     auto action = std::make_shared<CommandUndoAction>();
     action->label = label;
     action->undo = [state, label](CommandContext& undo_context) {

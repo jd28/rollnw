@@ -7,6 +7,7 @@
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectHandle.hpp>
+#include <nw/objects/equipment_changes.hpp>
 #include <nw/resources/assets.hpp>
 #include <nw/smalls/types.hpp>
 
@@ -377,31 +378,8 @@ struct ItemPropertyEditBatch {
     std::vector<ItemPropertyEditRow> rows;
 };
 
-enum class CreatureInventoryEditKind : uint8_t {
-    equip_from_inventory,
-    unequip_to_inventory,
-};
-
-struct CreatureInventoryPosition {
-    uint16_t x = 0;
-    uint16_t y = 0;
-    bool infinite = false;
-};
-
-struct CreatureInventoryEditRow {
-    ObjectHandle item{};
-    EquipIndex slot = EquipIndex::invalid;
-    CreatureInventoryPosition inventory_position;
-    bool inventory_position_captured = false;
-};
-
-// Homogeneous item moves for one Creature. Rows own stable live handles and
-// exact inventory coordinates; slots and items are unique within the batch.
-struct CreatureInventoryEditBatch {
-    ObjectHandle creature{};
-    CreatureInventoryEditKind kind = CreatureInventoryEditKind::equip_from_inventory;
-    std::vector<CreatureInventoryEditRow> rows;
-};
+// Editor history retains the engine transaction; it does not own the Items.
+using CreatureInventoryEditBatch = EquipmentChangeBatch;
 
 enum class CreatureSpellEditKind : uint8_t {
     known,

@@ -143,6 +143,12 @@ and original order, including Store category and infinite-stock status. Unequip
 an equipped item before removing it. Inventory removal saves with the blueprint
 or containing area.
 
+To replace equipped gear, select an inventory item and click the destination
+equipment slot. The displaced item returns to the vacated inventory cell when
+it fits, or the first available space. The entire swap is one undoable action;
+insufficient space leaves both items unchanged. Clicking an occupied slot with
+no inventory item selected unequips it.
+
 For placed instances in an Area, select an inventory item and click the **pencil**
 icon to open it in the Item editor. Occupied equipment slots have their own pencil
 icon. The **left arrow** returns to the owner's inventory, including nested containers.

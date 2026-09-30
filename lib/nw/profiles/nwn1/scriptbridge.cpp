@@ -7,8 +7,10 @@
 #include "../../objects/Item.hpp"
 #include "../../objects/ObjectBase.hpp"
 #include "../../objects/ObjectManager.hpp"
+#include "../../objects/equipment_changes.hpp"
 #include "../../rules/combat_scheduler.hpp"
 #include "../../smalls/Array.hpp"
+#include "../../smalls/stdlib.hpp"
 
 namespace nwn1::bridge {
 namespace {
@@ -50,6 +52,27 @@ bool ensure_nwn1_smalls_initialized()
         return false;
     }
     return true;
+}
+
+bool publish_equipment_changes(nw::ObjectHandle creature,
+    std::span<const nw::EquipmentChange> changes, bool reverse)
+{
+    if (changes.empty()) { return true; }
+    if (!ensure_nwn1_smalls_initialized()) { return false; }
+    auto& rt = nw::kernel::runtime();
+    const auto type = rt.type_id("core.item.EquipmentChange");
+    if (type == nw::smalls::invalid_type_id) { return false; }
+    const auto array_ptr = rt.create_array_typed(type, changes.size());
+    auto* array = rt.get_array_typed(array_ptr);
+    if (!array) { return false; }
+    const auto value = nw::smalls::Value::make_heap(array_ptr, rt.heap_.get_header(array_ptr)->type_id);
+    nw::smalls::Runtime::ScopedRoots roots{rt, 1};
+    roots.add(value);
+    for (auto change : changes) {
+        if (reverse) { std::swap(change.before, change.after); }
+        array->append_value(nw::smalls::detail::make_value(&rt, change), rt);
+    }
+    return call_nwn1_module_void("nwn1.item", "publish_equipment_changes", {make_object_arg(creature), value, nw::smalls::Value::make_bool(true)});
 }
 
 nw::smalls::Value make_object_arg(nw::ObjectHandle handle)

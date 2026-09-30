@@ -459,7 +459,7 @@ std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
         if (target.object.type != ObjectType::creature) { return click; }
         click.equipped_item = inventory.equipment[static_cast<size_t>(*index)].item;
         if (click.equipped_item.type != ObjectType::invalid && click.equipped_item.type != ObjectType::item) { return click; }
-        if (click.equipped_item.type != ObjectType::item && state.creature_inventory_selection >= 0) {
+        if (state.creature_inventory_selection >= 0) {
             const auto selected = static_cast<size_t>(state.creature_inventory_selection);
             if (selected >= inventory.inventory.size() || inventory.inventory[selected].source_index != selected
                 || inventory.inventory[selected].item.type != ObjectType::item) { return click; }
@@ -532,14 +532,14 @@ bool apply_inventory_workbench_click(InventoryWorkbenchClick& click,
     const ObjectHandle equipped_item = item ? item->handle() : ObjectHandle{};
     if (equipped_item != click.equipped_item || (!item && !equipped.empty())) { return false; }
     CommandInvocation invocation;
-    if (click.equipped_item.type == ObjectType::item) {
-        invocation.command_id = "object.creature.unequip_slot";
-        invocation.args.push_back(CommandArg::positional_string(std::to_string(click.index)));
-    } else if (click.selection >= 0) {
+    if (click.selection >= 0) {
         if (click.inventory_item.type != ObjectType::item || live_inventory_item(*inventory, click.selection) != click.inventory_item) { return false; }
         invocation.command_id = "object.creature.equip_inventory_item";
         invocation.args.reserve(2);
         invocation.args.push_back(CommandArg::positional_string(std::to_string(click.selection)));
+        invocation.args.push_back(CommandArg::positional_string(std::to_string(click.index)));
+    } else if (click.equipped_item.type == ObjectType::item) {
+        invocation.command_id = "object.creature.unequip_slot";
         invocation.args.push_back(CommandArg::positional_string(std::to_string(click.index)));
     } else {
         return click.selection == -1;

@@ -11,6 +11,7 @@ namespace nw {
 struct Creature;
 struct Item;
 struct ObjectBase;
+struct EquipmentChange;
 } // namespace nw
 
 namespace nwn1 {
@@ -23,6 +24,11 @@ nw::Item* unequip_item(nw::Creature* obj, nw::EquipIndex slot);
 namespace nwn1::bridge {
 
 bool ensure_nwn1_smalls_initialized();
+
+// Post-commit notification. A script fault is logged and returns false; storage
+// has already committed and must not be rolled back or lose its editor history.
+bool publish_equipment_changes(nw::ObjectHandle creature,
+    std::span<const nw::EquipmentChange> changes, bool reverse = false);
 
 nw::smalls::Value make_object_arg(nw::ObjectHandle handle);
 

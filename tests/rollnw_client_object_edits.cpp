@@ -926,12 +926,7 @@ TEST(ClientObjectEdits, CreatureInventoryEquipRestoresExactPositionAcrossUndoRed
     ASSERT_TRUE(creature->inventory().add_item(item));
     ASSERT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), nullptr);
 
-    const auto& before_entry = creature->inventory().items.back();
-    const nw::toolset::CreatureInventoryPosition before{
-        before_entry.pos_x,
-        before_entry.pos_y,
-        before_entry.infinite,
-    };
+    const auto before = creature->inventory().items.back();
     auto edit = nw::toolset::make_creature_inventory_equip_edit(
         creature->handle(),
         static_cast<uint32_t>(creature->inventory().items.size() - 1),
@@ -970,14 +965,101 @@ TEST(ClientObjectEdits, CreatureInventoryEquipRestoresExactPositionAcrossUndoRed
                 && entry.item.template as<nw::ObjectHandle>() == item->handle();
         });
     ASSERT_NE(restored, creature->inventory().items.end());
-    EXPECT_EQ(restored->pos_x, before.x);
-    EXPECT_EQ(restored->pos_y, before.y);
+    EXPECT_EQ(restored->pos_x, before.pos_x);
+    EXPECT_EQ(restored->pos_y, before.pos_y);
     EXPECT_EQ(restored->infinite, before.infinite);
 
     auto redone = workspace.redo(context);
     ASSERT_TRUE(redone.ok()) << redone.message;
     EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), item);
     EXPECT_FALSE(creature->inventory().has_item(item));
+}
+
+TEST(ClientObjectEdits, EquipmentReplacementUndoRestoresExactInventoryAndPersists)
+{
+    ASSERT_TRUE(nwk::load_module("test_data/user/modules/DockerDemo.mod"));
+    auto& runtime = nwk::runtime();
+    auto* callbacks = runtime.load_module_from_source("test.equipment_authoring_notifications", R"(
+        import core.item as Base;
+        import nwn1.item as Items;
+        var authored = 0;
+        var gameplay = 0;
+        fn changed(_creature: Creature, _changes: array!(Base.EquipmentChange), authoring: bool) {
+            if (authoring) { authored += 1; } else { gameplay += 1; }
+        }
+        fn setup() { Items.add_on_equipment_changed_callback(changed); }
+        fn counts(): int { return authored * 10 + gameplay; }
+    )");
+    ASSERT_NE(callbacks, nullptr);
+    ASSERT_EQ(callbacks->errors(), 0);
+    ASSERT_TRUE(runtime.execute_script(callbacks, "setup").ok());
+    auto* creature = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* old = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    auto* incoming = nwk::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_TRUE(creature && old && incoming);
+    nwk::objects().components().get_or_create_locals(incoming->handle())->set_int("replacement", 1);
+    ASSERT_TRUE(nw::equip_item_in_slot(creature, old, nw::EquipIndex::belt));
+    ASSERT_TRUE(creature->inventory().add_item(incoming));
+    const auto before = creature->inventory().items.front();
+    nw::toolset::WorkspaceState workspace;
+    workspace.open_tab("preview:test", "Test", nw::toolset::WorkspaceTabKind::preview);
+    nw::toolset::CommandContext context;
+    context.workspace = &workspace;
+    context.active_tab_id = workspace.active_tab_id();
+    auto edit = nw::toolset::make_creature_inventory_equip_edit(creature->handle(), 0, nw::EquipIndex::belt);
+    ASSERT_TRUE(edit);
+    auto result = nw::toolset::commit_creature_inventory_edits(std::move(*edit), "Replace equipment", context);
+    ASSERT_TRUE(result.ok()) << result.message;
+    ASSERT_TRUE(result.undo_action);
+    workspace.push_undo(*result.undo_action);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), incoming);
+    EXPECT_EQ(nw::inventory_item_ptr(creature->inventory().items.front()), old);
+    ASSERT_TRUE(workspace.undo(context).ok());
+    ASSERT_EQ(creature->inventory().items.size(), 1u);
+    EXPECT_EQ(creature->inventory().items.front(), before);
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), old);
+    ASSERT_TRUE(workspace.redo(context).ok());
+    const auto notifications = runtime.execute_script(callbacks, "counts");
+    ASSERT_TRUE(notifications.ok()) << notifications.error_message;
+    EXPECT_EQ(notifications.value.data.ival, 30);
+    for (const auto profile : {nw::SerializationProfile::blueprint, nw::SerializationProfile::instance}) {
+        nlohmann::json saved, roundtrip;
+        ASSERT_TRUE(nw::serialize(creature, saved, profile));
+        auto* copy = nwk::objects().make<nw::Creature>();
+        ASSERT_TRUE(nw::deserialize(copy, saved, profile));
+        ASSERT_TRUE(nw::serialize(copy, roundtrip, profile));
+        EXPECT_EQ(roundtrip, saved);
+        nwk::objects().destroy(copy->handle());
+    }
+
+    auto* area = nwk::objects().make_area(nw::Resref{"start"});
+    ASSERT_NE(area, nullptr);
+    area->creatures.push_back(creature);
+    const std::filesystem::path project = "tmp/client_equipment_replacement";
+    std::filesystem::create_directories(project);
+    const std::string filename = "equipment.caf.json";
+    {
+        std::ofstream placeholder{project / filename};
+        placeholder << "{}\n";
+    }
+    auto& area_tab = workspace.open_area_tab(filename, "Equipment");
+    ASSERT_TRUE(area_tab.document.adopt(area->handle()));
+    area_tab.dirty = true;
+    const std::array<std::string_view, 1> ids{area_tab.id};
+    const auto saved = nw::toolset::save_workspace_documents(workspace, project, ids);
+    ASSERT_TRUE(saved.ok()) << saved.message;
+    std::ifstream file{project / filename};
+    ASSERT_TRUE(file);
+    auto* loaded_area = nwk::objects().make<nw::Area>();
+    ASSERT_TRUE(nw::deserialize(loaded_area, nlohmann::json::parse(file)));
+    ASSERT_EQ(loaded_area->creatures.size(), area->creatures.size());
+    nlohmann::json expected, persisted;
+    ASSERT_TRUE(nw::serialize(creature, expected, nw::SerializationProfile::instance));
+    ASSERT_TRUE(nw::serialize(loaded_area->creatures.back(), persisted, nw::SerializationProfile::instance));
+    EXPECT_EQ(persisted, expected);
+    loaded_area->clear();
+    nwk::objects().destroy(loaded_area->handle());
 }
 
 TEST(ClientObjectEdits, CreatureItemPlacementUsesExactInventoryCellAcrossUndoRedo)

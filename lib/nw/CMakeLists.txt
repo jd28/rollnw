@@ -43,6 +43,7 @@ add_library(nw STATIC
     render/particle_system.cpp
 
     # Objects
+    objects/equipment_changes.cpp
     objects/Area.cpp
     objects/AreaTransforms.cpp
     objects/Creature.cpp

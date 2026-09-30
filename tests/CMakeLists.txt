@@ -268,6 +268,7 @@ add_executable(rollnw_test
     objects_door.cpp
     objects_encounter.cpp
     objects_item.cpp
+    objects_equipment_changes.cpp
     objects_module.cpp
     objects_placeable.cpp
     objects_player.cpp

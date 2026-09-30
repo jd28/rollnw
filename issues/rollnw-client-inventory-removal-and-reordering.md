@@ -1,18 +1,143 @@
 # Client inventory removal, replacement, and ordering
 
-Status: removal implemented; replacement and ordering remain open. Extracted
+Status: removal and equipment replacement implemented; Store ordering remains open. Extracted
 2026-09-26 from the completed
 [object-workbench milestone](closed/rollnw-client-object-workbench-and-property-surfaces.md).
 
-## Existing data and behavior
+## Atomic equipment replacement (Tier 2, 2026-09-30)
+
+### Patterns & Conventions Found
+
+`objects/Inventory.cpp:137,237` already provides bounded grid placement;
+`objects/Equips.cpp:39` owns policy-free slot storage. The current profile path
+(`smalls/scripts/nwn1/item.smalls:359`) unequips before removing the incoming
+item, so it cannot use the freed space and publishes an intermediate state.
+`tools/client/object_edits.cpp:2950` applies/rolls back rows individually;
+`inventory_workbench_view.cpp:534` treats an occupied-slot click as unequip even
+when an inventory item is selected. Existing native struct bindings, SmallS
+callbacks, command/history and renderer visual refresh are reusable. Follow
+adjacent snake_case, value records, spans, explicit rejection and clang-format.
+
+### Architecture Decision / Component Design
+
+Add a renderer-independent equipment batch protocol and prepare/commit operation
+beside Equips. Input rows identify slot and expected/replacement Item handles.
+Preparation reads the Creature's complete live equipment and inventory, computes
+final membership/placement without mutation and captures exact before/after
+snapshots. Commit revalidates service generation, source state and footprints,
+then publishes preallocated storage and one equipment revision. Snapshots borrow
+identities; they never own/destroy Items. Editor undo reverses the same snapshots.
+
+Use existing inventory placement order, prefer the incoming item's vacated cell
+for the displaced item, and otherwise use the first fitting cell. No automatic
+inventory growth or world drops. Batched requests may exchange equipped slots;
+incoming Items must belong to this Creature's inventory or a changed slot.
+Unresolved references, duplicate ownership/slots/targets, invalid geometry,
+stale state and insufficient space reject the entire batch. Empty batches are
+no-ops. Detached-item initialization remains on the existing low-level path.
+
+SmallS owns gameplay eligibility, effects and callbacks. A batch notification
+updates all effects before publishing existing per-item callbacks and a new
+committed-equipment callback containing old/new identities and slots. Consumers
+also receive an explicit authoring/gameplay flag so editor undo cannot be
+mistaken for a gameplay animation request. Consumers observe final membership; failed validation emits no notifications. A callback
+fault is reported after commit, never disguised as an uncommitted operation or
+rolled back through additional callbacks. Editor notifications use the same
+profile path, with compatibility-only validation and existing document history.
+
+### Implementation Map
+
+- Create `lib/nw/objects/equipment_changes.hpp/.cpp`: explicit bounded protocol,
+  preparation, state/footprint validation and atomic forward/inverse storage.
+- Extend native `core.item` binding/script and `nwn1.item`: shared inventory
+  batch entry point, gameplay checks, post-commit effects/callbacks. Extend
+  `profiles/nwn1/scriptbridge` to notify editor commits through that same policy.
+- Replace the editor-only sequential inventory move implementation with the
+  shared snapshots; enable selected-item replacement on occupied-slot clicks.
+- Add native/profile, editor undo/persistence and UI/renderer regression tests;
+  update client README and record animation follow-up under `issues/`.
+
+### Data Flow / Cost
+
+One owner thread on Linux/Windows desktop or headless simulation; 18 equipment
+slots, at most 1,024 inventory entries, 10x10 cells/page, existing client page
+bound 255. Real fixtures include `pl_agent_001.utc`, belts, gloves and composite
+weapons. Actual swap frequency/distribution is unmeasured.
+ASSUMPTION: one selected inventory item is the common gesture; it uses the same
+batch path as multi-slot requests. ASSUMPTION: authoring applies immediately;
+gameplay action/animation policy chooses when to submit/revalidate its request.
+
+Stable layout/profile resources plus volatile membership -> bounded native
+request -> prepared final inventory/slots -> revalidate/commit -> profile effects
+and committed rows -> existing visuals/history. Work is on edits, never per
+render frame. Linear snapshots and grid searches cost O(inventory rows + grid
+cells per displaced Item); retained undo memory is two bounded snapshots plus
+footprints. Object-manager lookups borrow existing pointers only while producing
+handle/index records. No measured performance improvement is claimed.
+
+### Build Sequence / Critical Details
+
+1. Shared native transaction and rejection tests, then profile entry points.
+2. Editor integration and one-action undo, then occupied-slot UI routing.
+3. Build client/tests; verify capacity with freed space, mismatched footprints,
+   failed batches/no events, final-state callbacks, gameplay policy rejection,
+   deferred stale requests, exact undo/redo, save/reload and rendered equipment.
+
+Simplification: reuse Inventory's bounded placement and existing callback/visual
+plumbing. Remove sequential rollback and duplicate editor ownership logic. No
+animation queue, reservations, networking, new ownership service, or persistence
+format. Animation timing/cancellation requirements remain in the
+[runtime animation follow-up](runtime-equipment-animation.md).
+Done requires one-step UI replacement, exact atomic ownership/history, and a
+headless gameplay path with old/new commit data. Intermediate callback state,
+item loss, callbacks on rejection, or editor dependencies in core disproves it.
+
+### Verification and final self-check
+
+- Release `rollnw-client` and `rollnw_test` builds passed. The final build has no
+  compiler warnings. Formatting checks passed for all 15 changed C++ files, and
+  `git diff --check` passed.
+- The broad run covered 185 tests: 63 object edits, five inventory providers,
+  four native equipment transactions, 96 SmallS engine integrations, two rendered
+  scene tests and 15 inventory workbench tests. One new CAF test used a filename
+  instead of a tab ID; after fixing that test setup, all 12 focused tests passed.
+  No selected tests were skipped. Logs/XML are in `/tmp/equipment-swap-*`.
+- Seven new tests cover a completely full synthetic 2x2 inventory using the
+  incoming Item's freed cell, insufficient space, multi-slot exchange, invalid
+  and stale requests, unchanged revisions on rejection, exact coordinates/order/
+  flags through undo/redo, final effects and membership in callbacks, and
+  gameplay eligibility. Editor commit/undo/redo each publish an authoring event.
+- Creature blueprint and instance JSON round trips match; saving the containing
+  Area through workspace CAF persistence reloads the same complete Creature data.
+  Native UI capture/dispatch replaces occupied gear in one history entry and
+  rejects duplicate release. Offscreen weapon replacement, undo and redo refresh
+  rendered equipment while preserving unrelated particle playback and camera state;
+  existing equipped-armor visual regressions also pass.
+- Simplification: existing placement, profile callbacks, command/history and
+  visual refresh remain in use. Shared prepare/apply snapshots replace the
+  editor's per-row rollback and metadata reconstruction. The publication step
+  uses existing capacity and statically nonthrowing inventory construction and
+  equipment assignment. Prepared batches must remain unchanged; they borrow Item
+  identities and never acquire destruction responsibility.
+- Final self-check: bounded plural inputs, one owning Creature per batch,
+  explicit rejection, declared snapshot costs, scoped object borrows and no
+  per-frame transform. Usage frequency remains an explicit assumption. No new
+  scheduler, ownership service, persistence schema or performance claim was added.
+  Post-commit script faults are reported while preserving editor history;
+  injected callback faults were not tested.
+- Manual desktop interaction and Windows execution were not verified. Actual
+  draw/stow clips, marker timing and interruption/cancellation remain in the
+  [runtime animation follow-up](runtime-equipment-animation.md).
+
+## Existing data and behavior before equipment replacement
 
 Creature, Item, and Placeable workbenches use the existing paged inventory
 presentation. Inventory entries name owned live Items and their grid positions;
 removing an entry is an ownership operation, unlike removing an Encounter or
 Sound value-array row. The current workflow inserts and removes blueprint Items, equips
 existing inventory Items into empty slots, and unequips them back to exact
-inventory coordinates. Occupied-slot replacement currently rejects; the user
-can explicitly unequip and then equip.
+inventory coordinates. Before this change, occupied-slot replacement rejected; the user
+had to explicitly unequip and then equip.
 
 Store inventory has five fixed categories. Insertion accepts bounded batches
 of at most 1,024 detached live Items, records the exact category and coordinates,
@@ -26,9 +151,9 @@ been measured.
 
 - Removal decision: history owns detached Item trees, undo restores exact entries,
   and disposal destroys trees that remain detached. Implementation evidence below.
-- Define occupied-slot replacement, including swaps, displaced-item placement,
-  full inventory, and failure behavior. Keep explicit unequip/equip available
-  until that policy is settled.
+- Equipment replacement: commit final slots and inventory atomically, prefer the
+  incoming item's freed cell for displaced gear, otherwise first fit; reject the
+  whole request if space is insufficient. One history entry restores exact state.
 - Store removal uses the same ownership decision, preserving category, row order,
   grid coordinates and infinite-stock flags.
 - Define what explicit Store reordering changes: stored row order, grid
@@ -53,7 +178,7 @@ This is authoring work. Authoritative gameplay pickup/drop belongs to
 - Save/reload representative inventory and Store documents and verify the
   surviving Items and placements. Record UI interaction coverage and its limits.
 
-Replacement and ordering remain unimplemented. Measure their relevant source
+Store ordering remains unimplemented. Measure its relevant source
 sizes and operation costs when selecting the implementation; do not add a
 generalized collection editor or ownership system in advance.
 
