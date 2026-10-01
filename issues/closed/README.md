@@ -6,6 +6,8 @@ Later completed work records its own date and verification limits.
 
 | Issue | Completion evidence |
 | --- | --- |
+| [Placed inventory item editing](rollnw-client-placed-inventory-item-editing.md) | Shared Item editing and nested navigation retain Area ownership, history and persistence; 166 affected regressions and 36 later icon/template regressions passed. Desktop interaction and icon appearance remain unverified. |
+| [Shared Item workbench preview](rollnw-client-shared-item-preview.md) | Isolated armor and non-armor previews, appearance refresh and source/Area preservation have recorded regression and inspected rendering evidence. Full desktop interaction remains unverified; checkpoints retain detailed limits. |
 | [Client release demo](rollnw-client-release-demo.md) | User accepted the already-published area-editing demo on 2026-09-30. Overview and area-editing videos are linked from the READMEs; the historical release checklist does not imply missing authoring features. |
 | [Gfx resource submission and lifetime hardening](nw-gfx-resource-submission-hardening.md) | Batch uploads, truthful context/attachment contracts and bind-failure rejection; 420 affected cases verified across broad/focused runs, 100 frame-counter comparisons and five pixel-identical captures. Linux Radeon measurements retained; upload completion investigation remains active. |
 | [Client main refactor](client-main-refactor.md) | Implementation, supported automated validation and user manual acceptance. |

@@ -1,5 +1,20 @@
 # Placed inventory item editing
 
+Status: closed on 2026-09-30. Implementation and recorded regression evidence
+satisfy the scoped placed-item editing work; the user requested closure.
+
+The shared Item workbench supports placed inventory and equipped Items, nested
+navigation and Back, retaining the containing Area's ownership, history and
+save target. The recorded Release builds and 166 affected regressions passed;
+the later shared-pencil UI change passed 36 inventory/template regressions.
+
+Closure preserves the verification limits: interactive end-user acceptance and
+the pencil icon's appearance in the running client were not verified by those
+checks. No new runtime or performance verification is claimed. The original
+plan and completion evidence below are retained as history. Separate
+[Store ordering work](../rollnw-client-inventory-removal-and-reordering.md)
+remains active.
+
 Tier 1. Edit contained/equipped instances through the existing Item workbench,
 with the containing Area retaining ownership, save, and undo. Blueprint inventory
 entries serialize references, so this feature is restricted to placed instances.

@@ -1,5 +1,22 @@
 # Shared Item workbench preview
 
+Status: closed on 2026-09-30. Implementation and recorded regression/rendering
+evidence satisfy the shared Item preview work; the user requested closure.
+
+Standalone and contained Items share the workbench preview, with an isolated
+armor mannequin and standalone non-armor models. Appearance edits and undo
+refresh the preview while preserving source ownership and the Area scene.
+The initial preview verification recorded 105 passing checks; the final
+non-armor extension recorded 31 passing focused tests, with no skips. Rendering
+captures were inspected; intermediate fixes retain their own evidence below.
+
+Closure preserves the verification limits: full native desktop pointer use and
+subjective layout acceptance were not verified by the automated/headless checks;
+the non-armor missing-model diagnostic was reviewed, not fault-injected. No new
+runtime or performance verification is claimed. The original plan and subsequent
+implementation checkpoints below are retained as history; later checkpoints
+supersede the initial armor-only preview scope.
+
 Tier 1: extend the existing workbench, icon batch, and ViewerSession; no new
 rendering subsystem or document format. The Linux desktop client uses SDL3,
 RmlUi and nwgfx; UI/kernel mutation is on the main thread, render resources are
