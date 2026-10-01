@@ -1,4 +1,5 @@
 #include "object_workbench_view.hpp"
+#include "client_edit_trace.hpp"
 #include "command_view.hpp"
 #include "object_document.hpp"
 #include "rml_action_line_edit.hpp"
@@ -1797,18 +1798,25 @@ bool sync_object_details_window(Rml::ElementDocument* doc, ObjectWorkbenchViewSt
 
 void rebuild_object_workbench_snapshots(ObjectWorkbenchViewState& state, nw::ObjectHandle object)
 {
+    const ScopedClientEditPhase snapshot_trace{ClientEditPhase::snapshots};
     if (state.pending_sound_volume
         && (state.pending_sound_volume->object != object
             || state.pending_sound_volume->tab_id != state.active_object_tab_id)) {
         state.pending_sound_volume.reset();
     }
     auto& runtime = nw::kernel::runtime();
-    nw::toolset::build_object_details(runtime, object, state.object_details,
-        state.toolset_language);
+    {
+        const ScopedClientEditPhase trace{ClientEditPhase::details};
+        nw::toolset::build_object_details(runtime, object, state.object_details,
+            state.toolset_language);
+    }
     if (state.object_details.status == nw::toolset::ObjectDetailsStatus::invalid_data) {
         LOG_F(WARNING, "rollnw-client: %s", state.object_details.diagnostic.c_str());
     }
-    nw::toolset::snapshot_object_variables(object, state.object_variables);
+    {
+        const ScopedClientEditPhase trace{ClientEditPhase::variables};
+        nw::toolset::snapshot_object_variables(object, state.object_variables);
+    }
     if (state.object_variables.status
         == nw::toolset::ObjectVariableSnapshotStatus::invalid_data) {
         LOG_F(WARNING, "rollnw-client: %s",

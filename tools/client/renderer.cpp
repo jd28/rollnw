@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include "client_edit_trace.hpp"
 
 bool ClientRenderer::initialize(SDL_Window* window)
 {
@@ -475,6 +476,7 @@ bool ClientRenderer::sync_viewer_area_object_spatial(nw::ObjectHandle object)
 bool ClientRenderer::synchronize_live_viewer_area(
     nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
+    const nw::toolset::ScopedClientEditPhase trace{nw::toolset::ClientEditPhase::scene};
     switch (backend_) {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     case Backend::nwgfx:
@@ -491,6 +493,7 @@ bool ClientRenderer::synchronize_live_viewer_area(
 bool ClientRenderer::refresh_live_viewer_area_tiles(
     nw::ObjectHandle area, std::span<const uint32_t> tile_indices)
 {
+    const nw::toolset::ScopedClientEditPhase trace{nw::toolset::ClientEditPhase::scene};
     switch (backend_) {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     case Backend::nwgfx:
@@ -550,6 +553,7 @@ bool ClientRenderer::refresh_live_viewer_debug_geometry(nw::ObjectHandle object)
 
 bool ClientRenderer::refresh_live_viewer_object_visual(nw::ObjectHandle object)
 {
+    const nw::toolset::ScopedClientEditPhase trace{nw::toolset::ClientEditPhase::scene};
     switch (backend_) {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     case Backend::nwgfx:

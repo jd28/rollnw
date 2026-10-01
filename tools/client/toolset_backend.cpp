@@ -1,4 +1,5 @@
 #include "toolset_backend.hpp"
+#include "client_edit_trace.hpp"
 
 #include "area_map.hpp"
 #include "forward_plus_debug.hpp"
@@ -4418,6 +4419,7 @@ CommandResult ToolsetBackend::execute_command(std::string_view command_id, const
 
 CommandResult ToolsetBackend::execute_command(CommandInvocation invocation, CommandContext context)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::command};
     if (blueprint_operation_active() && !invocation.command_id.starts_with("blueprint.references.")) {
         return command_result(CommandStatus::rejected, "Finish the blueprint reference operation before editing", CommandOutputChannel::warn);
     }

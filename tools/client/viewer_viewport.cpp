@@ -1,6 +1,7 @@
 #include "viewer_viewport.hpp"
 
 #include "area_tile_interaction.hpp"
+#include "client_edit_trace.hpp"
 
 #include "object_document.hpp"
 
@@ -327,11 +328,16 @@ struct ClientViewerViewport::Impl {
         if (!item_session) { return false; }
         if (preview_object != object || preview_revision != revision || preview_item != item) {
             const bool retain_camera = preview_item == item && item_preview_ready;
+            const bool retained_palettes = retain_camera && preview_object == object
+                && item_session->refresh_live_object_palettes();
             const auto camera = item_session->camera();
             preview_object = object;
             preview_item = item;
             preview_revision = revision;
-            item_preview_ready = item_session->load_live_object(object, "Item preview");
+            if (!retained_palettes) {
+                const nw::toolset::ScopedClientEditPhase trace{nw::toolset::ClientEditPhase::item_models};
+                item_preview_ready = item_session->load_live_object(object, "Item preview");
+            }
             item_preview_ready = item_preview_ready && !item_session->scene()->static_models.empty();
             if (item_preview_ready) {
                 if (retain_camera) {

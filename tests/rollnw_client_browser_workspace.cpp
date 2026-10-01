@@ -5016,6 +5016,110 @@ TEST_F(ClientInventoryWorkbench, ItemPreviewOwnsArmorCopyAndGenderNeverMutatesSo
     objects.destroy(actor->handle());
 }
 
+TEST_F(ClientInventoryWorkbench, ItemPreviewRetainsPaletteCopiesAndRebuildsChangedInputs)
+{
+    ASSERT_TRUE(load_placed_item_fixture());
+    auto& objects = nw::kernel::objects();
+    auto& runtime = nw::kernel::runtime();
+    ObjectDocument item_owner, source_owner;
+    auto* item = objects.load_file<nw::Item>("test_data/user/development/cloth028.uti");
+    auto* wearer = objects.load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_TRUE(item && wearer);
+    ASSERT_TRUE(item_owner.adopt(item->handle()));
+    ASSERT_TRUE(source_owner.adopt(wearer->handle()));
+    nlohmann::json before_source, before_item;
+    ASSERT_TRUE(nw::serialize(wearer, before_source, nw::SerializationProfile::instance));
+    ASSERT_TRUE(nw::serialize(item, before_item, nw::SerializationProfile::instance));
+    ItemPreviewState preview;
+    uint64_t epoch = 1;
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), wearer->handle(), epoch));
+    const auto mannequin = preview.preview_object();
+    auto* actor = objects.get<nw::Creature>(mannequin);
+    ASSERT_NE(actor, nullptr) << preview.diagnostic;
+    const auto copy = nw::get_equipped_item(actor, nw::EquipIndex::chest)->handle();
+    const auto colors = make_item_color_edits(runtime, item->handle(),
+        std::array{-1, 18}, std::array{0, 0}, std::array{14, 33});
+    ASSERT_TRUE(colors);
+    for (const auto direction : {ObjectEditDirection::forward, ObjectEditDirection::inverse}) {
+        ASSERT_TRUE(apply_object_edits(runtime, *colors, direction).ok());
+        ASSERT_TRUE(refresh_item_preview(preview, item->handle(), wearer->handle(), ++epoch));
+        EXPECT_EQ(preview.preview_object(), mannequin);
+        EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::chest)->handle(), copy);
+        const auto* original = objects.components().find_item_visuals(item->handle());
+        const auto* copied = objects.components().find_item_visuals(copy);
+        ASSERT_TRUE(original && copied);
+        EXPECT_EQ(copied->model_colors, original->model_colors);
+        EXPECT_EQ(copied->part_colors, original->part_colors);
+        nlohmann::json after_source;
+        ASSERT_TRUE(nw::serialize(wearer, after_source, nw::SerializationProfile::instance));
+        EXPECT_EQ(after_source, before_source);
+    }
+    nlohmann::json after_item;
+    ASSERT_TRUE(nw::serialize(item, after_item, nw::SerializationProfile::instance));
+    EXPECT_EQ(after_item, before_item);
+    // An unrelated mutation epoch keeps the same private objects.
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), wearer->handle(), ++epoch));
+    EXPECT_EQ(preview.preview_object(), mannequin);
+
+    // Reconfiguration of a reused actor must match a fresh fallback actor,
+    // including fields that were previously copied from a humanoid source.
+    const auto appearance_type = runtime.type_id("nwn1.propsets.CreatureAppearance", false);
+    const auto* appearance = runtime.get_struct_def(appearance_type);
+    ASSERT_NE(appearance, nullptr);
+    const auto write_appearance = [&](nw::ObjectHandle object, const char* name, int value) {
+        const auto field = appearance->field_index(name);
+        return field != UINT32_MAX && runtime.write_value_field_at_offset(runtime.find_propset_ref(appearance_type, object), appearance->fields[field].offset, runtime.int_type(), nw::smalls::Value::make_int(value));
+    };
+    ASSERT_TRUE(write_appearance(mannequin, "tail", 5));
+    ASSERT_TRUE(write_appearance(mannequin, "wings", 3));
+    ASSERT_TRUE(write_appearance(mannequin, "color_skin", 51));
+    ASSERT_TRUE(write_appearance(wearer->handle(), "appearance", -1));
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), wearer->handle(), ++epoch));
+    EXPECT_EQ(preview.preview_object(), mannequin);
+    EXPECT_EQ(object_appearance(runtime, mannequin), *nw::Appearance::make(6));
+    for (const auto* name : {"tail", "wings", "color_skin"}) {
+        const auto field = appearance->field_index(name);
+        const auto value = runtime.read_value_field_at_offset(runtime.find_propset_ref(appearance_type, mannequin),
+            appearance->fields[field].offset, runtime.int_type());
+        EXPECT_EQ(value.data.ival, 0);
+    }
+
+    auto visual = *objects.components().find_item_visuals(item->handle());
+    visual.model_parts[6] = visual.model_parts[6] == 0 ? 1 : 0;
+    ASSERT_TRUE(objects.components().set_item_visuals(item->handle(),
+        visual.model_colors, visual.model_parts, visual.part_colors));
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), wearer->handle(), ++epoch));
+    EXPECT_NE(preview.preview_object(), mannequin);
+    EXPECT_FALSE(objects.valid(mannequin));
+    EXPECT_FALSE(objects.valid(copy));
+    auto previous = preview.preview_object();
+    ASSERT_TRUE(select_item_preview_gender(preview, item->handle(), 1));
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), wearer->handle(), ++epoch));
+    EXPECT_NE(preview.preview_object(), previous);
+    previous = preview.preview_object();
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, ++epoch));
+    EXPECT_NE(preview.preview_object(), previous);
+    previous = preview.preview_object();
+    --preview.resource_generation; // Simulate a stale resource snapshot.
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, ++epoch));
+    EXPECT_NE(preview.preview_object(), previous);
+    previous = preview.preview_object();
+    objects.components().remove_item_visuals(item->handle());
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, ++epoch));
+    EXPECT_NE(preview.preview_object(), previous);
+    previous = preview.preview_object();
+    const auto type = runtime.type_id("nwn1.propsets.ItemStats", false);
+    const auto* definition = runtime.get_struct_def(type);
+    ASSERT_NE(definition, nullptr);
+    const auto field = definition->field_index("base_item");
+    ASSERT_NE(field, UINT32_MAX);
+    ASSERT_TRUE(runtime.write_value_field_at_offset(runtime.find_propset_ref(type, item->handle()),
+        definition->fields[field].offset, runtime.int_type(), nw::smalls::Value::make_int(66)));
+    ASSERT_TRUE(refresh_item_preview(preview, item->handle(), nw::ObjectHandle{}, ++epoch));
+    EXPECT_FALSE(preview.armor);
+    EXPECT_FALSE(objects.valid(previous));
+}
+
 TEST_F(ClientInventoryWorkbench, ArmorEquipCyclesPreserveBodyRowsInEitherCallbackOrder)
 {
     ASSERT_TRUE(load_placed_item_fixture());

@@ -6,6 +6,7 @@
 #include "client_application_shell.hpp"
 #include "client_application_workbench.hpp"
 #include "client_application_workspace.hpp"
+#include "client_edit_trace.hpp"
 #include "client_frame.hpp"
 #include "client_runtime.hpp"
 #include "client_ui_action.hpp"
@@ -58,6 +59,7 @@ void poll_client_jobs(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
 
 void refresh_client_queries(ClientApplicationSurfaces& surfaces, ClientRenderer& renderer, ClientApplicationState& state, LoguruOutputCapture& log_capture)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::queries};
     auto* context = surfaces.context;
     auto* doc = surfaces.doc;
     auto* palette_doc = surfaces.palette_doc;
@@ -151,6 +153,7 @@ bool prepare_client_surface(ClientApplicationSurfaces& surfaces, ClientRenderer&
 
 void render_client_layout(ClientApplicationSurfaces& surfaces, ClientRenderer& renderer, ClientApplicationState& state)
 {
+    const ScopedClientEditPhase layout_trace{ClientEditPhase::layout};
     auto* context = surfaces.context;
     auto* doc = surfaces.doc;
     nw::ObjectHandle item{};
@@ -169,7 +172,11 @@ void render_client_layout(ClientApplicationSurfaces& surfaces, ClientRenderer& r
     (void)nw::toolset::refresh_item_preview(state.workbench.item_preview, item, source,
         nw::toolset::object_mutation_state().epoch);
     nw::toolset::hydrate_item_preview(doc, state.workbench.item_preview);
-    context->Update();
+    const auto update_layout = [&] {
+        const ScopedClientEditPhase trace{ClientEditPhase::rml_update};
+        context->Update();
+    };
+    update_layout();
     bool tab_scroll_layout_changed = false;
     if (state.workspace_view.workspace_tab_scroll_pending) {
         state.workspace_view.workspace_tab_scroll_pending = false;
@@ -182,48 +189,49 @@ void render_client_layout(ClientApplicationSurfaces& surfaces, ClientRenderer& r
         tab_scroll_layout_changed = true;
     }
     if (tab_scroll_layout_changed) {
-        context->Update();
+        update_layout();
     }
     if (state.workspace_hover_refresh_pending) {
         state.workspace_hover_refresh_pending = false;
         context->ProcessMouseMove(static_cast<int>(std::lround(state.workspace_hover_refresh_point.x)),
             static_cast<int>(std::lround(state.workspace_hover_refresh_point.y)),
             RmlSDL::GetKeyModifierState());
-        context->Update();
+        update_layout();
     }
     if (sync_object_details_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (nw::toolset::sync_dialog_view(doc, state.dialog_view, false)) {
-        context->Update();
+        update_layout();
     }
     if (sync_creature_feat_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (sync_creature_spell_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (sync_creature_spell_filter_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (sync_creature_inventory_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (sync_appearance_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (sync_sound_catalog_window(doc, state, false)) {
-        context->Update();
+        update_layout();
     }
     if (nw::toolset::sync_managed_lists(doc,
             nw::toolset::ui_v1_host(), state.workbench.managed_lists, false)) {
-        context->Update();
+        update_layout();
     }
     state.backend.apply_item_editor_pending_focus(doc);
     if (apply_output_scroll_after_layout(doc, state)) {
-        context->Update();
+        update_layout();
     }
     {
+        const ScopedClientEditPhase trace{ClientEditPhase::ui_render};
         const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerUi};
         context->Render();
     }
@@ -231,6 +239,7 @@ void render_client_layout(ClientApplicationSurfaces& surfaces, ClientRenderer& r
 
 std::optional<WorkspaceViewerViewportRequest> render_client_workspace(ClientApplicationSurfaces& surfaces, ClientRenderer& renderer, ClientApplicationState& state, float raw_frame_delta_seconds, int32_t frame_delta_ms)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::viewport};
     auto* context = surfaces.context;
     auto* palette_context = surfaces.palette_context;
     auto* doc = surfaces.doc;
@@ -421,6 +430,11 @@ int run_client_frames(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
     auto* fps_context = surfaces.fps_context;
     auto* fps_doc = surfaces.fps_doc;
     const bool frame_pacing_enabled = nw::toolset::client_frame_pacing_enabled();
+    ClientEditTrace edit_trace{SDL_getenv("ROLLNW_CLIENT_EDIT_TRACE")};
+    if (!edit_trace.valid()) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Cannot open ROLLNW_CLIENT_EDIT_TRACE output");
+        return 1;
+    }
     if (!frame_pacing_enabled) {
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "frame pacing disabled by ROLLNW_CLIENT_UNCAPPED");
     }
@@ -447,10 +461,17 @@ int run_client_frames(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
         const int32_t frame_delta_ms = frame_deltas.front().camera_milliseconds;
         update_viewer_frame_metrics(state.metrics, raw_frame_delta_seconds);
 
-        poll_client_input(surfaces, renderer, state, object_workbench_change_listener, running);
+        edit_trace.begin_frame(object_mutation_state().epoch);
+        {
+            const ScopedClientEditPhase trace{ClientEditPhase::input};
+            poll_client_input(surfaces, renderer, state, object_workbench_change_listener, running);
+        }
         if (!running || state.quit_requested) { break; }
         refresh_client_queries(surfaces, renderer, state, log_capture);
-        if (!prepare_client_surface(surfaces, renderer, state, frame_start_ms)) { continue; }
+        if (!prepare_client_surface(surfaces, renderer, state, frame_start_ms)) {
+            if (!edit_trace.end_frame(object_mutation_state().epoch, false, surfaces.frame_width, surfaces.frame_height)) { return 1; }
+            continue;
+        }
         const Uint64 begin_frame_start_counter = SDL_GetPerformanceCounter();
         renderer.begin_frame();
         const Uint64 draw_start_counter = SDL_GetPerformanceCounter();
@@ -484,9 +505,16 @@ int run_client_frames(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
             palette_end_counter = SDL_GetPerformanceCounter();
         }
         const Uint64 present_start_counter = palette_end_counter;
-        renderer.end_frame();
+        {
+            const ScopedClientEditPhase trace{ClientEditPhase::present};
+            renderer.end_frame();
+        }
         update_client_gpu_metrics(state.metrics, renderer.last_gpu_frame_stats());
         const Uint64 present_end_counter = SDL_GetPerformanceCounter();
+        if (!edit_trace.end_frame(object_mutation_state().epoch, true, surfaces.frame_width, surfaces.frame_height)) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to write ROLLNW_CLIENT_EDIT_TRACE output");
+            return 1;
+        }
         update_viewer_render_metrics(state.metrics,
             seconds_between_performance_counters(frame_start_counter, present_end_counter),
             seconds_between_performance_counters(begin_frame_start_counter, draw_start_counter),

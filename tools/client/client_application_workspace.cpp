@@ -4,6 +4,7 @@
 #include "client_application_input.hpp"
 #include "client_application_shell.hpp"
 #include "client_application_workbench.hpp"
+#include "client_edit_trace.hpp"
 #include "rollnw_tool_version.hpp"
 #include "smalls_object_properties.hpp"
 #include <RmlUi/Core.h>
@@ -47,6 +48,7 @@ void refresh_live_object_labels(Rml::ElementDocument* doc,
 void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationState& state,
     Rml::Context* context, Rml::ElementDocument* doc)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::mutations};
     const auto mutation = nw::toolset::object_mutation_state();
     if (mutation.epoch != state.observed_object_mutation_epoch) {
         const auto mutation_focus_target = nw::toolset::managed_list_focus_target(
@@ -188,8 +190,11 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                 const auto displayed_object = state.workbench.object_details.object;
                 bool workbench_rebuilt = false;
                 (void)nw::toolset::refresh_object_workbench_snapshots(state.workbench, displayed_object);
-                const bool smalls_appearance_mutation = displayed_object.type == nw::ObjectType::door
-                    || displayed_object.type == nw::ObjectType::item;
+                // Item fields and appearance already refresh through their data
+                // model. Keep the template, focus and scroll state alive.
+                const bool retained_item = displayed_object.type == nw::ObjectType::item
+                    && state.workbench.object_workbench_surface != ObjectWorkbenchSurface::inventory;
+                const bool smalls_appearance_mutation = displayed_object.type == nw::ObjectType::door;
                 if (state.workbench.object_workbench_surface == ObjectWorkbenchSurface::appearance
                     && appearance_catalog_kind(displayed_object.type)
                     && displayed_object.type != nw::ObjectType::placeable) {
@@ -206,6 +211,9 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                     workbench_rebuilt = true;
                 }
                 if (!workbench_rebuilt) {
+                    if (retained_item) {
+                        nw::toolset::hydrate_object_workbench(doc, state.workbench, state.workspace);
+                    }
                     refresh_smalls_elements(doc, state);
                 }
                 sync_object_details_window(doc, state, true);
@@ -294,6 +302,7 @@ bool sync_home_area_window(Rml::ElementDocument* doc, ClientApplicationState& st
 
 void refresh_workspace_content_impl(Rml::ElementDocument* doc, ClientApplicationState& state, bool preserve_controls)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::workspace};
     if (!doc) {
         return;
     }

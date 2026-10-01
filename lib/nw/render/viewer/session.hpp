@@ -226,6 +226,9 @@ public:
     // Teardown does not access borrowed roots. Invalid or scene-owned roots
     // reject the transition and leave the current scene unchanged.
     bool load_live_object(nw::ObjectHandle object, std::string_view source);
+    // The session has one root; its palette transform updates all material rows.
+    // False requests the existing scene reload, without publishing any colors.
+    bool refresh_live_object_palettes();
     bool load_object_file(const std::filesystem::path& path);
     bool synchronize_live_area(
         nw::ObjectHandle area, nw::ObjectHandle selected_object = nw::ObjectHandle{});
@@ -334,6 +337,9 @@ public:
     }
     void set_preview_scene_load_options(PreviewSceneLoadOptions options) noexcept
     {
+        if (scene_ && preview_scene_load_options_.visual_render_mode != options.visual_render_mode) {
+            scene_->palette_resource_generation = 0;
+        }
         preview_scene_load_options_ = options;
     }
     [[nodiscard]] bool area_day_night_autoplay() const noexcept { return area_day_night_autoplay_; }

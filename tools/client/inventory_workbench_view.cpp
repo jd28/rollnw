@@ -1,4 +1,5 @@
 #include "inventory_workbench_view.hpp"
+#include "client_edit_trace.hpp"
 #include "command_view.hpp"
 #include "shell_controller.hpp"
 #include "smalls_rmlui.hpp"
@@ -268,6 +269,7 @@ bool active_creature_inventory_matches_tab(const InventoryWorkbenchViewState& st
 
 void rebuild_active_creature_inventory(InventoryWorkbenchViewState& state, nw::ObjectHandle object)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::inventory};
     nw::toolset::build_object_inventory_rows(
         nw::kernel::runtime(), object, state.item_icon_cache, state.creature_inventory);
     if (state.creature_inventory_page < 0

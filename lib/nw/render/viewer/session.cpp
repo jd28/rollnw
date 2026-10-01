@@ -735,6 +735,14 @@ bool ViewerSession::load_live_object(nw::ObjectHandle object, std::string_view s
     return true;
 }
 
+bool ViewerSession::refresh_live_object_palettes()
+{
+    if (!scene_ || scene_kind_ != ViewerSceneKind::object_file
+        || !nw::kernel::objects().valid(scene_->root_object)) { return false; }
+    const auto* visual = nw::kernel::objects().components().find_visual(scene_->root_object);
+    return visual && refresh_object_palettes(*scene_, *visual, nw::kernel::resman().generation());
+}
+
 bool ViewerSession::synchronize_live_area(nw::ObjectHandle area, nw::ObjectHandle selected_object)
 {
     if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area
@@ -849,6 +857,10 @@ ObjectVisualRefreshResult ViewerSession::refresh_live_object_visuals(
 
     const auto selected = scene_->active_object;
     const auto subindex = active_area_debug_subindex(selected);
+    if (objects.size() == 1 && objects.front() == scene_->root_object
+        && refresh_live_object_palettes()) {
+        return {.status = ObjectVisualRefreshStatus::success, .object_count = 1};
+    }
     // refresh_object_visuals removes scene-owned models. The gfx contract
     // destroys their resources immediately, so prior frame use must complete.
     wait_for_preview_resources_idle(preview_resources_);

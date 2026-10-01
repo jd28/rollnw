@@ -9,6 +9,11 @@ fn requires_mannequin(item: Item): bool {
     return ItemVisual.get_model_type(item) == Rules.item_model_type_armor;
 }
 
+fn same_base_item(first: Item, second: Item): bool {
+    return first != O.invalid && second != O.invalid
+        && ItemVisual.get_baseitem_type(first) == ItemVisual.get_baseitem_type(second);
+}
+
 // Only the private mannequin is writable. No world location, inventory, stats,
 // or equipment is copied from the source creature.
 fn configure_mannequin(target: Creature, source: Creature, gender: int): int {
@@ -24,7 +29,12 @@ fn configure_mannequin(target: Creature, source: Creature, gender: int): int {
     // NWN's human appearance row; model resolution stays in the profile.
     appearance.appearance = 6;
     appearance.phenotype = 0;
+    appearance.tail = 0;
+    appearance.wings = 0;
     stats.gender = 0;
+    for (var color = 0; color < Body.color_count; color += 1) {
+        Body.set_color(target, color, 0);
+    }
     for (var part = 0; part < Body.body_part_count; part += 1) {
         var value = 1;
         if (part == Body.body_part_belt || part == Body.body_part_shoulder_left

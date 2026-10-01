@@ -95,7 +95,78 @@ and 413 shared triangles in 23.1 us for a hit and 19.2 us for a miss. The
 aggregate tile commit path, including stable light and record rows, measured
 76.5 us for one tile and 658 us for 64 tiles.
 
-## Required measurement
+## Desktop edit trace investigation (2026-10-01, Tier 1)
+
+### Patterns & Conventions Found
+
+- `tools/client/client_application_frame.cpp:418` owns the single UI/frame stream
+  and already measures renderer work with monotonic counters.
+- `tools/client/client_application_workspace.cpp:48` reconciles mutation epochs;
+  `:191` refreshes workbench snapshots after object edits.
+- `tools/client/object_workbench_view.cpp:2324` rebuilds creature details, classes,
+  feats, spells and inventory; the cost of each needs measurement.
+- `tools/client/client_metrics.hpp` holds HUD metrics, but neither it nor the
+  renderer benchmark records the edit publication interval. Reuse existing
+  command/history and renderer paths, JSON output and Release build conventions.
+
+### Architecture Decision
+
+Measure the missing client boundary before optimizing. Linux desktop, one UI
+thread, RmlUi and asynchronous Vulkan are the real platform. Keep the renderer
+benchmark intact; an opt-in JSONL trace records inclusive phase times in the
+actual client. The timing endpoint is CPU return from presentation, not physical
+display visibility; display latency is explicitly unavailable.
+
+Inputs are live document mutations: tile batches of 1 and 64, class-level,
+equipment and item appearance edits, plus exact undo. Use real imported fixtures
+and disposable project copies. ASSUMPTION: isolated edits are the common workload
+— affects replay scheduling; no user action-frequency distribution is available.
+Document membership and catalogs are stable during each edit/undo pair; mutation
+epochs, UI snapshots and affected visual rows change. Existing command bounds and
+rejection policy remain authoritative. Trace output errors fail explicitly;
+skipped frames have unavailable presentation measurements.
+
+### Component Design / Implementation Map
+
+- `client_edit_trace.hpp/.cpp`: fixed contiguous timing/count columns; one UI
+  thread owns the recorder, nested scopes borrow its current frame. JSONL is
+  written only after measured work. The frame stream is a true singleton;
+  the measurement report is a batch of independent frame rows.
+- `client_application_frame.cpp`, `client_application_workspace.cpp`,
+  `object_workbench_view.cpp`, `creature_workbench_view.cpp`,
+  `inventory_workbench_view.cpp`, `toolset_backend.cpp`, `renderer.cpp`: scope
+  existing boundaries without changing their behavior for the baseline.
+- Tests and this issue: trace correctness, exact editing/undo/save state,
+  repeatable workload and before/after evidence. Keep any temporary replay
+  instrumentation as evidence rather than adding a general automation protocol.
+
+### Data Flow / Cost
+
+Input dispatch -> command/history -> mutation synchronization -> workbench and
+scene refresh -> layout/UI rendering -> viewport -> presentation return -> JSONL.
+Phase times are inclusive; nested values must not be summed. Disabled scopes do
+one thread-local pointer check with no clocks or allocation. Enabled tracing
+uses a fixed array and two clock reads per scope; report allocation/I/O occurs
+after the timed interval. Existing SDK/object pointers are synchronous API
+borrows, not a new pointer-based hot data path. No throughput claim is intended;
+the requirement is interactive latency and attribution.
+
+### Build Sequence / Critical Details
+
+1. Record repeated Release baselines with warmup and explicit input identity.
+2. Change one demonstrated source of redundant work, or stop if shell cost is
+   negligible. No timing threshold has been supplied; report absolute costs.
+3. Repeat matched workloads, verify exact state restoration and visual/selection
+   behavior, run affected regressions and clang-format, and record limitations.
+
+Simplification: reuse the live client loop and command transactions, avoid a
+second renderer, worker, per-object journal or general replay framework. There is
+no need for approximation, lookup tables or producer/consumer buffering here.
+Done requires real shell timings and evidence for any optimization; a stale UI,
+different saved state, invalid undo, or unmatched timing workload disproves it.
+Plan B is to retain the trace and measurements without a speculative change.
+
+## Original remaining measurement contract
 
 Instrument the remaining client publication boundary around command history,
 RmlUi work and the call into `ViewerSession::refresh_live_area_tiles`. Add that
@@ -109,9 +180,9 @@ resource.
 
 ## Done criteria
 
-- [ ] Rerun the harness against the current randomized 32x32 initialization;
+- [x] Rerun the harness against the current varied 32x32 initialization;
       the varied authored-area run must still avoid modifying The Awakening.
-- [ ] Results include the client publication and RmlUi interval.
+- [x] Results include the client publication and RmlUi interval.
 - [x] Results separate cold import, live scene refresh and the first rendered
       frame.
 - [x] One-tile and 64-tile commit/undo samples have warmup, repeated
@@ -119,3 +190,110 @@ resource.
 - [x] One-tile and 64-tile retained hover-preview samples report update,
       frame preparation, CPU/GPU render, draw counts and cached-list use.
 - [x] The renderer optimization was selected from the measured dominant phase.
+
+
+## Desktop results (2026-10-01)
+
+The complete client measurement is now available with
+`ROLLNW_CLIENT_EDIT_TRACE=/absolute/path/edits.jsonl`. It records changed frames
+only. Times cover dispatch through **CPU return from presentation**, including
+commands, deferred UI callbacks, queries, scene refresh, RmlUi and rendering.
+They exclude time waiting in the OS input queue and physical display latency.
+Phase columns are inclusive; never sum nested columns. Missing presentation is
+`null`, and physical display latency is always explicitly unavailable.
+
+The measured change retains the existing Item editor template on non-inventory
+mutations. Its data model already reads the changed Item; rebuilding the complete
+workspace repeated DOM construction and layout. Existing hydration still updates
+navigation/header state. Inventory mutations on the inventory surface retain the
+existing rebuild path. No command, mutation, undo, serialization, renderer or
+shader semantics changed.
+
+Matched runs used Release, Tracy off, uncapped rendering, a 3841x2028 client
+framebuffer, Ryzen AI 9 HX 370 / Radeon 890M (RADV, Mesa 26.2.2-arch1.1). Each
+process ran three warmup edit/undo pairs and 20 measured pairs per scenario;
+order was baseline, retained editor, retained editor, baseline. Each table cell
+therefore has 40 measured samples. p95 uses nearest rank. Native SDL mouse events
+exercised class, equipment and armor controls; undo used Ctrl+Z. Area edits
+called the backend tile batch API from the dispatch interval, so they do not
+measure native brush hit testing. Event injection itself is included.
+
+The current generated 32x32 input has 1,024 tiles, 12 tile IDs and four
+orientations. The copied authored area has 512 tiles, 119 IDs, two creatures
+and 18 placeables. Equipment swaps two belt instances on `pl_agent_001`; it is
+not a chest-armor geometry benchmark. Class edits use `wizard_pm`. Armor edits
+set global Cloth 1 on `cloth028` from 7 to 1, then undo. Hashes, distributions,
+raw traces, action labels, repeat instructions and screenshots are in
+[the evidence directory](client-edit-transition-evidence/README.md).
+
+| Operation | Before edit median / p95 (ms) | After edit median / p95 (ms) | Before undo median (ms) | After undo median (ms) |
+|---|---:|---:|---:|---:|
+| Current 32x32, one tile | 4.80 / 5.88 | 4.83 / 5.76 | 5.72 | 5.83 |
+| Current 32x32, 64 tiles | 5.69 / 7.54 | 5.61 / 6.74 | 6.43 | 6.74 |
+| Authored area, one tile | 5.29 / 7.44 | 4.95 / 6.29 | 6.42 | 6.42 |
+| Authored area, 64 tiles | 5.39 / 7.44 | 5.57 / 6.87 | 7.42 | 7.27 |
+| Class level | 9.32 / 18.81 | 9.15 / 17.72 | 8.92 | 8.60 |
+| Belt swap | 25.50 / 38.54 | 26.43 / 38.19 | 26.25 | 26.95 |
+| Armor color | 28.76 / 50.74 | 24.14 / 35.47 | 29.74 | 23.46 |
+
+Armor color edits dropped 4.61 ms (16%) in the pooled median. Baseline per-run
+medians were 26.94 and 33.66 ms; retained-editor medians were 24.47 and 23.40 ms.
+This desktop has noticeable run-to-run variance. No improvement is claimed for
+the unchanged area, class or equipment paths.
+
+The armor trace proves both the removed work and the remaining bottleneck:
+
+| Inclusive CPU phase | Before median (ms) | After median (ms) |
+|---|---:|---:|
+| Complete workspace rebuild | 2.24 | 0.00 (zero calls) |
+| RmlUi Update | 4.48 | 2.52 |
+| Construct item mannequin and icon | 0.92 | 0.91 |
+| Load mannequin models into preview session | 13.46 | 13.32 |
+
+**Color decoding already happens in the shader.**
+`render_nwn_static.ps.hlsl::sample_plt` reads the selected palette rows from
+surface constants. `model_renderer.cpp::apply_render_model_material_plt_constants`
+copies those values into each draw. The current editor nevertheless resets the
+mannequin on every mutation epoch, serializes/deserializes its equipped Item,
+and calls `load_live_object` on the changed preview revision. The 24 ms is not a
+shader measurement. The measured next target is retaining models and updating
+palette constants; tracked in
+[the palette refresh issue](rollnw-client-item-preview-palette-refresh.md).
+
+Validation: 103 focused tests passed, including item edits/undo/serialization,
+inventory navigation, preview ownership, native appearance controls and trace
+contracts. All 1,288 replay actions (including warmup) completed. Every edit/undo
+pair restored the serialized root exactly; all four runs began each scenario
+with identical serialized data and preserved viewport selection. The candidate
+also asserted that the Item template survived every edit/undo. Both native
+screenshots were inspected: mannequin, icon, selected color and editor layout
+remain present. Temporary replay and screenshot hooks were removed from product
+sources; their patch is retained solely for reproducing the evidence.
+
+Limitations: initial exploratory runs from the repository root missed UI PNGs;
+those runs (including the earlier ~40 -> 23 ms comparison) are excluded from
+this table. Corrected runs load all UI textures. The class fixture still reports
+missing optional equipment model rows; its result covers the rendered fixture,
+not a complete representative creature wardrobe. Logs retain those diagnostics.
+GPU duration, compositor/display latency, Windows and cold first-edit latency
+were not measured. Serialization equality verifies undo state; this experiment
+does not time disk saves.
+
+Final self-check: the common color-edit case now avoids template replacement;
+no new production replay API, worker, lookup table or cache was introduced.
+The simplification removed repeated DOM construction, keeping existing error
+and data-model contracts. Diagnostics use a fixed contiguous frame row and a
+single UI-thread owner; no new pointer-heavy traversal was introduced. Measured
+success criteria, retained UI, exact undo and build/test checks passed. The
+remaining mannequin/model work is explicitly unresolved, not an achieved
+performance claim.
+
+
+## Follow-up: palette retention completed
+
+The subsequent [retained palette update](rollnw-client-item-preview-palette-refresh.md#results-and-final-self-check)
+removed mannequin model reloads on color edits. A fresh matched comparison with
+both variants retaining the Item DOM measured 21.72 -> 8.60 ms median native
+color edits, and 21.11 -> 8.16 ms undo. Every measured color edit/undo now makes
+zero mannequin-model reload calls. These are CPU presentation-return intervals;
+shader duration and physical display latency remain unmeasured.

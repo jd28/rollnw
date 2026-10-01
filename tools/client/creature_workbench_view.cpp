@@ -1,4 +1,5 @@
 #include "creature_workbench_view.hpp"
+#include "client_edit_trace.hpp"
 #include "client_input.hpp"
 #include "command_view.hpp"
 #include "shell_controller.hpp"
@@ -283,6 +284,7 @@ bool active_creature_feat_object_matches_tab(const CreatureWorkbenchViewState& s
 
 void rebuild_active_creature_feats(CreatureWorkbenchViewState& state, nw::ObjectHandle object)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::feats};
     nw::toolset::build_creature_feat_rows(
         nw::kernel::runtime(), object, state.creature_feat_query, state.creature_feats);
     invalidate_creature_feat_render(state);
@@ -394,6 +396,7 @@ void rebuild_active_creature_spells(CreatureWorkbenchViewState& state,
     int32_t selected_class,
     int32_t selected_metamagic)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::spells};
     clear_creature_spell_filter(state);
     nw::toolset::build_creature_spell_rows(nw::kernel::runtime(),
         object,
@@ -822,6 +825,7 @@ bool active_creature_class_presentation_matches_tab(const CreatureWorkbenchViewS
 
 void rebuild_creature_class_presentation(CreatureWorkbenchViewState& state, nw::ObjectHandle object)
 {
+    const ScopedClientEditPhase trace{ClientEditPhase::classes};
     auto& runtime = nw::kernel::runtime();
     if (object.type == nw::ObjectType::creature) {
         nw::toolset::build_creature_class_presentation(

@@ -1,10 +1,79 @@
+#include "../tools/client/client_edit_trace.hpp"
 #include "../tools/client/client_frame.hpp"
 
 #include <array>
+#include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 #include <limits>
+#include <nlohmann/json.hpp>
 
 namespace nw::toolset {
+
+TEST(ClientEditTrace, RecordsChangedFramesWithInclusivePhasesAndExplicitUnavailablePresentation)
+{
+    const std::filesystem::path path{"tmp/client-edit-trace.jsonl"};
+    std::filesystem::create_directories(path.parent_path());
+    {
+        ClientEditTrace trace{path.string().c_str()};
+        ASSERT_TRUE(trace.valid());
+        trace.begin_frame(10);
+        {
+            const ScopedClientEditPhase input{ClientEditPhase::input};
+            const ScopedClientEditPhase command{ClientEditPhase::command};
+        }
+        ASSERT_TRUE(trace.end_frame(11, true, 1280, 720));
+        trace.begin_frame(11);
+        ASSERT_TRUE(trace.end_frame(11, true, 1280, 720)); // Idle is omitted.
+        trace.begin_frame(11);
+        {
+            const ScopedClientEditPhase command{ClientEditPhase::command};
+        }
+        ASSERT_TRUE(trace.end_frame(12, false, 0, 0));
+    }
+    // Disabled scopes also remain safe after the recorder is destroyed.
+    {
+        const ScopedClientEditPhase command{ClientEditPhase::command};
+    }
+    std::ifstream input{path};
+    std::string line;
+    ASSERT_TRUE(static_cast<bool>(std::getline(input, line)));
+    const auto first = nlohmann::json::parse(line);
+    EXPECT_EQ(first["schema"], 1);
+    EXPECT_EQ(first["sequence"], 0);
+    EXPECT_EQ(first["epoch_before"], 10);
+    EXPECT_EQ(first["epoch_after"], 11);
+    EXPECT_TRUE(first["dispatch_to_present_ms"].is_number());
+    EXPECT_TRUE(first["display_latency_ms"].is_null());
+    EXPECT_EQ(first["calls"]["input"], 1);
+    EXPECT_EQ(first["calls"]["command"], 1);
+    EXPECT_GE(first["inclusive_ms"]["input"].get<double>(), first["inclusive_ms"]["command"].get<double>());
+    ASSERT_TRUE(static_cast<bool>(std::getline(input, line)));
+    const auto skipped = nlohmann::json::parse(line);
+    EXPECT_EQ(skipped["sequence"], 1);
+    EXPECT_FALSE(skipped["present_returned"].get<bool>());
+    EXPECT_TRUE(skipped["dispatch_to_present_ms"].is_null());
+    EXPECT_EQ(skipped["calls"]["input"], 0);
+    EXPECT_EQ(skipped["calls"]["command"], 1);
+    EXPECT_FALSE(static_cast<bool>(std::getline(input, line)));
+}
+
+TEST(ClientEditTrace, DisabledAndInvalidOutputsHaveExplicitResults)
+{
+    ClientEditTrace disabled{nullptr};
+    ASSERT_TRUE(disabled.valid());
+    disabled.begin_frame(1);
+    {
+        const ScopedClientEditPhase command{ClientEditPhase::command};
+    }
+    EXPECT_TRUE(disabled.end_frame(2, true, 1280, 720));
+    ClientEditTrace invalid{""};
+    EXPECT_TRUE(invalid.valid());
+    // A directory cannot be opened as a trace file.
+    std::filesystem::create_directories("tmp");
+    ClientEditTrace directory{"tmp"};
+    EXPECT_FALSE(directory.valid());
+}
 
 TEST(ClientApplicationFrames, StartupAndRegressionsKeepRawTimeSeparateFromCameraCap)
 {

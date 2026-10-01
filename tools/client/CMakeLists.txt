@@ -13,6 +13,7 @@ add_library(rollnw_client_core STATIC
     blueprint_references.cpp
     blueprint_operations.cpp
     client_frame.cpp
+    client_edit_trace.cpp
     client_input_routes.cpp
     client_ui_action.cpp
     command_bus.cpp

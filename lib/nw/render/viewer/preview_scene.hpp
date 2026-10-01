@@ -441,6 +441,15 @@ struct PreviewScene {
     nw::ObjectHandle active_object;
     bool owns_root_object = true;
 
+    // Standalone live-object palette recipe. Each model maps to a resolved
+    // visual row, base colors, or an unavailable mapping. Topology changes
+    // invalidate the snapshot instead of maintaining an area-wide recipe.
+    static constexpr uint32_t palette_row_unavailable = UINT32_MAX;
+    static constexpr uint32_t palette_row_base = UINT32_MAX - 1u;
+    std::vector<uint32_t> model_palette_rows;
+    nw::ObjectVisualState palette_visual;
+    uint64_t palette_resource_generation = 0;
+
     void rebuild_load_report(std::string_view source, std::string_view kind);
     void rebuild_particles(std::string_view animation_name = {});
     // Replaces particle rows only for the borrowed dense model-index batch.
@@ -467,6 +476,14 @@ struct PreviewScene {
     void invalidate_runtime_update_indices() noexcept;
     void rebuild_runtime_update_indices();
 };
+
+// Updates the complete standalone model/material batch in place. The scene
+// owns the snapshot, indices and overrides; visual is borrowed for this call.
+// Unchanged geometry/resources and valid palette masks/destinations are
+// required. False leaves every material untouched and requests a full reload.
+// Color bytes retain the existing shader's palette-row clamping behavior.
+bool refresh_object_palettes(PreviewScene& scene, const nw::ObjectVisualState& visual,
+    uint64_t resource_generation);
 
 // Batch transform from scene-owned assets into common instance runtime state.
 // Inputs are PreviewScene RenderModel rows plus stable instance handles.

@@ -1588,6 +1588,7 @@ void PreviewScene::add(std::shared_ptr<nw::render::RenderModel> model)
     if (!model) {
         return;
     }
+    palette_resource_generation = 0;
     if (static_models.empty()) {
         bounds = model->bounds;
     } else {
@@ -1932,6 +1933,24 @@ static void set_render_model_material_plt_colors(nw::render::Material& material,
     material.plt_colors2 = render_model_plt_color_row(colors, 8u);
 }
 
+// Load-time source indices survive skipped rows and repeated model resources.
+// References below borrow existing visual arrays only while building the recipe.
+static uint32_t palette_visual_row_index(const nw::ObjectVisualState& visual,
+    const nw::ObjectVisualModel& row)
+{
+    const auto index = static_cast<size_t>(&row - visual.models.data());
+    return index < PreviewScene::palette_row_base
+        ? static_cast<uint32_t>(index)
+        : PreviewScene::palette_row_unavailable;
+}
+
+static void record_model_palette_row(PreviewScene& scene, uint32_t model_index, uint32_t visual_index)
+{
+    if (model_index >= scene.static_models.size()) { return; }
+    scene.model_palette_rows.resize(scene.static_models.size(), PreviewScene::palette_row_unavailable);
+    scene.model_palette_rows[model_index] = visual_index;
+}
+
 static bool apply_render_model_plt_material_overrides(PreviewScene& scene, uint32_t model_index,
     const nw::PltColors& colors)
 {
@@ -1971,6 +1990,81 @@ static bool apply_render_model_plt_material_overrides(PreviewScene& scene, uint3
     }
 
     return applied;
+}
+
+static bool same_visual_model_geometry(const nw::ObjectVisualModel& a, const nw::ObjectVisualModel& b)
+{
+    return a.model == b.model && a.plt_texture == b.plt_texture
+        && a.attach_to == b.attach_to && a.attach_from == b.attach_from
+        && a.kind == b.kind && a.slot == b.slot && a.part == b.part
+        && a.source_part == b.source_part && a.model_part == b.model_part && a.flags == b.flags;
+}
+
+bool refresh_object_palettes(PreviewScene& scene, const nw::ObjectVisualState& visual,
+    uint64_t resource_generation)
+{
+    const auto& previous = scene.palette_visual;
+    if (scene.is_area || (visual.owner.type != nw::ObjectType::creature && visual.owner.type != nw::ObjectType::item)
+        || scene.palette_resource_generation == 0
+        || scene.palette_resource_generation != resource_generation
+        || scene.root_object != visual.owner || previous.owner != visual.owner
+        || previous.appearance != visual.appearance || previous.body_variant != visual.body_variant
+        || previous.hold_animation != visual.hold_animation
+        || visual.models.size() >= PreviewScene::palette_row_base
+        || previous.models.size() != visual.models.size() || previous.lights.size() != visual.lights.size()
+        || scene.static_models.size() != scene.model_palette_rows.size()
+        || scene.static_models.size() != scene.static_model_instance_handles.size()
+        || !nw::object_visual_plt_color_mask_valid(visual.base_plt_color_mask)) {
+        return false;
+    }
+    for (size_t index = 0; index < visual.models.size(); ++index) {
+        if (!same_visual_model_geometry(previous.models[index], visual.models[index])
+            || !nw::object_visual_plt_color_mask_valid(visual.models[index].plt_color_mask)) { return false; }
+    }
+    for (size_t index = 0; index < visual.lights.size(); ++index) {
+        if (previous.lights[index].light_offset != visual.lights[index].light_offset
+            || previous.lights[index].light_color != visual.lights[index].light_color) { return false; }
+    }
+
+    // Validate every destination before publishing any colors. A missing model
+    // row or stale override requests reconstruction; the batch is never partial.
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        const auto row = scene.model_palette_rows[model_index];
+        const auto* instance = scene.static_model_instance(model_index);
+        const auto& model = scene.static_models[model_index];
+        if (!instance || !model || (row != PreviewScene::palette_row_base && row >= visual.models.size())) {
+            return false;
+        }
+        for (size_t material_index = 0; material_index < model->materials.size(); ++material_index) {
+            const auto& material = model->materials[material_index];
+            if (!material.albedo_uses_plt || material.material_uses_fallback
+                || !nw::gfx::bindless_texture_index_valid(material.albedo_index)) { continue; }
+            if (material_index >= instance->material_override_handles.size()
+                || !scene.material_overrides.valid(instance->material_override_handles[material_index])) { return false; }
+        }
+    }
+
+    const auto base_colors = visual.owner.type == nw::ObjectType::creature
+        ? visual_base_plt_colors(&visual)
+        : nw::PltColors{};
+    for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+        const auto row = scene.model_palette_rows[model_index];
+        const auto colors = row == PreviewScene::palette_row_base
+            ? base_colors
+            : visual_row_plt_colors(visual.models[row], base_colors);
+        auto* instance = scene.static_model_instance(model_index);
+        CHECK_F(instance != nullptr, "Palette instance invalidated during synchronous update");
+        const auto& model = *scene.static_models[model_index];
+        for (size_t material_index = 0; material_index < model.materials.size(); ++material_index) {
+            const auto& material = model.materials[material_index];
+            if (!material.albedo_uses_plt || material.material_uses_fallback
+                || !nw::gfx::bindless_texture_index_valid(material.albedo_index)) { continue; }
+            auto* override = scene.material_overrides.get(instance->material_override_handles[material_index]);
+            CHECK_F(override != nullptr, "Palette override invalidated during synchronous update");
+            set_render_model_material_plt_colors(override->material, colors);
+        }
+    }
+    return true;
 }
 
 static bool add_render_model_humanoid_body_rows(
@@ -2082,6 +2176,7 @@ static bool add_render_model_humanoid_body_rows(
 
         apply_render_model_plt_material_overrides(
             scene, model_index, visual_row_plt_colors(row, creature_colors));
+        record_model_palette_row(scene, model_index, palette_visual_row_index(*visual, row));
         loaded_any = true;
     }
 
@@ -2212,6 +2307,7 @@ static bool add_render_model_equipped_visual_models(PreviewScene& scene,
             }
             auto item_plt = creature_colors ? visual_row_plt_colors(row, *creature_colors) : visual_row_plt_colors(row);
             apply_render_model_plt_material_overrides(scene, child_model_index, item_plt);
+            record_model_palette_row(scene, child_model_index, palette_visual_row_index(*visual, row));
         }
         added = true;
     }
@@ -2298,6 +2394,7 @@ static bool add_render_model_cloak_visual_model(
         }
         apply_render_model_plt_material_overrides(
             scene, model_index, visual_row_plt_colors(row, creature_colors));
+        record_model_palette_row(scene, model_index, palette_visual_row_index(*visual, row));
         return true;
     }
 
@@ -2389,6 +2486,7 @@ static bool add_render_model_creature_attachment(
     scene.add_attached(std::move(load.model), 0u, owner_socket, source_socket, local_scale);
     if (child_model_index < scene.static_models.size()) {
         apply_render_model_plt_material_overrides(scene, child_model_index, plt_colors);
+        record_model_palette_row(scene, child_model_index, PreviewScene::palette_row_base);
     }
     return true;
 }
@@ -2511,6 +2609,7 @@ static bool add_dynamic_creature_scene_models(
             apply_render_model_plt_material_overrides(scene, 0u, plt_colors);
         }
 
+        record_model_palette_row(scene, 0u, PreviewScene::palette_row_base);
         if (!add_render_model_humanoid_body_rows(
                 scene,
                 resources,
@@ -2547,6 +2646,7 @@ static bool add_dynamic_creature_scene_models(
         scene.add(std::move(load.model));
         if (body_model_index < scene.static_models.size()) {
             apply_render_model_plt_material_overrides(scene, body_model_index, plt_colors);
+            record_model_palette_row(scene, body_model_index, PreviewScene::palette_row_base);
         }
     }
 
@@ -2714,6 +2814,7 @@ static bool add_item_scene_models(
         scene.add(std::move(load.model));
         if (model_index < scene.static_models.size()) {
             apply_render_model_plt_material_overrides(scene, model_index, visual_row_plt_colors(row));
+            record_model_palette_row(scene, model_index, palette_visual_row_index(*visual, row));
         }
     }
 
@@ -4784,6 +4885,12 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
     scene->root_object = object;
     scene->active_object = object;
     scene->owns_root_object = false;
+    if (scene->model_palette_rows.size() == scene->static_models.size()) {
+        if (const auto* visual = nw::kernel::objects().components().find_visual(object)) {
+            scene->palette_visual = *visual;
+            scene->palette_resource_generation = nw::kernel::resman().generation();
+        }
+    }
     return scene;
 }
 
@@ -4870,6 +4977,8 @@ std::optional<SceneModelRemoval> remove_model_rows(
         return std::nullopt;
     }
 
+    scene.palette_resource_generation = 0;
+    scene.model_palette_rows.clear();
     SceneModelRemoval removal;
     removal.render_index_map.assign(scene.static_models.size(), nw::render::kInvalidModelInstanceIndex);
     for (size_t i = 0; i < scene.static_models.size(); ++i) {

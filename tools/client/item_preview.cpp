@@ -1,5 +1,7 @@
 #include "item_preview.hpp"
 
+#include "client_edit_trace.hpp"
+
 #include <RmlUi/Core.h>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Creature.hpp>
@@ -22,6 +24,36 @@ smalls::Value typed_object(smalls::Runtime& runtime, ObjectHandle object, Object
     value.type_id = runtime.object_subtype_for_tag(type);
     return value;
 }
+
+// The private equipped copy supplies only base-item/model/color inputs. Names,
+// properties and inventory are not read by this visual consumer.
+bool refresh_mannequin_colors(ItemPreviewState& state, smalls::Runtime& runtime)
+{
+    auto& objects = kernel::objects();
+    auto* actor = objects.get<Creature>(state.mannequin.object());
+    auto* copy = actor ? nw::get_equipped_item(actor, EquipIndex::chest) : nullptr;
+    auto& components = objects.components();
+    const auto* original_visual = components.find_item_visuals(state.item);
+    const auto* copied_visual = copy ? components.find_item_visuals(copy->handle()) : nullptr;
+    if (!original_visual || !copied_visual || original_visual->model_parts != copied_visual->model_parts) { return false; }
+    // Store writes may relocate the native component array.
+    const auto visual = *original_visual;
+    const auto same_base = runtime.execute_script("toolset.item_preview", "same_base_item",
+        {typed_object(runtime, state.item, ObjectType::item), typed_object(runtime, copy->handle(), ObjectType::item)});
+    if (!same_base.ok() || same_base.value.type_id != runtime.bool_type() || !same_base.value.data.bval
+        || !components.set_item_visuals(copy->handle(), visual.model_colors, visual.model_parts, visual.part_colors)) { return false; }
+
+    const auto actor_value = typed_object(runtime, actor->handle(), ObjectType::creature);
+    const auto configured = runtime.execute_script("toolset.item_preview", "configure_mannequin",
+        {actor_value, typed_object(runtime, state.source, ObjectType::creature), smalls::Value::make_int(state.gender)});
+    if (!configured.ok() || configured.value.type_id != runtime.int_type()
+        || configured.value.data.ival < 0 || configured.value.data.ival > 1) { return false; }
+    const auto refreshed = runtime.execute_script("nwn1.creature", "update_appearance_preview",
+        {actor_value, smalls::Value::make_bool(true)});
+    if (!refreshed.ok() || refreshed.value.type_id != runtime.bool_type() || !refreshed.value.data.bval) { return false; }
+    state.displayed_gender = configured.value.data.ival;
+    return true;
+}
 } // namespace
 
 bool refresh_item_preview(ItemPreviewState& state, ObjectHandle item,
@@ -43,11 +75,13 @@ bool refresh_item_preview(ItemPreviewState& state, ObjectHandle item,
     const bool changed_item = state.item != item || state.service_generation != services;
     if (!changed_item && state.source == source && state.mutation_epoch == mutation_epoch
         && state.resource_generation == resources && !state.dirty) { return false; }
+    const ScopedClientEditPhase trace{ClientEditPhase::item_preview};
+    const bool retain_mannequin = !changed_item && state.source == source
+        && state.resource_generation == resources && !state.dirty && state.armor;
     if (changed_item) {
         state.gender = -1;
         state.dragging = false;
     }
-    state.mannequin.reset();
     state.item = item;
     state.source = source;
     state.mutation_epoch = mutation_epoch;
@@ -63,6 +97,7 @@ bool refresh_item_preview(ItemPreviewState& state, ObjectHandle item,
     const auto item_value = typed_object(runtime, item, ObjectType::item);
     const auto classified = runtime.execute_script("toolset.item_preview", "requires_mannequin", {item_value});
     if (!classified.ok() || classified.value.type_id != runtime.bool_type()) {
+        state.mannequin.reset();
         state.diagnostic = "Item preview is unavailable.";
         return true;
     }
@@ -75,7 +110,14 @@ bool refresh_item_preview(ItemPreviewState& state, ObjectHandle item,
         state.icon = std::move(images.sources.front());
     }
     if (state.icon.empty()) { state.diagnostic = "Inventory icon unavailable."; }
-    if (!state.armor) { return true; }
+    if (!state.armor) {
+        state.mannequin.reset();
+        return true;
+    }
+
+    if (retain_mannequin && refresh_mannequin_colors(state, runtime)) { return true; }
+
+    state.mannequin.reset();
 
     auto* actor = objects.make<Creature>();
     if (!actor || !state.mannequin.adopt(actor->handle())) {

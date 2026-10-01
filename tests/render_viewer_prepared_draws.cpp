@@ -314,6 +314,12 @@ TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWo
         EXPECT_EQ(world->camera().get_view_matrix(), camera);
     }
     const auto before_icon = preview.icon;
+    const auto mannequin_object = preview.preview_object();
+    const auto* retained_scene = mannequin->scene();
+    const auto retained_models = retained_scene->static_models;
+    const auto retained_instances = retained_scene->static_model_instance_handles;
+    const auto retained_camera = mannequin->camera().get_view_matrix();
+    const auto override_count = retained_scene->material_overrides.size();
     for (const int32_t part : {-1, 18}) {
         const auto edit = nw::toolset::make_item_color_edits(runtime, item->handle(),
             std::array{part}, std::array{0}, std::array{14});
@@ -322,7 +328,34 @@ TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWo
             ASSERT_TRUE(nw::toolset::apply_object_edits(runtime, *edit, direction).ok());
             ASSERT_TRUE(nw::toolset::refresh_item_preview(preview, item->handle(), nw::ObjectHandle{},
                 nw::toolset::object_mutation_state().epoch));
-            ASSERT_TRUE(mannequin->load_live_object(preview.preview_object(), "Updated armor mannequin"));
+            EXPECT_EQ(preview.preview_object(), mannequin_object);
+            ASSERT_TRUE(mannequin->refresh_live_object_palettes());
+            EXPECT_EQ(mannequin->scene(), retained_scene);
+            EXPECT_EQ(retained_scene->static_models, retained_models);
+            EXPECT_EQ(retained_scene->static_model_instance_handles, retained_instances);
+            EXPECT_EQ(retained_scene->material_overrides.size(), override_count);
+            EXPECT_EQ(mannequin->camera().get_view_matrix(), retained_camera);
+            const auto* visual = nw::kernel::objects().components().find_visual(mannequin_object);
+            ASSERT_NE(visual, nullptr);
+            bool found_torso = false;
+            for (size_t index = 0; index < retained_models.size(); ++index) {
+                const auto row_index = retained_scene->model_palette_rows[index];
+                if (row_index >= visual->models.size()) { continue; }
+                const auto& row = visual->models[row_index];
+                if (row.kind != nw::ObjectVisualModelKind::creature_model_part || row.part != 18) { continue; }
+                const auto* instance = retained_scene->static_model_instance(index);
+                for (const auto handle : instance->material_override_handles) {
+                    const auto* material = retained_scene->material_overrides.get(handle);
+                    if (!material || !material->material.plt_enabled) { continue; }
+                    EXPECT_EQ(material->material.plt_colors1.x,
+                        row.plt_colors.data[nw::plt_layer_cloth1]);
+                    if (direction == nw::toolset::ObjectEditDirection::forward) {
+                        EXPECT_EQ(material->material.plt_colors1.x, 14u);
+                    }
+                    found_torso = true;
+                }
+            }
+            EXPECT_TRUE(found_torso);
             if (direction == nw::toolset::ObjectEditDirection::forward) {
                 EXPECT_NE(preview.icon, before_icon);
             } else {
@@ -335,6 +368,87 @@ TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWo
             EXPECT_EQ(world->camera().get_view_matrix(), camera);
         }
     }
+    EXPECT_FALSE(viewer::refresh_object_palettes(*mannequin->scene(),
+        *nw::kernel::objects().components().find_visual(mannequin_object),
+        nw::kernel::resman().generation() + 1));
+    auto* changed_visual = nw::kernel::objects().components().find_visual(mannequin_object);
+    ASSERT_FALSE(changed_visual->models.empty());
+    ++changed_visual->models.front().model_part;
+    EXPECT_FALSE(mannequin->refresh_live_object_palettes());
+    --changed_visual->models.front().model_part;
+    ASSERT_TRUE(mannequin->refresh_live_object_palettes());
+    auto options = mannequin->preview_scene_load_options();
+    options.visual_render_mode = nw::ObjectVisualRenderMode::game;
+    mannequin->set_preview_scene_load_options(options);
+    EXPECT_FALSE(mannequin->refresh_live_object_palettes());
+    RecordProperty("mannequin_palette_models", retained_scene->model_palette_rows.size());
+    RecordProperty("mannequin_palette_visual_rows", retained_scene->palette_visual.models.size());
+    RecordProperty("visual_snapshot_bytes", sizeof(nw::ObjectVisualState));
+}
+
+TEST(RenderViewerPreparedDraws, PaletteBatchesPreserveOverridesAndRejectPartialPublication)
+{
+    namespace viewer = nw::render::viewer;
+    viewer::PreviewScene scene;
+    scene.root_object = nw::ObjectHandle{nw::ObjectID{42}, nw::ObjectType::creature};
+    scene.owns_root_object = false;
+    nw::ObjectVisualState visual;
+    visual.owner = scene.root_object;
+    visual.models.resize(3); // Row zero was skipped at load time.
+    visual.base_plt_color_mask = 1u << nw::plt_layer_skin;
+    visual.base_plt_colors.data[nw::plt_layer_skin] = 9;
+    visual.models[1].plt_color_mask = 1u << nw::plt_layer_cloth1;
+    visual.models[1].plt_colors.data[nw::plt_layer_cloth1] = 17;
+    visual.models[2].plt_color_mask = 1u << nw::plt_layer_cloth1;
+    visual.models[2].plt_colors.data[nw::plt_layer_cloth1] = 33;
+    auto model = std::make_shared<nw::render::RenderModel>();
+    model->materials.resize(1);
+    model->materials[0].albedo_uses_plt = true;
+    model->materials[0].albedo_index = 21u;
+    std::vector<nw::render::ModelMaterialOverrideHandle> handles;
+    for (size_t index = 0; index < 2; ++index) {
+        scene.add(model); // Identical assets must retain distinct row palettes.
+        const auto handle = scene.material_overrides.create({.material = model->materials[0]});
+        scene.static_model_instance(index)->material_override_handles = {handle};
+        handles.push_back(handle);
+    }
+    scene.model_palette_rows = {2, 1};
+    scene.palette_visual = visual;
+    scene.palette_resource_generation = 7;
+    ASSERT_TRUE(viewer::refresh_object_palettes(scene, visual, 7));
+    EXPECT_EQ(scene.material_overrides.get(handles[0])->material.plt_colors1.x, 33u);
+    EXPECT_EQ(scene.material_overrides.get(handles[1])->material.plt_colors1.x, 17u);
+    EXPECT_EQ(scene.material_overrides.get(handles[0])->material.plt_colors0.x, 9u);
+    EXPECT_EQ(scene.material_overrides.size(), 2u);
+    EXPECT_EQ(scene.static_model_instance(1)->material_override_handles.front(), handles[1]);
+
+    auto changed = visual;
+    changed.models[2].plt_colors.data[nw::plt_layer_cloth1] = 55;
+    const auto unchanged = [&] {
+        EXPECT_EQ(scene.material_overrides.get(handles[0])->material.plt_colors1.x, 33u);
+    };
+    EXPECT_FALSE(viewer::refresh_object_palettes(scene, changed, 8));
+    unchanged();
+    changed.models[0].attach_to = nw::Resref{"different"};
+    EXPECT_FALSE(viewer::refresh_object_palettes(scene, changed, 7));
+    unchanged();
+    changed.models[0] = visual.models[0];
+    changed.models[0].plt_color_mask = UINT32_MAX;
+    EXPECT_FALSE(viewer::refresh_object_palettes(scene, changed, 7));
+    unchanged();
+    changed.models[0] = visual.models[0];
+    scene.model_palette_rows.back() = viewer::PreviewScene::palette_row_unavailable;
+    EXPECT_FALSE(viewer::refresh_object_palettes(scene, changed, 7));
+    unchanged();
+    scene.model_palette_rows.back() = 1;
+    scene.material_overrides.destroy(handles.back());
+    EXPECT_FALSE(viewer::refresh_object_palettes(scene, changed, 7));
+    unchanged();
+    scene.add(model);
+    EXPECT_EQ(scene.palette_resource_generation, 0u);
+    EXPECT_FALSE(viewer::refresh_object_palettes(scene, changed, 7));
+    RecordProperty("visual_row_bytes", sizeof(nw::ObjectVisualModel));
+    RecordProperty("palette_mapping_bytes", sizeof(uint32_t));
 }
 
 TEST(RenderViewerPreparedDraws, StandaloneItemPreviewsRenderWithoutChangingWorldSession)
