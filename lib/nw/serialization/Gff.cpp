@@ -200,6 +200,9 @@ GffField GffStruct::operator[](size_t index) const
             return {};
         }
         auto fi = &parent_->field_indices_[entry_->field_index / 4]; // Byte offset, not index
+        if (fi[index] >= parent_->head_->field_count) {
+            return {};
+        }
         return GffField(parent_, &parent_->fields_[fi[index]]);
     }
 }

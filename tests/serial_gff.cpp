@@ -7,7 +7,10 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstddef>
+#include <cstring>
 #include <fstream>
+#include <limits>
 #include <utility>
 
 using namespace std::literals;
@@ -42,6 +45,38 @@ TEST(Gff, ParseErrorMessage)
     nw::Gff g{std::move(data)};
     EXPECT_FALSE(g.valid());
     EXPECT_NE(g.error().find("header out of bounds"), std::string::npos);
+}
+
+TEST(Gff, IndirectFieldIndexBounds)
+{
+    nw::GffBuilder builder{"GFF"};
+    builder.top.add_field("First", uint32_t{11}).add_field("Second", uint32_t{22});
+    builder.build();
+
+    for (uint32_t field_count : {0u, 2u}) {
+        for (uint32_t field_index : {0u, 1u, 2u, std::numeric_limits<uint32_t>::max()}) {
+            for (size_t position : {0u, 1u}) {
+                SCOPED_TRACE(::testing::Message() << "count=" << field_count
+                                                  << ", index=" << field_index << ", position=" << position);
+                nw::ResourceData data;
+                data.bytes = builder.to_byte_array();
+                std::memcpy(data.bytes.data() + offsetof(nw::GffHeader, field_count), &field_count, sizeof(field_count));
+                std::memcpy(data.bytes.data() + builder.header.field_idx_offset + position * sizeof(uint32_t),
+                    &field_index, sizeof(field_index));
+
+                nw::Gff g{std::move(data)};
+                ASSERT_TRUE(g.valid());
+                auto top = g.toplevel();
+                ASSERT_EQ(top.size(), 2u);
+                auto field = top[position];
+                ASSERT_EQ(field.valid(), field_index < field_count);
+                if (field.valid()) {
+                    EXPECT_EQ(field.get<uint32_t>(), field_index == 0 ? 11u : 22u);
+                }
+                EXPECT_FALSE(top[2].valid());
+            }
+        }
+    }
 }
 
 TEST(Gff, Lists)
