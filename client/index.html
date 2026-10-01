@@ -118,6 +118,10 @@ Smalls access.</p>
 <td>Toggle Output.</td>
 </tr>
 <tr>
+<td>Ctrl+Shift+E</td>
+<td>Toggle properties beside the viewport or module browser (hidden by default for modules).</td>
+</tr>
+<tr>
 <td>Backtick</td>
 <td>Toggle the terminal.</td>
 </tr>
@@ -143,9 +147,22 @@ Waypoints. These edits support undo/redo and CAF save. Drag Creature, Placeable,
 or Item blueprints from the project tree to preview and place new instances.
 Creatures require walkable ground; Placeables and Items allow authored height
 within the area's bounds. Doors snap to compatible, unoccupied tileset hooks.</p>
-<p>Encounter spawn-point markers can be added, moved, or removed in the area.
+<p>Encounter spawn-point markers can be added, moved, rotated, or removed in the area.
+Only the selected Encounter's points are visible and selectable. They are
+NWN's native <code>spawnpoint.mdl</code> triangular prisms, 2.5 metres high, with our
+numbers just above the top. Their color matches the encounter outline.
+Each prism follows its point's facing. Numbers start at 1
+and follow the encounter's saved spawn-point order; deleting a point renumbers
+the remaining points, and undo restores the original order. With an Encounter
+selected, Shift-click walkable ground to add a point; select a marker to move
+it, Ctrl+wheel to rotate it in 15-degree steps, or press Delete to remove it.
 Sound objects show a selectable radius; use the mouse
 wheel with a selected Sound to adjust its maximum radius.</p>
+<p>Object placement, cancellation, deletion, duplication, appearance changes, and
+blueprint instance updates preserve unrelated particles and animations, including
+undo/redo. Tile edits update changed tiles in the live area. Sound playback
+settings do not reset viewport visuals. Opening another area or using Reload
+starts a new scene.</p>
 <h3 id="terrain-and-tiles">Terrain and tiles</h3>
 <p>Open the <strong>Tiles</strong> tab to paint terrain, features, tileset groups, elevation,
 and crossers. The preview shows the proposed placement before you commit it.
@@ -214,8 +231,51 @@ directory, and display name. Creatures also need a race and class; Items need a
 base-item type. Continue editing in the new blueprint's workbench.</p>
 <p>Focused editors cover creature appearance, classes, feats, spells, inventory,
 and equipment, as well as item appearance and properties. Encounter <strong>Spawns</strong>
-and Sound <strong>Sounds</strong> support adding and removing entries; Sound entries can
+and Sound <strong>Sounds</strong> support adding and removing entries. In <strong>Spawns</strong>, toggle
+the <strong>Single</strong> checkbox directly in the row to change Single Spawn.
+CR is read-only and comes from the Creature blueprint. These edits support undo/redo and save in
+both blueprints and areas. Spawn-point numbers identify positions in the area,
+independently of this Creature list. Sound entries can
 also be reordered by dragging.</p>
+<p>In Creature <strong>Classes</strong>, <strong>Add Class</strong> adds a random unassigned class at level 1.
+Use the inline class dropdown to choose any unassigned class while keeping its level;
+the level steppers adjust it from 1 to 60. <strong>×</strong> removes the class. Removing or
+replacing a class clears its known and prepared spells, including empty spell
+slots. Undo restores the exact class, level, and spellbook. These edits author
+class counts; they do not award level-up feats, skills, or hit points.</p>
+<p>In Creature, container Item, Placeable, and Store inventories, select an item
+and click the <strong>minus</strong> button to remove it. Undo restores its contents, position,
+and original order, including Store category and infinite-stock status. Unequip
+an equipped item before removing it. Inventory removal saves with the blueprint
+or containing area.</p>
+<p>To replace equipped gear, select an inventory item and click the destination
+equipment slot. The displaced item returns to the vacated inventory cell when
+it fits, or the first available space. The entire swap is one undoable action;
+insufficient space leaves both items unchanged. Clicking an occupied slot with
+no inventory item selected unequips it.</p>
+<p>For placed instances in an Area, select an inventory item and click the <strong>pencil</strong>
+icon to open it in the Item editor. Occupied equipment slots have their own pencil
+icon. The <strong>left arrow</strong> returns to the owner's inventory, including nested containers.
+These edits use the Area's undo history and save inside its CAF; equipped visual
+changes update the creature. Blueprint inventories do not offer this action.</p>
+<p>Every Item workbench shows a live inventory icon and a separate 3D preview.
+Non-armor items show their own model; armor uses a mannequin with <strong>Male</strong> and
+<strong>Female</strong> controls. Drag the preview to rotate and scroll to zoom.
+Armor opened through a humanoid creature starts from
+a copy of that creature's appearance; other entry points use a human. Preview
+controls never change the placed creature. Returning with the left arrow restores
+the Area view and its camera. <strong>Variables</strong> is the last Item editor tab.
+Each colorable appearance part has one palette button; open it to choose among
+the part's cloth, leather, and metal color channels. The adjacent <strong>×</strong> button
+resets that part's variation to 1; for the robe, it selects <strong>None</strong>. The Models
+header has matching controls: its palette edits the item's six global color
+channels, and its <strong>×</strong> resets all variations in one undoable action. Resets
+preserve colors. Parts set to <strong>Inherit</strong> use the global colors; explicit
+per-part colors remain unchanged. Both global and per-part edits support
+undo/redo and update the icon and armor preview.
+Armor parts are independent: <strong>None</strong> leaves that piece unset, allowing a single
+shoulder pad. Creature body-part mirroring inherits a variation number and uses
+the destination side's mesh.</p>
 <p><strong>Save as New Blueprint</strong> creates a copy of the selected object without changing
 the original. Resource names must be unique for their type across project
 directories. Creation supports undo/redo; close the new blueprint's editor tab
@@ -253,8 +313,6 @@ an installation.</p>
 <h2 id="current-limits">Current limits</h2>
 <ul>
 <li>Editing does not yet cover every object field or NWToolset workflow.</li>
-<li>Individual Encounter spawn fields are not editable yet; spawn-point markers
-  can be edited in the area viewport.</li>
 <li>Moving inventory Items into the world and picking up ground Items are not
   supported. Area drops create new instances from blueprints.</li>
 <li>Save All saves open modified native documents. It is not autosave or a
