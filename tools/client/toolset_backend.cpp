@@ -3468,6 +3468,102 @@ void ToolsetBackend::register_native_commands()
         });
 
     register_or_log(CommandSpec{
+                        .id = "object.creature.add_class",
+                        .title = "Add Creature Class",
+                        .description = "Add a random unassigned class at level 1",
+                        .category = "object",
+                        .scope = CommandScope::workspace,
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            if (!invocation.args.empty()) {
+                return command_result(CommandStatus::rejected, "Usage: object.creature.add_class", CommandOutputChannel::warn);
+            }
+            const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+            const auto current = editable_creature_class_slots(kernel::runtime(), object);
+            if (current.size() != 16) {
+                return command_result(CommandStatus::rejected, "Active Creature classes are unavailable", CommandOutputChannel::warn);
+            }
+            uint32_t slot = 0;
+            while (slot < 8 && (current[2 * slot] != -1 || current[2 * slot + 1] != 0)) {
+                ++slot;
+            }
+            if (slot == 8) {
+                return command_result(CommandStatus::rejected, "All eight Creature class slots are assigned", CommandOutputChannel::warn);
+            }
+            std::vector<CommandPromptChoice> available;
+            std::string error;
+            if (!load_creature_class_choices(object, available, error)) {
+                return command_result(CommandStatus::rejected, error, CommandOutputChannel::warn);
+            }
+            thread_local std::mt19937 generator{std::random_device{}()};
+            const auto& choice = available[std::uniform_int_distribution<size_t>{0, available.size() - 1}(generator)];
+            const auto selected = parse_i32(choice.value);
+            if (!selected) {
+                return command_result(CommandStatus::rejected, "Invalid Creature class ID", CommandOutputChannel::warn);
+            }
+            ObjectEditBatch batch;
+            batch.kind = ObjectEditKind::creature_class_slot;
+            batch.patches = {{object, {}, 2 * slot, -1, *selected}, {object, {}, 2 * slot + 1, 0, 1}};
+            return commit_creature_class_edits(std::move(batch), "Add Creature class", context);
+        });
+
+    register_or_log(CommandSpec{
+                        .id = "object.creature.remove_class",
+                        .title = "Remove Creature Class",
+                        .description = "Clear an assigned Creature class slot and its level",
+                        .category = "object",
+                        .scope = CommandScope::workspace,
+                        .usage = "object.creature.remove_class <class-slot>",
+                    },
+        [this](const CommandInvocation& invocation, CommandContext& context) {
+            const auto slot = parse_u32(command_arg_string(invocation.args, 0));
+            if (invocation.args.size() != 1 || !slot || *slot >= 8) {
+                return command_result(CommandStatus::rejected, "Usage: object.creature.remove_class <class-slot>", CommandOutputChannel::warn);
+            }
+            const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+            const auto current = editable_creature_class_slots(kernel::runtime(), object);
+            if (current.size() != 16 || current[2 * *slot] < 0 || current[2 * *slot + 1] <= 0) {
+                return command_result(CommandStatus::rejected, "Creature class slot is unavailable", CommandOutputChannel::warn);
+            }
+            ObjectEditBatch batch;
+            batch.kind = ObjectEditKind::creature_class_slot;
+            batch.patches = {{object, {}, 2 * *slot, current[2 * *slot], -1},
+                {object, {}, 2 * *slot + 1, current[2 * *slot + 1], 0}};
+            return commit_creature_class_edits(std::move(batch), "Remove Creature class", context);
+        });
+
+    const CommandBus::Handler set_creature_class = [this](const CommandInvocation& invocation, CommandContext& context) {
+        const auto slot = parse_u32(command_arg_string(invocation.args, 0));
+        if (invocation.args.size() != 2 || !slot || *slot >= 8) {
+            return command_result(CommandStatus::rejected, "Usage: object.creature.set_class <class-slot> <class-id>", CommandOutputChannel::warn);
+        }
+        const auto object = bridge_ ? bridge_->active_object() : ObjectHandle{};
+        const auto current = editable_creature_class_slots(kernel::runtime(), object);
+        if (current.size() != 16 || current[2 * *slot] < 0 || current[2 * *slot + 1] <= 0) {
+            return command_result(CommandStatus::rejected, "Creature class slot is unavailable", CommandOutputChannel::warn);
+        }
+        const auto selected = parse_i32(command_arg_string(invocation.args, 1));
+        if (!selected || *selected < 0) {
+            return command_result(CommandStatus::rejected, "Invalid Creature class ID", CommandOutputChannel::warn);
+        }
+        if (current[2 * *slot] == *selected) {
+            return command_result(CommandStatus::noop, "Creature class is already set", CommandOutputChannel::none);
+        }
+        ObjectEditBatch batch;
+        batch.kind = ObjectEditKind::creature_class_slot;
+        batch.patches.push_back({object, {}, 2 * *slot, current[2 * *slot], *selected});
+        return commit_creature_class_edits(std::move(batch), "Change Creature class", context);
+    };
+    register_or_log(CommandSpec{
+                        .id = "object.creature.set_class",
+                        .title = "Change Creature Class",
+                        .description = "Replace an assigned Creature class while keeping its level",
+                        .category = "object",
+                        .scope = CommandScope::workspace,
+                        .usage = "object.creature.set_class <class-slot> <class-id>",
+                    },
+        set_creature_class);
+    register_or_log(CommandSpec{
                         "object.creature.adjust_class_level",
                         "Adjust Creature Class Level",
                         "Increase or decrease one active Creature class level through Smalls policy",

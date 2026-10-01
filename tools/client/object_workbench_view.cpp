@@ -394,11 +394,11 @@ public:
         markup += "\" value=\"";
         markup += escape_html(value);
         markup += "\" title=\"Press Enter to apply\"/></div><button type=\"button\" "
-                  "class=\"object_variable_remove\" data-name=\"";
+                  "class=\"object_variable_remove icon_button_x\" data-name=\"";
         markup += escape_html(row.name);
         markup += "\" data-type=\"";
         markup += type;
-        markup += "\" title=\"Remove variable\">&#215;</button></div>";
+        markup += "\" title=\"Remove variable\"><span>&#215;</span></button></div>";
         return markup;
     }
 
@@ -1307,6 +1307,7 @@ void invalidate_details_render(ObjectWorkbenchViewState& state)
 void clear_object_details_combobox_state(ObjectWorkbenchViewState& state)
 {
     state.object_details_combobox.close();
+    state.creature_class_choice.reset();
     state.object_details_combobox_row.reset();
     state.object_details_combobox_placement.reset();
 }
@@ -1318,17 +1319,94 @@ void close_object_details_combobox(
         const auto row_index = *state.object_details_combobox_row;
         const bool locstring = row_index < state.object_details.rows.size()
             && state.object_details.rows[row_index].editor == ObjectDetailsEditorKind::locstring;
-        const auto field_id = locstring ? std::string{"object_locstring_language"}
-                                        : "object_details_sound_position_field_" + std::to_string(row_index);
+        const auto field_id = state.creature_class_choice ? "creature_class_field_" + std::to_string(row_index)
+            : locstring                                   ? std::string{"object_locstring_language"}
+                                                          : "object_details_sound_position_field_" + std::to_string(row_index);
         if (auto* field = find_el(doc, field_id.c_str())) {
             field->SetClass("open", false);
         }
     }
+    const auto* popup_id = state.creature_class_choice ? "creature_class_options" : "object_details_combobox_popup";
     clear_object_details_combobox_state(state);
-    if (auto* popup = find_el(doc, "object_details_combobox_popup")) {
+    if (auto* popup = find_el(doc, popup_id)) {
         popup->SetClass("active", false);
         popup->SetInnerRML("");
     }
+}
+
+bool current_creature_class_choice(const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
+{
+    if (!state.creature_class_choice) { return false; }
+    const auto& choice = *state.creature_class_choice;
+    return state.object_workbench_surface == ObjectWorkbenchSurface::classes
+        && active_object_matches_tab(state, workspace)
+        && state.object_details.object == choice.object && workspace.active_tab_id() == choice.tab_id
+        && choice.slot >= 0 && choice.slot < 8
+        && object_mutation_state().epoch == choice.mutation_epoch;
+}
+
+bool open_creature_class_combobox(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, const CreatureClassChoice& choice, ShellController& shell)
+{
+    if (state.object_workbench_surface != ObjectWorkbenchSurface::classes
+        || !active_object_matches_tab(state, workspace)
+        || state.object_details.object != choice.object || workspace.active_tab_id() != choice.tab_id
+        || choice.slot < 0 || choice.slot >= 8
+        || object_mutation_state().epoch != choice.mutation_epoch) { return false; }
+    const auto current = editable_creature_class_slots(kernel::runtime(), choice.object);
+    if (current.size() != 16 || choice.class_id < 0 || choice.level <= 0
+        || current[2 * choice.slot] != choice.class_id
+        || current[2 * choice.slot + 1] != choice.level) { return false; }
+    if (state.creature_class_choice == choice && state.object_details_combobox.is_active()) {
+        if (state.object_details_combobox.popup_visible()) {
+            state.object_details_combobox.hide_popup();
+        } else {
+            (void)state.object_details_combobox.show_popup();
+        }
+        return true;
+    }
+    close_object_details_combobox(doc, state);
+    std::vector<CommandPromptChoice> choices;
+    std::string error;
+    if (!ToolsetBackend::load_creature_class_choices(choice.object, choices, error)) {
+        shell.append_output("warn", error);
+        return false;
+    }
+    std::vector<VirtualComboBoxItem> rows;
+    rows.reserve(choices.size());
+    for (auto& row : choices) {
+        const auto id = parse_decimal_int32(row.value);
+        if (!id) { return false; }
+        rows.push_back({.key = *id, .label = std::move(row.label)});
+    }
+    state.object_details_combobox = VirtualComboBox{};
+    if (!state.object_details_combobox.open(std::move(rows), -1)) { return false; }
+    state.object_details_combobox_row = static_cast<uint32_t>(choice.slot);
+    state.creature_class_choice = choice;
+    return true;
+}
+
+bool commit_creature_class_combobox(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state,
+    const WorkspaceState& workspace, ToolsetBackend& backend, ShellController& shell,
+    const CommandContext& context, int32_t value)
+{
+    if (!current_creature_class_choice(state, workspace)
+        || state.creature_class_choice->module_generation != backend.module_generation()
+        || context.workspace != &workspace || context.active_tab_id != workspace.active_tab_id()
+        || smalls_rmlui_host().active_object() != state.creature_class_choice->object) {
+        close_object_details_combobox(doc, state);
+        return false;
+    }
+    const auto choice = *state.creature_class_choice;
+    const auto current = editable_creature_class_slots(kernel::runtime(), choice.object);
+    if (current.size() != 16 || current[2 * choice.slot] != choice.class_id
+        || current[2 * choice.slot + 1] != choice.level
+        || !state.object_details_combobox.select_key(value)) { return false; }
+    close_object_details_combobox(doc, state);
+    const auto result = backend.execute_command("object.creature.set_class",
+        {std::to_string(choice.slot), std::to_string(value)}, context);
+    append_command_results(shell, {&result, 1});
+    return result.ok();
 }
 
 bool open_object_details_sound_position_combobox(
@@ -1361,6 +1439,7 @@ bool open_object_details_sound_position_combobox(
         {.key = 2, .label = "Random Position"},
     };
     close_object_details_combobox(doc, state);
+    state.object_details_combobox = VirtualComboBox{VirtualComboBoxConfig{.row_height = 30, .visible_rows = 3, .overscan = 0}};
     if (!state.object_details_combobox.open(
             std::move(options), row.edit_value)) {
         return false;
@@ -1392,6 +1471,7 @@ bool open_object_details_locstring_source_combobox(
     }
 
     close_object_details_combobox(doc, state);
+    state.object_details_combobox = VirtualComboBox{VirtualComboBoxConfig{.row_height = 30, .visible_rows = 3, .overscan = 0}};
     if (!state.object_details_combobox.open(locstring_source_options(),
             locstring_source_key(state.locstring_language))) { return false; }
     state.object_details_combobox_row = row_index;
@@ -1406,30 +1486,40 @@ bool sync_object_details_combobox(
         return false;
     }
     const auto row_index = *state.object_details_combobox_row;
-    if (!active_object_details_matches_tab(state, workspace)
-        || row_index >= state.object_details.rows.size()) {
-        close_object_details_combobox(doc, state);
-        return true;
+    std::string field_id;
+    const char* popup_id = "object_details_combobox_popup";
+    if (state.creature_class_choice) {
+        if (!current_creature_class_choice(state, workspace)) {
+            close_object_details_combobox(doc, state);
+            return true;
+        }
+        field_id = "creature_class_field_" + std::to_string(row_index);
+        popup_id = "creature_class_options";
+    } else {
+        if (!active_object_details_matches_tab(state, workspace)
+            || row_index >= state.object_details.rows.size()) {
+            close_object_details_combobox(doc, state);
+            return true;
+        }
+        const auto& row = state.object_details.rows[row_index];
+        const auto selected = state.object_details_combobox.selected_key();
+        std::optional<LanguageID> source_language;
+        const bool sound = row.editor == ObjectDetailsEditorKind::sound_position
+            && state.object_workbench_surface == ObjectWorkbenchSurface::details
+            && selected && *selected >= 0 && *selected <= 2;
+        const bool locstring = row.editor == ObjectDetailsEditorKind::locstring
+            && state.object_workbench_surface == ObjectWorkbenchSurface::locstring
+            && state.locstring_row && *state.locstring_row == row_index
+            && selected && locstring_source_language(*selected, source_language);
+        if (!sound && !locstring) {
+            close_object_details_combobox(doc, state);
+            return true;
+        }
+        field_id = locstring ? std::string{"object_locstring_language"}
+                             : "object_details_sound_position_field_" + std::to_string(row_index);
     }
-    const auto& row = state.object_details.rows[row_index];
-    const auto selected = state.object_details_combobox.selected_key();
-    std::optional<LanguageID> source_language;
-    const bool sound = row.editor == ObjectDetailsEditorKind::sound_position
-        && state.object_workbench_surface == ObjectWorkbenchSurface::details
-        && selected && *selected >= 0 && *selected <= 2;
-    const bool locstring = row.editor == ObjectDetailsEditorKind::locstring
-        && state.object_workbench_surface == ObjectWorkbenchSurface::locstring
-        && state.locstring_row && *state.locstring_row == row_index
-        && selected && locstring_source_language(*selected, source_language);
-    if (!sound && !locstring) {
-        close_object_details_combobox(doc, state);
-        return true;
-    }
-
-    const auto field_id = locstring ? std::string{"object_locstring_language"}
-                                    : "object_details_sound_position_field_" + std::to_string(row_index);
     auto* field = find_el(doc, field_id.c_str());
-    auto* popup = find_el(doc, "object_details_combobox_popup");
+    auto* popup = find_el(doc, popup_id);
     auto* workbench = find_el(doc, "object_workbench");
     if (!field || !popup || !workbench) {
         close_object_details_combobox(doc, state);
@@ -1463,7 +1553,7 @@ bool sync_object_details_combobox(
     }
 
     bool changed = false;
-    if (!state.object_details_combobox_placement
+    if (force || !state.object_details_combobox_placement
         || *state.object_details_combobox_placement != placement) {
         popup->SetProperty("left", std::to_string(placement.left) + "dp");
         popup->SetProperty("top", std::to_string(placement.top) + "dp");
@@ -1636,6 +1726,9 @@ bool sync_object_locstring_panel(Rml::ElementDocument* doc,
 bool sync_object_details_window(Rml::ElementDocument* doc, ObjectWorkbenchViewState& state, const WorkspaceState& workspace, bool force)
 {
     const bool variable_changed = sync_object_variable_window(doc, state, workspace, force);
+    if (state.object_workbench_surface == ObjectWorkbenchSurface::classes) {
+        return sync_object_details_combobox(doc, state, workspace, force);
+    }
     if (state.object_workbench_surface == ObjectWorkbenchSurface::locstring) {
         const bool panel_changed = sync_object_locstring_panel(doc, state, workspace, force);
         const bool combobox_changed = sync_object_details_combobox(doc, state, workspace, force);
@@ -2399,6 +2492,7 @@ bool apply_object_workbench_surface_click(ObjectWorkbenchSurfaceClick& click,
     ObjectWorkbenchViewState& state, Rml::ElementDocument* document, ToolsetBackend& backend)
 {
     if (!std::exchange(click.pending, false)) { return false; }
+    close_object_details_combobox(document, state);
     clear_creature_spell_filter(state.creature_view);
     clear_color_editor(state.appearance_view);
     (void)close_active_smalls_selector(document);
@@ -2500,6 +2594,8 @@ std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rm
 {
     auto* control = find_ancestor_with_class(hit, "combobox_option");
     const bool option = control != nullptr;
+    bool class_combo = option && state.creature_class_choice
+        && combo_ancestor_with_id(control, "creature_class_options");
     bool details_combo = option && state.object_details_combobox.is_active()
         && combo_ancestor_with_id(control, "object_details_combobox_popup");
     if (!control) {
@@ -2509,6 +2605,10 @@ std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rm
     if (!control) {
         control = find_ancestor_with_class(hit, "object_locstring_source_field");
         details_combo = control != nullptr;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "creature_class_select");
+        class_combo = control != nullptr;
     }
     if (!control) { control = find_ancestor_with_class(hit, "creature_spell_filter_field"); }
     if (!control) { return std::nullopt; }
@@ -2520,7 +2620,27 @@ std::optional<ObjectWorkbenchComboClick> capture_object_workbench_combo_click(Rm
         if (!value) { return click; }
         click.value = *value;
     }
-    if (details_combo) {
+    if (class_combo) {
+        if (target.surface != ObjectWorkbenchSurface::classes
+            || !active_creature_class_presentation_matches_tab(state.creature_view, target)) { return click; }
+        if (option) {
+            if (!current_creature_class_choice(state, workspace)) { return click; }
+            click.class_choice = state.creature_class_choice;
+        } else {
+            const auto slot = parse_decimal_int32(control->GetAttribute<Rml::String>("data-slot", ""));
+            if (!slot || *slot < 0 || *slot >= 8) { return click; }
+            const auto current = editable_creature_class_slots(kernel::runtime(), target.object);
+            if (current.size() != 16 || current[2 * *slot] < 0 || current[2 * *slot + 1] <= 0) { return click; }
+            click.class_choice = CreatureClassChoice{target.object, module_generation,
+                object_mutation_state().epoch, workspace.active_tab_id(), *slot, current[2 * *slot], current[2 * *slot + 1]};
+            click.field_id = control->GetId();
+        }
+        click.source_row = state.object_details_combobox_row;
+        click.source_selection = state.object_details_combobox.selected_key();
+        click.active = state.object_details_combobox.is_active();
+        click.popup_visible = state.object_details_combobox.popup_visible();
+        click.kind = option ? ObjectWorkbenchComboKind::class_select : ObjectWorkbenchComboKind::class_open;
+    } else if (details_combo) {
         const auto row_index = option ? state.object_details_combobox_row
                                       : [&]() -> std::optional<uint32_t> {
             const auto row = parse_decimal_int32(control->GetAttribute<Rml::String>("data-row", ""));
@@ -2591,6 +2711,21 @@ ObjectWorkbenchComboEffect apply_object_workbench_combo_click(ObjectWorkbenchCom
         || ((kind != ObjectWorkbenchComboKind::locstring_source_open
                 && kind != ObjectWorkbenchComboKind::locstring_source_select)
             && object_mutation_state().epoch != click.mutation_epoch)) { return ObjectWorkbenchComboEffect::none; }
+    if (kind == ObjectWorkbenchComboKind::class_open || kind == ObjectWorkbenchComboKind::class_select) {
+        if (!click.class_choice || state.object_details_combobox_row != click.source_row
+            || state.object_details_combobox.is_active() != click.active
+            || state.object_details_combobox.popup_visible() != click.popup_visible
+            || state.object_details_combobox.selected_key() != click.source_selection) { return ObjectWorkbenchComboEffect::none; }
+        if (kind == ObjectWorkbenchComboKind::class_open) {
+            return open_creature_class_combobox(doc, state, workspace, *click.class_choice, shell)
+                ? ObjectWorkbenchComboEffect::class_opened
+                : ObjectWorkbenchComboEffect::none;
+        }
+        if (state.creature_class_choice != click.class_choice) { return ObjectWorkbenchComboEffect::none; }
+        return commit_creature_class_combobox(doc, state, workspace, backend, shell, context, click.value)
+            ? ObjectWorkbenchComboEffect::class_selected
+            : ObjectWorkbenchComboEffect::none;
+    }
     if (kind == ObjectWorkbenchComboKind::sound_open || kind == ObjectWorkbenchComboKind::sound_select) {
         if (!click.property || click.property->editor != ObjectDetailsEditorKind::sound_position
             || state.object_details_combobox_row != click.source_row || state.object_details_combobox.is_active() != click.active
@@ -2655,6 +2790,11 @@ ObjectWorkbenchComboEffect apply_object_workbench_combo_click(ObjectWorkbenchCom
 bool focus_object_workbench_combo_field(Rml::ElementDocument* doc, const ObjectWorkbenchComboClick& click,
     const ObjectWorkbenchViewState& state, const WorkspaceState& workspace)
 {
+    if (click.class_choice) {
+        if (!current_creature_class_choice(state, workspace) || state.creature_class_choice != click.class_choice) { return false; }
+        auto* field = find_el(doc, ("creature_class_field_" + std::to_string(click.class_choice->slot)).c_str());
+        return field && field->Focus();
+    }
     if (!active_object_details_matches_tab(state, workspace) || state.object_details.object != click.object
         || workspace.active_tab_id() != click.tab_id || !click.property
         || click.property->row > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) { return false; }
@@ -2817,6 +2957,30 @@ ObjectWorkbenchFieldKeyEffect handle_object_workbench_field_key(const SDL_Keyboa
             blur_focus();
         }
         return ObjectWorkbenchFieldKeyEffect::handled;
+    }
+
+    auto* class_field = find_ancestor_with_class(context->GetFocusElement(), "creature_class_select");
+    if (class_field && !(key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI))) {
+        const bool arrow = key.key == SDLK_UP || key.key == SDLK_DOWN;
+        const bool enter = !key.repeat && (key.key == SDLK_RETURN || key.key == SDLK_KP_ENTER);
+        if (arrow || enter) {
+            const auto slot = parse_decimal_int32(class_field->GetAttribute<Rml::String>("data-slot", ""));
+            const bool visible = state.creature_class_choice && state.creature_class_choice->slot == slot
+                && state.object_details_combobox.popup_visible();
+            if (!visible) {
+                auto click = capture_object_workbench_combo_click(class_field, state, workspace,
+                    backend.module_generation(), kernel::resman().generation());
+                if (click) { (void)apply_object_workbench_combo_click(*click, doc, state, workspace, backend, shell, command); }
+            } else if (enter) {
+                if (const auto selected = state.object_details_combobox.selected_key();
+                    selected && commit_creature_class_combobox(doc, state, workspace, backend, shell, command, *selected)) {
+                    return ObjectWorkbenchFieldKeyEffect::content_changed;
+                }
+            }
+            if (arrow) { (void)state.object_details_combobox.move_selection(key.key == SDLK_UP ? -1 : 1); }
+            (void)sync_object_details_combobox(doc, state, workspace, true);
+            return ObjectWorkbenchFieldKeyEffect::handled;
+        }
     }
 
     auto* focused_sound_position = find_ancestor_with_class(
@@ -3114,9 +3278,11 @@ ObjectWorkbenchClickEffect apply_object_workbench_click(ObjectWorkbenchClick& cl
             effect.refresh_content = apply_color_editor_click(payload, state.appearance_view, target(), workspace, backend, shell, context);
         } else if constexpr (std::is_same_v<T, ObjectWorkbenchComboClick>) {
             switch (apply_object_workbench_combo_click(payload, doc, state, workspace, backend, shell, context)) {
+            case ObjectWorkbenchComboEffect::class_opened:
             case ObjectWorkbenchComboEffect::sound_opened:
                 effect.finish = ObjectWorkbenchClickFinish::sound_combo;
                 break;
+            case ObjectWorkbenchComboEffect::class_selected:
             case ObjectWorkbenchComboEffect::sound_selected:
                 effect.refresh_content = true;
                 break;

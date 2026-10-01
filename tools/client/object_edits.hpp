@@ -38,6 +38,7 @@ enum class ObjectEditKind : uint8_t {
     creature_color,
     creature_accessory,
     creature_class_level,
+    creature_class_slot,
     item_model_part,
     item_color,
 };
@@ -506,6 +507,11 @@ struct AreaObjectBlueprintLoadResult {
 [[nodiscard]] ObjectEditApplyResult apply_object_edits(
     smalls::Runtime& runtime, const ObjectEditBatch& batch, ObjectEditDirection direction);
 
+// Class-ID edits clear removed classes' known/prepared spells and slot records.
+// History owns exact before/after loadouts; stale classes or spells reject replay.
+[[nodiscard]] CommandResult commit_creature_class_edits(
+    ObjectEditBatch batch, std::string label, CommandContext& context);
+
 [[nodiscard]] CommandResult commit_object_edits(
     ObjectEditBatch batch, std::string label, CommandContext& context);
 
@@ -709,6 +715,12 @@ creature_body_part_editor_snapshot(
 // Wings and tails are a two-element Smalls protocol in that order. Empty
 // batches mean the live Creature has no editable accessory state.
 [[nodiscard]] std::vector<int32_t> editable_creature_accessories(
+    smalls::Runtime& runtime, ObjectHandle object);
+
+// Class slots are 16 interleaved integers: class ID then level, eight slots.
+// Empty slots are (-1, 0); an empty result means unavailable Creature state.
+// creature_class_slot patches address these integer indices.
+[[nodiscard]] std::vector<int32_t> editable_creature_class_slots(
     smalls::Runtime& runtime, ObjectHandle object);
 
 // Class levels are an eight-element Smalls protocol indexed by class slot.

@@ -200,7 +200,8 @@ void synchronize_client_mutations(ClientRenderer& renderer, ClientApplicationSta
                     }
                 }
                 if (smalls_appearance_mutation
-                    || state.workbench.object_workbench_surface == ObjectWorkbenchSurface::inventory) {
+                    || state.workbench.object_workbench_surface == ObjectWorkbenchSurface::inventory
+                    || state.workbench.object_workbench_surface == ObjectWorkbenchSurface::classes) {
                     refresh_workspace_content(doc, state);
                     workbench_rebuilt = true;
                 }

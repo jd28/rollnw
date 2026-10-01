@@ -134,6 +134,7 @@
       <div id="creature_inventory_dynamic" class="creature_surface_dynamic"></div>
     </div>
     <div id="creature_workbench_overlays">
+      <div id="creature_class_options" class="combobox_options combobox_popup object_details_combobox_popup"></div>
       <div id="body_part_option_popup"
            class="combobox_options combobox_popup body_part_option_popup managed_list_panel managed_list_popup smalls_selector"
            data-list-id="creature.appearance.body_part_options"

@@ -1270,6 +1270,7 @@ ObjectEditApplyResult validate_batch_shape(const ObjectEditBatch& batch)
         && batch.kind != ObjectEditKind::creature_body_part
         && batch.kind != ObjectEditKind::creature_color
         && batch.kind != ObjectEditKind::creature_accessory
+        && batch.kind != ObjectEditKind::creature_class_slot
         && batch.kind != ObjectEditKind::creature_class_level
         && batch.kind != ObjectEditKind::item_model_part
         && batch.kind != ObjectEditKind::item_color) {
@@ -2253,40 +2254,42 @@ ObjectEditApplyResult validate_creature_accessories(
     return edit_result(ObjectEditStatus::success);
 }
 
-ObjectEditApplyResult validate_creature_class_levels(
+ObjectEditApplyResult validate_creature_classes(
     smalls::Runtime& runtime, const ObjectEditBatch& batch, ObjectEditDirection direction)
 {
+    const bool slots = batch.kind == ObjectEditKind::creature_class_slot;
+    const char* validator = slots ? "can_set_class_slots" : "can_set_class_levels";
     const auto object = batch.patches.front().object;
     if (object.type != ObjectType::creature) {
         return edit_result(ObjectEditStatus::invalid_batch,
-            "Creature class-level patch targets a non-Creature");
+            "Creature class patch targets a non-Creature");
     }
 
     const auto current = read_creature_int_values(
-        runtime, object, "nwn1.creature", "get_class_slot_levels");
-    if (current.size() != 8) {
+        runtime, object, "nwn1.creature", slots ? "get_class_slots" : "get_class_slot_levels");
+    if (current.size() != (slots ? 16 : 8)) {
         return edit_result(ObjectEditStatus::failed,
-            "Creature class levels could not be read");
+            "Creature classes could not be read");
     }
     for (const auto& patch : batch.patches) {
         const int64_t difference = static_cast<int64_t>(patch.after) - patch.before;
         if (patch.key >= current.size() || patch.before == patch.after
-            || (difference != -1 && difference != 1)) {
+            || (!slots && difference != -1 && difference != 1)) {
             return edit_result(ObjectEditStatus::invalid_batch,
-                "Creature class-level patch is invalid");
+                "Creature class patch is invalid");
         }
         if (current[patch.key] != patch_values(patch, direction).expected) {
             return edit_result(ObjectEditStatus::stale_value,
-                "Creature class level changed before the edit was applied");
+                "Creature class changed before the edit was applied");
         }
     }
     const auto opposite = direction == ObjectEditDirection::forward
         ? ObjectEditDirection::inverse
         : ObjectEditDirection::forward;
-    if (!execute_creature_indexed_ints(runtime, batch, direction, "can_set_class_levels")
-        || !execute_creature_indexed_ints(runtime, batch, opposite, "can_set_class_levels")) {
+    if (!execute_creature_indexed_ints(runtime, batch, direction, validator)
+        || !execute_creature_indexed_ints(runtime, batch, opposite, validator)) {
         return edit_result(ObjectEditStatus::invalid_batch,
-            "Smalls rejected the Creature class-level batch");
+            "Smalls rejected the Creature class batch");
     }
     return edit_result(ObjectEditStatus::success);
 }
@@ -2503,6 +2506,7 @@ bool write_patch(smalls::Runtime& runtime,
     case ObjectEditKind::creature_body_part:
     case ObjectEditKind::creature_color:
     case ObjectEditKind::creature_accessory:
+    case ObjectEditKind::creature_class_slot:
     case ObjectEditKind::creature_class_level:
     case ObjectEditKind::item_model_part:
     case ObjectEditKind::item_color:
@@ -2525,6 +2529,62 @@ CommandResult command_edit_result(CommandStatus status, std::string message, Com
     result.message = std::move(message);
     result.output_channel = channel;
     return result;
+}
+
+// Cold authoring transaction. History owns the class patches and two contiguous
+// loadout snapshots, shared by undo/redo. No live component pointer survives a call.
+struct CreatureClassEdits {
+    ObjectEditBatch classes;
+    Vector<ObjectAbilityLoadoutEntry> before;
+    Vector<ObjectAbilityLoadoutEntry> after;
+};
+
+ObjectEditApplyResult apply_creature_class_edits(
+    const CreatureClassEdits& edit, ObjectEditDirection direction)
+{
+    auto& runtime = kernel::runtime();
+    auto validation = validate_batch_shape(edit.classes);
+    if (!validation.ok()) { return validation; }
+    validation = validate_creature_classes(runtime, edit.classes, direction);
+    if (!validation.ok()) { return validation; }
+
+    const auto object = edit.classes.patches.front().object;
+    auto& components = kernel::objects().components();
+    auto* loadout = components.find_ability_loadout(object);
+    const auto& expected = direction == ObjectEditDirection::forward ? edit.before : edit.after;
+    const std::span<const ObjectAbilityLoadoutEntry> current = loadout
+        ? std::span<const ObjectAbilityLoadoutEntry>{loadout->entries}
+        : std::span<const ObjectAbilityLoadoutEntry>{};
+    if (!std::ranges::equal(current, expected, [](const auto& lhs, const auto& rhs) {
+            return std::tie(lhs.source, lhs.tier, lhs.slot, lhs.ability, lhs.modifier, lhs.flags)
+                == std::tie(rhs.source, rhs.tier, rhs.slot, rhs.ability, rhs.modifier, rhs.flags);
+        })) {
+        return edit_result(ObjectEditStatus::stale_value,
+            "Creature spellbooks changed before the class edit was applied");
+    }
+
+    // Allocate restoration storage before touching classes. Swapping the copied
+    // rows after the validated class write cannot fail. Empty loadouts serialize
+    // identically to absent loadouts; keep the component available for undo.
+    auto replacement = direction == ObjectEditDirection::forward ? edit.after : edit.before;
+    if (!loadout && !replacement.empty()) {
+        loadout = components.get_or_create_ability_loadout(object);
+        if (!loadout) { return edit_result(ObjectEditStatus::failed, "Creature spellbooks are unavailable"); }
+    }
+    auto applied = apply_object_edits(runtime, edit.classes, direction);
+    if (applied.ok() && loadout) { loadout->entries.swap(replacement); }
+    return applied;
+}
+
+CommandResult replay_creature_class_edits(const CreatureClassEdits& edit,
+    ObjectEditDirection direction, std::string_view label, CommandContext& context)
+{
+    auto applied = apply_creature_class_edits(edit, direction);
+    if (!applied.ok()) {
+        return command_edit_result(CommandStatus::rejected, std::move(applied.diagnostic), CommandOutputChannel::warn);
+    }
+    mark_context_dirty(context);
+    return command_edit_result(CommandStatus::success, std::string{label}, CommandOutputChannel::none);
 }
 
 CommandResult replay_object_edits(
@@ -5193,8 +5253,9 @@ ObjectEditApplyResult apply_object_edits(
     case ObjectEditKind::creature_accessory:
         validation = validate_creature_accessories(runtime, batch, direction);
         break;
+    case ObjectEditKind::creature_class_slot:
     case ObjectEditKind::creature_class_level:
-        validation = validate_creature_class_levels(runtime, batch, direction);
+        validation = validate_creature_classes(runtime, batch, direction);
         break;
     case ObjectEditKind::item_model_part:
         validation = validate_item_visuals(runtime, batch, direction, false);
@@ -5211,6 +5272,7 @@ ObjectEditApplyResult apply_object_edits(
     if (batch.kind == ObjectEditKind::creature_body_part
         || batch.kind == ObjectEditKind::creature_color
         || batch.kind == ObjectEditKind::creature_accessory
+        || batch.kind == ObjectEditKind::creature_class_slot
         || batch.kind == ObjectEditKind::creature_class_level
         || batch.kind == ObjectEditKind::item_model_part
         || batch.kind == ObjectEditKind::item_color) {
@@ -5235,6 +5297,9 @@ ObjectEditApplyResult apply_object_edits(
         } else if (batch.kind == ObjectEditKind::creature_accessory) {
             function = "set_accessories";
             diagnostic = "Creature accessory write failed; Smalls restored the prior values";
+        } else if (batch.kind == ObjectEditKind::creature_class_slot) {
+            function = "set_class_slots";
+            diagnostic = "Creature class write failed";
         } else {
             function = "set_class_levels";
             diagnostic = "Creature class-level write failed; Smalls restored the prior values";
@@ -5290,6 +5355,61 @@ ObjectEditApplyResult apply_object_edits(
         ? batch.patches.front().object
         : ObjectHandle{};
     return {ObjectEditStatus::success, applied_count, {}};
+}
+
+CommandResult commit_creature_class_edits(ObjectEditBatch batch, std::string label, CommandContext& context)
+{
+    if (context.workspace) {
+        const auto* tab = context.workspace->active_tab();
+        if (tab && tab->kind != WorkspaceTabKind::preview && tab->kind != WorkspaceTabKind::area) {
+            return command_edit_result(CommandStatus::rejected,
+                "Class editing is only available in blueprint preview and area tabs", CommandOutputChannel::warn);
+        }
+    }
+    const auto shape = validate_batch_shape(batch);
+    if (!shape.ok() || batch.kind != ObjectEditKind::creature_class_slot) {
+        return command_edit_result(CommandStatus::rejected, "Invalid Creature class edit batch", CommandOutputChannel::warn);
+    }
+    auto& runtime = kernel::runtime();
+    const auto valid = validate_creature_classes(runtime, batch, ObjectEditDirection::forward);
+    if (!valid.ok()) {
+        return command_edit_result(CommandStatus::rejected, valid.diagnostic, CommandOutputChannel::warn);
+    }
+    const auto object = batch.patches.front().object;
+    auto candidate = editable_creature_class_slots(runtime, object);
+    for (const auto& patch : batch.patches) {
+        candidate[patch.key] = patch.after;
+    }
+    auto edit = std::make_shared<CreatureClassEdits>();
+    edit->classes = std::move(batch);
+    if (const auto* loadout = kernel::objects().components().find_ability_loadout(object)) {
+        edit->before = loadout->entries;
+    }
+    edit->after = edit->before;
+    std::erase_if(edit->after, [&](const auto& spell) {
+        // Remove only sources whose class was removed from the complete batch.
+        // Class swaps retain both sources. Other classes' spell records survive.
+        for (const auto& patch : edit->classes.patches) {
+            if (patch.key % 2 != 0 || patch.before < 0 || patch.before != spell.source) { continue; }
+            for (size_t field = 0; field < candidate.size(); field += 2) {
+                if (candidate[field] == spell.source) { return false; }
+            }
+            return true;
+        }
+        return false;
+    });
+    auto result = replay_creature_class_edits(*edit, ObjectEditDirection::forward, label, context);
+    if (!result.ok()) { return result; }
+    auto action = std::make_shared<CommandUndoAction>();
+    action->label = label;
+    action->undo = [edit, label](CommandContext& undo_context) {
+        return replay_creature_class_edits(*edit, ObjectEditDirection::inverse, "Undo " + label, undo_context);
+    };
+    action->redo = [edit, label](CommandContext& redo_context) {
+        return replay_creature_class_edits(*edit, ObjectEditDirection::forward, "Redo " + label, redo_context);
+    };
+    result.undo_action = std::move(action);
+    return result;
 }
 
 CommandResult commit_object_edits(ObjectEditBatch batch, std::string label, CommandContext& context)
@@ -6634,6 +6754,13 @@ std::vector<int32_t> editable_creature_accessories(
 {
     return read_creature_int_values(
         runtime, object, "nwn1.creature", "get_editable_accessories");
+}
+
+std::vector<int32_t> editable_creature_class_slots(
+    smalls::Runtime& runtime, ObjectHandle object)
+{
+    return read_creature_int_values(
+        runtime, object, "nwn1.creature", "get_class_slots");
 }
 
 std::vector<int32_t> editable_creature_class_levels(

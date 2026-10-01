@@ -124,9 +124,10 @@ TEST(ClientGfxResources, ItemAppearanceActionsAlignAtEditorWidths)
             ++visible_resets;
             auto* color = reset->GetPreviousSibling();
             ASSERT_NE(color, nullptr);
-            EXPECT_NEAR(reset->GetOffsetHeight(), color->GetOffsetHeight(), 0.1f);
-            EXPECT_NEAR(reset->GetOffsetWidth(), color->GetOffsetWidth(), 0.1f);
-            EXPECT_NEAR(reset->GetAbsoluteTop(), color->GetAbsoluteTop(), 0.1f);
+            EXPECT_NEAR(reset->GetOffsetHeight(), 25.0f, 0.1f);
+            EXPECT_NEAR(reset->GetOffsetWidth(), 27.0f, 0.1f);
+            EXPECT_NEAR(reset->GetAbsoluteTop() + reset->GetOffsetHeight() / 2,
+                color->GetAbsoluteTop() + color->GetOffsetHeight() / 2, 1.0f);
             EXPECT_NEAR(reset->GetAbsoluteLeft(), global_reset->GetAbsoluteLeft(), 1.0f);
             EXPECT_NEAR(color->GetAbsoluteLeft(), global_color->GetAbsoluteLeft(), 1.0f);
             auto* glyph = reset->GetChild(0);

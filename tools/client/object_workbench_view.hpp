@@ -89,6 +89,8 @@ enum class ObjectWorkbenchComboKind : uint8_t { none,
     sound_select,
     locstring_source_open,
     locstring_source_select,
+    class_open,
+    class_select,
     spell_open,
     spell_select };
 enum class ObjectWorkbenchComboEffect : uint8_t { none,
@@ -96,16 +98,31 @@ enum class ObjectWorkbenchComboEffect : uint8_t { none,
     sound_selected,
     locstring_source_opened,
     locstring_source_selected,
+    class_opened,
+    class_selected,
     spell_opened,
     spell_selected };
 // Cold schema 1. Copied property/filter facts and owning UTF-8 payload survive
 // SDK release. One displayed combobox is singular; choice rows remain batches.
+// One active class dropdown owns these target facts until close/selection.
+struct CreatureClassChoice {
+    ObjectHandle object{};
+    uint64_t module_generation = 0;
+    uint64_t mutation_epoch = 0;
+    std::string tab_id;
+    int32_t slot = -1;
+    int32_t class_id = -1;
+    int32_t level = 0;
+    bool operator==(const CreatureClassChoice&) const = default;
+};
+
 struct ObjectWorkbenchComboClick {
     ObjectHandle object{};
     uint64_t module_generation = 0;
     uint64_t resource_generation = 0;
     uint64_t mutation_epoch = 0;
     std::optional<ObjectWorkbenchCommandRow> property;
+    std::optional<CreatureClassChoice> class_choice;
     std::optional<uint32_t> source_row;
     std::optional<int32_t> source_selection;
     int32_t value = -1;
@@ -200,6 +217,7 @@ struct ObjectWorkbenchViewState {
             .overscan = 0,
         }};
     std::optional<uint32_t> object_details_combobox_row;
+    std::optional<CreatureClassChoice> creature_class_choice;
     std::optional<nw::toolset::VirtualComboBoxPopupPlacement>
         object_details_combobox_placement;
     nw::toolset::ObjectVariableSnapshot object_variables;

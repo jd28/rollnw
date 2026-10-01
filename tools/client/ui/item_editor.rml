@@ -94,7 +94,7 @@
                       <span class="palette_thumb"></span>
                     </span>
                   </button>
-                  <button id="item_global_reset" class="panel_icon_button item_model_reset" type="button"
+                  <button id="item_global_reset" class="icon_button_x item_model_reset" type="button"
                           title="Reset all variations" data-event-click="reset_models()"><span class="panel_close_glyph">&#x00d7;</span></button>
                 </div>
               </div>
@@ -155,7 +155,7 @@
                           <span class="palette_thumb"></span>
                         </span>
                       </button>
-                      <button class="panel_icon_button item_model_reset item_part_model_reset" type="button"
+                      <button class="icon_button_x item_model_reset item_part_model_reset" type="button"
                               data-attr-title="part.reset_title" data-event-click="reset_model(part.part)"><span class="panel_close_glyph">&#x00d7;</span></button>
                     </div>
                   </div>

@@ -640,7 +640,7 @@ void sync_command_form(CommandViewState& state, const ToolsetBackend& backend,
         if (close_action) {
             markup += "<div class=\"command_form_title_row\"><div class=\"command_form_title\">"
                 + Rml::StringUtilities::EncodeRml(form.title)
-                + "</div><button type=\"button\" class=\"command_form_action command_form_close\" title=\"Close\" id=\"command_form_action_"
+                + "</div><button type=\"button\" class=\"command_form_action command_form_close icon_button_x\" title=\"Close\" id=\"command_form_action_"
                 + std::to_string(*close_action) + "\" data-index=\""
                 + std::to_string(*close_action)
                 + "\"><span class=\"command_form_close_glyph\">&#215;</span></button></div>";

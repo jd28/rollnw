@@ -2,8 +2,8 @@
 #include "client_input_routes.hpp"
 #include "object_workbench.hpp"
 #include "smalls_creature_feats.hpp"
-#include "smalls_object_properties.hpp"
 #include "smalls_creature_spells.hpp"
+#include "smalls_object_properties.hpp"
 #include "virtual_combobox.hpp"
 #include "virtual_list.hpp"
 #include <RmlUi/Core/Types.h>
@@ -26,6 +26,8 @@ struct CommandContext;
 enum class CreatureWorkbenchCommandKind : uint8_t {
     none,
     class_level,
+    add_class,
+    remove_class,
     feat,
     known_spell,
     memorized_spell,

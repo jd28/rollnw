@@ -11,7 +11,7 @@
 .creature_classes_header {
   display: flex;
   height: 29dp;
-  padding: 0dp 10dp;
+  padding: 0dp 0dp 0dp 14dp;
   border-bottom: 1dp #303a43;
   background: #1c252c;
   color: #aeb8c3;
@@ -26,7 +26,7 @@
   min-width: 0dp;
 }
 
-.creature_classes_header span:last-child {
+.creature_classes_header span:nth-child(2) {
   flex: 0 0 104dp;
   text-align: center;
 }
@@ -48,15 +48,31 @@
 
 .creature_class_name {
   flex: 1;
+  width: auto;
   min-width: 0dp;
-  padding: 0dp 10dp 0dp 14dp;
-  border-right: 1dp #29333c;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  box-sizing: border-box;
+  height: 27dp;
+  margin: 1dp 4dp;
+  padding: 0dp 6dp;
+  text-align: left;
+}
+
+.creature_class_name .combobox_value,
+.creature_class_name .combobox_arrow {
+  height: 25dp;
+  line-height: 25dp;
 }
 
 .creature_class_level_controls {
   flex: 0 0 104dp;
 }
+
+.creature_class_name:hover {
+  background: #26333e;
+}
+
+.creature_class_actions {
+  flex: 0 0 30dp;
+  text-align: center;
+}
+
+.creature_class_remove { margin: 2dp 0dp; }

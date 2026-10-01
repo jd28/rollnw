@@ -137,6 +137,13 @@ both blueprints and areas. Spawn-point numbers identify positions in the area,
 independently of this Creature list. Sound entries can
 also be reordered by dragging.
 
+In Creature **Classes**, **Add Class** adds a random unassigned class at level 1.
+Use the inline class dropdown to choose any unassigned class while keeping its level;
+the level steppers adjust it from 1 to 60. **×** removes the class. Removing or
+replacing a class clears its known and prepared spells, including empty spell
+slots. Undo restores the exact class, level, and spellbook. These edits author
+class counts; they do not award level-up feats, skills, or hit points.
+
 In Creature, container Item, Placeable, and Store inventories, select an item
 and click the **minus** button to remove it. Undo restores its contents, position,
 and original order, including Store category and infinite-stock status. Unequip

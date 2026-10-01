@@ -940,6 +940,14 @@ TEST_F(ClientBrowserWorkspace, NativeSubtabsAndStaleTargetIdentityUseSemanticIds
     Rml::ElementList closes;
     document->GetElementsByClassName(closes, "workspace_subtab_close");
     ASSERT_EQ(closes.size(), 2);
+    context->Update();
+    for (auto* close : closes) {
+        auto* strip = close->GetParentNode()->GetParentNode();
+        EXPECT_FLOAT_EQ(close->GetOffsetWidth(), 27.0f);
+        EXPECT_FLOAT_EQ(close->GetOffsetHeight(), 25.0f);
+        EXPECT_GE(close->GetAbsoluteTop(), strip->GetAbsoluteTop());
+        EXPECT_LE(close->GetAbsoluteTop() + close->GetOffsetHeight(), strip->GetAbsoluteTop() + strip->GetClientHeight());
+    }
     click = capture_workspace_tab_click(document, closes.front(), {-100, -100}, workspace);
     ASSERT_TRUE(click);
     ASSERT_EQ(click->kind, WorkspaceTabClickKind::close_subtab);
@@ -4173,6 +4181,336 @@ TEST_F(ClientObjectWorkbench, SoundGestureCoalescesAndRejectsStaleOrInvalidInput
 }
 
 class ClientCreatureWorkbench : public ClientObjectWorkbench { };
+
+TEST_F(ClientCreatureWorkbench, ClassesAddRemoveAndChooseUnassignedClassesWithUndo)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(actor, nullptr);
+    activate(actor->handle());
+    auto& runtime = nw::kernel::runtime();
+    const auto before = editable_creature_class_slots(runtime, actor->handle());
+    ASSERT_EQ(before.size(), 16);
+    auto& creature = view.creature_view;
+    const auto target = object_workbench_target(view, workspace);
+    const auto click_button = [&](std::string_view css, CreatureWorkbenchCommandKind kind, int slot = -1) {
+        rebuild_creature_class_presentation(creature, actor->handle());
+        std::string markup;
+        append_creature_classes_markup(markup, creature, target);
+        document->SetInnerRML("<div style='display:block;width:320px;'>" + markup + "</div>");
+        context->Update();
+        Rml::ElementList buttons;
+        document->GetElementsByClassName(buttons, std::string{css});
+        auto control = std::ranges::find_if(buttons, [slot](auto* button) {
+            return slot < 0 || button->template GetAttribute<int>("data-slot", -1) == slot;
+        });
+        EXPECT_NE(control, buttons.end());
+        if (control == buttons.end()) { return false; }
+        EXPECT_GT((*control)->GetOffsetWidth(), 0);
+        EXPECT_GT((*control)->GetOffsetHeight(), 0);
+        EXPECT_LE((*control)->GetAbsoluteLeft() + (*control)->GetOffsetWidth(), 321);
+        auto click = capture_object_workbench_click(*control, {}, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
+        EXPECT_TRUE(click);
+        if (!click) { return false; }
+        EXPECT_EQ(std::get<CreatureWorkbenchCommandClick>(click->payload).kind, kind);
+        document->SetInnerRML("<div>Rebuilt</div>");
+        const auto before_epoch = object_mutation_state().epoch;
+        (void)apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+        const auto after_epoch = object_mutation_state().epoch;
+        (void)apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+        EXPECT_EQ(object_mutation_state().epoch, after_epoch);
+        return after_epoch != before_epoch;
+    };
+    ASSERT_TRUE(click_button("creature_class_add", CreatureWorkbenchCommandKind::add_class));
+    const auto added = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_EQ(added[0], before[0]);
+    EXPECT_EQ(added[2], before[2]);
+    EXPECT_GE(added[4], 0);
+    EXPECT_NE(added[4], before[0]);
+    EXPECT_NE(added[4], before[2]);
+    EXPECT_EQ(added[5], 1);
+    EXPECT_EQ(workspace.undo_count(), 1);
+    EXPECT_TRUE(workspace.active_tab()->dirty);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), before);
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), added); // Redo does not reroll.
+
+    ASSERT_TRUE(click_button("creature_class_remove", CreatureWorkbenchCommandKind::remove_class, 0));
+    auto removed = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_EQ(removed[0], -1);
+    EXPECT_EQ(removed[1], 0);
+    EXPECT_EQ(removed[2], added[2]);
+    EXPECT_EQ(removed[4], added[4]);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), added);
+    ASSERT_TRUE(workspace.redo(command).ok());
+    ASSERT_TRUE(click_button("creature_class_add", CreatureWorkbenchCommandKind::add_class));
+    const auto filled = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_GE(filled[0], 0); // Reuse the hole.
+    EXPECT_EQ(filled[1], 1);
+    EXPECT_EQ(filled[2], added[2]);
+    EXPECT_EQ(filled[4], added[4]);
+
+    view.object_workbench_surface = ObjectWorkbenchSurface::classes;
+    rebuild_creature_class_presentation(creature, actor->handle());
+    std::string class_markup;
+    append_creature_classes_markup(class_markup, creature, object_workbench_target(view, workspace));
+    document->SetInnerRML("<div id='object_workbench' style='position:relative;display:block;width:320px;height:450px;'>"
+        + class_markup + "<div id='creature_class_options' class='combobox_options combobox_popup object_details_combobox_popup'></div></div>");
+    context->Update();
+    auto* field = document->GetElementById("creature_class_field_1");
+    ASSERT_NE(field, nullptr);
+    auto open = capture_object_workbench_click(field, {}, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
+    ASSERT_TRUE(open);
+    const auto undo_count = workspace.undo_count();
+    auto opened = apply_object_workbench_click(*open, document, view, workspace, backend, shell, command);
+    ASSERT_EQ(opened.finish, ObjectWorkbenchClickFinish::sound_combo);
+    finish_object_workbench_click(opened, *open, document, view, workspace, nw::kernel::resman().generation());
+    context->Update();
+    EXPECT_EQ(context->GetFocusElement(), field);
+    EXPECT_EQ(workspace.undo_count(), undo_count);
+    ASSERT_TRUE(view.creature_class_choice);
+    ASSERT_TRUE(view.object_details_combobox.popup_visible());
+    std::vector<CommandPromptChoice> choices;
+    std::string error;
+    ASSERT_TRUE(ToolsetBackend::load_creature_class_choices(actor->handle(), choices, error)) << error;
+    for (const auto& choice : choices) {
+        for (size_t field_index = 0; field_index < 16; field_index += 2) {
+            EXPECT_NE(choice.value, std::to_string(filled[field_index]));
+        }
+    }
+    auto* popup = document->GetElementById("creature_class_options");
+    ASSERT_NE(popup, nullptr);
+    EXPECT_TRUE(popup->IsVisible(true));
+    EXPECT_NEAR(popup->GetAbsoluteLeft(), field->GetAbsoluteLeft(), 1.0f);
+    EXPECT_NEAR(popup->GetOffsetWidth(), field->GetOffsetWidth(), 1.0f);
+    EXPECT_GE(popup->GetAbsoluteTop(), field->GetAbsoluteTop() + field->GetOffsetHeight());
+    const auto selection = choices.front().value;
+    auto* option = popup->QuerySelector(".combobox_option[data-key='" + selection + "']");
+    ASSERT_NE(option, nullptr);
+    auto select = capture_object_workbench_click(option, {}, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
+    ASSERT_TRUE(select);
+    auto changed = apply_object_workbench_click(*select, document, view, workspace, backend, shell, command);
+    EXPECT_TRUE(changed.refresh_content);
+    EXPECT_FALSE(view.object_details_combobox.is_active());
+    const auto replaced = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_EQ(replaced[2], std::stoi(selection));
+    EXPECT_EQ(replaced[3], filled[3]);
+    EXPECT_EQ(workspace.undo_count(), undo_count + 1);
+    EXPECT_FALSE(apply_object_workbench_click(*select, document, view, workspace, backend, shell, command).refresh_content);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), filled);
+    EXPECT_FALSE(backend.execute_command("object.creature.set_class", {"1", std::to_string(filled[0])}, command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), filled);
+
+    for (size_t count = 3; count < 8; ++count) {
+        const auto result = backend.execute_command("object.creature.add_class", {}, command);
+        ASSERT_TRUE(result.ok()) << result.message;
+    }
+    const auto full = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_FALSE(backend.execute_command("object.creature.add_class", {}, command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), full);
+    rebuild_creature_class_presentation(creature, actor->handle());
+    std::string markup;
+    append_creature_classes_markup(markup, creature, target);
+    document->SetInnerRML(markup);
+    Rml::ElementList add_buttons;
+    document->GetElementsByClassName(add_buttons, "creature_class_add");
+    ASSERT_EQ(add_buttons.size(), 1);
+    EXPECT_TRUE(add_buttons[0]->HasAttribute("disabled"));
+
+    for (int slot = 0; slot < 8; ++slot) {
+        ASSERT_TRUE(backend.execute_command("object.creature.remove_class", {std::to_string(slot)}, command).ok());
+    }
+    rebuild_creature_class_presentation(creature, actor->handle());
+    EXPECT_TRUE(creature.creature_class_presentation.rows.empty());
+    ASSERT_TRUE(click_button("creature_class_add", CreatureWorkbenchCommandKind::add_class));
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle())[1], 1);
+}
+
+TEST_F(ClientCreatureWorkbench, ClassesControlsUseMouseAndKeyboardAndRejectStaleEdits)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    nw::kernel::runtime().add_module_path("stdlib/toolset");
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(actor, nullptr);
+    activate(actor->handle());
+    ASSERT_EQ(view.object_details.status, ObjectDetailsStatus::ready) << view.object_details.diagnostic;
+    view.object_workbench_surface = ObjectWorkbenchSurface::classes;
+    auto& runtime = nw::kernel::runtime();
+    const auto before = editable_creature_class_slots(runtime, actor->handle());
+    const auto render = [&] {
+        std::string markup;
+        append_workspace_document_markup(markup, *workspace.active_tab(), workspace,
+            backend, view, AreaWorkspaceSurface::properties, AreaTileEditorState{}, DialogViewState{}, nw::ObjectHandle{});
+        document->GetElementById("workspace_content")->SetInnerRML(markup);
+        apply_shell_layout(document, shell, {});
+        hydrate_object_workbench(document, view, workspace);
+        context->Update();
+        (void)sync_object_details_window(document, view, workspace, true);
+        context->Update();
+    };
+    render();
+    auto* field = document->GetElementById("creature_class_field_0");
+    ASSERT_NE(field, nullptr);
+    for (const char* selector : {"#creature_class_field_0", ".creature_class_level_adjust[data-slot='0'][data-delta='1']", ".creature_class_remove[data-slot='0']"}) {
+        auto* control = document->QuerySelector(selector);
+        ASSERT_NE(control, nullptr);
+        const Rml::Vector2f point{control->GetAbsoluteLeft() + control->GetOffsetWidth() / 2,
+            control->GetAbsoluteTop() + control->GetOffsetHeight() / 2};
+        auto* hit = context->GetElementAtPoint(point);
+        ASSERT_NE(hit, nullptr);
+        EXPECT_EQ(hit, control) << selector << " hit " << hit->GetTagName() << "#" << hit->GetId()
+                                << " classes=" << hit->GetClassNames() << " point=" << point.x << "," << point.y;
+        const auto captured = capture_object_workbench_click(hit, point, view, workspace,
+            backend.module_generation(), nw::kernel::resman().generation());
+        EXPECT_TRUE(captured) << selector;
+    }
+    auto* remove = document->QuerySelector(".creature_class_remove[data-slot='0']");
+    auto* glyph = remove->GetChild(0);
+    ASSERT_NE(glyph, nullptr);
+    EXPECT_GT(glyph->GetOffsetWidth(), 0.0f);
+    EXPECT_GT(glyph->GetOffsetHeight(), 0.0f);
+    const auto press = [&](const char* selector) {
+        auto* control = document->QuerySelector(selector);
+        EXPECT_NE(control, nullptr);
+        if (!control) { return; }
+        const Rml::Vector2f point{control->GetAbsoluteLeft() + control->GetOffsetWidth() / 2,
+            control->GetAbsoluteTop() + control->GetOffsetHeight() / 2};
+        context->ProcessMouseMove(static_cast<int>(point.x), static_cast<int>(point.y), 0);
+        context->ProcessMouseButtonDown(0, 0);
+        auto* hit = context->GetElementAtPoint(point);
+        SDL_Event release{};
+        release.type = SDL_EVENT_MOUSE_BUTTON_UP;
+        release.button.button = SDL_BUTTON_LEFT;
+        release.button.x = point.x;
+        release.button.y = point.y;
+        EXPECT_EQ(resolve_client_event_input_route(release, nullptr, context, nullptr, nullptr, nullptr,
+                      {.map = ClientInputMap::editor, .world_available = true})
+                      .native,
+            ClientNativeRecipient::ui);
+        auto click = capture_object_workbench_click(hit, point, view, workspace,
+            backend.module_generation(), nw::kernel::resman().generation());
+        EXPECT_TRUE(click);
+        if (!click) { return; }
+        ClientInputDispatchState dispatch;
+        EXPECT_TRUE(forward_client_input(dispatch, ClientRmlRecipient::toolset,
+            click->release_phase, context, nullptr, release)
+                .performed);
+        auto effect = apply_object_workbench_click(*click, document, view, workspace, backend, shell, command);
+        finish_object_workbench_click(effect, *click, document, view, workspace, nw::kernel::resman().generation());
+        context->Update();
+    };
+    const auto refresh_classes = [&] {
+        ASSERT_TRUE(refresh_object_workbench_snapshots(view, actor->handle()));
+        render();
+    };
+    press(".creature_class_add");
+    const auto added = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_GE(added[4], 0);
+    EXPECT_EQ(added[5], 1);
+    refresh_classes();
+    EXPECT_NE(document->GetElementById("creature_class_field_2"), nullptr);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    refresh_classes();
+    press(".creature_class_level_adjust[data-slot='0'][data-delta='1']");
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle())[1], before[1] + 1);
+    refresh_classes();
+    EXPECT_EQ(document->QuerySelector(".creature_class_level_controls > span")->GetInnerRML(), std::to_string(before[1] + 1));
+    press(".creature_class_level_adjust[data-slot='0'][data-delta='-1']");
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), before);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    ASSERT_TRUE(workspace.undo(command).ok());
+    refresh_classes();
+    press(".creature_class_remove[data-slot='0']");
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle())[0], -1);
+    refresh_classes();
+    EXPECT_EQ(document->GetElementById("creature_class_field_0"), nullptr);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    refresh_classes();
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), before);
+    press("#creature_class_field_0");
+    ASSERT_TRUE(view.object_details_combobox.popup_visible());
+    auto* mouse_popup = document->GetElementById("creature_class_options");
+    ASSERT_NE(mouse_popup, nullptr);
+    EXPECT_TRUE(mouse_popup->IsVisible(true));
+    EXPECT_GT(mouse_popup->GetOffsetHeight(), 0.0f);
+    auto* mouse_option = mouse_popup->QuerySelector(".combobox_option");
+    ASSERT_NE(mouse_option, nullptr);
+    const auto mouse_selected = mouse_option->GetAttribute<int>("data-key", -1);
+    ASSERT_GE(mouse_selected, 0);
+    press("#creature_class_options .combobox_option");
+    EXPECT_FALSE(view.object_details_combobox.is_active());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle())[0], mouse_selected);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    refresh_classes();
+    field = document->GetElementById("creature_class_field_0");
+    ASSERT_TRUE(field->Focus());
+    SDL_KeyboardEvent key{};
+    key.key = SDLK_RETURN;
+    const auto handle = [&] { return handle_object_workbench_field_key(key, context, document, view, workspace, backend, shell, command); };
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::handled);
+    ASSERT_TRUE(view.object_details_combobox.popup_visible());
+    EXPECT_EQ(workspace.undo_count(), 0);
+    (void)sync_object_details_window(document, view, workspace, false);
+    context->Update();
+    ASSERT_TRUE(view.object_details_combobox.popup_visible());
+    // Rebuilding the real template must restore both geometry and option rows.
+    render();
+    ASSERT_TRUE(view.object_details_combobox.popup_visible());
+    field = document->GetElementById("creature_class_field_0");
+    auto* popup = document->GetElementById("creature_class_options");
+    ASSERT_TRUE(field && popup);
+    EXPECT_TRUE(popup->IsVisible(true));
+    EXPECT_GT(popup->GetNumChildren(), 0);
+    EXPECT_NEAR(popup->GetAbsoluteLeft(), field->GetAbsoluteLeft(), 1.0f);
+    EXPECT_NEAR(popup->GetOffsetWidth(), field->GetOffsetWidth(), 1.0f);
+    EXPECT_GE(popup->GetAbsoluteTop(), field->GetAbsoluteTop() + field->GetOffsetHeight());
+    ASSERT_TRUE(field->Focus());
+    const auto initial = view.object_details_combobox.selected_key();
+    key.key = SDLK_DOWN;
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::handled);
+    const auto selected = view.object_details_combobox.selected_key();
+    ASSERT_TRUE(selected);
+    EXPECT_NE(selected, initial);
+    key.key = SDLK_RETURN;
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::content_changed);
+    EXPECT_FALSE(view.object_details_combobox.is_active());
+    EXPECT_EQ(workspace.undo_count(), 1);
+    const auto changed = editable_creature_class_slots(runtime, actor->handle());
+    EXPECT_EQ(changed[0], *selected);
+    EXPECT_EQ(changed[1], before[1]);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle()), before);
+
+    rebuild_object_workbench_snapshots(view, actor->handle());
+    render();
+    field = document->GetElementById("creature_class_field_0");
+    ASSERT_TRUE(field->Focus());
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::handled);
+    popup = document->GetElementById("creature_class_options");
+    auto* option = popup->QuerySelector(".combobox_option");
+    ASSERT_NE(option, nullptr);
+    auto stale = capture_object_workbench_combo_click(option, view, workspace, backend.module_generation(), nw::kernel::resman().generation());
+    ASSERT_TRUE(stale);
+    ASSERT_TRUE(backend.execute_command("object.creature.adjust_class_level", {"0", "1"}, command).ok());
+    EXPECT_EQ(apply_object_workbench_combo_click(*stale, document, view, workspace, backend, shell, command), ObjectWorkbenchComboEffect::none);
+    (void)sync_object_details_window(document, view, workspace, false);
+    EXPECT_FALSE(view.object_details_combobox.is_active());
+    EXPECT_EQ(workspace.undo_count(), 1);
+    EXPECT_EQ(editable_creature_class_slots(runtime, actor->handle())[0], before[0]);
+
+    rebuild_object_workbench_snapshots(view, actor->handle());
+    render();
+    ASSERT_TRUE(document->GetElementById("creature_class_field_0")->Focus());
+    EXPECT_EQ(handle(), ObjectWorkbenchFieldKeyEffect::handled);
+    ASSERT_TRUE(view.object_details_combobox.popup_visible());
+    workspace.open_tab("second", "Second", WorkspaceTabKind::preview);
+    (void)sync_object_details_window(document, view, workspace, false);
+    EXPECT_FALSE(view.object_details_combobox.is_active());
+    EXPECT_FALSE(view.creature_class_choice);
+}
 
 TEST_F(ClientCreatureWorkbench, NativeClassAndFeatCommandsUseLiveRowsAndOneUndo)
 {

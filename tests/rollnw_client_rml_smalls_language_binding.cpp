@@ -1800,7 +1800,7 @@ TEST(ClientRmlTemplates, BlueprintModalsKeepVisibleControlsInsideTheCommandOverl
     }
     form->SetInnerRML(R"RML(
 <div id="type-dialog" class="command_form command_form_action_picker">
-  <div class="command_form_title_row"><div id="type-title" class="command_form_title">New Blueprint</div><button id="type-close" class="command_form_action command_form_close"><span class="command_form_close_glyph">&#215;</span></button></div>
+  <div class="command_form_title_row"><div id="type-title" class="command_form_title">New Blueprint</div><button id="type-close" class="command_form_action command_form_close icon_button_x"><span class="command_form_close_glyph">&#215;</span></button></div>
   <div class="command_form_message">Choose the blueprint type.</div>
   <div id="type-actions" class="command_form_actions command_form_action_list">
     <button id="type-creature" class="command_form_action command_form_action_primary">Creature</button>
@@ -1834,7 +1834,7 @@ TEST(ClientRmlTemplates, BlueprintModalsKeepVisibleControlsInsideTheCommandOverl
         type_title->GetAbsoluteLeft() + type_title->GetOffsetWidth());
     EXPECT_LT(type_close->GetAbsoluteTop(),
         type_title->GetAbsoluteTop() + type_title->GetOffsetHeight());
-    EXPECT_EQ(type_close->GetOffsetWidth(), 24.0f);
+    EXPECT_EQ(type_close->GetOffsetWidth(), 27.0f);
     EXPECT_EQ(type_creature->GetProperty<float>("border-top-width"), 0.0f);
     form->SetClass("active", false);
     progress->SetClass("active", true);
@@ -5841,7 +5841,7 @@ TEST(ClientWorkspaceView, RecentProjectErrorsAndRemovalHaveSeparateHitTargets)
     };
     const auto source = std::string{
                             "<rml><head><link type=\"text/css\" href=\"tools/client/ui/panel.rcss\"/>"
-                            "<style>body, button { font-family: Inter; }"
+                            "<style>body, button, .icon_button_x { font-family: Inter; }"
                             "#recent_fixture { display: block; width: 600px; }</style></head>"
                             "<body><div id=\"recent_fixture\">"}
         + recent_projects_markup(projects) + "</div></body></rml>";
@@ -5861,14 +5861,20 @@ TEST(ClientWorkspaceView, RecentProjectErrorsAndRemovalHaveSeparateHitTargets)
         EXPECT_TRUE(remove->IsClassSet("home_project_remove"));
         EXPECT_EQ(open->IsClassSet("unavailable"), i == 1);
         EXPECT_EQ(remove->GetAttribute<Rml::String>("data-key", ""), std::to_string(i));
-        EXPECT_EQ(remove->GetInnerRML(), "×");
+        auto* glyph = remove->GetChild(0);
+        ASSERT_NE(glyph, nullptr);
+        EXPECT_EQ(glyph->GetInnerRML(), "×");
+        EXPECT_GT(glyph->GetOffsetWidth(), 0.0f);
         EXPECT_NE(remove->GetAttribute<Rml::String>("title", "").find("Project files are not deleted"), std::string::npos);
         const auto color = remove->GetProperty<Rml::Colourb>("color");
-        EXPECT_GT(color.red, color.green);
-        EXPECT_GT(color.red, color.blue);
+        EXPECT_EQ(color, Rml::Colourb(143, 155, 167));
         EXPECT_GT(open->GetOffsetWidth(), 0.0f);
-        EXPECT_FLOAT_EQ(remove->GetOffsetWidth(), 28.0f);
-        EXPECT_FLOAT_EQ(remove->GetOffsetHeight(), 28.0f);
+        EXPECT_FLOAT_EQ(remove->GetOffsetWidth(), 27.0f);
+        EXPECT_FLOAT_EQ(remove->GetOffsetHeight(), 25.0f);
+        remove->SetPseudoClass("hover", true);
+        context->Update();
+        EXPECT_EQ(remove->GetProperty<Rml::Colourb>("color"), Rml::Colourb(240, 160, 160));
+        remove->SetPseudoClass("hover", false);
         EXPECT_GE(remove->GetAbsoluteLeft(), open->GetAbsoluteLeft() + open->GetOffsetWidth());
         const Rml::Vector2f point{
             remove->GetAbsoluteLeft() + remove->GetOffsetWidth() / 2.0f,

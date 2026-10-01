@@ -793,47 +793,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   line-height: 17dp;
   pointer-events: none;
 }
-.workspace_tab_close, .workspace_subtab_close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0dp;
-  color: #8f9daa;
-  border: 1dp transparent;
-  border-radius: 2dp;
-  text-align: center;
-  font-weight: 700;
-  cursor: pointer;
-}
-.workspace_tab_close:hover, .workspace_subtab_close:hover {
-  color: #f0f3f6;
-  background: #303a44;
-  border-color: #536170;
-}
-.workspace_tab_close_glyph, .workspace_subtab_close_glyph {
-  display: block;
-  font-weight: 700;
-  pointer-events: none;
-}
-.workspace_tab_close {
-  width: 20dp;
-  min-width: 20dp;
-  max-width: 20dp;
-  height: 20dp;
-  min-height: 20dp;
-  max-height: 20dp;
-  margin-left: 8dp;
-  font-size: 16dp;
-  line-height: 20dp;
-}
-.workspace_tab_close_glyph {
-  font-size: 15dp;
-  line-height: 18dp;
-}
-.workspace_tab.active .workspace_tab_close {
-  color: #d4dbe2;
-}
+.workspace_tab_close { margin-left: 8dp; }
 .workspace_subtabs {
   display: flex;
   height: 30dp;
@@ -849,7 +809,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   min-width: 78dp;
   max-width: 180dp;
   height: 29dp;
-  padding: 6dp 8dp 5dp 10dp;
+  padding: 0dp 8dp 0dp 10dp;
   margin: 0dp 2dp 0dp 0dp;
   color: #aeb8c3;
   border-left: 1dp transparent;
@@ -880,21 +840,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   line-height: 15dp;
   pointer-events: none;
 }
-.workspace_subtab_close {
-  width: 14dp;
-  min-width: 14dp;
-  max-width: 14dp;
-  height: 14dp;
-  min-height: 14dp;
-  max-height: 14dp;
-  margin-left: 7dp;
-  font-size: 11dp;
-  line-height: 14dp;
-}
-.workspace_subtab_close_glyph {
-  font-size: 11dp;
-  line-height: 12dp;
-}
+.workspace_subtab_close { margin-left: 7dp; }
 /* === Workspace content: home, documents, area, resource inspector === */
 #workspace_content {
   flex: 1;
@@ -1076,28 +1022,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   line-height: 16dp;
   pointer-events: none;
 }
-.home_project_remove {
-  flex: 0 0 28dp;
-  width: 28dp;
-  height: 28dp;
-  margin-left: 8dp;
-  padding: 0dp;
-  border: 1dp transparent;
-  border-radius: 2dp;
-  background: transparent;
-  color: #e07979;
-  font-size: 20dp;
-  line-height: 26dp;
-  text-align: center;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-.home_project_remove:hover,
-.home_project_remove:focus {
-  color: #f0a0a0;
-  border-color: #744545;
-  background: #2a1b1b;
-}
+.home_project_remove { margin-left: 8dp; }
 .home_project_name {
   display: block;
   color: #f0f3f5;
@@ -2159,7 +2084,8 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   background: #42272b;
   color: #ffe9ea;
 }
-.object_variable_toolbar {
+.object_variable_toolbar,
+.creature_classes_toolbar {
   display: flex;
   flex: 0 0 39dp;
   height: 39dp;
@@ -2369,26 +2295,6 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .object_variable_type:focus {
   border-color: #596673;
   background: #151d23;
-}
-.object_variable_remove {
-  flex: 0 0 27dp;
-  width: 27dp;
-  height: 25dp;
-  padding: 0dp;
-  border: 1dp transparent;
-  background: transparent;
-  color: #8f9ba7;
-  font-size: 18dp;
-  line-height: 23dp;
-  text-align: center;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-.object_variable_remove:hover,
-.object_variable_remove:focus {
-  color: #f0a0a0;
-  border-color: #744545;
-  background: #2a1b1b;
 }
 .module_hak_list {
   display: block;
@@ -3967,22 +3873,7 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
   display: flex; flex: none; width: 100%; align-items: flex-start; margin-bottom: 10dp;
 }
 .command_form_title_row .command_form_title { flex: 1; width: auto; margin-bottom: 0dp; }
-.command_form button.command_form_close {
-  display: flex; flex: 0 0 24dp; align-items: center; justify-content: center;
-  width: 24dp; min-width: 24dp; max-width: 24dp;
-  height: 24dp; min-height: 24dp; max-height: 24dp;
-  margin: -2dp -2dp 0dp 8dp; padding: 0dp;
-  border: 1dp transparent; border-radius: 2dp;
-  background: transparent; color: #a7b0ba; cursor: pointer;
-}
-.command_form button.command_form_close:hover,
-.command_form button.command_form_close:focus {
-  border-color: #536170; background: #303a44; color: #f0f3f6;
-}
-.command_form_close_glyph,
-.panel_close_glyph {
-  display: block; font-size: 17dp; font-weight: 700; line-height: 20dp; pointer-events: none;
-}
+.command_form button.command_form_close { margin: -2dp -2dp 0dp 8dp; }
 .command_form_message { display: block; flex: none; width: 100%; margin-bottom: 4dp; color: #a7b0ba; line-height: 19dp; }
 .command_form_row { display: flex; flex: none; width: 100%; align-items: center; margin-top: 12dp; box-sizing: border-box; }
 .command_form_row label { flex: 0 0 100dp; }
@@ -4084,3 +3975,46 @@ scrollbarcorner { background: #0d1115; cursor: arrow; }
 .blueprint_review_documents { display: block; width: 100%; max-height: 330dp; overflow-y: auto; margin: 10dp 0dp 12dp 0dp; }
 .blueprint_review_documents > div { display: block; }
 .blueprint_operation_error { display: block; width: 100%; color: #e29898; white-space: pre-wrap; word-break: break-all; margin: 8dp 0dp; }
+
+/* Shared X control, based on the Variables remove button.
+ * Wrap the glyph in a span: RmlUi flex layout needs an element for text. */
+.icon_button_x,
+.command_form button.icon_button_x {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 27dp;
+  max-width: 27dp;
+  min-height: 25dp;
+  max-height: 25dp;
+  border-radius: 0dp;
+  font-family: RollnwSans;
+  font-weight: 500;
+  flex: 0 0 27dp;
+  width: 27dp;
+  height: 25dp;
+  padding: 0dp;
+  border: 1dp transparent;
+  background: transparent;
+  color: #8f9ba7;
+  font-size: 18dp;
+  line-height: 23dp;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.icon_button_x:hover,
+.icon_button_x:focus,
+.command_form button.icon_button_x:hover,
+.command_form button.icon_button_x:focus {
+  color: #f0a0a0;
+  border-color: #744545;
+  background: #2a1b1b;
+}
+.icon_button_x > span {
+  display: block;
+  font-size: 18dp;
+  font-weight: 500;
+  line-height: 23dp;
+  pointer-events: none;
+}

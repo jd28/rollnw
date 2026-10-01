@@ -744,7 +744,10 @@ void append_creature_classes_markup(std::string& markup, const CreatureWorkbench
         return;
     }
 
-    markup += "<div class=\"creature_classes_header\"><span>Class</span><span>Level</span></div>";
+    markup += "<div class=\"creature_classes_toolbar\"><button type=\"button\" class=\"creature_class_add panel_action_button\" title=\"Add class at level 1\"";
+    if (state.creature_class_presentation.rows.size() >= 8) { markup += " disabled"; }
+    markup += ">Add Class</button></div>";
+    markup += "<div class=\"creature_classes_header\"><span>Class</span><span>Level</span><span class=\"creature_class_actions\"></span></div>";
     if (state.creature_class_presentation.rows.empty()) {
         markup += "<div class=\"property_tree_empty\">No classes assigned.</div></div>";
         return;
@@ -755,9 +758,15 @@ void append_creature_classes_markup(std::string& markup, const CreatureWorkbench
         if ((row_index & 1u) != 0) {
             markup += " alternate";
         }
-        markup += "\"><span class=\"creature_class_name\">";
+        markup += "\"><button type=\"button\" class=\"combobox_field creature_class_name creature_class_select\" title=\"Change class\" id=\"creature_class_field_";
+        markup += std::to_string(row.slot);
+        markup += "\" data-row=\"";
+        markup += std::to_string(row.slot);
+        markup += "\" data-slot=\"";
+        markup += std::to_string(row.slot);
+        markup += "\"><span class=\"combobox_value\">";
         markup += escape_html(state.creature_class_presentation.text_view(row.label));
-        markup += "</span><span class=\"quantity_stepper creature_class_level_controls\">"
+        markup += "</span><span class=\"combobox_arrow\"><span class=\"combobox_arrow_indicator\"></span></span></button><span class=\"quantity_stepper creature_class_level_controls\">"
                   "<button type=\"button\" class=\"creature_class_level_adjust\" data-slot=\"";
         markup += std::to_string(row.slot);
         markup += "\" data-delta=\"-1\"";
@@ -772,7 +781,9 @@ void append_creature_classes_markup(std::string& markup, const CreatureWorkbench
         if (row.level >= row.maximum_level) {
             markup += " disabled";
         }
-        markup += ">+</button></span></div>";
+        markup += ">+</button></span><span class=\"creature_class_actions\"><button type=\"button\" class=\"creature_class_remove icon_button_x\" title=\"Remove class and its spells\" data-slot=\"";
+        markup += std::to_string(row.slot);
+        markup += "\"><span>&#215;</span></button></span></div>";
         ++row_index;
     }
     markup += "</div>";
@@ -833,6 +844,14 @@ std::optional<CreatureWorkbenchCommandClick> capture_creature_workbench_command_
     auto kind = CreatureWorkbenchCommandKind::class_level;
     int32_t delta = 0;
     if (!control) {
+        control = find_ancestor_with_class(hit, "creature_class_add");
+        kind = CreatureWorkbenchCommandKind::add_class;
+    }
+    if (!control) {
+        control = find_ancestor_with_class(hit, "creature_class_remove");
+        kind = CreatureWorkbenchCommandKind::remove_class;
+    }
+    if (!control) {
         control = find_ancestor_with_class(hit, "creature_spell_decrement");
         kind = CreatureWorkbenchCommandKind::memorized_spell;
         delta = -1;
@@ -852,21 +871,30 @@ std::optional<CreatureWorkbenchCommandClick> capture_creature_workbench_command_
     if (!control) { return std::nullopt; }
     CreatureWorkbenchCommandClick click;
     click.release_phase = ClientRmlForwardPhase::before_native;
-    const auto key = control_integer(control, kind == CreatureWorkbenchCommandKind::class_level ? "data-slot" : kind == CreatureWorkbenchCommandKind::memorized_spell ? "data-spell"
-                                                                                                                                                                      : "data-key");
+    const bool class_row = kind == CreatureWorkbenchCommandKind::class_level
+        || kind == CreatureWorkbenchCommandKind::remove_class;
+    const auto key = kind == CreatureWorkbenchCommandKind::add_class
+        ? std::optional<int32_t>{0}
+        : control_integer(control, class_row ? "data-slot" : kind == CreatureWorkbenchCommandKind::memorized_spell ? "data-spell"
+                                                                                                                   : "data-key");
     if (!key || *key < 0 || !target.matches_active_tab || target.object.type != ObjectType::creature
         || !workspace.active_tab()) { return click; }
     click.key = *key;
     click.delta = delta;
-    if (kind == CreatureWorkbenchCommandKind::class_level) {
-        const auto adjustment = control_integer(control, "data-delta");
-        if (!adjustment || (*adjustment != -1 && *adjustment != 1)
-            || !active_creature_class_presentation_matches_tab(state, target)) { return click; }
+    if (kind == CreatureWorkbenchCommandKind::add_class) {
+        if (!active_creature_class_presentation_matches_tab(state, target)
+            || state.creature_class_presentation.rows.size() >= 8) { return click; }
+    } else if (class_row) {
+        if (!active_creature_class_presentation_matches_tab(state, target)) { return click; }
         const auto row = std::ranges::find(state.creature_class_presentation.rows, *key, &CreatureClassPresentationRow::slot);
-        if (row == state.creature_class_presentation.rows.end()
-            || (*adjustment < 0 ? row->level <= row->minimum_level : row->level >= row->maximum_level)) { return click; }
+        if (row == state.creature_class_presentation.rows.end()) { return click; }
         click.current = row->level;
-        click.delta = *adjustment;
+        if (kind == CreatureWorkbenchCommandKind::class_level) {
+            const auto adjustment = control_integer(control, "data-delta");
+            if (!adjustment || (*adjustment != -1 && *adjustment != 1)
+                || (*adjustment < 0 ? row->level <= row->minimum_level : row->level >= row->maximum_level)) { return click; }
+            click.delta = *adjustment;
+        }
     } else if (kind == CreatureWorkbenchCommandKind::feat) {
         if (!active_creature_feats_match_tab(state, target) || state.creature_feats.object != target.object) { return click; }
         const auto row = std::ranges::find(state.creature_feats.rows, static_cast<uint32_t>(*key), &CreatureFeatRow::feat_id);
@@ -910,16 +938,25 @@ bool execute_creature_workbench_command_click(CreatureWorkbenchCommandClick& cli
         }
     };
     const char* command = nullptr;
-    if (kind == CreatureWorkbenchCommandKind::class_level) {
-        if ((click.delta != -1 && click.delta != 1) || click.key >= 8
-            || !active_creature_class_presentation_matches_tab(state, target)) { return false; }
+    if (kind == CreatureWorkbenchCommandKind::add_class) {
+        if (!active_creature_class_presentation_matches_tab(state, target)) { return false; }
+        command = "object.creature.add_class";
+    } else if (kind == CreatureWorkbenchCommandKind::class_level
+        || kind == CreatureWorkbenchCommandKind::remove_class) {
+        if (click.key >= 8 || !active_creature_class_presentation_matches_tab(state, target)) { return false; }
         CreatureClassPresentationSnapshot current;
         build_creature_class_presentation(nw::kernel::runtime(), click.object, current);
         const auto row = std::ranges::find(current.rows, click.key, &CreatureClassPresentationRow::slot);
-        if (current.status != ObjectDetailsStatus::ready || row == current.rows.end() || row->level != click.current
-            || (click.delta < 0 ? row->level <= row->minimum_level : row->level >= row->maximum_level)) { return false; }
-        command = "object.creature.adjust_class_level";
-        append({click.key, click.delta});
+        if (current.status != ObjectDetailsStatus::ready || row == current.rows.end() || row->level != click.current) { return false; }
+        if (kind == CreatureWorkbenchCommandKind::class_level) {
+            if ((click.delta != -1 && click.delta != 1)
+                || (click.delta < 0 ? row->level <= row->minimum_level : row->level >= row->maximum_level)) { return false; }
+            command = "object.creature.adjust_class_level";
+            append({click.key, click.delta});
+        } else {
+            command = "object.creature.remove_class";
+            append({click.key});
+        }
     } else if (kind == CreatureWorkbenchCommandKind::feat) {
         if ((click.current != 0 && click.current != 1) || !active_creature_feats_match_tab(state, target)
             || state.creature_feats.object != click.object) { return false; }

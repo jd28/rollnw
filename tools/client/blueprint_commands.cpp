@@ -1,5 +1,6 @@
 #include "toolset_backend.hpp"
 
+#include "object_edits.hpp"
 #include "resource_document.hpp"
 
 #include <nw/kernel/Rules.hpp>
@@ -71,31 +72,6 @@ bool read_blueprint_choices(std::string_view function,
             .selected = selected.data.bval,
         });
     }
-    return true;
-}
-
-bool append_blueprint_choice_field(CommandPrompt& prompt,
-    std::string label,
-    std::string_view function,
-    std::string& error)
-{
-    std::vector<BlueprintChoiceRow> rows;
-    if (!read_blueprint_choices(function, rows, error) || rows.empty()) {
-        if (error.empty()) { error = "The NWN creation catalog is empty"; }
-        return false;
-    }
-    std::sort(rows.begin(), rows.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.choice.label < rhs.choice.label;
-    });
-    CommandPromptField field{std::move(label), {}, {}, false};
-    for (auto& row : rows) {
-        if (field.value.empty() && row.selected) {
-            field.value = row.choice.value;
-        }
-        field.choices.push_back(std::move(row.choice));
-    }
-    if (field.value.empty()) { field.value = field.choices.front().value; }
-    prompt.fields.push_back(std::move(field));
     return true;
 }
 
@@ -222,6 +198,59 @@ std::shared_ptr<CommandUndoAction> blueprint_creation_undo(const PreparedBluepri
 }
 
 } // namespace
+
+bool ToolsetBackend::load_creature_choices(CommandPromptField& field,
+    std::string_view function,
+    std::string& error)
+{
+    std::vector<BlueprintChoiceRow> rows;
+    if (!read_blueprint_choices(function, rows, error) || rows.empty()) {
+        if (error.empty()) { error = "The NWN creation catalog is empty"; }
+        return false;
+    }
+    std::sort(rows.begin(), rows.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.choice.label < rhs.choice.label;
+    });
+    field.choices.clear();
+    field.value.clear();
+    for (auto& row : rows) {
+        if (field.value.empty() && row.selected) {
+            field.value = row.choice.value;
+        }
+        field.choices.push_back(std::move(row.choice));
+    }
+    if (field.value.empty()) { field.value = field.choices.front().value; }
+    return true;
+}
+
+bool ToolsetBackend::load_creature_class_choices(ObjectHandle object,
+    std::vector<CommandPromptChoice>& choices, std::string& error)
+{
+    choices.clear();
+    const auto slots = editable_creature_class_slots(kernel::runtime(), object);
+    if (slots.size() != 16) {
+        error = "Creature classes are unavailable";
+        return false;
+    }
+    CommandPromptField field;
+    if (!load_creature_choices(field, "get_blueprint_class_choices", error)) { return false; }
+    for (auto& choice : field.choices) {
+        int32_t class_id = -1;
+        const auto [end, code] = std::from_chars(choice.value.data(), choice.value.data() + choice.value.size(), class_id);
+        if (code != std::errc{} || end != choice.value.data() + choice.value.size() || class_id < 0) {
+            choices.clear();
+            error = "The class catalog contains an invalid class ID";
+            return false;
+        }
+        bool assigned = false;
+        for (size_t index = 0; index < slots.size(); index += 2) {
+            assigned |= class_id == slots[index];
+        }
+        if (!assigned) { choices.push_back(std::move(choice)); }
+    }
+    if (choices.empty()) { error = "No unassigned classes are available"; }
+    return !choices.empty();
+}
 
 bool ToolsetBackend::blueprint_publication_pending() const noexcept
 {
@@ -399,12 +428,16 @@ CommandResult ToolsetBackend::show_blueprint_form(BlueprintWriteKind kind, Resou
     prompt.file_suffix = "." + std::string{ResourceType::to_string(type)} + ".json";
     if (kind == BlueprintWriteKind::create && type == ResourceType::utc) {
         std::string error;
-        if (!append_blueprint_choice_field(prompt, "Race",
+        CommandPromptField race{"Race", {}, {}, false};
+        CommandPromptField base_class{"Base Class", {}, {}, false};
+        if (!load_creature_choices(race,
                 "get_blueprint_race_choices", error)
-            || !append_blueprint_choice_field(prompt, "Base Class",
+            || !load_creature_choices(base_class,
                 "get_blueprint_class_choices", error)) {
             return failure(error);
         }
+        prompt.fields.push_back(std::move(race));
+        prompt.fields.push_back(std::move(base_class));
     } else if (kind == BlueprintWriteKind::create && type == ResourceType::uti) {
         CommandPromptField field{"Base item type", {}, {}, false};
         const auto& entries = kernel::rules().baseitems.entries;

@@ -50,6 +50,9 @@ class ToolsetBackend {
 public:
     void bind(RmlSmallsBridge* bridge, ShellController* shell, WorkspaceState* workspace) noexcept;
     bool initialize();
+    // Sorted, owned choices exclude every class assigned to this live Creature.
+    static bool load_creature_class_choices(ObjectHandle object,
+        std::vector<CommandPromptChoice>& choices, std::string& error);
     bool initialize_item_editor_data_model(Rml::Context& context);
     bool apply_item_editor_pending_focus(Rml::ElementDocument* document);
     void shutdown_item_editor_data_model();
@@ -135,6 +138,8 @@ private:
 
     [[nodiscard]] static std::string_view worker_phase_name(
         BlueprintUpdatePhase phase) noexcept;
+    static bool load_creature_choices(CommandPromptField& field,
+        std::string_view function, std::string& error);
     void register_native_commands();
     void register_area_commands();
     void register_blueprint_commands();

@@ -29,6 +29,7 @@
 #include <nw/rules/feats.hpp>
 #include <nw/serialization/Gff.hpp>
 #include <nw/serialization/GffBuilder.hpp>
+#include <nw/serialization/component_propset_json.hpp>
 #include <nw/smalls/Array.hpp>
 #include <nw/smalls/Smalls.hpp>
 #include <nw/smalls/runtime.hpp>
@@ -737,6 +738,139 @@ TEST(ClientObjectEdits, CreatureFeatCommitSharesDirtyUndoRedoAndEpoch)
     EXPECT_TRUE(redone.ok()) << redone.message;
     EXPECT_TRUE(read_feat(creature, feat));
     EXPECT_EQ(nw::toolset::object_mutation_state().epoch, epoch + 3);
+}
+
+TEST(ClientObjectEdits, CreatureClassBatchesRejectPartialDuplicateAndStaleChanges)
+{
+    using namespace nw::toolset;
+    ASSERT_NE(nwk::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto* creature = nwk::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    ASSERT_NE(creature, nullptr);
+    auto& runtime = nwk::runtime();
+    const auto object = creature->handle();
+    const auto before = editable_creature_class_slots(runtime, object);
+    ASSERT_EQ(before.size(), 16);
+    ASSERT_EQ(before[0], 4);
+    ASSERT_EQ(before[2], 5);
+    ASSERT_EQ(before[4], -1);
+    const auto epoch = object_mutation_state().epoch;
+    const auto reject = [&](std::vector<ObjectEditPatch> patches, ObjectEditStatus status) {
+        ObjectEditBatch batch{ObjectEditKind::creature_class_slot, std::move(patches)};
+        EXPECT_EQ(apply_object_edits(runtime, batch, ObjectEditDirection::forward).status, status);
+        EXPECT_EQ(editable_creature_class_slots(runtime, object), before);
+        EXPECT_EQ(object_mutation_state().epoch, epoch);
+    };
+    reject({{object, {}, 4, -1, 8}}, ObjectEditStatus::invalid_batch); // Missing level.
+    reject({{object, {}, 4, -1, 8}, {object, {}, 5, 0, 61}}, ObjectEditStatus::invalid_batch);
+    reject({{object, {}, 4, -1, 4}, {object, {}, 5, 0, 1}}, ObjectEditStatus::invalid_batch);
+    reject({{object, {}, 4, -1, 999999}, {object, {}, 5, 0, 1}}, ObjectEditStatus::invalid_batch);
+    reject({{object, {}, 16, -1, 8}}, ObjectEditStatus::invalid_batch);
+    reject({{object, {}, 0, 4, -1}}, ObjectEditStatus::invalid_batch); // Missing level clear.
+    reject({{object, {}, 4, -1, 8}, {object, {}, 5, 1, 2}}, ObjectEditStatus::stale_value);
+
+    // The complete candidate is validated, so replacing both IDs can swap classes.
+    ObjectEditBatch swap{ObjectEditKind::creature_class_slot,
+        {{object, {}, 0, 4, 5}, {object, {}, 2, 5, 4}}};
+    ASSERT_TRUE(apply_object_edits(runtime, swap, ObjectEditDirection::forward).ok());
+    auto changed = editable_creature_class_slots(runtime, object);
+    EXPECT_EQ(changed[0], 5);
+    EXPECT_EQ(changed[2], 4);
+    EXPECT_EQ(changed[1], before[1]);
+    EXPECT_EQ(changed[3], before[3]);
+    ASSERT_TRUE(apply_object_edits(runtime, swap, ObjectEditDirection::inverse).ok());
+    EXPECT_EQ(editable_creature_class_slots(runtime, object), before);
+}
+
+TEST(ClientObjectEdits, CreatureClassRemovalAndReplacementRestoreExactSpellbooks)
+{
+    using namespace nw::toolset;
+    ASSERT_NE(nwk::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto& runtime = nwk::runtime();
+    auto& components = nwk::objects().components();
+    for (bool prepared : {false, true}) {
+        for (bool remove : {false, true}) {
+            SCOPED_TRACE(prepared);
+            SCOPED_TRACE(remove);
+            auto* actor = nwk::objects().load_file<nw::Creature>(prepared
+                    ? "test_data/user/development/wizard_pm.utc"
+                    : "test_data/user/development/sorcrdd.utc");
+            ASSERT_NE(actor, nullptr);
+            const auto object = actor->handle();
+            auto before = editable_creature_class_slots(runtime, object);
+            ASSERT_EQ(before.size(), 16);
+            const int32_t source = prepared ? 10 : 9;
+            uint32_t slot = 0;
+            while (slot < 8 && before[2 * slot] != source) {
+                ++slot;
+            }
+            ASSERT_LT(slot, 8);
+            if (prepared) {
+                uint32_t empty = 0;
+                while (empty < 8 && before[2 * empty] >= 0) {
+                    ++empty;
+                }
+                ASSERT_LT(empty, 8);
+                // Also exercise an unrelated source alongside the prepared book.
+                ObjectEditBatch cleric{ObjectEditKind::creature_class_slot,
+                    {{object, {}, 2 * empty, -1, 2}, {object, {}, 2 * empty + 1, 0, 1}}};
+                ASSERT_TRUE(apply_object_edits(runtime, cleric, ObjectEditDirection::forward).ok());
+                ASSERT_TRUE(components.add_unslotted_ability(object, 2, 1, 100));
+            }
+            before = editable_creature_class_slots(runtime, object);
+            const auto spells_before = components.ability_loadout_to_json(object);
+            ASSERT_GT(spells_before.size(), 1);
+            auto spells_after = nlohmann::json::array();
+            for (const auto& spell : spells_before) {
+                if (spell.at("source") != source) { spells_after.push_back(spell); }
+            }
+            ASSERT_LT(spells_after.size(), spells_before.size());
+            EXPECT_EQ(spells_after.empty(), !prepared);
+
+            ObjectEditBatch batch{ObjectEditKind::creature_class_slot,
+                {{object, {}, 2 * slot, source, remove ? -1 : 8}}};
+            if (remove) { batch.patches.push_back({object, {}, 2 * slot + 1, before[2 * slot + 1], 0}); }
+            WorkspaceState workspace;
+            workspace.open_tab("preview:classes", "Classes", WorkspaceTabKind::preview);
+            CommandContext context;
+            context.workspace = &workspace;
+            context.active_tab_id = workspace.active_tab_id();
+            const auto epoch = object_mutation_state().epoch;
+            auto result = commit_creature_class_edits(std::move(batch), "Edit classes", context);
+            ASSERT_TRUE(result.ok()) << result.message;
+            ASSERT_TRUE(result.undo_action);
+            workspace.push_undo(*result.undo_action);
+            EXPECT_EQ(workspace.undo_count(), 1);
+            EXPECT_EQ(object_mutation_state().epoch, epoch + 1);
+            EXPECT_EQ(components.ability_loadout_to_json(object), spells_after);
+            const auto after = editable_creature_class_slots(runtime, object);
+            EXPECT_EQ(after[2 * slot], remove ? -1 : 8);
+            EXPECT_EQ(after[2 * slot + 1], remove ? 0 : before[2 * slot + 1]);
+
+            nlohmann::json serialized;
+            ASSERT_TRUE(nw::object_to_component_propset_json(actor, serialized, &runtime, nw::SerializationProfile::blueprint));
+            auto* reloaded = nwk::objects().make<nw::Creature>();
+            ASSERT_NE(reloaded, nullptr);
+            ASSERT_TRUE(nw::object_from_component_propset_json(reloaded, nlohmann::json::parse(serialized.dump()),
+                &runtime, nw::SerializationProfile::blueprint));
+            EXPECT_EQ(editable_creature_class_slots(runtime, reloaded->handle()), after);
+            EXPECT_EQ(components.ability_loadout_to_json(reloaded->handle()), spells_after);
+
+            ASSERT_TRUE(workspace.undo(context).ok());
+            EXPECT_EQ(editable_creature_class_slots(runtime, object), before);
+            EXPECT_EQ(components.ability_loadout_to_json(object), spells_before);
+            ASSERT_TRUE(workspace.redo(context).ok());
+            EXPECT_EQ(editable_creature_class_slots(runtime, object), after);
+            EXPECT_EQ(components.ability_loadout_to_json(object), spells_after);
+
+            ASSERT_TRUE(components.add_unslotted_ability(object, source, 1, 100));
+            const auto stale_spells = components.ability_loadout_to_json(object);
+            const auto stale_epoch = object_mutation_state().epoch;
+            EXPECT_FALSE(workspace.undo(context).ok());
+            EXPECT_EQ(editable_creature_class_slots(runtime, object), after);
+            EXPECT_EQ(components.ability_loadout_to_json(object), stale_spells);
+            EXPECT_EQ(object_mutation_state().epoch, stale_epoch);
+        }
+    }
 }
 
 TEST(ClientObjectEdits, CreatureClassLevelCommitUsesSmallsAndRestoresUndoRedo)

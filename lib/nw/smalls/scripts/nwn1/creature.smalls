@@ -380,6 +380,58 @@ fn get_property_editor_rows(obj: Creature): array!(CreaturePropertyEditorRow) {
     return rows;
 }
 
+// Eight slots, interleaved as class ID then level. Empty slots are (-1, 0).
+fn get_class_slots(creature: Creature): array!(int) {
+    var levels = get_propset!(CreatureLevels)(creature);
+    var result: array!(int) = {};
+    arr.reserve(result, 16);
+    for (var slot = 0; slot < 8; slot += 1) {
+        arr.push(result, levels.classes[slot]);
+        arr.push(result, levels.class_levels[slot]);
+    }
+    return result;
+}
+
+fn can_set_class_slots(creature: Creature, fields: array!(int), values: array!(int)): bool {
+    var count = arr.len(fields);
+    if (count <= 0 || count > 16 || count != arr.len(values)) { return false; }
+    var candidate = get_class_slots(creature);
+    for (var i = 0; i < count; i += 1) {
+        var field = fields[i];
+        if (field < 0 || field >= 16) { return false; }
+        for (var j = 0; j < i; j += 1) {
+            if (fields[j] == field) { return false; }
+        }
+        candidate[field] = values[i];
+    }
+    for (var slot = 0; slot < 8; slot += 1) {
+        var class_id = candidate[2 * slot];
+        var level = candidate[2 * slot + 1];
+        if (class_id == -1 && level == 0) { continue; }
+        if (!Classes.exists(Class(class_id))
+            || level < property_editor_class_level_min
+            || level > property_editor_class_level_max) { return false; }
+        for (var previous = 0; previous < slot; previous += 1) {
+            if (candidate[2 * previous] == class_id) { return false; }
+        }
+    }
+    return true;
+}
+
+fn set_class_slots(creature: Creature, fields: array!(int), values: array!(int)): bool {
+    if (!can_set_class_slots(creature, fields, values)) { return false; }
+    var levels = get_propset!(CreatureLevels)(creature);
+    for (var i = 0; i < arr.len(fields); i += 1) {
+        var slot = fields[i] / 2;
+        if (fields[i] % 2 == 0) {
+            levels.classes[slot] = values[i];
+        } else {
+            levels.class_levels[slot] = values[i];
+        }
+    }
+    return true;
+}
+
 fn get_class_slot_levels(creature: Creature): array!(int) {
     var levels = get_propset!(CreatureLevels)(creature);
     var result: array!(int) = {};

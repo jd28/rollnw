@@ -151,8 +151,8 @@ std::string recent_projects_markup(std::span<const RecentProjectEntry> projects)
             markup += Rml::StringUtilities::EncodeRml(project.error);
             markup += "</div>";
         }
-        markup += "</div><button class=\"home_project_remove\" data-key=\"" + index;
-        markup += "\" title=\"Remove from recent projects. Project files are not deleted.\">&#215;</button></div>";
+        markup += "</div><button class=\"home_project_remove icon_button_x\" data-key=\"" + index;
+        markup += "\" title=\"Remove from recent projects. Project files are not deleted.\"><span>&#215;</span></button></div>";
     }
     return markup;
 }
@@ -781,11 +781,11 @@ void append_workspace_subtabs_markup(std::string& content_markup, const nw::tool
         content_markup += escape_html(subtab.title);
         content_markup += "</span>";
         if (subtab.closable) {
-            content_markup += "<div class=\"workspace_subtab_close\" data-tab=\"";
+            content_markup += "<div class=\"workspace_subtab_close icon_button_x\" data-tab=\"";
             content_markup += escape_html(active_tab.id);
             content_markup += "\" data-subtab=\"";
             content_markup += escape_html(subtab.id);
-            content_markup += "\"><span class=\"workspace_subtab_close_glyph\">x</span></div>";
+            content_markup += "\"><span class=\"workspace_subtab_close_glyph\">&#215;</span></div>";
         }
         content_markup += "</div>";
     }
@@ -941,9 +941,9 @@ void refresh_workspace_tabs(Rml::ElementDocument* doc, WorkspaceViewState& state
             tab_markup += "<span class=\"workspace_tab_dirty\" title=\"Unsaved changes\"></span>";
         }
         if (tab.closable) {
-            tab_markup += "<div class=\"workspace_tab_close\" data-tab=\"";
+            tab_markup += "<div class=\"workspace_tab_close icon_button_x\" data-tab=\"";
             tab_markup += escape_html(tab.id);
-            tab_markup += "\"><span class=\"workspace_tab_close_glyph\">x</span></div>";
+            tab_markup += "\"><span class=\"workspace_tab_close_glyph\">&#215;</span></div>";
         }
         tab_markup += "</div>";
     }
