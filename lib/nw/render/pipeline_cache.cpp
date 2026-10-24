@@ -5,6 +5,7 @@ namespace {
 
 static_assert(sizeof(nw::gfx::PipelineDesc) == 96,
     "PipelineDesc layout changed; verify PipelineDesc equality/cache-key coverage");
+// Defaulted equality also covers cull_mode, which fits the existing padding.
 
 bool same_pipeline_desc(const nw::gfx::PipelineDesc& lhs, const nw::gfx::PipelineDesc& rhs)
 {

@@ -147,6 +147,8 @@ TEST(RenderGltfImport, ImportsModelAssetWithoutGraphicsContext)
     EXPECT_FLOAT_EQ(asset->materials[0].metallic, 0.2f);
     EXPECT_FLOAT_EQ(asset->materials[0].roughness, 0.75f);
     EXPECT_FLOAT_EQ(asset->materials[0].specular_strength, 1.0f);
+    EXPECT_TRUE(asset->materials[0].backface_culling);
+    EXPECT_FALSE(asset->materials[0].double_sided);
 
     ASSERT_EQ(asset->nodes.size(), 1u);
     ASSERT_EQ(asset->primitives.size(), 1u);
@@ -174,6 +176,39 @@ TEST(RenderGltfImport, ImportsModelAssetWithoutGraphicsContext)
     EXPECT_EQ(uploaded.geometry_upload_stats.missing_context_count, 1u);
     EXPECT_EQ(uploaded.texture_upload_stats.material_count, 0u);
 
+    std::filesystem::remove_all(dir);
+}
+
+TEST(RenderGltfImport, PreservesAuthoredMaterialSidedness)
+{
+    const auto dir = std::filesystem::temp_directory_path() / "rollnw_material_sidedness";
+    std::filesystem::create_directories(dir);
+    write_triangle_positions(dir / "triangle.bin", {0, 0, 0, 1, 0, 0, 0, 1, 0});
+    const auto path = dir / "sidedness.gltf";
+    {
+        std::ofstream out(path);
+        out << R"({
+  "asset": {"version": "2.0"},
+  "scene": 0,
+  "scenes": [{"nodes": [0]}],
+  "nodes": [{"mesh": 0}],
+  "materials": [{"doubleSided": false}, {"doubleSided": true}],
+  "buffers": [{"uri": "triangle.bin", "byteLength": 36}],
+  "bufferViews": [{"buffer": 0, "byteLength": 36}],
+  "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}],
+  "meshes": [{"primitives": [
+    {"attributes": {"POSITION": 0}, "material": 0},
+    {"attributes": {"POSITION": 0}, "material": 1}
+  ]}]
+})";
+    }
+    const auto asset = nw::render::gltf::import_gltf_model_asset(path);
+    ASSERT_TRUE(asset);
+    ASSERT_EQ(asset->materials.size(), 2u);
+    EXPECT_FALSE(asset->materials[0].double_sided);
+    EXPECT_TRUE(asset->materials[1].double_sided);
+    EXPECT_TRUE(asset->materials[0].backface_culling);
+    EXPECT_TRUE(asset->materials[1].backface_culling);
     std::filesystem::remove_all(dir);
 }
 

@@ -1,5 +1,6 @@
 #include "particle_render.hpp"
 
+#include "frustum.hpp"
 #include "particle_system.hpp"
 
 #include "../formats/Image.hpp"
@@ -8,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace nw::render {
 namespace {
@@ -174,6 +176,55 @@ ParticleBillboardAxes particle_billboard_sprite_axes(
 bool particle_named_texture_available(std::string_view texture_name, const nw::Image* source_image) noexcept
 {
     return texture_name.empty() || (source_image && source_image->valid());
+}
+
+bool particle_billboards_visible(const ParticleSystemInstance& system,
+    const ParticleRenderPacket& packet, const Frustum& frustum) noexcept
+{
+    if (!frustum.valid) {
+        return true;
+    }
+    switch (packet.mode) {
+    case ParticleRenderMode::billboard:
+    case ParticleRenderMode::billboard_local_z:
+    case ParticleRenderMode::billboard_world_z:
+    case ParticleRenderMode::aligned_world_z:
+        break;
+    default:
+        return true;
+    }
+
+    const auto indices = particle_render_packet_indices(system, packet);
+    if (indices.size() != packet.count) {
+        return true;
+    }
+    if (indices.empty()) {
+        return false;
+    }
+
+    const auto& core = system.particles.core;
+    glm::vec3 minimum{std::numeric_limits<float>::max()};
+    glm::vec3 maximum{std::numeric_limits<float>::lowest()};
+    for (const uint32_t i : indices) {
+        if (i >= core.position.size() || i >= core.size_x.size() || i >= core.size_y.size()) {
+            return true;
+        }
+        const glm::vec3 position = core.position[i];
+        if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)
+            || !std::isfinite(core.size_x[i]) || !std::isfinite(core.size_y[i])) {
+            return true;
+        }
+        // Enclose any rotation of the unit billboard axes; sizes match the renderer.
+        const glm::vec3 extent{0.5f * std::max(core.size_x[i], 0.001f)
+            + 0.5f * std::max(core.size_y[i], 0.001f)};
+        minimum = glm::min(minimum, position - extent);
+        maximum = glm::max(maximum, position + extent);
+        // One intersecting particle is sufficient to retain the whole batch.
+        if (i == indices.front() && bounds_intersects_frustum(minimum, maximum, frustum)) {
+            return true;
+        }
+    }
+    return bounds_intersects_frustum(minimum, maximum, frustum);
 }
 
 } // namespace nw::render

@@ -9,6 +9,7 @@
 #include <glm/glm.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <compare>
 #include <cstddef>
 #include <cstdint>
@@ -22,6 +23,23 @@
 #include <vector>
 
 namespace nw::render {
+
+enum class ModelTransformWinding : uint8_t {
+    unknown,
+    regular,
+    mirrored,
+};
+
+// Orientation query for an affine model transform. Ambiguous transforms render
+// both sides; no inverse or triangle inspection is needed.
+[[nodiscard]] inline ModelTransformWinding model_transform_winding(const glm::mat4& world) noexcept
+{
+    const float determinant = glm::determinant(glm::mat3{world});
+    if (!std::isfinite(determinant) || determinant == 0.0f) {
+        return ModelTransformWinding::unknown;
+    }
+    return determinant < 0.0f ? ModelTransformWinding::mirrored : ModelTransformWinding::regular;
+}
 
 struct Vertex {
     glm::vec3 position;
@@ -126,6 +144,9 @@ struct Material {
     float alpha_cutoff = 0.5f;
     glm::vec4 color_key_threshold{0.0f};
     bool double_sided = false;
+    // False preserves back-face coverage without changing shading normals.
+    // double_sided also disables culling and enables back-face normal flipping.
+    bool backface_culling = true;
 };
 
 inline constexpr uint32_t kInvalidModelMaterialOverrideIndex = std::numeric_limits<uint32_t>::max();
@@ -232,7 +253,7 @@ private:
     size_t live_count_ = 0;
 };
 
-// GPU upload of Material. Must stay in sync with SurfaceConstants cbuffer in pbr_static.ps.hlsl.
+// GPU material payload within ModelDrawConstants; matches sc_* fields in model_draw_constants.inc.hlsl.
 struct SurfaceConstants {
     glm::vec4 albedo{1.0f};
     float roughness = 0.5f;
@@ -382,6 +403,8 @@ struct ModelShadowSummary {
     bool valid = false;
 };
 
+struct ModelTexture;
+
 struct RenderModel {
     RenderModel() = default;
     explicit RenderModel(nw::gfx::Context* resource_context) noexcept;
@@ -412,7 +435,8 @@ struct RenderModel {
     std::vector<AnimationClip> animations;
     std::vector<ModelLight> lights;
     std::vector<ModelAssetParticleSystem> particle_systems;
-    std::vector<nw::gfx::Handle<nw::gfx::Texture>> textures; // Owned by the model; fallback textures are external.
+    std::vector<nw::gfx::Handle<nw::gfx::Texture>> textures;          // Owned by the model; fallback textures are external.
+    std::vector<std::shared_ptr<const ModelTexture>> shared_textures; // Load/unload only; draws use material indices.
     ModelShadowSummary shadow{};
     Bounds bounds;
     ModelAssetSourceKind source_kind = ModelAssetSourceKind::native;
@@ -428,6 +452,21 @@ struct ModelInstanceShadowSummary {
     bool casts_shadow = false;
 };
 
+// Last successfully published inputs for an instance's stable model binding.
+// Asset/backend or output mutation must invalidate this snapshot; ordinary
+// root/clip/time/enable changes are detected by the changed-input sampler.
+struct ModelInstanceAnimationInputs {
+    glm::mat4 root{1.0f};
+    float time = 0.0f;
+    uint32_t clip = 0;
+    uint32_t model_index = kInvalidModelInstanceIndex;
+    bool enabled = false;
+    bool looping = true;
+    bool reference_fallback = false;
+    bool constant_pose = false; // All channels have at most one key.
+    bool valid = false;
+};
+
 struct ModelInstanceAnimationState {
     std::unique_ptr<AnimationBackend> backend;
     Pose pose;
@@ -437,6 +476,7 @@ struct ModelInstanceAnimationState {
     float playback_rate = 1.0f;
     bool looping = true;
     bool enabled = false;
+    ModelInstanceAnimationInputs published_inputs;
 };
 
 // Scene/runtime instance record. This is the single source of truth for

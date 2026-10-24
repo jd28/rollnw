@@ -10,10 +10,48 @@ namespace nw::render::viewer {
 
 struct PreviewScene;
 class AreaRenderFrame;
+class AreaRenderScene;
+
+// CPU-only preparation result. Indices refer to the input surface and scene
+// model arrays; no resource ownership or per-frame pointers are retained.
+// Reuse requires unchanged rows, model identity, material bindings, instance
+// space and roots. AreaRenderScene generations and runtime-state publication
+// supply that lifetime for retained complete-static batches.
+struct PreparedSurfaceBatches {
+    struct Run {
+        size_t begin = 0u;
+        size_t end = 0u;
+        uint32_t instance_source_index = nw::render::kInvalidPreparedModelDrawIndex;
+    };
+    struct Group {
+        uint32_t representative_run = 0u;
+        nw::render::PreparedModelSurfaceInstanceSpace space
+            = nw::render::PreparedModelSurfaceInstanceSpace::model_root;
+        std::vector<uint32_t> run_indices;
+        // Packed in run_indices order only for retained model-root groups.
+        // Fresh preparation and primitive-world groups leave this empty.
+        std::vector<nw::render::PreparedModelSurfaceInstance> root_instances;
+    };
+    std::vector<uint32_t> surface_indices;
+    std::vector<Run> runs;
+    std::vector<Group> groups;
+    std::vector<uint32_t> fallback_runs;
+    uint32_t dropped_invalid_surface_count = 0u;
+};
 
 struct PreviewPreparedModelDraws {
+    struct Transform {
+        glm::mat4 world;
+        nw::render::Bounds local_bounds;
+        glm::mat4 normal_matrix;
+        nw::render::Bounds world_bounds;
+    };
+
     nw::render::PreparedModelDrawList common;
     nw::render::PreparedModelDrawRangeList ranges;
+    // Preserved by clear(); reuse compares all numeric inputs at each draw
+    // position. No model identity, material state or resource lifetime is cached.
+    std::vector<Transform> transform_cache;
 
     void clear()
     {
@@ -101,6 +139,17 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
     nw::render::RenderPassSelection pass,
     const AreaRenderFrame* visibility_filter,
     const nw::render::PreparedRenderModelSkinTable* skin_table = nullptr,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
+// Consumes a frame prepared from area_scene. Retains complete static opaque /
+// cutout groups; partial visibility and other passes use fresh preparation.
+nw::render::PreparedRenderModelSurfaceSubmissionStats render_area_model_surface_draws(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    AreaRenderScene& area_scene,
+    const AreaRenderFrame& frame,
+    const nw::render::RenderContext& ctx,
+    nw::render::RenderPassSelection pass,
     nw::render::PreparedRenderModelSurfacePacketList* packet_scratch = nullptr);
 PreviewPreparedModelDrawValidation validate_prepared_model_draws(
     const PreviewScene& scene,

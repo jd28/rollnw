@@ -1021,6 +1021,68 @@ TEST(NavTileBuild, PreservesDistinctStackedFloorHeights)
     EXPECT_NE(polygons[0], polygons[1]);
 }
 
+TEST(NavTileBuild, CorrectsQuantizedBoundariesOnStackedAuthoredSlopes)
+{
+    // Reduced from a city stair boundary: generated XY (79.5, 72.125)
+    // lies just outside the authored triangles, so exact containment rejects
+    // an otherwise valid tile. Keep the height correction on the right layer.
+    const std::array<glm::vec3, 21> triangles{{
+        {77.563270600f, 72.497016900f, -0.030942023f},
+        {80.000000000f, 72.050003100f, 0.000000000f},
+        {80.000000000f, 72.599998500f, -0.300000012f},
+        {80.000000000f, 71.900001500f, 0.000000000f},
+        {77.311080900f, 72.346778900f, 0.000000000f},
+        {80.000000000f, 70.000000000f, 0.000000000f},
+        {80.000000000f, 72.599998500f, -0.300000012f},
+        {80.000000000f, 73.199996900f, -0.600000024f},
+        {77.898689300f, 73.532806400f, -0.600000024f},
+        {77.898689300f, 73.532806400f, -0.600000024f},
+        {77.629440300f, 73.004898100f, -0.300000012f},
+        {80.000000000f, 72.599998500f, -0.300000012f},
+        {80.000007600f, 72.049980200f, 0.000000000f},
+        {82.444107100f, 72.478393600f, -0.045509011f},
+        {80.000007600f, 72.599983200f, -0.300000012f},
+        {82.502883900f, 72.288383500f, 0.000000000f},
+        {80.000015300f, 71.899978600f, 0.000000000f},
+        {86.000007600f, 72.000000000f, 0.000000000f},
+        {80.000007600f, 73.199981700f, -0.600000024f},
+        {80.000007600f, 72.599983200f, -0.300000012f},
+        {82.101333600f, 73.532798800f, -0.600000024f},
+    }};
+    nw::nav::NavAreaBuildSource source;
+    source.width = 8;
+    source.height = 8;
+    source.surface_walkable = {0u, 1u};
+    for (float height : {0.0f, 3.0f}) {
+        for (auto vertex : triangles) {
+            vertex.z += height;
+            source.surface_indices.push_back(
+                static_cast<uint32_t>(source.surface_vertices.size()));
+            source.surface_vertices.push_back(vertex);
+        }
+    }
+    source.surface_ids.assign(source.surface_indices.size() / 3, 1u);
+    nw::nav::NavTileBuildConfig config;
+    config.erosion_cells = 4;
+    nw::nav::NavWorldState world;
+    nw::nav::NavTiledWorldBuildStats stats;
+    ASSERT_EQ(nw::nav::build_tiled_nav_world(source, {}, config, world, stats),
+        nw::nav::NavStatus::ok);
+    ASSERT_GT(stats.polygon_count, 0u);
+
+    const std::array rays{
+        nw::nav::NavRayProjectionInput{{79.5f, 72.125f, 1.0f}, {0.0f, 0.0f, -2.0f}},
+        nw::nav::NavRayProjectionInput{{79.5f, 72.125f, 4.0f}, {0.0f, 0.0f, -2.0f}},
+    };
+    std::array<nw::nav::NavRayProjectionResult, 2> hits{};
+    nw::nav::project_nav_rays(world, rays, hits);
+    for (size_t layer = 0; layer < hits.size(); ++layer) {
+        ASSERT_EQ(hits[layer].status, nw::nav::NavStatus::ok);
+        EXPECT_NEAR(hits[layer].position.z, static_cast<float>(layer) * 3.0f,
+            config.cell_height);
+    }
+}
+
 TEST(NavTileBuild, RejectsDisabledDetailSampling)
 {
     const auto geometry = make_two_tile_recast_floor();

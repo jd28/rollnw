@@ -1,5 +1,6 @@
 #include <nw/formats/Plt.hpp>
 #include <nw/render/model_asset.hpp>
+#include <nw/render/model_texture_cache.hpp>
 #include <nw/render/texture_decode.hpp>
 
 #include <gtest/gtest.h>
@@ -912,6 +913,130 @@ TEST(RenderModelAsset, RenderModelDestructionReleasesOwnedGpuResources)
     EXPECT_EQ(nw::gfx::map_buffer(old_buffer), nullptr);
     EXPECT_FALSE(nw::gfx::bindless_texture_index_valid(
         nw::gfx::get_bindless_texture_index(gfx.context, old_texture)));
+}
+
+TEST(RenderModelAsset, SharedTexturesSurviveCacheClearAndModelMoves)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    nw::render::ModelTextureCache cache{gfx.context};
+    const nw::render::ModelAssetTextureUploadDesc desc{.ctx = gfx.context, .texture_cache = &cache};
+    auto asset = make_minimal_valid_asset();
+    asset.texture_sources.push_back(make_encoded_tga_source(make_test_tga_1x2(0, {255, 0, 0}, {0, 255, 0})));
+    asset.material_texture_sources.push_back({.albedo = 0u});
+    nw::render::RenderModel first, second;
+    EXPECT_EQ(nw::render::upload_model_asset_material_textures(asset, desc, first).uploaded_texture_count, 1u);
+    ASSERT_EQ(first.shared_textures.size(), 1u);
+    const auto handle = first.shared_textures[0]->texture;
+    const auto index = first.materials[0].albedo_index;
+    asset.texture_sources[0].resource.resref = nw::Resref{"different_name"};
+    const auto hit = nw::render::upload_model_asset_material_textures(asset, desc, second);
+    EXPECT_TRUE(hit.passed());
+    EXPECT_EQ(hit.uploaded_texture_count, 0u);
+    EXPECT_EQ(hit.shared_texture_hit_count, 1u);
+    EXPECT_EQ(second.materials[0].albedo_index, index);
+    EXPECT_TRUE(first.textures.empty());
+    EXPECT_EQ(cache.stats().live_texture_count, 1u);
+    EXPECT_EQ(cache.stats().source_bytes, asset.texture_sources[0].encoded_bytes.size());
+    EXPECT_EQ(cache.stats().upload_bytes, 8u);
+
+    first.release_gpu_resources();
+    EXPECT_EQ(nw::gfx::get_bindless_texture_index(gfx.context, handle), index);
+    nw::render::RenderModel moved{std::move(second)};
+    nw::render::RenderModel assigned;
+    assigned = std::move(moved);
+    cache.clear();
+    EXPECT_EQ(nw::gfx::get_bindless_texture_index(gfx.context, handle), index);
+    EXPECT_TRUE(second.shared_textures.empty());
+    EXPECT_TRUE(moved.shared_textures.empty());
+    assigned.release_gpu_resources();
+    EXPECT_FALSE(nw::gfx::bindless_texture_index_valid(nw::gfx::get_bindless_texture_index(gfx.context, handle)));
+
+    // Expired rows never retain the GPU texture or satisfy a later request.
+    nw::render::RenderModel reloaded;
+    EXPECT_EQ(nw::render::upload_model_asset_material_textures(asset, desc, reloaded).uploaded_texture_count, 1u);
+    reloaded.release_gpu_resources();
+    cache.prune();
+    EXPECT_EQ(cache.stats().live_texture_count, 0u);
+    EXPECT_EQ(cache.stats().source_bytes, 0u);
+    EXPECT_EQ(nw::render::upload_model_asset_material_textures(asset, desc, reloaded).uploaded_texture_count, 1u);
+}
+
+TEST(RenderModelAsset, SharedTexturesSeparateContentDecoderAndUploadVariants)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    nw::render::ModelTextureCache cache{gfx.context};
+    const nw::render::ModelAssetTextureUploadDesc desc{.ctx = gfx.context, .texture_cache = &cache};
+    auto asset = make_minimal_valid_asset();
+    asset.texture_sources.push_back(make_encoded_tga_source(make_test_tga_1x2(0, {255, 0, 0}, {0, 255, 0})));
+    asset.materials.resize(4);
+    asset.material_texture_sources.resize(4, {.albedo = 0u, .normal = 0u, .emissive = 0u});
+    for (size_t i = 0; i < 4; ++i) {
+        asset.material_texture_sources[i].albedo_srgb = (i & 1u) != 0;
+        asset.materials[i].alpha_mode = (i & 2u) ? nw::render::MaterialMode::transparent : nw::render::MaterialMode::opaque;
+    }
+    nw::render::RenderModel first, second, changed, decoder;
+    const auto initial = nw::render::upload_model_asset_material_textures(asset, desc, first);
+    EXPECT_TRUE(initial.passed());
+    EXPECT_EQ(initial.uploaded_texture_count, 4u);
+    EXPECT_EQ(first.materials[0].albedo_index, first.materials[0].normal_index);
+    EXPECT_EQ(first.materials[1].albedo_index, first.materials[1].emissive_index);
+    for (size_t i = 0; i < 4; ++i) {
+        for (size_t j = i + 1; j < 4; ++j) {
+            EXPECT_NE(first.materials[i].albedo_index, first.materials[j].albedo_index);
+        }
+    }
+    const auto hit = nw::render::upload_model_asset_material_textures(asset, desc, second);
+    EXPECT_TRUE(hit.passed());
+    EXPECT_EQ(hit.shared_texture_hit_count, 4u);
+    EXPECT_EQ(hit.uploaded_texture_count, 0u);
+
+    // Same name with changed bytes must upload a new texture.
+    asset.texture_sources[0].encoded_bytes.back() ^= 0xff;
+    EXPECT_EQ(nw::render::upload_model_asset_material_textures(asset, desc, changed).uploaded_texture_count, 4u);
+    EXPECT_NE(changed.materials[0].albedo_index, first.materials[0].albedo_index);
+    // Decoder type controls bottom-origin TGA row restoration independently of bytes.
+    asset.texture_sources[0].resource.type = nw::ResourceType::png;
+    EXPECT_EQ(nw::render::upload_model_asset_material_textures(asset, desc, decoder).uploaded_texture_count, 4u);
+    EXPECT_EQ(cache.stats().live_texture_count, 12u);
+}
+
+TEST(RenderModelAsset, SharedTexturesRejectContextMismatchAndRetryFailedSources)
+{
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    nw::render::ModelTextureCache cache{gfx.context};
+    auto asset = make_minimal_valid_asset();
+    asset.texture_sources.push_back(make_encoded_tga_source({1, 2, 3}));
+    asset.material_texture_sources.push_back({.albedo = 0u});
+    nw::render::RenderModel model;
+    const auto mismatch = nw::render::upload_model_asset_material_textures(asset, {.texture_cache = &cache}, model);
+    EXPECT_EQ(mismatch.resource_context_mismatch_count, 1u);
+    const nw::render::ModelAssetTextureUploadDesc desc{
+        .ctx = gfx.context, .fallback_albedo = 42u, .texture_cache = &cache};
+    for (int i = 0; i < 2; ++i) {
+        const auto failed = nw::render::upload_model_asset_material_textures(asset, desc, model);
+        EXPECT_EQ(failed.decode_failure_count, 1u);
+        EXPECT_EQ(model.materials[0].albedo_index, 42u);
+        EXPECT_EQ(cache.stats().live_texture_count, 0u);
+    }
+    asset.texture_sources[0] = make_encoded_plt_source(make_test_plt_1x2(5, 1, 7, 2));
+    const auto fixed = nw::render::upload_model_asset_material_textures(asset, desc, model);
+    EXPECT_TRUE(fixed.passed());
+    EXPECT_EQ(fixed.uploaded_texture_count, 1u);
+    EXPECT_TRUE(model.materials[0].albedo_uses_plt);
+    nw::render::RenderModel second;
+    asset.materials[0].alpha_mode = nw::render::MaterialMode::transparent;
+    asset.material_texture_sources[0].albedo_srgb = false;
+    EXPECT_EQ(nw::render::upload_model_asset_material_textures(asset, desc, second).shared_texture_hit_count, 1u);
+    EXPECT_EQ(model.materials[0].albedo_index, second.materials[0].albedo_index);
 }
 
 TEST(RenderModelAsset, TextureDecodeRestoresBottomOriginTgaFileRows)

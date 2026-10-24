@@ -3,6 +3,13 @@
 Status: open investigation; split from
 [resource submission hardening](closed/nw-gfx-resource-submission-hardening.md).
 
+2026-10-02 update: [sharing live model textures](closed/model-texture-sharing.md)
+removed most repeated decode/upload work before adding queue complexity.
+Matched tracing-off outdoor loads now upload 92 textures / 50,950,400 base-level
+bytes, with median load time 221.309 ms (three processes, validation off).
+The earlier 1,035-upload workload below is historical. Re-profile the remaining
+unique uploads before deciding whether queued completion is worth its cost.
+
 ## Observed input and cost
 
 The 2026-09-30 host comparison used the AMD Radeon 890M (RADV STRIX1), Mesa

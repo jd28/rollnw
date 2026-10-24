@@ -612,16 +612,16 @@ and zero maximum channel difference. Area validation reports contain zero
 warnings/errors. The PBR logs retain four pre-existing Vulkan PERFORMANCE
 interface advisories in both versions, with no Vulkan VALIDATION messages.
 
-The machine-readable [measurements](gfx-hardening-evidence/measurements.json)
+The machine-readable measurements (external artifact: `gfx-hardening-evidence/measurements.json`)
 retain every measured load sample, cumulative counters, process commands/RSS,
 timestamped representative upload/wait traces, size histograms, pixel comparison
-results and executable hashes. The [baseline instrumentation patch](gfx-hardening-evidence/baseline-instrumentation.patch)
+results and executable hashes. The baseline instrumentation patch (external artifact: `gfx-hardening-evidence/baseline-instrumentation.patch`)
 identifies the observation-only baseline changes. Representative final images:
-[small area](gfx-hardening-evidence/start-1.png),
-[large area](gfx-hardening-evidence/pvp_area_2-1.png),
-[PBR mip chains](gfx-hardening-evidence/pbr-0.png).
+small area (external artifact: `gfx-hardening-evidence/start-1.png`),
+large area (external artifact: `gfx-hardening-evidence/pvp_area_2-1.png`),
+PBR mip chains (external artifact: `gfx-hardening-evidence/pbr-0.png`).
 All 609 pre-recorded authored area files retain their
-[SHA256 values](gfx-hardening-evidence/area-input-hashes.json). This comparison
+SHA256 values (external artifact: `gfx-hardening-evidence/area-input-hashes.json`). This comparison
 covers the area files, not every resource in the external module.
 
 ### Completion gate and verification limits
@@ -665,10 +665,10 @@ the entire repository test suite was run. The five new gfx protocol tests
 include real mip readback, whole-batch rejection/content preservation, overflow,
 context/attachment contracts and independent bind-failure recovery.
 
-The [initial broad report](gfx-hardening-evidence/regressions.xml) preserves the
-original failure; the [final focused report](gfx-hardening-evidence/final-focused.xml)
-and [trace](gfx-hardening-evidence/final-focused.log) record the corrections.
-The final [scene/UI capture](gfx-hardening-evidence/client-resource-transitions.png)
+The initial broad report (external artifact: `gfx-hardening-evidence/regressions.xml`) preserves the
+original failure; the final focused report (external artifact: `gfx-hardening-evidence/final-focused.xml`)
+and trace (external artifact: `gfx-hardening-evidence/final-focused.log`) record the corrections.
+The final scene/UI capture (external artifact: `gfx-hardening-evidence/client-resource-transitions.png`)
 was visually inspected. Its seven scene-boundary idle waits total 0.389 ms,
 maximum 0.192 ms. C++ formatting and `git diff --check` passed.
 

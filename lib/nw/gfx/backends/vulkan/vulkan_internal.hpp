@@ -215,6 +215,14 @@ struct VulkanCommandList {
         bool valid = false;
     };
     BoundResources bound_resources;
+    struct StorageDescriptorKey {
+        Handle<Buffer> buffer;
+        VkDeviceAddress address = 0;
+        VkDeviceSize range = 0;
+    };
+    std::array<StorageDescriptorKey, 5> storage_descriptor_keys{};
+    // Host-owned bytes, never pointers into the in-flight descriptor ring.
+    std::vector<uint8_t> storage_descriptors;
     bool pipeline_bind_failed = false;
     bool vertex_bind_failed = false;
     bool index_bind_failed = false;
@@ -351,6 +359,7 @@ inline void begin_command_buffer(VulkanContext* ctx, uint32_t frame_index)
     frame.cmds.bound_index_size = 0;
     frame.cmds.descriptor_buffers_bound = false;
     frame.cmds.bound_resources = {};
+    frame.cmds.storage_descriptor_keys = {};
     frame.cmds.pipeline_bind_failed = false;
     frame.cmds.vertex_bind_failed = false;
     frame.cmds.index_bind_failed = false;

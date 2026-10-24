@@ -132,8 +132,9 @@ bool set_default_render_model_animation_clip(
     PreviewScene& scene,
     std::span<const std::string_view> preferred_clip_names,
     float time);
-// Selects the standard per-model hold clip for RenderModel rows,
-// then advances one 33 ms tick so newly added creatures do not remain in bind pose.
+// Selects the standard per-model hold clip for RenderModel rows. Door owners
+// hold their pose until an explicit transition or clip selection starts playback.
+// Advances one 33 ms tick so newly added creatures do not remain in bind pose.
 bool prime_scene_hold_animation(PreviewScene& scene);
 // Selects idle and directional locomotion clips for area creature model rows. Inputs are borrowed,
 // must have unique Creature owners, and remain valid only for this call. A

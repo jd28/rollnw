@@ -59,6 +59,8 @@ enum class ViewerSceneKind : uint8_t {
 
 struct ViewerFrameStats {
     float tick_seconds = 0.0f;
+    // CPU preparation before total_render_seconds, including animation and runtime sync.
+    float pre_render_seconds = 0.0f;
     float setup_seconds = 0.0f;
     float shadow_seconds = 0.0f;
     float opaque_seconds = 0.0f;
@@ -74,6 +76,9 @@ struct ViewerFrameStats {
     float forward_plus_cluster_index_seconds = 0.0f;
     float forward_plus_upload_seconds = 0.0f;
     float total_render_seconds = 0.0f;
+    // Completed scene GPU interval, including gaps between passes; excludes presentation.
+    float gpu_scene_seconds = 0.0f;
+    bool gpu_scene_available = false;
     float gpu_shadow_seconds = 0.0f;
     float gpu_opaque_seconds = 0.0f;
     float gpu_water_seconds = 0.0f;
@@ -94,7 +99,6 @@ struct ViewerFrameStats {
     uint32_t prepared_model_draw_render_model_material_fallback_count = 0;
     bool prepared_model_surface_stats_enabled = false;
     nw::render::PreparedModelSurfaceDrawStats prepared_model_surface_stats{};
-    nw::render::PreparedModelSurfaceMaterialStats prepared_model_surface_materials{};
     nw::render::PreparedModelSurfaceMaterialBindingStats prepared_model_surface_material_bindings{};
     nw::render::PreparedRenderModelSkinTableStats prepared_render_model_skin_table_stats{};
     nw::render::PreparedRenderModelSurfaceSubmissionStats prepared_render_model_surface_submission{};
@@ -202,6 +206,15 @@ struct ViewerFrameStats {
     bool water_rendered = false;
 };
 
+// Accumulate selected-light diagnostics for the visible cached surfaces. Frame
+// and scene must describe the same prepared records. Invalid light indices are
+// skipped; integer totals saturate. No ownership or data is retained.
+void accumulate_area_selected_light_stats(
+    ViewerFrameStats& stats,
+    const AreaRenderScene& area_scene,
+    const AreaRenderFrame& frame,
+    std::span<const nw::render::LocalLight> lights) noexcept;
+
 // One row describes the most recent user-requested area load. Area loads are
 // genuinely singular state transitions; frame work remains batch-oriented.
 struct ViewerAreaLoadStats {
@@ -245,6 +258,8 @@ public:
     void clear();
 
     void tick(int32_t dt_ms);
+    // Loads existing frame color for viewport composition. Standalone callers
+    // must initialize the target background before rendering the session.
     void render(nw::gfx::CommandList* command_list, ViewerViewport viewport);
 
     bool select_animation(std::string_view animation);
@@ -331,6 +346,8 @@ public:
     }
     [[nodiscard]] bool playing() const noexcept { return playing_; }
     void set_playing(bool playing) noexcept { playing_ = playing; }
+    // Diagnostic-only: two extra timestamp queries per render. Results retire asynchronously.
+    void set_gpu_scene_timing_enabled(bool enabled) noexcept { gpu_scene_timing_enabled_ = enabled; }
     [[nodiscard]] PreviewSceneLoadOptions preview_scene_load_options() const noexcept
     {
         return preview_scene_load_options_;
@@ -457,6 +474,7 @@ private:
     AreaVisibilityMaskMode area_visibility_mask_mode_ = AreaVisibilityMaskMode::radius;
     bool area_day_night_autoplay_ = true;
     bool authored_area_fog_enabled_ = false;
+    bool gpu_scene_timing_enabled_ = false;
     bool area_lights_enabled_ = true;
     bool area_debug_enabled_ = true;
     bool area_object_selection_enabled_ = true;

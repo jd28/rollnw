@@ -72,3 +72,10 @@ nwnee*
 
 # Generated from an installed NWN data set; local review artifacts only.
 /lib/nw/smalls/scripts/nwn1/data/
+
+# Issues retain notes and reproduction scripts, never generated evidence.
+/issues/**
+!/issues/**/
+!/issues/**/*.md
+!/issues/**/*.py
+!/issues/**/*.sh

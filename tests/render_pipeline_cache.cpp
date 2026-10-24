@@ -8,6 +8,14 @@ TEST(RenderPipelineCache, PipelineDescEqualityCoversRenderStateAndVertexLayout)
     nw::gfx::PipelineDesc other = base;
     EXPECT_EQ(base, other);
 
+    other.cull_mode = nw::gfx::CullMode::back;
+    EXPECT_NE(base, other);
+    auto back = other;
+    other.cull_mode = nw::gfx::CullMode::front;
+    EXPECT_NE(base, other);
+    EXPECT_NE(back, other);
+    other = base;
+
     other.depth_compare = nw::gfx::CompareOp::LessEqual;
     EXPECT_NE(base, other);
 

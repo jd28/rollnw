@@ -3,6 +3,7 @@
 #include "area_render_scene.hpp"
 #include "preview_scene.hpp"
 
+#include <nw/render/frustum.hpp>
 #include <nw/render/model_asset.hpp>
 #include <nw/render/model_gpu_backend.hpp>
 #include <nw/render/model_renderer.hpp>
@@ -76,6 +77,7 @@ public:
 
     nw::render::RenderModel* get_particle_mesh(std::string_view resref)
     {
+        particle_mesh_texture_upload_.texture_cache = &service_.model_texture_cache();
         return service_.asset_cache().get_or_load_particle_mesh(
             nw::Resref{resref}, particle_mesh_texture_upload_);
     }
@@ -176,6 +178,9 @@ void render_scene_mesh_particles(
         batch.roots.push_back(particle_mesh_root(core, particle_index));
     }
     if (!batch.roots.empty()) {
+        if (!batch.render_ctx.view_uniforms.buffer.valid()) {
+            batch.render_ctx = prepare_render_model_view(batch.render_ctx, batch.ctx);
+        }
         nw::render::render_render_model_instances(
             batch.render_ctx,
             batch.cmd,
@@ -215,6 +220,7 @@ ParticleRenderStats render_scene_particles(
         return {};
     }
 
+    const Frustum frustum = make_frustum(ctx.projection * ctx.view);
     SceneParticleResourceProvider resources{service};
     SceneMeshParticleBatch mesh_batch{service.model_render_context(), resources, cmd, ctx};
     ParticleRenderStats stats{};
@@ -242,8 +248,8 @@ ParticleRenderStats render_scene_particles(
                 continue;
             }
 
-            const auto& source_material = packet.material < scene_particles.import.effect.materials.size()
-                ? scene_particles.import.effect.materials[packet.material]
+            const auto& source_material = packet.material < scene_particles.definition->import.effect.materials.size()
+                ? scene_particles.definition->import.effect.materials[packet.material]
                 : nw::render::ParticleMaterialDef{};
             if (packet.mode == nw::render::ParticleRenderMode::mesh) {
                 render_scene_mesh_particles(
@@ -258,9 +264,10 @@ ParticleRenderStats render_scene_particles(
         service.particle_renderer().render(
             cmd,
             scene_particles.system,
-            scene_particles.import.effect.materials,
+            scene_particles.definition->import.effect.materials,
             ctx,
-            resources);
+            resources,
+            frustum);
     }
     return stats;
 }

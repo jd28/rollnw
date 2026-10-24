@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <nw/render/render_service.hpp>
 #include <nw/render/viewer/area_lighting.hpp>
 #include <nw/render/viewer/area_render_scene.hpp>
 #include <nw/render/viewer/camera.hpp>
@@ -8,6 +9,7 @@
 #include <nw/render/viewer/scene_lights.hpp>
 #include <nw/render/viewer/scene_particles.hpp>
 #include <nw/render/viewer/scene_shadow.hpp>
+#include <nw/render/viewer/session.hpp>
 #include <nw/render/viewer/tile_light.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -817,6 +819,122 @@ TEST(RenderViewerLighting, FilteredAreaFrameKeepsModelBoundDynamicLights)
     EXPECT_EQ(frame.visible_light_indices()[0], 1u);
 }
 
+TEST(RenderViewerLighting, SelectedLightRecordTotalsMatchVisibleSurfaces)
+{
+    namespace viewer = nw::render::viewer;
+    viewer::PreviewScene scene;
+    add_grid_area_tiles(scene, 8, 1);
+    for (auto& model : scene.static_models) {
+        for (const auto mode : {nw::render::MaterialMode::cutout,
+                 nw::render::MaterialMode::water,
+                 nw::render::MaterialMode::transparent}) {
+            auto primitive = model->primitives.front();
+            primitive.material = static_cast<uint32_t>(model->materials.size());
+            model->materials.push_back(nw::render::Material{.alpha_mode = mode});
+            model->primitives.push_back(primitive);
+        }
+    }
+    scene.render_local_lights = {
+        {.position = {20.0f, 0.0f, 1.0f}, .radius = 1000.0f, .color = {0.0f, 0.0f, 0.0f}, .intensity = 4.0f},
+        {.position = {20.0f, 0.0f, 1.0f}, .radius = 1000.0f, .color = {0.5f, 0.75f, 0.25f}, .intensity = 2.0f},
+    };
+    viewer::AreaRenderScene records;
+    records.rebuild(scene);
+    viewer::AreaRenderFrame frame;
+    viewer::prepare_area_frame(records, frame);
+    ASSERT_TRUE(frame.uses_cached_draw_lists());
+
+    // Reference the original four renderer-facing streams, independently of
+    // record range sizes. This also exercises the cached visibility filter.
+    const auto check = [&](std::span<const nw::render::LocalLight> lights,
+                           uint32_t initial_total = 0u) {
+        viewer::ViewerFrameStats actual{};
+        actual.local_light_selected_draw_count = initial_total;
+        actual.local_light_selected_total = initial_total;
+        actual.local_light_selected_colored_total = initial_total;
+        viewer::accumulate_area_selected_light_stats(actual, records, frame, lights);
+        uint64_t draws = initial_total;
+        uint64_t total = initial_total;
+        uint64_t colored = initial_total;
+        uint32_t max_count = 0u;
+        float max_color = 0.0f;
+        float max_intensity = 0.0f;
+        const auto& surfaces = records.prepared_model_surface_draws().draws;
+        for (const auto indices : {frame.visible_opaque_prepared_surface_indices(),
+                 frame.visible_cutout_prepared_surface_indices(),
+                 frame.visible_water_prepared_surface_indices(),
+                 frame.visible_transparent_prepared_surface_indices()}) {
+            for (const auto index : indices) {
+                ASSERT_LT(index, surfaces.size());
+                const auto record = surfaces[index].handle_index;
+                if (frame.filters_cached_draw_records() && !frame.record_visible(record)) {
+                    continue;
+                }
+                uint32_t selected = 0u;
+                for (const auto light_index : records.light_indices_for_record(record)) {
+                    if (light_index >= lights.size()) {
+                        continue;
+                    }
+                    const auto& light = lights[light_index];
+                    const float color = std::max(light.color.x, std::max(light.color.y, light.color.z));
+                    ++selected;
+                    colored += color > 1.0e-4f;
+                    max_color = std::max(max_color, color);
+                    max_intensity = std::max(max_intensity, light.intensity);
+                }
+                draws += selected != 0u;
+                total += selected;
+                max_count = std::max(max_count, selected);
+            }
+        }
+        const auto limit = std::numeric_limits<uint32_t>::max();
+        EXPECT_EQ(actual.local_light_selected_draw_count, std::min<uint64_t>(draws, limit));
+        EXPECT_EQ(actual.local_light_selected_total, std::min<uint64_t>(total, limit));
+        EXPECT_EQ(actual.local_light_selected_colored_total, std::min<uint64_t>(colored, limit));
+        EXPECT_EQ(actual.local_light_selected_max, max_count);
+        EXPECT_EQ(actual.local_light_selected_color_max, max_color);
+        EXPECT_EQ(actual.local_light_selected_intensity_max, max_intensity);
+    };
+    check(scene.render_local_lights);
+    check(scene.render_local_lights, std::numeric_limits<uint32_t>::max() - 1u);
+    check(std::span{scene.render_local_lights}.first(1u)); // Stale light indices.
+    check({});
+
+    scene.render_local_lights[0].color = {0.0f, 2.0f, 0.0f};
+    scene.render_local_lights[1].intensity = 8.0f;
+    check(scene.render_local_lights); // Current values without rebuilding rows.
+
+    scene.static_model_instance(6u)->visible = false;
+    scene.static_model_instance(7u)->scene_animation_enabled = true;
+    records.rebuild(scene);
+    const std::array suppressed{2u};
+    ASSERT_TRUE(records.set_tile_preview_suppressed_models(suppressed));
+    const uint8_t chunks[] = {1u, 0u, 1u, 0u, 0u, 0u, 1u, 1u};
+    viewer::AreaRenderCullContext cull{};
+    cull.enabled = true;
+    cull.chunk_visibility_enabled = true;
+    cull.visible_chunk_mask = chunks;
+    cull.view_projection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
+    viewer::prepare_area_frame(records, frame, cull);
+    EXPECT_FALSE(frame.uses_cached_draw_lists());
+    EXPECT_EQ(frame.stats().visible_static_record_count, 1u);
+    EXPECT_EQ(frame.stats().visible_dynamic_record_count, 1u);
+    check(scene.render_local_lights);
+
+    // High coverage uses the scene's full sorted streams with a record filter.
+    for (auto& model : scene.static_models) {
+        model->primitives.resize(1024u, model->primitives.front());
+    }
+    records.rebuild(scene);
+    ASSERT_TRUE(records.set_tile_preview_suppressed_models(suppressed));
+    viewer::prepare_area_frame(records, frame);
+    ASSERT_TRUE(frame.filters_cached_draw_records());
+    check(scene.render_local_lights);
+
+    frame.clear();
+    check(scene.render_local_lights);
+}
+
 TEST(RenderViewerLighting, LocalShadowSelectionIsStableAcrossCandidateOrder)
 {
     std::vector<nw::render::LocalLight> lights{
@@ -846,6 +964,34 @@ TEST(RenderViewerLighting, LocalShadowSelectionIsStableAcrossCandidateOrder)
     EXPECT_EQ(lights[2].shadow_slot, 2);
     EXPECT_EQ(lights[3].shadow_slot, 3);
     EXPECT_EQ(lights[4].shadow_slot, -1);
+}
+
+TEST(RenderViewerShadow, RejectsOutOfRangePassCountsBeforeRendering)
+{
+    namespace viewer = nw::render::viewer;
+    nw::render::RenderService service{nullptr};
+    viewer::PreviewScene scene;
+    for (const uint32_t count : {0u, nw::render::kShadowCascadeCount + 1u,
+             std::numeric_limits<uint32_t>::max()}) {
+        nw::render::SceneShadow shadow{};
+        shadow.enabled = true;
+        shadow.cascade_count = count;
+        viewer::ShadowRenderStats stats{.submitted_model_count = 7u};
+        EXPECT_FALSE(viewer::render_scene_shadow_maps(service, {}, nullptr, scene,
+            shadow, viewer::kSceneShadowMapResolution, &stats));
+        EXPECT_FALSE(shadow.enabled);
+        EXPECT_EQ(stats.submitted_model_count, 0u);
+    }
+    for (const uint32_t count : {nw::render::kLocalShadowCount + 1u,
+             std::numeric_limits<uint32_t>::max()}) {
+        nw::render::SceneLocalShadows shadows{};
+        shadows.count = count;
+        viewer::LocalShadowRenderStats stats{.submitted_model_count = 7u};
+        EXPECT_FALSE(viewer::render_local_shadow_maps(service, {}, nullptr, scene,
+            shadows, viewer::kLocalShadowMapResolution, &stats));
+        EXPECT_EQ(shadows.count, 0u);
+        EXPECT_EQ(stats.submitted_model_count, 0u);
+    }
 }
 
 TEST(RenderViewerShadow, PreparedSurfaceDropsWaterShadowCaster)
@@ -1469,6 +1615,27 @@ TEST(RenderAreaVisibility, AreaPreparedSurfacesUseCommonShadowSummary)
     EXPECT_TRUE(second_draws[0].instance_casts_shadow);
     EXPECT_TRUE(second_surfaces[0].casts_shadow);
     EXPECT_EQ(area_scene.prepared_model_surface_draws().stats.shadow_caster_draw_count, 1u);
+    ASSERT_EQ(area_scene.prepared_shadow_ranges().size(), 2u);
+    EXPECT_EQ(area_scene.prepared_shadow_ranges()[0], 0u);
+    EXPECT_EQ(area_scene.prepared_shadow_ranges()[1], 1u);
+    EXPECT_EQ(area_scene.prepared_shadow_range_stats().shadow_range_count, 1u);
+    EXPECT_EQ(area_scene.prepared_shadow_range_stats().shadow_surface_count, 1u);
+    EXPECT_TRUE(area_scene.prepared_shadow_range_stats().valid());
+
+    scene.static_model_instance(1u)->visible = false;
+    area_scene.rebuild(scene);
+    ASSERT_EQ(area_scene.prepared_shadow_ranges().size(), 1u);
+    EXPECT_EQ(area_scene.prepared_shadow_ranges()[0], 0u);
+    EXPECT_EQ(area_scene.prepared_shadow_range_stats().shadow_range_count, 0u);
+
+    area_scene.clear();
+    EXPECT_TRUE(area_scene.prepared_shadow_ranges().empty());
+    EXPECT_EQ(area_scene.prepared_shadow_range_stats().range_count, 0u);
+    EXPECT_EQ(area_scene.prepared_shadow_range_stats().surface_count, 0u);
+
+    scene.static_model_instance(1u)->visible = true;
+    area_scene.rebuild(scene);
+    EXPECT_EQ(area_scene.prepared_shadow_range_stats().shadow_range_count, 1u);
 }
 
 TEST(RenderAreaVisibility, AreaDynamicRecordsHaveEmptyCommonPreparedDrawSpans)
@@ -1611,7 +1778,7 @@ TEST(RenderAreaVisibility, ParticleOwnerRecordCullingIsOptIn)
     add_grid_area_tiles(scene, 5, 5);
 
     const size_t far_model_index = chunk_index(5u, 4u, 4u);
-    auto& particle_system = scene.particles.emplace_back();
+    auto& particle_system = scene.particles.emplace_back(std::make_shared<const viewer::SceneParticleDefinition>());
     particle_system.owner_model_index = static_cast<uint32_t>(far_model_index);
     particle_system.owner_instance_handle = scene.static_model_instance_handles[far_model_index];
 
@@ -1669,7 +1836,7 @@ TEST(RenderAreaVisibility, RenderModelParticleOwnerUsesRenderModelAreaRecord)
         .tile_y = 0,
     };
 
-    auto& particle_system = scene.particles.emplace_back();
+    auto& particle_system = scene.particles.emplace_back(std::make_shared<const viewer::SceneParticleDefinition>());
     particle_system.owner_model_index = 1u;
     particle_system.owner_instance_handle = scene.static_model_instance_handles[1];
 

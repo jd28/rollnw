@@ -1,4 +1,5 @@
 #include "model_asset.hpp"
+#include "model_texture_cache.hpp"
 #include "texture_decode.hpp"
 
 #include <nw/formats/Image.hpp>
@@ -6,6 +7,7 @@
 #include <nw/util/string.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -401,7 +403,7 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
     const ModelAsset& asset,
     const ModelAssetTextureUploadDesc& desc,
     RenderModel& model,
-    std::vector<nw::gfx::BindlessTextureIndex>& uploaded_indices,
+    std::vector<std::array<nw::gfx::BindlessTextureIndex, 4>>& uploaded_indices,
     std::vector<uint8_t>& attempted,
     ModelAssetTextureUploadStats& stats,
     bool& material_uses_fallback)
@@ -410,15 +412,20 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
         return fallback;
     }
 
-    if (attempted[source_index]) {
-        const auto cached = uploaded_indices[source_index];
+    const auto& source = asset.texture_sources[source_index];
+    const auto upload_format = model_asset_texture_source_is_plt(source) ? nw::gfx::Fmt::RGBA8 : format;
+    const uint8_t variant = (upload_format == nw::gfx::Fmt::RGBA8Srgb ? 1u : 0u)
+        | (premultiply_alpha ? 2u : 0u);
+    const uint8_t variant_mask = 1u << variant;
+    if (attempted[source_index] & variant_mask) {
+        const auto cached = uploaded_indices[source_index][variant];
         if (nw::gfx::bindless_texture_index_valid(cached)) {
             return cached;
         }
         material_uses_fallback = true;
         return failed_source_fallback;
     }
-    attempted[source_index] = 1;
+    attempted[source_index] |= variant_mask;
 
     if (!desc.ctx) {
         count_missing_context(stats);
@@ -426,7 +433,19 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
         return failed_source_fallback;
     }
 
-    auto decoded = decode_model_asset_texture_source_rgba8(asset.texture_sources[source_index], stats);
+    auto* cache = source.kind == ModelAssetTextureSourceKind::encoded_bytes ? desc.texture_cache : nullptr;
+    const auto source_type = encoded_texture_source_resource(source).type;
+    if (cache) {
+        if (auto shared = cache->find(source.encoded_bytes, source_type, upload_format, premultiply_alpha)) {
+            const auto index = shared->index;
+            model.shared_textures.push_back(std::move(shared));
+            uploaded_indices[source_index][variant] = index;
+            ++stats.shared_texture_hit_count;
+            return index;
+        }
+    }
+
+    auto decoded = decode_model_asset_texture_source_rgba8(source, stats);
     if (!decoded.valid()) {
         material_uses_fallback = true;
         return failed_source_fallback;
@@ -440,14 +459,22 @@ nw::gfx::BindlessTextureIndex upload_source_texture(uint32_t source_index,
     const auto texture_index = upload_decoded_texture(desc.ctx,
         model,
         decoded,
-        model_asset_texture_source_is_plt(asset.texture_sources[source_index]) ? nw::gfx::Fmt::RGBA8 : format,
+        upload_format,
         stats);
     if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
         material_uses_fallback = true;
         return failed_source_fallback;
     }
 
-    uploaded_indices[source_index] = texture_index;
+    if (cache) {
+        auto shared = cache->adopt(source.encoded_bytes, source_type, upload_format,
+            premultiply_alpha, model.textures.back(), decoded.pixels.size());
+        if (shared) {
+            model.textures.pop_back();
+            model.shared_textures.push_back(std::move(shared));
+        }
+    }
+    uploaded_indices[source_index][variant] = texture_index;
     return texture_index;
 }
 
@@ -686,6 +713,7 @@ RenderModel& RenderModel::operator=(RenderModel&& other) noexcept
     lights = std::move(other.lights);
     particle_systems = std::move(other.particle_systems);
     textures = std::move(other.textures);
+    shared_textures = std::move(other.shared_textures);
     shadow = other.shadow;
     bounds = other.bounds;
     source_kind = other.source_kind;
@@ -694,6 +722,7 @@ RenderModel& RenderModel::operator=(RenderModel&& other) noexcept
 
     other.primitives.clear();
     other.textures.clear();
+    other.shared_textures.clear();
     other.resource_context_ = nullptr;
     return *this;
 }
@@ -722,6 +751,7 @@ void RenderModel::release_gpu_resources() noexcept
         }
     }
     textures.clear();
+    shared_textures.clear();
     resource_context_ = nullptr;
 }
 
@@ -1121,7 +1151,8 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
     stats.material_texture_binding_count = saturating_asset_count(asset.material_texture_sources.size());
 
     model.materials = asset.materials;
-    if (!model.set_resource_context(desc.ctx)) {
+    if ((desc.texture_cache && desc.texture_cache->context() != desc.ctx)
+        || !model.set_resource_context(desc.ctx)) {
         stats.resource_context_mismatch_count = 1;
         return stats;
     }
@@ -1131,16 +1162,14 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
     if (stats.invalid_material_texture_binding_count != 0) {
         return stats;
     }
+    if (desc.texture_cache) {
+        desc.texture_cache->prune();
+    }
 
-    std::vector<nw::gfx::BindlessTextureIndex> srgb_indices(
-        asset.texture_sources.size(), nw::gfx::kInvalidBindlessTextureIndex);
-    std::vector<nw::gfx::BindlessTextureIndex> premultiplied_albedo_indices(
-        asset.texture_sources.size(), nw::gfx::kInvalidBindlessTextureIndex);
-    std::vector<nw::gfx::BindlessTextureIndex> linear_indices(
-        asset.texture_sources.size(), nw::gfx::kInvalidBindlessTextureIndex);
-    std::vector<uint8_t> srgb_attempted(asset.texture_sources.size(), 0);
-    std::vector<uint8_t> premultiplied_albedo_attempted(asset.texture_sources.size(), 0);
-    std::vector<uint8_t> linear_attempted(asset.texture_sources.size(), 0);
+    constexpr auto invalid = nw::gfx::kInvalidBindlessTextureIndex;
+    std::vector<std::array<nw::gfx::BindlessTextureIndex, 4>> uploaded_indices(
+        asset.texture_sources.size(), {invalid, invalid, invalid, invalid});
+    std::vector<uint8_t> attempted(asset.texture_sources.size(), 0);
 
     for (size_t i = 0; i < model.materials.size(); ++i) {
         const ModelAssetMaterialTextureSources sources = asset.material_texture_sources.empty()
@@ -1167,8 +1196,8 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             asset,
             desc,
             model,
-            premultiply_albedo ? premultiplied_albedo_indices : srgb_indices,
-            premultiply_albedo ? premultiplied_albedo_attempted : srgb_attempted,
+            uploaded_indices,
+            attempted,
             stats,
             material_uses_fallback);
         material.normal_index = upload_source_texture(sources.normal,
@@ -1179,8 +1208,8 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             asset,
             desc,
             model,
-            linear_indices,
-            linear_attempted,
+            uploaded_indices,
+            attempted,
             stats,
             material_uses_fallback);
         material.surface_index = upload_surface_texture(sources, asset, desc, model, stats, material_uses_fallback);
@@ -1192,8 +1221,8 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             asset,
             desc,
             model,
-            srgb_indices,
-            srgb_attempted,
+            uploaded_indices,
+            attempted,
             stats,
             material_uses_fallback);
 

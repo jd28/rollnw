@@ -237,6 +237,8 @@ struct ModelAssetUploadStats {
     }
 };
 
+class ModelTextureCache;
+
 struct ModelAssetTextureUploadDesc {
     nw::gfx::Context* ctx = nullptr;
     nw::gfx::BindlessTextureIndex fallback_albedo = nw::gfx::kInvalidBindlessTextureIndex;
@@ -244,6 +246,7 @@ struct ModelAssetTextureUploadDesc {
     nw::gfx::BindlessTextureIndex fallback_normal = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_surface = nw::gfx::kInvalidBindlessTextureIndex;
     nw::gfx::BindlessTextureIndex fallback_emissive = nw::gfx::kInvalidBindlessTextureIndex;
+    ModelTextureCache* texture_cache = nullptr;
 };
 
 struct ModelAssetTextureUploadStats {
@@ -251,6 +254,7 @@ struct ModelAssetTextureUploadStats {
     uint32_t texture_source_count = 0;
     uint32_t material_texture_binding_count = 0;
     uint32_t uploaded_texture_count = 0;
+    uint32_t shared_texture_hit_count = 0;
     uint32_t fallback_material_count = 0;
     uint32_t invalid_material_texture_binding_count = 0;
     uint32_t missing_context_count = 0;
@@ -305,6 +309,9 @@ struct ModelAssetUploadResult {
 // Uploads ModelAsset source textures into an existing RenderModel material
 // table. Input texture rows are decoded only inside this batch transform; the
 // output model owns created GPU textures and receives bindless material indices.
+// When supplied, the context-matched weak cache shares identical encoded source
+// textures across models; models retain the shared owners. External files and
+// packed surface textures continue to be directly owned. No failed upload is cached.
 // Bottom-origin TGA rows are restored to the file order expected by NWN UVs.
 // Existing model textures are preserved. Missing/invalid source
 // payloads use supplied fallbacks and increment stats.

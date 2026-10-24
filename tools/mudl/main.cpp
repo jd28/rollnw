@@ -222,7 +222,8 @@ static void configure_app_state(AppState& state, const ParsedArgs& args)
     }
     state.static_pbr_ibl_requested = args.pbr_ibl_enabled;
     state.preview_scene_load_options = nw::render::viewer::default_preview_scene_load_options();
-    if (args.command == "area-benchmark"
+    if (args.command == "model-benchmark"
+        || args.command == "area-benchmark"
         || args.command == "area-edit-benchmark"
         || args.command == "area-sweep") {
         state.window_width = args.benchmark_width;
@@ -470,11 +471,23 @@ int main(int argc, char* argv[])
         return rc;
     }
 
+    if (args.command == "model-benchmark") {
+        const int rc = run_model_benchmark_command(state, args.initial_model,
+            args.benchmark_frames, args.benchmark_warmup_frames, args.benchmark_step_ms,
+            args.benchmark_output_path, args.benchmark_screenshot_path);
+        reset_viewer_renderers(state);
+        state.shader_provider.reset();
+        shutdown_graphics(state);
+        if (window) { SDL_DestroyWindow(window); }
+        nw::kernel::services().shutdown();
+        return rc;
+    }
+
     if (args.command == "area-benchmark") {
         const auto forward_plus_policy = to_render_forward_plus_policy(args.benchmark_forward_plus_policy);
         const int rc = run_area_benchmark_command(state, args.initial_model,
             args.module_path, args.user_path,
-            args.benchmark_frames, args.benchmark_warmup_frames,
+            args.benchmark_frames, args.benchmark_warmup_frames, args.benchmark_step_ms,
             args.benchmark_lights_enabled, args.benchmark_shadows_enabled,
             args.benchmark_local_shadows_enabled, args.show_debug_overlay,
             forward_plus_policy,

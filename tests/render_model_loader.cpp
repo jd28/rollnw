@@ -1322,6 +1322,7 @@ TEST(RenderModelLoader, ImportsCAribethDanglyPrimitivesWithRenderableSources)
         EXPECT_FLOAT_EQ(asset.materials[i].emissive.y, 0.0f);
         EXPECT_FLOAT_EQ(asset.materials[i].emissive.z, 0.0f);
         EXPECT_FALSE(asset.materials[i].double_sided);
+        EXPECT_FALSE(asset.materials[i].backface_culling);
         EXPECT_FALSE(asset.materials[i].material_uses_fallback);
         EXPECT_EQ(asset.material_texture_sources[i].albedo, 0u);
         EXPECT_EQ(asset.material_texture_sources[i].normal, nw::render::kInvalidModelAssetTextureSourceIndex);
@@ -1622,6 +1623,7 @@ TEST(RenderModelLoader, FoliageDanglyMeshesDoNotCastShadows)
             if (deformer.kind == nw::render::ModelDeformerKind::vertex_shader_sway) {
                 ASSERT_LT(primitive.material, asset.materials.size());
                 EXPECT_TRUE(asset.materials[primitive.material].double_sided);
+                EXPECT_FALSE(asset.materials[primitive.material].backface_culling);
                 EXPECT_FALSE(primitive.casts_shadow);
                 saw_foliage_mesh = true;
             }

@@ -316,7 +316,7 @@ nw::gfx::StorageSpan ParticleRenderer::upload_instances(
 
 void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemInstance& system,
     std::span<const ParticleMaterialDef> source_materials, const RenderContext& ctx,
-    ParticleResourceProvider& resources)
+    ParticleResourceProvider& resources, const Frustum& frustum)
 {
     if (!cmd || (!transparent_pipeline_.valid() && !cutout_pipeline_.valid())) {
         return;
@@ -326,15 +326,21 @@ void ParticleRenderer::render(nw::gfx::CommandList* cmd, const ParticleSystemIns
         return;
     }
 
+    const auto packets = system.render_packets.span();
+    if (packets.empty()) {
+        return;
+    }
     glm::vec3 camera_right{1.0f, 0.0f, 0.0f};
     glm::vec3 camera_up{0.0f, 0.0f, 1.0f};
     camera_billboard_axes(ctx, camera_right, camera_up);
 
-    const auto packets = system.render_packets.span();
     const auto& core = system.particles.core;
     const ParticleBillboardView particle_view{.camera_position = ctx.camera_position};
     for (const auto& packet : packets) {
         if (packet.material >= effect->materials.size() || packet.mode == ParticleRenderMode::mesh) {
+            continue;
+        }
+        if (!particle_billboards_visible(system, packet, frustum)) {
             continue;
         }
 

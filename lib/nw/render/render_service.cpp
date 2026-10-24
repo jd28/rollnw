@@ -58,6 +58,9 @@ bool RenderService::reload_shaders()
 
 void RenderService::clear_asset_cache()
 {
+    if (model_texture_cache_) {
+        model_texture_cache_->clear();
+    }
     if (!asset_cache_) {
         return;
     }
@@ -71,6 +74,7 @@ void RenderService::shutdown_renderer()
         asset_cache_->clear();
     }
     asset_cache_.reset();
+    model_texture_cache_.reset();
     model_backend_.reset();
     particle_renderer_.reset();
     fog_renderer_.reset();
@@ -170,12 +174,23 @@ void RenderService::initialize(kernel::ServiceInitTime time)
     }
 }
 
+ModelTextureCache& RenderService::model_texture_cache()
+{
+    return *model_texture_cache_;
+}
+
 nlohmann::json RenderService::stats() const
 {
     nlohmann::json j;
     j["name"] = "render service";
     j["initialized"] = initialized_;
     j["configured"] = ctx_ != nullptr && shader_provider_ != nullptr;
+    if (model_texture_cache_) {
+        const auto texture_stats = model_texture_cache_->stats();
+        j["model_texture_cache"]["live_texture_count"] = texture_stats.live_texture_count;
+        j["model_texture_cache"]["source_bytes"] = texture_stats.source_bytes;
+        j["model_texture_cache"]["upload_bytes"] = texture_stats.upload_bytes;
+    }
     if (asset_cache_) {
         const auto cache_stats = asset_cache_->stats();
         j["asset_cache"]["epoch"] = cache_stats.epoch;
@@ -255,6 +270,7 @@ bool RenderService::initialize_runtime()
     }
 
     asset_cache_ = std::make_unique<nwn::RenderAssetCache>(ctx_);
+    model_texture_cache_ = std::make_unique<ModelTextureCache>(ctx_);
     initialized_ = true;
     return true;
 }

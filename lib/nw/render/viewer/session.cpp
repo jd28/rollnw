@@ -238,6 +238,7 @@ void wait_for_preview_resources_idle(PreviewRenderResources* preview_resources)
 
 using Clock = std::chrono::steady_clock;
 
+constexpr const char* kGpuTimerScene = "scene";
 constexpr const char* kGpuTimerShadow = "shadow";
 constexpr const char* kGpuTimerOpaque = "opaque";
 constexpr const char* kGpuTimerWater = "water";
@@ -385,11 +386,14 @@ void add_prepared_surface_material_binding_stats(
 
 void apply_gpu_timer_result(ViewerFrameStats& stats, const nw::gfx::GpuTimerResult& result)
 {
-    if (!result.available || !result.label) {
+    if (!result.available || !result.label || !std::isfinite(result.seconds) || result.seconds < 0.0f) {
         return;
     }
 
-    if (std::strcmp(result.label, kGpuTimerShadow) == 0) {
+    if (std::strcmp(result.label, kGpuTimerScene) == 0) {
+        stats.gpu_scene_seconds += result.seconds;
+        stats.gpu_scene_available = true;
+    } else if (std::strcmp(result.label, kGpuTimerShadow) == 0) {
         stats.gpu_shadow_seconds += result.seconds;
     } else if (std::strcmp(result.label, kGpuTimerOpaque) == 0) {
         stats.gpu_opaque_seconds += result.seconds;
@@ -418,63 +422,6 @@ Bounds render_bounds_for_scene(const PreviewScene& scene, ViewerSceneKind kind)
         return scene.area_render_scene->scene_bounds();
     }
     return scene.current_bounds();
-}
-
-void accumulate_selected_light(ViewerFrameStats& stats, const nw::render::LocalLight& light) noexcept
-{
-    const float color_max = std::max(light.color.x, std::max(light.color.y, light.color.z));
-    stats.local_light_selected_color_max = std::max(stats.local_light_selected_color_max, color_max);
-    stats.local_light_selected_intensity_max = std::max(stats.local_light_selected_intensity_max, light.intensity);
-    if (color_max > 1.0e-4f) {
-        add_saturating(stats.local_light_selected_colored_total, 1u);
-    }
-}
-
-void accumulate_selected_surface_lights(
-    ViewerFrameStats& stats,
-    const AreaRenderScene& area_scene,
-    const nw::render::PreparedModelSurfaceDraw& surface,
-    std::span<const nw::render::LocalLight> lights) noexcept
-{
-    const auto light_indices = area_scene.light_indices_for_record(surface.handle_index);
-    if (light_indices.empty()) {
-        return;
-    }
-
-    uint32_t selected_count = 0;
-    for (const uint32_t light_index : light_indices) {
-        if (light_index >= lights.size()) {
-            continue;
-        }
-        ++selected_count;
-        accumulate_selected_light(stats, lights[light_index]);
-    }
-
-    if (selected_count == 0) {
-        return;
-    }
-
-    add_saturating(stats.local_light_selected_draw_count, 1u);
-    add_saturating(stats.local_light_selected_total, selected_count);
-    stats.local_light_selected_max = std::max(stats.local_light_selected_max, selected_count);
-}
-
-void accumulate_selected_surface_lights(
-    ViewerFrameStats& stats,
-    const AreaRenderScene& area_scene,
-    std::span<const uint32_t> surface_indices,
-    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
-    std::span<const nw::render::LocalLight> lights,
-    const AreaRenderFrame* visibility_filter) noexcept
-{
-    for (const uint32_t surface_index : surface_indices) {
-        if (surface_index < surfaces.size()
-            && (!visibility_filter
-                || visibility_filter->record_visible(
-                    surfaces[surface_index].handle_index))) {
-            accumulate_selected_surface_lights(stats, area_scene, surfaces[surface_index], lights);
-        }
-    }
 }
 
 Bounds shadow_bounds_for_scene(
@@ -513,6 +460,8 @@ nw::gfx::CommandStats command_stats_delta(
     result.descriptor_buffer_bind_skipped_count = counter_delta(after.descriptor_buffer_bind_skipped_count, before.descriptor_buffer_bind_skipped_count);
     result.descriptor_allocation_count = counter_delta(after.descriptor_allocation_count, before.descriptor_allocation_count);
     result.descriptor_allocation_bytes = counter_delta(after.descriptor_allocation_bytes, before.descriptor_allocation_bytes);
+    result.storage_descriptor_encode_count = counter_delta(after.storage_descriptor_encode_count, before.storage_descriptor_encode_count);
+    result.storage_descriptor_reuse_count = counter_delta(after.storage_descriptor_reuse_count, before.storage_descriptor_reuse_count);
     result.descriptor_allocation_failure_count = counter_delta(after.descriptor_allocation_failure_count, before.descriptor_allocation_failure_count);
     result.descriptor_ring_capacity_bytes = after.descriptor_ring_capacity_bytes;
     result.descriptor_ring_required_bytes = counter_delta(after.descriptor_ring_required_bytes, before.descriptor_ring_required_bytes);
@@ -532,6 +481,9 @@ nw::gfx::CommandStats command_stats_delta(
     result.dispatch_count = counter_delta(after.dispatch_count, before.dispatch_count);
     result.uniform_allocation_count = counter_delta(after.uniform_allocation_count, before.uniform_allocation_count);
     result.uniform_allocation_bytes = counter_delta(after.uniform_allocation_bytes, before.uniform_allocation_bytes);
+    result.uniform_allocation_failure_count = counter_delta(after.uniform_allocation_failure_count, before.uniform_allocation_failure_count);
+    result.uniform_ring_capacity_bytes = after.uniform_ring_capacity_bytes;
+    result.uniform_ring_required_bytes = counter_delta(after.uniform_ring_required_bytes, before.uniform_ring_required_bytes);
     result.vertex_allocation_count = counter_delta(after.vertex_allocation_count, before.vertex_allocation_count);
     result.vertex_allocation_bytes = counter_delta(after.vertex_allocation_bytes, before.vertex_allocation_bytes);
     return result;
@@ -635,6 +587,47 @@ void select_area_pointer_objects(
             result = hit;
             break;
         }
+    }
+}
+
+void accumulate_area_selected_light_stats(
+    ViewerFrameStats& stats,
+    const AreaRenderScene& area_scene,
+    const AreaRenderFrame& frame,
+    std::span<const nw::render::LocalLight> lights) noexcept
+{
+    // The four cached material passes partition each visible record's range.
+    // Inspect its shared light list once, weighted by the number of surfaces.
+    for (const uint32_t record_index : frame.visible_record_indices()) {
+        const auto surface_count = saturating_count(
+            area_scene.prepared_model_surface_draws_for_record(record_index).size());
+        if (surface_count == 0u) {
+            continue;
+        }
+
+        uint32_t selected_count = 0u;
+        uint32_t colored_count = 0u;
+        for (const uint32_t light_index : area_scene.light_indices_for_record(record_index)) {
+            if (light_index >= lights.size()) {
+                continue;
+            }
+            const auto& light = lights[light_index];
+            ++selected_count;
+            const float color_max = std::max(light.color.x, std::max(light.color.y, light.color.z));
+            stats.local_light_selected_color_max = std::max(stats.local_light_selected_color_max, color_max);
+            stats.local_light_selected_intensity_max = std::max(stats.local_light_selected_intensity_max, light.intensity);
+            colored_count += color_max > 1.0e-4f;
+        }
+        if (selected_count == 0u) {
+            continue;
+        }
+
+        add_saturating(stats.local_light_selected_draw_count, surface_count);
+        add_saturating(stats.local_light_selected_total,
+            saturating_count(static_cast<uint64_t>(surface_count) * selected_count));
+        add_saturating(stats.local_light_selected_colored_total,
+            saturating_count(static_cast<uint64_t>(surface_count) * colored_count));
+        stats.local_light_selected_max = std::max(stats.local_light_selected_max, selected_count);
     }
 }
 
@@ -1418,6 +1411,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         return;
     }
 
+    const auto pre_render_start = Clock::now();
     ViewerFrameStats frame_stats{};
     frame_stats.tick_seconds = last_tick_seconds_;
     if (nw::gfx::get_completed_gpu_timer_results(preview_resources_->context(), completed_gpu_timer_results_)) {
@@ -1448,7 +1442,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
     animated_root_model_indices_.clear();
     animated_root_model_indices_.reserve(render_model_animation_samples_.size());
     for (const auto& sample : render_model_animation_samples_) {
-        if (!sample.instance || !sample.instance->animation.enabled) {
+        if (!sample.updated || !sample.instance || !sample.instance->animation.enabled) {
             continue;
         }
         const uint32_t model_index = sample.instance->render_model_index;
@@ -1477,16 +1471,14 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         frame_stats.prepared_model_surface_stats_enabled = true;
         frame_stats.prepared_model_surface_stats = prepared_model_surfaces_.stats;
         frame_stats.prepared_render_model_skin_table_stats = prepared_model_surfaces_.render_model_skins.stats;
-        frame_stats.prepared_model_surface_materials = nw::render::prepared_model_surface_material_stats(
-            std::span<const nw::render::PreparedModelSurfaceDraw>{
-                prepared_model_surfaces_.draws.data(),
-                prepared_model_surfaces_.draws.size()});
-        frame_stats.prepared_model_surface_material_bindings = nw::render::validate_prepared_model_surface_material_bindings(
-            std::span<const nw::render::PreparedModelSurfaceDraw>{
-                prepared_model_surfaces_.draws.data(),
-                prepared_model_surfaces_.draws.size()},
-            prepared_model_draws_.common,
-            prepared_model_draws_.ranges);
+        if (validate_prepared_model_draws_this_frame) {
+            frame_stats.prepared_model_surface_material_bindings = nw::render::validate_prepared_model_surface_material_bindings(
+                prepared_model_surfaces_.draws,
+                prepared_model_draws_.common,
+                prepared_model_draws_.ranges);
+        } else {
+            frame_stats.prepared_model_surface_material_bindings = prepared_model_surfaces_.material_bindings;
+        }
     };
 
     if (!collect_area_visible_prepared_model_draws) {
@@ -1547,6 +1539,8 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         }
     }
     const auto render_start = Clock::now();
+    const ScopedGpuTimer scene_gpu_timer{gpu_scene_timing_enabled_ ? command_list : nullptr, kGpuTimerScene};
+    frame_stats.pre_render_seconds = elapsed_seconds(pre_render_start, render_start);
     const auto command_stats_sample = [&]() {
         nw::gfx::CommandStats stats{};
         nw::gfx::get_command_stats(command_list, stats);
@@ -1630,9 +1624,6 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
             add_prepared_surface_draw_stats(
                 frame_stats.prepared_model_surface_stats,
                 cached_surfaces.stats);
-            add_prepared_surface_material_stats(
-                frame_stats.prepared_model_surface_materials,
-                area_render_scene->prepared_surface_materials());
             add_prepared_surface_material_binding_stats(
                 frame_stats.prepared_model_surface_material_bindings,
                 area_render_scene
@@ -1645,40 +1636,9 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
                     visible_render_model_handles);
             }
         }
-        const auto lights = std::span<const nw::render::LocalLight>{render_context.local_lights};
-        const auto& surfaces = area_render_scene->prepared_model_surface_draws().draws;
-        const auto* cached_visibility_filter
-            = area_render_frame->filters_cached_draw_records()
-            ? area_render_frame
-            : nullptr;
-        accumulate_selected_surface_lights(
-            frame_stats,
-            *area_render_scene,
-            area_render_frame->visible_opaque_prepared_surface_indices(),
-            surfaces,
-            lights,
-            cached_visibility_filter);
-        accumulate_selected_surface_lights(
-            frame_stats,
-            *area_render_scene,
-            area_render_frame->visible_cutout_prepared_surface_indices(),
-            surfaces,
-            lights,
-            cached_visibility_filter);
-        accumulate_selected_surface_lights(
-            frame_stats,
-            *area_render_scene,
-            area_render_frame->visible_water_prepared_surface_indices(),
-            surfaces,
-            lights,
-            cached_visibility_filter);
-        accumulate_selected_surface_lights(
-            frame_stats,
-            *area_render_scene,
-            area_render_frame->visible_transparent_prepared_surface_indices(),
-            surfaces,
-            lights,
-            cached_visibility_filter);
+        accumulate_area_selected_light_stats(
+            frame_stats, *area_render_scene, *area_render_frame,
+            render_context.local_lights);
     }
     auto& render_service = nw::render::render_service();
     // Select shadow-casting local lights and assign atlas slots before Forward+
@@ -1821,39 +1781,10 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
         const auto* render_model_skin_table = &prepared_model_surfaces_.render_model_skins;
         PreviewPreparedModelSurfaceSubmissionStats submission_stats{};
         if (area_render_scene && area_render_frame) {
-            const auto& cached
-                = area_render_scene->prepared_model_surface_draws();
-            const std::span<const nw::render::PreparedModelSurfaceDraw>
-                cached_surfaces{cached.draws.data(), cached.draws.size()};
-            std::span<const uint32_t> cached_indices;
-            switch (pass) {
-            case nw::render::RenderPassSelection::opaque_cutout:
-                cached_indices = area_render_frame
-                                     ->visible_opaque_cutout_prepared_surface_indices();
-                break;
-            case nw::render::RenderPassSelection::water:
-                cached_indices = area_render_frame
-                                     ->visible_water_prepared_surface_indices();
-                break;
-            case nw::render::RenderPassSelection::transparent:
-                cached_indices = area_render_frame
-                                     ->visible_transparent_prepared_surface_indices();
-                break;
-            case nw::render::RenderPassSelection::all:
-                cached_indices = area_render_frame
-                                     ->visible_prepared_surface_indices();
-                break;
-            }
-            submission_stats.render_model
-                = render_prepared_render_model_surface_draw_indices(
-                    render_model_ctx, command_list, *scene_,
-                    cached_surfaces, cached_indices,
-                    pass_context, pass,
-                    area_render_frame->filters_cached_draw_records()
-                        ? area_render_frame
-                        : nullptr,
-                    &cached.render_model_skins,
-                    &prepared_model_surfaces_.render_model_surface_packets);
+            submission_stats.render_model = render_area_model_surface_draws(
+                render_model_ctx, command_list, *scene_, *area_render_scene,
+                *area_render_frame, pass_context, pass,
+                &prepared_model_surfaces_.render_model_surface_packets);
             add_prepared_surface_submission_stats(
                 frame_stats, submission_stats);
         }
@@ -1886,6 +1817,7 @@ void ViewerSession::render(nw::gfx::CommandList* command_list, ViewerViewport vi
     const auto opaque_start = Clock::now();
     {
         const ScopedGpuTimer gpu_timer{command_list, kGpuTimerOpaque};
+        render_model_ctx = prepare_render_model_view(render_model_ctx, render_context);
         render_scene_pass(render_context, nw::render::RenderPassSelection::opaque_cutout);
     }
     const auto opaque_end = Clock::now();

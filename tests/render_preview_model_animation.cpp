@@ -117,7 +117,7 @@ bool scene_has_particle_effect(
 {
     return std::any_of(scene.particles.begin(), scene.particles.end(),
         [name](const auto& particles) {
-            return particles.import.effect.name == name;
+            return particles.definition->import.effect.name == name;
         });
 }
 
@@ -907,6 +907,82 @@ TEST(PreviewModelAnimation, CreatureTurnsSelectAuthoredOrReversedBodyClips)
     EXPECT_EQ(repeated_right_stats.changed_model_count, 0u);
 }
 
+TEST(PreviewModelAnimation, DefaultDoorHoldReusesPoseBetweenTransitions)
+{
+    namespace viewer = nw::render::viewer;
+    auto model = make_two_clip_render_model("door_hold");
+    model->animations[0].name = "closed";
+    model->animations[0].tracks[0].translations[1].value = glm::vec3{0.0f};
+    model->animations[1].name = "opening1";
+    model->animations[1].tracks[0].translations[1].value = glm::vec3{2.0f, 0.0f, 0.0f};
+    auto opened = model->animations[1];
+    opened.name = "opened1";
+    opened.tracks[0].translations[0].value = opened.tracks[0].translations[1].value;
+    auto closing = model->animations[1];
+    closing.name = "closing1";
+    std::swap(closing.tracks[0].translations[0].value, closing.tracks[0].translations[1].value);
+    model->animations.push_back(std::move(opened));
+    model->animations.push_back(std::move(closing));
+
+    constexpr nw::ObjectHandle door{.id = nw::ObjectID{14}, .type = nw::ObjectType::door, .version = 1};
+    viewer::PreviewScene scene;
+    scene.is_area = true;
+    scene.add(std::move(model));
+    scene.static_area_model_info[0] = {.kind = nw::ObjectType::door, .object = door};
+    ASSERT_TRUE(viewer::prime_scene_hold_animation(scene));
+    auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    std::vector<nw::render::ModelInstanceAnimationSample> samples;
+    ASSERT_EQ(viewer::sample_render_model_animations(samples, scene).sampled_count, 1u);
+    // Repeated identical keys deliberately exercise a clip that isn't covered
+    // by the single-key constant-pose optimization.
+    EXPECT_FALSE(instance->animation.published_inputs.constant_pose);
+    EXPECT_FLOAT_EQ(instance->animation.time, 0.0f);
+    EXPECT_FLOAT_EQ(instance->animation.playback_rate, 0.0f);
+    EXPECT_FALSE(instance->animation.looping);
+    viewer::advance_render_model_animation_times(scene, 0.25f);
+    EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 1u);
+
+    for (const auto state : {viewer::AreaDoorAnimationState::open1, viewer::AreaDoorAnimationState::closed}) {
+        std::array inputs{viewer::AreaDoorAnimationInput{
+            .owner = door, .state = state, .phase = viewer::AreaDoorAnimationPhase::transition}};
+        ASSERT_EQ(viewer::update_area_door_animations(scene, inputs).changed_model_count, 1u);
+        viewer::advance_render_model_animation_times(scene, 0.5f);
+        EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 0u);
+        EXPECT_NEAR(instance->animation.pose.local[0].translation.x, 1.0f, 1.0e-3f);
+        inputs[0].phase = viewer::AreaDoorAnimationPhase::hold;
+        EXPECT_EQ(viewer::update_area_door_animations(scene, inputs).changed_model_count, 0u);
+        viewer::advance_render_model_animation_times(scene, 0.5f);
+        ASSERT_EQ(viewer::update_area_door_animations(scene, inputs).changed_model_count, 1u);
+        EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 0u);
+        const auto held_pose = instance->animation.pose.local[0].translation;
+        EXPECT_FLOAT_EQ(held_pose.x, state == viewer::AreaDoorAnimationState::open1 ? 2.0f : 0.0f);
+        viewer::advance_render_model_animation_times(scene, 0.25f);
+        EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 1u);
+        EXPECT_EQ(instance->animation.pose.local[0].translation, held_pose);
+    }
+}
+
+TEST(PreviewModelAnimation, StandaloneDoorDefaultHoldsButExplicitClipPlays)
+{
+    namespace viewer = nw::render::viewer;
+    auto model = make_two_clip_render_model("standalone_door");
+    model->animations[0].name = "closed";
+    model->animations[1].name = "opening1";
+    viewer::PreviewScene scene;
+    scene.root_object = nw::ObjectHandle{.id = nw::ObjectID{15}, .type = nw::ObjectType::door, .version = 1};
+    scene.add(std::move(model));
+    ASSERT_TRUE(viewer::prime_scene_hold_animation(scene));
+    auto* instance = scene.static_model_instance(0);
+    ASSERT_NE(instance, nullptr);
+    viewer::advance_render_model_animation_times(scene, 0.25f);
+    EXPECT_FLOAT_EQ(instance->animation.time, 0.0f);
+    EXPECT_FLOAT_EQ(instance->animation.playback_rate, 0.0f);
+    ASSERT_TRUE(viewer::set_render_model_animation_clip_by_name(scene, "opening1", 0.0f));
+    viewer::advance_render_model_animation_times(scene, 0.25f);
+    EXPECT_FLOAT_EQ(instance->animation.time, 0.25f);
+}
+
 TEST(PreviewModelAnimation, DoorAnimationLeaseUpdatesEveryJoinedRowAndRestoresState)
 {
     namespace viewer = nw::render::viewer;
@@ -1134,9 +1210,9 @@ TEST(PreviewModelAnimation, DoorAnimationSwitchesParticlePayloadAndRestoresState
     ASSERT_TRUE(viewer::restore_area_door_animation_lease(scene, lease));
     ASSERT_FALSE(lease.active);
     ASSERT_EQ(scene.particles.size(), 2u);
-    EXPECT_EQ(scene.particles[0].import.effect.name, "closed_fx");
+    EXPECT_EQ(scene.particles[0].definition->import.effect.name, "closed_fx");
     EXPECT_FLOAT_EQ(scene.particles[0].animation_time, 0.375f);
-    EXPECT_EQ(scene.particles[1].import.effect.name, "unrelated_fx");
+    EXPECT_EQ(scene.particles[1].definition->import.effect.name, "unrelated_fx");
 }
 
 TEST(PreviewModelAnimation, DoorZeroDurationHoldSamplesAuthoredPose)
@@ -1183,6 +1259,29 @@ TEST(PreviewModelAnimation, DoorZeroDurationHoldSamplesAuthoredPose)
     EXPECT_EQ(stats.sampled_count, 1u);
     ASSERT_EQ(instance->animation.pose.local.size(), 1u);
     EXPECT_FLOAT_EQ(instance->animation.pose.local[0].translation.x, 3.0f);
+
+    viewer::advance_render_model_animation_times(scene, 1.0f);
+    EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 1u);
+    EXPECT_FALSE(samples[0].updated);
+    instance->root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{10.0f, 0.0f, 0.0f});
+    EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 0u);
+    EXPECT_FLOAT_EQ(instance->attachment_node_world_transforms[0][3].x, 13.0f);
+    const auto held_nodes = instance->attachment_node_world_transforms;
+    const auto held_skin = instance->animation.skin_matrices;
+
+    auto transition = input;
+    transition[0].phase = viewer::AreaDoorAnimationPhase::transition;
+    viewer::AreaDoorAnimationLease lease;
+    ASSERT_EQ(viewer::begin_area_door_animation_lease(scene, transition, lease).changed_model_count, 1u);
+    EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 0u);
+    EXPECT_NE(instance->attachment_node_world_transforms, held_nodes);
+    ASSERT_TRUE(viewer::restore_area_door_animation_lease(scene, lease));
+    EXPECT_FALSE(instance->animation.published_inputs.valid);
+    EXPECT_EQ(instance->attachment_node_world_transforms, held_nodes);
+    EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 0u);
+    EXPECT_EQ(instance->attachment_node_world_transforms, held_nodes);
+    EXPECT_EQ(instance->animation.skin_matrices, held_skin);
+    EXPECT_EQ(viewer::sample_render_model_animations(samples, scene).reused_count, 1u);
 }
 
 TEST(PreviewModelAnimation, DefaultRenderModelAnimationFallsBackToFirstClip)

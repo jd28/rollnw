@@ -603,8 +603,8 @@ std::string preview_particle_owner_name(
             return model->name;
         }
     }
-    if (!scene_particles.import.effect.name.empty()) {
-        return scene_particles.import.effect.name;
+    if (!scene_particles.definition->import.effect.name.empty()) {
+        return scene_particles.definition->import.effect.name;
     }
     return "<none>";
 }
@@ -1548,13 +1548,13 @@ void PreviewScene::rebuild_load_report(std::string_view source, std::string_view
     for (const auto& scene_particles : particles) {
         load_report.particles.push_back({
             .owner = preview_particle_owner_name(*this, scene_particles),
-            .emitter_count = scene_particles.import.effect.emitters.size(),
-            .max_particles_total = scene_particles.compiled.effect.max_particles_total,
-            .import_warning_count = scene_particles.import.warnings.size(),
-            .compile_warning_count = scene_particles.compiled.warnings.size(),
-            .effect_event_count = scene_particles.import.effect_events.size(),
+            .emitter_count = scene_particles.definition->import.effect.emitters.size(),
+            .max_particles_total = scene_particles.definition->compiled.effect.max_particles_total,
+            .import_warning_count = scene_particles.definition->import.warnings.size(),
+            .compile_warning_count = scene_particles.definition->compiled.warnings.size(),
+            .effect_event_count = scene_particles.definition->import.effect_events.size(),
         });
-        for (const auto& warning : scene_particles.import.warnings) {
+        for (const auto& warning : scene_particles.definition->import.warnings) {
             builder.add_event(PreviewLoadEventSeverity::warning,
                 "particle_import",
                 fmt::format("{}: {}.{}: {}",
@@ -1563,7 +1563,7 @@ void PreviewScene::rebuild_load_report(std::string_view source, std::string_view
                     warning.field,
                     warning.message));
         }
-        for (const auto& warning : scene_particles.compiled.warnings) {
+        for (const auto& warning : scene_particles.definition->compiled.warnings) {
             builder.add_event(PreviewLoadEventSeverity::warning,
                 "particle_compile",
                 fmt::format("{}: emitter {}: {}",

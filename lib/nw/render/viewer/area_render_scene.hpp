@@ -1,5 +1,7 @@
 #pragma once
 
+#include "preview_model_draws.hpp"
+
 #include <nw/objects/ObjectHandle.hpp>
 #include <nw/render/model.hpp>
 #include <nw/render/model_draw.hpp>
@@ -306,6 +308,28 @@ struct AreaVisibilityMaskOptions {
     AreaVisibilityMaskMode mode = AreaVisibilityMaskMode::radius;
 };
 
+// Static shadow compatibility, indexed by scene model index. Invalid group
+// indices take the scalar path. The renderer rebuilds this flat table when
+// prepared records or instanced pipeline availability change. No asset or
+// per-frame candidate pointers are retained.
+struct AreaShadowBatchCache {
+    std::vector<uint32_t> model_group_indices;
+    std::vector<uint32_t> group_model_counts;
+    uint64_t static_generation = 0;
+    uint64_t tile_generation = 0;
+    uint64_t rebuild_count = 0;
+    uint8_t pipeline_mask = 0;
+    bool valid = false;
+};
+
+struct AreaSurfaceBatchCache {
+    PreparedSurfaceBatches batches;
+    uint64_t static_generation = 0;
+    uint64_t tile_generation = 0;
+    uint64_t rebuild_count = 0;
+    bool valid = false;
+};
+
 class AreaRenderScene {
 public:
     enum RecordFlag : uint8_t {
@@ -370,6 +394,11 @@ public:
         std::span<const uint32_t> model_indices);
     void refresh_light_indices(const PreviewScene& scene);
 
+    [[nodiscard]] AreaSurfaceBatchCache& surface_batch_cache() noexcept { return surface_batch_cache_; }
+    [[nodiscard]] const AreaSurfaceBatchCache& surface_batch_cache() const noexcept { return surface_batch_cache_; }
+    [[nodiscard]] AreaShadowBatchCache& shadow_batch_cache() noexcept { return shadow_batch_cache_; }
+    [[nodiscard]] const AreaShadowBatchCache& shadow_batch_cache() const noexcept { return shadow_batch_cache_; }
+
     [[nodiscard]] bool empty() const noexcept { return model_indices_.empty(); }
     [[nodiscard]] const AreaRenderSceneStats& stats() const noexcept { return stats_; }
     [[nodiscard]] uint64_t static_cache_generation() const noexcept
@@ -430,9 +459,19 @@ public:
     {
         return prepared_model_surface_draws_;
     }
+    // Indexed by cached prepared range; rebuilt with the source surfaces.
+    // Invalid caster range indices are skipped and counted by the summary.
+    [[nodiscard]] std::span<const uint8_t> prepared_shadow_ranges() const noexcept
+    {
+        return prepared_shadow_ranges_;
+    }
+    [[nodiscard]] const nw::render::PreparedModelSurfaceShadowRangeStats& prepared_shadow_range_stats() const noexcept
+    {
+        return prepared_shadow_range_stats_;
+    }
     [[nodiscard]] const nw::render::PreparedModelSurfaceMaterialStats& prepared_surface_materials() const noexcept
     {
-        return prepared_surface_materials_;
+        return prepared_surface_material_bindings_.materials;
     }
     [[nodiscard]] const nw::render::PreparedModelSurfaceMaterialBindingStats& prepared_surface_material_bindings() const noexcept
     {
@@ -475,7 +514,7 @@ private:
         bool surface_protocol_changed);
     void rebuild_record_summaries(const PreviewScene& scene);
     void refresh_record_bounds_summaries() noexcept;
-    void refresh_prepared_surface_protocol_stats() noexcept;
+    void refresh_prepared_surface_protocol_stats();
     void refresh_surface_stats() noexcept;
     [[nodiscard]] bool rebuild_stable_light_indices(
         const PreviewScene& scene,
@@ -511,7 +550,8 @@ private:
     nw::render::PreparedModelDrawList prepared_model_draws_;
     nw::render::PreparedModelDrawRangeList prepared_model_draw_ranges_;
     nw::render::PreparedModelSurfaceDrawList prepared_model_surface_draws_;
-    nw::render::PreparedModelSurfaceMaterialStats prepared_surface_materials_{};
+    std::vector<uint8_t> prepared_shadow_ranges_;
+    nw::render::PreparedModelSurfaceShadowRangeStats prepared_shadow_range_stats_{};
     nw::render::PreparedModelSurfaceMaterialBindingStats prepared_surface_material_bindings_{};
     std::vector<uint32_t> prepared_surface_offsets_;
     std::vector<uint32_t> prepared_surface_indices_;
@@ -525,6 +565,8 @@ private:
     AreaRenderSceneStats stats_{};
     AreaTileRecordRefreshStats last_tile_record_refresh_stats_{};
     uint64_t static_cache_generation_ = 0;
+    AreaShadowBatchCache shadow_batch_cache_;
+    AreaSurfaceBatchCache surface_batch_cache_;
     uint64_t light_cache_generation_ = 0;
     uint64_t tile_cache_generation_ = 0;
     bool has_scene_bounds_ = false;

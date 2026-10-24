@@ -19,6 +19,9 @@ struct MappedStorageSpan {
 /// per frame-in-flight and `reset()` it once per frame; allocations made during the
 /// frame are reclaimed on the next `reset()` with the same `frame_id`. `usage`
 /// selects the buffer usage (Storage by default; Indirect for draw-command buffers).
+/// Spans and buffer capacity are limited to UINT32_MAX bytes. Larger reset
+/// requests fail before allocation; zero-size or non-power-of-two alignment
+/// requests return empty spans without consuming space.
 class FrameStorageArena {
 public:
     ~FrameStorageArena();

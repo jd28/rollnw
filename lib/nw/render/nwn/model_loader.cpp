@@ -2392,6 +2392,9 @@ nw::render::Material nwn_model_asset_material_from_mesh(const NwnMeshImportData&
         mesh.color_key_threshold,
     };
     material.double_sided = mesh.two_sided_lighting;
+    // Mesh lighting sidedness does not authorize dropping source back faces.
+    // Preserve the NWN coverage contract independently of normal flipping.
+    material.backface_culling = false;
     return material;
 }
 

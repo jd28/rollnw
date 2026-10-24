@@ -3,11 +3,13 @@
 #include <nw/render/model.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <span>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace nw::render {
@@ -140,17 +142,44 @@ struct PreparedModelSurfaceDraw {
     MaterialMode material_mode = MaterialMode::opaque;
     bool material_uses_fallback = false;
     PreparedModelMaterialPayloadKind material_payload = PreparedModelMaterialPayloadKind::pbr;
-    bool skinned = false;
-    bool casts_shadow = false;
+    bool skinned : 1 = false;
+    bool casts_shadow : 1 = false;
+    // Rebuilt together with world, including static-cache invalidation on edits.
+    ModelTransformWinding winding = ModelTransformWinding::unknown;
     glm::mat4 world{1.0f};
     glm::mat4 normal_matrix{1.0f};
     Bounds bounds{};
 };
 
-// Flat GPU instance row for one unskinned static model root. Primitive-local
-// transforms remain shared model data in the draw constants, so every
-// primitive reuses the same instance rows. The HLSL storage layout is two
-// consecutive float4x4 values. Rows are transient frame data.
+static_assert(sizeof(PreparedModelSurfaceDraw) == 208);
+
+using PreparedModelSurfaceSortKey = std::array<uint32_t, 10>;
+
+// Keys remain in input order; order maps sorted positions to that input.
+// Reuse is checked against every fresh key. No surface payload is retained.
+struct PreparedModelSurfaceSortCache {
+    std::vector<PreparedModelSurfaceSortKey> keys;
+    std::vector<uint32_t> order;
+    std::vector<uint32_t> permutation;
+};
+
+// Positions in one immutable surface batch. Interleaved ranges may include
+// other ranges between begin/end; consumers must still filter by range_index.
+// Empty ranges have begin == end. The bounds must be rebuilt after reordering.
+struct PreparedModelSurfaceRangeBounds {
+    size_t begin = 0;
+    size_t end = 0;
+};
+
+enum class PreparedModelSurfaceInstanceSpace : uint8_t {
+    model_root,
+    primitive_world,
+};
+
+// Flat GPU row: two consecutive float4x4 values, owned by frame storage until
+// GPU retirement. model_root rows combine with shared primitive-local draw
+// constants; primitive_world rows contain complete prepared surface transforms
+// and use identity primitive constants. A batch must use one space throughout.
 struct PreparedModelSurfaceInstance {
     glm::mat4 root{1.0f};
     glm::mat4 root_normal_matrix{1.0f};
@@ -370,9 +399,15 @@ struct PreparedRenderModelSkinTable {
 
 struct PreparedModelSurfaceDrawList {
     std::vector<PreparedModelSurfaceDraw> draws;
+    // Preserved by clear(); sorting validates against every fresh input key.
+    PreparedModelSurfaceSortCache sort_cache;
     PreparedRenderModelSkinTable render_model_skins;
     PreparedRenderModelSurfacePacketList render_model_surface_packets;
     PreparedModelSurfaceDrawStats stats{};
+    // Summary of the bindings emitted by collection. Reordering and skin-table
+    // index updates preserve it. Call the independent validator after editing
+    // binding fields or the source draw/range rows.
+    PreparedModelSurfaceMaterialBindingStats material_bindings{};
 
     void clear()
     {
@@ -380,6 +415,7 @@ struct PreparedModelSurfaceDrawList {
         render_model_skins.clear();
         render_model_surface_packets.clear();
         stats = {};
+        material_bindings = {};
     }
 };
 
@@ -589,6 +625,42 @@ inline void count_prepared_model_surface_materials(
     return result;
 }
 
+// One row per range; invalid surface range indices are ignored. Owns no surface
+// payloads and preserves source order, including pass-sorted/interleaved inputs.
+inline void collect_prepared_model_surface_range_bounds(
+    std::vector<PreparedModelSurfaceRangeBounds>& out,
+    std::span<const PreparedModelSurfaceDraw> surfaces,
+    size_t range_count)
+{
+    out.assign(range_count, {});
+    for (size_t index = 0; index < surfaces.size(); ++index) {
+        const uint32_t range_index = surfaces[index].range_index;
+        if (range_index == kInvalidPreparedModelDrawIndex || range_index >= out.size()) {
+            continue;
+        }
+        auto& bounds = out[range_index];
+        if (bounds.begin == bounds.end) {
+            bounds.begin = index;
+        }
+        bounds.end = index + 1u;
+    }
+}
+
+[[nodiscard]] inline std::span<const PreparedModelSurfaceDraw> prepared_model_surface_draws_for_range(
+    std::span<const PreparedModelSurfaceDraw> surfaces,
+    std::span<const PreparedModelSurfaceRangeBounds> bounds,
+    uint32_t range_index) noexcept
+{
+    if (range_index == kInvalidPreparedModelDrawIndex || range_index >= bounds.size()) {
+        return {};
+    }
+    const auto& range = bounds[range_index];
+    if (range.begin >= range.end || range.end > surfaces.size()) {
+        return {};
+    }
+    return surfaces.subspan(range.begin, range.end - range.begin);
+}
+
 inline PreparedModelSurfaceShadowRangeStats collect_prepared_model_surface_shadow_ranges(
     std::vector<uint8_t>& out,
     std::span<const PreparedModelSurfaceDraw> surfaces,
@@ -775,9 +847,79 @@ inline PreparedModelSurfaceMaterialBindingStats validate_prepared_model_surface_
     return lhs.handle_index < rhs.handle_index;
 }
 
+inline void sort_prepared_model_surface_draws_by_pass(
+    std::span<PreparedModelSurfaceDraw> draws,
+    PreparedModelSurfaceSortCache& cache)
+{
+    if (draws.size() < 2u || draws.size() > std::numeric_limits<uint32_t>::max()) {
+        cache.keys.clear();
+        cache.order.clear();
+        cache.permutation.clear();
+        std::sort(draws.begin(), draws.end(), prepared_model_surface_sort_less);
+        return;
+    }
+
+    bool sort_needed = cache.keys.size() != draws.size() || cache.order.size() != draws.size();
+    if (sort_needed) {
+        cache.order.clear();
+        cache.keys.resize(draws.size());
+    }
+    for (size_t index = 0; index < draws.size(); ++index) {
+        const auto& draw = draws[index];
+        const PreparedModelSurfaceSortKey fields{
+            prepared_model_surface_pass_index(draw.material_mode),
+            static_cast<uint32_t>(draw.skinned),
+            draw.instance_source_index,
+            draw.material_index,
+            draw.material_override.index,
+            draw.material_override.generation,
+            draw.skin_index,
+            draw.range_index,
+            draw.source_draw_index,
+            draw.handle_index,
+        };
+        if (fields != cache.keys[index]) {
+            cache.keys[index] = fields;
+            sort_needed = true;
+        }
+    }
+    if (sort_needed) {
+        // Invalidate before allocating so an allocation failure cannot leave
+        // an old permutation paired with the freshly collected keys.
+        cache.order.clear();
+        cache.order.reserve(draws.size());
+        for (size_t index = 0; index < draws.size(); ++index) {
+            cache.order.push_back(static_cast<uint32_t>(index));
+        }
+        std::sort(cache.order.begin(), cache.order.end(), [&](uint32_t lhs, uint32_t rhs) {
+            return cache.keys[lhs] < cache.keys[rhs];
+        });
+    }
+
+    cache.permutation = cache.order;
+    // Move each cycle once, marking completed positions with the identity
+    // permutation. The retained keys/order still describe the unsorted input.
+    for (size_t first = 0; first < draws.size(); ++first) {
+        if (cache.permutation[first] == first) {
+            continue;
+        }
+        auto saved = std::move(draws[first]);
+        size_t destination = first;
+        while (cache.permutation[destination] != first) {
+            const size_t source = cache.permutation[destination];
+            draws[destination] = std::move(draws[source]);
+            cache.permutation[destination] = static_cast<uint32_t>(destination);
+            destination = source;
+        }
+        draws[destination] = std::move(saved);
+        cache.permutation[destination] = static_cast<uint32_t>(destination);
+    }
+}
+
 inline void sort_prepared_model_surface_draws_by_pass(std::span<PreparedModelSurfaceDraw> draws)
 {
-    std::sort(draws.begin(), draws.end(), prepared_model_surface_sort_less);
+    PreparedModelSurfaceSortCache cache;
+    sort_prepared_model_surface_draws_by_pass(draws, cache);
 }
 
 [[nodiscard]] inline size_t first_prepared_model_surface_pass_at_least(
@@ -1048,6 +1190,7 @@ inline void collect_prepared_model_surface_draws(
                 .material_payload = draw.material_payload,
                 .skinned = draw.skinned,
                 .casts_shadow = casts_shadow,
+                .winding = model_transform_winding(draw.world),
                 .world = draw.world,
                 .normal_matrix = draw.normal_matrix,
                 .bounds = draw.bounds,
@@ -1057,7 +1200,34 @@ inline void collect_prepared_model_surface_draws(
                 ++out.stats.shadow_caster_draw_count;
             }
             ++out.stats.render_model_draw_count;
+
+            // Range identity was checked above; every binding field is copied
+            // from that range/draw. Count the emitted bindings while they are
+            // hot instead of reading all three arrays again after collection.
+            auto& bindings = out.material_bindings;
+            detail::prepared_model_surface_add_material_stat(bindings.materials, draw.material_mode);
+            if (!prepared_model_surface_material_mode_valid(draw.material_mode)) {
+                continue;
+            }
+            detail::prepared_model_draw_add_saturating(bindings.bound_surface_count, 1u);
+            if (draw.material_payload == PreparedModelMaterialPayloadKind::fallback) {
+                detail::prepared_model_draw_add_saturating(bindings.fallback_material_payload_count, 1u);
+                detail::prepared_model_draw_add_saturating(bindings.render_model_fallback_material_payload_count, 1u);
+            }
+            if (draw.material_uses_fallback) {
+                detail::prepared_model_draw_add_saturating(bindings.material_fallback_count, 1u);
+                detail::prepared_model_draw_add_saturating(bindings.render_model_material_fallback_count, 1u);
+            }
+            if (draw.material_override.valid()) {
+                detail::prepared_model_draw_add_saturating(bindings.material_override_surface_count, 1u);
+            }
         }
+    }
+    out.material_bindings.surface_count = detail::prepared_model_draw_saturating_count(out.draws.size());
+    if (list.draws.size() > std::numeric_limits<uint32_t>::max()) {
+        // Oversized source indices are saturated in the surface protocol.
+        // Preserve validation of those indices rather than assuming parity.
+        out.material_bindings = validate_prepared_model_surface_material_bindings(out.draws, list, ranges);
     }
 }
 

@@ -11,13 +11,14 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <limits>
 
 namespace nw::gfx {
 
 namespace {
 
 constexpr VkDeviceSize kDescriptorRingSize = 2 * 1024 * 1024;
-constexpr VkDeviceSize kUniformRingSize = 16 * 1024 * 1024;
+constexpr VkDeviceSize kUniformRingSize = 32 * 1024 * 1024;
 constexpr VkDeviceSize kVertexRingSize = 16 * 1024 * 1024;
 constexpr uint32_t kBindlessTextureCapacity = 4096;
 constexpr double kNanosecondsToSeconds = 1.0e-9;
@@ -435,7 +436,12 @@ Handle<Buffer> create_buffer(Context* ctx, const BufferDesc& desc)
     addr_info.buffer = buffer.buffer;
     buffer.device_address = vkGetBufferDeviceAddress(c->core->device, &addr_info);
 
-    return g_buffer_pool.insert(std::move(buffer));
+    const auto handle = g_buffer_pool.insert(std::move(buffer));
+    if (!handle.valid()) {
+        // A full pool leaves the input untouched; no handle owns this allocation.
+        vmaDestroyBuffer(c->core->allocator, buffer.buffer, buffer.allocation);
+    }
+    return handle;
 }
 
 void* map_buffer(Handle<Buffer> handle)
@@ -523,6 +529,20 @@ void destroy_shader(Context* ctx, Handle<Shader> handle)
 
 Handle<Pipeline> create_pipeline(Context* ctx, const PipelineDesc& desc)
 {
+    VkCullModeFlags cull_mode;
+    switch (desc.cull_mode) {
+    case CullMode::none:
+        cull_mode = VK_CULL_MODE_NONE;
+        break;
+    case CullMode::back:
+        cull_mode = VK_CULL_MODE_BACK_BIT;
+        break;
+    case CullMode::front:
+        cull_mode = VK_CULL_MODE_FRONT_BIT;
+        break;
+    default:
+        return {};
+    }
     auto* c = as_vulkan(ctx);
     auto* vs = g_shader_pool.get(desc.vs);
     auto* fs = g_shader_pool.get(desc.fs);
@@ -717,7 +737,7 @@ Handle<Pipeline> create_pipeline(Context* ctx, const PipelineDesc& desc)
     VkPipelineRasterizationStateCreateInfo raster{};
     raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     raster.polygonMode = VK_POLYGON_MODE_FILL;
-    raster.cullMode = VK_CULL_MODE_NONE;
+    raster.cullMode = cull_mode;
     raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     raster.lineWidth = 1.0f;
 
@@ -1832,21 +1852,30 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     }
 
     if (pipeline->uses_storage_buffer) {
+        const size_t descriptor_size = props.storageBufferDescriptorSize;
+        cmd->storage_descriptors.resize(cmd->storage_descriptor_keys.size() * descriptor_size);
         for (uint32_t i = 0; i < pipeline->storage_buffer_count; ++i) {
-            const VkDeviceSize storage_offset = storages[i].offset;
+            const VkDeviceAddress address = storage_buffers[i]->device_address + storages[i].offset;
+            auto& key = cmd->storage_descriptor_keys[i];
+            auto* descriptor = cmd->storage_descriptors.data() + i * descriptor_size;
+            if (key.buffer != storages[i].buffer || key.address != address || key.range != storage_ranges[i]) {
+                VkDescriptorAddressInfoEXT storage_addr{};
+                storage_addr.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT;
+                storage_addr.address = address;
+                storage_addr.range = storage_ranges[i];
 
-            VkDescriptorAddressInfoEXT storage_addr{};
-            storage_addr.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT;
-            storage_addr.address = storage_buffers[i]->device_address + storage_offset;
-            storage_addr.range = storage_ranges[i];
+                VkDescriptorGetInfoEXT storage_desc{};
+                storage_desc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
+                storage_desc.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                storage_desc.data.pStorageBuffer = &storage_addr;
 
-            VkDescriptorGetInfoEXT storage_desc{};
-            storage_desc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
-            storage_desc.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            storage_desc.data.pStorageBuffer = &storage_addr;
-
-            vkGetDescriptorEXT(ctx->core->device, &storage_desc, props.storageBufferDescriptorSize,
-                ring + set0_offset + pipeline->set0_storage_offsets[i]);
+                vkGetDescriptorEXT(ctx->core->device, &storage_desc, descriptor_size, descriptor);
+                key = {storages[i].buffer, address, storage_ranges[i]};
+                ++cmd->stats.storage_descriptor_encode_count;
+            } else {
+                ++cmd->stats.storage_descriptor_reuse_count;
+            }
+            std::memcpy(ring + set0_offset + pipeline->set0_storage_offsets[i], descriptor, descriptor_size);
         }
     }
 
@@ -2197,9 +2226,20 @@ UniformSpan allocate_uniform_span(Context* ctx_ptr, uint32_t size, uint32_t alig
     const VkDeviceSize min_alignment = std::max<VkDeviceSize>(
         ctx->core->properties.limits.minUniformBufferOffsetAlignment, 1);
     const VkDeviceSize actual_alignment = std::max<VkDeviceSize>(alignment, min_alignment);
+    if (!std::has_single_bit(actual_alignment)) {
+        ++ctx->frame_stats.uniform_allocation_failure_count;
+        return {};
+    }
+    auto& required = ctx->frame_stats.uniform_ring_required_bytes;
+    const auto max_required = std::numeric_limits<uint64_t>::max();
+    const uint64_t padding = -required & (actual_alignment - 1);
+    required = required > max_required - padding - size
+        ? max_required
+        : required + padding + size;
     VkDeviceSize& offset = ctx->uniform_ring_offset[ctx->frame_index];
     const VkDeviceSize aligned_offset = align_up(offset, actual_alignment);
     if (aligned_offset + size > kUniformRingSize) {
+        ++ctx->frame_stats.uniform_allocation_failure_count;
         return {};
     }
 
@@ -2695,6 +2735,9 @@ bool get_command_stats(CommandList* cmd_ptr, CommandStats& out) noexcept
     out.descriptor_ring_capacity_bytes = kDescriptorRingSize;
     out.uniform_allocation_count += ctx->frame_stats.uniform_allocation_count;
     out.uniform_allocation_bytes += ctx->frame_stats.uniform_allocation_bytes;
+    out.uniform_allocation_failure_count += ctx->frame_stats.uniform_allocation_failure_count;
+    out.uniform_ring_capacity_bytes = kUniformRingSize;
+    out.uniform_ring_required_bytes = ctx->frame_stats.uniform_ring_required_bytes;
     out.vertex_allocation_count += ctx->frame_stats.vertex_allocation_count;
     out.vertex_allocation_bytes += ctx->frame_stats.vertex_allocation_bytes;
     return true;

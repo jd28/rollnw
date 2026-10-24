@@ -15,6 +15,8 @@
 #include <nw/objects/Area.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 
+#include <absl/container/flat_hash_map.h>
+
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -97,10 +99,21 @@ struct PreviewRuntimeModelReports {
     nw::render::PreparedRenderModelSkinTableStats prepared_skin_table_stats{};
 };
 
+struct SceneParticleDefinition {
+    nw::model::ParticleImportResult import;
+    nw::render::ParticleCompileResult compiled;
+};
+
+struct SceneParticleDefinitionCacheEntry {
+    std::weak_ptr<const nw::render::RenderModel> owner;
+    // Indexed by ModelAssetParticleSystem row, not animation/model names.
+    std::vector<std::weak_ptr<const SceneParticleDefinition>> definitions;
+};
+
 struct SceneParticleSystem {
-    SceneParticleSystem() = default;
-    SceneParticleSystem(SceneParticleSystem&& other) noexcept;
-    SceneParticleSystem& operator=(SceneParticleSystem&& other) noexcept;
+    explicit SceneParticleSystem(std::shared_ptr<const SceneParticleDefinition> data);
+    SceneParticleSystem(SceneParticleSystem&& other) noexcept = default;
+    SceneParticleSystem& operator=(SceneParticleSystem&& other) noexcept = default;
     SceneParticleSystem(const SceneParticleSystem&) = delete;
     SceneParticleSystem& operator=(const SceneParticleSystem&) = delete;
 
@@ -108,10 +121,10 @@ struct SceneParticleSystem {
     // attachment-point rows. The owner is always a RenderModel scene row.
     uint32_t owner_model_index = std::numeric_limits<uint32_t>::max();
     nw::render::ModelInstanceHandle owner_instance_handle;
-    nw::model::ParticleImportResult import;
-    nw::render::ParticleCompileResult compiled;
-    // Invariant: a non-null system.effect points at this row's compiled.effect.
-    // The move operations repair that self-reference after vector relocation.
+    // Retained independently of the scene/cache so animation leases and vector
+    // moves preserve system.effect. Moved-from rows are only assigned/destroyed.
+    std::shared_ptr<const SceneParticleDefinition> definition;
+    // Invariant: system.effect == &definition->compiled.effect.
     nw::render::ParticleSystemInstance system;
     float animation_time = 0.0f;
     float particle_animation_length = 0.0f;
@@ -361,8 +374,10 @@ struct AreaTileRefreshStats {
     float record_refresh_seconds = 0.0f;
 };
 
+struct SceneParticleUpdates;
+
 struct PreviewScene {
-    PreviewScene() = default;
+    PreviewScene();
     ~PreviewScene();
 
     PreviewScene(const PreviewScene&) = delete;
@@ -406,6 +421,10 @@ struct PreviewScene {
     std::vector<uint32_t> particle_rebuild_model_scratch;
     std::vector<nw::ObjectHandle> spatial_update_owner_scratch;
     bool runtime_update_indices_dirty = true;
+    // Setup-only weak cache. Full particle rebuilds reread authored payloads;
+    // immutable model replacements use a new asset identity. Tick never looks up
+    // this table or changes definition reference counts.
+    absl::flat_hash_map<const nw::render::RenderModel*, SceneParticleDefinitionCacheEntry> particle_definitions;
     std::vector<SceneParticleSystem> particles;
     std::vector<DebugShapeVertex> debug_shape_vertices;
     std::vector<uint32_t> debug_shape_indices;
@@ -475,7 +494,21 @@ struct PreviewScene {
     void add_particle_effect(nw::render::ParticleEffectDef effect);
     void invalidate_runtime_update_indices() noexcept;
     void rebuild_runtime_update_indices();
+
+private:
+    std::unique_ptr<SceneParticleUpdates> particle_updates_;
 };
+
+// In-process batch contract: borrow stable owner poses/visibility and exclusive
+// mutable system rows for this call. Definitions remain shared const; outputs
+// (clocks, RNG, particles, events, packets) stay in the same rows and order.
+// Disjoint spans may run concurrently; scene edits/rendering must wait for all
+// batches. Negative dt clamps to zero, empty spans do nothing, and stale owners
+// retain the hidden-owner behavior. Allocation failures propagate; rows already
+// updated are not rolled back or retried. Existing definition pointers and
+// indexed owner handles avoid copying/migrating independently owned storage.
+void update_scene_particles(const PreviewScene& scene,
+    std::span<SceneParticleSystem> particles, int32_t dt_ms);
 
 // Updates the complete standalone model/material batch in place. The scene
 // owns the snapshot, indices and overrides; visual is borrowed for this call.

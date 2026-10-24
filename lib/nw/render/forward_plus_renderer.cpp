@@ -481,7 +481,13 @@ static void prepare_forward_plus_frame_impl(
             frame.light_order.push_back(saturating_count(light_index));
         }
     }
-    if (frame.light_order.size() > overflow_budget) {
+    // Preserve the original ordering policy even if few colored lights survive.
+    const bool sort_lights = frame.light_order.size() > overflow_budget;
+    std::erase_if(frame.light_order, [&](uint32_t light_index) {
+        const auto& color = ctx.local_lights[light_index].color;
+        return color.x == 0.0f && color.y == 0.0f && color.z == 0.0f;
+    });
+    if (sort_lights) {
         std::stable_sort(frame.light_order.begin(), frame.light_order.end(), [&](uint32_t lhs, uint32_t rhs) {
             return light_sort_priority(ctx.local_lights[lhs]) > light_sort_priority(ctx.local_lights[rhs]);
         });

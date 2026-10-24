@@ -155,7 +155,7 @@ struct SceneConstants {
     glm::uvec4 material_texture_indices{0u};
 
     // RenderModel PBR receivers cannot use ShadowConstants at b4 because their
-    // SurfaceConstants material already owns that register. These scene-owned
+    // ModelDrawConstants block already owns that register. These scene-owned
     // fields mirror ShadowConstants for that path; zero texture indices mean
     // "no shadow map" and shader sampling returns fully lit.
     std::array<glm::mat4, kShadowCascadeCount> scene_shadow_world_to_shadow{};

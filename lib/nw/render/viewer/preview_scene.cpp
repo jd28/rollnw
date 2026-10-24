@@ -39,6 +39,8 @@
 #include <nw/util/string.hpp>
 
 #include <absl/container/flat_hash_map.h>
+#include <taskflow/algorithm/for_each.hpp>
+#include <taskflow/taskflow.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -58,8 +60,13 @@
 #include <set>
 #include <span>
 #include <stdexcept>
+#include <thread>
 #include <unordered_map>
 #include <utility>
+
+#if defined(__linux__)
+#include <pthread.h>
+#endif
 
 namespace nw::render::viewer {
 
@@ -84,47 +91,74 @@ std::string_view sound_toolset_marker_model(
 
 } // namespace
 
-SceneParticleSystem::SceneParticleSystem(SceneParticleSystem&& other) noexcept
-    : owner_model_index(other.owner_model_index)
-    , owner_instance_handle(other.owner_instance_handle)
-    , import(std::move(other.import))
-    , compiled(std::move(other.compiled))
-    , system(std::move(other.system))
-    , animation_time(other.animation_time)
-    , particle_animation_length(other.particle_animation_length)
-    , animation_time_initialized(other.animation_time_initialized)
-    , owner_visible_last(other.owner_visible_last)
+SceneParticleSystem::SceneParticleSystem(std::shared_ptr<const SceneParticleDefinition> data)
+    : definition(std::move(data))
 {
-    if (system.effect) {
-        system.effect = &compiled.effect;
-    }
-    other.system.effect = nullptr;
+    CHECK_F(definition != nullptr, "Scene particle definition must not be null");
+    system = nw::render::create_particle_system(definition->compiled.effect);
 }
 
-SceneParticleSystem& SceneParticleSystem::operator=(SceneParticleSystem&& other) noexcept
-{
-    if (this == &other) {
-        return *this;
+namespace {
+
+struct ParticleWorkerNames final : tf::WorkerInterface {
+    void scheduler_prologue(tf::Worker& worker) override
+    {
+        constexpr std::array names{"particles0", "particles1", "particles2", "particles3"};
+        loguru::set_thread_name(names.at(worker.id()));
+#if defined(__linux__)
+        // Loguru uses TLS-only names on Linux; expose workers to CPU profilers.
+        pthread_setname_np(pthread_self(), names.at(worker.id()));
+#endif
     }
 
-    const bool has_compiled_effect = other.system.effect != nullptr;
-    owner_model_index = other.owner_model_index;
-    owner_instance_handle = other.owner_instance_handle;
-    import = std::move(other.import);
-    compiled = std::move(other.compiled);
-    system = std::move(other.system);
-    animation_time = other.animation_time;
-    particle_animation_length = other.particle_animation_length;
-    animation_time_initialized = other.animation_time_initialized;
-    owner_visible_last = other.owner_visible_last;
+    void scheduler_epilogue(tf::Worker&, std::exception_ptr error) override
+    {
+        // Task exceptions go through the future. Losing a scheduler worker is
+        // fatal: returning would leave a frame waiting for unfinished work.
+        if (error) { std::terminate(); }
+    }
+};
 
-    system.effect = has_compiled_effect ? &compiled.effect : nullptr;
-    other.system.effect = nullptr;
-    return *this;
-}
+} // namespace
+
+struct SceneParticleUpdates {
+    static constexpr size_t batch_size = 64;
+
+    const PreviewScene& scene;
+    size_t batch_count = 0;
+    int32_t dt_ms = 0;
+    std::span<SceneParticleSystem> rows;
+    tf::Taskflow tasks;
+    // Destroy/join the executor before destroying the graph and borrowed input.
+    tf::Executor executor;
+
+    SceneParticleUpdates(const PreviewScene& owner, size_t worker_count)
+        : scene(owner)
+        , executor(worker_count, std::make_shared<ParticleWorkerNames>())
+    {
+        tasks.for_each_index(size_t{0}, std::ref(batch_count), size_t{1}, [this](size_t batch) {
+            const size_t begin = batch * batch_size;
+            const size_t count = std::min(batch_size, rows.size() - begin);
+            // Only this disjoint system span is mutable. The owner tables and
+            // definitions remain read-only until every batch has joined.
+            update_scene_particles(scene, rows.subspan(begin, count), dt_ms);
+        });
+    }
+
+    void update(std::span<SceneParticleSystem> systems, int32_t step_ms)
+    {
+        rows = systems;
+        dt_ms = step_ms;
+        batch_count = rows.size() / batch_size + (rows.size() % batch_size != 0);
+        executor.run(tasks).get();
+    }
+};
+
+PreviewScene::PreviewScene() = default;
 
 PreviewScene::~PreviewScene()
 {
+    particle_updates_.reset();
     active_object = nw::ObjectHandle{};
     if (!owns_root_object || root_object.type == nw::ObjectType::invalid) {
         root_object = nw::ObjectHandle{};
@@ -466,11 +500,11 @@ PreviewRuntimeModelReports build_preview_runtime_model_reports(
             }
             ++row.scene_particle_system_count;
             row.scene_particle_emitter_count += scene_particles.system.emitters.size();
-            row.scene_particle_event_count += scene_particles.import.effect_events.size();
+            row.scene_particle_event_count += scene_particles.definition->import.effect_events.size();
             row.scene_particle_live_particle_count += scene_particles.system.particles.core.position.size();
             row.scene_particle_max_particles_total = add_saturating_u32(
                 row.scene_particle_max_particles_total,
-                scene_particles.compiled.effect.max_particles_total);
+                scene_particles.definition->compiled.effect.max_particles_total);
             for (const auto& emitter : scene_particles.system.emitters) {
                 if (emitter.active) {
                     ++row.scene_particle_active_emitter_count;
@@ -698,42 +732,13 @@ bool scene_particle_owner_visible(const PreviewScene& scene, const SceneParticle
     return true;
 }
 
-glm::mat4 scene_particle_owner_root(const PreviewScene& scene, const SceneParticleSystem& scene_particles)
-{
-    if (const auto* instance = scene_particle_owner_instance(scene, scene_particles)) {
-        return instance->root_transform;
-    }
-    return glm::mat4{1.0f};
-}
-
-glm::mat4 scene_particle_attachment_owner_root(
-    const PreviewScene& scene,
-    const SceneParticleSystem& scene_particles,
-    const nw::render::ParticleEmitterAttachmentBinding* binding)
-{
-    if (binding) {
-        if (const auto* instance = scene_particle_attachment_owner_instance(scene, *binding)) {
-            return instance->root_transform;
-        }
-    }
-    return scene_particle_owner_root(scene, scene_particles);
-}
-
 bool scene_particle_common_attachment_world_transform(
-    const PreviewScene& scene,
-    const SceneParticleSystem& scene_particles,
-    const nw::render::ParticleEmitterAttachmentBinding* binding,
+    const nw::render::ModelInstance* instance,
     nw::render::ModelAttachmentPointIndex attachment_point,
     glm::mat4& out_transform) noexcept
 {
-    if (attachment_point == nw::render::kInvalidModelAttachmentPointIndex) {
-        return false;
-    }
-
-    const auto* instance = binding
-        ? scene_particle_attachment_owner_instance(scene, *binding)
-        : scene_particle_owner_instance(scene, scene_particles);
     if (!instance
+        || attachment_point == nw::render::kInvalidModelAttachmentPointIndex
         || attachment_point >= instance->attachment_node_world_transforms.size()
         || attachment_point >= instance->attachment_node_transform_valid.size()
         || instance->attachment_node_transform_valid[attachment_point] == 0u) {
@@ -759,28 +764,13 @@ const nw::render::ParticleEmitterAttachmentBinding* scene_particle_emitter_attac
     return &binding;
 }
 
-const nw::render::ParticleEmitterAttachmentFrame* scene_particle_emitter_attachment_frame(
-    const SceneParticleSystem& scene_particles,
-    size_t init_index) noexcept
-{
-    if (init_index >= scene_particles.system.emitter_attachment_frames.size()) {
-        return nullptr;
-    }
-    const auto& frame = scene_particles.system.emitter_attachment_frames[init_index];
-    if (frame.emitter == nw::render::kInvalidModelNodeIndex
-        || frame.emitter >= scene_particles.system.emitters.size()) {
-        return nullptr;
-    }
-    return &frame;
-}
-
 void build_scene_particle_emitter_attachments(SceneParticleSystem& scene_particles)
 {
     scene_particles.system.emitter_attachments.clear();
-    const size_t count = std::min(scene_particles.compiled.effect.emitters.size(), scene_particles.system.emitters.size());
+    const size_t count = std::min(scene_particles.definition->compiled.effect.emitters.size(), scene_particles.system.emitters.size());
     scene_particles.system.emitter_attachments.reserve(count);
     for (size_t i = 0; i < count; ++i) {
-        const auto& attachment = scene_particles.compiled.effect.emitters[i].attachment;
+        const auto& attachment = scene_particles.definition->compiled.effect.emitters[i].attachment;
         if (i >= scene_particles.system.emitters.size() || i >= nw::render::kInvalidModelNodeIndex) {
             scene_particles.system.emitter_attachments.push_back(nw::render::ParticleEmitterAttachmentBinding{});
             continue;
@@ -796,64 +786,6 @@ void build_scene_particle_emitter_attachments(SceneParticleSystem& scene_particl
     }
 }
 
-void resolve_scene_particle_emitter_attachment_frames(const PreviewScene& scene, SceneParticleSystem& scene_particles)
-{
-    auto& frames = scene_particles.system.emitter_attachment_frames;
-    frames.clear();
-    const size_t count = std::min({
-        scene_particles.compiled.effect.emitters.size(),
-        scene_particles.system.emitters.size(),
-    });
-    frames.reserve(count);
-    for (size_t i = 0; i < count; ++i) {
-        const auto& attachment = scene_particles.compiled.effect.emitters[i].attachment;
-        const auto* binding = scene_particle_emitter_attachment(scene_particles, i);
-        const uint32_t emitter_index = binding ? binding->emitter : static_cast<uint32_t>(i);
-        if (emitter_index >= scene_particles.system.emitters.size()) {
-            frames.push_back(nw::render::ParticleEmitterAttachmentFrame{});
-            continue;
-        }
-
-        const glm::mat4 emitter_root = scene_particle_attachment_owner_root(scene, scene_particles, binding);
-        const nw::render::ModelAttachmentPointIndex emitter_attachment_point = binding
-            ? binding->emitter_attachment_point
-            : attachment.emitter_attachment_point;
-        const nw::render::ModelAttachmentPointIndex target_attachment_point = binding
-            ? binding->target_attachment_point
-            : attachment.target_attachment_point;
-
-        auto& frame = frames.emplace_back(nw::render::ParticleEmitterAttachmentFrame{
-            .emitter = emitter_index,
-            .owner_root_transform = emitter_root,
-        });
-
-        glm::mat4 common_emitter_transform{1.0f};
-        if (scene_particle_common_attachment_world_transform(
-                scene, scene_particles, binding, emitter_attachment_point, common_emitter_transform)) {
-            frame.emitter_world_transform = common_emitter_transform;
-            frame.has_emitter_world_transform = true;
-        } else if (attachment.has_default_transform) {
-            frame.emitter_world_transform = emitter_root * attachment.default_transform;
-            frame.has_emitter_world_transform = true;
-        }
-
-        if (target_attachment_point != nw::render::kInvalidModelAttachmentPointIndex) {
-            glm::mat4 common_target_transform{1.0f};
-            if (scene_particle_common_attachment_world_transform(
-                    scene, scene_particles, binding, target_attachment_point, common_target_transform)) {
-                frame.target_point = glm::vec3(common_target_transform[3]);
-                frame.has_target_point = true;
-            } else if (attachment.has_default_target_offset) {
-                frame.target_point = glm::vec3(emitter_root * glm::vec4(attachment.default_target_offset, 1.0f));
-                frame.has_target_point = true;
-            }
-        } else if (attachment.has_default_target_offset) {
-            frame.target_point = glm::vec3(emitter_root * glm::vec4(attachment.default_target_offset, 1.0f));
-            frame.has_target_point = true;
-        }
-    }
-}
-
 void sync_scene_particle_emitters(
     const PreviewScene& scene,
     SceneParticleSystem& scene_particles,
@@ -863,30 +795,33 @@ void sync_scene_particle_emitters(
         return;
     }
 
-    resolve_scene_particle_emitter_attachment_frames(scene, scene_particles);
+    // Resolve directly into emitter state; no other consumer needs an attachment frame copy.
     const size_t count = std::min(
-        scene_particles.compiled.effect.emitters.size(),
-        scene_particles.system.emitter_attachment_frames.size());
+        scene_particles.definition->compiled.effect.emitters.size(),
+        scene_particles.system.emitters.size());
     for (size_t i = 0; i < count; ++i) {
-        const auto& attachment = scene_particles.compiled.effect.emitters[i].attachment;
-        const auto* frame = scene_particle_emitter_attachment_frame(scene_particles, i);
-        if (!frame) {
-            continue;
-        }
-        auto& emitter = scene_particles.system.emitters[frame->emitter];
+        const auto& attachment = scene_particles.definition->compiled.effect.emitters[i].attachment;
+        const auto* binding = scene_particle_emitter_attachment(scene_particles, i);
+        const auto* attachment_owner = binding
+            ? scene_particle_attachment_owner_instance(scene, *binding)
+            : scene_particle_owner_instance(scene, scene_particles);
+        const auto* root_owner = attachment_owner ? attachment_owner : scene_particle_owner_instance(scene, scene_particles);
+        const glm::mat4 emitter_root = root_owner ? root_owner->root_transform : glm::mat4{1.0f};
+        const auto emitter_attachment_point = binding
+            ? binding->emitter_attachment_point
+            : attachment.emitter_attachment_point;
+        const auto target_attachment_point = binding
+            ? binding->target_attachment_point
+            : attachment.target_attachment_point;
+        auto& emitter = scene_particles.system.emitters[binding ? binding->emitter : i];
 
         const glm::vec3 previous_position = glm::vec3(emitter.world_transform[3]);
-        if (attachment.has_default_transform) {
-            if (frame->has_emitter_world_transform) {
-                emitter.world_transform = frame->emitter_world_transform;
+        if (!scene_particle_common_attachment_world_transform(
+                attachment_owner, emitter_attachment_point, emitter.world_transform)) {
+            if (attachment.has_default_transform) {
+                emitter.world_transform = emitter_root * attachment.default_transform;
             } else {
-                emitter.world_transform = frame->owner_root_transform * attachment.default_transform;
-            }
-        } else {
-            if (frame->has_emitter_world_transform) {
-                emitter.world_transform = frame->emitter_world_transform;
-            } else {
-                emitter.world_transform = frame->owner_root_transform;
+                emitter.world_transform = emitter_root;
                 if (attachment.has_default_position) {
                     emitter.world_transform *= glm::translate(glm::mat4{1.0f}, attachment.default_position);
                 }
@@ -900,8 +835,13 @@ void sync_scene_particle_emitters(
         } else if (previous_position == glm::vec3{0.0f} && emitter.prev_world_pos == glm::vec3{0.0f}) {
             emitter.prev_world_pos = glm::vec3(emitter.world_transform[3]);
         }
-        if (frame->has_target_point) {
-            emitter.target_point = frame->target_point;
+
+        glm::mat4 target_transform{1.0f};
+        if (scene_particle_common_attachment_world_transform(
+                attachment_owner, target_attachment_point, target_transform)) {
+            emitter.target_point = glm::vec3(target_transform[3]);
+        } else if (attachment.has_default_target_offset) {
+            emitter.target_point = glm::vec3(emitter_root * glm::vec4(attachment.default_target_offset, 1.0f));
         }
     }
 }
@@ -950,27 +890,45 @@ bool render_model_has_particle_animation(
 
 void append_render_model_particle_systems(
     PreviewScene& scene,
-    const nw::render::RenderModel& model,
+    const std::shared_ptr<nw::render::RenderModel>& model,
     nw::render::ModelInstanceHandle owner_handle,
     uint32_t owner_model_index,
     std::string_view selected_animation_name)
 {
-    const bool use_animation_particles = render_model_has_particle_animation(model, selected_animation_name);
-    for (const auto& particle_system : model.particle_systems) {
+    if (model->particle_systems.empty()) { return; }
+    if (!scene.particle_definitions.contains(model.get())) {
+        absl::erase_if(scene.particle_definitions, [](const auto& entry) {
+            return entry.second.owner.expired();
+        });
+    }
+    auto& cached = scene.particle_definitions[model.get()];
+    if (cached.owner.expired()) {
+        cached.owner = model;
+        cached.definitions.clear();
+    }
+    cached.definitions.resize(model->particle_systems.size());
+
+    const bool use_animation_particles = render_model_has_particle_animation(*model, selected_animation_name);
+    for (size_t payload_index = 0; payload_index < model->particle_systems.size(); ++payload_index) {
+        const auto& particle_system = model->particle_systems[payload_index];
         const bool selected = use_animation_particles
             ? particle_system.animation_name == selected_animation_name
             : particle_system.animation_name.empty();
         if (particle_system.effect.emitters.empty() || !selected) {
             continue;
         }
-        auto& scene_particles = scene.particles.emplace_back();
+        auto definition = cached.definitions[payload_index].lock();
+        if (!definition) {
+            auto data = std::make_shared<SceneParticleDefinition>();
+            data->import = model_asset_particle_import(particle_system);
+            data->compiled = nw::render::compile_particle_effect(data->import.effect);
+            definition = std::move(data);
+            cached.definitions[payload_index] = definition;
+        }
+        auto& scene_particles = scene.particles.emplace_back(std::move(definition));
         scene_particles.owner_model_index = owner_model_index;
         scene_particles.owner_instance_handle = owner_handle;
-        scene_particles.import = model_asset_particle_import(particle_system);
         scene_particles.particle_animation_length = particle_system.animation_length;
-        scene_particles.compiled = nw::render::compile_particle_effect(scene_particles.import.effect);
-        scene_particles.system = nw::render::create_particle_system(scene_particles.compiled.effect);
-        scene_particles.system.effect = &scene_particles.compiled.effect;
         nw::render::apply_particle_attachment_defaults(scene_particles.system);
         build_scene_particle_emitter_attachments(scene_particles);
         scene_particles.owner_visible_last = scene_particle_owner_visible(scene, scene_particles);
@@ -989,6 +947,7 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
     sync_model_instance_runtime_state(*this);
 
     particles.clear();
+    particle_definitions.clear();
     size_t render_model_particle_count = 0;
     for (const auto& model : static_models) {
         if (model) {
@@ -1005,7 +964,7 @@ void PreviewScene::rebuild_particles(std::string_view animation_name)
         }
         append_render_model_particle_systems(
             *this,
-            *model,
+            model,
             static_model_instance_handles[model_index],
             static_cast<uint32_t>(model_index),
             animation_name.empty()
@@ -1064,7 +1023,7 @@ void PreviewScene::rebuild_model_particles(
         if (!model) continue;
         append_render_model_particle_systems(
             *this,
-            *model,
+            model,
             static_model_instance_handles[model_index],
             model_index,
             render_model_selected_particle_animation_name(
@@ -1072,16 +1031,17 @@ void PreviewScene::rebuild_model_particles(
     }
 }
 
-void PreviewScene::update(int32_t dt_ms)
+void update_scene_particles(const PreviewScene& scene,
+    std::span<SceneParticleSystem> particles, int32_t dt_ms)
 {
     const float dt = std::max(0.0f, static_cast<float>(dt_ms) * 0.001f);
     for (auto& scene_particles : particles) {
-        const bool owner_visible = scene_particle_owner_visible(*this, scene_particles);
+        const bool owner_visible = scene_particle_owner_visible(scene, scene_particles);
         if (owner_visible && !scene_particles.owner_visible_last) {
             for (auto& emitter : scene_particles.system.emitters) {
                 emitter.active = true;
             }
-            sync_scene_particle_emitters(*this, scene_particles, true);
+            sync_scene_particle_emitters(scene, scene_particles, true);
         }
         float current_time = scene_particles.animation_time;
         bool has_animation_time = false;
@@ -1095,7 +1055,7 @@ void PreviewScene::update(int32_t dt_ms)
             animation_length = scene_particles.particle_animation_length;
         }
         if (has_animation_time) {
-            nw::model::apply_particle_import_events(scene_particles.import,
+            nw::model::apply_particle_import_events(scene_particles.definition->import,
                 scene_particles.system,
                 scene_particles.animation_time,
                 current_time,
@@ -1108,7 +1068,7 @@ void PreviewScene::update(int32_t dt_ms)
             }
         }
         if (owner_visible) {
-            sync_scene_particle_emitters(*this, scene_particles);
+            sync_scene_particle_emitters(scene, scene_particles);
         }
         std::vector<bool> hidden_emitter_active;
         if (!owner_visible) {
@@ -1127,6 +1087,23 @@ void PreviewScene::update(int32_t dt_ms)
         scene_particles.owner_visible_last = owner_visible;
         nw::render::build_particle_render_packets(scene_particles.system);
     }
+}
+
+void PreviewScene::update(int32_t dt_ms)
+{
+    if (particles.size() < 16 * SceneParticleUpdates::batch_size) {
+        update_scene_particles(*this, particles, dt_ms);
+        return;
+    }
+    if (!particle_updates_) {
+        const size_t worker_count = std::min(size_t{4}, size_t{std::thread::hardware_concurrency()});
+        if (worker_count < 2) {
+            update_scene_particles(*this, particles, dt_ms);
+            return;
+        }
+        particle_updates_ = std::make_unique<SceneParticleUpdates>(*this, worker_count);
+    }
+    particle_updates_->update(particles, dt_ms);
 }
 
 void PreviewScene::set_particle_target_point(
@@ -1246,6 +1223,13 @@ static bool sync_model_runtime_row(PreviewScene& scene, uint32_t model_index)
     auto* instance = scene.static_model_instance(model_index);
     if (!model || !instance) {
         return false;
+    }
+    if (!instance->scene_animation_enabled && scene.area_render_scene
+        && model_index < scene.static_area_model_info.size()
+        && scene.static_area_model_info[model_index].static_candidate) {
+        // Static roots can move through explicit runtime publication as well
+        // as area edits. Rebuild their retained submission payloads next time.
+        scene.area_render_scene->surface_batch_cache().valid = false;
     }
     if (!instance->animation.enabled) {
         nw::render::publish_render_model_static_node_world_transforms(*instance, *model);
@@ -1611,7 +1595,7 @@ void PreviewScene::add(std::shared_ptr<nw::render::RenderModel> model)
         const auto* instance = model_instances.get(owner_handle);
         append_render_model_particle_systems(
             *this,
-            *model,
+            model,
             owner_handle,
             static_cast<uint32_t>(model_index),
             render_model_selected_particle_animation_name(*model, instance));
@@ -1730,14 +1714,13 @@ RenderModelAttachmentSetupStats PreviewScene::attach_render_models(
 
 void PreviewScene::add_particle_effect(nw::render::ParticleEffectDef effect)
 {
-    auto& scene_particles = particles.emplace_back();
-    scene_particles.import.effect = std::move(effect);
-    scene_particles.compiled = nw::render::compile_particle_effect(scene_particles.import.effect);
-    scene_particles.system = nw::render::create_particle_system(scene_particles.compiled.effect);
-    scene_particles.system.effect = &scene_particles.compiled.effect;
+    auto data = std::make_shared<SceneParticleDefinition>();
+    data->import.effect = std::move(effect);
+    data->compiled = nw::render::compile_particle_effect(data->import.effect);
+    auto& scene_particles = particles.emplace_back(std::move(data));
     build_scene_particle_emitter_attachments(scene_particles);
-    for (size_t i = 0; i < scene_particles.compiled.effect.emitters.size(); ++i) {
-        const auto& emitter = scene_particles.compiled.effect.emitters[i];
+    for (size_t i = 0; i < scene_particles.definition->compiled.effect.emitters.size(); ++i) {
+        const auto& emitter = scene_particles.definition->compiled.effect.emitters[i];
         if (emitter.emission.mode == nw::render::ParticleEmissionMode::event_burst
             || emitter.emission.trigger_on_effect_events) {
             // Standalone particle JSON has no authored effect-event timeline, so
@@ -1747,7 +1730,7 @@ void PreviewScene::add_particle_effect(nw::render::ParticleEffectDef effect)
     }
     nw::render::build_particle_render_packets(scene_particles.system);
 
-    if (const auto effect_bounds = nw::render::particle_emitter_spawn_bounds(scene_particles.import.effect.emitters)) {
+    if (const auto effect_bounds = nw::render::particle_emitter_spawn_bounds(scene_particles.definition->import.effect.emitters)) {
         if (static_models.empty() && particles.size() == 1) {
             bounds = *effect_bounds;
         } else {
@@ -1778,11 +1761,11 @@ int32_t compute_particle_prime_ms(const PreviewScene& scene, bool explicit_anima
     if (explicit_animation) {
         int32_t prime_ms = 16;
         for (const auto& scene_particles : scene.particles) {
-            const auto effect_event_ms = first_effect_event_ms(scene_particles.import.effect_events);
-            const auto count = std::min(scene_particles.compiled.effect.emitters.size(), scene_particles.import.effect.emitters.size());
+            const auto effect_event_ms = first_effect_event_ms(scene_particles.definition->import.effect_events);
+            const auto count = std::min(scene_particles.definition->compiled.effect.emitters.size(), scene_particles.definition->import.effect.emitters.size());
             for (size_t i = 0; i < count; ++i) {
-                const auto& emitter = scene_particles.compiled.effect.emitters[i];
-                const auto& authored = scene_particles.import.effect.emitters[i];
+                const auto& emitter = scene_particles.definition->compiled.effect.emitters[i];
+                const auto& authored = scene_particles.definition->import.effect.emitters[i];
                 int32_t activation_ms = 0;
 
                 if (emitter.emission.mode == nw::render::ParticleEmissionMode::event_burst
@@ -1818,10 +1801,10 @@ int32_t compute_particle_prime_ms(const PreviewScene& scene, bool explicit_anima
     int32_t prime_ms = 250;
     bool has_fade_in_continuous = false;
     for (const auto& scene_particles : scene.particles) {
-        const auto count = std::min(scene_particles.compiled.effect.emitters.size(), scene_particles.import.effect.emitters.size());
+        const auto count = std::min(scene_particles.definition->compiled.effect.emitters.size(), scene_particles.definition->import.effect.emitters.size());
         for (size_t i = 0; i < count; ++i) {
-            const auto& emitter = scene_particles.compiled.effect.emitters[i];
-            const auto& authored = scene_particles.import.effect.emitters[i];
+            const auto& emitter = scene_particles.definition->compiled.effect.emitters[i];
+            const auto& authored = scene_particles.definition->import.effect.emitters[i];
             if (emitter.emission.mode != nw::render::ParticleEmissionMode::continuous) {
                 continue;
             }
@@ -1949,6 +1932,19 @@ static void record_model_palette_row(PreviewScene& scene, uint32_t model_index, 
     if (model_index >= scene.static_models.size()) { return; }
     scene.model_palette_rows.resize(scene.static_models.size(), PreviewScene::palette_row_unavailable);
     scene.model_palette_rows[model_index] = visual_index;
+}
+
+static void capture_object_palettes(PreviewScene& scene)
+{
+    scene.palette_resource_generation = 0;
+    if (scene.is_area || scene.model_palette_rows.size() != scene.static_models.size()
+        || (scene.root_object.type != nw::ObjectType::item && scene.root_object.type != nw::ObjectType::creature)) {
+        return;
+    }
+    if (const auto* visual = nw::kernel::objects().components().find_visual(scene.root_object)) {
+        scene.palette_visual = *visual;
+        scene.palette_resource_generation = nw::kernel::resman().generation();
+    }
 }
 
 static bool apply_render_model_plt_material_overrides(PreviewScene& scene, uint32_t model_index,
@@ -2858,6 +2854,7 @@ static std::unique_ptr<PreviewScene> load_item_scene(PreviewRenderResources& res
     scene->root_object = item->handle();
     scene->active_object = scene->root_object;
     item.release();
+    capture_object_palettes(*scene);
     return scene;
 }
 
@@ -3038,6 +3035,7 @@ static void move_render_model_runtime_state(
     target_instance->attachment_node_world_transforms = std::move(source_instance->attachment_node_world_transforms);
     target_instance->attachment_node_transform_valid = std::move(source_instance->attachment_node_transform_valid);
     target_instance->animation = std::move(source_instance->animation);
+    target_instance->animation.published_inputs.valid = false;
     target_instance->render_model_index = target_model_index;
 
     // Material override handles are scene-owned stable handles, so the target
@@ -3812,6 +3810,7 @@ nw::render::ModelAssetTextureUploadDesc preview_model_asset_texture_upload_desc(
         .fallback_normal = resources.fallback_normal_index(),
         .fallback_surface = resources.fallback_surface_index(),
         .fallback_emissive = resources.fallback_emissive_index(),
+        .texture_cache = &resources.model_texture_cache(),
     };
 }
 
@@ -4885,12 +4884,7 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
     scene->root_object = object;
     scene->active_object = object;
     scene->owns_root_object = false;
-    if (scene->model_palette_rows.size() == scene->static_models.size()) {
-        if (const auto* visual = nw::kernel::objects().components().find_visual(object)) {
-            scene->palette_visual = *visual;
-            scene->palette_resource_generation = nw::kernel::resman().generation();
-        }
-    }
+    capture_object_palettes(*scene);
     return scene;
 }
 
@@ -5553,7 +5547,7 @@ AreaTransientVisualResult update_area_tile_previews(
                 instance->scene_animation_enabled = false;
                 instance->animation.enabled = false;
                 append_render_model_particle_systems(
-                    scene, *row.model, owner_handle, model_index, {});
+                    scene, row.model, owner_handle, model_index, {});
             }
             instance->root_transform = row.placement;
             nw::render::publish_render_model_static_node_world_transforms(
@@ -6344,6 +6338,7 @@ ObjectVisualRefreshResult refresh_object_visuals(
         return result;
     }
 
+    const size_t replacement_model_count = replacements.front()->static_models.size();
     size_t added_models = 0;
     for (size_t i = 0; i < replacements.size(); ++i) {
         added_models += append_render_models(scene,
@@ -6369,6 +6364,13 @@ ObjectVisualRefreshResult refresh_object_visuals(
         const std::string report_source = scene.load_report.source;
         const std::string report_kind = scene.load_report.kind;
         scene.rebuild_load_report(report_source, report_kind);
+    }
+
+    // This standalone batch replaces one root's entire model array. Transfer
+    // source indices only when every model kept its position during append.
+    if (added_models == replacement_model_count && scene.static_models.size() == replacement_model_count) {
+        scene.model_palette_rows = std::move(replacements.front()->model_palette_rows);
+        capture_object_palettes(scene);
     }
 
     result.status = ObjectVisualRefreshStatus::success;

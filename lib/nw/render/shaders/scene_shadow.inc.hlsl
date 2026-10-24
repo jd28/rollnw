@@ -33,8 +33,10 @@ float scene_shadow_cascade_blend_weight(uint cascade, float scene_distance) {
 }
 
 float scene_shadow_sample_map(uint texture_index, float2 shadow_uv, float receiver_depth, float bias) {
+    // Keep the nonuniform resource on every tap after DXC unrolls the loop.
+    Texture2D<float4> shadow_map = g_textures[NonUniformResourceIndex(texture_index)];
     uint2 shadow_size = 0;
-    g_textures[NonUniformResourceIndex(texture_index)].GetDimensions(shadow_size.x, shadow_size.y);
+    shadow_map.GetDimensions(shadow_size.x, shadow_size.y);
     if (shadow_size.x == 0 || shadow_size.y == 0) {
         return 1.0;
     }
@@ -47,7 +49,7 @@ float scene_shadow_sample_map(uint texture_index, float2 shadow_uv, float receiv
         for (int x = 0; x < 2; ++x) {
             float2 uv = saturate(shadow_uv + (float2(x, y) - 0.5) * texel);
             int2 pixel = min(int2(uv * float2(shadow_size)), int2(shadow_size) - 1);
-            float shadow_depth = g_textures[NonUniformResourceIndex(texture_index)].Load(int3(pixel, 0)).x;
+            float shadow_depth = shadow_map.Load(int3(pixel, 0)).x;
             visibility += (receiver_depth - bias) <= shadow_depth ? 1.0 : 0.0;
         }
     }
@@ -61,8 +63,10 @@ float scene_shadow_sample_map_tent(
     float bias,
     float filter_radius_texels)
 {
+    // Re-indexing inside the unrolled loop can lose SPIR-V NonUniform decorations.
+    Texture2D<float4> shadow_map = g_textures[NonUniformResourceIndex(texture_index)];
     uint2 shadow_size = 0;
-    g_textures[NonUniformResourceIndex(texture_index)].GetDimensions(shadow_size.x, shadow_size.y);
+    shadow_map.GetDimensions(shadow_size.x, shadow_size.y);
     if (shadow_size.x == 0 || shadow_size.y == 0) {
         return 1.0;
     }
@@ -77,7 +81,7 @@ float scene_shadow_sample_map_tent(
             const float weight = (x == 0 ? 2.0 : 1.0) * (y == 0 ? 2.0 : 1.0);
             float2 uv = saturate(shadow_uv + float2(x, y) * texel * radius);
             int2 pixel = min(int2(uv * float2(shadow_size)), int2(shadow_size) - 1);
-            float shadow_depth = g_textures[NonUniformResourceIndex(texture_index)].Load(int3(pixel, 0)).x;
+            float shadow_depth = shadow_map.Load(int3(pixel, 0)).x;
             visibility += weight * ((receiver_depth - bias) <= shadow_depth ? 1.0 : 0.0);
         }
     }

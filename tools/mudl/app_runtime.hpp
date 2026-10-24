@@ -415,10 +415,10 @@ inline std::optional<glm::vec3> vfx_sequence_authored_axis(
             continue;
         }
 
-        const size_t count = particles.compiled.effect.emitters.size();
+        const size_t count = particles.definition->compiled.effect.emitters.size();
         const auto* common_instance = vfx_sequence_particle_common_instance(scene, particles);
         for (size_t i = 0; i < count; ++i) {
-            const auto& emitter = particles.compiled.effect.emitters[i];
+            const auto& emitter = particles.definition->compiled.effect.emitters[i];
             const auto& attachment = emitter.attachment;
             if (emitter.targeting.mode == nw::render::ParticleTargetingMode::none) {
                 glm::vec3 axis{0.0f};
@@ -611,7 +611,7 @@ inline VfxProjectileTransportKind vfx_sequence_classify_projectile_transport(
         if (!vfx_sequence_particles_owned_by_model(scene_particles, owner_key)) {
             continue;
         }
-        for (const auto& emitter : scene_particles.compiled.effect.emitters) {
+        for (const auto& emitter : scene_particles.definition->compiled.effect.emitters) {
             if (emitter.targeting.mode != nw::render::ParticleTargetingMode::none) {
                 return VfxProjectileTransportKind::source_rooted_target_point;
             }

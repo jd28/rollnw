@@ -10,6 +10,7 @@ add_library(nw-render STATIC
     forward_plus_renderer.cpp
     frame_storage_arena.cpp
     model_asset.cpp
+    model_texture_cache.cpp
     local_shadow_renderer.cpp
     model_gpu_backend_common.cpp
     model_instance_attachment.cpp
@@ -17,6 +18,7 @@ add_library(nw-render STATIC
     model_pipeline_desc.cpp
     pipeline_cache.cpp
     particle_renderer.cpp
+    shadow_culling.cpp
     shadow_renderer.cpp
     shader_provider.cpp
     render_service.cpp
@@ -162,6 +164,8 @@ add_library(nw-render-viewer STATIC
     viewer/session.cpp
     viewer/tile_light.cpp)
 target_include_directories(nw-render-viewer PUBLIC ${CMAKE_SOURCE_DIR}/lib)
+target_include_directories(nw-render-viewer SYSTEM PRIVATE
+    ${CMAKE_SOURCE_DIR}/external/taskflow-4.1.0)
 target_include_directories(nw-render-viewer SYSTEM PUBLIC
     ${CMAKE_SOURCE_DIR}/external
     ${CMAKE_SOURCE_DIR}/external/glm)

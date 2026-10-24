@@ -3,13 +3,16 @@
 #include <nw/log.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <cstring>
+#include <limits>
 
 namespace nw::render {
 
 namespace {
 
 constexpr size_t kInitialSize = 4 * 1024 * 1024;
+constexpr size_t kMaxSize = std::numeric_limits<uint32_t>::max();
 
 size_t align_to(size_t value, size_t alignment)
 {
@@ -35,6 +38,10 @@ void FrameStorageArena::destroy()
 bool FrameStorageArena::reset(
     nw::gfx::Context* ctx, uint64_t new_frame_id, size_t min_capacity, nw::gfx::BufferUsage usage)
 {
+    if (min_capacity > kMaxSize) {
+        frame_id_ = UINT64_MAX;
+        return false;
+    }
     if (usage_ != usage) {
         destroy();
     }
@@ -58,7 +65,7 @@ bool FrameStorageArena::reset(
 
     const size_t old_cap = blocks_.empty() ? 0 : blocks_.back().capacity;
     if (old_cap < min_capacity) {
-        const size_t new_cap = std::max(min_capacity, std::max(kInitialSize, old_cap * 2));
+        const size_t new_cap = std::min(kMaxSize, std::max(min_capacity, std::max(kInitialSize, old_cap * 2)));
         nw::gfx::BufferDesc desc{};
         desc.size = new_cap;
         desc.usage = usage_;
@@ -84,7 +91,7 @@ bool FrameStorageArena::reset(
 
 nw::gfx::StorageSpan FrameStorageArena::allocate(nw::gfx::Context* ctx, uint32_t size, uint32_t alignment)
 {
-    if (blocks_.empty()) {
+    if (blocks_.empty() || size == 0 || !std::has_single_bit(alignment)) {
         return {};
     }
 
@@ -95,7 +102,7 @@ nw::gfx::StorageSpan FrameStorageArena::allocate(nw::gfx::Context* ctx, uint32_t
         return {back.buffer, static_cast<uint32_t>(offset), size};
     }
 
-    const size_t new_cap = std::max<size_t>(size, back.capacity * 2);
+    const size_t new_cap = std::min(kMaxSize, std::max<size_t>(size, back.capacity * 2));
     nw::gfx::BufferDesc desc{};
     desc.size = new_cap;
     desc.usage = usage_;

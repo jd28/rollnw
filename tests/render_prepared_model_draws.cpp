@@ -7,12 +7,39 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cstring>
 #include <memory>
 #include <span>
 #include <vector>
 
 namespace {
+
+void expect_material_binding_stats_equal(
+    const nw::render::PreparedModelSurfaceMaterialBindingStats& actual,
+    const nw::render::PreparedModelSurfaceMaterialBindingStats& expected)
+{
+    EXPECT_EQ(actual.surface_count, expected.surface_count);
+    EXPECT_EQ(actual.bound_surface_count, expected.bound_surface_count);
+    EXPECT_EQ(actual.invalid_range_count, expected.invalid_range_count);
+    EXPECT_EQ(actual.invalid_draw_index_count, expected.invalid_draw_index_count);
+    EXPECT_EQ(actual.range_mismatch_count, expected.range_mismatch_count);
+    EXPECT_EQ(actual.payload_mismatch_count, expected.payload_mismatch_count);
+    EXPECT_EQ(actual.material_mismatch_count, expected.material_mismatch_count);
+    EXPECT_EQ(actual.material_fallback_count, expected.material_fallback_count);
+    EXPECT_EQ(actual.render_model_material_fallback_count, expected.render_model_material_fallback_count);
+    EXPECT_EQ(actual.fallback_material_payload_count, expected.fallback_material_payload_count);
+    EXPECT_EQ(actual.render_model_fallback_material_payload_count, expected.render_model_fallback_material_payload_count);
+    EXPECT_EQ(actual.material_override_surface_count, expected.material_override_surface_count);
+    EXPECT_EQ(actual.shadow_mismatch_count, expected.shadow_mismatch_count);
+    EXPECT_EQ(actual.materials.opaque_count, expected.materials.opaque_count);
+    EXPECT_EQ(actual.materials.cutout_count, expected.materials.cutout_count);
+    EXPECT_EQ(actual.materials.water_count, expected.materials.water_count);
+    EXPECT_EQ(actual.materials.transparent_count, expected.materials.transparent_count);
+    EXPECT_EQ(actual.materials.invalid_mode_count, expected.materials.invalid_mode_count);
+    EXPECT_EQ(actual.valid(), expected.valid());
+}
 
 std::unique_ptr<nw::render::RenderModel> make_two_primitive_render_model()
 {
@@ -170,6 +197,83 @@ TEST(RenderPreparedModelDraws, CollectsRenderModelPrimitiveDraws)
     EXPECT_EQ(validation.expected_materials.cutout_count, 1u);
     EXPECT_EQ(validation.prepared_materials.opaque_count, 1u);
     EXPECT_EQ(validation.prepared_materials.cutout_count, 1u);
+}
+
+TEST(RenderPreparedModelDraws, RetainedTransformsMatchFreshDrawsAfterInputChanges)
+{
+    namespace viewer = nw::render::viewer;
+    viewer::PreviewScene scene;
+    scene.add(make_two_primitive_render_model());
+    scene.add(make_two_primitive_render_model());
+    auto handles = scene.static_model_instance_handles;
+    auto* instance = scene.model_instances.get(handles[0]);
+    ASSERT_NE(instance, nullptr);
+    auto& model = *scene.static_models[0];
+    viewer::PreviewPreparedModelDraws retained;
+    const auto check = [&]() {
+        viewer::PreviewPreparedModelDraws fresh;
+        viewer::collect_prepared_model_draws(retained, scene, handle_span(handles));
+        viewer::collect_prepared_model_draws(fresh, scene, handle_span(handles));
+        ASSERT_EQ(retained.common.draws.size(), fresh.common.draws.size());
+        ASSERT_EQ(retained.transform_cache.size(), retained.common.draws.size());
+        EXPECT_EQ(retained.common.instance_offsets, fresh.common.instance_offsets);
+        EXPECT_TRUE(viewer::validate_prepared_model_draws(scene, retained, handle_span(handles)).valid());
+        for (size_t i = 0; i < fresh.common.draws.size(); ++i) {
+            const auto& actual = retained.common.draws[i];
+            const auto& expected = fresh.common.draws[i];
+            EXPECT_EQ(std::memcmp(&actual.world, &expected.world, sizeof(actual.world)), 0);
+            EXPECT_EQ(std::memcmp(&actual.normal_matrix, &expected.normal_matrix, sizeof(actual.normal_matrix)), 0);
+            EXPECT_EQ(std::memcmp(&actual.bounds, &expected.bounds, sizeof(actual.bounds)), 0);
+            EXPECT_EQ(actual.material_mode, expected.material_mode);
+            EXPECT_EQ(actual.material_override, expected.material_override);
+            EXPECT_EQ(actual.instance_casts_shadow, expected.instance_casts_shadow);
+            EXPECT_EQ(actual.primitive_casts_shadow, expected.primitive_casts_shadow);
+        }
+    };
+    check();
+    check();
+    EXPECT_EQ(sizeof(viewer::PreviewPreparedModelDraws::Transform), 176u);
+
+    instance->root_transform = glm::scale(
+        glm::translate(glm::mat4{1.0f}, glm::vec3{3.0f, -2.0f, 8.0f}),
+        glm::vec3{-2.0f, 3.0f, 0.5f});
+    check();
+    check();
+    model.primitives[0].bounds.min.x = -4.0f;
+    model.primitives[1].bounds.max.z = 7.0f;
+    check();
+    model.primitives[0].node = 0;
+    instance->attachment_node_world_transforms.assign(1, glm::mat4{1.0f});
+    instance->attachment_node_transform_valid.assign(1, 1u);
+    check();
+    instance->attachment_node_world_transforms[0][3].y = 42.0f;
+    check();
+    instance->attachment_node_transform_valid[0] = 0u;
+    check();
+
+    nw::render::ModelMaterialOverride override;
+    override.material.alpha_mode = nw::render::MaterialMode::transparent;
+    instance->material_override_handles = {scene.material_overrides.create(override)};
+    instance->shadow.casts_shadow = !instance->shadow.casts_shadow;
+    model.primitives[1].casts_shadow = !model.primitives[1].casts_shadow;
+    check();
+    std::reverse(handles.begin(), handles.end());
+    check();
+    handles.push_back(handles.front());
+    check();
+    instance->visible = false;
+    check();
+    instance->visible = true;
+    model.primitives[0].index_count = 0;
+    check();
+    model.primitives[0].index_count = 3;
+    check();
+    retained.clear();
+    check();
+    handles.clear();
+    check();
+    handles = scene.static_model_instance_handles;
+    check();
 }
 
 TEST(RenderPreparedModelDraws, RenderModelPrimitiveDrawsUseSampledNodeTransforms)
@@ -903,6 +1007,36 @@ TEST(RenderPreparedModelDraws, RenderModelSurfaceSubmissionFlagsMissingSources)
     EXPECT_FALSE(stats.valid());
 }
 
+TEST(RenderPreparedModelDraws, SurfaceInstanceBatchesRejectInvalidRangesAndSpaces)
+{
+    using namespace nw::render;
+    nw::gfx::Pool<nw::gfx::Buffer, int> buffers;
+    const auto buffer = buffers.insert(1);
+    auto model = make_two_primitive_render_model();
+    PreparedModelSurfaceDraw prototype;
+    prototype.instance_source_index = 0;
+    prototype.source_draw_index = 0;
+    const auto row_bytes = static_cast<uint32_t>(sizeof(PreparedModelSurfaceInstance));
+    struct Input {
+        uint32_t bytes, first, count;
+        PreparedModelSurfaceInstanceSpace space;
+    };
+    const std::array inputs{
+        Input{row_bytes, 0, 2, PreparedModelSurfaceInstanceSpace::primitive_world},
+        Input{row_bytes, 1, 1, PreparedModelSurfaceInstanceSpace::primitive_world},
+        Input{row_bytes - 1, 0, 1, PreparedModelSurfaceInstanceSpace::primitive_world},
+        Input{row_bytes, 0, 1, static_cast<PreparedModelSurfaceInstanceSpace>(255)},
+    };
+    for (const auto& input : inputs) {
+        PreparedRenderModelSurfaceSubmissionStats stats;
+        render_prepared_render_model_surface_instances({}, nullptr, *model, prototype,
+            {buffer, 0, input.bytes}, input.first, input.count, {}, RenderPassSelection::opaque_cutout,
+            nullptr, &stats, input.space);
+        EXPECT_EQ(stats.submitted_surface_count, 0u);
+        EXPECT_EQ(stats.dropped_invalid_surface_count, input.count);
+    }
+}
+
 TEST(RenderPreparedModelDraws, ValidationDetectsPreparedDrawMismatch)
 {
     namespace viewer = nw::render::viewer;
@@ -1073,6 +1207,17 @@ TEST(RenderPreparedModelDraws, CollectsPreparedSurfaceDrawsFromRanges)
         surfaces.draws[3].material_payload,
         nw::render::PreparedModelMaterialPayloadKind::pbr);
     EXPECT_FALSE(surfaces.draws[3].casts_shadow);
+
+    EXPECT_EQ(surfaces.draws[0].winding, nw::render::ModelTransformWinding::regular);
+    list.draws[0].world = glm::scale(glm::mat4{1}, glm::vec3{-1, 1, 1});
+    list.draws[1].world = glm::scale(glm::mat4{1}, glm::vec3{-1, -1, 1});
+    list.draws[2].world = glm::scale(glm::mat4{1}, glm::vec3{0, 1, 1});
+    list.draws[3].world[0][0] = std::numeric_limits<float>::quiet_NaN();
+    nw::render::collect_prepared_model_surface_draws(surfaces, list, ranges);
+    EXPECT_EQ(surfaces.draws[0].winding, nw::render::ModelTransformWinding::mirrored);
+    EXPECT_EQ(surfaces.draws[1].winding, nw::render::ModelTransformWinding::regular);
+    EXPECT_EQ(surfaces.draws[2].winding, nw::render::ModelTransformWinding::unknown);
+    EXPECT_EQ(surfaces.draws[3].winding, nw::render::ModelTransformWinding::unknown);
 }
 
 TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialStatsCountPasses)
@@ -1101,6 +1246,68 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialStatsCountPasses)
     EXPECT_EQ(stats.invalid_mode_count, 1u);
     EXPECT_EQ(stats.total(), 5u);
     EXPECT_FALSE(nw::render::prepared_model_surface_casts_shadow(static_cast<nw::render::MaterialMode>(255)));
+}
+
+TEST(RenderPreparedModelDraws, SurfaceRangeBoundsPreserveFilteredOrderAcrossPermutations)
+{
+    using namespace nw::render;
+    std::array<uint32_t, 6> indices{0u, 0u, 2u, 3u, 99u, kInvalidPreparedModelDrawIndex};
+    std::vector<PreparedModelSurfaceRangeBounds> bounds;
+    do {
+        std::vector<PreparedModelSurfaceDraw> surfaces(indices.size());
+        for (size_t i = 0; i < indices.size(); ++i) {
+            surfaces[i].range_index = indices[i];
+            surfaces[i].draw_index = static_cast<uint32_t>(i);
+            surfaces[i].casts_shadow = i % 2u == 0u;
+        }
+        collect_prepared_model_surface_range_bounds(bounds, surfaces, 4u);
+        ASSERT_EQ(bounds.size(), 4u);
+        for (uint32_t range = 0; range < 4u; ++range) {
+            std::vector<uint32_t> expected;
+            std::vector<uint32_t> actual;
+            for (const auto& surface : surfaces) {
+                if (surface.range_index == range && surface.casts_shadow) {
+                    expected.push_back(surface.draw_index);
+                }
+            }
+            for (const auto& surface : prepared_model_surface_draws_for_range(surfaces, bounds, range)) {
+                if (surface.range_index == range && surface.casts_shadow) {
+                    actual.push_back(surface.draw_index);
+                }
+            }
+            EXPECT_EQ(actual, expected);
+        }
+        EXPECT_TRUE(prepared_model_surface_draws_for_range(surfaces, bounds, 99u).empty());
+        EXPECT_TRUE(prepared_model_surface_draws_for_range(surfaces, bounds, kInvalidPreparedModelDrawIndex).empty());
+    } while (std::next_permutation(indices.begin(), indices.end()));
+}
+
+TEST(RenderPreparedModelDraws, SurfaceRangeBoundsNarrowGroupedRowsAndResetEmptyRanges)
+{
+    using namespace nw::render;
+    std::vector<PreparedModelSurfaceDraw> surfaces(5);
+    for (size_t i = 0; i < surfaces.size(); ++i) {
+        surfaces[i].range_index = static_cast<uint32_t>(i / 2u);
+    }
+    std::vector<PreparedModelSurfaceRangeBounds> bounds;
+    collect_prepared_model_surface_range_bounds(bounds, surfaces, 4u);
+    EXPECT_EQ(prepared_model_surface_draws_for_range(surfaces, bounds, 0u).size(), 2u);
+    EXPECT_EQ(prepared_model_surface_draws_for_range(surfaces, bounds, 1u).data(), surfaces.data() + 2u);
+    EXPECT_EQ(prepared_model_surface_draws_for_range(surfaces, bounds, 1u).size(), 2u);
+    EXPECT_EQ(prepared_model_surface_draws_for_range(surfaces, bounds, 2u).size(), 1u);
+    EXPECT_TRUE(prepared_model_surface_draws_for_range(surfaces, bounds, 3u).empty());
+
+    bounds[0] = {.begin = 2u, .end = 1u};
+    bounds[1] = {.begin = 0u, .end = surfaces.size() + 1u};
+    EXPECT_TRUE(prepared_model_surface_draws_for_range(surfaces, bounds, 0u).empty());
+    EXPECT_TRUE(prepared_model_surface_draws_for_range(surfaces, bounds, 1u).empty());
+
+    collect_prepared_model_surface_range_bounds(bounds, {}, 4u);
+    for (uint32_t range = 0; range < 4u; ++range) {
+        EXPECT_TRUE(prepared_model_surface_draws_for_range(surfaces, bounds, range).empty());
+    }
+    collect_prepared_model_surface_range_bounds(bounds, surfaces, 0u);
+    EXPECT_TRUE(bounds.empty());
 }
 
 TEST(RenderPreparedModelDraws, PreparedSurfaceShadowRangesMarkCastersAndDropInvalidRanges)
@@ -1136,6 +1343,99 @@ TEST(RenderPreparedModelDraws, PreparedSurfaceShadowRangesMarkCastersAndDropInva
     EXPECT_EQ(stats.shadow_surface_count, 4u);
     EXPECT_EQ(stats.shadow_range_count, 2u);
     EXPECT_EQ(stats.invalid_range_index_count, 1u);
+}
+
+TEST(RenderPreparedModelDraws, CollectedMaterialBindingsMatchIndependentValidation)
+{
+    using namespace nw::render;
+    constexpr std::array modes{MaterialMode::opaque, MaterialMode::cutout,
+        MaterialMode::water, MaterialMode::transparent, static_cast<MaterialMode>(255)};
+    PreparedModelDrawList list;
+    list.instance_offsets.push_back(0u);
+    for (auto mode : modes) {
+        for (uint32_t flags = 0; flags < 32u; ++flags) {
+            const auto index = static_cast<uint32_t>(list.draws.size());
+            PreparedModelDraw draw;
+            draw.instance = {.index = index / 3u, .generation = 1u};
+            draw.instance_source_index = index / 3u;
+            draw.source_draw_index = index;
+            draw.material_index = index % 7u;
+            draw.material_mode = mode;
+            draw.material_uses_fallback = (flags & 1u) != 0;
+            draw.material_payload = static_cast<PreparedModelMaterialPayloadKind>(flags % 4u);
+            draw.skinned = (flags & 2u) != 0;
+            draw.skin_index = draw.skinned ? 2u : kInvalidPreparedModelDrawIndex;
+            draw.instance_casts_shadow = (flags & 4u) != 0;
+            draw.primitive_casts_shadow = (flags & 8u) != 0;
+            if (flags & 16u) {
+                draw.material_override = {.index = index, .generation = 1u};
+            }
+            list.draws.push_back(draw);
+            list.instance_offsets.push_back(index + 1u);
+        }
+    }
+    PreparedModelDrawRangeList ranges;
+    collect_prepared_model_draw_ranges(ranges, list);
+    PreparedModelSurfaceDrawList surfaces;
+    ModelInstanceStore instances;
+    collect_prepared_model_surface_draws(surfaces, list, ranges, instances);
+    ASSERT_EQ(surfaces.draws.size(), list.draws.size());
+    EXPECT_EQ(surfaces.material_bindings.materials.invalid_mode_count, 32u);
+    expect_material_binding_stats_equal(surfaces.material_bindings,
+        validate_prepared_model_surface_material_bindings(surfaces.draws, list, ranges));
+
+    sort_prepared_model_surface_draws_by_pass(surfaces.draws, surfaces.sort_cache);
+    expect_material_binding_stats_equal(surfaces.material_bindings,
+        validate_prepared_model_surface_material_bindings(surfaces.draws, list, ranges));
+
+    // A manual binding edit still requires the independent validator.
+    surfaces.draws.front().material_index += 1u;
+    EXPECT_EQ(validate_prepared_model_surface_material_bindings(surfaces.draws, list, ranges)
+                  .material_mismatch_count,
+        1u);
+
+    // Reusing a list must replace the old summary as well as the rows.
+    list.draws.front().material_uses_fallback = true;
+    list.draws.resize(1u);
+    list.instance_offsets = {0u, 1u};
+    collect_prepared_model_draw_ranges(ranges, list);
+    collect_prepared_model_surface_draws(surfaces, list, ranges);
+    expect_material_binding_stats_equal(surfaces.material_bindings,
+        validate_prepared_model_surface_material_bindings(surfaces.draws, list, ranges));
+    EXPECT_EQ(surfaces.material_bindings.surface_count, 1u);
+    EXPECT_EQ(surfaces.material_bindings.material_fallback_count, 1u);
+    surfaces.clear();
+    expect_material_binding_stats_equal(surfaces.material_bindings, {});
+    list.clear();
+    ranges.clear();
+    collect_prepared_model_surface_draws(surfaces, list, ranges);
+    expect_material_binding_stats_equal(surfaces.material_bindings, {});
+}
+
+TEST(RenderPreparedModelDraws, CollectedMaterialBindingsExcludeDroppedRangesAndDraws)
+{
+    using namespace nw::render;
+    PreparedModelDrawList list;
+    PreparedModelDraw draw;
+    draw.instance = {.index = 2u, .generation = 1u};
+    draw.instance_source_index = 4u;
+    draw.source_draw_index = 7u;
+    draw.material_mode = MaterialMode::cutout;
+    list.draws = {draw, draw};
+    list.instance_offsets = {0u, 1u, 2u};
+    PreparedModelDrawRangeList ranges;
+    collect_prepared_model_draw_ranges(ranges, list);
+    ranges.ranges[1].instance_source_index += 1u;
+    ranges.ranges.push_back({.draw_begin = 1u, .draw_count = 99u});
+    ranges.ranges.push_back({.draw_begin = kInvalidPreparedModelDrawIndex, .draw_count = 1u});
+    PreparedModelSurfaceDrawList surfaces;
+    collect_prepared_model_surface_draws(surfaces, list, ranges);
+    ASSERT_EQ(surfaces.draws.size(), 1u);
+    EXPECT_EQ(surfaces.stats.invalid_range_count, 2u);
+    EXPECT_EQ(surfaces.stats.range_mismatch_count, 1u);
+    expect_material_binding_stats_equal(surfaces.material_bindings,
+        validate_prepared_model_surface_material_bindings(surfaces.draws, list, ranges));
+    EXPECT_TRUE(surfaces.material_bindings.valid());
 }
 
 TEST(RenderPreparedModelDraws, PreparedSurfaceMaterialBindingsValidateSourceDrawParity)
@@ -1488,6 +1788,168 @@ TEST(RenderPreparedModelDraws, PreparedSurfacePassViewsUseSortedFlatArray)
 
     EXPECT_TRUE(nw::render::prepared_model_surface_draws_for_pass_indices(sorted, 2u, 2u).empty());
     EXPECT_TRUE(nw::render::prepared_model_surface_draws_for_pass_indices(sorted, 4u, 5u).empty());
+}
+
+TEST(RenderPreparedModelDraws, CompactSurfaceSortPreservesEveryOrderingField)
+{
+    nw::render::PreparedModelSurfaceDraw first;
+    first.material_mode = nw::render::MaterialMode::opaque;
+    first.instance_source_index = 0u;
+    first.material_index = 0u;
+    first.material_override = {.index = 0u, .generation = 0u};
+    first.skin_index = 0u;
+    first.range_index = 0u;
+    first.source_draw_index = 0u;
+    first.handle_index = 0u;
+    first.draw_index = 0u;
+    std::array<nw::render::PreparedModelSurfaceDraw, 10> later;
+    later.fill(first);
+    later[0].material_mode = nw::render::MaterialMode::cutout;
+    later[1].skinned = true;
+    later[2].instance_source_index = 1u;
+    later[3].material_index = 1u;
+    later[4].material_override.index = 1u;
+    later[5].material_override.generation = 1u;
+    later[6].skin_index = 1u;
+    later[7].range_index = 1u;
+    later[8].source_draw_index = 1u;
+    later[9].handle_index = 1u;
+    nw::render::PreparedModelSurfaceSortCache cache;
+    for (auto& last : later) {
+        last.draw_index = 1u;
+        std::array draws{last, first};
+        nw::render::sort_prepared_model_surface_draws_by_pass(draws, cache);
+        EXPECT_EQ(draws[0].draw_index, 0u);
+        EXPECT_EQ(draws[1].draw_index, 1u);
+        // Same count, but the changed field now reverses the incoming order.
+        draws = {first, last};
+        nw::render::sort_prepared_model_surface_draws_by_pass(draws, cache);
+        EXPECT_EQ(draws[0].draw_index, 0u);
+        EXPECT_EQ(draws[1].draw_index, 1u);
+    }
+}
+
+TEST(RenderPreparedModelDraws, CompactSurfaceSortMatchesComparatorAndPreservesPayloads)
+{
+    nw::render::PreparedModelSurfaceSortCache scratch;
+    uint32_t seed = 0x638b42f1u;
+    const auto next = [&]() {
+        seed = seed * 1664525u + 1013904223u;
+        return seed >> 16u;
+    };
+    const auto key = [&]() {
+        const auto value = next();
+        return value % 7u == 0u ? UINT32_MAX : value % 8u;
+    };
+    for (const size_t count : {0u, 1u, 128u, 2u, 0u, 4096u, 17u, 1u}) {
+        std::vector<nw::render::PreparedModelSurfaceDraw> source(count);
+        for (size_t i = 0; i < count; ++i) {
+            auto& draw = source[i];
+            draw.instance = {.index = static_cast<uint32_t>(i), .generation = 17u};
+            draw.draw_index = static_cast<uint32_t>(i);
+            draw.handle_index = static_cast<uint32_t>(i);
+            draw.material_mode = static_cast<nw::render::MaterialMode>(next() % 6u);
+            draw.skinned = next() % 2u != 0u;
+            draw.instance_source_index = key();
+            draw.material_index = key();
+            draw.material_override = {.index = key(), .generation = key()};
+            draw.skin_index = key();
+            draw.range_index = key();
+            draw.source_draw_index = key();
+            draw.skin_table_index = static_cast<uint32_t>(i * 3u);
+            draw.material_payload = static_cast<nw::render::PreparedModelMaterialPayloadKind>(i % 3u);
+            draw.material_uses_fallback = i % 2u != 0u;
+            draw.casts_shadow = i % 3u != 0u;
+            draw.winding = i % 2u ? nw::render::ModelTransformWinding::mirrored : nw::render::ModelTransformWinding::regular;
+            draw.world = glm::mat4{static_cast<float>(i + 1u)};
+            draw.normal_matrix = glm::mat4{static_cast<float>(i + 13u)};
+            draw.bounds = {glm::vec3{static_cast<float>(i)}, glm::vec3{static_cast<float>(i + 2u)}};
+        }
+        auto expected = source;
+        std::sort(expected.begin(), expected.end(), nw::render::prepared_model_surface_sort_less);
+        auto actual = source;
+        nw::render::sort_prepared_model_surface_draws_by_pass(actual, scratch);
+        for (size_t i = 0; i < count; ++i) {
+            const auto& draw = actual[i];
+            ASSERT_EQ(draw.draw_index, expected[i].draw_index);
+            const auto& original = source[draw.draw_index];
+            EXPECT_FALSE(nw::render::prepared_model_surface_sort_less(draw, original));
+            EXPECT_FALSE(nw::render::prepared_model_surface_sort_less(original, draw));
+            EXPECT_EQ(draw.instance, original.instance);
+            EXPECT_EQ(draw.world, original.world);
+            EXPECT_EQ(draw.normal_matrix, original.normal_matrix);
+            EXPECT_EQ(draw.bounds.min, original.bounds.min);
+            EXPECT_EQ(draw.bounds.max, original.bounds.max);
+            EXPECT_EQ(draw.skin_table_index, original.skin_table_index);
+            EXPECT_EQ(draw.material_payload, original.material_payload);
+            EXPECT_EQ(draw.material_uses_fallback, original.material_uses_fallback);
+            EXPECT_EQ(static_cast<bool>(draw.casts_shadow), static_cast<bool>(original.casts_shadow));
+            EXPECT_EQ(draw.winding, original.winding);
+        }
+    }
+}
+
+TEST(RenderPreparedModelDraws, CachedSurfaceSortKeepsFreshPayloadsAcrossFrames)
+{
+    nw::render::PreparedModelSurfaceDrawList list;
+    std::vector<nw::render::PreparedModelSurfaceDraw> source(128);
+    for (size_t i = 0; i < source.size(); ++i) {
+        source[i].draw_index = static_cast<uint32_t>(i);
+        source[i].material_index = static_cast<uint32_t>((i * 13u) % 19u);
+        source[i].handle_index = static_cast<uint32_t>(i);
+    }
+    for (uint32_t frame = 0; frame < 6u; ++frame) {
+        if (frame == 3u) {
+            // Equal-sized visibility/input reorder must invalidate old indices.
+            std::rotate(source.begin(), source.begin() + 17, source.end());
+        }
+        for (auto& draw : source) {
+            const auto value = frame * 128u + draw.draw_index;
+            draw.instance = {.index = draw.draw_index, .generation = frame};
+            draw.world = glm::mat4{static_cast<float>(value + 1u)};
+            draw.normal_matrix = glm::mat4{static_cast<float>(value + 3u)};
+            draw.bounds = {glm::vec3{static_cast<float>(value)}, glm::vec3{static_cast<float>(value + 2u)}};
+            draw.skin_table_index = value;
+            draw.material_payload = static_cast<nw::render::PreparedModelMaterialPayloadKind>(frame % 3u);
+            draw.material_uses_fallback = frame % 2u != 0u;
+            draw.casts_shadow = frame % 3u != 0u;
+            draw.winding = frame % 2u ? nw::render::ModelTransformWinding::mirrored : nw::render::ModelTransformWinding::regular;
+        }
+        auto expected = source;
+        std::sort(expected.begin(), expected.end(), nw::render::prepared_model_surface_sort_less);
+        list.clear();
+        list.draws = source;
+        nw::render::sort_prepared_model_surface_draws_by_pass(list.draws, list.sort_cache);
+        for (size_t i = 0; i < expected.size(); ++i) {
+            const auto& actual = list.draws[i];
+            const auto& original = expected[i];
+            ASSERT_EQ(actual.draw_index, original.draw_index);
+            EXPECT_EQ(actual.instance, original.instance);
+            EXPECT_EQ(actual.world, original.world);
+            EXPECT_EQ(actual.normal_matrix, original.normal_matrix);
+            EXPECT_EQ(actual.bounds.min, original.bounds.min);
+            EXPECT_EQ(actual.bounds.max, original.bounds.max);
+            EXPECT_EQ(actual.skin_table_index, original.skin_table_index);
+            EXPECT_EQ(actual.material_payload, original.material_payload);
+            EXPECT_EQ(actual.material_uses_fallback, original.material_uses_fallback);
+            EXPECT_EQ(static_cast<bool>(actual.casts_shadow), static_cast<bool>(original.casts_shadow));
+            EXPECT_EQ(actual.winding, original.winding);
+        }
+    }
+}
+
+TEST(RenderPreparedModelDraws, CompactSurfaceSortPreservesEquivalentKeyPermutation)
+{
+    std::vector<nw::render::PreparedModelSurfaceDraw> actual(128);
+    for (size_t i = 0; i < actual.size(); ++i) {
+        actual[i].draw_index = static_cast<uint32_t>(i);
+    }
+    auto expected = actual;
+    std::sort(expected.begin(), expected.end(), nw::render::prepared_model_surface_sort_less);
+    nw::render::sort_prepared_model_surface_draws_by_pass(actual);
+    for (size_t i = 0; i < actual.size(); ++i) {
+        EXPECT_EQ(actual[i].draw_index, expected[i].draw_index);
+    }
 }
 
 TEST(RenderPreparedModelDraws, PreparedSurfaceDrawsPartitionRenderModelRunsBySource)

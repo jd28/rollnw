@@ -5,6 +5,7 @@
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/render/frustum.hpp>
 #include <nw/render/model_asset.hpp>
 
 #include <algorithm>
@@ -565,66 +566,6 @@ void append_area_visible_dynamic_render_model_handle(
     if (handle.valid()) {
         out.push_back(handle);
     }
-}
-
-glm::vec4 matrix_row(const glm::mat4& matrix, glm::length_t row) noexcept
-{
-    return glm::vec4(matrix[0][row], matrix[1][row], matrix[2][row], matrix[3][row]);
-}
-
-struct AreaRenderFrustum {
-    std::array<glm::vec4, 6> planes{};
-    bool valid = false;
-};
-
-AreaRenderFrustum make_area_render_frustum(const glm::mat4& view_projection) noexcept
-{
-    const glm::vec4 row0 = matrix_row(view_projection, 0);
-    const glm::vec4 row1 = matrix_row(view_projection, 1);
-    const glm::vec4 row2 = matrix_row(view_projection, 2);
-    const glm::vec4 row3 = matrix_row(view_projection, 3);
-
-    AreaRenderFrustum result{};
-    result.planes = {{
-        row3 + row0,
-        row3 - row0,
-        row3 + row1,
-        row3 - row1,
-        row2,
-        row3 - row2,
-    }};
-
-    result.valid = true;
-    for (auto& plane : result.planes) {
-        const float length = glm::length(glm::vec3{plane});
-        if (length <= 1.0e-6f) {
-            result.valid = false;
-            continue;
-        }
-        plane /= length;
-    }
-    return result;
-}
-
-bool bounds_intersects_frustum(const Bounds& bounds, const AreaRenderFrustum& frustum) noexcept
-{
-    if (!frustum.valid) {
-        return true;
-    }
-
-    constexpr float kCullPadding = 0.25f;
-    for (const glm::vec4& plane : frustum.planes) {
-        const glm::vec3 normal{plane};
-        const glm::vec3 positive{
-            normal.x >= 0.0f ? bounds.max.x : bounds.min.x,
-            normal.y >= 0.0f ? bounds.max.y : bounds.min.y,
-            normal.z >= 0.0f ? bounds.max.z : bounds.min.z,
-        };
-        if (glm::dot(normal, positive) + plane.w < -kCullPadding) {
-            return false;
-        }
-    }
-    return true;
 }
 
 void expand_bounds(Bounds& target, const Bounds& source, bool& initialized) noexcept
@@ -1691,7 +1632,8 @@ void AreaRenderScene::clear()
     prepared_model_draws_.clear();
     prepared_model_draw_ranges_.clear();
     prepared_model_surface_draws_.clear();
-    prepared_surface_materials_ = {};
+    prepared_shadow_ranges_.clear();
+    prepared_shadow_range_stats_ = {};
     prepared_surface_material_bindings_ = {};
     prepared_surface_offsets_.clear();
     prepared_surface_indices_.clear();
@@ -1706,6 +1648,11 @@ void AreaRenderScene::clear()
     last_tile_record_refresh_stats_ = {};
     has_scene_bounds_ = false;
     surface_cache_complete_ = false;
+    shadow_batch_cache_.model_group_indices.clear();
+    shadow_batch_cache_.group_model_counts.clear();
+    shadow_batch_cache_.valid = false;
+    surface_batch_cache_.batches = {};
+    surface_batch_cache_.valid = false;
 }
 
 void AreaRenderScene::rebuild(const PreviewScene& scene)
@@ -2613,9 +2560,10 @@ bool AreaRenderScene::refresh_stable_tile_record_rows(
                 = replacement_draws.draws[replacement_offset++];
             auto& surface
                 = prepared_model_surface_draws_.draws[surface_index];
+            const bool old_casts_shadow = surface.casts_shadow;
             const auto old_sort_key = std::tuple{
                 surface.material_mode,
-                surface.skinned,
+                bool{surface.skinned},
                 surface.instance_source_index,
                 surface.material_index,
                 surface.material_override,
@@ -2650,13 +2598,14 @@ bool AreaRenderScene::refresh_stable_tile_record_rows(
                     && replacement.primitive_casts_shadow
                     && nw::render::prepared_model_surface_casts_shadow(
                         replacement.material_mode),
+                .winding = nw::render::model_transform_winding(replacement.world),
                 .world = replacement.world,
                 .normal_matrix = replacement.normal_matrix,
                 .bounds = replacement.bounds,
             };
             const auto new_sort_key = std::tuple{
                 surface.material_mode,
-                surface.skinned,
+                bool{surface.skinned},
                 surface.instance_source_index,
                 surface.material_index,
                 surface.material_override,
@@ -2668,6 +2617,8 @@ bool AreaRenderScene::refresh_stable_tile_record_rows(
             surface_sort_changed
                 = surface_sort_changed
                 || old_sort_key != new_sort_key;
+            surface_protocol_changed = surface_protocol_changed
+                || old_casts_shadow != surface.casts_shadow;
             changed_surface_indices.push_back(surface_index);
         }
     }
@@ -2920,17 +2871,17 @@ void AreaRenderScene::refresh_record_bounds_summaries() noexcept
     }
 }
 
-void AreaRenderScene::refresh_prepared_surface_protocol_stats() noexcept
+void AreaRenderScene::refresh_prepared_surface_protocol_stats()
 {
     const std::span<const nw::render::PreparedModelSurfaceDraw>
         surfaces{prepared_model_surface_draws_.draws.data(),
             prepared_model_surface_draws_.draws.size()};
-    prepared_surface_materials_
-        = nw::render::prepared_model_surface_material_stats(surfaces);
     prepared_surface_material_bindings_
         = nw::render::validate_prepared_model_surface_material_bindings(
             surfaces, prepared_model_draws_,
             prepared_model_draw_ranges_);
+    prepared_shadow_range_stats_ = nw::render::collect_prepared_model_surface_shadow_ranges(
+        prepared_shadow_ranges_, surfaces, prepared_model_draw_ranges_.ranges.size());
 }
 
 void AreaRenderScene::refresh_surface_stats() noexcept
@@ -4082,7 +4033,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
         && chunk_bounds.size() >= chunk_count
         && chunk_has_bounds.size() >= chunk_count
         && scene.chunk_offsets().size() > chunk_count;
-    const AreaRenderFrustum frustum = cull_enabled ? make_area_render_frustum(cull.view_projection) : AreaRenderFrustum{};
+    const Frustum frustum = cull_enabled ? make_frustum(cull.view_projection) : Frustum{};
 
     const auto record_bounds = [&](uint32_t record_index) -> Bounds {
         if (record_index < bounds.size()) {
@@ -4126,7 +4077,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
 
     const auto append_record_if_visible = [&](uint32_t record_index) {
         if (frustum.valid && record_index < bounds.size()
-            && !bounds_intersects_frustum(bounds[record_index], frustum)) {
+            && !bounds_intersects_frustum(bounds[record_index].min, bounds[record_index].max, frustum)) {
             ++frame.stats_.culled_record_count;
             return;
         }
@@ -4153,7 +4104,7 @@ void prepare_area_frame(const AreaRenderScene& scene, AreaRenderFrame& frame, co
                 continue;
             }
             if (chunk_has_bounds[chunk_id] != 0u
-                && !bounds_intersects_frustum(chunk_bounds[chunk_id], frustum)) {
+                && !bounds_intersects_frustum(chunk_bounds[chunk_id].min, chunk_bounds[chunk_id].max, frustum)) {
                 ++frame.stats_.culled_chunk_count;
                 frame.stats_.culled_record_count += clamped_end - begin;
                 continue;

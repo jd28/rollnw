@@ -15,6 +15,7 @@ struct Image;
 
 namespace nw::render {
 
+struct Frustum;
 struct ParticleSystemInstance;
 
 enum class ParticleRenderPathKind : uint8_t {
@@ -93,5 +94,10 @@ struct ParticleSpriteFrameRect {
     ParticleRenderMode mode, const ParticleBillboardAxes& axes, float rotation) noexcept;
 
 [[nodiscard]] bool particle_named_texture_available(std::string_view texture_name, const nw::Image* source_image) noexcept;
+
+// Tests a batch of live billboards, independent of the emitter owner's bounds.
+// Unsupported modes or malformed particle data retain the batch.
+[[nodiscard]] bool particle_billboards_visible(const ParticleSystemInstance& system,
+    const ParticleRenderPacket& packet, const Frustum& frustum) noexcept;
 
 } // namespace nw::render

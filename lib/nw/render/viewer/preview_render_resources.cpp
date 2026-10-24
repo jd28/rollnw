@@ -41,6 +41,11 @@ RenderAssetCache& PreviewRenderResources::asset_cache() const
     return render_service_->asset_cache();
 }
 
+ModelTextureCache& PreviewRenderResources::model_texture_cache() const
+{
+    return render_service_->model_texture_cache();
+}
+
 nw::gfx::Handle<nw::gfx::Texture> PreviewRenderResources::get_or_load_texture(const std::string& name, bool premultiply_alpha)
 {
     return asset_cache().get_or_load_texture(nw::Resref{name}, premultiply_alpha, model_backend().fallback_texture());

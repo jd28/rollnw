@@ -6,10 +6,12 @@
 
 #include <nw/render/model_renderer.hpp>
 
+#include <absl/container/flat_hash_map.h>
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include <limits>
 
 namespace nw::render::viewer {
@@ -173,7 +175,8 @@ void append_render_model_draws_impl(
     const nw::render::ModelInstanceHandle handle,
     const nw::render::ModelInstance& instance,
     const nw::render::RenderModel& model,
-    const nw::render::ModelMaterialOverrideStore& material_overrides)
+    const nw::render::ModelMaterialOverrideStore& material_overrides,
+    std::vector<PreviewPreparedModelDraws::Transform>* transform_cache = nullptr)
 {
     auto& stats = out.stats;
     ++stats.render_model_instance_count;
@@ -196,6 +199,27 @@ void append_render_model_draws_impl(
             &instance,
             instance.root_transform,
             primitive);
+        glm::mat4 normal_matrix;
+        nw::render::Bounds world_bounds;
+        const size_t row = out.draws.size();
+        if (transform_cache && row < transform_cache->size()
+            && std::memcmp(&world, &(*transform_cache)[row].world, sizeof(world)) == 0
+            && std::memcmp(&primitive.bounds, &(*transform_cache)[row].local_bounds, sizeof(primitive.bounds)) == 0) {
+            normal_matrix = (*transform_cache)[row].normal_matrix;
+            world_bounds = (*transform_cache)[row].world_bounds;
+        } else {
+            normal_matrix = make_normal_matrix(world);
+            world_bounds = transform_bounds(primitive.bounds, world);
+            if (transform_cache) {
+                const PreviewPreparedModelDraws::Transform transform{
+                    world, primitive.bounds, normal_matrix, world_bounds};
+                if (row == transform_cache->size()) {
+                    transform_cache->push_back(transform);
+                } else {
+                    (*transform_cache)[row] = transform;
+                }
+            }
+        }
         out.draws.push_back(nw::render::PreparedModelDraw{
             .instance = handle,
             .instance_source_index = instance.render_model_index,
@@ -210,8 +234,8 @@ void append_render_model_draws_impl(
             .instance_casts_shadow = instance.shadow.casts_shadow,
             .primitive_casts_shadow = primitive.casts_shadow,
             .world = world,
-            .normal_matrix = make_normal_matrix(world),
-            .bounds = transform_bounds(primitive.bounds, world),
+            .normal_matrix = normal_matrix,
+            .bounds = world_bounds,
         });
         ++stats.render_model_draw_count;
         if (draw_material.material_uses_fallback) {
@@ -254,7 +278,8 @@ void append_prepared_model_draws(
             handle,
             *instance,
             *scene.static_models[instance->render_model_index],
-            scene.material_overrides);
+            scene.material_overrides,
+            &out.transform_cache);
         append_instance_offset(out);
     }
 }
@@ -427,7 +452,8 @@ void collect_sorted_surface_draws(
         prepared.ranges,
         scene.model_instances);
     nw::render::sort_prepared_model_surface_draws_by_pass(
-        std::span<nw::render::PreparedModelSurfaceDraw>{surfaces.draws.data(), surfaces.draws.size()});
+        std::span<nw::render::PreparedModelSurfaceDraw>{surfaces.draws.data(), surfaces.draws.size()},
+        surfaces.sort_cache);
 }
 
 } // namespace
@@ -451,6 +477,7 @@ void collect_prepared_model_draws(
     out.common.instance_offsets.reserve(handles.size() + 1u);
     append_instance_offset(out);
     append_prepared_model_draws(out, scene, handles);
+    out.transform_cache.resize(out.common.draws.size());
     nw::render::collect_prepared_model_draw_ranges(out.ranges, out.common);
 }
 
@@ -458,12 +485,7 @@ void collect_prepared_model_draws(
     PreviewPreparedModelDraws& out,
     const PreviewScene& scene)
 {
-    out.clear();
-    const size_t handle_count = scene.static_model_instance_handles.size();
-    out.common.instance_offsets.reserve(handle_count + 1u);
-    append_instance_offset(out);
-    append_prepared_model_draws(out, scene, scene.static_model_instance_handles);
-    nw::render::collect_prepared_model_draw_ranges(out.ranges, out.common);
+    collect_prepared_model_draws(out, scene, scene.static_model_instance_handles);
 }
 
 void collect_prepared_model_surface_draws(
@@ -522,30 +544,29 @@ bool prepared_surface_visible_in_pass(
     return false;
 }
 
-nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_model_surface_draw_indices_for_pass(
-    const nw::render::ModelRenderContext& render_model_ctx,
-    nw::gfx::CommandList* cmd,
+void prepare_surface_batches(
+    PreparedSurfaceBatches& batches,
     const PreviewScene& scene,
     std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
     std::span<const uint32_t> surface_indices,
-    const nw::render::RenderContext& ctx,
     nw::render::RenderPassSelection pass,
-    const AreaRenderFrame* visibility_filter,
-    const nw::render::PreparedRenderModelSkinTable* skin_table,
-    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch)
+    const AreaRenderFrame* visibility_filter)
 {
-    nw::render::PreparedRenderModelSurfaceSubmissionStats stats{};
+    batches = {};
+    auto& valid_surface_indices = batches.surface_indices;
+    auto& runs = batches.runs;
+    auto& batch_groups = batches.groups;
+    auto& fallback_runs = batches.fallback_runs;
     if (surface_indices.size()
         > std::numeric_limits<uint32_t>::max()) {
-        stats.dropped_invalid_surface_count
+        batches.dropped_invalid_surface_count
             = std::numeric_limits<uint32_t>::max();
-        return stats;
+        return;
     }
-    std::vector<uint32_t> valid_surface_indices;
     valid_surface_indices.reserve(surface_indices.size());
     for (const uint32_t surface_index : surface_indices) {
         if (surface_index >= surfaces.size()) {
-            add_saturating(stats.dropped_invalid_surface_count, 1u);
+            add_saturating(batches.dropped_invalid_surface_count, 1u);
             continue;
         }
         const auto& surface = surfaces[surface_index];
@@ -562,19 +583,12 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
                 == nw::render::kInvalidPreparedModelDrawIndex
             || surface.instance_source_index
                 >= scene.static_models.size()) {
-            add_saturating(stats.dropped_invalid_surface_count, 1u);
+            add_saturating(batches.dropped_invalid_surface_count, 1u);
             continue;
         }
         valid_surface_indices.push_back(surface_index);
     }
 
-    struct IndexedSurfaceRun {
-        size_t begin = 0u;
-        size_t end = 0u;
-        uint32_t instance_source_index
-            = nw::render::kInvalidPreparedModelDrawIndex;
-    };
-    std::vector<IndexedSurfaceRun> runs;
     runs.reserve(valid_surface_indices.size());
     for (size_t cursor = 0u;
         cursor < valid_surface_indices.size();) {
@@ -596,18 +610,14 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         });
     }
 
-    const auto surface_at = [&](const IndexedSurfaceRun& run,
+    const auto surface_at = [&](const PreparedSurfaceBatches::Run& run,
                                 size_t offset)
         -> const nw::render::PreparedModelSurfaceDraw& {
         return surfaces[valid_surface_indices[run.begin + offset]];
     };
-    const auto batch_eligible = [&](const IndexedSurfaceRun& run) {
+    const auto batch_eligible = [&](const PreparedSurfaceBatches::Run& run,
+                                    const nw::render::ModelInstance& instance) {
         if (run.begin >= run.end) {
-            return false;
-        }
-        const auto* instance = scene.static_model_instance(
-            run.instance_source_index);
-        if (!instance || instance->scene_animation_enabled) {
             return false;
         }
         for (size_t offset = 0u;
@@ -620,11 +630,19 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
                         != nw::render::MaterialMode::cutout)) {
                 return false;
             }
+            if (instance.scene_animation_enabled) {
+                const auto& model = scene.static_models[run.instance_source_index];
+                if (surface.source_draw_index >= model->primitives.size()
+                    || model->primitives[surface.source_draw_index].deformer
+                        != nw::render::kInvalidModelDeformerIndex) {
+                    return false;
+                }
+            }
         }
         return true;
     };
-    const auto batch_compatible = [&](const IndexedSurfaceRun& lhs,
-                                      const IndexedSurfaceRun& rhs) {
+    const auto batch_compatible = [&](const PreparedSurfaceBatches::Run& lhs,
+                                      const PreparedSurfaceBatches::Run& rhs) {
         const size_t left_count = lhs.end - lhs.begin;
         if (left_count != rhs.end - rhs.begin) {
             return false;
@@ -640,19 +658,15 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
                 || left.material_uses_fallback
                     != right.material_uses_fallback
                 || left.material_payload != right.material_payload
-                || left.skinned != right.skinned) {
+                || left.skinned != right.skinned
+                || left.winding != right.winding) {
                 return false;
             }
         }
         return true;
     };
 
-    struct StaticSurfaceBatchGroup {
-        uint32_t representative_run = 0u;
-        std::vector<uint32_t> run_indices;
-    };
-    std::vector<StaticSurfaceBatchGroup> batch_groups;
-    std::vector<uint32_t> fallback_runs;
+    absl::flat_hash_map<const nw::render::RenderModel*, std::vector<uint32_t>> model_group_indices;
     batch_groups.reserve(runs.size());
     fallback_runs.reserve(runs.size());
     for (uint32_t run_index = 0u;
@@ -660,29 +674,82 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         const auto& run = runs[run_index];
         const auto& model
             = scene.static_models[run.instance_source_index];
-        if (!model || !batch_eligible(run)) {
+        const auto* instance = scene.static_model_instance(run.instance_source_index);
+        if (!model || !instance || !batch_eligible(run, *instance)) {
             fallback_runs.push_back(run_index);
             continue;
         }
+        const auto space = instance->scene_animation_enabled
+            ? nw::render::PreparedModelSurfaceInstanceSpace::primitive_world
+            : nw::render::PreparedModelSurfaceInstanceSpace::model_root;
 
-        auto group = std::find_if(batch_groups.begin(),
-            batch_groups.end(), [&](const auto& candidate) {
-                const auto& representative
-                    = runs[candidate.representative_run];
-                return scene.static_models[representative.instance_source_index]
-                    == model
-                    && batch_compatible(representative, run);
+        // Placements share asset identity; keep group indices in creation order.
+        auto& group_indices = model_group_indices[model.get()];
+        const auto group = std::find_if(group_indices.begin(),
+            group_indices.end(), [&](uint32_t group_index) {
+                const auto& candidate = batch_groups[group_index];
+                return candidate.space == space
+                    && batch_compatible(runs[candidate.representative_run], run);
             });
-        if (group == batch_groups.end()) {
+        if (group == group_indices.end()) {
+            group_indices.push_back(static_cast<uint32_t>(batch_groups.size()));
             batch_groups.push_back({
                 .representative_run = run_index,
+                .space = space,
                 .run_indices = {run_index},
             });
         } else {
-            group->run_indices.push_back(run_index);
+            batch_groups[*group].run_indices.push_back(run_index);
         }
     }
+}
 
+void retain_root_instances(PreparedSurfaceBatches& batches, const PreviewScene& scene)
+{
+    // Preparation has validated each run's instance. Gather while those
+    // inputs are still owned by this synchronous cache rebuild.
+    const size_t max_rows = std::numeric_limits<uint32_t>::max()
+        / sizeof(nw::render::PreparedModelSurfaceInstance);
+    for (auto& group : batches.groups) {
+        if (group.space != nw::render::PreparedModelSurfaceInstanceSpace::model_root
+            || group.run_indices.size() < 2u
+            || group.run_indices.size() > max_rows) {
+            continue;
+        }
+        group.root_instances.reserve(group.run_indices.size());
+        for (const uint32_t run_index : group.run_indices) {
+            const auto* instance = scene.static_model_instance(
+                batches.runs[run_index].instance_source_index);
+            group.root_instances.push_back({
+                .root = instance->root_transform,
+                .root_normal_matrix = make_normal_matrix(instance->root_transform),
+            });
+        }
+    }
+}
+
+nw::render::PreparedRenderModelSurfaceSubmissionStats render_surface_batches(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
+    const PreparedSurfaceBatches& batches,
+    const nw::render::RenderContext& ctx,
+    nw::render::RenderPassSelection pass,
+    const nw::render::PreparedRenderModelSkinTable* skin_table,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch)
+{
+    nw::render::PreparedRenderModelSurfaceSubmissionStats stats{};
+    stats.dropped_invalid_surface_count = batches.dropped_invalid_surface_count;
+    const auto& runs = batches.runs;
+    const auto& batch_groups = batches.groups;
+    // Frame allocation failures must not alter the retained preparation result.
+    auto fallback_runs = batches.fallback_runs;
+    const auto surface_at = [&](const PreparedSurfaceBatches::Run& run,
+                                size_t offset)
+        -> const nw::render::PreparedModelSurfaceDraw& {
+        return surfaces[batches.surface_indices[run.begin + offset]];
+    };
     for (const auto& group : batch_groups) {
         if (group.run_indices.size() < 2u) {
             fallback_runs.push_back(group.representative_run);
@@ -694,16 +761,19 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         const size_t surface_count
             = representative.end - representative.begin;
         const size_t instance_count = group.run_indices.size();
+        const bool world_space = group.space
+            == nw::render::PreparedModelSurfaceInstanceSpace::primitive_world;
+        const size_t slice_count = world_space ? surface_count : 1u;
+        const size_t max_rows = std::numeric_limits<uint32_t>::max()
+            / sizeof(nw::render::PreparedModelSurfaceInstance);
         if (!render_model_ctx.gpu
-            || instance_count
-                > std::numeric_limits<uint32_t>::max()
-                    / sizeof(nw::render::PreparedModelSurfaceInstance)) {
+            || instance_count > max_rows / slice_count) {
             fallback_runs.insert(fallback_runs.end(),
                 group.run_indices.begin(), group.run_indices.end());
             continue;
         }
         const uint32_t instance_bytes
-            = static_cast<uint32_t>(instance_count)
+            = static_cast<uint32_t>(instance_count * slice_count)
             * sizeof(nw::render::PreparedModelSurfaceInstance);
         const auto mapped_instances
             = render_model_ctx.gpu->allocate_mapped_frame_storage(
@@ -717,18 +787,32 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         auto* surface_instances = static_cast<
             nw::render::PreparedModelSurfaceInstance*>(
             mapped_instances.data);
-        for (size_t instance_offset = 0u;
-            instance_offset < instance_count;
-            ++instance_offset) {
-            const uint32_t run_index
-                = group.run_indices[instance_offset];
-            const auto* instance = scene.static_model_instance(
-                runs[run_index].instance_source_index);
-            surface_instances[instance_offset] = {
-                .root = instance->root_transform,
-                .root_normal_matrix
-                = make_normal_matrix(instance->root_transform),
-            };
+        if (world_space) {
+            for (size_t surface_offset = 0; surface_offset < surface_count; ++surface_offset) {
+                for (size_t instance_offset = 0; instance_offset < instance_count; ++instance_offset) {
+                    const auto& surface = surface_at(runs[group.run_indices[instance_offset]], surface_offset);
+                    surface_instances[surface_offset * instance_count + instance_offset] = {
+                        .root = surface.world,
+                        .root_normal_matrix = surface.normal_matrix,
+                    };
+                }
+            }
+        } else if (group.root_instances.size() == instance_count) {
+            std::copy(group.root_instances.begin(), group.root_instances.end(), surface_instances);
+        } else {
+            for (size_t instance_offset = 0u;
+                instance_offset < instance_count;
+                ++instance_offset) {
+                const uint32_t run_index
+                    = group.run_indices[instance_offset];
+                const auto* instance = scene.static_model_instance(
+                    runs[run_index].instance_source_index);
+                surface_instances[instance_offset] = {
+                    .root = instance->root_transform,
+                    .root_normal_matrix
+                    = make_normal_matrix(instance->root_transform),
+                };
+            }
         }
         for (size_t surface_offset = 0u;
             surface_offset < surface_count;
@@ -736,10 +820,12 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
             nw::render::render_prepared_render_model_surface_instances(
                 render_model_ctx, cmd, *model,
                 surface_at(representative, surface_offset),
-                mapped_instances.span, 0u,
+                mapped_instances.span,
+                world_space ? static_cast<uint32_t>(surface_offset * instance_count) : 0u,
                 static_cast<uint32_t>(instance_count),
                 ctx, pass,
-                &scene.material_overrides, &stats);
+                &scene.material_overrides, &stats, group.space,
+                surface_at(representative, surface_offset).winding);
         }
     }
 
@@ -768,6 +854,24 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
     }
 
     return stats;
+}
+
+nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_model_surface_draw_indices_for_pass(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    std::span<const nw::render::PreparedModelSurfaceDraw> surfaces,
+    std::span<const uint32_t> surface_indices,
+    const nw::render::RenderContext& ctx,
+    nw::render::RenderPassSelection pass,
+    const AreaRenderFrame* visibility_filter,
+    const nw::render::PreparedRenderModelSkinTable* skin_table,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch)
+{
+    PreparedSurfaceBatches batches;
+    prepare_surface_batches(batches, scene, surfaces, surface_indices, pass, visibility_filter);
+    return render_surface_batches(render_model_ctx, cmd, scene, surfaces, batches,
+        ctx, pass, skin_table, packet_scratch);
 }
 
 } // namespace
@@ -818,6 +922,55 @@ nw::render::PreparedRenderModelSurfaceSubmissionStats render_prepared_render_mod
         render_model_ctx, cmd, scene, surfaces,
         surface_indices, ctx, pass, visibility_filter, skin_table,
         packet_scratch);
+}
+
+nw::render::PreparedRenderModelSurfaceSubmissionStats render_area_model_surface_draws(
+    const nw::render::ModelRenderContext& render_model_ctx,
+    nw::gfx::CommandList* cmd,
+    const PreviewScene& scene,
+    AreaRenderScene& area_scene,
+    const AreaRenderFrame& frame,
+    const nw::render::RenderContext& ctx,
+    nw::render::RenderPassSelection pass,
+    nw::render::PreparedRenderModelSurfacePacketList* packet_scratch)
+{
+    const auto& surfaces = area_scene.prepared_model_surface_draws();
+    std::span<const uint32_t> indices;
+    switch (pass) {
+    case nw::render::RenderPassSelection::opaque_cutout:
+        indices = frame.visible_opaque_cutout_prepared_surface_indices();
+        break;
+    case nw::render::RenderPassSelection::water:
+        indices = frame.visible_water_prepared_surface_indices();
+        break;
+    case nw::render::RenderPassSelection::transparent:
+        indices = frame.visible_transparent_prepared_surface_indices();
+        break;
+    case nw::render::RenderPassSelection::all:
+        indices = frame.visible_prepared_surface_indices();
+        break;
+    }
+    if (pass == nw::render::RenderPassSelection::opaque_cutout
+        && frame.uses_cached_draw_lists()
+        && !frame.filters_cached_draw_records()) {
+        auto& cache = area_scene.surface_batch_cache();
+        if (!cache.valid
+            || cache.static_generation != area_scene.static_cache_generation()
+            || cache.tile_generation != area_scene.tile_cache_generation()) {
+            prepare_surface_batches(cache.batches, scene, surfaces.draws, indices, pass, nullptr);
+            retain_root_instances(cache.batches, scene);
+            cache.static_generation = area_scene.static_cache_generation();
+            cache.tile_generation = area_scene.tile_cache_generation();
+            cache.valid = true;
+            ++cache.rebuild_count;
+        }
+        return render_surface_batches(render_model_ctx, cmd, scene, surfaces.draws,
+            cache.batches, ctx, pass, &surfaces.render_model_skins, packet_scratch);
+    }
+    return render_prepared_render_model_surface_draw_indices_for_pass(
+        render_model_ctx, cmd, scene, surfaces.draws, indices, ctx, pass,
+        frame.filters_cached_draw_records() ? &frame : nullptr,
+        &surfaces.render_model_skins, packet_scratch);
 }
 
 PreviewPreparedModelDrawValidation validate_prepared_model_draws(

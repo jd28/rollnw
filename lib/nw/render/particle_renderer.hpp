@@ -36,7 +36,7 @@ public:
     [[nodiscard]] bool initialize(ShaderProvider& shader_provider);
     void render(nw::gfx::CommandList* cmd, const ParticleSystemInstance& system,
         std::span<const ParticleMaterialDef> source_materials, const RenderContext& ctx,
-        ParticleResourceProvider& resources);
+        ParticleResourceProvider& resources, const Frustum& frustum);
 
 private:
     [[nodiscard]] nw::gfx::StorageSpan upload_instances(

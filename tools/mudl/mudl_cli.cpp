@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
+#include <charconv>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -192,7 +193,8 @@ void print_usage()
               << "  mudl stats <resref> [--module <path>]\n"
               << "  mudl texture <resref> <output_path> [--module <path>]\n"
               << "  mudl area <area_resref> [--module <path>] [--frames <count>] [--debug] [--validate]\n"
-              << "  mudl area-benchmark <area_resref> [--module <path>] [--frames <count>] [--warmup <count>] [--width <px>] [--height <px>] [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--camera-fov degrees] [--area-time seconds] [--visible-tile-radius <tiles>] [--visible-tile-cone <tiles>] [--visible-tile-cone-angle degrees] [--no-lights] [--no-shadows] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot <path>] [--debug] [--json <path>]\n"
+              << "  mudl model-benchmark <resref|path> [--frames <count>] [--warmup <count>] [--step-ms <0..1000>] [--width <px>] [--height <px>] [--animation <name>] [--pbr-environment <ktx>] [--no-pbr-ibl] [--screenshot <path>] [--json <path>] [--validate]\n"
+              << "  mudl area-benchmark <area_resref> [--module <path>] [--frames <count>] [--warmup <count>] [--step-ms <0..1000>] [--width <px>] [--height <px>] [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--camera-fov degrees] [--area-time seconds] [--visible-tile-radius <tiles>] [--visible-tile-cone <tiles>] [--visible-tile-cone-angle degrees] [--no-lights] [--no-shadows] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot <path>] [--debug] [--json <path>]\n"
               << "  mudl area-edit-benchmark <area_resref> [--module <path>] [--samples <count>] [--warmup <count>] [--width <px>] [--height <px>] [--json <path>]\n"
               << "  mudl area-sweep <area_resref|area_list.txt> [--module <path>] [--frames <count>] [--warmup <count>] [--width <px>] [--height <px>] [--limit <count>] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--debug] [--validate] [--json <path>]\n"
               << "  mudl area-lights <area_resref> [--module <path>]\n"
@@ -236,6 +238,7 @@ bool is_subcommand(std::string_view command)
         || command == "stats"
         || command == "texture"
         || command == "area"
+        || command == "model-benchmark"
         || command == "area-benchmark"
         || command == "area-edit-benchmark"
         || command == "area-sweep"
@@ -289,7 +292,7 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             arg_start = 4;
         } else if (out.command == "area") {
             arg_start = 3;
-        } else if (out.command == "area-benchmark") {
+        } else if (out.command == "model-benchmark" || out.command == "area-benchmark") {
             arg_start = 3;
         } else if (out.command == "area-edit-benchmark") {
             arg_start = 3;
@@ -393,10 +396,21 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
         } else {
             out.initial_model = argv[2];
         }
-    } else if (out.command == "area-benchmark") {
+    } else if (out.command == "model-benchmark" || out.command == "area-benchmark") {
         if (argc < 3) {
             print_usage();
             return 1;
+        }
+        if (out.command == "model-benchmark") {
+            const std::string_view source{argv[2]};
+            if (source == "--help" || source == "-h") {
+                print_usage();
+                return 0;
+            }
+            if (source.empty() || source.starts_with('-')) {
+                std::cerr << "model-benchmark requires a model source.\n";
+                return 1;
+            }
         }
         out.initial_model = argv[2];
     } else if (out.command == "area-edit-benchmark") {
@@ -514,6 +528,29 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             out.area_dump_skip_existing = true;
         } else if (arg == "--limit" && i + 1 < argc && out.command == "area" && !out.area_dump_module_path.empty()) {
             out.area_dump_limit = static_cast<size_t>(std::max(0, std::atoi(argv[++i])));
+        } else if (out.command == "model-benchmark"
+            && (arg == "--frames" || arg == "--warmup" || arg == "--width" || arg == "--height")) {
+            if (i + 1 >= argc) {
+                std::cerr << arg << " requires an integer.\n";
+                return 1;
+            }
+            const std::string_view value{argv[++i]};
+            int number = 0;
+            const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), number);
+            const int minimum = arg == "--warmup" ? 0 : 1;
+            if (error != std::errc{} || end != value.data() + value.size() || number < minimum) {
+                std::cerr << "Invalid " << arg << ". Expected an integer >= " << minimum << ".\n";
+                return 1;
+            }
+            if (arg == "--frames") {
+                out.benchmark_frames = number;
+            } else if (arg == "--warmup") {
+                out.benchmark_warmup_frames = number;
+            } else if (arg == "--width") {
+                out.benchmark_width = number;
+            } else {
+                out.benchmark_height = number;
+            }
         } else if (arg == "--frames" && i + 1 < argc && out.command == "area") {
             out.max_frames = std::max(0, std::atoi(argv[++i]));
         } else if (arg == "--frames" && i + 1 < argc
@@ -522,6 +559,21 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
         } else if (arg == "--samples" && i + 1 < argc
             && out.command == "area-edit-benchmark") {
             out.benchmark_frames = std::max(1, std::atoi(argv[++i]));
+        } else if (arg == "--step-ms"
+            && (out.command == "model-benchmark" || out.command == "area-benchmark")) {
+            if (i + 1 >= argc) {
+                std::cerr << "--step-ms requires an integer in 0..1000.\n";
+                return 1;
+            }
+            const std::string_view value{argv[++i]};
+            int step_ms = 0;
+            const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), step_ms);
+            if (error != std::errc{} || end != value.data() + value.size()
+                || step_ms < 0 || step_ms > 1000) {
+                std::cerr << "Invalid --step-ms. Expected an integer in 0..1000.\n";
+                return 1;
+            }
+            out.benchmark_step_ms = step_ms;
         } else if (arg == "--warmup" && i + 1 < argc
             && (out.command == "area-benchmark"
                 || out.command == "area-edit-benchmark"
@@ -585,12 +637,24 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             && (out.command == "area-benchmark" || out.command == "area-sweep")) {
             out.benchmark_local_shadows_enabled = false;
         } else if (arg == "--json" && i + 1 < argc
-            && (out.command == "area-benchmark"
+            && (out.command == "model-benchmark"
+                || out.command == "area-benchmark"
                 || out.command == "area-edit-benchmark"
                 || out.command == "area-sweep")) {
             out.benchmark_output_path = argv[++i];
-        } else if (arg == "--screenshot" && i + 1 < argc && out.command == "area-benchmark") {
+            if (out.command == "model-benchmark"
+                && (out.benchmark_output_path.empty() || out.benchmark_output_path.starts_with('-'))) {
+                std::cerr << "--json requires an output path. Use ./ for a filename beginning with '-'.\n";
+                return 1;
+            }
+        } else if (arg == "--screenshot" && i + 1 < argc
+            && (out.command == "model-benchmark" || out.command == "area-benchmark")) {
             out.benchmark_screenshot_path = argv[++i];
+            if (out.command == "model-benchmark"
+                && (out.benchmark_screenshot_path.empty() || out.benchmark_screenshot_path.starts_with('-'))) {
+                std::cerr << "--screenshot requires an output path. Use ./ for a filename beginning with '-'.\n";
+                return 1;
+            }
         } else if (arg == "--no-forward-plus"
             && (out.command == "area-benchmark" || out.command == "area-sweep")) {
             out.benchmark_forward_plus_policy.enabled = false;
@@ -681,8 +745,11 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
             } else {
                 out.particle_preview_view = ParticlePreviewView::front;
             }
-        } else if (arg[0] != '-' && out.initial_model.empty()) {
+        } else if (!arg.empty() && arg[0] != '-' && out.initial_model.empty()) {
             out.initial_model = arg;
+        } else if (out.command == "model-benchmark") {
+            std::cerr << "Unknown or incomplete model-benchmark argument: " << arg << '\n';
+            return 1;
         }
     }
 
@@ -695,6 +762,12 @@ std::optional<int> parse_args(int argc, char* argv[], ParsedArgs& out)
         && !out.benchmark_camera.position
         && !out.benchmark_camera.target) {
         std::cerr << "Area benchmark custom camera needs --camera-position or --camera-target.\n";
+        return 1;
+    }
+
+    if (out.command == "model-benchmark"
+        && out.benchmark_warmup_frames > std::numeric_limits<int>::max() - out.benchmark_frames) {
+        std::cerr << "Model benchmark total frame count exceeds the integer range.\n";
         return 1;
     }
 

@@ -528,14 +528,14 @@ json make_scene_particle_frame_json(
 
     for (size_t i = 0; i < scene_particles.system.emitters.size(); ++i) {
         const auto& state = scene_particles.system.emitters[i];
-        const auto& emitter = scene_particles.compiled.effect.emitters[i];
-        const auto* init = i < scene_particles.import.emitter_inits.size() ? &scene_particles.import.emitter_inits[i] : nullptr;
+        const auto& emitter = scene_particles.definition->compiled.effect.emitters[i];
+        const auto* init = i < scene_particles.definition->import.emitter_inits.size() ? &scene_particles.definition->import.emitter_inits[i] : nullptr;
         const glm::vec3 position = glm::vec3(state.world_transform[3]);
         const float current_rate = eval_particle_curve_keys(
             emitter.emission_rate_track.keys, state.time, emitter.emission.rate);
         json emitter_json = {
             {"index", i},
-            {"name", scene_particles.import.effect.emitters[i].name},
+            {"name", scene_particles.definition->import.effect.emitters[i].name},
             {"kernel", particle_kernel_name(emitter.kernel)},
             {"render_mode", particle_render_mode_name(emitter.render.mode)},
             {"targeting_mode", particle_targeting_mode_name(emitter.targeting.mode)},

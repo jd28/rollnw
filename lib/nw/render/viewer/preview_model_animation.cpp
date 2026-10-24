@@ -175,6 +175,7 @@ bool ensure_render_model_animation_backend(
     }
     LOG_F(INFO, "RenderModel animation backend for model {} instance {}: ozz", model.name, model_index);
     instance.animation.backend = std::move(backend);
+    instance.animation.published_inputs.valid = false;
     return true;
 }
 
@@ -374,8 +375,11 @@ bool set_default_render_model_animation_clip(
         }
         instance->animation.clip = clip_index;
         instance->animation.time = time;
-        instance->animation.playback_rate = 1.0f;
-        instance->animation.looping = true;
+        const bool door_hold = scene.root_object.type == nw::ObjectType::door
+            || (model_index < scene.static_area_model_info.size()
+                && scene.static_area_model_info[model_index].kind == nw::ObjectType::door);
+        instance->animation.playback_rate = door_hold ? 0.0f : 1.0f;
+        instance->animation.looping = !door_hold;
         instance->animation.enabled = can_sample_model_animation;
         selected = true;
     }
@@ -745,6 +749,7 @@ bool restore_area_door_animation_lease(
         animation.enabled = row.enabled;
         instance->scene_animation_enabled = row.scene_animation_enabled;
         if (!row.had_backend) animation.backend.reset();
+        animation.published_inputs.valid = false;
     }
 
     scene.particles.erase(
@@ -841,7 +846,7 @@ nw::render::ModelInstanceAnimationSampleStats sample_render_model_animations(
     bool allow_reference_fallback)
 {
     collect_render_model_animation_samples(scratch, scene);
-    return nw::render::sample_model_instance_animations(scratch, allow_reference_fallback);
+    return nw::render::sample_changed_model_instance_animations(scratch, allow_reference_fallback);
 }
 
 } // namespace nw::render::viewer

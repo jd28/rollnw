@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
+#include <limits>
 #include <optional>
 #include <span>
 #include <vector>
@@ -155,6 +156,117 @@ TEST(RenderForwardPlus, FiltersExplicitLightIndexSet)
     EXPECT_GT(frame.resources.stats.active_cluster_count, 0u);
     EXPECT_TRUE(std::all_of(frame.cluster_light_indices.begin(), frame.cluster_light_indices.end(),
         [](uint32_t light_index) { return light_index < 2u; }));
+}
+
+TEST(RenderForwardPlus, ZeroColorLightsFollowLiveColorChanges)
+{
+    auto ctx = make_forward_plus_test_context();
+    std::vector<nw::render::LocalLight> lights(3, make_test_light({0.0f, 0.0f, -4.0f}));
+    for (auto& light : lights) {
+        light.color = glm::vec3{0.0f};
+    }
+    ctx.local_lights = lights;
+    nw::render::viewer::ForwardPlusFrame frame;
+
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::nullopt, make_test_config(1));
+    EXPECT_FALSE(frame.resources.enabled);
+    EXPECT_TRUE(frame.lights.empty());
+    EXPECT_TRUE(frame.cluster_light_indices.empty());
+    EXPECT_EQ(frame.resources.stats.active_cluster_count, 0u);
+    EXPECT_EQ(frame.resources.stats.overflow_cluster_count, 0u);
+
+    lights[1].color = glm::vec3{0.5f, 0.0f, 0.0f};
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::nullopt, make_test_config(1));
+    EXPECT_TRUE(frame.resources.enabled);
+    ASSERT_EQ(frame.lights.size(), 1u);
+    EXPECT_EQ(frame.lights[0].color_intensity, (glm::vec4{0.5f, 0.0f, 0.0f, 1.0f}));
+    EXPECT_GT(frame.resources.stats.active_cluster_count, 0u);
+
+    lights[1].color = glm::vec3{0.0f};
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::nullopt, make_test_config(1));
+    EXPECT_FALSE(frame.resources.enabled);
+    EXPECT_TRUE(frame.lights.empty());
+    EXPECT_TRUE(frame.cluster_light_indices.empty());
+    EXPECT_EQ(frame.resources.stats.light_count, 0u);
+    EXPECT_EQ(frame.resources.stats.active_cluster_count, 0u);
+}
+
+TEST(RenderForwardPlus, ZeroColorFilteringPreservesIndexedLightPayloads)
+{
+    auto ctx = make_forward_plus_test_context();
+    std::vector<nw::render::LocalLight> lights(5, make_test_light({0.0f, 0.0f, -4.0f}));
+    lights[0].color = glm::vec3{0.0f, -0.0f, 0.0f};
+    lights[1].shadow_slot = 2;
+    lights[2].color = glm::vec3{0.0f, 1.0e-8f, 0.0f};
+    lights[2].shadow_slot = 0;
+    lights[3].color = glm::vec3{-0.25f, 0.0f, 0.0f};
+    lights[3].contribution = nw::render::LocalLightContribution::ambient;
+    lights[4].color.x = std::numeric_limits<float>::quiet_NaN();
+    ctx.local_lights = lights;
+    const uint32_t indices[] = {2u, 0u, 99u, 1u, 3u, 4u};
+    nw::render::viewer::ForwardPlusFrame frame;
+
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::span<const uint32_t>{indices}, make_test_config());
+
+    ASSERT_TRUE(frame.resources.enabled);
+    ASSERT_EQ(frame.lights.size(), 3u);
+    EXPECT_EQ(frame.lights[0].color_intensity, (glm::vec4{lights[2].color, 1.0f}));
+    EXPECT_FLOAT_EQ(frame.lights[0].params.z, 1.0f);
+    EXPECT_EQ(frame.lights[1].color_intensity, (glm::vec4{lights[1].color, 1.0f}));
+    EXPECT_FLOAT_EQ(frame.lights[1].params.z, 3.0f);
+    EXPECT_EQ(frame.lights[2].color_intensity, (glm::vec4{lights[3].color, 1.0f}));
+    EXPECT_FLOAT_EQ(frame.lights[2].params.x, 1.0f);
+    EXPECT_EQ(frame.resources.stats.light_count, 3u);
+    EXPECT_GT(frame.resources.stats.active_cluster_count, 0u);
+    EXPECT_TRUE(std::all_of(frame.cluster_light_indices.begin(), frame.cluster_light_indices.end(),
+        [](uint32_t index) { return index < 3u; }));
+}
+
+TEST(RenderForwardPlus, ZeroColorFilteringPreservesSortThresholdAndStableTies)
+{
+    auto ctx = make_forward_plus_test_context();
+    std::vector<nw::render::LocalLight> lights(6, make_test_light({0.0f, 0.0f, -4.0f}));
+    for (size_t i = 0; i < lights.size(); ++i) {
+        lights[i].color = glm::vec3{0.0f};
+        lights[i].shadow_slot = static_cast<int32_t>(i);
+    }
+    for (const auto i : {1u, 2u, 3u}) {
+        lights[i].color = glm::vec3{1.0f};
+    }
+    lights[2].intensity = 3.0f;
+    lights[3].intensity = 3.0f;
+    ctx.local_lights = lights;
+    const uint32_t indices[] = {1u, 0u, 3u, 99u, 2u, 4u, 5u};
+    nw::render::viewer::ForwardPlusFrame frame;
+
+    // Six valid candidates exceed the budget, even though only three survive.
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::span<const uint32_t>{indices}, make_test_config(3));
+    ASSERT_EQ(frame.lights.size(), 3u);
+    EXPECT_FLOAT_EQ(frame.lights[0].params.z, 4.0f);
+    EXPECT_FLOAT_EQ(frame.lights[1].params.z, 3.0f);
+    EXPECT_FLOAT_EQ(frame.lights[2].params.z, 2.0f);
+
+    // At the original threshold, retain the caller's order instead of sorting.
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::span<const uint32_t>{indices}, make_test_config(6));
+    ASSERT_EQ(frame.lights.size(), 3u);
+    EXPECT_FLOAT_EQ(frame.lights[0].params.z, 2.0f);
+    EXPECT_FLOAT_EQ(frame.lights[1].params.z, 4.0f);
+    EXPECT_FLOAT_EQ(frame.lights[2].params.z, 3.0f);
+
+    lights[0].color = glm::vec3{4.0f};
+    nw::render::viewer::prepare_forward_plus_frame(
+        frame, ctx, 0, 0, 128, 128, std::nullopt, make_test_config(3));
+    ASSERT_EQ(frame.lights.size(), 4u);
+    EXPECT_FLOAT_EQ(frame.lights[0].params.z, 1.0f);
+    EXPECT_FLOAT_EQ(frame.lights[1].params.z, 3.0f);
+    EXPECT_FLOAT_EQ(frame.lights[2].params.z, 4.0f);
+    EXPECT_FLOAT_EQ(frame.lights[3].params.z, 2.0f);
 }
 
 TEST(RenderForwardPlus, TracksClusterOverflow)

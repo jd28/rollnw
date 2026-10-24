@@ -9,6 +9,7 @@ StructuredBuffer<ModelSurfaceInstance> g_model_surface_instances
     : register(t3, space0);
 
 #include "scene_constants.inc.hlsl"
+#include "model_draw_constants.inc.hlsl"
 
 struct VSInput {
     float3 position : POSITION;
@@ -34,7 +35,7 @@ VSOutput main(VSInput input, uint instance_id : SV_InstanceID) {
         = g_model_surface_instances[instance_id];
 
     const float4 model_pos
-        = mul(model, float4(input.position, 1.0));
+        = mul(draw_model, float4(input.position, 1.0));
     float4 world_pos = mul(instance.root, model_pos);
     float4 view_pos = mul(view, world_pos);
     output.world_pos = world_pos.xyz;
@@ -44,9 +45,9 @@ VSOutput main(VSInput input, uint instance_id : SV_InstanceID) {
     output.view_depth = -view_pos.z;
 
     const float3 model_normal
-        = mul((float3x3)normal_matrix, input.normal);
+        = mul((float3x3)draw_normal_matrix, input.normal);
     const float3 model_tangent
-        = mul((float3x3)normal_matrix, input.tangent.xyz);
+        = mul((float3x3)draw_normal_matrix, input.tangent.xyz);
     float3 N = normalize(mul(
         (float3x3)instance.root_normal_matrix, model_normal));
     float3 T = normalize(mul(

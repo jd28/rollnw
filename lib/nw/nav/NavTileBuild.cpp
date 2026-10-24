@@ -1,6 +1,7 @@
 #include "NavTileBuild.hpp"
 
 #include <DetourAlloc.h>
+#include <DetourCommon.h>
 #include <DetourNavMesh.h>
 #include <DetourNavMeshBuilder.h>
 #include <Recast.h>
@@ -200,58 +201,88 @@ bool append_triangle(std::span<const glm::vec3> vertices,
 }
 
 bool authored_height_at(std::span<const float> vertices, float x, float z,
-    float reference_height, float cell_height, float& height) noexcept
+    float reference_height, float cell_size, float cell_height, float& height) noexcept
 {
     constexpr float k_barycentric_epsilon = 1.0e-4f;
     constexpr float k_height_epsilon = 1.0e-4f;
-    bool found = false;
-    bool ambiguous = false;
-    float best_height = 0.0f;
-    float best_distance = std::numeric_limits<float>::max();
-    for (size_t triangle = 0; triangle < vertices.size() / 9; ++triangle) {
-        const float* a = vertices.data() + triangle * 9;
-        const float* b = a + 3;
-        const float* c = b + 3;
-        const float denominator = (b[2] - c[2]) * (a[0] - c[0])
-            + (c[0] - b[0]) * (a[2] - c[2]);
-        if (std::abs(denominator) <= std::numeric_limits<float>::epsilon()) {
-            continue;
+    constexpr float k_horizontal_epsilon_squared = 1.0e-8f;
+    const std::array point{x, reference_height, z};
+    // Rasterization and contour simplification can leave a generated boundary
+    // just outside the authored triangles. Correct those heights from an edge
+    // within one cell, without moving XY or extrapolating a triangle plane.
+    for (bool project_edges : {false, true}) {
+        bool found = false;
+        bool ambiguous = false;
+        float best_height = 0.0f;
+        float best_distance = std::numeric_limits<float>::max();
+        float best_horizontal = std::numeric_limits<float>::max();
+        for (size_t triangle = 0; triangle < vertices.size() / 9; ++triangle) {
+            const float* a = vertices.data() + triangle * 9;
+            const float* b = a + 3;
+            const float* c = b + 3;
+            const float denominator = (b[2] - c[2]) * (a[0] - c[0])
+                + (c[0] - b[0]) * (a[2] - c[2]);
+            if (std::abs(denominator) <= std::numeric_limits<float>::epsilon()) {
+                continue;
+            }
+            float candidate = 0.0f;
+            float horizontal = 0.0f;
+            if (project_edges) {
+                horizontal = std::numeric_limits<float>::max();
+                const std::array edges{a, b, c, a};
+                for (size_t edge = 0; edge < 3; ++edge) {
+                    float fraction = 0.0f;
+                    const float distance = dtDistancePtSegSqr2D(
+                        point.data(), edges[edge], edges[edge + 1], fraction);
+                    if (distance < horizontal) {
+                        horizontal = distance;
+                        candidate = edges[edge][1]
+                            + fraction * (edges[edge + 1][1] - edges[edge][1]);
+                    }
+                }
+                if (horizontal > cell_size * cell_size) continue;
+            } else {
+                const float first
+                    = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2]))
+                    / denominator;
+                const float second
+                    = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2]))
+                    / denominator;
+                const float third = 1.0f - first - second;
+                if (first < -k_barycentric_epsilon
+                    || second < -k_barycentric_epsilon
+                    || third < -k_barycentric_epsilon) {
+                    continue;
+                }
+                candidate = first * a[1] + second * b[1] + third * c[1];
+            }
+            if (!std::isfinite(candidate)) return false;
+            const float distance = std::abs(candidate - reference_height);
+            const bool same_horizontal
+                = std::abs(horizontal - best_horizontal) <= k_horizontal_epsilon_squared;
+            if (!found || horizontal + k_horizontal_epsilon_squared < best_horizontal
+                || (same_horizontal && distance + k_height_epsilon < best_distance)) {
+                found = true;
+                ambiguous = false;
+                best_height = candidate;
+                best_distance = distance;
+                best_horizontal = horizontal;
+            } else if (same_horizontal && std::abs(distance - best_distance) <= k_height_epsilon
+                && std::abs(candidate - best_height) > cell_height + k_height_epsilon) {
+                ambiguous = true;
+            }
         }
-        const float first
-            = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2]))
-            / denominator;
-        const float second
-            = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2]))
-            / denominator;
-        const float third = 1.0f - first - second;
-        if (first < -k_barycentric_epsilon
-            || second < -k_barycentric_epsilon
-            || third < -k_barycentric_epsilon) {
-            continue;
-        }
-        const float candidate
-            = first * a[1] + second * b[1] + third * c[1];
-        if (!std::isfinite(candidate)) return false;
-        const float distance = std::abs(candidate - reference_height);
-        if (!found || distance + k_height_epsilon < best_distance) {
-            found = true;
-            ambiguous = false;
-            best_height = candidate;
-            best_distance = distance;
-        } else if (std::abs(distance - best_distance) <= k_height_epsilon
-            && std::abs(candidate - best_height)
-                > cell_height + k_height_epsilon) {
-            ambiguous = true;
+        if (found) {
+            height = best_height;
+            return !ambiguous;
         }
     }
-    if (!found || ambiguous) return false;
-    height = best_height;
-    return true;
+    return false;
 }
 
 bool normalize_authored_heights(rcPolyMesh& poly_mesh,
     rcPolyMeshDetail& detail_mesh, std::span<const float> surface_vertices,
-    float cell_height, size_t& normalized_vertex_count) noexcept
+    float cell_size, float cell_height, size_t& normalized_vertex_count) noexcept
 {
     constexpr float k_maximum_quantized_height = 0xffff;
     normalized_vertex_count = 0;
@@ -263,7 +294,7 @@ bool normalize_authored_heights(rcPolyMesh& poly_mesh,
         const float z = poly_mesh.bmin[2] + value[2] * poly_mesh.cs;
         float authored_height = 0.0f;
         if (!authored_height_at(surface_vertices, x, z, generated_height,
-                cell_height, authored_height)) {
+                cell_size, cell_height, authored_height)) {
             return false;
         }
         const float quantized = std::round(
@@ -279,7 +310,7 @@ bool normalize_authored_heights(rcPolyMesh& poly_mesh,
         float* value = detail_mesh.verts + vertex * 3;
         float authored_height = 0.0f;
         if (!authored_height_at(surface_vertices, value[0], value[2],
-                value[1], cell_height, authored_height)) {
+                value[1], cell_size, cell_height, authored_height)) {
             return false;
         }
         value[1] = authored_height;
@@ -700,7 +731,7 @@ NavTileBuildStats build_nav_tile_data(const NavTileBuildInput& input,
         return stats;
     }
     if (!normalize_authored_heights(*poly_mesh, *detail_mesh,
-            scratch.surface_vertices, config.cell_height,
+            scratch.surface_vertices, config.cell_size, config.cell_height,
             stats.normalized_height_vertex_count)) {
         return stats;
     }

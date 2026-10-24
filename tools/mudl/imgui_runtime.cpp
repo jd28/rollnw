@@ -87,10 +87,10 @@ bool set_emitter_visibility_by_name_prefix(nw::render::viewer::SceneParticleSyst
 {
     bool changed = false;
     const size_t count = std::min(
-        scene_particles.import.effect.emitters.size(),
+        scene_particles.definition->import.effect.emitters.size(),
         scene_particles.system.emitter_visible.size());
     for (size_t emitter_index = 0; emitter_index < count; ++emitter_index) {
-        const bool matches = is_ring_emitter_name(scene_particles.import.effect.emitters[emitter_index].name);
+        const bool matches = is_ring_emitter_name(scene_particles.definition->import.effect.emitters[emitter_index].name);
         const uint8_t next_visible = (matches == prefix_visible) ? 1u : 0u;
         if (scene_particles.system.emitter_visible[emitter_index] != next_visible) {
             scene_particles.system.emitter_visible[emitter_index] = next_visible;
@@ -431,7 +431,7 @@ std::string packet_emitter_summary(const nw::render::viewer::SceneParticleSystem
             continue;
         }
         seen[emitter_id] = true;
-        const auto& emitter = scene_particles.import.effect.emitters[emitter_id];
+        const auto& emitter = scene_particles.definition->import.effect.emitters[emitter_id];
         const std::string name = emitter.name.empty() ? "emitter " + std::to_string(emitter_id) : emitter.name;
         if (!result.empty()) {
             result += ", ";
@@ -699,8 +699,8 @@ void build_particle_packet_controls(const nw::render::viewer::SceneParticleSyste
             continue;
         }
 
-        const auto* material = packet.material < scene_particles.import.effect.materials.size()
-            ? &scene_particles.import.effect.materials[packet.material]
+        const auto* material = packet.material < scene_particles.definition->import.effect.materials.size()
+            ? &scene_particles.definition->import.effect.materials[packet.material]
             : nullptr;
         ImGui::Text("Material %u", packet.material);
         ImGui::Text("Texture: %s", material ? material->texture.c_str() : "");
@@ -735,16 +735,16 @@ bool build_particle_emitter_controls(nw::render::viewer::SceneParticleSystem& sc
     bool visibility_changed = false;
     const auto summaries = summarize_emitters(scene_particles);
     const size_t count = std::min(
-        scene_particles.import.effect.emitters.size(),
+        scene_particles.definition->import.effect.emitters.size(),
         scene_particles.system.emitter_visible.size());
     for (size_t emitter_index = 0; emitter_index < count; ++emitter_index) {
-        const auto& authored = scene_particles.import.effect.emitters[emitter_index];
-        const auto& compiled = scene_particles.compiled.effect.emitters[emitter_index];
+        const auto& authored = scene_particles.definition->import.effect.emitters[emitter_index];
+        const auto& compiled = scene_particles.definition->compiled.effect.emitters[emitter_index];
         const auto& state = scene_particles.system.emitters[emitter_index];
         const auto& summary = emitter_index < summaries.size() ? summaries[emitter_index] : EmitterLiveSummary{};
         const auto material_id = compiled.material;
-        const auto* material = material_id < scene_particles.import.effect.materials.size()
-            ? &scene_particles.import.effect.materials[material_id]
+        const auto* material = material_id < scene_particles.definition->import.effect.materials.size()
+            ? &scene_particles.definition->import.effect.materials[material_id]
             : nullptr;
 
         const std::string name = authored.name.empty()
@@ -841,10 +841,10 @@ void build_particle_system_debug(nw::render::viewer::SceneParticleSystem& scene_
     size_t ring_emitter_count = 0;
     size_t visible_ring_emitter_count = 0;
     const size_t ring_count = std::min(
-        scene_particles.import.effect.emitters.size(),
+        scene_particles.definition->import.effect.emitters.size(),
         scene_particles.system.emitter_visible.size());
     for (size_t emitter_index = 0; emitter_index < ring_count; ++emitter_index) {
-        if (!is_ring_emitter_name(scene_particles.import.effect.emitters[emitter_index].name)) {
+        if (!is_ring_emitter_name(scene_particles.definition->import.effect.emitters[emitter_index].name)) {
             continue;
         }
         ++ring_emitter_count;
@@ -881,27 +881,27 @@ void build_particle_system_debug(nw::render::viewer::SceneParticleSystem& scene_
     if (ImGui::Button(("Hide ring##emitters_not_ring_" + std::to_string(system_index)).c_str())) {
         visibility_changed |= set_emitter_visibility_by_name_prefix(scene_particles, false);
     }
-    if (!scene_particles.import.effect_events.empty()) {
+    if (!scene_particles.definition->import.effect_events.empty()) {
         if (ImGui::TreeNode(("Effect events##events_" + std::to_string(system_index)).c_str())) {
-            for (size_t event_index = 0; event_index < scene_particles.import.effect_events.size(); ++event_index) {
-                const auto& event = scene_particles.import.effect_events[event_index];
+            for (size_t event_index = 0; event_index < scene_particles.definition->import.effect_events.size(); ++event_index) {
+                const auto& event = scene_particles.definition->import.effect_events[event_index];
                 ImGui::Text("Event %zu: time %.3f s, burst count %u",
                     event_index, static_cast<double>(event.time), event.burst_count);
             }
             ImGui::TreePop();
         }
     }
-    if (!scene_particles.import.warnings.empty()) {
+    if (!scene_particles.definition->import.warnings.empty()) {
         if (ImGui::TreeNode(("Import warnings##import_" + std::to_string(system_index)).c_str())) {
-            for (const auto& warning : scene_particles.import.warnings) {
+            for (const auto& warning : scene_particles.definition->import.warnings) {
                 ImGui::BulletText("%s.%s: %s", warning.emitter.c_str(), warning.field.c_str(), warning.message.c_str());
             }
             ImGui::TreePop();
         }
     }
-    if (!scene_particles.compiled.warnings.empty()) {
+    if (!scene_particles.definition->compiled.warnings.empty()) {
         if (ImGui::TreeNode(("Compile warnings##compile_" + std::to_string(system_index)).c_str())) {
-            for (const auto& warning : scene_particles.compiled.warnings) {
+            for (const auto& warning : scene_particles.definition->compiled.warnings) {
                 ImGui::BulletText("Emitter %u: %s", warning.emitter, warning.message.c_str());
             }
             ImGui::TreePop();

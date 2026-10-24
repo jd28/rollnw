@@ -273,6 +273,8 @@ bool render_presented_frame(
         return false;
     }
     session.tick(0);
+    nw::gfx::cmd_begin_render(command_list, {}, nw::gfx::RenderLoadOp::clear);
+    nw::gfx::cmd_end_render(command_list);
     session.render(command_list, viewport);
     stats = session.last_frame_stats();
     nw::gfx::end_frame(state.gfx_context);

@@ -26,6 +26,7 @@
 #include <nw/objects/Store.hpp>
 #include <nw/objects/Waypoint.hpp>
 #include <nw/render/area_tile_grid.hpp>
+#include <nw/render/model_asset.hpp>
 #include <nw/render/render_service.hpp>
 #include <nw/render/viewer/area_lighting.hpp>
 #include <nw/render/viewer/device.hpp>
@@ -250,6 +251,71 @@ bool render_viewer_frame(
     nw::gfx::end_frame(context);
     nw::gfx::wait_idle(context);
     return true;
+}
+
+TEST(RenderViewerPreparedDraws, SceneGpuTimingEnclosesPassesAndRejectsMissingQueries)
+{
+    namespace viewer = nw::render::viewer;
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session->load_model(cesium_man_path().string()));
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    std::string failure;
+    for (int frame = 0; frame < 6; ++frame) {
+        ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+        EXPECT_FALSE(session->last_frame_stats().gpu_scene_available);
+    }
+    session->set_gpu_scene_timing_enabled(true);
+
+    auto* cmd = nw::gfx::begin_frame(gfx.context);
+    ASSERT_NE(cmd, nullptr);
+    const auto probe = nw::gfx::cmd_begin_gpu_timer(cmd, "probe");
+    nw::gfx::cmd_end_gpu_timer(cmd, probe);
+    nw::gfx::end_frame(gfx.context);
+    nw::gfx::wait_idle(gfx.context);
+    if (!probe.valid()) { GTEST_SKIP() << "GPU timestamps unavailable"; }
+
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    EXPECT_FALSE(session->last_frame_stats().gpu_scene_available);
+    for (int i = 0; i < 6; ++i) {
+        ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    }
+    const auto& stats = session->last_frame_stats();
+    ASSERT_TRUE(stats.gpu_scene_available);
+    EXPECT_GT(stats.gpu_scene_seconds, 0.0f);
+    const float pass_seconds = stats.gpu_shadow_seconds + stats.gpu_opaque_seconds
+        + stats.gpu_water_seconds + stats.gpu_transparent_seconds
+        + stats.gpu_particles_seconds + stats.gpu_debug_seconds + stats.gpu_forward_plus_cull_seconds;
+    EXPECT_GE(stats.gpu_scene_seconds + 1.0e-6f, pass_seconds);
+
+    // Exhaust each frame's query capacity, then retire all previous scene timers.
+    // Missing results must not preserve a stale measurement or become valid zeroes.
+    for (int frame = 0; frame < 6; ++frame) {
+        cmd = nw::gfx::begin_frame(gfx.context);
+        ASSERT_NE(cmd, nullptr);
+        while (true) {
+            const auto timer = nw::gfx::cmd_begin_gpu_timer(cmd, "probe");
+            if (!timer.valid()) { break; }
+            nw::gfx::cmd_end_gpu_timer(cmd, timer);
+        }
+        session->render(cmd, viewport);
+        nw::gfx::end_frame(gfx.context);
+        nw::gfx::wait_idle(gfx.context);
+    }
+    EXPECT_FALSE(session->last_frame_stats().gpu_scene_available);
+    EXPECT_EQ(session->last_frame_stats().gpu_scene_seconds, 0.0f);
+    for (int frame = 0; frame < 6; ++frame) {
+        ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    }
+    EXPECT_TRUE(session->last_frame_stats().gpu_scene_available);
+    session->set_gpu_scene_timing_enabled(false);
+    for (int frame = 0; frame < 6; ++frame) {
+        ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    }
+    EXPECT_FALSE(session->last_frame_stats().gpu_scene_available);
 }
 
 TEST(RenderViewerPreparedDraws, ItemMannequinsRenderBothGendersWithoutChangingWorldSession)
@@ -1019,6 +1085,71 @@ TEST(RenderViewerPreparedDraws, ItemLoadReportUsesVisualRows)
     EXPECT_TRUE(report_has_resource(report, {"wswsc_t_044"sv, nw::ResourceType::mdl}));
 }
 
+TEST(RenderViewerPreparedDraws, FileItemPaletteEditsRetainModelsAndOwnership)
+{
+    namespace viewer = nw::render::viewer;
+    namespace toolset = nw::toolset;
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session->load_object_file("test_data/user/development/cloth028.uti"));
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_TRUE(scene->owns_root_object);
+    const auto item = scene->root_object;
+    auto& objects = nw::kernel::objects();
+    nlohmann::json original;
+    ASSERT_TRUE(nw::serialize(objects.get<nw::Item>(item), original, nw::SerializationProfile::instance));
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    session->camera().yaw(20.0f);
+    const auto camera = session->camera().get_view_matrix();
+    const auto models = scene->static_models;
+    const auto instances = scene->static_model_instance_handles;
+    ASSERT_FALSE(models.empty());
+    RecordProperty("file_item_models", models.size());
+    RecordProperty("file_item_visual_rows", scene->palette_visual.models.size());
+
+    // The desktop adopts the loaded Item while retaining its original scene.
+    // Exercise colors both before and after that ownership transfer.
+    toolset::ObjectDocument owner;
+    for (const int32_t part : {-1, 18}) {
+        if (part == 18) {
+            ASSERT_TRUE(owner.adopt(item));
+            scene->owns_root_object = false;
+        }
+        const auto edit = toolset::make_item_color_edits(nw::kernel::runtime(), item,
+            std::array{part}, std::array{0}, std::array{14});
+        ASSERT_TRUE(edit);
+        ASSERT_FALSE(edit->patches.empty());
+        for (const auto direction : {toolset::ObjectEditDirection::forward, toolset::ObjectEditDirection::inverse}) {
+            ASSERT_TRUE(toolset::apply_object_edits(nw::kernel::runtime(), *edit, direction).ok());
+            const auto result = session->refresh_live_object_visuals(std::array{item});
+            ASSERT_TRUE(result.ok()) << result.diagnostic;
+            EXPECT_EQ(result.object_count, 1u);
+            EXPECT_EQ(result.removed_model_count, 0u);
+            EXPECT_EQ(result.added_model_count, 0u);
+            EXPECT_EQ(session->scene(), scene);
+            EXPECT_EQ(session->active_object(), item);
+            EXPECT_EQ(scene->static_models, models);
+            EXPECT_EQ(scene->static_model_instance_handles, instances);
+            EXPECT_EQ(session->camera().get_view_matrix(), camera);
+            EXPECT_EQ(scene->owns_root_object, part == -1);
+            std::string failure;
+            ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+        }
+        nlohmann::json restored;
+        ASSERT_TRUE(nw::serialize(objects.get<nw::Item>(item), restored, nw::SerializationProfile::instance));
+        EXPECT_EQ(restored, original);
+    }
+    session.reset();
+    EXPECT_TRUE(objects.valid(item));
+    owner.reset();
+    EXPECT_FALSE(objects.valid(item));
+}
+
 TEST(RenderViewerPreparedDraws, StandaloneItemVisualEditRefreshesInPlace)
 {
     namespace viewer = nw::render::viewer;
@@ -1119,6 +1250,20 @@ TEST(RenderViewerPreparedDraws, StandaloneItemVisualEditRefreshesInPlace)
     EXPECT_LT(max_abs_matrix_delta(
                   root_after->root_transform, root_transform_before),
         1.0e-5f);
+
+    // A geometry rebuild must leave the next palette batch eligible, including
+    // after undo; otherwise every later color edit falls back to reconstruction.
+    const auto rebuilt_instances = scene->static_model_instance_handles;
+    ASSERT_TRUE(session->refresh_live_object_palettes());
+    EXPECT_EQ(scene->static_model_instance_handles, rebuilt_instances);
+    ASSERT_TRUE(nw::toolset::apply_object_edits(nw::kernel::runtime(), *edit,
+        nw::toolset::ObjectEditDirection::inverse)
+            .ok());
+    ASSERT_TRUE(session->refresh_live_object_visual(item));
+    EXPECT_EQ(scene->load_report.model_names, model_names_before);
+    const auto restored_instances = scene->static_model_instance_handles;
+    ASSERT_TRUE(session->refresh_live_object_palettes());
+    EXPECT_EQ(scene->static_model_instance_handles, restored_instances);
 
     std::string failure;
     ASSERT_TRUE(render_viewer_frame(
@@ -4493,6 +4638,7 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
                       model->materials.size() - 1u);
                   primitive.bounds = model->bounds;
                   primitive.skinned = true;
+                  primitive.casts_shadow = mode == nw::render::MaterialMode::opaque;
                   model->primitives.push_back(primitive);
               }
               return model;
@@ -4540,6 +4686,7 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
             .max = initial_model->bounds.max + translation,
         };
         instance->scene_animation_enabled = false;
+        instance->shadow.casts_shadow = true;
         scene.static_area_model_info[model_index] = {
             .kind = nw::ObjectType::tile,
             .tile_x = x,
@@ -4550,10 +4697,19 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
 
     viewer::AreaRenderScene records;
     records.rebuild(scene);
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_range_count, 2u);
     scene.static_models[0] = replacement_model;
+    for (auto& primitive : replacement_model->primitives) {
+        primitive.transform[0][0] = -1.0f;
+        primitive.transform[3][0] = 10.0f;
+    }
     const std::array changed_model_indices{0u};
     ASSERT_TRUE(records.rebuild_tile_records(
         scene, changed_model_indices));
+    ASSERT_EQ(records.prepared_shadow_ranges().size(), 2u);
+    EXPECT_EQ(records.prepared_shadow_ranges()[0], 0u);
+    EXPECT_EQ(records.prepared_shadow_ranges()[1], 1u);
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_range_count, 1u);
     const auto incremental_draws
         = records.prepared_model_draw_list().draws;
     const std::vector<nw::render::PreparedModelSurfaceDraw>
@@ -4566,6 +4722,10 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
     const auto incremental_stats = records.stats();
 
     records.rebuild(scene);
+    ASSERT_EQ(records.prepared_shadow_ranges().size(), 2u);
+    EXPECT_EQ(records.prepared_shadow_ranges()[0], 0u);
+    EXPECT_EQ(records.prepared_shadow_ranges()[1], 1u);
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_range_count, 1u);
     const auto& rebuilt_draws
         = records.prepared_model_draw_list().draws;
     ASSERT_EQ(incremental_draws.size(), rebuilt_draws.size());
@@ -4603,6 +4763,12 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
             rebuilt_surfaces[index].material_mode);
         EXPECT_EQ(incremental_surfaces[index].world,
             rebuilt_surfaces[index].world);
+        EXPECT_EQ(incremental_surfaces[index].winding,
+            rebuilt_surfaces[index].winding);
+        EXPECT_EQ(incremental_surfaces[index].winding,
+            incremental_surfaces[index].instance_source_index == 0u
+                ? nw::render::ModelTransformWinding::mirrored
+                : nw::render::ModelTransformWinding::regular);
         EXPECT_EQ(incremental_surfaces[index].bounds.min,
             rebuilt_surfaces[index].bounds.min);
         EXPECT_EQ(incremental_surfaces[index].bounds.max,
@@ -4627,6 +4793,7 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
     scene.static_models[0] = initial_model;
     ASSERT_TRUE(records.rebuild_tile_records(
         scene, changed_model_indices));
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_range_count, 2u);
     EXPECT_EQ(records.stats().surface_range_count, 2u);
     scene.static_models[0] = replacement_model;
     ASSERT_TRUE(records.rebuild_tile_records(
@@ -4645,6 +4812,17 @@ TEST(RenderViewerPreparedDraws, AreaTileRecordRowsMatchFullRebuild)
         scene, changed_model_indices));
     EXPECT_EQ(records.prepared_model_draws_for_record(0u).size(),
         fallback_modes.size());
+    EXPECT_EQ(records.prepared_shadow_range_stats().surface_count, 5u);
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_surface_count, 2u);
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_range_count, 2u);
+
+    // A stable row can change its shadow flag without replacing its asset.
+    scene.static_model_instance(0u)->shadow.casts_shadow = false;
+    ASSERT_TRUE(records.rebuild_tile_records_with_stable_light_rows(
+        scene, changed_model_indices, {}, {}));
+    ASSERT_EQ(records.prepared_shadow_ranges().size(), 2u);
+    EXPECT_EQ(records.prepared_shadow_ranges()[0], 0u);
+    EXPECT_EQ(records.prepared_shadow_range_stats().shadow_range_count, 1u);
 }
 
 TEST(RenderViewerPreparedDraws, AreaStableLightRefreshMatchesFullRebuild)
@@ -4832,6 +5010,104 @@ TEST(RenderViewerPreparedDraws, TileLightBatchRetainsRowsUntilCountChanges)
     EXPECT_TRUE(changed_light_indices.empty());
     EXPECT_EQ(scene.local_lights.size(), 1u);
     EXPECT_EQ(scene.render_local_lights.size(), 1u);
+}
+
+TEST(RenderViewerPreparedDraws, ShadowGroupsSurviveVisibilityAndRebuildAfterTileEdits)
+{
+    namespace viewer = nw::render::viewer;
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod", false), nullptr);
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) { GTEST_SKIP() << "headless graphics context unavailable"; }
+    viewer::ViewerDevice device{gfx.context, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = viewer_shader_roots()}));
+    auto session = device.make_session();
+    ASSERT_TRUE(session);
+    ASSERT_TRUE(session->load_area("test_area"));
+    session->set_playing(false);
+    session->set_area_lights_enabled(false);
+    session->set_area_shadows_enabled(true);
+    const viewer::ViewerViewport viewport{0, 0, 256, 256};
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    auto* scene = session->scene();
+    ASSERT_NE(scene, nullptr);
+    ASSERT_NE(scene->area_render_scene, nullptr);
+    // The small fixture tiles disable shadows; explicitly exercise static
+    // caster grouping without depending on an installed game asset set.
+    for (const uint32_t model_index : scene->area_tile_model_indices) {
+        ASSERT_LT(model_index, scene->static_models.size());
+        auto& model = *scene->static_models[model_index];
+        for (auto& primitive : model.primitives) {
+            primitive.casts_shadow = true;
+        }
+        model.shadow = nw::render::summarize_render_model_shadows(model);
+    }
+    viewer::sync_model_instance_runtime_state(*scene);
+    scene->area_render_scene->rebuild(*scene);
+    auto& cache = scene->area_render_scene->shadow_batch_cache();
+    std::string failure;
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    ASSERT_TRUE(cache.valid);
+    ASSERT_FALSE(cache.group_model_counts.empty());
+    EXPECT_GT(session->last_frame_stats().shadow_command_stats.draw_count, 0u);
+    auto& surface_cache = scene->area_render_scene->surface_batch_cache();
+    ASSERT_TRUE(surface_cache.valid);
+    const auto check_root_payloads = [&] {
+        size_t rows = 0;
+        for (const auto& group : surface_cache.batches.groups) {
+            if (group.space != nw::render::PreparedModelSurfaceInstanceSpace::model_root
+                || group.run_indices.size() < 2u) {
+                EXPECT_TRUE(group.root_instances.empty());
+                continue;
+            }
+            ASSERT_EQ(group.root_instances.size(), group.run_indices.size());
+            rows += group.root_instances.size();
+            for (size_t i = 0; i < group.run_indices.size(); ++i) {
+                const auto source = surface_cache.batches.runs[group.run_indices[i]].instance_source_index;
+                const auto* instance = scene->static_model_instance(source);
+                ASSERT_NE(instance, nullptr);
+                const auto normal = glm::mat4{glm::mat3{glm::transpose(glm::inverse(instance->root_transform))}};
+                EXPECT_EQ(std::memcmp(&group.root_instances[i].root, &instance->root_transform, sizeof(glm::mat4)), 0);
+                EXPECT_EQ(std::memcmp(&group.root_instances[i].root_normal_matrix, &normal, sizeof(glm::mat4)), 0);
+            }
+        }
+        EXPECT_GT(rows, 0u);
+    };
+    check_root_payloads();
+    const auto surface_builds = surface_cache.rebuild_count;
+    const auto builds = cache.rebuild_count;
+    const auto groups = cache.model_group_indices;
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    EXPECT_EQ(cache.rebuild_count, builds);
+    EXPECT_EQ(surface_cache.rebuild_count, surface_builds);
+
+    session->camera().pan(5.0f, 0.0f);
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    EXPECT_EQ(cache.rebuild_count, builds);
+    EXPECT_EQ(surface_cache.rebuild_count, surface_builds);
+    EXPECT_EQ(cache.model_group_indices, groups);
+
+    auto* area = nw::kernel::objects().get<nw::Area>(scene->root_object);
+    ASSERT_NE(area, nullptr);
+    ASSERT_FALSE(area->tiles.empty());
+    const std::array changed_tiles{0u};
+    area->tiles[0].height += 1;
+    const auto refresh = session->refresh_live_area_tiles(area->handle(), changed_tiles);
+    ASSERT_TRUE(refresh.ok()) << refresh.diagnostic;
+    ASSERT_TRUE(session->fit_to_scene(viewport));
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    EXPECT_EQ(cache.rebuild_count, builds + 1u);
+    EXPECT_EQ(surface_cache.rebuild_count, surface_builds + 1u);
+    EXPECT_EQ(surface_cache.tile_generation, scene->area_render_scene->tile_cache_generation());
+    check_root_payloads();
+    EXPECT_EQ(cache.tile_generation, scene->area_render_scene->tile_cache_generation());
+    const auto draws = session->last_frame_stats().shadow_command_stats.draw_count;
+    const auto shadow_batches = session->last_frame_stats().shadow_static_batch_count;
+    ASSERT_TRUE(render_viewer_frame(gfx.context, *session, viewport, failure)) << failure;
+    EXPECT_EQ(cache.rebuild_count, builds + 1u);
+    EXPECT_EQ(surface_cache.rebuild_count, surface_builds + 1u);
+    EXPECT_EQ(surface_cache.tile_generation, scene->area_render_scene->tile_cache_generation());
+    EXPECT_EQ(session->last_frame_stats().shadow_command_stats.draw_count, draws);
+    EXPECT_EQ(session->last_frame_stats().shadow_static_batch_count, shadow_batches);
 }
 
 TEST(RenderViewerPreparedDraws, AreaTilePreviewRepositionsRetainedModelRows)

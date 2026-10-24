@@ -212,6 +212,8 @@ struct CommandStats {
     uint64_t descriptor_buffer_bind_skipped_count = 0;
     uint64_t descriptor_allocation_count = 0;
     uint64_t descriptor_allocation_bytes = 0;
+    uint64_t storage_descriptor_encode_count = 0;
+    uint64_t storage_descriptor_reuse_count = 0;
     uint64_t descriptor_allocation_failure_count = 0;
     uint64_t descriptor_ring_capacity_bytes = 0;
     uint64_t descriptor_ring_required_bytes = 0;
@@ -231,6 +233,11 @@ struct CommandStats {
     uint64_t dispatch_count = 0;
     uint64_t uniform_allocation_count = 0;
     uint64_t uniform_allocation_bytes = 0;
+    uint64_t uniform_allocation_failure_count = 0;
+    uint64_t uniform_ring_capacity_bytes = 0;
+    // Aligned demand of all valid nonempty attempts, including failed ones.
+    // Saturates at UINT64_MAX; callers may skip further requests after a failure.
+    uint64_t uniform_ring_required_bytes = 0;
     uint64_t vertex_allocation_count = 0;
     uint64_t vertex_allocation_bytes = 0;
 };
@@ -467,6 +474,12 @@ enum class BlendMode {
     additive,
 };
 
+enum class CullMode : uint8_t {
+    none,
+    back,
+    front,
+};
+
 struct PipelineDesc {
     Handle<Shader> vs;
     Handle<Shader> fs;
@@ -478,6 +491,9 @@ struct PipelineDesc {
     uint8_t storage_buffer_count = 0;
     bool uses_single_texture = true;
     bool uses_bindless_sampled_textures = false;
+
+    // Counter-clockwise triangles are front-facing in framebuffer coordinates.
+    CullMode cull_mode = CullMode::none;
 
     // Depth state
     bool depth_test = true;
@@ -579,6 +595,9 @@ void cmd_dispatch(CommandList* cmd, uint32_t group_count_x, uint32_t group_count
 // reads and indirect-command reads) within the same command list.
 void cmd_barrier_compute_to_graphics(CommandList* cmd);
 
+// Zero size/null context is a no-op. Effective alignment (at least the device
+// minimum) must be a power of two. Rejection returns empty and preserves space
+// for later fitting requests; failures are reported in CommandStats.
 UniformSpan allocate_uniform_span(Context* ctx, uint32_t size, uint32_t alignment = 256);
 VertexSpan allocate_vertex_span(Context* ctx, uint32_t size, uint32_t alignment = 16);
 BindlessTextureIndex get_bindless_texture_index(Context* ctx, Handle<Texture> texture);

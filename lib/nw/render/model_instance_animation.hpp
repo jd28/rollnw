@@ -13,6 +13,7 @@ struct ModelInstanceAnimationSample {
     ModelInstance* instance = nullptr;
     const RenderModel* model = nullptr;
     bool sampled = false;
+    bool updated = false; // Output buffers were recomputed during this call.
 };
 
 struct ModelInstanceAnimationSampleStats {
@@ -23,6 +24,7 @@ struct ModelInstanceAnimationSampleStats {
     size_t missing_asset_data_count = 0;
     size_t invalid_skeleton_count = 0;
     size_t failed_sample_count = 0;
+    size_t reused_count = 0; // Subset of sampled_count + disabled_count.
 };
 
 // Builds an animation backend for all skeletons and clips owned by a RenderModel.
@@ -39,6 +41,16 @@ std::unique_ptr<AnimationBackend> make_render_model_animation_backend(
 // The batch records are non-owning and are not retained. This keeps the protocol
 // compatible with scene-owned instance/model tables without imposing ownership.
 ModelInstanceAnimationSampleStats sample_model_instance_animations(
+    std::span<ModelInstanceAnimationSample> samples,
+    bool allow_reference_fallback = false);
+
+// Retains successful outputs when root/animation inputs have not changed.
+// Clips with at most one key per channel also retain poses across finite time
+// changes. Clip classification shares the snapshot's validity lifetime.
+// Each instance must remain bound to the same, unchanged model. Asset/backend
+// or direct pose/output mutation requires clearing published_inputs.valid or
+// using the forced sampler above. Failures retry; no pointers are retained.
+ModelInstanceAnimationSampleStats sample_changed_model_instance_animations(
     std::span<ModelInstanceAnimationSample> samples,
     bool allow_reference_fallback = false);
 

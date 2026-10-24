@@ -40,9 +40,13 @@ bool select_model_animation(AppState& state, std::string_view animation_name);
 void set_gltf_animation_clip(AppState& state, uint32_t clip_index);
 bool run_screenshot_capture(AppState& state, const std::filesystem::path& screenshot_path,
     int warmup_frames = 2, int max_frames = 8);
+int run_model_benchmark_command(AppState& state, std::string_view source,
+    int frames, int warmup_frames, int step_ms,
+    const std::filesystem::path& output_path,
+    const std::filesystem::path& screenshot_path);
 int run_area_benchmark_command(AppState& state, std::string_view area_resref,
     std::string_view module_path, std::string_view user_path,
-    int frames, int warmup_frames, bool lights_enabled, bool shadows_enabled,
+    int frames, int warmup_frames, int step_ms, bool lights_enabled, bool shadows_enabled,
     bool local_shadows_enabled, bool debug_enabled,
     const nw::render::viewer::ForwardPlusRenderPolicy& forward_plus_policy,
     const AreaBenchmarkCameraOptions& camera_options,

@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <nw/formats/Image.hpp>
+#include <nw/render/frustum.hpp>
 #include <nw/render/particle_compile.hpp>
 #include <nw/render/particle_json.hpp>
 #include <nw/render/particle_render.hpp>
@@ -661,6 +662,68 @@ TEST(RenderParticles, TickConsumesQueuedEventBursts)
     EXPECT_EQ(system.emitters[0].pending_bursts, 0u);
 }
 
+TEST(RenderParticles, EventBurstsPreserveIdleTimeAndMotionHistory)
+{
+    for (const auto space : {ParticleSimulationSpace::world, ParticleSimulationSpace::emitter_attached}) {
+        SCOPED_TRACE(static_cast<int>(space));
+        ParticleEffectDef effect;
+        ParticleMaterialDef material;
+        material.sheet.columns = 4;
+        material.sheet.rows = 4;
+        effect.materials.push_back(material);
+
+        ParticleEmitterDef emitter;
+        emitter.render.material = 0;
+        emitter.emission.mode = ParticleEmissionMode::event_burst;
+        emitter.emission.rate = 1.0f;
+        emitter.simulation_space = space;
+        emitter.initial.speed = {0.0f, 0.0f};
+        emitter.initial.velocity_inheritance = 1.0f;
+        emitter.spawn_over_time.lifetime.keys = {{0.0f, 2.0f}, {1.0f, 6.0f}};
+        emitter.spawn_over_time.sheet_frame_begin.keys = {{0.0f, 0.0f}, {1.0f, 12.0f}};
+        emitter.spawn_over_time.sheet_frame_end.keys = emitter.spawn_over_time.sheet_frame_begin.keys;
+        emitter.max_particles = 4;
+        effect.emitters.push_back(emitter);
+
+        auto compiled = compile_particle_effect(effect).effect;
+        auto system = create_particle_system(compiled);
+        auto& state = system.emitters[0];
+        state.world_transform[3] = {1.0f, 0.0f, 0.0f, 1.0f};
+        tick_particle_system(system, 0.25f);
+        state.world_transform[3] = {4.0f, 0.0f, 0.0f, 1.0f};
+        tick_particle_system(system, 0.25f);
+        EXPECT_TRUE(system.particles.core.age.empty());
+
+        state.world_transform = glm::rotate(glm::mat4{1.0f}, glm::radians(90.0f), glm::vec3{0.0f, 0.0f, 1.0f});
+        state.world_transform[3] = {5.0f, 0.0f, 0.0f, 1.0f};
+        trigger_particle_emitter(system, 0);
+        tick_particle_system(system, 0.25f);
+
+        const auto& core = system.particles.core;
+        ASSERT_EQ(core.age.size(), 1u);
+        EXPECT_FLOAT_EQ(core.lifetime[0], 5.0f);
+        EXPECT_FLOAT_EQ(core.velocity[0].x, 4.0f);
+        EXPECT_NEAR(core.position[0].x, 6.0f, 1.0e-5f);
+        EXPECT_NEAR(core.position[0].y, 0.0f, 1.0e-5f);
+        EXPECT_EQ(core.frame[0], 9u);
+        EXPECT_EQ(state.pending_bursts, 0u);
+
+        // Existing particles still need current transforms and sheet tracks after the event is consumed.
+        state.world_transform = glm::rotate(glm::mat4{1.0f}, glm::radians(180.0f), glm::vec3{0.0f, 0.0f, 1.0f});
+        state.world_transform[3] = {8.0f, 0.0f, 0.0f, 1.0f};
+        tick_particle_system(system, 0.25f);
+        ASSERT_EQ(core.age.size(), 1u);
+        EXPECT_FLOAT_EQ(core.age[0], 0.5f);
+        EXPECT_NEAR(core.position[0].x, space == ParticleSimulationSpace::world ? 7.0f : 9.0f, 1.0e-5f);
+        EXPECT_NEAR(core.position[0].y, space == ParticleSimulationSpace::world ? 0.0f : 1.0f, 1.0e-5f);
+        EXPECT_EQ(core.frame[0], 12u);
+        const auto packets = build_particle_render_packets(system);
+        ASSERT_EQ(packets.size(), 1u);
+        EXPECT_EQ(packets[0].sheet.frame_begin, 12u);
+        EXPECT_EQ(packets[0].sheet.frame_end, 12u);
+    }
+}
+
 TEST(RenderParticles, TickOutputsForceEventsForBurstEmitters)
 {
     ParticleEffectDef effect;
@@ -675,7 +738,7 @@ TEST(RenderParticles, TickOutputsForceEventsForBurstEmitters)
     emitter.initial.lifetime = {1.0f, 1.0f};
     emitter.initial.size_x = {1.0f, 1.0f};
     emitter.initial.size_y = {1.0f, 1.0f};
-    emitter.max_particles = 16;
+    emitter.max_particles = 3;
     effect.emitters.push_back(emitter);
 
     auto compiled = compile_particle_effect(effect).effect;
@@ -689,10 +752,17 @@ TEST(RenderParticles, TickOutputsForceEventsForBurstEmitters)
     EXPECT_EQ(events[0].emitter_id, 0u);
     EXPECT_FLOAT_EQ(events[0].radius, 0.2f);
     EXPECT_FLOAT_EQ(events[0].length, 1.0f);
-    EXPECT_EQ(system.particles.core.age.size(), 4u);
+    EXPECT_EQ(system.particles.core.age.size(), 3u);
 
     tick_particle_system(system, 0.016f);
     EXPECT_TRUE(get_particle_force_events(system).empty());
+
+    // A full emitter still produces each queued burst's force event.
+    trigger_particle_emitter(system, 0, 3);
+    tick_particle_system(system, 0.016f);
+    EXPECT_EQ(get_particle_force_events(system).size(), 3u);
+    EXPECT_EQ(system.particles.core.age.size(), 3u);
+    EXPECT_EQ(system.emitters[0].pending_bursts, 0u);
 }
 
 TEST(RenderParticles, TickEmitsSingleShotOnceWhenNotLooping)
@@ -1031,6 +1101,98 @@ TEST(RenderParticles, BuildRenderPacketsCarryRenderOpacityAndBlur)
     ASSERT_EQ(packets.size(), 1u);
     EXPECT_FLOAT_EQ(packets[0].opacity_scale, 0.35f);
     EXPECT_FLOAT_EQ(packets[0].blur_length, 1.75f);
+}
+
+TEST(RenderParticles, BillboardVisibilityUsesLivePacketIndicesAndAllClipPlanes)
+{
+    const auto frustum = make_frustum(glm::orthoRH_ZO(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 20.0f));
+    ParticleSystemInstance system;
+    auto& core = system.particles.core;
+    core.position = {{0.0f, 0.0f, -5.0f}, {0.0f, 0.0f, -5.0f}, {0.0f, 0.0f, -5.0f}};
+    core.size_x = core.size_y = {0.1f, 0.1f, 0.1f};
+    system.sort_order = {1u, 2u, 0u};
+    ParticleRenderPacket packet{.begin = 1u, .count = 2u};
+
+    for (const auto mode : {ParticleRenderMode::billboard, ParticleRenderMode::billboard_local_z,
+             ParticleRenderMode::billboard_world_z, ParticleRenderMode::aligned_world_z}) {
+        packet.mode = mode;
+        for (const glm::vec3 outside : {glm::vec3{-12.0f, 0.0f, -5.0f}, {12.0f, 0.0f, -5.0f},
+                 {0.0f, -12.0f, -5.0f}, {0.0f, 12.0f, -5.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -22.0f}}) {
+            // Index 1 stays in view but is outside this packet's range.
+            core.position[0] = core.position[2] = outside;
+            EXPECT_FALSE(particle_billboards_visible(system, packet, frustum));
+            // An escaped particle is visible even when the rest of its batch is not.
+            core.position[2] = {0.0f, 0.0f, -5.0f};
+            EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+        }
+    }
+}
+
+TEST(RenderParticles, BillboardVisibilityRetainsLargeAndRotatedEdgeSprites)
+{
+    const auto frustum = make_frustum(glm::orthoRH_ZO(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 20.0f));
+    ParticleSystemInstance system;
+    system.sort_order = {0u};
+    auto& core = system.particles.core;
+    core.position = {{12.0f, 0.0f, -5.0f}};
+    core.size_x = {0.1f};
+    core.size_y = {0.1f};
+    const ParticleRenderPacket packet{.count = 1u};
+    EXPECT_FALSE(particle_billboards_visible(system, packet, frustum));
+    core.size_y[0] = 8.0f; // A quarter-turn puts the long axis across the right edge.
+    EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    core.size_y[0] = 0.1f;
+    core.position[0].x = 10.0f; // Center lies on the clip edge.
+    EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    core.position[0].x = 12.0f;
+    EXPECT_FALSE(particle_billboards_visible(system, packet, frustum));
+}
+
+TEST(RenderParticles, BillboardVisibilityFollowsPerspectiveCamera)
+{
+    ParticleSystemInstance system;
+    system.sort_order = {0u};
+    system.particles.core.position = {{0.0f, 0.0f, -5.0f}};
+    system.particles.core.size_x = {1.0f};
+    system.particles.core.size_y = {1.0f};
+    const ParticleRenderPacket packet{.count = 1u};
+    const auto projection = glm::perspectiveRH_ZO(glm::radians(50.0f), 1.0f, 0.1f, 100.0f);
+    EXPECT_TRUE(particle_billboards_visible(system, packet, make_frustum(projection)));
+    const auto away = glm::lookAtRH(glm::vec3{0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{0.0f, 1.0f, 0.0f});
+    EXPECT_FALSE(particle_billboards_visible(system, packet, make_frustum(projection * away)));
+    EXPECT_TRUE(particle_billboards_visible(system, packet, make_frustum(projection)));
+}
+
+TEST(RenderParticles, BillboardVisibilityRetainsUnsupportedOrInvalidData)
+{
+    const auto frustum = make_frustum(glm::mat4{1.0f});
+    ParticleSystemInstance system;
+    system.sort_order = {0u};
+    system.particles.core.position = {{100.0f, 100.0f, 100.0f}};
+    system.particles.core.size_x = {1.0f};
+    system.particles.core.size_y = {1.0f};
+    ParticleRenderPacket packet{.count = 1u};
+    EXPECT_FALSE(particle_billboards_visible(system, packet, frustum));
+    for (const auto mode : {ParticleRenderMode::velocity_aligned, ParticleRenderMode::stretched,
+             ParticleRenderMode::linked_chain, ParticleRenderMode::beam, ParticleRenderMode::mesh}) {
+        packet.mode = mode;
+        EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    }
+    packet.mode = ParticleRenderMode::billboard;
+    packet.count = 2u;
+    EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    packet.count = 1u;
+    system.sort_order[0] = 9u;
+    EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    system.sort_order[0] = 0u;
+    system.particles.core.size_y[0] = std::numeric_limits<float>::quiet_NaN();
+    EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    system.particles.core.size_y.clear();
+    EXPECT_TRUE(particle_billboards_visible(system, packet, frustum));
+    EXPECT_TRUE(particle_billboards_visible(system, packet, make_frustum(glm::mat4{0.0f})));
+    auto invalid_view = glm::mat4{1.0f};
+    invalid_view[3][0] = std::numeric_limits<float>::infinity();
+    EXPECT_FALSE(make_frustum(invalid_view).valid);
 }
 
 TEST(RenderParticles, BuildRenderPacketsCarryAmbientTintFlag)
@@ -1540,7 +1702,7 @@ TEST(RenderParticles, TickSamplesSpawnAnimatedSizeAndColor)
     emitter.render.material = 0;
     emitter.emission.mode = ParticleEmissionMode::continuous;
     emitter.emission.metric = ParticleSpawnMetric::per_second;
-    emitter.emission.rate = 2.0f;
+    emitter.emission.rate = 8.0f;
     emitter.initial.lifetime = {1.0f, 1.0f};
     emitter.initial.size_x = {1.0f, 1.0f};
     emitter.initial.size_y = {1.0f, 1.0f};
@@ -1564,10 +1726,19 @@ TEST(RenderParticles, TickSamplesSpawnAnimatedSizeAndColor)
     auto system = create_particle_system(compiled);
 
     tick_particle_system(system, 0.5f);
-    ASSERT_EQ(system.particles.core.position.size(), 1);
-    EXPECT_FLOAT_EQ(system.particles.core.size_x_begin[0], 2.0f);
-    EXPECT_FLOAT_EQ(system.particles.core.size_x_end[0], 3.0f);
-    EXPECT_EQ(system.particles.core.color_rgba8[0], 0x9F408080u);
+    ASSERT_EQ(system.particles.core.position.size(), 4u);
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_FLOAT_EQ(system.particles.core.size_x_begin[i], 2.0f);
+        EXPECT_FLOAT_EQ(system.particles.core.size_x_end[i], 3.0f);
+        EXPECT_EQ(system.particles.core.color_rgba8[i], 0x9F408080u);
+    }
+
+    tick_particle_system(system, 0.25f);
+    ASSERT_EQ(system.particles.core.position.size(), 6u);
+    for (size_t i = 4; i < 6; ++i) {
+        EXPECT_FLOAT_EQ(system.particles.core.size_x_begin[i], 2.5f);
+        EXPECT_FLOAT_EQ(system.particles.core.size_x_end[i], 3.5f);
+    }
 }
 
 TEST(RenderParticles, TickSamplesSpawnAnimatedMotionAndRotation)
@@ -1579,7 +1750,7 @@ TEST(RenderParticles, TickSamplesSpawnAnimatedMotionAndRotation)
     emitter.render.material = 0;
     emitter.emission.mode = ParticleEmissionMode::continuous;
     emitter.emission.metric = ParticleSpawnMetric::per_second;
-    emitter.emission.rate = 2.0f;
+    emitter.emission.rate = 8.0f;
     emitter.initial.lifetime = {1.0f, 1.0f};
     emitter.initial.speed = {0.0f, 0.0f};
     emitter.initial.mass = 0.0f;
@@ -1599,12 +1770,15 @@ TEST(RenderParticles, TickSamplesSpawnAnimatedMotionAndRotation)
     auto system = create_particle_system(compiled);
 
     tick_particle_system(system, 0.5f);
-    ASSERT_EQ(system.particles.core.position.size(), 1u);
-    EXPECT_FLOAT_EQ(system.particles.core.lifetime[0], 1.5f);
-    EXPECT_NEAR(glm::length(system.particles.core.velocity[0]), 2.25f, 1.0e-2f);
-    EXPECT_NE(system.particles.core.velocity[0].x, 0.0f);
-    EXPECT_FLOAT_EQ(system.particles.core.mass[0], -0.5f);
-    EXPECT_FLOAT_EQ(system.particles.core.rotation_rate[0], 1.0f);
+    ASSERT_EQ(system.particles.core.position.size(), 4u);
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_FLOAT_EQ(system.particles.core.lifetime[i], 1.5f);
+        EXPECT_NEAR(glm::length(system.particles.core.velocity[i]), 2.25f, 1.0e-2f);
+        EXPECT_NE(system.particles.core.velocity[i].x, 0.0f);
+        EXPECT_FLOAT_EQ(system.particles.core.mass[i], -0.5f);
+        EXPECT_FLOAT_EQ(system.particles.core.rotation_rate[i], 1.0f);
+    }
+    EXPECT_NE(system.particles.core.velocity[0], system.particles.core.velocity[1]);
 }
 
 TEST(RenderParticles, TickAdvancesSpriteSheetFrames)

@@ -42,6 +42,7 @@ public:
 
     bool initialize(nw::render::ShaderProvider* shader_provider);
     [[nodiscard]] nw::gfx::Context* gfx_context() const noexcept { return ctx_; }
+    ModelTextureCache& model_texture_cache() const;
 
     nw::gfx::Handle<nw::gfx::Texture> get_or_load_texture(const std::string& name, bool premultiply_alpha = false);
     nw::gfx::Handle<nw::gfx::Texture> get_or_load_texture(const std::string& name, const nw::PltColors& colors, bool premultiply_alpha = false);

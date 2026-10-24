@@ -89,6 +89,8 @@ json command_stats_json(const nw::gfx::CommandStats& stats)
         {"descriptor_buffer_binds_skipped", stats.descriptor_buffer_bind_skipped_count},
         {"descriptor_allocations", stats.descriptor_allocation_count},
         {"descriptor_allocation_bytes", stats.descriptor_allocation_bytes},
+        {"storage_descriptor_encodes", stats.storage_descriptor_encode_count},
+        {"storage_descriptor_reuses", stats.storage_descriptor_reuse_count},
         {"descriptor_allocation_failures", stats.descriptor_allocation_failure_count},
         {"descriptor_ring_capacity_bytes", stats.descriptor_ring_capacity_bytes},
         {"descriptor_ring_required_bytes", stats.descriptor_ring_required_bytes},
@@ -100,6 +102,9 @@ json command_stats_json(const nw::gfx::CommandStats& stats)
         {"dropped_dispatches", stats.dropped_dispatch_count},
         {"uniform_allocations", stats.uniform_allocation_count},
         {"uniform_allocation_bytes", stats.uniform_allocation_bytes},
+        {"uniform_allocation_failures", stats.uniform_allocation_failure_count},
+        {"uniform_ring_capacity_bytes", stats.uniform_ring_capacity_bytes},
+        {"uniform_ring_required_bytes", stats.uniform_ring_required_bytes},
         {"vertex_allocations", stats.vertex_allocation_count},
         {"vertex_allocation_bytes", stats.vertex_allocation_bytes},
     };
@@ -145,15 +150,23 @@ void configure_preview_session(nw::render::viewer::ViewerSession& session, const
     }
 }
 
+struct ViewerSessionFrameSample {
+    nw::render::viewer::ViewerFrameStats stats;
+    double begin_frame_ms = 0.0;
+    double update_render_ms = 0.0;
+    double end_frame_ms = 0.0;
+};
+
 bool run_viewer_session_frames(
     AppState& state,
     nw::render::viewer::ViewerSession& session,
     const nw::render::viewer::ViewerViewport& viewport,
     int warmup_frames,
     int render_frames,
-    std::vector<nw::render::viewer::ViewerFrameStats>* samples,
+    std::vector<ViewerSessionFrameSample>* samples,
     std::string* failure,
-    bool wait_for_idle = true)
+    bool wait_for_idle = true,
+    int step_ms = 0)
 {
     warmup_frames = std::max(warmup_frames, 0);
     render_frames = std::max(render_frames, 0);
@@ -164,7 +177,9 @@ bool run_viewer_session_frames(
     }
 
     for (int frame_index = 0; frame_index < total_frames; ++frame_index) {
+        const auto frame_start = SDL_GetTicksNS();
         auto* cmd = nw::gfx::begin_frame(state.gfx_context);
+        const auto update_start = SDL_GetTicksNS();
         if (!cmd) {
             if (failure) {
                 *failure = "begin_frame failed";
@@ -172,12 +187,21 @@ bool run_viewer_session_frames(
             return false;
         }
 
-        session.tick(0);
+        session.tick(step_ms);
+        nw::gfx::cmd_begin_render(cmd, {}, nw::gfx::RenderLoadOp::clear);
+        nw::gfx::cmd_end_render(cmd);
         session.render(cmd, viewport);
-        if (samples && frame_index >= warmup_frames) {
-            samples->push_back(session.last_frame_stats());
-        }
+        const auto submit_start = SDL_GetTicksNS();
         nw::gfx::end_frame(state.gfx_context);
+        const auto frame_end = SDL_GetTicksNS();
+        if (samples && frame_index >= warmup_frames) {
+            samples->push_back({
+                .stats = session.last_frame_stats(),
+                .begin_frame_ms = static_cast<double>(update_start - frame_start) * 1.0e-6,
+                .update_render_ms = static_cast<double>(submit_start - update_start) * 1.0e-6,
+                .end_frame_ms = static_cast<double>(frame_end - submit_start) * 1.0e-6,
+            });
+        }
     }
 
     if (wait_for_idle) {
@@ -203,6 +227,8 @@ bool capture_viewer_session_frame(
     }
 
     session.tick(0);
+    nw::gfx::cmd_begin_render(cmd, {}, nw::gfx::RenderLoadOp::clear);
+    nw::gfx::cmd_end_render(cmd);
     session.render(cmd, viewport);
     const std::string screenshot_output{screenshot_path};
     const bool captured = nw::gfx::capture_screenshot(
@@ -677,6 +703,7 @@ json model_instance_animation_sample_stats_json(
         {"missing_asset_data", stats.missing_asset_data_count},
         {"invalid_skeletons", stats.invalid_skeleton_count},
         {"failed_samples", stats.failed_sample_count},
+        {"reused", stats.reused_count},
     };
 }
 
@@ -769,11 +796,11 @@ void log_prepared_model_surface_submission_stats(
         submission.water_submitted_run_count,
         submission.transparent_submitted_run_count,
         submission.all_submitted_run_count,
-        stats.prepared_model_surface_materials.opaque_count,
-        stats.prepared_model_surface_materials.cutout_count,
-        stats.prepared_model_surface_materials.water_count,
-        stats.prepared_model_surface_materials.transparent_count,
-        stats.prepared_model_surface_materials.invalid_mode_count,
+        stats.prepared_model_surface_material_bindings.materials.opaque_count,
+        stats.prepared_model_surface_material_bindings.materials.cutout_count,
+        stats.prepared_model_surface_material_bindings.materials.water_count,
+        stats.prepared_model_surface_material_bindings.materials.transparent_count,
+        stats.prepared_model_surface_material_bindings.materials.invalid_mode_count,
         stats.prepared_model_surface_material_bindings.material_mismatch_count,
         stats.prepared_model_surface_material_bindings.material_fallback_count,
         stats.prepared_model_surface_material_bindings.fallback_material_payload_count,
@@ -808,6 +835,7 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
     return {
         {"timings_ms", {
                            {"tick", seconds_to_ms(stats.tick_seconds)},
+                           {"pre_render", seconds_to_ms(stats.pre_render_seconds)},
                            {"setup", seconds_to_ms(stats.setup_seconds)},
                            {"shadow", seconds_to_ms(stats.shadow_seconds)},
                            {"opaque", seconds_to_ms(stats.opaque_seconds)},
@@ -825,6 +853,7 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
                            {"total_render", seconds_to_ms(stats.total_render_seconds)},
                        }},
         {"gpu_timings_ms", {
+                               {"scene", stats.gpu_scene_available ? json(seconds_to_ms(stats.gpu_scene_seconds)) : json(nullptr)},
                                {"shadow", seconds_to_ms(stats.gpu_shadow_seconds)},
                                {"opaque", seconds_to_ms(stats.gpu_opaque_seconds)},
                                {"water", seconds_to_ms(stats.gpu_water_seconds)},
@@ -982,7 +1011,7 @@ json frame_stats_json(const nw::render::viewer::ViewerFrameStats& stats)
         {"prepared_model_draw_validation", prepared_model_draw_validation_json(stats.prepared_model_draw_validation_enabled, stats.prepared_model_draw_validation)},
         {"render_model_animation_samples", model_instance_animation_sample_stats_json(stats.render_model_animation_sample_stats)},
         {"runtime_sync", preview_scene_runtime_sync_stats_json(stats.runtime_sync_stats)},
-        {"prepared_model_surfaces", prepared_model_surface_report_json(stats.prepared_model_surface_stats_enabled, stats.prepared_model_surface_stats, stats.prepared_model_surface_materials, stats.prepared_model_surface_material_bindings, stats.prepared_render_model_skin_table_stats)},
+        {"prepared_model_surfaces", prepared_model_surface_report_json(stats.prepared_model_surface_stats_enabled, stats.prepared_model_surface_stats, stats.prepared_model_surface_material_bindings.materials, stats.prepared_model_surface_material_bindings, stats.prepared_render_model_skin_table_stats)},
         {"prepared_render_model_skin_table", prepared_render_model_skin_table_stats_json(stats.prepared_render_model_skin_table_stats)},
         {"prepared_model_surface_submission", prepared_model_surface_submission_stats_json(stats)},
         {"prepared_render_model_surface_submission", prepared_render_model_surface_submission_stats_json(stats.prepared_render_model_surface_submission)},
@@ -1106,6 +1135,9 @@ json area_sweep_frame_stats_json(const nw::render::viewer::ViewerFrameStats& sta
                          {"dropped_draws", stats.total_command_stats.dropped_draw_count},
                          {"uniform_allocations", stats.total_command_stats.uniform_allocation_count},
                          {"uniform_allocation_bytes", stats.total_command_stats.uniform_allocation_bytes},
+                         {"uniform_allocation_failures", stats.total_command_stats.uniform_allocation_failure_count},
+                         {"uniform_ring_capacity_bytes", stats.total_command_stats.uniform_ring_capacity_bytes},
+                         {"uniform_ring_required_bytes", stats.total_command_stats.uniform_ring_required_bytes},
                      }},
     };
 }
@@ -2325,6 +2357,40 @@ void render_frame(AppState& state)
 }
 
 namespace {
+bool viewer_frame_samples_complete(std::span<const ViewerSessionFrameSample> samples)
+{
+    for (const auto& sample : samples) {
+        const auto& commands = sample.stats.total_command_stats;
+        if (commands.uniform_allocation_failure_count != 0
+            || commands.descriptor_allocation_failure_count != 0
+            || commands.pipeline_bind_failure_count != 0
+            || commands.vertex_buffer_bind_failure_count != 0
+            || commands.index_buffer_bind_failure_count != 0
+            || commands.resource_bind_failure_count != 0
+            || commands.dropped_draw_count != 0
+            || commands.dropped_dispatch_count != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+json viewer_frame_samples_json(std::span<const ViewerSessionFrameSample> samples)
+{
+    json result = json::array();
+    for (const auto& sample : samples) {
+        auto frame = frame_stats_json(sample.stats);
+        frame["host_timings_ms"] = {
+            {"begin_frame", sample.begin_frame_ms},
+            {"update_render", sample.update_render_ms},
+            {"end_frame", sample.end_frame_ms},
+            {"frame", sample.begin_frame_ms + sample.update_render_ms + sample.end_frame_ms},
+        };
+        result.push_back(std::move(frame));
+    }
+    return result;
+}
+
 json resource_stats_json(const nw::gfx::ResourceStats& stats)
 {
     return json{
@@ -2349,9 +2415,136 @@ json resource_stats_json(const nw::gfx::ResourceStats& stats)
 }
 } // namespace
 
+int run_model_benchmark_command(AppState& state, std::string_view source,
+    int frames, int warmup_frames, int step_ms,
+    const std::filesystem::path& output_path,
+    const std::filesystem::path& screenshot_path)
+{
+    if (!state.preview_resources || !state.gfx_context) {
+        LOG_F(ERROR, "Model benchmark requires initialized preview render resources and graphics context");
+        return 1;
+    }
+    if (frames < 1 || warmup_frames < 0
+        || warmup_frames > std::numeric_limits<int>::max() - frames
+        || step_ms < 0 || step_ms > 1000) {
+        LOG_F(ERROR, "Invalid model benchmark frame counts or step");
+        return 1;
+    }
+    const nw::render::viewer::ViewerViewport viewport{
+        .x = 0,
+        .y = 0,
+        .width = static_cast<uint32_t>(std::max(state.window_width, 1)),
+        .height = static_cast<uint32_t>(std::max(state.window_height, 1)),
+    };
+    nw::render::viewer::ViewerSession session{*state.preview_resources, state.debug_renderer.get()};
+    session.set_gpu_scene_timing_enabled(true);
+    configure_preview_session(session, PreviewSessionSetup{
+                                           .debug_enabled = state.show_debug_overlay,
+                                       });
+    session.set_preview_scene_load_options(state.preview_scene_load_options);
+
+    const auto resources_before_load = nw::gfx::resource_stats(state.gfx_context);
+    const uint64_t load_start = SDL_GetTicksNS();
+    if (!session.load_model(source) || !session.scene()) {
+        LOG_F(ERROR, "Model benchmark failed to load '{}'", source);
+        return 1;
+    }
+    const double load_seconds = static_cast<double>(SDL_GetTicksNS() - load_start) * 1.0e-9;
+    const auto resources_after_load = nw::gfx::resource_stats(state.gfx_context);
+    if (!state.animation_override.empty() && !session.select_animation(state.animation_override)) {
+        LOG_F(ERROR, "Model benchmark animation '{}' was not found in '{}'", state.animation_override, source);
+        return 1;
+    }
+
+    const uint64_t environment_start = SDL_GetTicksNS();
+    const auto* scene = session.scene();
+    apply_static_pbr_environment_policy(state, *scene);
+    if (state.static_pbr_environment_policy == StaticPbrEnvironmentPolicy::reference_ibl) {
+        if (!ensure_static_pbr_ibl_textures(state)) {
+            LOG_F(ERROR, "Model benchmark failed to prepare requested PBR environment");
+            return 1;
+        }
+        session.set_static_pbr_environment(
+            state.static_pbr_ibl_strength, state.static_pbr_exposure,
+            state.static_pbr_ibl_diffuse_texture_index,
+            state.static_pbr_ibl_specular_texture_index,
+            state.static_pbr_brdf_lut_texture_index, static_pbr_ibl_active(state));
+    }
+    const double environment_seconds = static_cast<double>(SDL_GetTicksNS() - environment_start) * 1.0e-9;
+    session.fit_to_scene(viewport);
+    fit_model_preview_camera(session.camera(), *scene);
+    session.set_playing(step_ms > 0);
+
+    std::vector<ViewerSessionFrameSample> samples;
+    std::string failure;
+    if (!run_viewer_session_frames(state, session, viewport,
+            warmup_frames, frames, &samples, &failure, true, step_ms)) {
+        LOG_F(ERROR, "Model benchmark failed during frame run: {}", failure);
+        return 1;
+    }
+    if (!screenshot_path.empty()
+        && !capture_viewer_session_frame(state, session, viewport, screenshot_path.string(), &failure)) {
+        LOG_F(ERROR, "Model benchmark failed to capture screenshot: {}", failure);
+        return 1;
+    }
+
+    const auto validation = nw::gfx::validation_report(state.gfx_core);
+    const bool complete = samples.size() == static_cast<size_t>(frames)
+        && viewer_frame_samples_complete(samples) && validation.error_count == 0;
+    const json report{
+        {"schema_version", 1},
+        {"source", std::string(source)},
+        {"complete", complete},
+        {"load_seconds", load_seconds},
+        {"environment_seconds", environment_seconds},
+        {"resources_before_load", resource_stats_json(resources_before_load)},
+        {"resources_after_load", resource_stats_json(resources_after_load)},
+        {"resources_after_frames", resource_stats_json(nw::gfx::resource_stats(state.gfx_context))},
+        {"validation", {{"warnings", validation.warning_count}, {"errors", validation.error_count}}},
+        {"frames", frames},
+        {"warmup_frames", warmup_frames},
+        {"step_ms", step_ms},
+        {"viewport", {{"width", viewport.width}, {"height", viewport.height}}},
+        {"camera", {
+                       {"position", vec3_json(session.camera().get_position())},
+                       {"target", vec3_json(session.camera().get_target())},
+                       {"fov_degrees", session.camera().fov_degrees()},
+                       {"near_plane", session.camera().near_plane()},
+                       {"far_plane", session.camera().far_plane()},
+                   }},
+        {"options", {
+                        {"animation", state.animation_override},
+                        {"pbr_environment_path", state.static_pbr_ibl_loaded_environment_path},
+                        {"pbr_environment_policy", static_pbr_environment_policy_name(state.static_pbr_environment_policy)},
+                        {"pbr_ibl_requested", state.static_pbr_ibl_requested},
+                        {"pbr_ibl_active", static_pbr_ibl_active(state)},
+                        {"debug", state.show_debug_overlay},
+                        {"screenshot", screenshot_path.string()},
+                    }},
+        {"scene", {{"models", scene->static_models.size()}, {"particle_systems", scene->particles.size()}}},
+        {"samples", viewer_frame_samples_json(samples)},
+    };
+    const auto output = report.dump(2);
+    if (!output_path.empty()) {
+        std::ofstream out{output_path};
+        out << output << '\n';
+        out.flush();
+        if (!out) {
+            LOG_F(ERROR, "Failed to write model benchmark output '{}'", output_path.string());
+            return 1;
+        }
+    }
+    std::cout << output << '\n'
+              << std::flush;
+    if (!complete) {
+        LOG_F(ERROR, "Model benchmark contains failed submissions or Vulkan validation errors");
+    }
+    return complete ? 0 : 1;
+}
+
 int run_area_benchmark_command(AppState& state, std::string_view area_resref,
     std::string_view module_path, std::string_view user_path,
-    int frames, int warmup_frames, bool lights_enabled, bool shadows_enabled,
+    int frames, int warmup_frames, int step_ms, bool lights_enabled, bool shadows_enabled,
     bool local_shadows_enabled, bool debug_enabled,
     const nw::render::viewer::ForwardPlusRenderPolicy& forward_plus_policy,
     const AreaBenchmarkCameraOptions& camera_options,
@@ -2367,6 +2560,10 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
 
     frames = std::max(frames, 1);
     warmup_frames = std::max(warmup_frames, 0);
+    if (step_ms < 0 || step_ms > 1000) {
+        LOG_F(ERROR, "Area benchmark step must be in 0..1000 ms");
+        return 1;
+    }
     const nw::render::viewer::ViewerViewport viewport{
         .x = 0,
         .y = 0,
@@ -2375,6 +2572,7 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
     };
 
     nw::render::viewer::ViewerSession session{*state.preview_resources, state.debug_renderer.get()};
+    session.set_gpu_scene_timing_enabled(true);
     configure_preview_session(session, PreviewSessionSetup{
                                            .lights_enabled = lights_enabled,
                                            .shadows_enabled = shadows_enabled,
@@ -2399,12 +2597,13 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
         session.set_area_day_night_elapsed_seconds(*area_time_seconds, false);
     }
 
-    std::vector<nw::render::viewer::ViewerFrameStats> samples;
+    session.set_playing(step_ms > 0);
+    std::vector<ViewerSessionFrameSample> samples;
     std::string benchmark_failure;
     const bool ok = run_viewer_session_frames(
         state, session, viewport,
         warmup_frames, frames, &samples,
-        &benchmark_failure);
+        &benchmark_failure, true, step_ms);
     if (!ok) {
         LOG_F(ERROR, "Area benchmark failed during frame run: {}", benchmark_failure);
         return 1;
@@ -2430,21 +2629,32 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
         }
     }
 
-    const auto timing_summary = [&](auto getter) {
+    const auto timing_summary = [&](auto getter, bool report_availability = false) {
         double min_ms = std::numeric_limits<double>::max();
         double max_ms = 0.0;
         double sum_ms = 0.0;
+        size_t available_samples = 0;
         for (const auto& sample : samples) {
-            const double value = seconds_to_ms(getter(sample));
+            const std::optional<float> seconds = getter(sample.stats);
+            if (!seconds) {
+                continue;
+            }
+            const double value = seconds_to_ms(*seconds);
             min_ms = std::min(min_ms, value);
             max_ms = std::max(max_ms, value);
             sum_ms += value;
+            ++available_samples;
         }
-        return json{
-            {"avg", samples.empty() ? 0.0 : sum_ms / static_cast<double>(samples.size())},
-            {"min", samples.empty() ? 0.0 : min_ms},
-            {"max", samples.empty() ? 0.0 : max_ms},
+        json result{
+            {"avg", available_samples ? json(sum_ms / static_cast<double>(available_samples)) : json(nullptr)},
+            {"min", available_samples ? json(min_ms) : json(nullptr)},
+            {"max", available_samples ? json(max_ms) : json(nullptr)},
         };
+        if (report_availability) {
+            result["available_samples"] = available_samples;
+            result["missing_samples"] = samples.size() - available_samples;
+        }
+        return result;
     };
 
     const auto counter_summary = [&](auto getter) {
@@ -2452,7 +2662,7 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
         uint64_t max_value = 0;
         long double sum = 0.0;
         for (const auto& sample : samples) {
-            const uint64_t value = getter(sample);
+            const uint64_t value = getter(sample.stats);
             min_value = std::min(min_value, value);
             max_value = std::max(max_value, value);
             sum += static_cast<long double>(value);
@@ -2464,15 +2674,14 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
         };
     };
 
-    json frame_samples = json::array();
-    for (const auto& sample : samples) {
-        frame_samples.push_back(frame_stats_json(sample));
-    }
+    const bool complete = viewer_frame_samples_complete(samples);
+    json frame_samples = viewer_frame_samples_json(samples);
 
     const auto* scene = session.scene();
     json area_render_cache = json::object();
     if (scene && scene->area_render_scene) {
         area_render_cache = area_render_cache_stats_json(scene->area_render_scene->stats());
+        area_render_cache["shadow_batch_cache_builds"] = scene->area_render_scene->shadow_batch_cache().rebuild_count;
     }
     const json render_service_stats = current_render_service_stats_json();
     json asset_cache = render_asset_cache_stats_json(render_service_stats);
@@ -2486,9 +2695,11 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
     // clang-format off
     json report{
         {"area", std::string(area_resref)},
+        {"complete", complete},
         {"load_seconds", load_seconds},
         {"resources_before_load", resource_stats_json(resources_before_load)},
         {"resources_after_load", resource_stats_json(resources_after_load)},
+        {"model_texture_cache", render_service_stats_member_json(render_service_stats, "model_texture_cache")},
         {"resources_after_frames", resource_stats_json(nw::gfx::resource_stats(state.gfx_context))},
         {"validation", {{"warnings", nw::gfx::validation_report(state.gfx_core).warning_count},
                            {"errors", nw::gfx::validation_report(state.gfx_core).error_count}}},
@@ -2496,6 +2707,7 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
         {"user_path", benchmark_path_metadata_json(user_path)},
         {"frames", frames},
         {"warmup_frames", warmup_frames},
+        {"step_ms", step_ms},
         {"viewport", {
             {"width", viewport.width},
             {"height", viewport.height},
@@ -2541,6 +2753,7 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
         {"summary", {
             {"timings_ms", {
                 {"tick", timing_summary([](const auto& stats) { return stats.tick_seconds; })},
+                {"pre_render", timing_summary([](const auto& stats) { return stats.pre_render_seconds; })},
                 {"setup", timing_summary([](const auto& stats) { return stats.setup_seconds; })},
                 {"shadow", timing_summary([](const auto& stats) { return stats.shadow_seconds; })},
                 {"opaque", timing_summary([](const auto& stats) { return stats.opaque_seconds; })},
@@ -2563,6 +2776,9 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"total_render", timing_summary([](const auto& stats) { return stats.total_render_seconds; })},
             }},
             {"gpu_timings_ms", {
+                {"scene", timing_summary([](const auto& stats) -> std::optional<float> {
+                    return stats.gpu_scene_available ? std::optional{stats.gpu_scene_seconds} : std::nullopt;
+                }, true)},
                 {"shadow", timing_summary([](const auto& stats) { return stats.gpu_shadow_seconds; })},
                 {"opaque", timing_summary([](const auto& stats) { return stats.gpu_opaque_seconds; })},
                 {"water", timing_summary([](const auto& stats) { return stats.gpu_water_seconds; })},
@@ -2597,6 +2813,9 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
                 {"dropped_draws", counter_summary([](const auto& stats) { return stats.total_command_stats.dropped_draw_count; })},
                 {"uniform_allocations", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_allocation_count; })},
                 {"uniform_allocation_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_allocation_bytes; })},
+                {"uniform_allocation_failures", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_allocation_failure_count; })},
+                {"uniform_ring_capacity_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_ring_capacity_bytes; })},
+                {"uniform_ring_required_bytes", counter_summary([](const auto& stats) { return stats.total_command_stats.uniform_ring_required_bytes; })},
             }},
             {"particles", {
                 {"systems", counter_summary([](const auto& stats) { return static_cast<uint64_t>(stats.particle_system_count); })},
@@ -2684,6 +2903,10 @@ int run_area_benchmark_command(AppState& state, std::string_view area_resref,
 
     std::cout << report.dump(2) << '\n'
               << std::flush;
+    if (!complete) {
+        LOG_F(ERROR, "Area benchmark incomplete: measured frames contain failed allocations/binds or dropped commands; see report counters");
+        return 1;
+    }
     return !screenshot_path.empty() && !screenshot_captured ? 1 : 0;
 }
 
@@ -2748,7 +2971,7 @@ int run_area_sweep_command(AppState& state, std::string_view source,
             nw::gfx::wait_idle(state.gfx_context);
             nw::gfx::reset_validation_report(state.gfx_core);
 
-            std::vector<nw::render::viewer::ViewerFrameStats> samples;
+            std::vector<ViewerSessionFrameSample> samples;
             samples.reserve(static_cast<size_t>(frames));
             bool loaded = false;
             bool rendered = false;
@@ -2872,7 +3095,7 @@ int run_area_sweep_command(AppState& state, std::string_view source,
                 {"scene", std::move(scene_json)},
                 {"asset_cache", std::move(asset_cache_json)},
                 {"nwn_model_loader_resource_cache", std::move(model_loader_resource_cache_json)},
-                {"last_frame", samples.empty() ? json(nullptr) : area_sweep_frame_stats_json(samples.back())},
+                {"last_frame", samples.empty() ? json(nullptr) : area_sweep_frame_stats_json(samples.back().stats)},
             });
         }
     }

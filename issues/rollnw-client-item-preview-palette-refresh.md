@@ -2,6 +2,10 @@
 
 Status: implemented and verified, 2026-10-01.
 
+Follow-up: [retain palettes in file-loaded Item scenes](closed/rollnw-client-file-item-palette-refresh.md)
+removes the remaining original-scene reconstruction and restores palette
+eligibility after standalone geometry rebuilds.
+
 ## Observed problem
 
 A native Cloth 1 edit on `cloth028.uti` takes 24.14 ms median from client

@@ -356,7 +356,7 @@ TEST(ClientPreview, StartsFromNavigationRaysOutsideAreaBounds)
     }
 }
 
-TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
+TEST(ClientPreview, OpensClosesAndReopensReplacementDoor)
 {
     auto* module = nw::kernel::load_module("test_data/user/modules/module_as_dir/");
     ASSERT_NE(module, nullptr);
@@ -397,6 +397,7 @@ TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
     ASSERT_TRUE(placed.ok()) << placed.message;
     ASSERT_EQ(area->doors.size(), 1u);
     ASSERT_EQ(area->doors.front()->handle(), replacement_door);
+    const size_t authored_creature_count = area->creatures.size();
 
     nw::toolset::ToolsetPreviewSession session;
     const nw::toolset::PreviewSessionStartInput start{
@@ -407,6 +408,9 @@ TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
     };
     const auto started = nw::toolset::start_toolset_preview(session, start);
     ASSERT_TRUE(started.ok()) << started.diagnostic;
+    const auto* actor_spatial = nw::kernel::objects().components().find_spatial(started.actor);
+    ASSERT_NE(actor_spatial, nullptr);
+    const glm::vec3 initial_position = actor_spatial->position;
 
     const auto handles = nw::toolset::toolset_preview_door_handles(session);
     ASSERT_EQ(handles.size(), 1u);
@@ -439,7 +443,7 @@ TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
         opened = nw::toolset::toolset_preview_door_visual_states(session)[0].state
             != nw::toolset::PreviewDoorState::closed;
     }
-    EXPECT_TRUE(opened);
+    ASSERT_TRUE(opened);
 
     nw::toolset::AreaNavigationSource navigation;
     std::string navigation_diagnostic;
@@ -491,7 +495,63 @@ TEST(ClientPreview, OpensReplacementDoorAndNavigatesThroughIt)
         };
         reached_target = glm::dot(distance, distance) < 0.1f;
     }
-    EXPECT_TRUE(reached_target);
+    ASSERT_TRUE(reached_target);
+
+    // Request both transitions explicitly: this fixture also has a route
+    // around the closed door, so a return target alone need not reopen it.
+    for (const bool closing : {true, false}) {
+        SCOPED_TRACE(closing);
+        ASSERT_TRUE(nw::toolset::set_preview_click_door(
+            sample, 0,
+            replacement_spatial.position - glm::vec3{1.0f},
+            replacement_spatial.position + glm::vec3{1.0f}));
+        size_t transitions = 0;
+        for (size_t tick = 0; tick < 10'000 && transitions == 0; ++tick) {
+            const auto advanced = nw::toolset::tick_toolset_preview(
+                session, std::span{&sample, 1}, spatial_output, locomotion_output);
+            ASSERT_EQ(advanced.status, nw::toolset::PreviewStatus::ok);
+            ASSERT_EQ(advanced.path_failure_count, 0u);
+            ASSERT_EQ(advanced.door_close_blocked_count, 0u);
+            EXPECT_EQ(closing ? advanced.door_open_count : advanced.door_close_count, 0u);
+            sample = {};
+            const size_t changed = closing ? advanced.door_close_count : advanced.door_open_count;
+            transitions += changed;
+            if (changed != 0) {
+                EXPECT_GT(advanced.rebuilt_tile_count, 0u);
+                const auto& visual = nw::toolset::toolset_preview_door_visual_states(session)[0];
+                EXPECT_EQ(visual.state == nw::toolset::PreviewDoorState::closed, closing);
+                EXPECT_TRUE(visual.transition);
+            }
+        }
+        ASSERT_EQ(transitions, 1u);
+    }
+
+    // Navigation remains usable after both tile rebuilds.
+    ASSERT_TRUE(nw::toolset::set_preview_click_target(sample, initial_position));
+    bool returned = false;
+    for (size_t tick = 0; tick < 10'000 && !returned; ++tick) {
+        const auto advanced = nw::toolset::tick_toolset_preview(
+            session, std::span{&sample, 1}, spatial_output, locomotion_output);
+        ASSERT_EQ(advanced.status, nw::toolset::PreviewStatus::ok);
+        ASSERT_EQ(advanced.path_failure_count, 0u);
+        sample = {};
+        EXPECT_EQ(advanced.door_open_count, 0u);
+        EXPECT_EQ(advanced.door_close_count, 0u);
+        const glm::vec2 distance = glm::vec2{spatial_output[0].position - initial_position};
+        returned = glm::dot(distance, distance) < 0.1f;
+    }
+    EXPECT_TRUE(returned);
+    EXPECT_EQ(area->creatures.size(), authored_creature_count);
+    nw::toolset::stop_toolset_preview(session);
+    EXPECT_FALSE(nw::kernel::objects().valid(started.actor));
+
+    nw::toolset::AreaNavigationSource authored_navigation;
+    ASSERT_TRUE(nw::toolset::build_area_navigation_source(
+        *area, authored_navigation, navigation_diagnostic))
+        << navigation_diagnostic;
+    ASSERT_EQ(authored_navigation.doors.size(), 1u);
+    EXPECT_EQ(authored_navigation.doors[0].door, replacement_door);
+    EXPECT_EQ(authored_navigation.doors[0].state, door_row->state);
 }
 
 TEST(ClientPreview, RestartsAfterRejectedPlacementRay)

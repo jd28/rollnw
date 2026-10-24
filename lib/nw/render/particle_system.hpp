@@ -81,6 +81,7 @@ struct ParticleEmitterState {
     glm::vec3 frame_delta{0.0f};
     glm::vec3 linear_velocity{0.0f};
     glm::mat4 world_transform{1.0f};
+    // Derived transform and sheet refresh when spawning or updating live particles.
     glm::mat4 inverse_world_transform{1.0f};
     glm::vec3 target_point{0.0f};
     ParticleSpriteSheet sampled_sheet{};
@@ -119,7 +120,6 @@ struct ParticleSystemInstance {
     ParticleStorage particles;
     std::vector<ParticleEmitterState> emitters;
     std::vector<ParticleEmitterAttachmentBinding> emitter_attachments;
-    std::vector<ParticleEmitterAttachmentFrame> emitter_attachment_frames;
     std::vector<uint32_t> live_particles_per_emitter;
     std::vector<uint8_t> emitter_visible;
     ParticleRenderPacketList render_packets;

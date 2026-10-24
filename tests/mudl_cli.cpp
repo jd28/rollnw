@@ -109,6 +109,106 @@ TEST(MudlCli, AreaBenchmarkParsesForwardPlusGpuCullFlag)
     EXPECT_TRUE(args.benchmark_forward_plus_policy.gpu_culling);
 }
 
+TEST(MudlCli, ModelBenchmarkParsesMeasuredFrameOptions)
+{
+    mudl::ParsedArgs args;
+    const auto exit_code = parse_args_for({"mudl", "model-benchmark", "models/actor.glb",
+                                              "--frames", "600", "--warmup", "180", "--step-ms", "16",
+                                              "--width", "1920", "--height", "1080", "--animation", "walk",
+                                              "--json", "samples.json", "--screenshot", "frame.png"},
+        args);
+
+    EXPECT_FALSE(exit_code.has_value());
+    EXPECT_EQ(args.initial_model, "models/actor.glb");
+    EXPECT_EQ(args.benchmark_frames, 600);
+    EXPECT_EQ(args.benchmark_warmup_frames, 180);
+    EXPECT_EQ(args.benchmark_step_ms, 16);
+    EXPECT_EQ(args.benchmark_width, 1920);
+    EXPECT_EQ(args.benchmark_height, 1080);
+    EXPECT_EQ(args.animation_override, "walk");
+    EXPECT_EQ(args.benchmark_output_path, "samples.json");
+    EXPECT_EQ(args.benchmark_screenshot_path, "frame.png");
+    EXPECT_TRUE(args.screenshot_path.empty());
+}
+
+TEST(MudlCli, ModelBenchmarkRejectsInvalidNumericInputs)
+{
+    for (const auto option : {"--frames", "--warmup", "--width", "--height", "--step-ms"}) {
+        for (const auto value : {"", "-1", "16ms", "16.5", "99999999999999999999"}) {
+            mudl::ParsedArgs args;
+            testing::internal::CaptureStderr();
+            const auto exit_code = parse_args_for({"mudl", "model-benchmark", "actor.glb", option, value}, args);
+            const auto error = testing::internal::GetCapturedStderr();
+            EXPECT_EQ(exit_code, 1) << option << ' ' << value;
+            EXPECT_NE(error.find(option), std::string::npos);
+        }
+        mudl::ParsedArgs args;
+        testing::internal::CaptureStderr();
+        const auto exit_code = parse_args_for({"mudl", "model-benchmark", "actor.glb", option}, args);
+        const auto error = testing::internal::GetCapturedStderr();
+        EXPECT_EQ(exit_code, 1) << option;
+        EXPECT_NE(error.find(option), std::string::npos);
+    }
+}
+
+TEST(MudlCli, ModelBenchmarkChecksCountAndStepBoundaries)
+{
+    for (const auto option : {"--frames", "--width", "--height"}) {
+        mudl::ParsedArgs args;
+        testing::internal::CaptureStderr();
+        EXPECT_EQ(parse_args_for({"mudl", "model-benchmark", "actor.glb", option, "0"}, args), 1);
+        testing::internal::GetCapturedStderr();
+    }
+    for (const auto step : {"0", "1000"}) {
+        mudl::ParsedArgs args;
+        EXPECT_FALSE(parse_args_for({"mudl", "model-benchmark", "actor.glb",
+                                        "--frames", "1", "--warmup", "0", "--step-ms", step},
+            args)
+                .has_value());
+    }
+    for (const auto& extra : {std::vector<std::string>{"--frames", "2147483647", "--warmup", "1"},
+             std::vector<std::string>{"--step-ms", "1001"}}) {
+        std::vector<std::string> command{"mudl", "model-benchmark", "actor.glb"};
+        command.insert(command.end(), extra.begin(), extra.end());
+        mudl::ParsedArgs args;
+        testing::internal::CaptureStderr();
+        EXPECT_EQ(parse_args_for(command, args), 1);
+        testing::internal::GetCapturedStderr();
+    }
+}
+
+TEST(MudlCli, ModelBenchmarkRequiresSourceAndRejectsUnknownOptions)
+{
+    for (const auto& extra : {std::vector<std::string>{}, std::vector<std::string>{""},
+             std::vector<std::string>{"--frames", "60"},
+             std::vector<std::string>{"actor.glb", "--unknown"},
+             std::vector<std::string>{"actor.glb", "--json"},
+             std::vector<std::string>{"actor.glb", "--screenshot"},
+             std::vector<std::string>{"actor.glb", "--json", ""},
+             std::vector<std::string>{"actor.glb", "--screenshot", ""},
+             std::vector<std::string>{"actor.glb", "--json", "--validate"},
+             std::vector<std::string>{"actor.glb", "--screenshot", "--validate"}}) {
+        std::vector<std::string> command{"mudl", "model-benchmark"};
+        command.insert(command.end(), extra.begin(), extra.end());
+        mudl::ParsedArgs args;
+        testing::internal::CaptureStderr();
+        testing::internal::CaptureStdout();
+        EXPECT_EQ(parse_args_for(command, args), 1);
+        testing::internal::GetCapturedStdout();
+        testing::internal::GetCapturedStderr();
+    }
+}
+
+TEST(MudlCli, ModelBenchmarkHelpDoesNotLoadAModel)
+{
+    mudl::ParsedArgs args;
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(parse_args_for({"mudl", "model-benchmark", "--help"}, args), 0);
+    const auto output = testing::internal::GetCapturedStdout();
+    EXPECT_NE(output.find("model-benchmark"), std::string::npos);
+    EXPECT_TRUE(args.initial_model.empty());
+}
+
 TEST(MudlCli, AreaBenchmarkDefaultsToForwardPlusGpuCull)
 {
     mudl::ParsedArgs args;
@@ -119,6 +219,39 @@ TEST(MudlCli, AreaBenchmarkDefaultsToForwardPlusGpuCull)
     EXPECT_TRUE(args.benchmark_forward_plus_policy.gpu_culling);
     EXPECT_TRUE(args.benchmark_local_shadows_enabled);
     EXPECT_FALSE(args.benchmark_area_time_seconds.has_value());
+    EXPECT_EQ(args.benchmark_step_ms, 0);
+}
+
+TEST(MudlCli, AreaBenchmarkAcceptsFixedStepBoundaries)
+{
+    for (const auto value : {"0", "16", "1000"}) {
+        mudl::ParsedArgs args;
+        const auto exit_code = parse_args_for({"mudl", "area-benchmark", "ms_4city", "--step-ms", value}, args);
+        EXPECT_FALSE(exit_code.has_value()) << value;
+        EXPECT_EQ(args.benchmark_step_ms, std::stoi(value));
+    }
+}
+
+TEST(MudlCli, AreaBenchmarkRejectsInvalidFixedSteps)
+{
+    for (const auto value : {"", "-1", "1001", "16ms", "16.5", "nan", "99999999999999999999"}) {
+        mudl::ParsedArgs args;
+        testing::internal::CaptureStderr();
+        const auto exit_code = parse_args_for({"mudl", "area-benchmark", "ms_4city", "--step-ms", value}, args);
+        const auto error = testing::internal::GetCapturedStderr();
+        EXPECT_EQ(exit_code, 1) << value;
+        EXPECT_NE(error.find("--step-ms"), std::string::npos);
+    }
+}
+
+TEST(MudlCli, AreaBenchmarkRequiresFixedStepValue)
+{
+    mudl::ParsedArgs args;
+    testing::internal::CaptureStderr();
+    const auto exit_code = parse_args_for({"mudl", "area-benchmark", "ms_4city", "--step-ms"}, args);
+    const auto error = testing::internal::GetCapturedStderr();
+    EXPECT_EQ(exit_code, 1);
+    EXPECT_NE(error.find("--step-ms"), std::string::npos);
 }
 
 TEST(MudlCli, AreaBenchmarkParsesLocalShadowDisableFlag)

@@ -156,98 +156,88 @@ void ModelGpuBackend::destroy_common_gpu_resources()
 
 nw::gfx::Handle<nw::gfx::Pipeline> ModelGpuBackend::create_pipeline_slot(PipelineSlot slot, const nw::gfx::PipelineDesc& desc)
 {
-    auto pipeline = pipeline_cache_.get_or_create(desc);
-    pipeline_slot(slot) = pipeline;
-    return pipeline;
-}
-
-bool ModelGpuBackend::require_pipeline_slot(PipelineSlot slot, const nw::gfx::PipelineDesc& desc, const char* message)
-{
-    if (create_pipeline_slot(slot, desc).valid()) {
-        return true;
+    for (size_t cull = 0; cull < cull_mode_count; ++cull) {
+        auto variant = desc;
+        // Open meshes remain two-sided occluders; water keeps its existing path.
+        variant.cull_mode = desc.has_color_attachment && slot != PipelineSlot::static_water
+            ? static_cast<nw::gfx::CullMode>(cull)
+            : nw::gfx::CullMode::none;
+        pipelines_[static_cast<size_t>(slot) * cull_mode_count + cull]
+            = pipeline_cache_.get_or_create(variant);
     }
-
-    LOG_F(ERROR, "{}", message);
-    return false;
-}
-
-bool ModelGpuBackend::warn_pipeline_slot(PipelineSlot slot, const nw::gfx::PipelineDesc& desc, const char* message)
-{
-    if (create_pipeline_slot(slot, desc).valid()) {
-        return true;
-    }
-
-    LOG_F(WARNING, "{}", message);
-    return false;
+    return pipeline(slot, nw::gfx::CullMode::none);
 }
 
 nw::gfx::Handle<nw::gfx::Pipeline> ModelGpuBackend::pipeline(ModelPipelineKey key) const
 {
+    if (static_cast<size_t>(key.cull_mode) >= cull_mode_count) {
+        return {};
+    }
     const bool translucent = key.material == MaterialMode::transparent || key.material == MaterialMode::water;
 
     switch (key.pass) {
     case ModelPipelinePass::shadow:
         switch (key.mesh) {
         case ModelPipelineMeshKind::pbr_static:
-            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_static_shadow_cutout) : pipeline(PipelineSlot::pbr_static_shadow);
+            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_static_shadow_cutout, key.cull_mode) : pipeline(PipelineSlot::pbr_static_shadow, key.cull_mode);
         case ModelPipelineMeshKind::pbr_static_instanced:
             return key.material == MaterialMode::cutout
-                ? pipeline(PipelineSlot::pbr_static_instanced_shadow_cutout)
-                : pipeline(PipelineSlot::pbr_static_instanced_shadow);
+                ? pipeline(PipelineSlot::pbr_static_instanced_shadow_cutout, key.cull_mode)
+                : pipeline(PipelineSlot::pbr_static_instanced_shadow, key.cull_mode);
         case ModelPipelineMeshKind::pbr_skinned:
-            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_skinned_shadow_cutout) : pipeline(PipelineSlot::pbr_skinned_shadow);
+            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_skinned_shadow_cutout, key.cull_mode) : pipeline(PipelineSlot::pbr_skinned_shadow, key.cull_mode);
         }
         return {};
     case ModelPipelinePass::color:
         if (key.material == MaterialMode::water) {
             return key.mesh == ModelPipelineMeshKind::pbr_static
-                ? pipeline(PipelineSlot::static_water)
+                ? pipeline(PipelineSlot::static_water, key.cull_mode)
                 : nw::gfx::Handle<nw::gfx::Pipeline>{};
         }
         if (key.lighting == MaterialLightingModel::nwn_diffuse) {
             switch (key.mesh) {
             case ModelPipelineMeshKind::pbr_static:
                 if (translucent) {
-                    return pipeline(PipelineSlot::nwn_static_transparent);
+                    return pipeline(PipelineSlot::nwn_static_transparent, key.cull_mode);
                 }
                 return key.material == MaterialMode::cutout
-                    ? pipeline(PipelineSlot::nwn_static_cutout)
-                    : pipeline(PipelineSlot::nwn_static_opaque);
+                    ? pipeline(PipelineSlot::nwn_static_cutout, key.cull_mode)
+                    : pipeline(PipelineSlot::nwn_static_opaque, key.cull_mode);
             case ModelPipelineMeshKind::pbr_static_instanced:
                 if (translucent) {
                     return {};
                 }
                 return key.material == MaterialMode::cutout
-                    ? pipeline(PipelineSlot::nwn_static_instanced_cutout)
-                    : pipeline(PipelineSlot::nwn_static_instanced_opaque);
+                    ? pipeline(PipelineSlot::nwn_static_instanced_cutout, key.cull_mode)
+                    : pipeline(PipelineSlot::nwn_static_instanced_opaque, key.cull_mode);
             case ModelPipelineMeshKind::pbr_skinned:
                 if (translucent) {
-                    return pipeline(PipelineSlot::nwn_skinned_transparent);
+                    return pipeline(PipelineSlot::nwn_skinned_transparent, key.cull_mode);
                 }
                 return key.material == MaterialMode::cutout
-                    ? pipeline(PipelineSlot::nwn_skinned_cutout)
-                    : pipeline(PipelineSlot::nwn_skinned_opaque);
+                    ? pipeline(PipelineSlot::nwn_skinned_cutout, key.cull_mode)
+                    : pipeline(PipelineSlot::nwn_skinned_opaque, key.cull_mode);
             }
             return {};
         }
         switch (key.mesh) {
         case ModelPipelineMeshKind::pbr_static:
             if (translucent) {
-                return pipeline(PipelineSlot::pbr_static_transparent);
+                return pipeline(PipelineSlot::pbr_static_transparent, key.cull_mode);
             }
-            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_static_cutout) : pipeline(PipelineSlot::pbr_static_opaque);
+            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_static_cutout, key.cull_mode) : pipeline(PipelineSlot::pbr_static_opaque, key.cull_mode);
         case ModelPipelineMeshKind::pbr_static_instanced:
             if (translucent) {
                 return {};
             }
             return key.material == MaterialMode::cutout
-                ? pipeline(PipelineSlot::pbr_static_instanced_cutout)
-                : pipeline(PipelineSlot::pbr_static_instanced_opaque);
+                ? pipeline(PipelineSlot::pbr_static_instanced_cutout, key.cull_mode)
+                : pipeline(PipelineSlot::pbr_static_instanced_opaque, key.cull_mode);
         case ModelPipelineMeshKind::pbr_skinned:
             if (translucent) {
-                return pipeline(PipelineSlot::pbr_skinned_transparent);
+                return pipeline(PipelineSlot::pbr_skinned_transparent, key.cull_mode);
             }
-            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_skinned_cutout) : pipeline(PipelineSlot::pbr_skinned_opaque);
+            return key.material == MaterialMode::cutout ? pipeline(PipelineSlot::pbr_skinned_cutout, key.cull_mode) : pipeline(PipelineSlot::pbr_skinned_opaque, key.cull_mode);
         }
         return {};
     }
@@ -264,147 +254,70 @@ bool ModelGpuBackend::initialize_common_storage_resources()
 bool ModelGpuBackend::initialize_render_model_pbr_resources(nw::render::ShaderProvider& shader_provider)
 {
     auto vs_pbr = shader_provider.get_shader("render_pbr_static.vs.hlsl");
-    auto vs_pbr_instanced = shader_provider.get_shader(
-        "render_pbr_static_instanced.vs.hlsl");
+    auto vs_pbr_instanced = shader_provider.get_shader("render_pbr_static_instanced.vs.hlsl");
     auto vs_pbr_skinned = shader_provider.get_shader("render_pbr_skinned.vs.hlsl");
     auto ps_pbr = shader_provider.get_shader("render_pbr_static.ps.hlsl");
     auto ps_nwn = shader_provider.get_shader("render_nwn_static.ps.hlsl");
     auto vs_water = shader_provider.get_shader("render_water.vs.hlsl");
     auto ps_water = shader_provider.get_shader("render_water.ps.hlsl");
     auto ps_pbr_shadow = shader_provider.get_shader("render_pbr_shadow.ps.hlsl");
-    if (vs_pbr.valid() && ps_pbr.valid()) {
-        auto pbr_desc = nw::render::make_pbr_static_pipeline_desc(vs_pbr, ps_pbr);
-        create_pipeline_slot(PipelineSlot::pbr_static_opaque, pbr_desc);
-        create_pipeline_slot(PipelineSlot::pbr_static_cutout, pbr_desc);
-        if (!pipeline_slot(PipelineSlot::pbr_static_opaque).valid()
-            || !pipeline_slot(PipelineSlot::pbr_static_cutout).valid()) {
-            LOG_F(ERROR, "Failed to create static model PBR pipeline");
-            return false;
-        }
-
-        auto pbr_transparent_desc = nw::render::make_transparent_pipeline_desc(pbr_desc);
-        if (!require_pipeline_slot(PipelineSlot::pbr_static_transparent, pbr_transparent_desc,
-                "Failed to create static model PBR transparent pipeline")) {
-            return false;
-        }
-
-        if (!vs_pbr_instanced.valid()) {
-            LOG_F(ERROR,
-                "Failed to load instanced static model shader");
-            return false;
-        }
-        auto pbr_instanced_desc
-            = nw::render::make_shader_variant_pipeline_desc(
-                pbr_desc, vs_pbr_instanced, ps_pbr);
-        if (!require_pipeline_slot(
-                PipelineSlot::pbr_static_instanced_opaque,
-                pbr_instanced_desc,
-                "Failed to create instanced static model PBR pipeline")
-            || !require_pipeline_slot(
-                PipelineSlot::pbr_static_instanced_cutout,
-                pbr_instanced_desc,
-                "Failed to create instanced static model PBR cutout pipeline")) {
-            return false;
-        }
-
-        if (!vs_water.valid() || !ps_water.valid()) {
-            LOG_F(ERROR, "Failed to load RenderModel water shaders");
-            return false;
-        }
-        auto water_desc = nw::render::make_shader_variant_pipeline_desc(
-            pbr_transparent_desc, vs_water, ps_water);
-        if (!require_pipeline_slot(PipelineSlot::static_water, water_desc,
-                "Failed to create RenderModel water pipeline")) {
-            return false;
-        }
-
-        if (ps_pbr_shadow.valid()) {
-            auto pbr_shadow_desc = nw::render::make_pbr_shadow_pipeline_desc(pbr_desc, ps_pbr_shadow);
-            warn_pipeline_slot(PipelineSlot::pbr_static_shadow, pbr_shadow_desc,
-                "Failed to create static model PBR shadow pipeline");
-            warn_pipeline_slot(PipelineSlot::pbr_static_shadow_cutout, pbr_shadow_desc,
-                "Failed to create static model PBR cutout shadow pipeline");
-            auto pbr_instanced_shadow_desc
-                = nw::render::make_shader_variant_pipeline_desc(
-                    pbr_shadow_desc, vs_pbr_instanced, ps_pbr_shadow);
-            warn_pipeline_slot(PipelineSlot::pbr_static_instanced_shadow,
-                pbr_instanced_shadow_desc,
-                "Failed to create instanced static model PBR shadow pipeline");
-            warn_pipeline_slot(PipelineSlot::pbr_static_instanced_shadow_cutout,
-                pbr_instanced_shadow_desc,
-                "Failed to create instanced static model PBR cutout shadow pipeline");
-        } else {
-            LOG_F(WARNING, "Failed to load static model PBR shadow shader");
-        }
-
-        if (vs_pbr_skinned.valid()) {
-            auto pbr_skinned_desc = nw::render::make_pbr_skinned_pipeline_desc(pbr_desc, vs_pbr_skinned);
-            create_pipeline_slot(PipelineSlot::pbr_skinned_opaque, pbr_skinned_desc);
-            create_pipeline_slot(PipelineSlot::pbr_skinned_cutout, pbr_skinned_desc);
-
-            auto pbr_skinned_transparent_desc = nw::render::make_transparent_pipeline_desc(pbr_skinned_desc);
-            create_pipeline_slot(PipelineSlot::pbr_skinned_transparent, pbr_skinned_transparent_desc);
-            if (!pipeline_slot(PipelineSlot::pbr_skinned_opaque).valid()
-                || !pipeline_slot(PipelineSlot::pbr_skinned_cutout).valid()
-                || !pipeline_slot(PipelineSlot::pbr_skinned_transparent).valid()) {
-                LOG_F(WARNING, "Failed to create skinned model PBR pipeline");
-            }
-
-            if (ps_pbr_shadow.valid()) {
-                auto pbr_skinned_shadow_desc = nw::render::make_pbr_shadow_pipeline_desc(
-                    pbr_skinned_desc, ps_pbr_shadow);
-                warn_pipeline_slot(PipelineSlot::pbr_skinned_shadow, pbr_skinned_shadow_desc,
-                    "Failed to create skinned model PBR shadow pipeline");
-                warn_pipeline_slot(PipelineSlot::pbr_skinned_shadow_cutout, pbr_skinned_shadow_desc,
-                    "Failed to create skinned model PBR cutout shadow pipeline");
-            }
-        }
-
-        if (!ps_nwn.valid()) {
-            LOG_F(ERROR, "Failed to load NWN model color shader");
-            return false;
-        }
-
-        auto nwn_desc = nw::render::make_shader_variant_pipeline_desc(pbr_desc, vs_pbr, ps_nwn);
-        create_pipeline_slot(PipelineSlot::nwn_static_opaque, nwn_desc);
-        create_pipeline_slot(PipelineSlot::nwn_static_cutout, nwn_desc);
-        auto nwn_transparent_desc = nw::render::make_transparent_pipeline_desc(nwn_desc);
-        create_pipeline_slot(PipelineSlot::nwn_static_transparent, nwn_transparent_desc);
-        if (!pipeline_slot(PipelineSlot::nwn_static_opaque).valid()
-            || !pipeline_slot(PipelineSlot::nwn_static_cutout).valid()
-            || !pipeline_slot(PipelineSlot::nwn_static_transparent).valid()) {
-            LOG_F(ERROR, "Failed to create static NWN model color pipelines");
-            return false;
-        }
-
-        auto nwn_instanced_desc
-            = nw::render::make_shader_variant_pipeline_desc(
-                nwn_desc, vs_pbr_instanced, ps_nwn);
-        if (!require_pipeline_slot(
-                PipelineSlot::nwn_static_instanced_opaque,
-                nwn_instanced_desc,
-                "Failed to create instanced static NWN model pipeline")
-            || !require_pipeline_slot(
-                PipelineSlot::nwn_static_instanced_cutout,
-                nwn_instanced_desc,
-                "Failed to create instanced static NWN model cutout pipeline")) {
-            return false;
-        }
-
-        if (vs_pbr_skinned.valid()) {
-            auto nwn_skinned_desc = nw::render::make_pbr_skinned_pipeline_desc(nwn_desc, vs_pbr_skinned);
-            create_pipeline_slot(PipelineSlot::nwn_skinned_opaque, nwn_skinned_desc);
-            create_pipeline_slot(PipelineSlot::nwn_skinned_cutout, nwn_skinned_desc);
-            auto nwn_skinned_transparent_desc = nw::render::make_transparent_pipeline_desc(nwn_skinned_desc);
-            create_pipeline_slot(PipelineSlot::nwn_skinned_transparent, nwn_skinned_transparent_desc);
-            if (!pipeline_slot(PipelineSlot::nwn_skinned_opaque).valid()
-                || !pipeline_slot(PipelineSlot::nwn_skinned_cutout).valid()
-                || !pipeline_slot(PipelineSlot::nwn_skinned_transparent).valid()) {
-                LOG_F(WARNING, "Failed to create skinned NWN model color pipelines");
-            }
-        }
+    // Every shipped model pass is required. Missing passes would silently drop
+    // geometry or shadows; there is no rendering fallback for these failures.
+    const std::array shaders{vs_pbr, vs_pbr_instanced, vs_pbr_skinned,
+        ps_pbr, ps_nwn, vs_water, ps_water, ps_pbr_shadow};
+    if (std::any_of(shaders.begin(), shaders.end(), [](auto shader) { return !shader.valid(); })) {
+        LOG_F(ERROR, "Failed to load required model shaders");
+        return false;
     }
 
+    const auto pbr_desc = nw::render::make_pbr_static_pipeline_desc(vs_pbr, ps_pbr);
+    create_pipeline_slot(PipelineSlot::pbr_static_opaque, pbr_desc);
+    create_pipeline_slot(PipelineSlot::pbr_static_cutout, pbr_desc);
+    const auto pbr_transparent_desc = nw::render::make_transparent_pipeline_desc(pbr_desc);
+    create_pipeline_slot(PipelineSlot::pbr_static_transparent, pbr_transparent_desc);
+
+    const auto pbr_instanced_desc = nw::render::make_shader_variant_pipeline_desc(pbr_desc, vs_pbr_instanced, ps_pbr);
+    create_pipeline_slot(PipelineSlot::pbr_static_instanced_opaque, pbr_instanced_desc);
+    create_pipeline_slot(PipelineSlot::pbr_static_instanced_cutout, pbr_instanced_desc);
+    const auto water_desc = nw::render::make_shader_variant_pipeline_desc(pbr_transparent_desc, vs_water, ps_water);
+    create_pipeline_slot(PipelineSlot::static_water, water_desc);
+
+    const auto pbr_shadow_desc = nw::render::make_pbr_shadow_pipeline_desc(pbr_desc, ps_pbr_shadow);
+    create_pipeline_slot(PipelineSlot::pbr_static_shadow, pbr_shadow_desc);
+    create_pipeline_slot(PipelineSlot::pbr_static_shadow_cutout, pbr_shadow_desc);
+    const auto pbr_instanced_shadow_desc = nw::render::make_shader_variant_pipeline_desc(pbr_shadow_desc, vs_pbr_instanced, ps_pbr_shadow);
+    create_pipeline_slot(PipelineSlot::pbr_static_instanced_shadow, pbr_instanced_shadow_desc);
+    create_pipeline_slot(PipelineSlot::pbr_static_instanced_shadow_cutout, pbr_instanced_shadow_desc);
+
+    const auto pbr_skinned_desc = nw::render::make_pbr_skinned_pipeline_desc(pbr_desc, vs_pbr_skinned);
+    create_pipeline_slot(PipelineSlot::pbr_skinned_opaque, pbr_skinned_desc);
+    create_pipeline_slot(PipelineSlot::pbr_skinned_cutout, pbr_skinned_desc);
+    const auto pbr_skinned_transparent_desc = nw::render::make_transparent_pipeline_desc(pbr_skinned_desc);
+    create_pipeline_slot(PipelineSlot::pbr_skinned_transparent, pbr_skinned_transparent_desc);
+    const auto pbr_skinned_shadow_desc = nw::render::make_pbr_shadow_pipeline_desc(pbr_skinned_desc, ps_pbr_shadow);
+    create_pipeline_slot(PipelineSlot::pbr_skinned_shadow, pbr_skinned_shadow_desc);
+    create_pipeline_slot(PipelineSlot::pbr_skinned_shadow_cutout, pbr_skinned_shadow_desc);
+
+    const auto nwn_desc = nw::render::make_shader_variant_pipeline_desc(pbr_desc, vs_pbr, ps_nwn);
+    create_pipeline_slot(PipelineSlot::nwn_static_opaque, nwn_desc);
+    create_pipeline_slot(PipelineSlot::nwn_static_cutout, nwn_desc);
+    const auto nwn_transparent_desc = nw::render::make_transparent_pipeline_desc(nwn_desc);
+    create_pipeline_slot(PipelineSlot::nwn_static_transparent, nwn_transparent_desc);
+    const auto nwn_instanced_desc = nw::render::make_shader_variant_pipeline_desc(nwn_desc, vs_pbr_instanced, ps_nwn);
+    create_pipeline_slot(PipelineSlot::nwn_static_instanced_opaque, nwn_instanced_desc);
+    create_pipeline_slot(PipelineSlot::nwn_static_instanced_cutout, nwn_instanced_desc);
+    const auto nwn_skinned_desc = nw::render::make_pbr_skinned_pipeline_desc(nwn_desc, vs_pbr_skinned);
+    create_pipeline_slot(PipelineSlot::nwn_skinned_opaque, nwn_skinned_desc);
+    create_pipeline_slot(PipelineSlot::nwn_skinned_cutout, nwn_skinned_desc);
+    const auto nwn_skinned_transparent_desc = nw::render::make_transparent_pipeline_desc(nwn_skinned_desc);
+    create_pipeline_slot(PipelineSlot::nwn_skinned_transparent, nwn_skinned_transparent_desc);
+
+    for (size_t slot = 0; slot < pipelines_.size(); ++slot) {
+        if (!pipelines_[slot].valid()) {
+            LOG_F(ERROR, "Failed to create required model pipeline slot {}", slot);
+            return false;
+        }
+    }
     return true;
 }
 

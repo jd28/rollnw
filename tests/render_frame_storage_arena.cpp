@@ -82,3 +82,29 @@ TEST(RenderFrameStorageArena, ResetDropsNonRetainedOverflowBlocks)
     EXPECT_TRUE(reused.span.buffer.valid());
     EXPECT_EQ(arena.debug_block_count(), 1u);
 }
+
+TEST(RenderFrameStorageArena, RejectsUnrepresentableCapacityAndInvalidAllocationsWithoutConsumingSpace)
+{
+    TestGfxRuntime gfx;
+    ASSERT_TRUE(gfx.initialize());
+    nw::render::FrameStorageArena arena;
+    const size_t too_large = static_cast<size_t>(std::numeric_limits<uint32_t>::max()) + 1u;
+    EXPECT_FALSE(arena.reset(gfx.context, 1, too_large));
+    EXPECT_EQ(arena.debug_block_count(), 0u);
+    ASSERT_TRUE(arena.reset(gfx.context, 2, 128));
+    const size_t capacity = arena.debug_retained_capacity();
+    for (const uint32_t alignment : {0u, 3u, 63u}) {
+        EXPECT_FALSE(arena.allocate_mapped(gfx.context, 16, alignment).span.buffer.valid());
+    }
+    EXPECT_FALSE(arena.allocate_mapped(gfx.context, 0, 64).span.buffer.valid());
+    const auto first = arena.allocate_mapped(gfx.context, 16, 64);
+    ASSERT_TRUE(first.span.buffer.valid());
+    EXPECT_EQ(first.span.offset, 0u);
+    EXPECT_EQ(arena.debug_retained_capacity(), capacity);
+    EXPECT_FALSE(arena.reset(gfx.context, 3, too_large));
+    EXPECT_EQ(arena.debug_block_count(), 1u);
+    ASSERT_TRUE(arena.reset(gfx.context, 4, 128));
+    const auto recovered = arena.allocate_mapped(gfx.context, 16, 64);
+    EXPECT_EQ(recovered.span.buffer, first.span.buffer);
+    EXPECT_EQ(recovered.span.offset, 0u);
+}

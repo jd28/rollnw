@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 
@@ -68,6 +69,7 @@ bool publish_render_model_static_node_world_transforms(
     ModelInstance& instance,
     const RenderModel& model)
 {
+    instance.animation.published_inputs.valid = false;
     instance.attachment_node_world_transforms.clear();
     instance.attachment_node_transform_valid.clear();
     if (model.nodes.empty()) {
@@ -77,8 +79,7 @@ bool publish_render_model_static_node_world_transforms(
     instance.attachment_node_world_transforms.resize(model.nodes.size(), glm::mat4{1.0f});
     instance.attachment_node_transform_valid.assign(model.nodes.size(), 0u);
     for (size_t node_index = 0; node_index < model.nodes.size(); ++node_index) {
-        instance.attachment_node_world_transforms[node_index] =
-            instance.root_transform * model.nodes[node_index].world_transform;
+        instance.attachment_node_world_transforms[node_index] = instance.root_transform * model.nodes[node_index].world_transform;
         instance.attachment_node_transform_valid[node_index] = 1u;
     }
     return true;
@@ -173,11 +174,14 @@ SampleResult sample_model_instance_animation_impl(
     bool allow_reference_fallback)
 {
     sample.sampled = false;
+    sample.updated = false;
     if (!sample.instance || !sample.model) {
         return SampleResult::null_input;
     }
 
     auto& animation = sample.instance->animation;
+    animation.published_inputs.valid = false;
+    sample.updated = true;
     const auto& model = *sample.model;
     animation.skin_matrices.clear();
     if (!animation.enabled) {
@@ -272,6 +276,68 @@ ModelInstanceAnimationSampleStats sample_model_instance_animations(
     stats.input_count = samples.size();
     for (auto& sample : samples) {
         add_sample_result(stats, sample_model_instance_animation_impl(sample, allow_reference_fallback));
+    }
+    return stats;
+}
+
+ModelInstanceAnimationSampleStats sample_changed_model_instance_animations(
+    std::span<ModelInstanceAnimationSample> samples,
+    bool allow_reference_fallback)
+{
+    ModelInstanceAnimationSampleStats stats{};
+    stats.input_count = samples.size();
+    for (auto& sample : samples) {
+        bool same_clip = false;
+        bool constant_pose = false;
+        if (sample.instance && sample.model) {
+            const auto& instance = *sample.instance;
+            const auto& animation = instance.animation;
+            const auto& inputs = animation.published_inputs;
+            same_clip = inputs.valid && inputs.model_index == instance.render_model_index
+                && inputs.enabled && animation.enabled && inputs.clip == animation.clip;
+            constant_pose = same_clip && inputs.constant_pose;
+            const bool same_pose_time = inputs.time == animation.time
+                || (constant_pose && std::isfinite(inputs.time) && std::isfinite(animation.time));
+            if (inputs.valid && inputs.model_index == instance.render_model_index
+                && inputs.root == instance.root_transform
+                && inputs.enabled == animation.enabled
+                && (!animation.enabled
+                    || (inputs.clip == animation.clip && same_pose_time
+                        && inputs.looping == animation.looping
+                        && inputs.reference_fallback == allow_reference_fallback))) {
+                sample.sampled = animation.enabled;
+                sample.updated = false;
+                ++stats.reused_count;
+                add_sample_result(stats, animation.enabled ? SampleResult::sampled : SampleResult::disabled);
+                continue;
+            }
+        }
+
+        const auto result = sample_model_instance_animation_impl(sample, allow_reference_fallback);
+        add_sample_result(stats, result);
+        if (result == SampleResult::sampled || result == SampleResult::disabled) {
+            auto& instance = *sample.instance;
+            auto& animation = instance.animation;
+            if (result == SampleResult::sampled && !same_clip) {
+                const auto& clip = sample.model->animations[animation.clip % sample.model->animations.size()];
+                // Multiple identical keys can still round differently during
+                // reference interpolation. Single-key channels never interpolate.
+                constant_pose = std::all_of(clip.tracks.begin(), clip.tracks.end(), [](const auto& track) {
+                    return track.translations.size() <= 1 && track.rotations.size() <= 1 && track.scales.size() <= 1;
+                });
+            }
+            animation.published_inputs = {
+                .root = instance.root_transform,
+                .time = animation.time,
+                .clip = animation.clip,
+                .model_index = instance.render_model_index,
+                .enabled = animation.enabled,
+                .looping = animation.looping,
+                .reference_fallback = allow_reference_fallback,
+                .constant_pose = constant_pose,
+                .valid = true,
+            };
+        }
     }
     return stats;
 }

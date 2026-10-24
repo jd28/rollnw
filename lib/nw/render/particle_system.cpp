@@ -187,11 +187,8 @@ glm::vec3 initial_emission_direction(const CompiledParticleEmitter& /*emitter*/,
 }
 
 glm::vec3 initial_velocity(const CompiledParticleEmitter& emitter, ParticleEmitterState& state,
-    const glm::vec3& emission_direction)
+    const glm::vec3& emission_direction, float base_speed, float random_speed)
 {
-    const float emitter_time = state.time;
-    const float base_speed = eval_keyed_scalar_track(emitter.speed_track, emitter_time);
-    const float random_speed = std::max(0.0f, eval_keyed_scalar_track(emitter.speed_random_track, emitter_time));
     return emission_direction * random_range_f32(state.random_seed, base_speed, base_speed + random_speed)
         + state.linear_velocity * emitter.initial.velocity_inheritance;
 }
@@ -1030,6 +1027,8 @@ struct SpawnedParticleSample {
     float mass = 0.0f;
     float rotation_rate = 0.0f;
     float spread_radians = 0.0f;
+    float speed = 0.0f;
+    float random_speed = 0.0f;
     glm::vec4 color_begin{1.0f};
     glm::vec4 color_end{1.0f};
 };
@@ -1070,6 +1069,8 @@ SpawnedParticleSample sample_spawned_particle(const CompiledParticleEmitter& emi
     result.spread_radians = keyed_spawn_motion
         ? std::max(0.0f, eval_keyed_scalar_track(emitter.spread_track, emitter_time))
         : emitter.initial.spread_radians;
+    result.speed = eval_keyed_scalar_track(emitter.speed_track, emitter_time);
+    result.random_speed = std::max(0.0f, eval_keyed_scalar_track(emitter.speed_random_track, emitter_time));
     result.color_begin = keyed_spawn_color
         ? eval_keyed_color_track(emitter.color_start_track, emitter_time)
         : emitter.initial.color;
@@ -1108,52 +1109,62 @@ ReservedParticleRange reserve_spawn_range(ParticleSystemInstance& system, uint16
     return {.begin = begin, .count = spawn_count};
 }
 
-void spawn_particle_at(ParticleSystemInstance& system, uint16_t emitter_id, size_t particle_index, const glm::vec3& base_position)
+// The range is already capacity-clipped; emitter time and spawn tracks are shared
+// by the batch. Random draws remain in particle order.
+void spawn_particles_at(ParticleSystemInstance& system, uint16_t emitter_id, ReservedParticleRange range,
+    const glm::vec3& current_pos, const glm::vec3& previous_pos, bool interpolate_positions)
 {
+    if (range.count == 0) { return; }
     auto& particles = system.particles;
     auto& core = particles.core;
     const auto& emitter = system.effect->emitters[emitter_id];
     const auto* material = get_material(*system.effect, emitter.material);
     auto& state = system.emitters[emitter_id];
-    const SpawnedParticleSample sample = sample_spawned_particle(emitter, state.time);
-    SpawnedParticleSample tuned_sample = sample;
-
+    auto sample = sample_spawned_particle(emitter, state.time);
     if (uses_projectile_spark_trail(emitter, material)) {
-        tuned_sample.lifetime = std::min(tuned_sample.lifetime, 0.35f);
+        sample.lifetime = std::min(sample.lifetime, 0.35f);
     }
 
-    const glm::vec3 world_position = spawn_position(state, emitter, base_position);
-    const glm::vec3 emission_direction = initial_emission_direction(emitter, state, tuned_sample.spread_radians);
-    const glm::vec3 velocity = initial_velocity(emitter, state, emission_direction);
-    const glm::vec3 render_direction = initial_render_direction(emitter, state, velocity, emission_direction);
-    const auto& sheet = state.sampled_sheet;
-    const uint16_t frame_offset = initial_frame_offset(sheet, state);
+    for (uint32_t n = 0; n < range.count; ++n) {
+        const size_t particle_index = range.begin + n;
+        glm::vec3 base_position = current_pos;
+        if (interpolate_positions) {
+            const float t = (static_cast<float>(n) + 1.0f) / (static_cast<float>(range.count) + 1.0f);
+            base_position = glm::mix(previous_pos, current_pos, t);
+        }
+        const glm::vec3 world_position = spawn_position(state, emitter, base_position);
+        const glm::vec3 emission_direction = initial_emission_direction(emitter, state, sample.spread_radians);
+        const glm::vec3 velocity = initial_velocity(emitter, state, emission_direction, sample.speed, sample.random_speed);
+        const glm::vec3 render_direction = initial_render_direction(emitter, state, velocity, emission_direction);
+        const auto& sheet = state.sampled_sheet;
+        const uint16_t frame_offset = initial_frame_offset(sheet, state);
 
-    core.position[particle_index] = world_position;
-    core.velocity[particle_index] = velocity;
-    core.render_direction[particle_index] = render_direction;
-    core.age[particle_index] = 0.0f;
-    core.lifetime[particle_index] = tuned_sample.lifetime;
-    core.mass[particle_index] = tuned_sample.mass;
-    core.size_x[particle_index] = tuned_sample.size_x_begin;
-    core.size_y[particle_index] = tuned_sample.size_y_begin;
-    core.size_x_begin[particle_index] = tuned_sample.size_x_begin;
-    core.size_x_end[particle_index] = tuned_sample.size_x_end;
-    core.size_y_begin[particle_index] = tuned_sample.size_y_begin;
-    core.size_y_end[particle_index] = tuned_sample.size_y_end;
-    core.rotation[particle_index] = emitter.initial.rotation.min;
-    core.rotation_rate[particle_index] = sample.rotation_rate;
-    core.frame[particle_index] = eval_sprite_frame(sheet, 0.0f, 0.0f, frame_offset);
-    core.frame_offset[particle_index] = frame_offset;
-    core.color_rgba8[particle_index] = pack_color(tuned_sample.color_begin);
-    core.color_begin[particle_index] = tuned_sample.color_begin;
-    core.color_end[particle_index] = tuned_sample.color_end;
-    core.normalized_age[particle_index] = 0.0f;
-    core.emitter_id[particle_index] = emitter_id;
-    core.material_id[particle_index] = static_cast<uint16_t>(emitter.material);
-    set_attachment_state(particles, particle_index, emitter, state, base_position, world_position);
-    set_bezier_state(particles, particle_index, emitter, state, world_position);
-    set_beam_state(particles, particle_index, emitter, state, world_position);
+        core.position[particle_index] = world_position;
+        core.velocity[particle_index] = velocity;
+        core.render_direction[particle_index] = render_direction;
+        core.age[particle_index] = 0.0f;
+        core.lifetime[particle_index] = sample.lifetime;
+        core.mass[particle_index] = sample.mass;
+        core.size_x[particle_index] = sample.size_x_begin;
+        core.size_y[particle_index] = sample.size_y_begin;
+        core.size_x_begin[particle_index] = sample.size_x_begin;
+        core.size_x_end[particle_index] = sample.size_x_end;
+        core.size_y_begin[particle_index] = sample.size_y_begin;
+        core.size_y_end[particle_index] = sample.size_y_end;
+        core.rotation[particle_index] = emitter.initial.rotation.min;
+        core.rotation_rate[particle_index] = sample.rotation_rate;
+        core.frame[particle_index] = eval_sprite_frame(sheet, 0.0f, 0.0f, frame_offset);
+        core.frame_offset[particle_index] = frame_offset;
+        core.color_rgba8[particle_index] = pack_color(sample.color_begin);
+        core.color_begin[particle_index] = sample.color_begin;
+        core.color_end[particle_index] = sample.color_end;
+        core.normalized_age[particle_index] = 0.0f;
+        core.emitter_id[particle_index] = emitter_id;
+        core.material_id[particle_index] = static_cast<uint16_t>(emitter.material);
+        set_attachment_state(particles, particle_index, emitter, state, base_position, world_position);
+        set_bezier_state(particles, particle_index, emitter, state, world_position);
+        set_beam_state(particles, particle_index, emitter, state, world_position);
+    }
 }
 
 void spawn_particle(ParticleSystemInstance& system, uint16_t emitter_id, const glm::vec3& base_position)
@@ -1162,7 +1173,7 @@ void spawn_particle(ParticleSystemInstance& system, uint16_t emitter_id, const g
     NW_PROFILE_VALUE(emitter_id);
     const auto range = reserve_spawn_range(system, emitter_id, 1);
     if (range.count == 0) { return; }
-    spawn_particle_at(system, emitter_id, range.begin, base_position);
+    spawn_particles_at(system, emitter_id, range, base_position, base_position, false);
 }
 
 void ensure_beam_particle(ParticleSystemInstance& system, uint16_t emitter_id)
@@ -1198,13 +1209,7 @@ void spawn_continuous_particles(ParticleSystemInstance& system, uint16_t emitter
         state.spawn_accumulator -= static_cast<float>(requested_count);
         const auto range = reserve_spawn_range(system, emitter_id, requested_count);
 
-        for (uint32_t n = 0; n < range.count; ++n) {
-            const float t = (static_cast<float>(n) + 1.0f) / (static_cast<float>(range.count) + 1.0f);
-            const glm::vec3 base_position = emit_in_current_emitter_space
-                ? current_pos
-                : glm::mix(previous_pos, current_pos, t);
-            spawn_particle_at(system, emitter_id, range.begin + n, base_position);
-        }
+        spawn_particles_at(system, emitter_id, range, current_pos, previous_pos, !emit_in_current_emitter_space);
         return;
     }
 
@@ -1215,13 +1220,7 @@ void spawn_continuous_particles(ParticleSystemInstance& system, uint16_t emitter
         state.distance_accumulator -= static_cast<float>(requested_count);
         const auto range = reserve_spawn_range(system, emitter_id, requested_count);
 
-        for (uint32_t n = 0; n < range.count; ++n) {
-            const float t = (static_cast<float>(n) + 1.0f) / (static_cast<float>(range.count) + 1.0f);
-            const glm::vec3 base_position = emit_in_current_emitter_space
-                ? current_pos
-                : glm::mix(previous_pos, current_pos, t);
-            spawn_particle_at(system, emitter_id, range.begin + n, base_position);
-        }
+        spawn_particles_at(system, emitter_id, range, current_pos, previous_pos, !emit_in_current_emitter_space);
     }
 }
 
@@ -1491,18 +1490,13 @@ void spawn_pending_bursts(ParticleSystemInstance& system, uint16_t emitter_id, c
         : emission_rate;
     const uint32_t particles_per_burst = static_cast<uint32_t>(std::lround(std::max(0.0f, particles_per_burst_f)));
     const auto range = reserve_spawn_range(system, emitter_id, state.pending_bursts * particles_per_burst);
-    size_t write = range.begin;
     for (uint32_t burst = 0; burst < state.pending_bursts; ++burst) {
         if (emitter.force_event.radius > 0.0f || emitter.force_event.length > 0.0f) {
             system.force_events.push_back(
                 {emitter_id, current_pos, emitter.force_event.radius, emitter.force_event.length});
         }
-        for (uint32_t n = 0; n < particles_per_burst; ++n) {
-            if (write >= range.begin + range.count) { break; }
-            spawn_particle_at(system, emitter_id, write, current_pos);
-            ++write;
-        }
     }
+    spawn_particles_at(system, emitter_id, range, current_pos, current_pos, false);
     state.pending_bursts = 0;
 }
 
@@ -1532,8 +1526,14 @@ void tick_particle_system(ParticleSystemInstance& system, float dt, const Partic
             const glm::vec3 current_pos = emitter_position(state);
             state.frame_delta = current_pos - state.prev_world_pos;
             state.linear_velocity = dt > 0.0f ? state.frame_delta / dt : glm::vec3{0.0f};
-            state.inverse_world_transform = glm::inverse(state.world_transform);
             state.time += dt;
+            if (emitter.emission.mode == ParticleEmissionMode::event_burst
+                && state.pending_bursts == 0 && system.live_particles_per_emitter[emitter_id] == 0) {
+                // Preserve time and motion history for the next event; no particles need derived data yet.
+                state.prev_world_pos = current_pos;
+                continue;
+            }
+            state.inverse_world_transform = glm::inverse(state.world_transform);
             const auto* material = get_material(*system.effect, emitter.material);
             const ParticleSpriteSheet base_sheet = material ? material->sheet : ParticleSpriteSheet{};
             state.sampled_sheet = (material

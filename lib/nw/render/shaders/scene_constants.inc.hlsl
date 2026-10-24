@@ -1,4 +1,4 @@
-// Shared per-draw scene constants.
+// Scene constants. Common model shaders share this block across a view's draws.
 // Layout must match SceneConstants in lib/nw/render/render_context.hpp exactly.
 
 cbuffer SceneConstants : register(b1) {

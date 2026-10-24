@@ -79,6 +79,7 @@ struct ParsedArgs {
     size_t corpus_limit = 0;
     int benchmark_frames = 60;
     int benchmark_warmup_frames = 5;
+    int benchmark_step_ms = 0;
     int benchmark_width = 1280;
     int benchmark_height = 720;
     int benchmark_visible_tile_radius = -1;

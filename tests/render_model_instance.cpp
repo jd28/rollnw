@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstddef>
+#include <limits>
 
 namespace {
 
@@ -384,6 +385,226 @@ TEST(RenderModelInstance, IdentitySkinJointPreservesModelSpaceLane)
     EXPECT_EQ(instance.animation.skin_matrices[0][1], glm::mat4{1.0f});
 }
 
+TEST(RenderModelInstance, RetainedSamplesMatchForcedSamplesAcrossInputChanges)
+{
+    const auto model = make_two_clip_render_model();
+    nw::render::ModelInstance retained;
+    nw::render::ModelInstance reference;
+    retained.animation.backend = nw::render::make_render_model_animation_backend(model);
+    reference.animation.backend = nw::render::make_render_model_animation_backend(model);
+    ASSERT_TRUE(retained.animation.backend);
+    ASSERT_TRUE(reference.animation.backend);
+    std::array samples{nw::render::ModelInstanceAnimationSample{
+        .instance = &retained, .model = &model}};
+
+    struct Inputs {
+        float time;
+        uint32_t clip;
+        float x;
+        bool enabled;
+        bool looping;
+        bool reused;
+    };
+    const Inputs inputs[] = {
+        {0.25f, 0u, 0.0f, true, true, false},
+        {0.25f, 0u, 0.0f, true, true, true},
+        {0.75f, 0u, 0.0f, true, true, false},
+        {0.75f, 1u, 0.0f, true, true, false},
+        {0.75f, 1u, 10.0f, true, true, false},
+        {1.5f, 1u, 10.0f, true, false, false},
+        {1.5f, 1u, 10.0f, true, false, true},
+        {1.5f, 1u, 10.0f, true, true, false},
+        {1.5f, 1u, 10.0f, false, true, false},
+        {0.0f, 0u, 10.0f, false, false, true},
+        {0.0f, 0u, 20.0f, false, false, false},
+        {0.0f, 0u, 20.0f, true, false, false},
+        {0.25f, 3u, 20.0f, true, true, false}, // Existing modulo clip policy.
+    };
+    for (const auto& input : inputs) {
+        SCOPED_TRACE(input.time);
+        for (auto* instance : {&retained, &reference}) {
+            instance->root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{input.x, 0.0f, 0.0f});
+            instance->animation.time = input.time;
+            instance->animation.clip = input.clip;
+            instance->animation.enabled = input.enabled;
+            instance->animation.looping = input.looping;
+        }
+        const auto stats = nw::render::sample_changed_model_instance_animations(samples);
+        const bool sampled = nw::render::sample_model_instance_animation(reference, model);
+        EXPECT_EQ(stats.reused_count, static_cast<size_t>(input.reused));
+        EXPECT_EQ(samples[0].updated, !input.reused);
+        EXPECT_EQ(samples[0].sampled, sampled);
+        EXPECT_EQ(stats.sampled_count, static_cast<size_t>(input.enabled));
+        EXPECT_EQ(stats.disabled_count, static_cast<size_t>(!input.enabled));
+        EXPECT_EQ(retained.animation.pose.model, reference.animation.pose.model);
+        EXPECT_EQ(retained.animation.skin_matrices, reference.animation.skin_matrices);
+        EXPECT_EQ(retained.attachment_node_world_transforms, reference.attachment_node_world_transforms);
+        EXPECT_EQ(retained.attachment_node_transform_valid, reference.attachment_node_transform_valid);
+    }
+
+    // Forced sampling and explicit bind-pose publication replace the outputs.
+    ASSERT_TRUE(nw::render::sample_model_instance_animation(retained, model));
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 0u);
+    nw::render::publish_render_model_static_node_world_transforms(retained, model);
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 0u);
+    EXPECT_EQ(retained.attachment_node_world_transforms, reference.attachment_node_world_transforms);
+    retained.render_model_index = 99u;
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 0u);
+}
+
+TEST(RenderModelInstance, RetainedSamplesRetryFailuresAndRespectInvalidation)
+{
+    auto model = make_two_clip_render_model();
+    nw::render::ModelInstance instance;
+    instance.animation.enabled = true;
+    instance.animation.time = 0.25f;
+    std::array samples{
+        nw::render::ModelInstanceAnimationSample{.instance = &instance, .model = &model},
+        nw::render::ModelInstanceAnimationSample{},
+    };
+    for (int repeat = 0; repeat < 2; ++repeat) {
+        const auto failed = nw::render::sample_changed_model_instance_animations(samples);
+        EXPECT_EQ(failed.failed_sample_count, 1u);
+        EXPECT_EQ(failed.null_input_count, 1u);
+        EXPECT_EQ(failed.reused_count, 0u);
+        EXPECT_FALSE(instance.animation.published_inputs.valid);
+    }
+    const auto recovered = nw::render::sample_changed_model_instance_animations(samples, true);
+    EXPECT_EQ(recovered.sampled_count, 1u);
+    EXPECT_EQ(recovered.reused_count, 0u);
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples, true).reused_count, 1u);
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples, false).failed_sample_count, 1u);
+
+    // Rare in-place asset edits explicitly invalidate their bound instances.
+    instance.animation.enabled = false;
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).disabled_count, 1u);
+    model.nodes[0].world_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{7.0f, 0.0f, 0.0f});
+    instance.animation.published_inputs.valid = false;
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 0u);
+    EXPECT_FLOAT_EQ(instance.attachment_node_world_transforms[0][3].x, 7.0f);
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 1u);
+}
+
+TEST(RenderModelInstance, RetainedConstantPosesMatchForcedSamplesAcrossTransitions)
+{
+    for (const auto kind : {nw::render::AnimationBackendKind::custom, nw::render::AnimationBackendKind::ozz}) {
+        SCOPED_TRACE(static_cast<int>(kind));
+        auto model = make_two_clip_render_model();
+        auto& track = model.animations[0].tracks[0];
+        track.translations = {{.time = 0.25f, .value = {1.3f, -2.7f, 0.1f}}};
+        track.rotations = {{.time = 0.25f, .value = glm::angleAxis(0.37f, glm::normalize(glm::vec3{1.0f, 2.0f, 3.0f}))}};
+        track.scales = {{.time = 0.25f, .value = {1.3f, 0.9f, 1.1f}}};
+        auto empty = model.animations[0];
+        empty.tracks[0] = {};
+        model.animations.push_back(empty);
+        auto zero_duration = empty;
+        zero_duration.duration = 0.0f;
+        model.animations.push_back(zero_duration);
+
+        nw::render::ModelInstance retained, reference;
+        retained.animation.backend = nw::render::make_render_model_animation_backend(model, kind);
+        reference.animation.backend = nw::render::make_render_model_animation_backend(model, kind);
+        ASSERT_TRUE(retained.animation.backend);
+        ASSERT_TRUE(reference.animation.backend);
+        std::array samples{nw::render::ModelInstanceAnimationSample{.instance = &retained, .model = &model}};
+        const auto compare = [&](bool reused, bool fallback) {
+            const auto stats = nw::render::sample_changed_model_instance_animations(samples, fallback);
+            EXPECT_EQ(samples[0].sampled, nw::render::sample_model_instance_animation(reference, model, fallback));
+            EXPECT_EQ(stats.reused_count, static_cast<size_t>(reused));
+            EXPECT_EQ(samples[0].updated, !reused);
+            EXPECT_EQ(retained.animation.pose.model, reference.animation.pose.model);
+            EXPECT_EQ(retained.animation.skin_matrices, reference.animation.skin_matrices);
+            EXPECT_EQ(retained.attachment_node_world_transforms, reference.attachment_node_world_transforms);
+            EXPECT_EQ(retained.attachment_node_transform_valid, reference.attachment_node_transform_valid);
+        };
+        struct Inputs {
+            float time;
+            uint32_t clip;
+            float x;
+            bool enabled;
+            bool looping;
+            bool fallback;
+            bool reused;
+        };
+        const Inputs inputs[] = {
+            {0.1f, 0, 0, true, true, false, false},
+            {0.2f, 0, 0, true, true, false, true},
+            {-0.1f, 0, 0, true, true, false, true},
+            {1000.3f, 0, 0, true, true, false, true},
+            {0.3f, 0, 0, true, false, false, false},
+            {0.4f, 0, 7, true, false, false, false},
+            {0.5f, 0, 7, true, false, false, true},
+            {0.6f, 0, 7, true, false, true, false},
+            {0.7f, 0, 7, false, false, true, false},
+            {0.8f, 0, 7, true, false, true, false},
+            {0.9f, 0, 7, true, false, true, true},
+            {0.1f, 2, 7, true, true, false, false},
+            {0.2f, 2, 7, true, true, false, true},
+            {0.3f, 1, 7, true, true, false, false},
+            {0.4f, 1, 7, true, true, false, false},
+            {0.5f, 3, 7, true, true, false, false},
+            {0.6f, 3, 7, true, true, false, true},
+            {0.7f, 4, 7, true, true, false, false}, // Modulo clip selection.
+            {0.8f, 4, 7, true, true, false, true},
+        };
+        for (const auto& input : inputs) {
+            SCOPED_TRACE(input.time);
+            for (auto* instance : {&retained, &reference}) {
+                instance->animation.time = input.time;
+                instance->animation.clip = input.clip;
+                instance->animation.enabled = input.enabled;
+                instance->animation.looping = input.looping;
+                instance->root_transform = glm::translate(glm::mat4{1.0f}, glm::vec3{input.x, 0.0f, 0.0f});
+            }
+            compare(input.reused, input.fallback);
+        }
+
+        // A forced publication invalidates the retained classification too.
+        ASSERT_TRUE(nw::render::sample_model_instance_animation(retained, model));
+        compare(false, false);
+
+        // An asset edit can turn a constant channel into an interpolated one.
+        auto& keys = model.animations[0].tracks[0].translations;
+        keys.push_back({.time = 1.0f, .value = keys.front().value});
+        for (auto* instance : {&retained, &reference}) {
+            instance->animation.backend = nw::render::make_render_model_animation_backend(model, kind);
+            ASSERT_TRUE(instance->animation.backend);
+            instance->animation.published_inputs.valid = false;
+        }
+        compare(false, false);
+        for (const float time : {0.3f, 0.4f}) {
+            retained.animation.time = reference.animation.time = time;
+            compare(false, false);
+        }
+    }
+}
+
+TEST(RenderModelInstance, ConstantPoseReusePreservesNonfiniteTimesAndFailureRetries)
+{
+    auto model = make_two_clip_render_model();
+    model.animations[0].tracks[0].translations.resize(1);
+    nw::render::ModelInstance instance;
+    instance.animation.enabled = true;
+    std::array samples{nw::render::ModelInstanceAnimationSample{.instance = &instance, .model = &model}};
+    // Exercise reference fallback, which returns the authored single key even
+    // for nonfinite time. Time independence must not create new nonfinite hits.
+    for (const float time : {0.0f, std::numeric_limits<float>::infinity(), 0.1f,
+             -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN(), 0.2f}) {
+        instance.animation.time = time;
+        const auto stats = nw::render::sample_changed_model_instance_animations(samples, true);
+        EXPECT_EQ(stats.sampled_count, 1u);
+        EXPECT_EQ(stats.reused_count, 0u);
+    }
+    instance.animation.time = 0.3f;
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples, true).reused_count, 1u);
+    for (int repeat = 0; repeat < 2; ++repeat) {
+        const auto stats = nw::render::sample_changed_model_instance_animations(samples, false);
+        EXPECT_EQ(stats.failed_sample_count, 1u);
+        EXPECT_EQ(stats.reused_count, 0u);
+    }
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples, true).reused_count, 0u);
+}
+
 TEST(RenderModelInstance, SharedAssetInstancesHoldIndependentGltfAnimationState)
 {
     const auto model = make_two_clip_render_model();
@@ -445,6 +666,15 @@ TEST(RenderModelInstance, SharedAssetInstancesHoldIndependentGltfAnimationState)
     EXPECT_NEAR(first.attachment_node_world_transforms[0][3].x, 10.5f, 1.0e-3f);
     EXPECT_NEAR(first.attachment_node_world_transforms[0][3].y, 0.0f, 1.0e-3f);
     EXPECT_NEAR(second.attachment_node_world_transforms[0][3].x, 20.0f, 1.0e-3f);
+    EXPECT_NEAR(second.attachment_node_world_transforms[0][3].y, 3.0f, 1.0e-3f);
+
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 0u);
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 2u);
+    first.animation.time = 0.5f;
+    EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 1u);
+    EXPECT_TRUE(samples[0].updated);
+    EXPECT_FALSE(samples[1].updated);
+    EXPECT_NEAR(first.attachment_node_world_transforms[0][3].x, 11.0f, 1.0e-3f);
     EXPECT_NEAR(second.attachment_node_world_transforms[0][3].y, 3.0f, 1.0e-3f);
 }
 

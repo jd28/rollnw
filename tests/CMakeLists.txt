@@ -371,6 +371,7 @@ if(TARGET nw-render)
         render_model_asset.cpp
         render_pipeline_cache.cpp
         render_shader_includes.cpp
+        render_shadow_culling.cpp
     )
     target_link_libraries(rollnw_test PRIVATE
         nw-render)

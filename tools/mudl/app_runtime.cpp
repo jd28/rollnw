@@ -882,7 +882,7 @@ bool command_is_headless(std::string_view command)
 {
     return command == "frames" || command == "screenshot" || command == "turntable"
         || command == "compute-smoke" || command == "nwn-animation-smoke"
-        || command == "area-screenshot" || command == "area-benchmark" || command == "area-sweep"
+        || command == "area-screenshot" || command == "model-benchmark" || command == "area-benchmark" || command == "area-sweep"
         || command == "spell-export-live" || command == "spell-preview-live" || command == "report";
 }
 

@@ -5,6 +5,7 @@
 #include "local_shadow_renderer.hpp"
 #include "model_gpu_backend.hpp"
 #include "model_render_context.hpp"
+#include "model_texture_cache.hpp"
 #include "nwn/render_asset_cache.hpp"
 #include "particle_renderer.hpp"
 #include "shadow_renderer.hpp"
@@ -42,6 +43,7 @@ struct RenderService : public kernel::Service {
     [[nodiscard]] ModelRenderContext model_render_context() const;
     nwn::RenderAssetCache& asset_cache();
     const nwn::RenderAssetCache& asset_cache() const;
+    ModelTextureCache& model_texture_cache();
 
     void initialize(kernel::ServiceInitTime time) override;
     nlohmann::json stats() const override;
@@ -58,6 +60,7 @@ private:
     std::unique_ptr<ParticleRenderer> particle_renderer_;
     std::unique_ptr<ModelGpuBackend> model_backend_;
     std::unique_ptr<nwn::RenderAssetCache> asset_cache_;
+    std::unique_ptr<ModelTextureCache> model_texture_cache_;
     bool initialized_ = false;
 };
 

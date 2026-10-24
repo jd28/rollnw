@@ -167,9 +167,7 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
     scene.add(std::move(model));
     ASSERT_EQ(scene.static_models.size(), 1u);
 
-    nw::render::viewer::SceneParticleSystem particles;
-    particles.owner_model_index = 0u;
-    particles.owner_instance_handle = scene.static_model_instance_handles.front();
+    auto data = std::make_shared<nw::render::viewer::SceneParticleDefinition>();
 
     nw::model::ParticleImportEmitterInit init;
     init.emitter = 0u;
@@ -177,7 +175,7 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
     init.emitter_node_name = "also_missing_emitter_name";
     init.target_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
     init.target_node_name = "missing_target_name";
-    particles.import.emitter_inits.push_back(std::move(init));
+    data->import.emitter_inits.push_back(std::move(init));
 
     nw::render::CompiledParticleEmitter emitter;
     emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
@@ -185,7 +183,10 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCompiledDefaultsWithoutImportFallback)
     emitter.attachment.default_position = glm::vec3{1.0f, 2.0f, 3.0f};
     emitter.attachment.has_default_target_offset = true;
     emitter.attachment.default_target_offset = glm::vec3{1.0f, 2.0f, 7.0f};
-    particles.compiled.effect.emitters.push_back(std::move(emitter));
+    data->compiled.effect.emitters.push_back(std::move(emitter));
+    nw::render::viewer::SceneParticleSystem particles{std::move(data)};
+    particles.owner_model_index = 0u;
+    particles.owner_instance_handle = scene.static_model_instance_handles.front();
     scene.particles.push_back(std::move(particles));
 
     const auto axis = mudl::vfx_sequence_authored_axis(scene, 0u);
@@ -211,14 +212,12 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPoints)
     common->attachment_node_world_transforms[0] = common->root_transform * glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, 2.0f, 3.0f});
     common->attachment_node_world_transforms[1] = common->root_transform * glm::translate(glm::mat4{1.0f}, glm::vec3{5.0f, 2.0f, 3.0f});
 
-    nw::render::viewer::SceneParticleSystem particles;
-    particles.owner_model_index = 0u;
-    particles.owner_instance_handle = scene.static_model_instance_handles.front();
+    auto data = std::make_shared<nw::render::viewer::SceneParticleDefinition>();
 
     nw::render::ParticleEmitterDef import_emitter;
     import_emitter.name = "missing_emitter_name";
     import_emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
-    particles.import.effect.emitters.push_back(std::move(import_emitter));
+    data->import.effect.emitters.push_back(std::move(import_emitter));
 
     nw::model::ParticleImportEmitterInit init;
     init.emitter = 0u;
@@ -226,14 +225,17 @@ TEST(MudlAppRuntime, VfxAuthoredAxisUsesCommonAttachmentPoints)
     init.emitter_node_name = "missing_source_node";
     init.target_source_node_index = nw::model::kInvalidParticleImportNodeIndex;
     init.target_node_name = "missing_target_node";
-    particles.import.emitter_inits.push_back(std::move(init));
+    data->import.emitter_inits.push_back(std::move(init));
 
     nw::render::CompiledParticleEmitter compiled_emitter;
     compiled_emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
     compiled_emitter.attachment.emitter_attachment_point = 0u;
     compiled_emitter.attachment.target_attachment_point = 1u;
-    particles.compiled.effect.emitters.push_back(std::move(compiled_emitter));
+    data->compiled.effect.emitters.push_back(std::move(compiled_emitter));
 
+    nw::render::viewer::SceneParticleSystem particles{std::move(data)};
+    particles.owner_model_index = 0u;
+    particles.owner_instance_handle = scene.static_model_instance_handles.front();
     scene.particles.push_back(std::move(particles));
 
     const auto axis = mudl::vfx_sequence_authored_axis(scene, 0u);
@@ -251,14 +253,15 @@ TEST(MudlAppRuntime, VfxProjectileTransportMatchesParticlesByOwnerHandle)
     ASSERT_EQ(scene.static_models.size(), 1u);
     ASSERT_EQ(scene.static_model_instance_handles.size(), 1u);
 
-    nw::render::viewer::SceneParticleSystem particles;
-    particles.owner_model_index = 0u;
-    particles.owner_instance_handle = scene.static_model_instance_handles.front();
+    auto data = std::make_shared<nw::render::viewer::SceneParticleDefinition>();
 
     nw::render::CompiledParticleEmitter compiled_emitter;
     compiled_emitter.targeting.mode = nw::render::ParticleTargetingMode::point_gravity;
-    particles.compiled.effect.emitters.push_back(std::move(compiled_emitter));
+    data->compiled.effect.emitters.push_back(std::move(compiled_emitter));
 
+    nw::render::viewer::SceneParticleSystem particles{std::move(data)};
+    particles.owner_model_index = 0u;
+    particles.owner_instance_handle = scene.static_model_instance_handles.front();
     scene.particles.push_back(std::move(particles));
 
     EXPECT_EQ(

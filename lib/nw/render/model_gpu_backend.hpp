@@ -30,6 +30,7 @@ struct ModelPipelineKey {
     MaterialMode material = MaterialMode::opaque;
     ModelPipelinePass pass = ModelPipelinePass::color;
     MaterialLightingModel lighting = MaterialLightingModel::pbr;
+    nw::gfx::CullMode cull_mode = nw::gfx::CullMode::none;
 };
 
 class ModelGpuBackend {
@@ -91,20 +92,14 @@ public:
 
 private:
     static constexpr size_t pipeline_slot_count = static_cast<size_t>(PipelineSlot::count);
+    static constexpr size_t cull_mode_count = 3;
 
-    nw::gfx::Handle<nw::gfx::Pipeline> pipeline(PipelineSlot slot) const
+    nw::gfx::Handle<nw::gfx::Pipeline> pipeline(PipelineSlot slot, nw::gfx::CullMode cull_mode) const
     {
-        return pipelines_[static_cast<size_t>(slot)];
-    }
-
-    nw::gfx::Handle<nw::gfx::Pipeline>& pipeline_slot(PipelineSlot slot)
-    {
-        return pipelines_[static_cast<size_t>(slot)];
+        return pipelines_[static_cast<size_t>(slot) * cull_mode_count + static_cast<size_t>(cull_mode)];
     }
 
     nw::gfx::Handle<nw::gfx::Pipeline> create_pipeline_slot(PipelineSlot slot, const nw::gfx::PipelineDesc& desc);
-    [[nodiscard]] bool require_pipeline_slot(PipelineSlot slot, const nw::gfx::PipelineDesc& desc, const char* message);
-    bool warn_pipeline_slot(PipelineSlot slot, const nw::gfx::PipelineDesc& desc, const char* message);
     [[nodiscard]] bool initialize_common_storage_resources();
     [[nodiscard]] bool initialize_render_model_pbr_resources(nw::render::ShaderProvider& shader_provider);
     void initialize_shared_fallback_textures();
@@ -112,7 +107,7 @@ private:
     void destroy_common_gpu_resources();
 
     nw::gfx::Context* ctx_ = nullptr;
-    std::array<nw::gfx::Handle<nw::gfx::Pipeline>, pipeline_slot_count> pipelines_{};
+    std::array<nw::gfx::Handle<nw::gfx::Pipeline>, pipeline_slot_count * cull_mode_count> pipelines_{};
     nw::render::PipelineCache pipeline_cache_;
     nw::gfx::Handle<nw::gfx::Texture> default_albedo_;
     nw::gfx::Handle<nw::gfx::Texture> fallback_texture_;

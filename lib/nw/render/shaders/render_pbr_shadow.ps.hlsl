@@ -1,33 +1,9 @@
 // Depth-only shadow pixel shader for common PBR model primitives.
-// SurfaceConstants layout must match nw::render::SurfaceConstants exactly.
 
 Texture2D<float4> g_textures[] : register(t2, space1);
 SamplerState g_sampler : register(s3, space1);
 
-cbuffer SurfaceConstants : register(b4) {
-    float4 sc_albedo;
-    float  sc_roughness;
-    float  sc_metallic;
-    float  sc_specular_strength;
-    float  sc_normal_scale;
-    float  sc_occlusion_strength;
-    float  sc_ibl_strength;
-    float  sc_exposure;
-    float  sc_pad0;
-    float4 sc_emissive;
-    uint   sc_albedo_index;
-    uint   sc_normal_index;
-    uint   sc_surface_index;
-    uint   sc_emissive_index;
-    uint   sc_alpha_mode;
-    float  sc_alpha_cutoff;
-    uint   sc_double_sided;
-    uint   sc_plt_enabled;
-    float4 sc_color_key_threshold;
-    uint4  sc_plt_colors0;
-    uint4  sc_plt_colors1;
-    uint4  sc_plt_colors2;
-};
+#include "model_draw_constants.inc.hlsl"
 
 struct PSInput {
     float4 position   : SV_Position;

@@ -3,6 +3,7 @@
 StructuredBuffer<float4x4> g_bones : register(t3, space0);
 
 #include "scene_constants.inc.hlsl"
+#include "model_draw_constants.inc.hlsl"
 #include "skinning.inc.hlsl"
 
 struct VSInput {
@@ -31,7 +32,7 @@ VSOutput main(VSInput input) {
     float4x4 skin_matrix = blend_bone_matrices(g_bones, input.joint_indices, input.joint_weights);
 
     float4 local_pos = mul(skin_matrix, float4(input.position, 1.0));
-    float4 world_pos = mul(model, local_pos);
+    float4 world_pos = mul(draw_model, local_pos);
     float4 view_pos = mul(view, world_pos);
     output.world_pos = world_pos.xyz;
     output.position = mul(projection, view_pos);
@@ -41,8 +42,8 @@ VSOutput main(VSInput input) {
 
     float3 skinned_normal = mul((float3x3)skin_matrix, input.normal);
     float3 skinned_tangent = mul((float3x3)skin_matrix, input.tangent.xyz);
-    float3 N = normalize(mul((float3x3)normal_matrix, skinned_normal));
-    float3 T = normalize(mul((float3x3)normal_matrix, skinned_tangent));
+    float3 N = normalize(mul((float3x3)draw_normal_matrix, skinned_normal));
+    float3 T = normalize(mul((float3x3)draw_normal_matrix, skinned_tangent));
     T = normalize(T - dot(T, N) * N);
 
     output.normal = N;
