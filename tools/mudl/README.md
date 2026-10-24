@@ -17,7 +17,7 @@ It is useful for:
 
 ## Quickstart
 
-Build instructions live in the root [README](../../README.md#building-mudl).
+Build instructions live in the root [README](../../README.md#build).
 
 ```bash
 # Launch the interactive viewer

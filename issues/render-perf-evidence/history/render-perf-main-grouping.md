@@ -1,5 +1,11 @@
 # Main-pass attribution
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Diagnostic result for [RP-02](render-perf-submission-profile.md), source `ed5aebb11`.
 No production change. Evidence (external artifact: `render-perf-evidence/main-grouping.json`).
 
@@ -52,9 +58,9 @@ normal executable rebuilt and checked for absence of both probe strings.
 
 Reproduction: timing patch (external artifact: `render-perf-evidence/main-grouping-probe.patch`),
 surface patch (external artifact: `render-perf-evidence/main-surfaces-probe.patch`),
-[harness](render-perf-evidence/README.md),
-[capture](render-perf-evidence/README.md),
-[summary](render-perf-evidence/README.md). Apply each patch separately
+[harness](../README.md),
+[capture](../README.md),
+[summary](../README.md). Apply each patch separately
 to the source revision, build/copy its executable, then restore/touch source and
 rebuild. Scripts retain the original `/tmp/rollnw-main-groups` paths; fixture setup
-is still the [RP-01](render-perf-workload-contract.md) limitation. Raw reports there.
+is still the [RP-01](../../render-perf-workload-contract.md) limitation. Raw reports there.

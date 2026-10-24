@@ -2,7 +2,7 @@
 
 Status: closed, 2026-10-03. Implementation: `e25ee4ed0`.
 [Parent](../rendering-performance-overhaul.md). Discovered in
-[RP-02](../render-perf-submission-profile.md).
+[RP-02](../render-perf-evidence/history/render-perf-submission-profile.md).
 
 Before this change, `scene_shadow.cpp::shadow_candidate_surfaces` returned the entire frame surface
 list for dynamic models. Each model/cascade scanned it again to select its range.

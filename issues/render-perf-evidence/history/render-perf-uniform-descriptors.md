@@ -1,13 +1,19 @@
 # RP-04: Uniforms and descriptors
 
-Status: open. [Parent](rendering-performance-overhaul.md). Depends on
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
+Status: open. [Parent](../../rendering-performance-overhaul.md). Depends on
 [RP-02](render-perf-submission-profile.md).
 
 Historical max-city: 13.38 MB uniform writes, 19,806 uniform allocations and 9,989
 descriptor allocations/frame. `model_renderer.cpp` repeats scene/surface payloads.
 
-Completed step: [reuse unchanged storage descriptors](closed/render-perf-storage-descriptors.md).
-Rejected step: [pass/transform split with push constants](closed/render-perf-model-constants.md).
+Completed step: [reuse unchanged storage descriptors](../../closed/render-perf-storage-descriptors.md).
+Rejected step: [pass/transform split with push constants](../../closed/render-perf-model-constants.md).
 Uniform writes fell 13.38 -> 1.61 MB, but host median rose 6.29 -> 6.84 ms.
 Source restored; prioritize submission cost alongside bytes. Actual payload
 distribution is retained with the experiment.
@@ -29,7 +35,7 @@ not a chosen growth policy or optimization.
 
 The probe's 128×128 overview then exceeds the 2 MiB descriptor ring: 2,960,192
 bytes required and 9,672 reported failed/dropped draws/frame. Exclude those frames
-too. [Raw evidence](render-perf-evidence/README.md) retains both negative cases.
+too. [Raw evidence](../README.md) retains both negative cases.
 
 ## 2026-10-12 allocation observability
 
@@ -51,7 +57,7 @@ frames) give host medians 1.359 → 1.357 / 7.363 → 7.377 / 12.891 → 12.867 
 Small-view p95 rises 8.15%; a separate predefined six-pair follow-up does not
 reproduce it (1.905 → 1.856 ms, 2/6 pairs worse). Preserve both results; no speedup
 or full-client pacing claim. An initial unpinned follow-up is retained separately
-and excluded for its setup mismatch. [Raw evidence](render-perf-evidence/README.md).
+and excluded for its setup mismatch. [Raw evidence](../README.md).
 
 - [x] Count uniform allocation failures and aligned demand/capacity; reject incomplete
   measured frames in area-benchmark while preserving JSON. Exact-fill, overflow,
@@ -101,4 +107,4 @@ regression; one 32-overview pair rose 5.30%. The 64-overview p95 increase of 11.
 is unresolved and retained alongside the existing tail instability; no clean
 tail-acceptance claim or additional cherry-picked cohort. Full-client results
 are tracked in [RP-06](render-perf-gameplay-acceptance.md), raw evidence
-[outside Git](render-perf-evidence/README.md).
+[outside Git](../README.md).

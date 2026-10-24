@@ -1,31 +1,52 @@
-# RP-01: Workloads and budgets
+# Renderer workloads and budgets
 
-Status: open. [Parent/current results](rendering-performance-overhaul.md).
-[Historical protocols, hashes and commands](render-perf-evidence/README.md).
+Status: active requirements. [Current status and backlog](rendering-performance-overhaul.md).
 
-Required: full-area toolset overview and normal elevated gameplay, measured
-separately. User considers 30 fps reasonable for overview; earlier 4/2 ms
-aspirations are not mandatory gates. Complete gameplay budget and supported
-view/content limits remain to be settled; no new limit has been implemented.
+Measure normal elevated gameplay and full-area toolset overviews separately.
+Basic NWN1 gameplay must reach at least 60 fps (16.667 ms/frame), with substantial
+headroom toward the DA:I/Ryse art goal. Toolset overviews target 30 fps
+(33.333 ms/frame). Report median, p95, p99 and budget exceedances; a median alone
+cannot certify consistent frame rate. Earlier 4/2 ms overview aspirations are
+not mandatory gates. No supported scene-size or camera restriction is imposed.
 
-Fixtures: 32×32 city (1,680 models/600 particle systems), original 16×16 city
-control, and 32×16 outdoor (578/16). F9 adds the configured actor. Preserve visual
-features and authored populations; do not invent a crowd or full-game result.
-Legacy roof/emitter cameras and uncleared-color runs are historical comparisons,
-not current player/overview acceptance. Known missing models stay explicit.
+## Inputs and scope
 
-- [x] Fixture recipe and separate overview/orbit, gate and interior/outdoor routes.
-- [ ] Representative actor activity, door closing and native-input/pacing checks.
-- [ ] Common-baseline CPU/GPU/tails, total memory/uploads and asset fingerprints.
-- [ ] Final scoped budgets and acceptance in RP-06; retain detailed evidence outside Git.
+Existing NWN controls include the 32x32 city (1,680 models/600 particle systems),
+original 16x16 city and 32x16 outdoor (578/16), with separate overview/orbit and
+gameplay routes. The 64/96 repetitions are stress cases, not ordinary gameplay
+or supported-area declarations. Preserve features, authored populations and
+explicit missing-resource diagnostics. Particle-free model workloads are separate
+inputs; do not turn features off in an existing acceptance scene and call that
+an equivalent optimization result.
 
-Maintained harnesses: `tools/mudl/prepare_max_city.py`,
-`tools/mudl/benchmark_area_views.py`, `tools/mudl/compare_render_workloads.py`.
-Cost: fixture/verification upkeep, no shipping feature required.
+Existing glTF fixtures test the common runtime renderer and source independence.
+They do not establish final-art capacity. The next scaling check varies geometry,
+material diversity and animation using these inputs, records the actual visible
+work and identifies the limiting transform. Keep loading, CPU preparation,
+submission, GPU work and presentation measurements separate. Test shadows where
+the input exercises them; report absent features explicitly.
 
-Scaling investigation: isolated 16/32/64/96/128-square repetitions of the actual
-city; separate fixed local view, coverage, content and resolution controls.
-These synthetic repetitions are not supported-area declarations. Record active
-models/particles, submitted geometry and pixels alongside tiles. Require complete
-submissions: retained chunks and zero existing failure counters did not detect
-[uniform exhaustion](render-perf-uniform-descriptors.md). No camera limit selected.
+Runtime conversion remains supported. Offline asset compilation is deferred.
+No new art assets are required to measure current scaling, but representative
+meshes/materials/textures/lighting/populations are required before claiming that
+the final art target is supported. No exact additional NWN headroom target has
+been selected.
+
+## Measurement contract
+
+Use fixed inputs/camera/animation steps, complete draws, available GPU queries,
+explicit failure counters and image comparisons. A drop in submitted work is
+valid only when the same required output is preserved. Record geometry/material
+counts, texture/upload bytes and measured memory with their precise scope.
+Offscreen host/GPU durations do not measure presented FPS or display latency.
+Report hardware/driver and uncertainty; avoid universal claims from one machine.
+
+Reuse `mudl model-benchmark`, `tools/mudl/prepare_max_city.py`,
+`tools/mudl/benchmark_area_views.py` and `tools/mudl/compare_render_workloads.py`.
+Fixture upkeep is the cost; no new benchmark framework is required. A bounded
+initial screen must justify broader validation. Keep NWN regression controls and
+run relevant image/correctness checks before retaining any implementation.
+
+Historical protocols, failed attempts and scope limits are in the
+[evidence archive](render-perf-evidence/README.md). Remaining acceptance gaps are
+listed once in the [current backlog](rendering-performance-overhaul.md#unresolved-backlog).

@@ -1,9 +1,15 @@
 # Particle execution across placements
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Status: shared-storage migration rejected; Taskflow particle batches retained
 with the user-accepted small-view tail tradeoff below.
-[Parent](rendering-performance-overhaul.md), [profiles](render-perf-submission-profile.md),
-[external evidence](render-perf-evidence/README.md).
+[Parent](../../rendering-performance-overhaul.md), [profiles](render-perf-submission-profile.md),
+[external evidence](../README.md).
 
 ## 2026-10-14 Taskflow particle batches: accepted tradeoff
 

@@ -1,7 +1,13 @@
 # Rigid animated shadow batches
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Status: implemented, provisional. [RP-05](render-perf-draw-submission.md).
-Baseline `b86281f9b`. [Evidence](render-perf-evidence/README.md).
+Baseline `b86281f9b`. [Evidence](../README.md).
 
 Corrected probe: compatible rigid casters can remove 1,177 directional shadow
 draws in max city, 329 in city, zero in outdoor/local lights. Group by actual
@@ -27,7 +33,7 @@ identity. Invalid source ranges are omitted; oversized source volumes stay scala
 - [x] Final source: 192 tests, zero skips; 58 captures / nine views, all exact
   or within same-version repeat variability; 18,000 timing / 87 capture frame
   pairs preserve logical counters and the 1,177/329/0 draw reductions.
-- [x] [Simplification/self-check](render-perf-evidence/README.md):
+- [x] [Simplification/self-check](../README.md):
   explicit index/eligibility/grouping stages; 164 net production lines added.
 
 Five alternating pairs, medians of run statistics, ms:

@@ -1,7 +1,306 @@
 # RP-05: Draw submission
 
-Status: open. [Parent](rendering-performance-overhaul.md). Depends on
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
+Status: open. [Parent](../../rendering-performance-overhaul.md). Depends on
 [RP-02](render-perf-submission-profile.md) and [RP-04](render-perf-uniform-descriptors.md).
+
+## 2026-10-21 diverse-content comparison — rejected and source removed
+
+The packed/indexed/indirect prototype is rejected. Seven glTF cases complete
+21 correctness starts and 126 balanced timing starts: 14 exact RGBA comparisons,
+294 matching capture rows and 50,400 matching timed sample pairs after declared
+command deltas. All GPU scene samples are available. Source and runtime hashes
+match before/after; no failed work or Vulkan validation messages.
+
+The distinct-mesh target is faster in only one of six pairs. Textured, cutout and
+mixed-blend cases are slower in all six. The textured control passes baseline
+stability and records host median/p95 0.115823/0.147070 → 0.123312/0.156276 ms;
+GPU median 0.098617 → 0.109288 ms. Its opaque CPU phase falls 0.010124 → 0.003867
+ms, but the whole frame worsens. The other cases' variability is preserved in
+the result, not treated as proven regressions. All four predeclared model gates
+fail; the earlier area cohort remains inconclusive. No retry or new threshold.
+
+The experiment's geometry ownership, indexed tables/shaders and indirect model
+submission have been removed from source. The common benchmark, independent
+buffer-pool cleanup and arena boundary guards/tests remain. The rebuild succeeds;
+174 selected tests pass without skips. Textured glTF and area32 restoration images
+match exactly, and all 42 non-timing sample pairs match without counter exceptions.
+Both capture processes exit zero with complete GPU samples and no Vulkan validation
+messages. These checks do not close the separate culling appearance issue.
+Frozen evidence and full model/load/RSS results are under
+`build/render-indirect-models-2026-10-21/`, especially model-comparison-result.md,
+model-timing-results.json and retirement-plan.md. No new speedup is accepted.
+
+## 2026-10-21 indexed draw data and indirect submission — unaccepted prototype
+
+Historical checkpoint; this prototype is subsequently rejected and removed as
+recorded above. The packed geometry experiment included flat 288-byte indexed draw rows,
+20-byte indirect commands and ordered rigid opaque/cutout batches. Four thin
+shader wrappers share the ordinary shading bodies. Optional device features and
+storage/indirect limits are queried; unsupported capability or recoverable
+command/table allocation failure uses the direct path. Existing transparent,
+skinned, shadow, water and mesh-particle paths retain their draw behavior.
+
+The final matrix completes 44 starts: original, packed direct, indexed direct
+and indirect across eleven scenes. All 33 whole-RGBA comparisons are exact.
+All 252 paired area samples match every non-timing field except the declared
+binding/allocation/indirect-call counters, including per-pass checks. Sixteen
+area reports have zero Vulkan errors/warnings; all 44 logs have no Vulkan
+validation messages. The seven glTF controls use active IBL and fixed poses.
+The final affected test cohort passes 156 tests without skips.
+
+| View | Index binds, original → indirect | Resource binds | Indirect calls |
+| --- | ---: | ---: | ---: |
+| Local 32 | 2,245 → 184 | 2,276 → 1,510 | 64 |
+| Local 96 | 2,245 → 184 | 2,308 → 1,542 | 64 |
+| Overview 32 | 3,835 → 597 | 4,276 → 2,059 | 182 |
+| Overview 96 | 13,127 → 3,965 | 17,140 → 14,027 | 502 |
+
+Pipeline binds remain 40/40/21/85 respectively. An earlier capture exposed an
+unnecessary metadata-only deformer exclusion that raised overview96 pipeline
+binds to 815. Following the actual current rigid shader contract removes that
+split; primitive-world deformer rejection is preserved and tested. The test
+also covers distinct textures/materials, nonzero geometry/instance ranges,
+repeated frame slots, invalid resource recovery and allocation-failure fallback.
+
+Cost remains material: per-frame draw/command traffic, GPU table reads, an extra
+storage binding, four shader variants, command arenas and a temporary CPU range
+vector. Removed API calls are not a frame-time improvement by themselves.
+
+The four-control area timing cohort completes 64 starts, each with 180 warm-up
+and 600 measured frames. All 28,800 paired samples preserve non-timing data
+except the declared command deltas. Medians of per-run medians/p95s, in ms:
+
+| View | Host median, original → indirect | Host p95 | GPU scene median | Faster pairs |
+| --- | ---: | ---: | ---: | ---: |
+| Local 32 | 3.276 → 3.427 | 7.365 → 7.509 | 1.530 → 1.529 | 1/4 |
+| Local 96 | 8.183 → 8.043 | 11.008 → 11.428 | 1.661 → 1.630 | 2/4 |
+| Overview 32 | 3.534 → 3.352 | 5.662 → 5.732 | 0.911 → 0.908 | 3/4 |
+| Overview 96 | 27.953 → 26.642 | 36.468 → 31.941 | 4.599 → 4.178 | 4/4 |
+
+**Inconclusive; not accepted.** Point guards and the overview target pass, but
+the predeclared baseline-stability gate fails. Baseline host-median max/min
+spread is 51.10% local32, 55.32% overview32 and 16.49% overview96 (limit 10%);
+overview p95 spreads also exceed their 15% limit. Local96 passes stability.
+Overview96 median paired change is -6.47% versus original and -4.50% versus
+packed direct, all four pairs faster for both comparisons. Local32 is slower
+in three of four original pairs and all four packed-direct pairs; do not hide
+that result behind the large-view gain. No timing-based retry was performed.
+
+Overview96 opaque CPU median is 2.414 → 1.854 ms; local32 is 0.202 → 0.108 ms.
+These phase observations do not override whole-frame uncertainty. Overview96
+load median is 2.388 → 2.457 s and peak RSS is 887,996 → 886,220 KiB; local32
+load is 0.516 → 0.568 s and RSS is 520,916 → 519,258 KiB. GPU allocation and
+edit costs remain separate outstanding measurements. Timings are offscreen
+host/GPU work, not presented gameplay FPS.
+
+The indexed-direct diagnostic rereads its mapped command buffer on the CPU,
+while the allocation requests sequential-write access. Its large CPU cost
+without a comparable GPU increase is confounded by those reads; it is not an
+isolated shader-table-cost result. Actual memory properties and a cached-command
+control need checking before causal attribution. The indirect path does not
+reread commands, and its original/packed-direct comparisons remain usable with
+the stated noise limits.
+
+The runtime contract is source-independent and works with distinct glTF meshes
+and materials. The existing glTF shared-mesh control also exposes 64 uploaded
+copies of one referenced mesh; preserving geometry identity separately from
+placement remains an offline-compiler direction, not an implemented dedup fix.
+
+At this checkpoint acceptance still required reliable whole-frame/GPU timing and tails, full GPU allocation
+and edit cost, and diverse-content steady-state timing beyond fixed glTF images.
+Texture diversity, animated skinning and transparency scaling are independent
+dimensions. Existing color-culling appearance and full-client acceptance remain
+open. This prototype does not establish DA:I/Ryse capacity. Its later source
+removal and outstanding runtime-restoration checks are recorded above.
+
+The source-diverse measurement gap now has a concrete tool:
+`mudl model-benchmark <resref|path>` emits versioned fixed-step frame samples using
+the common ViewerSession, with explicit GPU availability and separate load/IBL
+setup times. All 22 CLI tests pass. Ten runtime checks verify textured/animated/
+distinct-mesh glTF, exact helmet and area output, unchanged area counters, and
+failure on missing requested inputs/resources or failed output writes. A final
+version-field/output check also passes. The subsequent matched glTF timing
+comparison is recorded above. Existing corpus process duration is not a frame-time baseline.
+
+Evidence is staged in `build/render-indirect-models-2026-10-21/`:
+`indexed-plan.md`, `indexed-review.md`, `indexed-final-tests.*`,
+`indexed-final-checks.json`, `indexed-final-capture-summary.json`,
+`indexed-final-captures/`, `indexed-timing-plan.md` and `indexed-timing/`.
+`indexed-timing-results.json` preserves every run, paired change and gate.
+Frozen runtime/source manifests identify all four controls; the temporary
+RenderService control selection was restored byte-for-byte before the indirect
+build. Final indirect mudl SHA256 is
+`00abdfe61ffd7b339b85be3c625175d2874cf3d30857f227753f135564ee9daf`.
+
+## 2026-10-21 packed geometry control — prototype in progress
+
+Historical checkpoint; this control is also subsequently removed. It contained
+per-model packed geometry and explicit primitive
+index/base-vertex ranges, including the CPU selection/navigation readers. Four
+layout buckets preserve static/skinned vertices and 16/32-bit local indices.
+Source primitive order, shading, geometry and draw ordering are unchanged. The
+model owns each packed buffer once; manually constructed primitives retain their
+existing ownership. This is the direct-draw control for the indexed/indirect
+experiment, not an accepted performance improvement.
+
+Two capture cohorts each complete eleven baseline/control pairs: four NWN views,
+three existing glTF fixtures, and four generated geometry/material controls.
+Every whole-RGBA image matches exactly. In the final cohort all 84 paired area
+rows preserve logical work and command counters except the four declared geometry
+binding counters; validation reports have zero errors/warnings and no submission
+failures. Last selected frame index-buffer binds change as follows:
+
+| View | Original | Packed direct |
+| --- | ---: | ---: |
+| Local 32 / 96 | 2,245 | 184 |
+| Overview 32 | 3,835 | 597 |
+| Overview 96 | 13,127 | 3,965 |
+
+Draw counts and uploaded constants remain unchanged. These are observed removed
+bindings, not measured frame-time gains. The captured control executable SHA256
+is `c10ca63b95c8d546743ef1398136ed9047b4793a4df1017bd1ef8630dc672c96`.
+The full-install test cohort passes 141 tests without skips before the separate
+buffer-pool exhaustion regression. The initial dedicated-server asset setup's
+failure/four skips and initial test-build failure are preserved, not accepted.
+
+Inspection and a failing regression exposed a pre-existing buffer leak when
+Vulkan allocation succeeds but buffer-handle insertion fails. The working tree
+adds cleanup on that failure branch. Its verification is recorded separately
+from the successful-path image control. Existing fatal Vulkan allocation/map
+failure policy is unchanged; no actual GPU-memory exhaustion is induced.
+The final build passes all 142 affected tests with zero failures/skips. The
+exhaustion regression changes from a measured leaked allocation/Vulkan buffer
+to unchanged VMA allocation count/bytes with clean validation. No image cohort
+was repeated for this failure-only branch; the captured control is identified
+above. Current mudl SHA256 is
+`b86d4df7ba92ad9fb1df35938f740761e30553fa5d659b15a125d99e7ae86e0b`.
+
+Cost: one linear load-time packing/copy pass, eight bytes of range metadata per
+primitive, and at most eight owned buffer handles per model. Frame submission
+adds no geometry copies or new allocator. The next indexed table introduces GPU
+reads and command/payload storage; whole-frame median/tails, memory and load/edit
+costs still need measurement. Geometry deduplication, indexed draw shaders and
+indirect model batching are not implemented by this control.
+
+The offline compiler direction is a shared runtime data contract: geometry
+identity separate from placement, explicit material rows and instance transforms,
+and bounded draw ranges. The importer already produces common ModelAsset data.
+Do not freeze a package format or add a global allocator before the runtime
+experiment establishes its costs. Unique geometry/materials, texture diversity,
+animated skinning and transparency remain independent workload dimensions;
+NWN repetition alone cannot establish DA:I/Ryse capacity.
+
+Open implementation questions: draw-table binding and feature enablement,
+batch boundaries and fallback on capacity failure, and frame-slot lifetime.
+Existing transparency/skinning/deformer paths must preserve output. SIMD or
+parallel preparation requires an observed remaining CPU batch; the rejected
+recording-only parallel trial is not evidence against parallelism generally.
+
+Plan, source/runtime snapshots, capture checks and test logs are staged under
+`build/render-indirect-models-2026-10-21/`. The prototype remains uncommitted and
+unaccepted pending the complete measured experiment; no production restoration
+is claimed for the current working tree.
+
+## 2026-10-20 geometry and material diversity inventory
+
+Twenty-two diagnostic starts complete eleven reference/probe pairs with exact
+whole images. All 84 paired area samples preserve counts/commands; selected
+frames have no submission failures. Both source hooks and all 156 production
+runtime files are restored exactly. No new frame-time result or shipping change.
+
+Ordered compatible groups, assuming packed geometry and indexed draw payloads:
+
+| Workload | Eligible rigid opaque/cutout draws | Per-model packing | Cross-model packing |
+| --- | ---: | ---: | ---: |
+| Local 32 / 96 | 820 | 66 | 14 |
+| Overview 32 | 2,347 | 192 | 47 |
+| Overview 96 | 3,243 | 576 | 367 |
+| 64 distinct meshes and material factors | 64 | 1 | 1 |
+
+These are structural bounds preserving order, not implemented call reductions or
+speedups. Per-model packing captures 92.7–93.7% of the possible call reduction
+in these NWN views. Test asset-owned geometry ranges and flat indexed draw data
+with CPU-produced indirect commands first; measure GPU fetch/upload, memory,
+load/edit and whole-frame costs before accepting. A cross-model allocator adds
+ownership/retirement complexity for the remaining measured reduction.
+
+This opportunity also exists with unique glTF geometry/materials. The shared-mesh
+glTF control separately exposes 64 uploaded geometry copies from 64 references
+to one source mesh: geometry identity is currently expanded during import/upload.
+The offline compiler boundary should preserve geometry separately from placement.
+
+The largest overview also has 10,440 blended model draws, 972 skinned draws and
+376 deformer draws (overlapping categories). Those remain outside this first
+opaque slice; it cannot establish final-art capacity or solve the whole workload.
+The generated materials vary factors, not texture diversity. Existing PBR/skin
+controls use active IBL and a fixed pose; they do not certify animated, lighting
+or texture-bandwidth scaling. Raw evidence is indexed in
+[performance evidence](../README.md).
+
+## 2026-10-20 source-independent submission direction
+
+The user wants headroom for substantially richer art and warns against optimizing
+only repeated NWN assets. Treat the city scaling fixtures as measurements of
+repetition, not evidence of final-art capacity. This is a bounded Tier 1 review;
+no new submission implementation or speedup is claimed.
+
+The common import boundary already exists: NWN, glTF and native inputs produce
+`ModelAsset`. Preserve it. The present limitation is downstream:
+
+- `model_asset.cpp::upload_model_asset_primitive` creates separate vertex/index
+  buffers for each primitive, with validated 16/32-bit index selection.
+- The uploaded-span overload of
+  `model_renderer.cpp::render_prepared_render_model_surface_instances`
+  still selects one primitive/material, constructs and allocates draw constants,
+  binds that primitive's geometry/resources, then issues its instanced draw.
+- Materials already contain bindless texture indices. The gfx API already has
+  indexed indirect drawing, GPU draw counts and compute-to-graphics barriers.
+  Neither facility removes the separate geometry/data bindings by itself.
+
+The current [profile](render-perf-submission-profile.md#2026-10-17-post-transform-profile-and-rejected-particle-axes-trial)
+finds draw construction at 9.01/9.88% self main-thread cycles and particle
+rendering at 25.30/24.80% inclusive. Shares overlap and exclude worker/off-CPU time;
+they are not additive removable costs. Existing unchanged-code controls also
+show greater than 5% p95 variation, limiting conclusions about small tail changes.
+
+The next structural experiment to investigate is compatible shared geometry
+ranges plus indexed draw/material/instance data, initially for rigid opaque/cutout
+surfaces. Keep exact geometry, shading and ordering; preserve transparent,
+skinned and deforming behavior through the existing paths while evaluating that
+bounded slice. First compare CPU-produced indirect commands against direct draws;
+only then can GPU visibility be judged against the submission work it actually
+removes. GPU visibility alone is not the proposed optimization.
+
+Cost on this Ryzen/Radeon shared-memory platform: load-time packing, buffer-range
+ownership and fenced retirement, persistent table storage, shader table reads,
+changed-row uploads, and edit/reload invalidation. Further GPU visibility adds
+bounds/command storage, dispatches and barriers. Counts and bytes must be measured
+before choosing the layout; no additional manager/object hierarchy is implied.
+Use plain structs, indexed arrays and explicit batch transforms. Invalid ranges
+must reject the batch explicitly; capacity failure must not drop draws silently.
+
+Before implementation, inventory actual compatible ranges and binding breaks,
+including material overrides and winding. Verify repeated instances and distinct
+meshes/materials independently, using the existing common native/glTF path as
+well as NWN scenes. Vary geometry, skinning and transparent work separately;
+synthetic scaling characterizes costs but does not certify target-art quality.
+The direct-draw `draw_index_count` counter currently sums indices per API call
+without multiplying by instance count; it cannot measure total geometry work
+across an instancing change. Record instance-weighted geometry separately.
+Require preserved images/activity, complete work, a measured whole-frame gain,
+and stated memory/load/edit costs. Reject the experiment if added fetch/upload
+work cancels the CPU saving or diverse-content controls regress.
+
+The [offline compiler](../../offline-model-compiler.md) can eventually emit the validated
+geometry ranges and common material/animation records directly. A frozen package
+format is not needed to test this runtime boundary. Asset names must not select
+batching, culling, lighting or quality policy.
 
 ## 2026-10-15 retained static root payloads
 
@@ -62,7 +361,7 @@ record contract. The simplification removes per-frame handle traversal and
 inversion without adding a second invalidation mechanism.
 
 Raw plans, source, tests, matrices, captures and matched runs are in
-[external evidence](render-perf-evidence/README.md). The fresh profile is recorded
+[external evidence](../README.md). The fresh profile is recorded
 in [RP-02](render-perf-submission-profile.md). No CPU ceiling or camera restriction
 is established by this bounded improvement.
 
@@ -118,7 +417,7 @@ frame. Verify edit/reload/material/model/visibility invalidation before adding
 that state. This inventory does not justify retaining animated primitive-world
 payloads. No cache or speedup is claimed; diagnostic timings are excluded.
 Plans, rejected source, profiles/annotations, raw comparisons and the inventory
-are in [external evidence](render-perf-evidence/README.md).
+are in [external evidence](../README.md).
 
 ## 2026-10-15 shared shadow preparation trial rejected
 
@@ -158,7 +457,7 @@ disagree by 9.67% at p95; the candidate exceeds the faster baseline by 8.20%.
 This is inconclusive about a reproducible regression and does not clear the
 acceptance gate. No further reruns or new tail-cause claim. Production source
 and executable are restored to the committed culling checkpoint; the trial,
-tests and all measurements remain in [external evidence](render-perf-evidence/README.md).
+tests and all measurements remain in [external evidence](../README.md).
 All 17 targeted tests pass again on the restored source.
 
 The preceding profile still applies to the restored renderer: draw construction,
@@ -220,7 +519,7 @@ audit matched all 25,232,844 caster/view decisions across 1,820 calls and five
 additional exact image pairs. The production source and measured executable were
 restored exactly afterward; audit timings are excluded. Detailed raw
 inventory, screen/final cohorts, diagnostic audits, source and hashes are in
-[external evidence](render-perf-evidence/README.md).
+[external evidence](../README.md).
 
 A fresh 20-second 199 Hz main-thread user-cycle profile has 3,535 samples, zero
 lost, and a complete 3,500-frame workload; profile timings are excluded from the
@@ -239,7 +538,7 @@ After particle threading (`57c38888b`), [fresh profiles](render-perf-submission-
 still show substantial model preparation/submission and particle rendering.
 Taskflow is retained with the user-accepted small-local p95 tradeoff. This review
 adds no runtime change or speedup claim; detailed design and profiles are in
-[external evidence](render-perf-evidence/README.md).
+[external evidence](../README.md).
 
 Main model submission can use coarse ordered secondary command buffers, recorded
 by the existing workers and executed in pass/source order. First establish the
@@ -300,7 +599,7 @@ tails remain unresolved. Prepared
 world/normal rows have explicit transform-space/lifetime/limits; skinned,
 deforming and transparent surfaces retain scalar handling.
 
-[Static packing audit](render-perf-evidence/README.md): overview
+[Static packing audit](../README.md): overview
 2,134 eligible static draws have 1,012 material/shadow groups within shared models;
 plaza 772/438, outdoor 468/187. Packing remains an unselected candidate. Same-node/
 transform grouping saves nothing; any future experiment must preserve identity,
@@ -366,7 +665,7 @@ are mixed. 24 separate corrected-shader captures are byte-exact between
 batched and split draws across these four views, with zero repeat variability.
 Full-client pacing, activity and total memory remain unverified in this pass.
 Commands, hashes, binaries, compiler output and captures:
-[external evidence](render-perf-evidence/README.md).
+[external evidence](../README.md).
 
 ## 2026-10-12 filtered-run fusion rejected
 
@@ -378,7 +677,7 @@ checks/order but removing the second traversal. Six alternating pairs/view
 satisfy the overview gate. 108 tests and three exact captures pass; all counters
 match. Restore source/tests/executable; no optimization retained. Per-row run-end
 writes, allocation order and filtered-input reserved capacity also changed; their
-individual costs are unisolated. [Full evidence](render-perf-evidence/README.md).
+individual costs are unisolated. [Full evidence](../README.md).
 
 ## 2026-10-13 model-partitioned group search
 
@@ -410,7 +709,7 @@ shared assets. Group/run/surface traversal continues to use indices.
 109 tests pass, including mixed-asset/material/space/winding GPU parity. Three
 scene captures are byte-exact; all 21,600 measured frames preserve counts and
 per-pass counters without failures. Uninstrumented binary restored byte-for-byte.
-[Evidence](render-perf-evidence/README.md) includes probes, storage inventory and
+[Evidence](../README.md) includes probes, storage inventory and
 all pairs. Full-client/moving-gameplay acceptance and a CPU ceiling remain open.
 
 ## 2026-10-14 validated surface sort reuse
@@ -468,7 +767,7 @@ and all exclusive ledgers reconcile. These diagnostics overlap the unrelated
 updater and cannot substitute for the clean standalone performance cohort.
 Temporary probes/replay hooks are removed; restored mudl, client and test binary
 hashes exactly match their pre-probe production builds. [Full-client limits](render-perf-gameplay-acceptance.md)
-and [all raw evidence](render-perf-evidence/README.md) remain explicit.
+and [all raw evidence](../README.md) remain explicit.
 
 ## 2026-10-13 retained complete-view static groups
 
@@ -514,7 +813,7 @@ A separate probe rebuilds once over 240 unchanged frames/size. First preparation
 at 64/96 costs 1.635 / 4.217 ms on CPU2 (one sample each, not an edit-latency
 percentile). No retained model/GPU ownership. Full-client pacing/activity,
 production 96×96 capacity policy, aggressive CPU targets and a CPU ceiling remain
-unverified. [Raw evidence](render-perf-evidence/README.md).
+unverified. [Raw evidence](../README.md).
 
 - [ ] Resolve small-local tail variability before final performance acceptance;
   the candidate is faster than both duplicate controls in the fixed follow-up,

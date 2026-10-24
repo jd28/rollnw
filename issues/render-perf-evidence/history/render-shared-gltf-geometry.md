@@ -1,5 +1,11 @@
 # Shared geometry in runtime glTF import
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Status: **implemented, verified and retained in the working tree** (2026-10-23).
 
 Tier 1: bounded extension of the existing asset/upload contract, not a new

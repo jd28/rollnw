@@ -1,7 +1,7 @@
 # Storage descriptor reuse
 
 Status: closed, 2026-10-04. Implementation: `f32f02b52`.
-[RP-04](../render-perf-uniform-descriptors.md); frame-pacing follow-up remains open.
+[RP-04](../render-perf-evidence/history/render-perf-uniform-descriptors.md); frame-pacing follow-up remains open.
 
 Tier 1: remove repeated storage descriptor encoding in `bind_pipeline_resources`.
 Inputs are 0–5 validated buffer spans per bind; outputs remain opaque descriptor
@@ -47,7 +47,7 @@ The longer run addressed the initial noisy tails/city median increase; both sets
 are retained. Max-city host median improves 4/5 short and 5/5 long pairs. Opaque
 CPU medians improve in every pair on all three scenes. Longer max-city render
 CPU: 4.545 -> 4.138 ms; GPU scene: 3.586 -> 3.559 ms (no GPU-work reduction claimed).
-Outdoor p95 increases in all five longer pairs; [RP-08](../render-perf-frame-pacing.md)
+Outdoor p95 increases in all five longer pairs; [RP-08](../render-perf-evidence/history/render-perf-frame-pacing.md)
 must resolve the pacing tradeoff before full acceptance. Retain the small cache
 for measured CPU/median gains; no claim of universal latency improvement.
 

@@ -1,6 +1,6 @@
 # Model pass/transform constants: rejected
 
-Status: closed (rejected). [RP-04](../render-perf-uniform-descriptors.md).
+Status: closed (rejected). [RP-04](../render-perf-evidence/history/render-perf-uniform-descriptors.md).
 Production source restored to `bd54dfb73`; no push-constant API/cache retained.
 
 Input: two captured max-city frames each contain 9,817 model draws, eight shared

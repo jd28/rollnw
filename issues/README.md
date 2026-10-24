@@ -8,10 +8,14 @@ acceptance. Record the reason and verification limits, then move it to closed/
 and update local links. Preserve the original contracts, regression evidence and
 checkpoint history. Related work that remains unresolved stays active.
 
-## Rendering performance cluster
+## Renderer work
 
-[Rendering performance overhaul](rendering-performance-overhaul.md) tracks the
-closed foundation and remaining issues with dependencies and a parent
-closure checklist. Start with [workloads and budgets](render-perf-workload-contract.md)
-and [submission profiling](render-perf-submission-profile.md). Update the parent
-when a child closes; archive the parent after final gameplay acceptance.
+Start with [renderer status and next work](rendering-performance-overhaul.md)
+and [workload requirements](render-perf-workload-contract.md). The status page
+owns the current priority and unresolved backlog; it replaces the old collection
+of open performance experiments as a work queue.
+
+The [performance evidence archive](render-perf-evidence/README.md) retains completed,
+rejected and deferred investigations. Archived status does not imply a problem
+was solved. Their historical plans/checklists do not authorize new work; remaining
+risks and deferred opportunities are explicit on the current status page.

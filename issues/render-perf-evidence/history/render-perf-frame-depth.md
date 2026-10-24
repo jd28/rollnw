@@ -1,6 +1,12 @@
 # RP-12: Frame-slot depth targets
 
-Status: open. [Parent](rendering-performance-overhaul.md). Follows RP-11.
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
+Status: open. [Parent](../../rendering-performance-overhaul.md). Follows RP-11.
 
 RP-11's count experiment saves 133.5 MiB; corrected output matches within repeat
 variation, but outdoor timings regress and max is mixed. Default targets own one depth

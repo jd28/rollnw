@@ -1,125 +1,52 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![ci](https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg)](https://github.com/jd28/rollnw/actions?query=workflow%3Aci)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![ci](https://github.com/jd28/rollnw/actions/workflows/ci.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/jd28/rollnw/actions/workflows/codeql-analysis.yml)
 [![codecov](https://codecov.io/gh/jd28/rollnw/branch/main/graph/badge.svg?token=79PNROEEUU)](https://codecov.io/gh/jd28/rollnw)
 
 # rollnw
 
-rollnw is an homage to Neverwinter Nights (NWN) in C++. It started as reusable NWN infrastructure and is broadening toward support for a modern authored RPG toolset/game: content formats, rules, scripting, rendering validation, networking foundations, and the runtime services needed to make those pieces authorable and playable. See the [docs](https://jd28.github.io/rollnw/) and [tests](https://github.com/jd28/rollnw/tree/main/tests) for more info. Opening an IDE is going to get the most current view.
+rollnw is a C++ framework for RPG tools and runtimes, inspired by Neverwinter
+Nights and growing toward a modern authored game and toolset.
 
-**Transition warning:** rollnw is in active transition. Older docs and APIs may show a narrower NWN-library cross section of the project. Repository snapshots use date tags, while independently shipped packages keep their own versions. Assume APIs and subsystem boundaries can move between snapshots.
+- **[nw](https://jd28.github.io/rollnw/)** —  library for content formats, resources,
+  rules, and a [Vulkan renderer](lib/nw/render/README.md) with PBR materials,
+  animation, particles, lighting, and shadows.
+- **[smalls](lib/nw/smalls/docs/index.md)** — a statically typed scripting language
+  for game rules and tooling, with a [VS Code extension](tools/vscode-smalls/README.md).
+- **[client](tools/client/README.md)** — [Demo](https://youtu.be/1zftndVT2Is) — import modules, explore areas, and edit
+  objects and terrain with previews, undo, and save.
+- **[mudl](tools/mudl/README.md)** — inspect models and effects, capture screenshots,
+  and benchmark rendering with NWN and glTF assets.
 
-## Versions and compatibility
+The project is in active development. Pin a Git revision and rebuild consumers
+when updating; APIs and the C++ ABI can change. See the [release guide](docs/releases.md)
+for snapshot and tool versioning.
 
-The library **lives at HEAD**: development happens on `main`, and consumers are
-encouraged to update frequently while recording an exact Git revision for each
-build. Dated distributions (`YYYY.MM.DD[.N]`) are tested snapshots, not an LTS
-or cross-revision compatibility guarantee. We aim to keep source updates
-manageable and document necessary migrations. There is no cross-revision C++
-ABI guarantee; rebuild the library and its consumers together when updating.
+## Build
 
-Tools have independent versions. Ordinary builds report `-dev` plus their source
-revision (and `.dirty` for local changes); only explicitly approved release
-builds report a plain release version. Use `--version` for the tool version or
-`--build-info` for its JSON source/release identity when reporting a problem.
-The VS Code extension has its own package version and records the identity of
-its bundled language server. See the [release guide](docs/releases.md) for the
-release process and metadata contract.
-
-## Goals
-
-- aims to implement the reusable RPG, toolset, resource, rendering, networking, and runtime foundations for a modern authored game inspired by NWN, with current effort on the practical pieces (rules, content formats, renderer validation, authoring workflows) a playable toolset/game will need.
-- focuses on authoring and usage, instead of doing things the Aurora Engine Way.
-- follows [utf8 everywhere](https://utf8everywhere.org/).
-- hews as close to [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) as possible.
-
-## Features
-
-- `nw::smalls` is a statically-typed scripting language designed for RPG tooling. It is the active rules/script authoring path and explores replacing NWScript-style workflows with modern features (modules, generics, first-class arrays/maps) while staying small enough to embed in rollnw-based tools. See the [docs](https://jd28.github.io/rollnw/smalls/) for a language spec.
-- The beginnings of a novel rules system and combat engine built on Smalls.
-- [`nw::gfx`](https://jd28.github.io/rollnw/gfx/), a thin Vulkan-focused rendering layer intended to support renderer experiments, headless graphics validation, and eventual authored-toolset/game viewports.
-- [`nw::render`](https://jd28.github.io/rollnw/render/), the 3D renderer built on `nw::gfx`: Forward+ lighting, common model instances for glTF and NWN-derived assets, skinned animation through ozz, particles/VFX, shadows, screenshots, and focused parity tests for moving legacy content toward a modern PBR path.
-- Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON. See the [legacy object notes](https://jd28.github.io/rollnw/objects/) for runtime handle/loading context.
-
-## Tools
-
-- [`rollnw | toolset`](tools/client/README.md), the local module viewer and authoring workbench, installed as `rollnw-client`. It imports modules into editable projects, browses areas and resources, renders areas and blueprints, inspects placed objects, and provides focused editors for the object data paths implemented today. It is intentionally viewer-first rather than a claim of complete NWToolset parity. [Watch the overview](https://youtu.be/1zftndVT2Is) or the [area-editing demo](https://youtu.be/PvT9pjiYuU0).
-- [`mudl`](https://jd28.github.io/rollnw/mudl/), a renderer-backed NWN model/spell/VFX viewer and headless capture tool used to validate creature assembly, particle and programmable FX playback, glTF/PBR rendering, and the asset paths a future toolset needs to trust. Renderer design notes live under the [renderer docs](https://jd28.github.io/rollnw/render/), including the [particle system overview](https://jd28.github.io/rollnw/render/particle_system.html).
-
-### Legacy
-
-- Implementations of pretty much every NWN file format (gff, Bioware DDS, etc) and container (erf, key/bif).
-- An implementation of NWN's localization system focused on utf8 everywhere.
-- A recursive descent [NWScript Parser](https://jd28.github.io/rollnw/script/). This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
-
-**Out of scope:** NWN:Enhanced Edition-specific infrastructure that does not generalize beyond that runtime, such as NWSync; ad hoc workarounds for runtime limitations, such as `ruleset.2da`; and JSON schemas that expose legacy GFF field layouts as a stable public contract. These are examples of the type of features that will not be supported.
-
-## Building / Installing
-
-The library uses [CMakePresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) as its build system. The naming convention for non-ci presets is `{platform}[-renderer][-{build tool}]-dev[-debug]`. Renderer presets build the platform's supported graphics tools. Renderer and `mudl` builds are supported on Linux and Windows only; macOS is not supported for the renderer because MoltenVK is not wired up yet. In debug presets, build files are written to a debug build directory. On macOS and Linux, Ninja is the build tool of choice so it is omitted. On Windows the default build tool is Visual Studio 2022.
-
-Examples:
-```
-$ cmake --preset=linux-dev
-$ cmake --preset=linux-renderer-dev
-$ cmake --preset=macos-dev-debug
-$ cmake --preset=windows-vs2019-dev-debug
-$ cmake --preset=windows-renderer-dev
-$ cmake --preset=windows-dev
-```
-
-Once your configuration is done, everything is the same between platforms. To build:
-```
-$ cmake --build --preset=default
-$ cmake --build --preset=debug
-```
-
-To install all binaries and test data to local `bin` dir (build or build-debug):
-```
-$ cmake --install build --prefix=.
-$ cd bin
-$ ./rollnw_benchmark
-```
-
-To run ctest:
-
-```
-$ ctest --preset=default
-```
-
-### Import and open a module project
-
-Renderer presets build `rollnw-client` on Linux and Windows. JSON import needs
-an NWN:EE installation discoverable through the normal install probe or
-`NWN_ROOT` and `NWN_HOME`.
+Requires CMake 3.21+ and a C++20 compiler. Renderer tools currently only run on Linux and Windows.
+For a Linux renderer build with Ninja:
 
 ```sh
-cmake --preset=linux-renderer-dev
-cmake --build --preset=default --target rollnw-client
-./build/tools/client/rollnw-client import --json \
-    "$HOME/.local/share/Neverwinter Nights/modules/example.mod" \
-    ./example-project
-./build/tools/client/rollnw-client
+cmake --preset linux-renderer-dev
+cmake --build --preset linux-renderer-dev --target rollnw-client mudl
+./build-renderer/tools/client/rollnw-client
 ```
 
-The application opens recent projects from its Home workspace. Import is a
-separate, explicit transform so normal viewer startup does not repeatedly
-deserialize or rewrite the source module.
+Use `windows-renderer-dev` for Windows. Library development presets are
+`linux-dev`, `macos-dev`, and `windows-dev`; see [CMakePresets.json](CMakePresets.json)
+for the available configurations.
 
-## History
+To work with NWN content, install NWN:EE and any required hak files. If discovery
+fails, set `NWN_ROOT` to the game installation and `NWN_HOME` to its user directory.
+In the toolset, choose **Import Module...** on Home. See the
+[toolset guide](tools/client/README.md#getting-started) for the workflow.
 
-A lot of what's here was written in the 2011-2015 range as part of personal minimalist toolset, modernized and with new EE stuff added.  In some sense, it's a work of historical fiction -- it's what I'd have suggested at the start of NWN:EE: get the game and the community on the same set of libraries. Similarly to an older project that asked what if Bioware had stuck with Lua? The answer to that was pretty positive: a decade ahead, at least, of nwscript.
+## More
 
-## Credits
+[Documentation](https://jd28.github.io/rollnw/) ·
+[Tests](tests/) ·
+[Local issues](issues/README.md)
 
-- [Bioware](https://bioware.com), [Beamdog](https://beamdog.com) - The game itself
-- [abseil](https://abseil.io/) - Foundational
-- [GoogleTest](https://github.com/google/googletest) - Testing
-- [glm](https://www.opengl.org/sdk/libs/GLM/) - Mathematics
-- [Vulkan](https://www.vulkan.org/), [Dear ImGui](https://github.com/ocornut/imgui), [RmlUi](https://github.com/mikke89/RmlUi) - Graphics and tool UI
-- [loguru](https://github.com/emilk/loguru), [fmt](https://github.com/fmtlib/fmt) - Logging
-- [stbi_image](https://github.com/nothings/stb), [NWNExplorer](https://github.com/virusman/nwnexplorer), [SOIL2](https://github.com/SpartanJ/SOIL2/) - Image/Texture loading.
-- [inih](https://github.com/benhoyt/inih) - INI, SET parsing
-- [nholmann_json](https://github.com/nlohmann/json) - JSON
-- [libiconv](https://www.gnu.org/software/libiconv/), [boost::nowide](https://github.com/boostorg/nowide) - i18n, string conversion
-- [Python-Markdown](https://python-markdown.github.io/), [Pygments](https://pygments.org/) - documentation rendering
+MIT licensed. Thanks to BioWare, Beamdog, and the open-source projects that make
+rollnw possible; dependencies retain their own licenses.

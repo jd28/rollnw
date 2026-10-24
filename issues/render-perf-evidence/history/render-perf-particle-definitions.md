@@ -1,5 +1,11 @@
 # RP-16: share immutable scene particle definitions
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Status: implemented; large-view gates pass. Small-view increase not reproduced by the fixed follow-up below; full-client acceptance remains open. Tier 2: bounded ownership rework. Investigation started 2026-10-10; final measurements 2026-10-11.
 
 ## Patterns & Conventions Found
@@ -66,7 +72,7 @@ Done requires materially fewer retained definitions/compiled bytes, all targeted
 Retain the implementation for its measured large-area benefit. Six alternating
 starts per large view and three small-view starts, 180 warmup + 600 samples each,
 main thread pinned after loading as planned. Medians of per-start statistics;
-all 18,000 frames retained. [Raw evidence](render-perf-evidence/README.md).
+all 18,000 frames retained. [Raw evidence](../README.md).
 
 | View | Baseline host median / p95 ms | Shared host median / p95 ms | Scene tick median before → after ms |
 | --- | ---: | ---: | ---: |
@@ -170,4 +176,4 @@ Retain sharing; no new runtime fix is justified by these results. General CPU
 tail variability and paced/presented gameplay remain open. To attribute the
 remaining execution-time variation, correlate per-frame cycles/instructions and
 frequency/sibling activity; coarse core affinity alone does not establish cause.
-[Raw evidence and fixed plan](render-perf-evidence/README.md).
+[Raw evidence and fixed plan](../README.md).

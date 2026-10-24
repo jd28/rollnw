@@ -1,8 +1,14 @@
 # Rigid animated surface batches
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Status: open; implementation retained provisionally. [RP-05](render-perf-draw-submission.md).
 Baseline `efdfbef0a`; raw plan, comparisons and diagnostics are in the
-[evidence archive](render-perf-evidence/README.md).
+[evidence archive](../README.md).
 
 Reuse compatible model runs. Animated unskinned/nondeforming opaque/cutout runs
 upload prepared world/normal matrices in surface-major slices; root batches keep

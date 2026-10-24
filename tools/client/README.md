@@ -10,7 +10,7 @@ areas and resources, and edit objects and terrain with previews, undo, and save.
 ## Getting started
 
 The client runs on Linux and Windows. See the root README for
-[build and launch instructions](../../README.md#import-and-open-a-module-project).
+[build and launch instructions](../../README.md#build).
 You need an NWN:EE installation and the module's required hak files. If they
 aren't found automatically, set `NWN_ROOT` to the installation directory and
 `NWN_HOME` to the NWN user directory.

@@ -1,7 +1,13 @@
 # RP-10: Constant poses
 
-Status: open; implementation provisional. [Parent](rendering-performance-overhaul.md).
-Depends on RP-02. [Evidence](render-perf-evidence/README.md).
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
+Status: open; implementation provisional. [Parent](../../rendering-performance-overhaul.md).
+Depends on RP-02. [Evidence](../README.md).
 
 Current max-scene profile: animation sampling is 18.34% inclusive sampled user
 cycles (zero loss; truncated stacks limit attribution, not a timing estimate).
@@ -19,10 +25,10 @@ Cost: 21 net production lines, 8 bytes/instance (13.1 KiB for 1,680); no new buf
 - [x] 208 tests, 58 captures, zero validation errors/warnings; logical fields
   match across 10,800 timed pairs and 87 capture pairs except intended reuse/sync counts.
 - [x] Simplification/self-check and compact evidence retained.
-- [x] [Controlled attribution](render-perf-evidence/README.md):
+- [x] [Controlled attribution](../README.md):
   sampler CPU improves in all 120 paired blocks at unchanged layout. Production
   repeat max host 5.748 -> 4.808 ms; city 1.724 -> 1.641 ms, all pairs improve.
-- [x] [Presented control](render-perf-evidence/README.md): max host
+- [x] [Presented control](../README.md): max host
   5.868 -> 5.307 ms uncapped, 5.732 -> 5.373 ms paced; all 120 sampler block pairs
   improve. Instrumented same-layout comparison, 19,200 logical pairs match.
 - [ ] Resolve outdoor tails/full gameplay acceptance with RP-08:
@@ -30,6 +36,13 @@ Cost: 21 net production lines, 8 bytes/instance (13.1 KiB for 1,680); no new buf
   expose fence waits and CPU/preemption variation; full causation remains open.
 
 Full gameplay, moving-camera and frame-tail acceptance remain in RP-06/RP-08.
+
+The 2026-10-21 [completed common-reference comparison](render-perf-gameplay-acceptance.md#2026-10-21-completed-small-view-common-reference-comparison)
+includes moving city/outdoor actors and camera orbit. All 40 cumulative
+host/interval median/p95 regression guards pass, including outdoor controls.
+This does not identify the cause of historical component-level variation or
+isolate pose reuse. Absolute paced gameplay, larger views and final lifecycle
+acceptance remain open; no new pose code or storage is added.
 
 ## 2026-10-09 idle doors
 
@@ -43,7 +56,7 @@ Matched 96×96 local view: original / spawn batching only / batching plus door h
 host medians 17.448 / 16.904 / 12.848 ms; pre-render 4.787 / 4.679 / 0.689 ms.
 Updated model rows fall from 2,448 to 36 (2,412 doors), with identical draws and
 pixels. At 32×32 they fall from 272 to 4. These are standalone synthetic views,
-not full-client acceptance. [Evidence](render-perf-evidence/README.md).
+not full-client acceptance. [Evidence](../README.md).
 
 166 particle/animation regressions pass. New tests fail on the original idle-door
 setup; corrected tests verify closed/open holds reuse poses, both transitions

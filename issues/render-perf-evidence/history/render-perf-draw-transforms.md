@@ -1,5 +1,11 @@
 # Exact draw-transform reuse
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Status: retained; all declared gates passed. Baseline `e070e8c2a`.
 
 Draw preparation recomputed normal matrices and world bounds even when their

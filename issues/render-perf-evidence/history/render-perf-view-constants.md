@@ -1,5 +1,11 @@
 # Model view constants experiment — 2026-10-16
 
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
 Tier 2: change the CPU/shader model submission protocol. **Accepted and retained.**
 Evidence: `build/perf-view-constants-2026-10-16`.
 

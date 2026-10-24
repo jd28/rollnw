@@ -1,7 +1,137 @@
 # RP-02: Submission profile
 
-Status: open. [Parent](rendering-performance-overhaul.md). Depends on
-[RP-01 fixtures](render-perf-workload-contract.md); current fixtures are usable now.
+Status: **historical record**, archived 2026-10-23. This file preserves the
+original results, limits and plans; its old status labels and checklists do not
+define current work. See the [current renderer status and backlog](../../rendering-performance-overhaul.md).
+
+## Recorded investigation
+
+Status: open. [Parent](../../rendering-performance-overhaul.md). Depends on
+[RP-01 fixtures](../../render-perf-workload-contract.md); current fixtures are usable now.
+
+## 2026-10-21 skin range lookup — isolated gain, frame screen inconclusive
+
+The common skin-table batch scans every prior range for each new instance/skin.
+The complete96 input has 972 distinct entries: 471,906 unsuccessful comparisons.
+An indexed per-instance range chain reduces an isolated synthetic batch matching
+its counts from 0.185405 to 0.045831 ms; a four-skin/64-bone stress case changes
+3.083440 to 1.172060 ms. These are routine measurements, not final-art capacity.
+
+Three alternating complete96 pairs record host median 21.833754 → 19.992724 ms,
+all three faster; setup 5.539077 → 4.597954 ms. Target and small-local point guards
+pass, but unchanged large-view median/p95 spreads are 15.15%/46.94%, beyond the
+predeclared 10%/15% limits. The frame screen is inconclusive; no retry or extended
+cohort. Process records include substantial concurrent file-indexer/browser CPU
+work; this is observed interference, not isolated attribution of the variance.
+
+Three images and all 3,600 timed counter pairs are exact. All 142 candidate tests
+and an ASan/UBSan parity audit of 180,224 surfaces pass. Candidate source/runtime
+remain in `build/render-skin-lookup-2026-10-21/`; the two source files and all 160
+production runtime files are restored exactly, with 141 restored tests passing.
+No implementation from this screen is retained. `result.md` preserves the measured
+algorithmic opportunity, costs, failed stability gate and full verification.
+
+## 2026-10-19 CPU-atlas GPU expansion comparison
+
+[The 48-byte variant](render-perf-particle-presentation.md#cpu-atlas-rectangles-with-gpu-expansion-2026-10-19--not-retained)
+preserves original CPU trig/atlas arithmetic and moves axis/color expansion to
+the vertex shader. Sixteen pairs/view establish overview96 host median
+18.579 → 17.772 ms (median paired −4.55%, 15/16 wins) and particle CPU
+3.912 → 3.254 ms (−16.67%, all 16 wins). However, small overview/local host-p95
+upper bounds +6.68%/+6.85% exceed the declared +5% guardrail; their median paired
+effects are −0.61%/+1.34%, so this is inconclusive tail non-regression.
+No candidate is promoted or retimed after the timing decision. The full 160-start cohort follows one
+preserved storage-failure abort and uses no samples from it.
+
+Ten images, 12,096 GPU output comparisons and 48,000 timed counter pairs pass
+(only the declared uniform-byte delta). All 176 candidate tests pass; exact
+production source/runtime/shaders restore with 175 tests passing. No new profile
+or production speedup is claimed.
+
+## 2026-10-19 unchanged-code measurement controls
+
+[36 unchanged-code runs](render-perf-particle-presentation.md#measurement-controls-and-gpu-boundaries-2026-10-19)
+retain identical work/images but fail 5% repeatability under both worker placements.
+OS workers slow local96 host median in all six pairs (median paired +4.37%);
+overview changes -1.58%. Even the serial control has p95 differences above5%.
+Affinity alone does not explain prior failures; no candidate was retimed/accepted.
+The GPU boundary follow-up finds 126 U-coordinate differences on 3×2 atlases,
+maximum 5.96e-8, without establishing a visible regression. Production is restored
+exactly and 175 selected tests pass. No new profile or speedup is claimed.
+
+## 2026-10-19 material-copy screen
+
+[Borrowing only texture/mesh names](render-perf-particle-presentation.md#material-copy-removal-2026-10-19--rejected)
+removes confirmed Release string-copy paths but fails the three-pair screen.
+Local96 particle phase changes 0.754 → 0.764 ms, with one of three particle/host
+pairs faster; overview32 host median/p95 rise 8.94%/15.04%. Overview96 particle
+phase saves 5.06%, but its host median rises. All 9,000 timed counter pairs and
+ten images are exact; 175 candidate tests pass. Rejected without retry, source
+and exact baseline executable restored, with all 175 restored tests passing.
+No new profile or production gain claimed.
+
+## 2026-10-19 particle attribution
+
+[Three paths on identical scene data](render-perf-particle-presentation.md#three-path-attribution-2026-10-19)
+separate candidate infrastructure from GPU expansion. Across 27,648 diagnostic
+frames, GPU expansion saves about 0.90 ms overview96 particle thread CPU in all
+24 frozen and 24 animated cycles. Local96 savings are only 0.012–0.015 ms and
+less consistent; the earlier local slowdown is not reproduced or explained.
+No threshold or production acceptance follows. Nine image pairs are exact;
+probe removed, exact baseline restored, all 175 selected tests pass.
+
+## 2026-10-19 direct vertex billboard screen
+
+[Direct vertex preparation](render-perf-particle-presentation.md#direct-vertex-preparation-2026-10-19--overview-gain-local-control-failure)
+with original CPU trigonometry gives exact images and 96 overview host median
+18.872 → 17.265 ms / particle CPU 4.045 → 2.858 ms (three wins each). Large-local
+host median/p95 rise 6.21%/11.92%, so the candidate is rejected and restored.
+Its tick also rises; neither GPU overhead nor a useful hybrid threshold is
+established. Preserve the exact-output rotation boundary while attributing the
+local control. All 4,500 timed frame pairs match logical work; 173 tests pass.
+
+## 2026-10-18 stretched-batch culling screen
+
+[Conservative early bounds](render-perf-particle-presentation.md#stretched-batch-culling-screen-2026-10-18--rejected)
+remove all 36 offscreen stretched batches / mean 1,428.48 billboards in local 96,
+with ten exact candidate captures, five exact audit captures, 151 passing tests
+and 953,920 rejected quads verified outside a clip plane. Full overviews remove
+nothing. Across three alternating 180+600 pairs/view, local-96 particle CPU changes
+0.740 → 0.747 ms (one of three wins), failing the required ≥5% gain/two wins.
+Host median changes 4.792 → 4.921 ms; p95 exceeds the +5% control limit in three
+views. All 9,000 timed frame pairs have exact expected work reductions.
+The candidate is rejected without extension/retry; original source/exact runtime
+are restored and all 149 restored tests pass.
+The bounds scan versus avoided presentation cost still needs attribution; no new
+profile, established culling saving or full-overview improvement is claimed.
+
+## 2026-10-18 projected particle detail
+
+[Projected-size inventory](render-perf-particle-presentation.md#projected-size-and-image-contribution-2026-10-18):
+50.92% of complete-96 billboards are ≤2 px across, 96.37% ≤4 px, averaged over
+120 fixed-step frames. Whole batches whose largest sprite is ≤2 px contain only
+11.57% of billboards. Two removal phases drop 5,820/5,751 instances but change
+140/155 pixels with maximum channel difference 43/53, above the predefined
+negligible-difference limit. Small size alone does not establish invisible output.
+Five observation-only image pairs and 600 non-timing frame pairs are exact.
+
+The local-96 inventory also finds 36 stretched batches / 1,428.6 billboards per
+frame entirely offscreen. This mode bypasses the existing batch frustum test;
+conservative early bounds are tested in the rejected screen above. Full overviews
+have no offscreen billboards. No timed gain or new profile is claimed; diagnostic
+source/executable are removed, the exact baseline is restored and 149 tests pass.
+
+## 2026-10-17 compute billboard screen
+
+[The always-compute trial](render-perf-particle-presentation.md) reduces the
+96-overview particle CPU phase 3.948 → 2.835 ms and host median 18.714 → 17.576 ms,
+with all three pairs faster (median paired change -3.65%). GPU scene time,
+including compute, is 5.087 → 4.666 ms. Five captures pass explicit pixel bounds
+and all 4,500 timed frame pairs match logical work. The small-local host median
+rises 10.44% (+0.145 ms), failing the predeclared 5% control limit. No full matrix
+or retries; source/exact runtime are restored and 235 restored tests pass.
+Large-batch GPU preparation improves this screen. The next experiment needs
+attribution of the local regression and explicit small-batch cost/ownership gates.
 
 ## 2026-10-17 post-transform profile and rejected particle axes trial
 
@@ -78,7 +208,7 @@ matches the committed renderer and its frozen executable is restored exactly.
 The retained matrix change is committed as `57ea71926`. Its profile below still
 applies; no fresh profile is needed for this rejected trial. Model submission,
 draw construction and particle rendering remain open targets. The inventory,
-candidate, audit and raw timings are in [external evidence](render-perf-evidence/README.md).
+candidate, audit and raw timings are in [external evidence](../README.md).
 No full-client, CPU-ceiling or camera-limit conclusion.
 
 ## 2026-10-15 current profile after retained root payloads
@@ -189,15 +319,15 @@ a CPU ceiling or justify retained compatibility caches.
 Start at `model_renderer.cpp`, `viewer/preview_model_draws.cpp` and
 `gfx/backends/vulkan/vulkan_context.cpp` under `lib/nw/` (first two under `render/`).
 
-[Initial evidence](render-perf-evidence/README.md): shadow submission 6.64% self
+[Initial evidence](../README.md): shadow submission 6.64% self
 cycles, main-pass grouping/submission 4.37%; complete scene GPU 3.59 ms.
-Dynamic scans are now [bounded (RP-07)](closed/render-perf-shadow-surface-ranges.md).
+Dynamic scans are now [bounded (RP-07)](../../closed/render-perf-shadow-surface-ranges.md).
 New caller stacks/disassembly locate the driver hotspot under `vkGetDescriptorEXT`
 (uniform and storage encoding). That capture lost 56.36% of samples: qualitative
-attribution only, no percentages/timings. [Storage reuse experiment](closed/render-perf-storage-descriptors.md)
+attribution only, no percentages/timings. [Storage reuse experiment](../../closed/render-perf-storage-descriptors.md)
 tests the removable work; grouping and constant-write attribution remain open.
 Captured payloads: 9,817 model draws, eight shared scene rows, 162 surface rows.
-[Pass/transform split](closed/render-perf-model-constants.md) reduced bytes but
+[Pass/transform split](../../closed/render-perf-model-constants.md) reduced bytes but
 regressed host time; its per-call cause remains unisolated.
 
 [Main-pass attribution](render-perf-main-grouping.md): max grouping ~0.129 ms;
@@ -206,23 +336,23 @@ rigid surfaces but only 115 compatible primitive/material keys. Prioritize this
 RP-05 experiment over retained compatibility groups. Probe overhead/variance
 limits and complete-frame comparisons are recorded with the evidence.
 
-Current-runtime [profile/constant-pose evidence](render-perf-evidence/README.md):
+Current-runtime [profile/constant-pose evidence](../README.md):
 zero-loss, measured-frame main-thread samples put animation at 18.34% inclusive
 cycles (truncated callers; not elapsed-time savings). RP-10 reuses 200 constant
 max-scene poses; complete-frame acceptance remains open under concurrent load.
 
-Priority correction: use [explicit overview/player views](render-perf-workload-contract.md),
+Priority correction: use [explicit overview/player views](../../render-perf-workload-contract.md),
 not the legacy low-angle roof/emitter camera. Both originally issued 172 particle
-draws despite retaining 1,024 versus 51 chunks. [RP-14](closed/render-perf-particle-culling.md)
+draws despite retaining 1,024 versus 51 chunks. [RP-14](../../closed/render-perf-particle-culling.md)
 reduces player particle draws to 20–21 and CPU submission 0.388 → 0.096 ms;
 simulation is unchanged. Proceed to actual toolset/moving-gameplay acceptance.
 
-[Full client](render-perf-evidence/README.md): overview host 5.457 ms,
+[Full client](../README.md): overview host 5.457 ms,
 UI 0.560 ms, viewport 4.630 ms; viewport tick/pre-render/render 0.851/0.520/3.145 ms.
-Area preparation is only 0.040 ms. [Actor routes](render-perf-evidence/README.md)
+Area preparation is only 0.040 ms. [Actor routes](../README.md)
 are now measured. Remaining overview cost is concentrated in the viewport.
 
-[Material packing audit](render-perf-evidence/README.md): current
+[Material packing audit](../README.md): current
 overview has 2,507 opaque draws; 2,134 eligible static draws reduce to 1,012
 same-material/shadow groups within shared models. Packing is an unselected
 candidate; first establish a budget need that justifies its implementation and
@@ -254,7 +384,7 @@ shadow 1.593 and local shadow 1.910. Setup includes nested subphases; do not add
 these to profile shares. Those timings come from the preceding Taskflow cohort,
 not a fresh speed comparison. All 31,000 report frames across the four attribution
 workloads remain complete. Raw profiles, commands, source audit, counts, hashes
-and the explicit GPU-shadow follow-up are [archived](render-perf-evidence/README.md).
+and the explicit GPU-shadow follow-up are [archived](../README.md).
 
 ## 2026-10-14 draw preparation attribution
 
@@ -290,7 +420,7 @@ position, without hashes. Each of four views (32/64/96 overview, 96 local) has
 780 calls: one initial size establishment, 779 identical key batches, zero field
 changes. This justifies testing retained order; it does not justify retaining
 animated payloads or establish a CPU ceiling. Audit timings are excluded.
-[External evidence](render-perf-evidence/README.md) preserves both diagnostics.
+[External evidence](../README.md) preserves both diagnostics.
 
 ## 2026-10-13 matched overview scaling
 
@@ -363,7 +493,7 @@ Seventeen validation captures are retained. Capacity-only 32/64 output matches
 production exactly. One initial 64 probe capture differs at one pixel; all six
 fixed follow-up captures match exactly, including repeated enabled-binary runs.
 The original discrepancy remains unexplained and preserved; universal exact
-pixel parity is not claimed. Capture timings are excluded. [Evidence and replay](render-perf-evidence/README.md)
+pixel parity is not claimed. Capture timings are excluded. [Evidence and replay](../README.md)
 include controls, raw timings, source, binaries and this validation limit.
 No camera limit, optimization ceiling or production capacity policy established.
 
@@ -437,7 +567,7 @@ All 21,600 timed frames complete with identical non-timing sample fields across
 variants and zero reported validation/submission failures. Five separate RGBA
 captures match exactly. Both scope ledgers reconcile every instrumented frame.
 Capture/profile frame times are excluded. Production library/tool source and
-the exact original executable are restored. [Archived evidence](render-perf-evidence/README.md)
+the exact original executable are restored. [Archived evidence](../README.md)
 includes both cohorts, failed initial perf buffer allocation, successful bounded
 captures, probes, source snapshots, commands, resources and binaries.
 
@@ -454,7 +584,7 @@ No camera limit or CPU ceiling is established.
 Same Ryzen/Radeon, Release, 1080p standalone viewport. Synthetic repetitions of
 the authored city; three starts/case, reversed second order, 180 warmup + 600
 samples. Medians of per-start statistics; CPU/GPU overlap. Raw reports, scripts,
-profiles and negative capacity cases stay [outside Git](render-perf-evidence/README.md).
+profiles and negative capacity cases stay [outside Git](../README.md).
 
 | Area, fixed local camera | Host median / p95 ms | GPU median ms |
 | --- | ---: | ---: |
@@ -529,7 +659,7 @@ emitters contain particles; 5,644 particles total, 4,720 smoke. The source city'
 RGBA bytes and particle core fingerprints/emitter seeds. All 10,800 final timing
 samples preserve logical submission fields except intended pose reuse/runtime
 sync counts; zero reported failures. Temporary inventory code ran after timing
-and is removed from production. [Raw evidence](render-perf-evidence/README.md).
+and is removed from production. [Raw evidence](../README.md).
 
 Remaining particle work still spans the whole area, including empty systems and
 offscreen presentation. Test those costs next with conservative bounds and
@@ -564,7 +694,7 @@ the earlier experiment; CPU and GPU times overlap.
 167 regressions pass, including idle movement/time followed by event activation
 and continued live updates in world/attached space. Both captures have identical
 RGBA bytes; all 7,200 timed frames preserve logical draw/command fields. No
-reported validation/submission failures. [Raw evidence](render-perf-evidence/README.md)
+reported validation/submission failures. [Raw evidence](../README.md)
 includes both production binaries, profile and exact commands; no timing probes.
 This verifies the fixed standalone workloads, not active gameplay, pacing or an
 optimization ceiling. No camera or authored particle-density change.
@@ -603,7 +733,7 @@ claim a reliable small-scene gain. CPU/GPU times overlap; no pacing acceptance.
 An intermediate fused version and the final deferred-owner-lookup version were
 measured alongside baseline. The last lookup change has no demonstrated separate
 frame-time benefit; both remove the intermediate array. Initial two-way runs and
-all per-start statistics remain in [raw evidence](render-perf-evidence/README.md).
+all per-start statistics remain in [raw evidence](../README.md).
 
 186 tests pass, including current node/target updates, matrix and decomposed
 defaults, alternate owners, model mismatch, reused stale handles and visibility
@@ -635,7 +765,7 @@ Current colors are read every frame, so day/night and edits remain live.
 
 Three alternating starts per variant/view, 180 warmup + 600 samples, same Release
 Ryzen/Radeon 1080p fixtures. Medians of per-start statistics; baseline includes
-the preceding particle changes. [Raw evidence](render-perf-evidence/README.md).
+the preceding particle changes. [Raw evidence](../README.md).
 
 | View | Baseline host median / p95 ms | Shadow-only host median ms | Combined host median / p95 ms | GPU median, before → after ms |
 | --- | ---: | ---: | ---: | ---: |
@@ -710,7 +840,7 @@ preserve every logical count/command field with zero reported validation or
 submission failures. Three captures match RGBA exactly; both local particle
 inventories match all core-state hashes and reported emitter state. Complete
 overview preserves 4,096 visible chunks / 6,720 records. Candidate/probe source
-was removed and production restored to the entry state. [Raw evidence](render-perf-evidence/README.md).
+was removed and production restored to the entry state. [Raw evidence](../README.md).
 
 **Next structural candidate: share immutable particle definitions.** The actual
 96×96 scene has 5,400 systems and 9,504 compiled emitter rows, but only 36 distinct
@@ -761,7 +891,7 @@ starts falls 1.852 → 1.687 s. This is not a total GPU-memory acceptance result
 and both diagnostic captures, identical local core/emitter state, and unchanged
 logical counts/commands over all 18,000 timed frames; zero reported validation or
 submission failures. Complete overview keeps all 4,096 chunks / 6,720 records.
-Production has no probe. [Raw evidence](render-perf-evidence/README.md).
+Production has no probe. [Raw evidence](../README.md).
 
 Large-local tick still costs 4.911 ms; overview setup/opaque/transparent submission
 2.567/3.289/1.012 ms (scopes not all additive). GPU scene medians are 2.421 → 2.391
@@ -798,7 +928,7 @@ not isolated. Fewer passes alone did not yield a win.
 Next: measure group-search/compatibility distributions and stable versus changing
 surface fields before retaining groups. Offscreen particle presentation remains
 a separate dependency/re-entry problem. No CPU ceiling or camera restriction
-established. [Evidence](render-perf-evidence/README.md).
+established. [Evidence](../README.md).
 
 - [ ] Attribute CPU time to grouping, constant construction/copying, allocation,
   binding, animation/particles and waits; separate render passes.
