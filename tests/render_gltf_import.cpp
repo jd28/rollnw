@@ -470,6 +470,59 @@ TEST(RenderGltfImport, ImportsModelAssetMaterialTextureSourcesWithoutGraphicsCon
     std::filesystem::remove_all(dir);
 }
 
+TEST(RenderGltfImport, SharedMeshesKeepAllPlacementsAndExactStaticBounds)
+{
+    const auto dir = std::filesystem::temp_directory_path() / "rollnw_shared_geometry_gltf_import";
+    std::filesystem::create_directories(dir);
+    write_triangle_positions(dir / "triangle.bin", {0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f});
+    const auto path = dir / "shared.gltf";
+    {
+        std::ofstream out(path);
+        out << R"({"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[)";
+        for (int i = 0; i < 64; ++i) {
+            out << (i ? "," : "") << i;
+        }
+        out << R"(]}],"nodes":[)";
+        for (int i = 0; i < 64; ++i) {
+            out << (i ? "," : "") << R"({"mesh":0,"translation":[)" << i
+                << R"(,2,3],"rotation":[0,0,0.38268343,0.92387953],"scale":[-2,3,1]})";
+        }
+        out << R"(],"buffers":[{"uri":"triangle.bin","byteLength":36}],
+"bufferViews":[{"buffer":0,"byteLength":36}],
+"accessors":[{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3"}],
+"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}]})";
+    }
+    auto result = nw::render::gltf::import_gltf_model_asset_with_stats(path);
+    ASSERT_TRUE(result.asset);
+    EXPECT_TRUE(result.stats.complete());
+    const auto& asset = *result.asset;
+    ASSERT_EQ(asset.primitives.size(), 64u);
+    ASSERT_EQ(asset.primitives[0].vertices.size(), 3u);
+    EXPECT_EQ(asset.shadow.caster_count, 64u);
+    size_t vertices = 0;
+    size_t indices = 0;
+    for (size_t i = 0; i < asset.primitives.size(); ++i) {
+        const auto& placed = asset.primitives[i];
+        EXPECT_EQ(placed.node, static_cast<int32_t>(i));
+        EXPECT_EQ(nw::render::model_asset_geometry_index(asset.primitives, i), 0u);
+        glm::vec3 minimum = glm::vec3(placed.transform * glm::vec4(asset.primitives[0].vertices[0].position, 1.0f));
+        glm::vec3 maximum = minimum;
+        for (const auto& vertex : asset.primitives[0].vertices) {
+            auto position = glm::vec3(placed.transform * glm::vec4(vertex.position, 1.0f));
+            minimum = glm::min(minimum, position);
+            maximum = glm::max(maximum, position);
+        }
+        EXPECT_EQ(placed.bounds.min, minimum);
+        EXPECT_EQ(placed.bounds.max, maximum);
+        vertices += placed.vertices.size();
+        indices += placed.indices.size();
+    }
+    EXPECT_EQ(vertices, 3u);
+    EXPECT_EQ(indices, 3u);
+    EXPECT_TRUE(nw::render::validate_model_asset(asset).passed());
+    std::filesystem::remove_all(dir);
+}
+
 TEST(RenderGltfImport, ImportsSkinnedModelAssetWithoutGraphicsContext)
 {
     const auto dir = std::filesystem::temp_directory_path() / "rollnw_skinned_model_asset_gltf_import";
@@ -562,6 +615,38 @@ TEST(RenderGltfImport, ImportsSkinnedModelAssetWithoutGraphicsContext)
     EXPECT_TRUE(validation.passed());
     EXPECT_EQ(validation.valid_primitive_count, 1u);
 
+    std::ifstream input(gltf_path);
+    std::string shared_json((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    input.close();
+    const auto nodes_begin = shared_json.find("  \"scenes\"");
+    const auto buffers_begin = shared_json.find("  \"buffers\"");
+    ASSERT_NE(nodes_begin, std::string::npos);
+    ASSERT_NE(buffers_begin, std::string::npos);
+    shared_json.replace(nodes_begin, buffers_begin - nodes_begin, R"(
+  "scenes": [{"nodes": [0, 1, 2, 3, 4, 5]}],
+  "nodes": [{"mesh":0,"skin":0}, {}, {"mesh":0,"skin":0,"translation":[5,0,0]},
+    {"mesh":0,"skin":1}, {"mesh":0}, {"mesh":0,"translation":[9,0,0]}],
+  "skins": [{"joints":[1]}, {"joints":[1]}],
+)");
+    {
+        std::ofstream out(gltf_path);
+        out << shared_json;
+    }
+    auto shared = nw::render::gltf::import_gltf_model_asset(gltf_path);
+    ASSERT_TRUE(shared);
+    ASSERT_EQ(shared->primitives.size(), 5u);
+    EXPECT_EQ(shared->primitives[1].geometry, 0u);
+    EXPECT_TRUE(shared->primitives[1].skinned_vertices.empty());
+    EXPECT_EQ(shared->primitives[1].bounds.min, shared->primitives[0].bounds.min);
+    EXPECT_EQ(shared->primitives[1].bounds.max, shared->primitives[0].bounds.max);
+    EXPECT_EQ(shared->primitives[2].geometry, nw::render::kInvalidModelGeometryIndex);
+    EXPECT_EQ(shared->primitives[2].skin, 1u);
+    EXPECT_EQ(shared->primitives[2].skinned_vertices.size(), 3u);
+    EXPECT_EQ(shared->primitives[3].vertices.size(), 3u);
+    EXPECT_FALSE(shared->primitives[3].skinned);
+    EXPECT_EQ(shared->primitives[4].geometry, 3u);
+    EXPECT_FALSE(shared->primitives[4].skinned);
+    EXPECT_TRUE(nw::render::validate_model_asset(*shared).passed());
     std::filesystem::remove_all(dir);
 }
 

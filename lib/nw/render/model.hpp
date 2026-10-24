@@ -343,6 +343,8 @@ struct Skin {
     std::vector<glm::mat4> inverse_bind_matrices;
 };
 
+inline constexpr uint32_t kInvalidModelGeometryIndex = std::numeric_limits<uint32_t>::max();
+
 struct Primitive {
     nw::gfx::Handle<nw::gfx::Buffer> vertices;
     nw::gfx::Handle<nw::gfx::Buffer> indices;
@@ -355,6 +357,8 @@ struct Primitive {
     int32_t node = -1;
     bool skinned = false;
     bool casts_shadow = true;
+    // Aliases retain direct draw handles; only the owning row releases buffers.
+    bool owns_geometry = true;
     glm::mat4 transform{1.0f};
     glm::mat4 inverse_mesh_transform{1.0f};
     Bounds bounds;

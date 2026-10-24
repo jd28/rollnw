@@ -569,14 +569,14 @@ bool create_buffer_from_bytes(nw::gfx::Context* ctx, const void* data, size_t si
 
 void destroy_primitive_buffers(Primitive& primitive) noexcept
 {
-    if (primitive.vertices.valid()) {
+    if (primitive.owns_geometry && primitive.vertices.valid()) {
         nw::gfx::destroy_buffer(primitive.vertices);
-        primitive.vertices = {};
     }
-    if (primitive.indices.valid()) {
+    if (primitive.owns_geometry && primitive.indices.valid()) {
         nw::gfx::destroy_buffer(primitive.indices);
-        primitive.indices = {};
     }
+    primitive.vertices = {};
+    primitive.indices = {};
 }
 
 void destroy_render_model_buffers(RenderModel& model) noexcept
@@ -793,6 +793,27 @@ std::optional<Bounds> particle_emitter_spawn_bounds(
     return initialized ? std::optional<Bounds>{result} : std::nullopt;
 }
 
+uint32_t model_asset_geometry_index(std::span<const ModelAssetPrimitive> primitives, size_t primitive_index) noexcept
+{
+    if (primitive_index >= primitives.size() || primitive_index >= kInvalidModelGeometryIndex) {
+        return kInvalidModelGeometryIndex;
+    }
+    const auto& primitive = primitives[primitive_index];
+    if (primitive.geometry == kInvalidModelGeometryIndex) {
+        return static_cast<uint32_t>(primitive_index);
+    }
+    if (primitive.geometry >= primitive_index
+        || !primitive.vertices.empty() || !primitive.skinned_vertices.empty() || !primitive.indices.empty()) {
+        return kInvalidModelGeometryIndex;
+    }
+    const auto& owner = primitives[primitive.geometry];
+    if (owner.geometry != kInvalidModelGeometryIndex
+        || owner.uses_skinned_vertices() != primitive.uses_skinned_vertices()) {
+        return kInvalidModelGeometryIndex;
+    }
+    return primitive.geometry;
+}
+
 ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
 {
     ModelAssetValidationStats stats{};
@@ -930,16 +951,24 @@ ModelAssetValidationStats validate_model_asset(const ModelAsset& asset) noexcept
         }
     }
 
-    for (const auto& primitive : asset.primitives) {
+    for (size_t i = 0; i < asset.primitives.size(); ++i) {
+        const auto& primitive = asset.primitives[i];
         bool valid = true;
-        if (primitive.vertex_count() == 0) {
+        const auto geometry = model_asset_geometry_index(asset.primitives, i);
+        if (geometry == kInvalidModelGeometryIndex) {
+            ++stats.invalid_geometry_reference_count;
+            continue;
+        }
+        const auto& payload = asset.primitives[geometry];
+        if (payload.vertex_count() == 0) {
             ++stats.empty_vertex_payload_count;
             valid = false;
         }
-        if (primitive.indices.empty()) {
+        if (payload.indices.empty()) {
             ++stats.empty_index_payload_count;
             valid = false;
-        } else if (!primitive_indices_in_range(primitive)) {
+        } else if (geometry == i && !primitive_indices_in_range(payload)) {
+            // Each owner is checked once. An invalid owner rejects the asset.
             ++stats.index_out_of_range_count;
             valid = false;
         }
@@ -1028,15 +1057,6 @@ bool upload_model_asset_primitive(nw::gfx::Context* ctx, const ModelAssetPrimiti
     Primitive uploaded{};
     uploaded.vertex_count = static_cast<uint32_t>(source.vertex_count());
     uploaded.index_count = static_cast<uint32_t>(source.indices.size());
-    uploaded.material = source.material;
-    uploaded.skin = source.skin;
-    uploaded.deformer = source.deformer;
-    uploaded.node = source.node;
-    uploaded.skinned = source.uses_skinned_vertices();
-    uploaded.casts_shadow = source.casts_shadow;
-    uploaded.transform = source.transform;
-    uploaded.inverse_mesh_transform = glm::inverse(source.transform);
-    uploaded.bounds = source.bounds;
 
     std::vector<uint16_t> indices16;
     const void* index_data = nullptr;
@@ -1124,11 +1144,28 @@ ModelAssetUploadResult upload_model_asset(const ModelAsset& asset, nw::gfx::Cont
 
     for (const auto& source : asset.primitives) {
         Primitive primitive{};
-        if (!upload_model_asset_primitive(ctx, source, primitive)) {
+        if (source.geometry != kInvalidModelGeometryIndex) {
+            const auto& owner = model->primitives[source.geometry];
+            primitive.vertices = owner.vertices;
+            primitive.indices = owner.indices;
+            primitive.vertex_count = owner.vertex_count;
+            primitive.index_count = owner.index_count;
+            primitive.index_stride = owner.index_stride;
+            primitive.owns_geometry = false;
+        } else if (!upload_model_asset_primitive(ctx, source, primitive)) {
             ++result.stats.buffer_failure_count;
             destroy_render_model_buffers(*model);
             return result;
         }
+        primitive.material = source.material;
+        primitive.skin = source.skin;
+        primitive.deformer = source.deformer;
+        primitive.node = source.node;
+        primitive.skinned = source.uses_skinned_vertices();
+        primitive.casts_shadow = source.casts_shadow;
+        primitive.transform = source.transform;
+        primitive.inverse_mesh_transform = glm::inverse(source.transform);
+        primitive.bounds = source.bounds;
         if (primitive.index_stride == 2) {
             ++result.stats.index16_primitive_count;
         } else {

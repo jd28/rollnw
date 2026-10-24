@@ -1,5 +1,6 @@
 #include "import_gltf.hpp"
 
+#include <absl/container/flat_hash_map.h>
 #include <cgltf.h>
 
 #include <nw/log.hpp>
@@ -13,6 +14,7 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <tuple>
 #include <unordered_map>
 
 namespace nw::render::gltf {
@@ -992,31 +994,13 @@ bool decode_model_asset_primitive(const cgltf_primitive& primitive, uint32_t mat
     return true;
 }
 
-void import_model_asset_primitive(const cgltf_primitive& primitive, uint32_t material_index, uint32_t skin_index, int32_t node_index,
-    const glm::mat4& world, GltfImportStats& stats, nw::render::ModelAsset& asset)
-{
-    nw::render::ModelAssetPrimitive out{};
-    if (decode_model_asset_primitive(primitive,
-            material_index,
-            skin_index,
-            node_index,
-            world,
-            asset.skins,
-            asset.nodes,
-            asset.name,
-            asset.primitives.size(),
-            stats,
-            out)) {
-        asset.primitives.push_back(std::move(out));
-    } else {
-        add_saturating(stats.dropped_primitive_count);
-    }
-}
-
-template <typename ImportPrimitiveFn>
 void import_node_primitives(const cgltf_data* data, const std::vector<GltfNodeVisit>& visits,
-    size_t material_count, ImportPrimitiveFn& import_primitive_fn)
+    GltfImportStats& stats, nw::render::ModelAsset& asset)
 {
+    // Source identity and skin binding determine the decoded vertex format.
+    // Keep this load-time lookup indexed; no content hashing or draw-time lookup.
+    using GeometryKey = std::tuple<size_t, size_t, uint32_t>;
+    absl::flat_hash_map<GeometryKey, uint32_t> geometry_owners;
     for (const GltfNodeVisit& visit : visits) {
         if (visit.node_index < 0 || static_cast<size_t>(visit.node_index) >= data->nodes_count) {
             continue;
@@ -1025,16 +1009,65 @@ void import_node_primitives(const cgltf_data* data, const std::vector<GltfNodeVi
         if (!node->mesh) {
             continue;
         }
+        const size_t mesh_index = static_cast<size_t>(node->mesh - data->meshes);
         for (cgltf_size i = 0; i < node->mesh->primitives_count; ++i) {
+            if (asset.primitives.size() >= nw::render::kInvalidModelGeometryIndex) {
+                add_saturating(stats.dropped_primitive_count);
+                continue;
+            }
+            const auto& primitive = node->mesh->primitives[i];
             uint32_t material_index = 0;
-            if (node->mesh->primitives[i].material && material_count != 0) {
-                material_index = static_cast<uint32_t>(node->mesh->primitives[i].material - data->materials);
+            if (primitive.material && !asset.materials.empty()) {
+                material_index = static_cast<uint32_t>(primitive.material - data->materials);
             }
             uint32_t skin_index = std::numeric_limits<uint32_t>::max();
             if (node->skin) {
                 skin_index = static_cast<uint32_t>(node->skin - data->skins);
             }
-            import_primitive_fn(node->mesh->primitives[i], material_index, skin_index, visit.node_index, visit.world);
+            const GeometryKey key{mesh_index, i, skin_index};
+            const auto found = geometry_owners.find(key);
+            nw::render::ModelAssetPrimitive out{};
+            if (found == geometry_owners.end()) {
+                if (!decode_model_asset_primitive(primitive, material_index, skin_index,
+                        visit.node_index, visit.world, asset.skins, asset.nodes, asset.name,
+                        asset.primitives.size(), stats, out)) {
+                    add_saturating(stats.dropped_primitive_count);
+                    continue;
+                }
+                geometry_owners.emplace(key, static_cast<uint32_t>(asset.primitives.size()));
+            } else {
+                const auto& owner = asset.primitives[found->second];
+                out.geometry = found->second;
+                out.material = material_index;
+                out.skin = owner.skin;
+                out.skinned = owner.skinned;
+                out.node = visit.node_index;
+                out.transform = visit.world;
+                // Bind-pose skin bounds depend on the shared skin's joints,
+                // not the mesh node's transform. Static bounds must remain the
+                // tight bounds of transformed positions, not transformed AABBs.
+                out.bounds = owner.bounds;
+                if (!out.skinned) {
+                    bool first = true;
+                    bool finite = true;
+                    for (const auto& vertex : owner.vertices) {
+                        const auto position = glm::vec3(visit.world * glm::vec4(vertex.position, 1.0f));
+                        if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z)) {
+                            finite = false;
+                            break;
+                        }
+                        expand_bounds(out.bounds, position, first);
+                    }
+                    if (!finite) {
+                        add_saturating(stats.nonfinite_position_count);
+                        add_saturating(stats.dropped_primitive_count);
+                        LOG_F(WARNING, "glTF '{}': node {} produced non-finite bounds; dropping primitive",
+                            asset.name, visit.node_index);
+                        continue;
+                    }
+                }
+            }
+            asset.primitives.push_back(std::move(out));
         }
     }
 }
@@ -1127,15 +1160,7 @@ GltfModelAssetImportResult import_gltf_model_asset_with_stats(const std::filesys
     import_animations(data, *asset, result.stats);
     expand_model_bounds_from_skin_joints(*asset);
 
-    auto import_asset_primitive = [&](const cgltf_primitive& primitive,
-                                      uint32_t material_index,
-                                      uint32_t skin_index,
-                                      int32_t node_index,
-                                      const glm::mat4& world) {
-        import_model_asset_primitive(primitive, material_index, skin_index, node_index, world, result.stats, *asset);
-    };
-
-    import_node_primitives(data, node_visits, asset->materials.size(), import_asset_primitive);
+    import_node_primitives(data, node_visits, result.stats, *asset);
 
     merge_model_primitive_bounds(*asset);
     asset->shadow = nw::render::summarize_model_asset_shadows(*asset);

@@ -222,6 +222,106 @@ TEST(RenderModelAsset, PrimitiveCountsStaticAndSkinnedPayloads)
     EXPECT_EQ(primitive.index_count(), 6u);
 }
 
+TEST(RenderModelAsset, RejectsMalformedSharedGeometryBeforeUpload)
+{
+    using namespace nw::render;
+    auto asset = make_minimal_valid_asset();
+    asset.primitives.push_back(ModelAssetPrimitive{.geometry = 0u});
+    EXPECT_TRUE(validate_model_asset(asset).passed());
+    EXPECT_EQ(model_asset_geometry_index(asset.primitives, 1), 0u);
+    EXPECT_EQ(model_asset_geometry_index(asset.primitives, 2), kInvalidModelGeometryIndex);
+
+    for (uint32_t target : {1u, 2u, 200u}) {
+        asset.primitives[1].geometry = target;
+        EXPECT_EQ(validate_model_asset(asset).invalid_geometry_reference_count, 1u);
+        EXPECT_FALSE(upload_model_asset(asset, nullptr).model);
+    }
+    asset.primitives[1].geometry = 0u;
+    asset.primitives.push_back(ModelAssetPrimitive{.geometry = 1u});
+    EXPECT_EQ(validate_model_asset(asset).invalid_geometry_reference_count, 1u);
+    asset.primitives.pop_back();
+    asset.primitives[1].vertices.resize(1);
+    EXPECT_EQ(validate_model_asset(asset).invalid_geometry_reference_count, 1u);
+    asset.primitives[1].vertices.clear();
+    asset.primitives[1].indices.push_back(0u);
+    EXPECT_EQ(validate_model_asset(asset).invalid_geometry_reference_count, 1u);
+    asset.primitives[1].indices.clear();
+    asset.primitives[1].skinned = true;
+    EXPECT_EQ(validate_model_asset(asset).invalid_geometry_reference_count, 1u);
+    asset.primitives[1].skinned = false;
+    asset.primitives[1].skinned_vertices.resize(1);
+    EXPECT_EQ(validate_model_asset(asset).invalid_geometry_reference_count, 1u);
+    asset.primitives[1].skinned_vertices.clear();
+    asset.primitives[0].indices[0] = 99u;
+    EXPECT_FALSE(validate_model_asset(asset).passed());
+    EXPECT_EQ(upload_model_asset(asset, nullptr).stats.invalid_primitive_count, 1u);
+}
+
+TEST(RenderModelAsset, SharedGeometryPreservesPlacementsAndReleasesBuffersAfterMove)
+{
+    using namespace nw::render;
+    TestGfxRuntime gfx;
+    if (!gfx.initialize()) {
+        GTEST_SKIP() << "headless graphics context unavailable";
+    }
+    for (uint32_t vertex_count : {3u, 65536u}) {
+        auto asset = make_minimal_valid_asset();
+        asset.primitives[0].vertices.resize(vertex_count);
+        asset.primitives[0].vertices.back().position = {1.0f, 2.0f, 3.0f};
+        asset.primitives[0].indices = {0u, 1u, vertex_count - 1};
+        asset.materials.push_back(Material{});
+        asset.nodes.push_back(Node{});
+        const auto transform = glm::translate(glm::mat4{1.0f}, glm::vec3{7.0f, 8.0f, 9.0f});
+        asset.primitives.push_back(ModelAssetPrimitive{
+            .geometry = 0u,
+            .material = 1u,
+            .node = 1,
+            .casts_shadow = false,
+            .transform = transform,
+            .bounds = {.min = {7.0f, 8.0f, 9.0f}, .max = {8.0f, 10.0f, 12.0f}},
+        });
+        auto result = upload_model_asset(asset, gfx.context);
+        ASSERT_TRUE(result.model);
+        ASSERT_TRUE(result.stats.passed());
+        ASSERT_EQ(result.model->primitives.size(), 2u);
+        const auto& owner = result.model->primitives[0];
+        const auto& placed = result.model->primitives[1];
+        EXPECT_EQ(owner.vertices, placed.vertices);
+        EXPECT_EQ(owner.indices, placed.indices);
+        EXPECT_TRUE(owner.owns_geometry);
+        EXPECT_FALSE(placed.owns_geometry);
+        EXPECT_EQ(placed.vertex_count, vertex_count);
+        EXPECT_EQ(placed.index_stride, vertex_count == 3 ? 2u : 4u);
+        EXPECT_EQ(placed.material, 1u);
+        EXPECT_EQ(placed.node, 1);
+        EXPECT_FALSE(placed.casts_shadow);
+        EXPECT_EQ(placed.transform, transform);
+        EXPECT_EQ(placed.inverse_mesh_transform, glm::inverse(transform));
+        EXPECT_EQ(placed.bounds.min, asset.primitives[1].bounds.min);
+        EXPECT_EQ(placed.bounds.max, asset.primitives[1].bounds.max);
+        auto* vertices = static_cast<Vertex*>(nw::gfx::map_buffer(placed.vertices));
+        ASSERT_NE(vertices, nullptr);
+        EXPECT_EQ(vertices[vertex_count - 1].position, glm::vec3(1.0f, 2.0f, 3.0f));
+        nw::gfx::unmap_buffer(placed.vertices);
+        void* indices = nw::gfx::map_buffer(placed.indices);
+        ASSERT_NE(indices, nullptr);
+        EXPECT_EQ(placed.index_stride == 2 ? static_cast<uint16_t*>(indices)[2] : static_cast<uint32_t*>(indices)[2], vertex_count - 1);
+        nw::gfx::unmap_buffer(placed.indices);
+        const auto vertex_buffer = owner.vertices;
+        const auto index_buffer = owner.indices;
+        RenderModel moved = std::move(*result.model);
+        result.model.reset();
+        EXPECT_NE(nw::gfx::map_buffer(vertex_buffer), nullptr);
+        nw::gfx::unmap_buffer(vertex_buffer);
+        moved.release_gpu_resources();
+        moved.release_gpu_resources();
+        EXPECT_EQ(nw::gfx::map_buffer(vertex_buffer), nullptr);
+        EXPECT_EQ(nw::gfx::map_buffer(index_buffer), nullptr);
+        EXPECT_FALSE(moved.primitives[1].vertices.valid());
+        EXPECT_FALSE(moved.primitives[1].indices.valid());
+    }
+}
+
 TEST(RenderModelAsset, OwnsSourceAgnosticModelPayloads)
 {
     nw::render::ModelAsset asset;

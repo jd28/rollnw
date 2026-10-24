@@ -346,7 +346,8 @@ void add_model_asset_geometry_report(
         .particle_system_count = asset.particle_systems.size(),
     };
 
-    for (const auto& primitive : asset.primitives) {
+    for (size_t i = 0; i < asset.primitives.size(); ++i) {
+        const auto& primitive = asset.primitives[i];
         if (primitive.uses_skinned_vertices()) {
             ++geometry_report.skinned_primitive_count;
         } else {
@@ -358,8 +359,11 @@ void add_model_asset_geometry_report(
         if (primitive.casts_shadow) {
             ++geometry_report.shadow_caster_count;
         }
-        geometry_report.vertex_count += primitive.vertex_count();
-        geometry_report.index_count += primitive.index_count();
+        const auto geometry = model_asset_geometry_index(asset.primitives, i);
+        if (geometry != kInvalidModelGeometryIndex) {
+            geometry_report.vertex_count += asset.primitives[geometry].vertex_count();
+            geometry_report.index_count += asset.primitives[geometry].index_count();
+        }
     }
 
     if (import_stats) {

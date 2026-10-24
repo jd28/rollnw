@@ -63,6 +63,10 @@ struct ModelAssetPrimitive {
     std::vector<Vertex> vertices;
     std::vector<SkinnedVertex> skinned_vertices;
     std::vector<uint32_t> indices;
+    // Invalid owns the payload above. Otherwise references an earlier owning
+    // primitive in this asset, with empty local vectors and the same vertex
+    // format. Chains are invalid. Placement fields below are never inherited.
+    uint32_t geometry = kInvalidModelGeometryIndex;
     uint32_t material = 0;
     uint32_t skin = std::numeric_limits<uint32_t>::max();
     uint32_t deformer = kInvalidModelDeformerIndex;
@@ -79,6 +83,7 @@ struct ModelAssetPrimitive {
 
     [[nodiscard]] size_t vertex_count() const noexcept
     {
+        // Resident payload count; resolve geometry for a placement's count.
         return uses_skinned_vertices() ? skinned_vertices.size() : vertices.size();
     }
 
@@ -87,6 +92,11 @@ struct ModelAssetPrimitive {
         return indices.size();
     }
 };
+
+// Resolves a row in the batch to its payload owner. Returns invalid for an
+// out-of-range, forward, chained, mixed-payload or format-mismatched reference.
+[[nodiscard]] uint32_t model_asset_geometry_index(
+    std::span<const ModelAssetPrimitive> primitives, size_t primitive_index) noexcept;
 
 struct ModelAsset {
     // CPU-owned modern model asset. Source adapters compile glTF/NWN/native data
@@ -157,6 +167,7 @@ struct ModelAssetValidationStats {
     uint32_t empty_vertex_payload_count = 0;
     uint32_t empty_index_payload_count = 0;
     uint32_t index_out_of_range_count = 0;
+    uint32_t invalid_geometry_reference_count = 0;
     uint32_t invalid_material_count = 0;
     uint32_t invalid_skin_count = 0;
     uint32_t unsupported_skin_bone_count = 0;
