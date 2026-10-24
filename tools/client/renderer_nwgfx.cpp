@@ -310,6 +310,12 @@ std::optional<glm::vec3> ClientRendererNwgfx::viewer_area_surface_point(
         : std::nullopt;
 }
 
+nw::ObjectHandle ClientRendererNwgfx::update_viewer_area_item_hover(
+    std::optional<glm::vec2> pixel, ClientViewportRect viewport)
+{
+    return viewer_viewport_ ? viewer_viewport_->update_area_item_hover(pixel, viewport) : nw::ObjectHandle{};
+}
+
 std::optional<ClientAreaDoorHit> ClientRendererNwgfx::viewer_area_door_hit(
     float pixel_x,
     float pixel_y,
@@ -336,22 +342,30 @@ bool ClientRendererNwgfx::append_viewer_area_object_previews(
 bool ClientRendererNwgfx::begin_toolset_preview_visuals(
     std::span<const nw::ObjectHandle> objects,
     std::span<const nw::toolset::PreviewDoorVisualState> doors,
-    const nw::toolset::PreviewCameraState& camera)
+    const nw::toolset::PreviewCameraState& camera,
+    const nw::toolset::PreviewItemWorldView& items)
 {
     return viewer_viewport_
         && viewer_viewport_->begin_toolset_preview_visuals(
-            objects, doors, camera);
+            objects, doors, camera, items);
+}
+
+bool ClientRendererNwgfx::update_toolset_preview_items(const nw::toolset::PreviewItemWorldView& items,
+    const nw::gameplay::ActorActionResult& result)
+{
+    return viewer_viewport_ && viewer_viewport_->update_toolset_preview_items(items, result);
 }
 
 bool ClientRendererNwgfx::update_toolset_preview_visuals(
     std::span<const nw::ObjectSpatialState> spatial_rows,
     std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    std::span<const nw::gameplay::ActorActionState> actions,
     std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
     return viewer_viewport_
         && viewer_viewport_->update_toolset_preview_visuals(
-            spatial_rows, locomotion_rows, doors, camera);
+            spatial_rows, locomotion_rows, actions, doors, camera);
 }
 
 bool ClientRendererNwgfx::update_toolset_preview_navigation_debug(

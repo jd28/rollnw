@@ -38,7 +38,7 @@ struct ViewerViewport {
 // selections without mutating the camera, scene, or live objects. Direct mesh
 // hits win; misses/debug footprints allow visible item hits sampled within a
 // six-pixel disk, nearest offset first. Bounds only reject candidates; accepted
-// hits come from real triangles and assistance checks tile/object occlusion.
+// hits come from real triangles; direct/assisted item hits check tile occlusion.
 // Invalid batch sizes, viewport coordinates, or rays produce invalid_input.
 // Exact world-ray and candidate queries intentionally have no pointer tolerance.
 void select_area_pointer_objects(
@@ -272,6 +272,12 @@ public:
     // It does not change the active object selection.
     [[nodiscard]] AreaObjectSelection area_tile_hit(
         float pixel_x, float pixel_y, ViewerViewport viewport);
+    // One viewport has one pointer hover. Missing/invalid pixels or a miss
+    // clear it. Uses the shared batch picker; never changes editor selection.
+    // Material overrides belong to this session and are restored on clear.
+    [[nodiscard]] nw::ObjectHandle update_area_item_hover(
+        std::optional<glm::vec2> pixel, ViewerViewport viewport);
+    void clear_area_item_hover() noexcept;
     [[nodiscard]] AreaObjectCandidateSelection select_area_object_candidate(
         float pixel_x,
         float pixel_y,
@@ -290,8 +296,8 @@ public:
         float pixel_x, float pixel_y, ViewerViewport viewport);
     [[nodiscard]] AreaObjectSpatialUpdateStats update_area_object_spatial_states(
         std::span<const nw::ObjectSpatialState> spatial_states);
-    [[nodiscard]] AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
-        std::span<const AreaCreatureLocomotionAnimationInput> inputs);
+    [[nodiscard]] AreaCreatureAnimationStats update_area_creature_animations(
+        std::span<const AreaCreatureAnimationInput> inputs);
     [[nodiscard]] AreaDoorAnimationStats begin_area_door_animation_lease(
         std::span<const AreaDoorAnimationInput> inputs,
         AreaDoorAnimationLease& lease);
@@ -310,6 +316,9 @@ public:
         std::span<const nw::ObjectHandle> objects);
     [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
         std::span<const nw::ObjectHandle> objects);
+    [[nodiscard]] ObjectVisualRefreshResult replace_area_transient_visuals(
+        std::span<const nw::ObjectHandle> removed,
+        std::span<const nw::ObjectHandle> added, nw::ObjectHandle source_area);
     /// Replaces the one viewport-owned transient debug batch. Invalid indices
     /// reject the whole batch and leave the previous batch unchanged.
     bool set_transient_debug_geometry(
@@ -468,6 +477,13 @@ private:
     std::vector<nw::gfx::GpuTimerResult> completed_gpu_timer_results_;
     std::vector<uint8_t> area_visibility_mask_;
     AreaObjectSelection active_area_selection_{};
+    struct ItemHoverModel {
+        nw::render::ModelInstanceHandle instance;
+        std::vector<nw::render::ModelMaterialOverrideHandle> previous;
+        std::vector<nw::render::ModelMaterialOverrideHandle> highlighted;
+    };
+    nw::ObjectHandle hovered_area_item_{};
+    std::vector<ItemHoverModel> item_hover_models_;
     size_t area_visibility_mask_visible_chunk_count_ = 0;
     int32_t area_visibility_radius_tiles_ = -1;
     float area_visibility_half_angle_degrees_ = 75.0f;

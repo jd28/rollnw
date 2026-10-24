@@ -1,0 +1,10 @@
+newmodel pmh0
+setsupermodel pmh0 a_ba
+classification character
+setanimationscale 1
+beginmodelgeom pmh0
+node dummy pmh0
+  parent NULL
+endnode
+endmodelgeom pmh0
+donemodel pmh0

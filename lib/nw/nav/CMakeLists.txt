@@ -1,4 +1,5 @@
 add_library(nw-nav STATIC
+    ../objects/item_transfers.cpp
     NavGeometry.cpp
     NavTileBuild.cpp
     NavWorld.cpp

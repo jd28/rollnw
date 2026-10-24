@@ -58,6 +58,32 @@ TEST(ClientRuntimeInput, ClaimedPointerAndControllerEdgesAreDiscardedWithoutRepl
     EXPECT_EQ(physical.wheel_zoom, 0);
 }
 
+TEST(ClientRuntimeInput, PickupClickSurvivesZeroTicksAndIsConsumedBeforeTheNextFrame)
+{
+    RuntimeInputState input;
+    const nw::ObjectHandle item{.id = nw::ObjectID{17}, .type = nw::ObjectType::item, .version = 1};
+    ASSERT_TRUE(set_preview_item_action(input.pending, {item}));
+    PreviewFixedStepState fixed;
+    std::array<PreviewInputSample, 6> ticks;
+    size_t commands = 0;
+    for (const double frame_seconds : {0.001, 0.05, 0.05, 0.001, 0.02}) {
+        PcDeviceSample physical;
+        ASSERT_EQ(acquire_pc_device_sample(input, frame_seconds,
+                      {.keyboard = false, .controller = false, .pointer = true}, physical),
+            PreviewStatus::ok);
+        PreviewInputSample sample;
+        ASSERT_EQ(translate_pc_input_samples({&physical, 1}, {&sample, 1}), PreviewStatus::ok);
+        const auto result = build_preview_tick_samples(fixed, frame_seconds, sample, ticks);
+        ASSERT_EQ(result.status, PreviewStatus::ok);
+        for (size_t i = 0; i < result.tick_count; ++i) {
+            commands += (ticks[i].flags & preview_input_item_action) != 0;
+        }
+        if (result.tick_count != 0) { consume_runtime_input_edges(input); }
+    }
+    EXPECT_EQ(commands, 1u);
+    EXPECT_EQ(input.pending.flags, preview_input_none);
+}
+
 TEST(ClientRuntimeInput, NegativeElapsedContributesZeroAndInvalidElapsedRejects)
 {
     RuntimeInputState input;

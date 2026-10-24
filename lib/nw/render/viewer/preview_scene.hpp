@@ -599,6 +599,14 @@ std::unique_ptr<PreviewScene> build_live_object_scene(
 [[nodiscard]] AreaTransientVisualResult remove_area_transient_visuals(
     PreviewScene& scene,
     std::span<const nw::ObjectHandle> objects);
+// Replaces visual rows after preparing all additions. source_area explicitly
+// identifies detached simulation ownership; invalid defaults to the scene area.
+// Removed handles need not be live. The caller owns simulation objects.
+[[nodiscard]] ObjectVisualRefreshResult replace_area_object_visuals(
+    PreviewScene& scene, PreviewRenderResources& resources,
+    std::span<const nw::ObjectHandle> removed,
+    std::span<const nw::ObjectHandle> added, PreviewSceneLoadOptions options,
+    nw::ObjectHandle source_area = nw::ObjectHandle{});
 // Main-thread batch contract: sorted authored membership is compared with
 // scene-owned snapshots, and only changed object/tile rows are replaced.
 // Stale removed handles are identities only; additions must be live members.

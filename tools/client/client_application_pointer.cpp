@@ -534,8 +534,9 @@ ClientEventFlow process_client_pointer_motion(SDL_Event& event, ClientInputDispa
                 && point_within_viewport(viewer_viewport->rect, point)
                 && !viewport_mouse_hit_blocked(
                     doc, top_hit, point, state)) {
-                system_interface.SetMouseCursor(nw::toolset::play_preview_pointer_cursor(
-                    renderer, state.play_preview, {point.x, point.y}, viewer_viewport->rect));
+                // Active preview resolves hover/cursor once per frame after
+                // camera movement, rather than once per raw mouse event.
+                if (state.play_preview.placement_pending()) { system_interface.SetMouseCursor("cross"); }
                 dispatch.native_handled = true;
                 return ClientEventFlow::finish;
             }

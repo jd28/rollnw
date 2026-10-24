@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nw/profiles/nwn1/animation.hpp>
+
 #include <nw/formats/Plt.hpp>
 #include <nw/objects/Equips.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
@@ -104,6 +106,6 @@ NwnWingAttachmentVisualPolicy resolve_nwn_wing_attachment_visual_policy(
 
 size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(const nw::model::Mdl& mdl, NwnWingAttachmentVisualPolicy policy);
 
-std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& appearance, std::string_view race, char sex);
+using nwn1::resolve_creature_base_rig;
 
 } // namespace nw::render::viewer

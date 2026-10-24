@@ -148,7 +148,7 @@ void sync_play_preview_viewport_overlay(Rml::ElementDocument* fps_doc,
             ? "<div class=\"play_preview_viewport_title\">Area Preview</div>"
               "<div class=\"play_preview_viewport_help\">Nav: walkable green | blockers red | route cyan | F8 hide | F9/Escape return</div>"
             : "<div class=\"play_preview_viewport_title\">Area Preview</div>"
-              "<div class=\"play_preview_viewport_help\">F9 or Escape to return | F8 navigation debug</div>");
+              "<div class=\"play_preview_viewport_help\">I inventory | F9 or Escape to return | F8 navigation debug</div>");
     overlay->SetProperty("display", "block");
     overlay->SetProperty("width", placement_failed || preview.selecting_actor ? "500dp" : "320dp");
     overlay->SetProperty("height", placement_failed || preview.selecting_actor ? "66dp" : "50dp");

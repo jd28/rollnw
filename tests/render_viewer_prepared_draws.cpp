@@ -5627,11 +5627,11 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
     }
     EXPECT_TRUE(found_oriented_root);
 
-    const std::array walking_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+    const std::array walking_inputs{viewer::AreaCreatureAnimationInput{
         .owner = creature_handle,
         .locomotion = viewer::AreaCreatureLocomotion::walking_forward,
     }};
-    const auto walking_stats = session->update_area_creature_locomotion_animations(walking_inputs);
+    const auto walking_stats = session->update_area_creature_animations(walking_inputs);
     EXPECT_EQ(walking_stats.rejected_input_count, 0u);
     EXPECT_GT(walking_stats.matched_model_count, 0u);
     EXPECT_GT(walking_stats.changed_model_count, 0u);
@@ -5648,14 +5648,14 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
     }
     EXPECT_TRUE(found_walk_clip);
 
-    const auto repeated_walking_stats = session->update_area_creature_locomotion_animations(walking_inputs);
+    const auto repeated_walking_stats = session->update_area_creature_animations(walking_inputs);
     EXPECT_EQ(repeated_walking_stats.changed_model_count, 0u);
 
-    const std::array strafing_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+    const std::array strafing_inputs{viewer::AreaCreatureAnimationInput{
         .owner = creature_handle,
         .locomotion = viewer::AreaCreatureLocomotion::strafing_right,
     }};
-    const auto strafing_stats = session->update_area_creature_locomotion_animations(strafing_inputs);
+    const auto strafing_stats = session->update_area_creature_animations(strafing_inputs);
     EXPECT_GT(strafing_stats.changed_model_count, 0u);
     bool found_strafe_clip = false;
     for (size_t model_index = baseline_model_count; model_index < scene->static_models.size(); ++model_index) {
@@ -5669,11 +5669,11 @@ TEST(RenderViewerPreparedDraws, AreaTransientVisualsPreserveEditorSelectionAndRe
     }
     EXPECT_TRUE(found_strafe_clip);
 
-    const std::array idle_inputs{viewer::AreaCreatureLocomotionAnimationInput{
+    const std::array idle_inputs{viewer::AreaCreatureAnimationInput{
         .owner = creature_handle,
         .locomotion = viewer::AreaCreatureLocomotion::idle,
     }};
-    const auto idle_stats = session->update_area_creature_locomotion_animations(idle_inputs);
+    const auto idle_stats = session->update_area_creature_animations(idle_inputs);
     EXPECT_GT(idle_stats.changed_model_count, 0u);
     bool found_idle_clip = false;
     for (size_t model_index = baseline_model_count; model_index < scene->static_models.size(); ++model_index) {

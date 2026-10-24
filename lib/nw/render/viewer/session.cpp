@@ -564,6 +564,13 @@ void select_area_pointer_objects(
         if (!ray) continue;
         auto& result = selections[index];
         result = select_area_object(*ray, records, scene, options);
+        if (result.status == AreaObjectSelectionStatus::hit && result.kind == nw::ObjectType::item) {
+            const auto tile = select_area_object(*ray, records, scene,
+                {.target = AreaObjectSelectionTarget::tile});
+            if (tile.status == AreaObjectSelectionStatus::hit && tile.distance + 1.0e-4f < result.distance) {
+                result = {.status = AreaObjectSelectionStatus::miss};
+            }
+        }
         if (result.status == AreaObjectSelectionStatus::invalid_input
             || options.target != AreaObjectSelectionTarget::object
             || result.source == AreaObjectSelectionSource::area_record
@@ -743,6 +750,7 @@ bool ViewerSession::synchronize_live_area(nw::ObjectHandle area, nw::ObjectHandl
         return false;
     }
     const auto subindex = active_area_debug_subindex(selected_object);
+    clear_area_item_hover();
     wait_for_preview_resources_idle(preview_resources_);
     auto result = viewer::synchronize_area_rows(*scene_, *preview_resources_, preview_scene_load_options_);
     if (!result.ok()) {
@@ -848,6 +856,7 @@ ObjectVisualRefreshResult ViewerSession::refresh_live_object_visuals(
         };
     }
 
+    clear_area_item_hover();
     const auto selected = scene_->active_object;
     const auto subindex = active_area_debug_subindex(selected);
     if (objects.size() == 1 && objects.front() == scene_->root_object
@@ -1043,6 +1052,81 @@ AreaObjectCandidateSelection ViewerSession::select_area_object_candidate(
         *ray, candidates, records, *scene_);
 }
 
+nw::ObjectHandle ViewerSession::update_area_item_hover(
+    std::optional<glm::vec2> pixel, ViewerViewport viewport)
+{
+    nw::ObjectHandle item;
+    if (pixel && viewport.valid() && scene_ && preview_resources_
+        && scene_kind_ == ViewerSceneKind::area && scene_->area_render_scene) {
+        update_viewport(viewport);
+        const std::array pixels{*pixel};
+        std::array<AreaObjectSelection, 1> hits;
+        select_area_pointer_objects(pixels, camera_, viewport, *scene_->area_render_scene,
+            *scene_, hits, {.triggers_enabled = false, .encounters_enabled = false});
+        if (hits[0].status == AreaObjectSelectionStatus::hit && hits[0].kind == nw::ObjectType::item) {
+            item = hits[0].object;
+        }
+    }
+    if (item == hovered_area_item_) { return item; }
+    clear_area_item_hover();
+    if (item.type == nw::ObjectType::invalid) { return nw::ObjectHandle{}; }
+
+    // Item models are dynamic records: existing draw collection reads their
+    // material bindings each frame. Shared assets and static caches stay intact.
+    if (scene_->runtime_update_indices_dirty) {
+        scene_->rebuild_runtime_update_indices();
+    }
+    const auto& rows = scene_->area_object_model_indices;
+    auto row = std::lower_bound(rows.begin(), rows.end(), item,
+        [](const AreaObjectModelIndexEntry& entry, nw::ObjectHandle object) {
+            return entry.object < object;
+        });
+    for (; row != rows.end() && row->object == item; ++row) {
+        auto* instance = scene_->static_model_instance(row->model_index);
+        if (!instance || row->model_index >= scene_->static_models.size()
+            || !scene_->static_models[row->model_index]) { continue; }
+        const auto& materials = scene_->static_models[row->model_index]->materials;
+        ItemHoverModel model{.instance = scene_->static_model_instance_handles[row->model_index]};
+        model.previous = instance->material_override_handles;
+        model.highlighted.reserve(materials.size());
+        for (size_t index = 0; index < materials.size(); ++index) {
+            const auto* previous = index < model.previous.size()
+                ? scene_->material_overrides.get(model.previous[index])
+                : nullptr;
+            auto material = previous ? previous->material : materials[index];
+            material.emissive = {0.45f, 0.30f, 0.06f};
+            material.emissive_index = preview_resources_->fallback_albedo_index();
+            model.highlighted.push_back(scene_->material_overrides.create({.material = material}));
+        }
+        instance->material_override_handles = model.highlighted;
+        item_hover_models_.push_back(std::move(model));
+    }
+    if (!item_hover_models_.empty()) { hovered_area_item_ = item; }
+    return hovered_area_item_;
+}
+
+void ViewerSession::clear_area_item_hover() noexcept
+{
+    if (scene_) {
+        for (auto& model : item_hover_models_) {
+            auto* instance = scene_->model_instances.get(model.instance);
+            if (instance && instance->material_override_handles == model.highlighted) {
+                instance->material_override_handles = std::move(model.previous);
+            } else {
+                // A removed/replaced instance cannot retain its saved overrides.
+                for (const auto handle : model.previous) {
+                    scene_->material_overrides.destroy(handle);
+                }
+            }
+            for (const auto handle : model.highlighted) {
+                scene_->material_overrides.destroy(handle);
+            }
+        }
+    }
+    item_hover_models_.clear();
+    hovered_area_item_ = nw::ObjectHandle{};
+}
+
 bool ViewerSession::set_area_object_selection(nw::ObjectHandle object) noexcept
 {
     if (!area_object_selection_enabled_ || !scene_
@@ -1168,8 +1252,8 @@ AreaObjectSpatialUpdateStats ViewerSession::update_area_object_spatial_states(
     return viewer::update_area_object_spatial_states(*scene_, spatial_states);
 }
 
-AreaCreatureLocomotionAnimationStats ViewerSession::update_area_creature_locomotion_animations(
-    std::span<const AreaCreatureLocomotionAnimationInput> inputs)
+AreaCreatureAnimationStats ViewerSession::update_area_creature_animations(
+    std::span<const AreaCreatureAnimationInput> inputs)
 {
     if (!scene_ || scene_kind_ != ViewerSceneKind::area || !scene_->area_render_scene) {
         return {
@@ -1179,7 +1263,7 @@ AreaCreatureLocomotionAnimationStats ViewerSession::update_area_creature_locomot
                 std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
         };
     }
-    return viewer::update_area_creature_locomotion_animations(*scene_, inputs);
+    return viewer::update_area_creature_animations(*scene_, inputs);
 }
 
 AreaDoorAnimationStats ViewerSession::begin_area_door_animation_lease(
@@ -1285,7 +1369,22 @@ AreaTransientVisualResult ViewerSession::remove_area_transient_visuals(
             .diagnostic = "Viewer session does not contain a live area scene",
         };
     }
+    clear_area_item_hover();
     return viewer::remove_area_transient_visuals(*scene_, objects);
+}
+
+ObjectVisualRefreshResult ViewerSession::replace_area_transient_visuals(
+    std::span<const nw::ObjectHandle> removed,
+    std::span<const nw::ObjectHandle> added, nw::ObjectHandle source_area)
+{
+    if (!preview_resources_ || !scene_ || scene_kind_ != ViewerSceneKind::area) {
+        return {.status = ObjectVisualRefreshStatus::invalid_input,
+            .diagnostic = "Viewer session does not contain a live area scene"};
+    }
+    clear_area_item_hover();
+    wait_for_preview_resources_idle(preview_resources_);
+    return viewer::replace_area_object_visuals(*scene_, *preview_resources_,
+        removed, added, preview_scene_load_options_, source_area);
 }
 
 bool ViewerSession::clear_area_object_selection() noexcept
@@ -1369,6 +1468,7 @@ void ViewerSession::clear()
     if (scene_) {
         wait_for_preview_resources_idle(preview_resources_);
     }
+    clear_area_item_hover();
     scene_.reset();
     active_area_selection_ = {};
     forward_plus_frame_.clear();
@@ -2115,6 +2215,7 @@ bool ViewerSession::set_scene(std::unique_ptr<PreviewScene> scene, ViewerSceneKi
     if (scene_) {
         wait_for_preview_resources_idle(preview_resources_);
     }
+    clear_area_item_hover();
     scene_ = std::move(scene);
     active_area_selection_ = {};
     forward_plus_frame_.clear();

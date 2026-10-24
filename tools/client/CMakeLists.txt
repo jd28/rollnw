@@ -41,7 +41,7 @@ target_include_directories(rollnw_client_core PUBLIC
     ${CMAKE_SOURCE_DIR}/lib
 )
 
-target_link_libraries(rollnw_client_core PUBLIC nw nw-nav)
+target_link_libraries(rollnw_client_core PUBLIC nw nw-nav nw-gameplay)
 
 if(UNIX)
     target_link_libraries(rollnw_client_core PUBLIC dl)
@@ -102,6 +102,7 @@ add_executable(rollnw-client
     object_workbench_view.cpp
     play_preview_view.cpp
     play_preview_runtime.cpp
+    play_preview_inventory.cpp
     project_import.cpp
     project_resource_drag.cpp
     runtime_input.cpp

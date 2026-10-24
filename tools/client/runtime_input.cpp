@@ -56,7 +56,8 @@ void discard_runtime_pointer_input(RuntimeInputState& input) noexcept
 
 void consume_runtime_input_edges(RuntimeInputState& input) noexcept
 {
-    input.pending.flags &= ~(preview_input_click_target | preview_input_cancel | preview_input_click_door);
+    clear_preview_pointer_action(input.pending);
+    input.pending.flags &= ~preview_input_cancel;
     input.mouse_look_pixels = {};
     input.mouse_sample_seconds = 0.0;
     input.wheel_zoom = 0.0f;

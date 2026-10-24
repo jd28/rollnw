@@ -67,6 +67,7 @@ add_library(nw STATIC
     objects/LocalData.cpp
     objects/Location.cpp
 
+    profiles/nwn1/animation.cpp
     profiles/nwn1/body_part_catalog.cpp
     profiles/nwn1/creature_ability_loadout.cpp
     profiles/nwn1/equipment_gff.cpp
@@ -252,3 +253,4 @@ include(../../cmake/Sanitizers.cmake)
 enable_sanitizers(nw)
 
 add_subdirectory(nav)
+add_subdirectory(gameplay)

@@ -1,3 +1,4 @@
+#include "play_preview_inventory.hpp"
 #include "play_preview_view.hpp"
 #include "renderer.hpp"
 #include "runtime_input.hpp"
@@ -22,6 +23,13 @@ void stop_play_preview(ClientRenderer& renderer, PlayPreviewState& preview,
             shell.append_output("error", "Failed to remove play-preview visuals");
         }
     }
+    preview.inventory_visible = false;
+    preview.inventory_dirty = true;
+    preview.pending_item.reset();
+    preview.inventory_actions.clear();
+    preview.inventory_actor = ObjectHandle{};
+    preview.item_message.clear();
+    sync_play_preview_inventory(preview);
     preview.visuals_attached = false;
     nw::toolset::stop_toolset_preview(preview.session);
     preview.pending_actor = {};
@@ -63,7 +71,7 @@ PlayPreviewStartResult start_play_preview_from_ray(ClientRenderer& renderer,
             actors,
             nw::toolset::toolset_preview_door_visual_states(
                 preview.session),
-            preview.session.camera())) {
+            preview.session.camera(), toolset_preview_item_world(preview.session))) {
         stop_play_preview(renderer, preview, input, shell);
         return {.status = PlayPreviewStartStatus::visuals_failed, .message = "Failed to attach play-preview actor visuals"};
     }
@@ -97,6 +105,19 @@ PreviewStatus update_play_preview_frame(ClientRenderer& renderer, PlayPreviewSta
     if (input_status == PreviewStatus::ok) {
         input_status = translate_pc_input_samples({&physical, 1}, {&frame_sample, 1});
     }
+    if (preview.inventory_visible) {
+        frame_sample = {};
+        frame_sample.flags = input.pending.flags & preview_input_cancel;
+    }
+    if (preview.pending_item && preview.inventory_actor == preview.session.actor()) {
+        // A button press supplies one command to the same fixed tick as world
+        // clicks. It remains pending across zero-tick render frames.
+        frame_sample.flags &= ~preview_input_cancel;
+        if (!set_preview_item_action(frame_sample, *preview.pending_item)) {
+            preview.item_message = "Item selection is invalid or stale";
+            preview.inventory_dirty = true;
+        }
+    }
     const auto fixed_stats = input_status == PreviewStatus::ok
         ? build_preview_tick_samples(preview.fixed_step,
               frame_seconds, frame_sample, preview.tick_inputs)
@@ -107,6 +128,7 @@ PreviewStatus update_play_preview_frame(ClientRenderer& renderer, PlayPreviewSta
         stop_play_preview(renderer, preview, input, shell);
         return PreviewStatus::invalid_input;
     } else if (fixed_stats.tick_count > 0) {
+        preview.pending_item.reset();
         const auto tick_stats = tick_toolset_preview(
             preview.session,
             std::span{preview.tick_inputs}.first(
@@ -115,12 +137,20 @@ PreviewStatus update_play_preview_frame(ClientRenderer& renderer, PlayPreviewSta
             preview.locomotion_rows);
         const bool tick_ok
             = tick_stats.status == PreviewStatus::ok;
+        if (tick_stats.action_result.status != PreviewItemStatus::none) {
+            preview.item_message = preview_item_message(tick_stats.action_result);
+            preview.inventory_dirty = true;
+        }
+        const bool items_ok = !tick_stats.action_result.changed || (tick_ok && renderer.update_toolset_preview_items(toolset_preview_item_world(preview.session), tick_stats.action_result));
+        const std::array actions{toolset_preview_action_state(preview.session)};
         const bool visual_ok = tick_ok
+            && items_ok
             && renderer.update_toolset_preview_visuals(
                 std::span{preview.spatial_rows}.first(
                     tick_stats.output_count),
                 std::span{preview.locomotion_rows}.first(
                     tick_stats.output_count),
+                actions,
                 toolset_preview_door_visual_states(
                     preview.session),
                 preview.session.camera());
@@ -148,6 +178,12 @@ void apply_play_preview_pointer_action(ClientRenderer& renderer, PlayPreviewStat
 {
     clear_preview_pointer_action(
         input.pending);
+    preview.pending_item.reset();
+    const auto item = renderer.update_viewer_area_item_hover(point, viewport);
+    if (item.type == ObjectType::item) {
+        (void)set_preview_item_action(input.pending, {item});
+        return;
+    }
     const auto door_hit
         = acquire_runtime_door_hit(renderer,
             point,

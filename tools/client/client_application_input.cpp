@@ -42,7 +42,8 @@ nw::toolset::ClientInputOwnership client_input_ownership(const ClientApplication
             && (state.play_preview.placement_pending() || nw::kernel::objects().valid(state.play_preview.session.actor())),
         .command_modal = state.command_view.command_form.has_value() || state.backend.blueprint_operation_active()
             || state.backend.blueprint_publication_pending(),
-        .world_input_blocked = state.loading.module_dialog_open || state.loading.project_load.active(),
+        .world_input_blocked = state.loading.module_dialog_open || state.loading.project_load.active()
+            || state.play_preview.inventory_visible,
     };
 }
 
@@ -279,6 +280,16 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             nw::toolset::cancel_client_pointer_interactions(context, palette_context, event);
             system_interface.SetMouseCursor("arrow");
             continue;
+        }
+
+        if (state.play_preview.inventory_visible) {
+            const bool preview_shortcut = event.type == SDL_EVENT_KEY_DOWN
+                && (event.key.key == SDLK_I || event.key.key == SDLK_ESCAPE || event.key.key == SDLK_F9);
+            if (!preview_shortcut && (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING || event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP || event.type == SDL_EVENT_MOUSE_WHEEL)) {
+                (void)nw::toolset::forward_client_input(dispatch, nw::toolset::ClientRmlRecipient::command,
+                    nw::toolset::ClientRmlForwardPhase::after_native, palette_context, window, event);
+                continue;
+            }
         }
 
         if (state.command_view.command_form) {

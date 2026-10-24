@@ -13,11 +13,6 @@ bool finite(glm::vec2 value) noexcept
     return std::isfinite(value.x) && std::isfinite(value.y);
 }
 
-bool finite(glm::vec3 value) noexcept
-{
-    return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
-}
-
 bool normalized_axis(float value) noexcept
 {
     return std::isfinite(value) && value >= -1.0f && value <= 1.0f;
@@ -32,18 +27,6 @@ bool valid_devices(const PcDeviceSample& input) noexcept
             || (normalized_axis(input.left_stick.x) && normalized_axis(input.left_stick.y)
                 && normalized_axis(input.right_stick.x) && normalized_axis(input.right_stick.y)
                 && normalized_axis(input.left_trigger) && normalized_axis(input.right_trigger)));
-}
-
-bool valid_pointer(const PreviewInputSample& input) noexcept
-{
-    constexpr auto pointer_flags = preview_input_click_target | preview_input_click_door;
-    return (input.flags & ~(pointer_flags | preview_input_cancel)) == 0
-        && (input.flags & pointer_flags) != pointer_flags
-        && (!(input.flags & preview_input_click_target) || finite(input.click_target))
-        && (!(input.flags & preview_input_click_door)
-            || (input.door_index != UINT32_MAX
-                && finite(input.door_bounds_min) && finite(input.door_bounds_max)
-                && !glm::any(glm::greaterThan(input.door_bounds_min, input.door_bounds_max))));
 }
 
 } // namespace
@@ -62,7 +45,7 @@ PreviewStatus translate_pc_input_samples(std::span<const PcDeviceSample> inputs,
         auto sample = input.pending;
         if (!input.eligibility.pointer) { clear_preview_pointer_action(sample); }
         if (!input.eligibility.controller) { sample.flags &= ~preview_input_cancel; }
-        if (!valid_pointer(sample)) { return reject(); }
+        if (!valid_preview_pointer_action(sample)) { return reject(); }
         const auto key = [&input](PcKey value) {
             return input.eligibility.keyboard
                 ? static_cast<float>(input.keys[static_cast<size_t>(value)])

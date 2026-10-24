@@ -194,17 +194,31 @@ updates made to unopened documents; it does not restore the live area.
 
 ## Play preview
 
-Press **F9** in an area to try movement with a test Creature. On first use,
+Press **F9** in an area to try movement and item interactions with a test Creature. On first use,
 choose a Creature blueprint from the project tree; the choice is remembered
-for that project. Preview movement does not modify the authored area.
+for that project. Preview movement and item interactions do not modify the authored area.
 
 Move with WASD or the controller's left stick, orbit with the right mouse button
 or right stick, and zoom with the wheel, triggers, or shoulder buttons.
-Left-click an area surface to request a path there. **F9** or **Escape** ends
-preview and restores the editor selection and camera.
+Hover over a visible ground item to highlight it. The highlight follows camera
+movement and clears when the pointer leaves the item or an overlay captures input.
+Click the item to approach and pick it up. Keyboard/controller movement or a new
+world click interrupts that action. When the actor has a pickup clip, it stops
+within one world unit, faces the item and
+plays the grab before transferring it. The return pose plays afterward. Movement
+or another command cancels an unfinished grab; cancelling after transfer keeps
+the item. Actors without a pickup clip use an immediate transfer.
+Left-click an area surface to request a path there. Press **I** to open inventory;
+opening it stops the actor. Pick up reachable ground items within two world
+units, choose an **Equip to** slot, and use **Equip**, **Unequip**, or **Drop**.
+Drops use the actor's current walkable position. Failed requests leave item
+ownership unchanged; equipment follows the current gameplay rules.
 
-This is a movement preview. Scripts, encounters, combat, and gameplay
-persistence do not run.
+**I** or **Escape** closes inventory. **F9**, or **Escape** with inventory closed,
+ends preview and restores the authored items, editor selection, and camera.
+Preview items retain their identity through transfers, then are discarded on
+exit. Equipment changes are immediate; timed equip animations, combat,
+encounters, general gameplay scripts, and gameplay persistence are not included.
 
 ## Command-line import
 

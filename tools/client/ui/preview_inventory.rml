@@ -1,0 +1,37 @@
+<rml>
+<head>
+  <link type="text/rcss" href="panel.rcss" />
+  <style>
+    body { background: transparent; pointer-events: none; }
+    #preview_inventory_overlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #00000070; pointer-events: auto; }
+    #preview_inventory { box-sizing: border-box; width: 640dp; height: 600dp; max-width: 90%; max-height: 85%; padding: 20dp; background: #151b21; border: 1dp #3a4652; display: flex; flex-direction: column; }
+    #preview_inventory_rows { overflow-y: auto; flex: 1; min-height: 0; }
+    #preview_inventory h3 { display: block; font-weight: 600; margin: 16dp 0dp 8dp; color: #f0f3f6; }
+    #preview_inventory p { display: block; margin: 4dp 0dp; color: #aeb8c3; }
+    #preview_inventory_slot { width: 180dp; height: 32dp; margin-left: 8dp; background: #0f1318; border: 1dp #536371; cursor: pointer; }
+    #preview_inventory_slot selectvalue { padding: 5dp 8dp; }
+    #preview_inventory_slot selectarrow { width: 0dp; height: 0dp; border-left: 5dp transparent; border-right: 5dp transparent; border-top: 6dp #aeb8c3; margin: 12dp 8dp; }
+    #preview_inventory_slot selectbox { max-height: 260dp; background: #151b21; border: 1dp #536371; }
+    #preview_inventory_slot option { padding: 5dp 8dp; }
+    #preview_inventory_slot option:hover, #preview_inventory_slot option:checked { background: #28333d; }
+    #preview_inventory_message { min-height: 24dp; margin-top: 12dp; color: #d9bc85; }
+    .preview_item_row { display: flex; align-items: center; padding: 6dp 0dp; border-bottom: 1dp #2b3540; }
+    .preview_item_row span { flex: 1; margin-right: 12dp; }
+    #preview_inventory button { height: 32dp; padding: 5dp 12dp; background: #202930; color: #e4e9ed; border: 1dp #536371; cursor: pointer; tab-index: auto; flex-shrink: 0; }
+    #preview_inventory button:hover, #preview_inventory button:focus { background: #28333d; border-color: #a78d62; }
+    #preview_inventory #preview_inventory_close { padding: 0dp; }
+    .preview_item_row button { margin-left: 6dp; }
+  </style>
+</head>
+<body>
+  <div id="preview_inventory_overlay">
+    <div id="preview_inventory">
+      <div class="command_form_title_row"><div class="command_form_title">Inventory</div><button id="preview_inventory_close" class="icon_button_x" title="Close inventory"><span>&#215;</span></button></div>
+      <p>Pick up reachable items. Unequip before dropping. I or Escape closes inventory.</p>
+      <div class="command_form_row"><label for="preview_inventory_slot">Equip to</label><select id="preview_inventory_slot"><option>Head</option><option>Chest</option><option>Boots</option><option>Arms</option><option selected>Right hand</option><option>Left hand</option><option>Cloak</option><option>Left ring</option><option>Right ring</option><option>Neck</option><option>Belt</option><option>Arrows</option><option>Bullets</option><option>Bolts</option></select></div>
+      <div id="preview_inventory_rows"></div>
+      <div id="preview_inventory_message"></div>
+    </div>
+  </div>
+</body>
+</rml>

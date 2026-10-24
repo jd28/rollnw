@@ -828,7 +828,8 @@ struct ClientViewerViewport::Impl {
     bool begin_toolset_preview_visuals(
         std::span<const nw::ObjectHandle> objects,
         std::span<const nw::toolset::PreviewDoorVisualState> doors,
-        const nw::toolset::PreviewCameraState& camera)
+        const nw::toolset::PreviewCameraState& camera,
+        const nw::toolset::PreviewItemWorldView& items)
     {
         if (!session || objects.empty() || !transient_preview_objects.empty()
             || loaded_area_resref.empty()) {
@@ -886,7 +887,13 @@ struct ClientViewerViewport::Impl {
             return false;
         }
 
-        const auto append = session->append_area_transient_visuals(objects);
+        transient_saved_camera = session->camera();
+        transient_preview_objects.assign(objects.begin(), objects.end());
+        transient_authored_items.assign(items.authored.begin(), items.authored.end());
+        transient_ground_items.assign(items.ground.begin(), items.ground.end());
+        std::vector<nw::ObjectHandle> additions{objects.begin(), objects.end()};
+        additions.insert(additions.end(), items.ground.begin(), items.ground.end());
+        const auto append = session->replace_area_transient_visuals(items.authored, additions, items.area);
         if (!append.ok()) {
             (void)session->restore_area_door_animation_lease(
                 transient_door_animation_lease);
@@ -895,8 +902,6 @@ struct ClientViewerViewport::Impl {
             return false;
         }
 
-        transient_saved_camera = session->camera();
-        transient_preview_objects.assign(objects.begin(), objects.end());
         transient_animation_inputs.clear();
         transient_animation_inputs.reserve(objects.size());
         for (const auto object : objects) {
@@ -907,22 +912,51 @@ struct ClientViewerViewport::Impl {
                 });
             }
         }
-        (void)session->update_area_creature_locomotion_animations(
+        (void)session->update_area_creature_animations(
             transient_animation_inputs);
         session->set_area_object_selection_enabled(false);
         apply_preview_camera(session->camera(), camera);
         return true;
     }
 
+    bool update_toolset_preview_items(const nw::toolset::PreviewItemWorldView& items,
+        const nw::gameplay::ActorActionResult& result)
+    {
+        if (!session || transient_preview_objects.empty()) { return false; }
+        if (!result.changed) { return true; }
+        std::vector<nw::ObjectHandle> removed;
+        std::vector<nw::ObjectHandle> added;
+        if (result.equipment_changed) {
+            removed = transient_preview_objects;
+            added = transient_preview_objects;
+        } else {
+            if (std::ranges::find(transient_ground_items, result.item) != transient_ground_items.end()) {
+                removed.push_back(result.item);
+            }
+            if (std::ranges::find(items.ground, result.item) != items.ground.end()) {
+                added.push_back(result.item);
+            }
+        }
+        const auto replaced = session->replace_area_transient_visuals(removed, added, items.area);
+        if (!replaced.ok()) {
+            LOG_F(ERROR, "Client preview item visuals: {}", replaced.diagnostic);
+            return false;
+        }
+        transient_ground_items.assign(items.ground.begin(), items.ground.end());
+        return true;
+    }
+
     bool update_toolset_preview_visuals(
         std::span<const nw::ObjectSpatialState> spatial_rows,
         std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+        std::span<const nw::gameplay::ActorActionState> actions,
         std::span<const nw::toolset::PreviewDoorVisualState> doors,
         const nw::toolset::PreviewCameraState& camera)
     {
         if (!session || transient_preview_objects.empty()
             || spatial_rows.size() != transient_preview_objects.size()
-            || locomotion_rows.size() != transient_preview_objects.size()) {
+            || locomotion_rows.size() != transient_preview_objects.size()
+            || actions.size() != transient_preview_objects.size()) {
             return false;
         }
 
@@ -932,9 +966,16 @@ struct ClientViewerViewport::Impl {
         }
         for (size_t index = 0; index < transient_animation_inputs.size(); ++index) {
             auto& input = transient_animation_inputs[index];
-            if (spatial_rows[index].owner != input.owner) {
+            if (spatial_rows[index].owner != input.owner || actions[index].actor != input.owner) {
                 return false;
             }
+            const auto& action = actions[index];
+            input.grabbing = action.phase == nw::gameplay::ActionPhase::grabbing
+                || action.phase == nw::gameplay::ActionPhase::recovering;
+            const auto pose_ticks = action.phase == nw::gameplay::ActionPhase::recovering
+                ? action.pickup_ticks - std::min(action.elapsed_ticks, action.pickup_ticks)
+                : action.elapsed_ticks;
+            input.action_time = static_cast<float>(pose_ticks) / nw::gameplay::action_ticks_per_second;
             switch (locomotion_rows[index]) {
             case nw::toolset::PreviewActorLocomotion::walking_forward:
                 input.locomotion = viewer::AreaCreatureLocomotion::walking_forward;
@@ -959,7 +1000,7 @@ struct ClientViewerViewport::Impl {
                 break;
             }
         }
-        const auto animation_stats = session->update_area_creature_locomotion_animations(
+        const auto animation_stats = session->update_area_creature_animations(
             transient_animation_inputs);
         if (animation_stats.rejected_input_count != 0) {
             return false;
@@ -1561,6 +1602,7 @@ struct ClientViewerViewport::Impl {
 
     bool end_toolset_preview_visuals() noexcept
     {
+        if (session) session->clear_area_item_hover();
         if (session) session->clear_transient_debug_geometry();
         if (session) session->set_area_object_selection_enabled(true);
         transient_debug_vertices.clear();
@@ -1585,9 +1627,13 @@ struct ClientViewerViewport::Impl {
         }
 
         bool removed = false;
-        if (session) {
-            const auto result = session->remove_area_transient_visuals(
-                transient_preview_objects);
+        if (session && session->scene()) {
+            std::vector<nw::ObjectHandle> removed_objects = transient_preview_objects;
+            removed_objects.insert(removed_objects.end(), transient_ground_items.begin(), transient_ground_items.end());
+            // Include originals so teardown also repairs a partially failed start.
+            removed_objects.insert(removed_objects.end(), transient_authored_items.begin(), transient_authored_items.end());
+            const auto result = session->replace_area_transient_visuals(
+                removed_objects, transient_authored_items, session->scene()->root_object);
             removed = result.ok();
             if (!removed) {
                 LOG_F(ERROR, "Client preview visual teardown: {}", result.diagnostic);
@@ -1597,6 +1643,8 @@ struct ClientViewerViewport::Impl {
             }
         }
         transient_preview_objects.clear();
+        transient_ground_items.clear();
+        transient_authored_items.clear();
         transient_animation_inputs.clear();
         transient_saved_camera.reset();
         return removed && doors_restored && tiles_restored;
@@ -1884,7 +1932,9 @@ struct ClientViewerViewport::Impl {
     ClientViewerCameraStates camera_states;
     std::optional<viewer::Camera> transient_saved_camera;
     std::vector<nw::ObjectHandle> transient_preview_objects;
-    std::vector<viewer::AreaCreatureLocomotionAnimationInput> transient_animation_inputs;
+    std::vector<nw::ObjectHandle> transient_authored_items;
+    std::vector<nw::ObjectHandle> transient_ground_items;
+    std::vector<viewer::AreaCreatureAnimationInput> transient_animation_inputs;
     std::vector<viewer::AreaDoorAnimationInput> transient_door_animation_inputs;
     viewer::AreaDoorAnimationLease transient_door_animation_lease;
     viewer::AreaTilePreviewLease area_tile_preview_lease;
@@ -2011,6 +2061,14 @@ std::optional<glm::vec3> ClientViewerViewport::area_surface_point(
     return impl_ ? impl_->area_surface_point(pixel_x, pixel_y, viewport) : std::nullopt;
 }
 
+nw::ObjectHandle ClientViewerViewport::update_area_item_hover(
+    std::optional<glm::vec2> pixel, ClientViewportRect viewport)
+{
+    return impl_ && impl_->session
+        ? impl_->session->update_area_item_hover(pixel, to_viewer_viewport(viewport))
+        : nw::ObjectHandle{};
+}
+
 std::optional<ClientAreaDoorHit> ClientViewerViewport::area_door_hit(
     float pixel_x,
     float pixel_y,
@@ -2036,20 +2094,28 @@ bool ClientViewerViewport::append_area_object_previews(
 bool ClientViewerViewport::begin_toolset_preview_visuals(
     std::span<const nw::ObjectHandle> objects,
     std::span<const nw::toolset::PreviewDoorVisualState> doors,
-    const nw::toolset::PreviewCameraState& camera)
+    const nw::toolset::PreviewCameraState& camera,
+    const nw::toolset::PreviewItemWorldView& items)
 {
-    return impl_ && impl_->begin_toolset_preview_visuals(objects, doors, camera);
+    return impl_ && impl_->begin_toolset_preview_visuals(objects, doors, camera, items);
+}
+
+bool ClientViewerViewport::update_toolset_preview_items(const nw::toolset::PreviewItemWorldView& items,
+    const nw::gameplay::ActorActionResult& result)
+{
+    return impl_ && impl_->update_toolset_preview_items(items, result);
 }
 
 bool ClientViewerViewport::update_toolset_preview_visuals(
     std::span<const nw::ObjectSpatialState> spatial_rows,
     std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    std::span<const nw::gameplay::ActorActionState> actions,
     std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
     return impl_
         && impl_->update_toolset_preview_visuals(
-            spatial_rows, locomotion_rows, doors, camera);
+            spatial_rows, locomotion_rows, actions, doors, camera);
 }
 
 bool ClientViewerViewport::update_toolset_preview_navigation_debug(

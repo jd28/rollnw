@@ -1,7 +1,9 @@
 #pragma once
 
+#include <nw/gameplay/actions.hpp>
 #include <nw/nav/NavWorld.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
+#include <nw/objects/item_transfers.hpp>
 #include <nw/resources/assets.hpp>
 
 #include <glm/vec2.hpp>
@@ -14,6 +16,15 @@
 #include <string>
 
 namespace nw::toolset {
+
+using PreviewItemAction = gameplay::ActionKind;
+using PreviewItemStatus = gameplay::ActionStatus;
+using PreviewItemResult = gameplay::ActorActionResult;
+struct PreviewItemRequest {
+    ObjectHandle item{};
+    int32_t slot = -1;
+    PreviewItemAction action = PreviewItemAction::pickup;
+};
 
 enum class PreviewStatus : uint8_t {
     ok,
@@ -29,6 +40,7 @@ enum PreviewInputFlag : uint32_t {
     preview_input_click_target = 1u << 0,
     preview_input_cancel = 1u << 1,
     preview_input_click_door = 1u << 2,
+    preview_input_item_action = 1u << 3,
 };
 
 struct PreviewInputSample {
@@ -42,12 +54,15 @@ struct PreviewInputSample {
     glm::vec3 door_bounds_max{0.0f};
     uint32_t door_index = UINT32_MAX;
     uint32_t flags = preview_input_none;
+    PreviewItemRequest item_action;
 };
 
 /// Pointer actions are singular SDL events. Each setter replaces any pending
 /// door/target action so the latest click is the only one observed by the next
 /// fixed tick. Invalid data drops the pending pointer action and returns false.
 void clear_preview_pointer_action(PreviewInputSample& sample) noexcept;
+[[nodiscard]] bool valid_preview_pointer_action(const PreviewInputSample& sample) noexcept;
+[[nodiscard]] bool set_preview_item_action(PreviewInputSample& sample, PreviewItemRequest request) noexcept;
 [[nodiscard]] bool set_preview_click_target(
     PreviewInputSample& sample,
     const glm::vec3& target) noexcept;
@@ -138,6 +153,7 @@ struct PreviewTickStats {
     size_t rebuilt_tile_count = 0;
     uint64_t door_rebuild_nanoseconds = 0;
     size_t output_count = 0;
+    PreviewItemResult action_result;
 };
 
 /// Renderer-facing state for one live area door. Rows are dense by the
@@ -186,6 +202,15 @@ enum class PreviewActorLocomotion : uint8_t {
     turning_right,
 };
 
+// Borrowed item identities remain stable until transfer/stop. Authored handles
+// identify only the visuals temporarily replaced; their objects are never edited.
+struct PreviewItemWorldView {
+    ObjectHandle area{};
+    std::span<const ObjectHandle> authored;
+    std::span<const ObjectHandle> ground;
+    uint64_t revision = 0;
+};
+
 /// Headless owner of one preview actor and its navigation state. The pimpl is
 /// cold lifetime state; fixed ticks operate on contiguous input/output rows.
 class ToolsetPreviewSession {
@@ -224,7 +249,15 @@ private:
         const ToolsetPreviewSession&) noexcept;
     friend std::span<const ObjectHandle> toolset_preview_door_handles(
         const ToolsetPreviewSession&) noexcept;
+    friend PreviewItemWorldView toolset_preview_item_world(const ToolsetPreviewSession&) noexcept;
+    friend gameplay::ActorActionState toolset_preview_action_state(const ToolsetPreviewSession&) noexcept;
 };
+
+PreviewItemWorldView toolset_preview_item_world(const ToolsetPreviewSession& session) noexcept;
+
+// Current explicit action progress; no renderer/VM state is retained in it.
+gameplay::ActorActionState toolset_preview_action_state(const ToolsetPreviewSession& session) noexcept;
+const char* preview_item_message(const PreviewItemResult& result) noexcept;
 
 PreviewSessionStartResult start_toolset_preview(
     ToolsetPreviewSession& session,

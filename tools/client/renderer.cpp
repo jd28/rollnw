@@ -300,6 +300,19 @@ std::optional<glm::vec3> ClientRenderer::viewer_area_surface_point(
     return std::nullopt;
 }
 
+nw::ObjectHandle ClientRenderer::update_viewer_area_item_hover(
+    std::optional<glm::vec2> pixel, ClientViewportRect viewport)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) {
+        return nwgfx_.update_viewer_area_item_hover(pixel, viewport);
+    }
+#endif
+    (void)pixel;
+    (void)viewport;
+    return nw::ObjectHandle{};
+}
+
 std::optional<ClientAreaDoorHit> ClientRenderer::viewer_area_door_hit(
     float pixel_x,
     float pixel_y,
@@ -349,35 +362,50 @@ bool ClientRenderer::append_viewer_area_object_previews(
 bool ClientRenderer::begin_toolset_preview_visuals(
     std::span<const nw::ObjectHandle> objects,
     std::span<const nw::toolset::PreviewDoorVisualState> doors,
-    const nw::toolset::PreviewCameraState& camera)
+    const nw::toolset::PreviewCameraState& camera,
+    const nw::toolset::PreviewItemWorldView& items)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
-        return nwgfx_.begin_toolset_preview_visuals(objects, doors, camera);
+        return nwgfx_.begin_toolset_preview_visuals(objects, doors, camera, items);
     }
 #endif
 
     (void)objects;
     (void)doors;
     (void)camera;
+    (void)items;
+    return false;
+}
+
+bool ClientRenderer::update_toolset_preview_items(const nw::toolset::PreviewItemWorldView& items,
+    const nw::gameplay::ActorActionResult& result)
+{
+#if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
+    if (backend_ == Backend::nwgfx) { return nwgfx_.update_toolset_preview_items(items, result); }
+#endif
+    (void)items;
+    (void)result;
     return false;
 }
 
 bool ClientRenderer::update_toolset_preview_visuals(
     std::span<const nw::ObjectSpatialState> spatial_rows,
     std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+    std::span<const nw::gameplay::ActorActionState> actions,
     std::span<const nw::toolset::PreviewDoorVisualState> doors,
     const nw::toolset::PreviewCameraState& camera)
 {
 #if defined(ROLLNW_CLIENT_USE_NWGFX_BACKEND)
     if (backend_ == Backend::nwgfx) {
         return nwgfx_.update_toolset_preview_visuals(
-            spatial_rows, locomotion_rows, doors, camera);
+            spatial_rows, locomotion_rows, actions, doors, camera);
     }
 #endif
 
     (void)spatial_rows;
     (void)locomotion_rows;
+    (void)actions;
     (void)doors;
     (void)camera;
     return false;

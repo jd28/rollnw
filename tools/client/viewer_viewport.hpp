@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nw/gameplay/actions.hpp>
+
 #include "viewport_rect.hpp"
 
 #include <nw/objects/ObjectComponentSystem.hpp>
@@ -27,6 +29,7 @@ struct ViewerFrameStats;
 namespace nw::toolset {
 class ObjectDocument;
 enum class PreviewActorLocomotion : uint8_t;
+struct PreviewItemWorldView;
 struct PreviewCameraState;
 struct PreviewDoorVisualState;
 struct PreviewNavigationDebugView;
@@ -80,6 +83,8 @@ public:
     [[nodiscard]] uint32_t active_area_debug_subindex(
         nw::ObjectHandle object) const noexcept;
     bool focus_area_object_selection() noexcept;
+    nw::ObjectHandle update_area_item_hover(
+        std::optional<glm::vec2> pixel, ClientViewportRect viewport);
     [[nodiscard]] std::optional<ClientViewportRay> viewport_ray(
         float pixel_x, float pixel_y, ClientViewportRect viewport);
     [[nodiscard]] std::optional<glm::vec3> area_surface_point(
@@ -95,10 +100,14 @@ public:
     bool begin_toolset_preview_visuals(
         std::span<const nw::ObjectHandle> objects,
         std::span<const nw::toolset::PreviewDoorVisualState> doors,
-        const nw::toolset::PreviewCameraState& camera);
+        const nw::toolset::PreviewCameraState& camera,
+        const nw::toolset::PreviewItemWorldView& items);
+    bool update_toolset_preview_items(const nw::toolset::PreviewItemWorldView& items,
+        const nw::gameplay::ActorActionResult& result);
     bool update_toolset_preview_visuals(
         std::span<const nw::ObjectSpatialState> spatial_rows,
         std::span<const nw::toolset::PreviewActorLocomotion> locomotion_rows,
+        std::span<const nw::gameplay::ActorActionState> actions,
         std::span<const nw::toolset::PreviewDoorVisualState> doors,
         const nw::toolset::PreviewCameraState& camera);
     bool update_toolset_preview_navigation_debug(

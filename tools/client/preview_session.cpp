@@ -12,8 +12,12 @@
 #include <nw/nav/NavWorld.hpp>
 #include <nw/objects/Area.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/profiles/nwn1/animation.hpp>
+#include <nw/profiles/nwn1/scriptbridge.hpp>
 #include <nw/resources/ResourceManager.hpp>
+#include <nw/serialization/component_propset_json.hpp>
 #include <nw/util/string.hpp>
 
 #include <algorithm>
@@ -25,10 +29,11 @@
 namespace nw::toolset {
 namespace {
 
-constexpr double fixed_step_seconds = 1.0 / 60.0;
+constexpr double fixed_step_seconds = 1.0 / gameplay::action_ticks_per_second;
 constexpr double maximum_frame_seconds = 0.1;
 constexpr size_t maximum_catchup_ticks = 6;
 constexpr float fallback_walk_rate = 2.0f;
+constexpr float pickup_reach = 1.0f;
 constexpr float route_corner_epsilon = 0.05f;
 constexpr float movement_axis_epsilon = 1.0e-5f;
 constexpr size_t maximum_route_motion_attempts = 2;
@@ -41,7 +46,7 @@ constexpr float maximum_camera_pitch = -0.05f;
 constexpr float minimum_camera_distance = 2.0f;
 constexpr float maximum_camera_distance = 40.0f;
 constexpr uint32_t edge_input_flags = preview_input_click_target
-    | preview_input_cancel | preview_input_click_door;
+    | preview_input_cancel | preview_input_click_door | preview_input_item_action;
 
 bool finite(const glm::vec2& value)
 {
@@ -239,9 +244,37 @@ bool build_projected_door_links(nav::NavAreaBuildSource& source,
 
 } // namespace
 
+bool valid_preview_pointer_action(const PreviewInputSample& sample) noexcept
+{
+    const auto actions = sample.flags & (preview_input_click_target | preview_input_click_door | preview_input_item_action);
+    if ((sample.flags & ~edge_input_flags) != 0 || (actions & (actions - 1u)) != 0) { return false; }
+    if ((sample.flags & preview_input_click_target) != 0 && !finite(sample.click_target)) { return false; }
+    if ((sample.flags & preview_input_click_door) != 0
+        && (sample.door_index == UINT32_MAX || !finite(sample.door_bounds_min) || !finite(sample.door_bounds_max)
+            || glm::any(glm::greaterThan(sample.door_bounds_min, sample.door_bounds_max)))) { return false; }
+    if ((sample.flags & preview_input_item_action) != 0) {
+        const auto& request = sample.item_action;
+        if (request.item.type != ObjectType::item || request.action > PreviewItemAction::drop
+            || ((request.action == PreviewItemAction::equip || request.action == PreviewItemAction::unequip)
+                && (request.slot < 0 || request.slot >= 18))) { return false; }
+    }
+    return true;
+}
+
 void clear_preview_pointer_action(PreviewInputSample& sample) noexcept
 {
-    sample.flags &= ~(preview_input_click_target | preview_input_click_door);
+    sample.flags &= ~(preview_input_click_target | preview_input_click_door | preview_input_item_action);
+}
+
+bool set_preview_item_action(PreviewInputSample& sample, PreviewItemRequest request) noexcept
+{
+    clear_preview_pointer_action(sample);
+    if (request.item.type != ObjectType::item || request.action > PreviewItemAction::drop
+        || ((request.action == PreviewItemAction::equip || request.action == PreviewItemAction::unequip)
+            && (request.slot < 0 || request.slot >= 18))) { return false; }
+    sample.item_action = request;
+    sample.flags |= preview_input_item_action;
+    return true;
 }
 
 bool set_preview_click_target(
@@ -295,6 +328,12 @@ struct ToolsetPreviewSession::Impl {
     Vector<nav::NavDebugTriangle> navigation_debug_triangles;
     ObjectHandle area{};
     ObjectHandle actor{};
+    ObjectHandle item_area{};
+    Vector<ObjectHandle> authored_items;
+    Vector<ObjectHandle> ground_items;
+    uint64_t service_generation = 0;
+    uint64_t item_revision = 0;
+    gameplay::ActorActionState action;
     uint32_t nav_agent = UINT32_MAX;
     uint32_t route_corner = 0;
     uint32_t route_end = 0;
@@ -318,16 +357,7 @@ struct ToolsetPreviewSession::Impl {
     bool navigation_debug_enabled = false;
     bool debug_has_requested_target = false;
 
-    ~Impl()
-    {
-        if (nav_agent != UINT32_MAX) {
-            const std::array agents{nav_agent};
-            nav::release_nav_agents(nav_world, agents);
-        }
-        if (actor.type != ObjectType::invalid && kernel::objects().valid(actor)) {
-            kernel::objects().destroy(actor);
-        }
-    }
+    ~Impl() { clear(); }
 
     void clear() noexcept
     {
@@ -335,9 +365,23 @@ struct ToolsetPreviewSession::Impl {
             const std::array agents{nav_agent};
             nav::release_nav_agents(nav_world, agents);
         }
-        if (actor.type != ObjectType::invalid && kernel::objects().valid(actor)) {
-            kernel::objects().destroy(actor);
+        if (service_generation == kernel::services().generation()) {
+            if (item_area.type == ObjectType::area && kernel::objects().valid(item_area)) {
+                // Area destruction releases its rows; clear explicitly destroys
+                // the objects referenced by those native owning containers.
+                kernel::objects().get<Area>(item_area)->clear();
+                kernel::objects().destroy(item_area);
+            }
+            if (actor.type != ObjectType::invalid && kernel::objects().valid(actor)) {
+                kernel::objects().destroy(actor);
+            }
         }
+        item_area = ObjectHandle{};
+        authored_items.clear();
+        ground_items.clear();
+        service_generation = 0;
+        item_revision = 0;
+        action = {};
         route_corners.clear();
         navigation_debug_triangles.clear();
         nav_world = nav::NavWorldState{};
@@ -415,14 +459,7 @@ PreviewFixedStepStats build_preview_tick_samples(
         || !finite(frame_sample.look_axis)
         || !std::isfinite(frame_sample.zoom_axis)
         || !std::isfinite(frame_sample.zoom_delta)
-        || ((frame_sample.flags & preview_input_click_target) != 0
-            && !finite(frame_sample.click_target))
-        || ((frame_sample.flags & preview_input_click_door) != 0
-            && (!finite(frame_sample.door_bounds_min)
-                || !finite(frame_sample.door_bounds_max)
-                || glm::any(glm::greaterThan(
-                    frame_sample.door_bounds_min,
-                    frame_sample.door_bounds_max))))) {
+        || !valid_preview_pointer_action(frame_sample)) {
         stats.status = PreviewStatus::invalid_input;
         return stats;
     }
@@ -536,6 +573,7 @@ PreviewSessionStartResult start_toolset_preview(
     }
 
     auto& state = *session.impl_;
+    state.service_generation = kernel::services().generation();
     state.area = input.area;
     state.actor = loaded.objects[0];
     state.clearance = creature_navigation_clearance(state.actor, placement.transform.scale);
@@ -666,11 +704,107 @@ PreviewSessionStartResult start_toolset_preview(
     state.walk_rate = resolve_walk_rate(
         state.actor, result.stats.walk_rate_fallback, result.stats.movement_disabled);
     result.stats.walk_rate = state.walk_rate;
+
+    // Only participating objects are cloned. The detached Area is their native
+    // lifetime owner; navigation continues to use the authored geometry snapshot.
+    auto* item_area = kernel::objects().make<Area>();
+    if (!item_area) {
+        stop_toolset_preview(session);
+        result.status = PreviewStatus::actor_failed;
+        result.diagnostic = "Preview item world could not be allocated";
+        return result;
+    }
+    state.item_area = item_area->handle();
+    item_area->width = area->width;
+    item_area->height = area->height;
+    item_area->creatures.push_back(kernel::objects().get<Creature>(state.actor));
+    item_area->items.reserve(area->items.size());
+    state.authored_items.reserve(area->items.size());
+    state.ground_items.reserve(area->items.size());
+    for (const auto* source : area->items) {
+        nlohmann::json archive;
+        if (!source || !object_to_component_propset_json(source, archive, &kernel::runtime(), SerializationProfile::instance)) {
+            stop_toolset_preview(session);
+            result.status = PreviewStatus::actor_failed;
+            result.diagnostic = "Preview item snapshot failed";
+            return result;
+        }
+        auto* clone = kernel::objects().load_instance<Item>(archive);
+        if (!clone) {
+            stop_toolset_preview(session);
+            result.status = PreviewStatus::actor_failed;
+            result.diagnostic = "Preview item instantiation failed";
+            return result;
+        }
+        item_area->items.push_back(clone);
+        if (!kernel::objects().components().set_area(clone->handle(), state.item_area.id)) {
+            stop_toolset_preview(session);
+            result.status = PreviewStatus::actor_failed;
+            result.diagnostic = "Preview item spatial initialization failed";
+            return result;
+        }
+        state.authored_items.push_back(source->handle());
+        state.ground_items.push_back(clone->handle());
+    }
+    if (!kernel::objects().components().set_area(state.actor, state.item_area.id)) {
+        stop_toolset_preview(session);
+        result.status = PreviewStatus::actor_failed;
+        result.diagnostic = "Preview actor ownership initialization failed";
+        return result;
+    }
+    state.spatial.area = state.item_area.id;
+    state.item_revision = 1;
+    state.action.actor = state.actor;
+    float pickup_duration = 0.0f;
+    nwn1::resolve_pickup_animation_durations({&state.actor, 1}, {&pickup_duration, 1});
+    const double pickup_ticks = std::ceil(static_cast<double>(pickup_duration) * gameplay::action_ticks_per_second);
+    state.action.pickup_ticks = pickup_ticks > 0.0 && pickup_ticks <= UINT32_MAX
+        ? static_cast<uint32_t>(pickup_ticks)
+        : 0;
     state.active = true;
 
     result.status = PreviewStatus::ok;
     result.actor = state.actor;
     return result;
+}
+
+PreviewItemWorldView toolset_preview_item_world(const ToolsetPreviewSession& session) noexcept
+{
+    if (!session.impl_ || !session.impl_->active) { return {}; }
+    const auto& state = *session.impl_;
+    return {state.item_area, state.authored_items, state.ground_items, state.item_revision};
+}
+
+gameplay::ActorActionState toolset_preview_action_state(const ToolsetPreviewSession& session) noexcept
+{
+    return session.impl_ && session.impl_->active ? session.impl_->action : gameplay::ActorActionState{};
+}
+
+const char* preview_item_message(const PreviewItemResult& result) noexcept
+{
+    switch (result.status) {
+    case PreviewItemStatus::none:
+        return "";
+    case PreviewItemStatus::accepted:
+        return "Action started";
+    case PreviewItemStatus::cancelled:
+        return "Action cancelled";
+    case PreviewItemStatus::movement_failed:
+        return "Could not reach the target";
+    case PreviewItemStatus::applied:
+        return "Done";
+    case PreviewItemStatus::inactive:
+        return "Play preview is no longer active";
+    case PreviewItemStatus::invalid_input:
+        return "Item selection is invalid or stale";
+    case PreviewItemStatus::profile_failed:
+        return "Equipment changed, but a rule callback failed; see Output";
+    case PreviewItemStatus::rejected:
+        return result.transfer_status != ItemTransferStatus::success
+            ? item_transfer_message(result.transfer_status)
+            : "Equipment change rejected by the rules or available inventory space";
+    }
+    return "Item action failed";
 }
 
 nav::NavBatchStats project_toolset_preview_rays(
@@ -767,8 +901,15 @@ PreviewTickStats tick_toolset_preview(
     std::span<PreviewActorLocomotion> locomotion_output)
 {
     PreviewTickStats stats;
-    if (!session.impl_ || !session.impl_->active) return stats;
+    if (!session.impl_ || !session.impl_->active) {
+        stats.action_result.status = PreviewItemStatus::inactive;
+        return stats;
+    }
     auto& state = *session.impl_;
+    if (state.service_generation != kernel::services().generation() || !kernel::objects().valid(state.actor)) {
+        stats.status = PreviewStatus::actor_failed;
+        return stats;
+    }
     if (spatial_output.empty() || locomotion_output.empty()) {
         stats.status = PreviewStatus::output_full;
         return stats;
@@ -784,17 +925,8 @@ PreviewTickStats tick_toolset_preview(
             || !std::isfinite(sample.turn_axis)
             || !std::isfinite(sample.zoom_axis)
             || !std::isfinite(sample.zoom_delta)
-            || ((sample.flags & preview_input_click_target) != 0
-                && !finite(sample.click_target))
-            || ((sample.flags & preview_input_click_door) != 0
-                && (sample.door_index >= state.navigation.doors.size()
-                    || !finite(sample.door_bounds_min)
-                    || !finite(sample.door_bounds_max)
-                    || glm::any(glm::greaterThan(
-                        sample.door_bounds_min,
-                        sample.door_bounds_max))))
-            || ((sample.flags & preview_input_click_target) != 0
-                && (sample.flags & preview_input_click_door) != 0)) {
+            || !valid_preview_pointer_action(sample)
+            || ((sample.flags & preview_input_click_door) != 0 && sample.door_index >= state.navigation.doors.size())) {
             stats.status = PreviewStatus::invalid_input;
             continue;
         }
@@ -913,15 +1045,43 @@ PreviewTickStats tick_toolset_preview(
                 - sample.zoom_delta * zoom_units_per_wheel_step,
             minimum_camera_distance, maximum_camera_distance);
 
+        const glm::vec2 movement_axis = clamped_movement_axis(sample.move_axis);
+        const float turn_axis = std::clamp(sample.turn_axis, -1.0f, 1.0f);
+        const bool direct_movement = std::abs(movement_axis.x) > movement_axis_epsilon
+            || std::abs(movement_axis.y) > movement_axis_epsilon;
+        const bool direct_input = direct_movement
+            || std::abs(turn_axis) > movement_axis_epsilon;
+
         if ((sample.flags & preview_input_cancel) != 0) {
             clear_route();
         }
-        if ((sample.flags & preview_input_click_target) != 0) {
-            clear_route();
-            ++stats.path_request_count;
-            if (!assign_route(sample.click_target)) {
-                ++stats.path_failure_count;
+        const size_t failures_before = stats.path_failure_count;
+        const size_t blocked_before = stats.blocked_count;
+        const auto action_states = std::span{&state.action, 1};
+        std::array<gameplay::ActorActionResult, 1> action_results;
+        const bool interrupt = direct_input || (sample.flags & (preview_input_cancel | preview_input_click_door)) != 0;
+        const bool has_action = state.action.phase != gameplay::ActionPhase::idle
+            && state.action.phase != gameplay::ActionPhase::finished;
+        if ((interrupt && has_action) || (!interrupt && (sample.flags & (preview_input_click_target | preview_input_item_action)) != 0)) {
+            gameplay::ActorActionRequest request{.actor_index = 0};
+            if (!interrupt && (sample.flags & preview_input_item_action) != 0) {
+                request.kind = sample.item_action.action;
+                request.target = sample.item_action.item;
+                request.slot = sample.item_action.slot;
+            } else if (!interrupt) {
+                request.kind = gameplay::ActionKind::move_to;
+                request.destination = sample.click_target;
             }
+            gameplay::submit_actor_actions(action_states, {&request, 1}, action_results);
+            stats.action_result = action_results[0];
+        }
+        std::array<gameplay::ActionMovement, 1> action_movement;
+        gameplay::prepare_actor_actions(state.item_area, action_states, action_movement, action_results);
+        if (action_results[0].status != gameplay::ActionStatus::none) { stats.action_result = action_results[0]; }
+        if (action_movement[0].kind != gameplay::ActionMovementKind::none) { clear_route(); }
+        if (action_movement[0].kind == gameplay::ActionMovementKind::move_to) {
+            ++stats.path_request_count;
+            if (!assign_route(action_movement[0].destination)) { ++stats.path_failure_count; }
         }
         if ((sample.flags & preview_input_click_door) != 0) {
             clear_route();
@@ -954,13 +1114,6 @@ PreviewTickStats tick_toolset_preview(
                 ++stats.path_failure_count;
             }
         }
-
-        const glm::vec2 movement_axis = clamped_movement_axis(sample.move_axis);
-        const float turn_axis = std::clamp(sample.turn_axis, -1.0f, 1.0f);
-        const bool direct_movement = std::abs(movement_axis.x) > movement_axis_epsilon
-            || std::abs(movement_axis.y) > movement_axis_epsilon;
-        const bool direct_input = direct_movement
-            || std::abs(turn_axis) > movement_axis_epsilon;
 
         if (std::abs(turn_axis) > movement_axis_epsilon) {
             state.spatial.orientation = rotate_facing(
@@ -1197,6 +1350,63 @@ PreviewTickStats tick_toolset_preview(
             || !components.set_velocity(state.actor, state.spatial.velocity)) {
             stats.status = PreviewStatus::actor_failed;
             break;
+        }
+        auto motion_status = state.route_corner < state.route_end || state.pending_door != UINT32_MAX
+            ? gameplay::ActionMovementStatus::moving
+            : gameplay::ActionMovementStatus::arrived;
+        if (stats.path_failure_count != failures_before || stats.blocked_count != blocked_before) {
+            motion_status = gameplay::ActionMovementStatus::failed;
+        } else if (state.walk_rate <= 0.0f && motion_status == gameplay::ActionMovementStatus::moving) {
+            // NOMOVE actors may still pick up reachable items, but cannot wait
+            // indefinitely for an approach they cannot perform.
+            motion_status = state.action.kind == gameplay::ActionKind::pickup
+                ? gameplay::ActionMovementStatus::arrived
+                : gameplay::ActionMovementStatus::failed;
+        }
+        if (state.action.kind == gameplay::ActionKind::drop && state.action.phase == gameplay::ActionPhase::requested) {
+            const auto* area = kernel::objects().get<Area>(state.item_area);
+            if (!area) {
+                stats.status = PreviewStatus::actor_failed;
+                break;
+            }
+            state.ground_items.reserve(area->items.size() + 1);
+        }
+        gameplay::complete_actor_actions(state.item_area, state.nav_world, pickup_reach,
+            action_states, {&motion_status, 1}, action_results);
+        if (state.action.phase == gameplay::ActionPhase::grabbing || state.action.phase == gameplay::ActionPhase::recovering) {
+            clear_route();
+            state.locomotion = PreviewActorLocomotion::idle;
+            state.spatial.velocity = glm::vec3{0.0f};
+            if (state.action.phase == gameplay::ActionPhase::grabbing && state.action.elapsed_ticks == 0) {
+                const auto delta = state.action.destination - state.spatial.position;
+                if (horizontal_distance_squared(state.action.destination, state.spatial.position) > movement_axis_epsilon) {
+                    state.spatial.orientation = horizontal_facing(delta);
+                }
+            }
+            components.set_orientation(state.actor, state.spatial.orientation);
+            components.set_velocity(state.actor, state.spatial.velocity);
+        }
+        if (action_results[0].status != gameplay::ActionStatus::none) {
+            stats.action_result = action_results[0];
+            clear_route();
+        }
+        if (state.service_generation != kernel::services().generation() || !kernel::objects().valid(state.actor)) {
+            stats.status = PreviewStatus::actor_failed;
+            break;
+        }
+        if (action_results[0].changed) {
+            ++state.item_revision;
+            if (!action_results[0].equipment_changed) {
+                const auto* area = kernel::objects().get<Area>(state.item_area);
+                if (!area) {
+                    stats.status = PreviewStatus::actor_failed;
+                    break;
+                }
+                state.ground_items.clear();
+                for (const auto* item : area->items) {
+                    state.ground_items.push_back(item->handle());
+                }
+            }
         }
         state.camera.focus = state.spatial.position;
     }

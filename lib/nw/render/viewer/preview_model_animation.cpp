@@ -414,11 +414,11 @@ bool prime_scene_hold_animation(PreviewScene& scene)
     return loaded_render_model_animation;
 }
 
-AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
+AreaCreatureAnimationStats update_area_creature_animations(
     PreviewScene& scene,
-    std::span<const AreaCreatureLocomotionAnimationInput> inputs)
+    std::span<const AreaCreatureAnimationInput> inputs)
 {
-    AreaCreatureLocomotionAnimationStats stats{
+    AreaCreatureAnimationStats stats{
         .input_count = static_cast<uint32_t>(
             std::min<size_t>(inputs.size(), std::numeric_limits<uint32_t>::max())),
     };
@@ -427,7 +427,9 @@ AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
     }
 
     const auto valid_input = [&inputs](size_t index) {
-        if (inputs[index].owner.type != nw::ObjectType::creature) {
+        if (inputs[index].owner.type != nw::ObjectType::creature
+            || inputs[index].locomotion > AreaCreatureLocomotion::turning_right
+            || !std::isfinite(inputs[index].action_time) || inputs[index].action_time < 0.0f) {
             return false;
         }
         for (size_t previous = 0; previous < index; ++previous) {
@@ -448,7 +450,7 @@ AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
         }
 
         const auto owner = scene.static_area_model_info[model_index].object;
-        const AreaCreatureLocomotionAnimationInput* input = nullptr;
+        const AreaCreatureAnimationInput* input = nullptr;
         for (size_t input_index = 0; input_index < inputs.size(); ++input_index) {
             if (inputs[input_index].owner == owner && valid_input(input_index)) {
                 input = &inputs[input_index];
@@ -469,7 +471,27 @@ AreaCreatureLocomotionAnimationStats update_area_creature_locomotion_animations(
         }
 
         LocomotionClipSelection selection;
-        switch (input->locomotion) {
+        if (input->grabbing) {
+            selection.clip = find_render_model_animation_clip(*model, "getlow");
+            if (selection.clip != std::numeric_limits<uint32_t>::max()) {
+                if (!ensure_render_model_animation_backend(*instance, *model, model_index)) {
+                    ++stats.missing_clip_count;
+                    continue;
+                }
+                const float time = std::min(input->action_time, model->animations[selection.clip].duration);
+                stats.changed_model_count += !instance->animation.enabled
+                    || instance->animation.clip != selection.clip || instance->animation.time != time
+                    || instance->animation.playback_rate != 0.0f || instance->animation.looping;
+                instance->animation.clip = selection.clip;
+                instance->animation.time = time;
+                instance->animation.playback_rate = 0.0f;
+                instance->animation.looping = false;
+                instance->animation.enabled = true;
+                continue;
+            }
+            ++stats.missing_clip_count;
+        }
+        switch (input->grabbing ? AreaCreatureLocomotion::idle : input->locomotion) {
         case AreaCreatureLocomotion::walking_forward: {
             constexpr std::array names{"walk"sv, "cwalkf"sv, "ccwalkf"sv, "cwalk"sv};
             selection.clip = find_first_render_model_animation_clip(*model, names);

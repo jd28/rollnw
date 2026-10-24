@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 class ClientRenderer;
 namespace Rml {
@@ -37,6 +38,14 @@ struct PlayPreviewState {
     bool picker_was_showing_project_tree = false;
     bool picker_was_showing_areas = false;
     bool visuals_attached = false;
+    Rml::ElementDocument* inventory_document = nullptr; // borrowed from Rml runtime
+    std::vector<PreviewItemRequest> inventory_actions;
+    std::optional<PreviewItemRequest> pending_item;
+    ObjectHandle inventory_actor{};
+    uint64_t inventory_revision = 0;
+    std::string item_message;
+    bool inventory_visible = false;
+    bool inventory_dirty = true;
 
     bool placement_pending() const noexcept
     {

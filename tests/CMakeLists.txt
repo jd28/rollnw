@@ -269,6 +269,8 @@ add_executable(rollnw_test
     objects_encounter.cpp
     objects_item.cpp
     objects_equipment_changes.cpp
+    objects_item_transfers.cpp
+    gameplay_actions.cpp
     objects_module.cpp
     objects_placeable.cpp
     objects_player.cpp
@@ -448,6 +450,9 @@ if(TARGET RmlUi::RmlUi)
         rollnw_client_rml_smalls_expression_binding.cpp
         rollnw_client_rml_smalls_language_binding.cpp
         ../tools/client/play_preview_view.cpp
+        ../tools/client/play_preview_inventory.cpp
+        ../tools/client/play_preview_runtime.cpp
+        ../tools/client/runtime_input_renderer.cpp
         ../tools/client/client_metrics.cpp
         ../tools/client/command_view.cpp
         ../tools/client/client_input.cpp

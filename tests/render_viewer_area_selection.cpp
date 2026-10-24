@@ -356,6 +356,14 @@ TEST(RenderViewerAreaSelection, ItemPointerAssistancePreservesDirectHitsAndRespe
         viewer::select_area_pointer_objects(pixels, camera, viewport, records, scene, hits);
         EXPECT_EQ(hits[0].status, viewer::AreaObjectSelectionStatus::miss);
 
+        // Exact pointer hits obey tile occlusion too, not only assisted hits.
+        viewer::select_area_pointer_objects(std::span{&center, 1u}, camera, viewport, records, scene, hits);
+        if (kind == nw::ObjectType::tile) {
+            EXPECT_EQ(hits[0].status, viewer::AreaObjectSelectionStatus::miss);
+        } else {
+            EXPECT_EQ(hits[0].object, blocker);
+        }
+
         // A nearer screen-space item wins over a farther offset, but never
         // steals a direct mesh hit from the object actually under the pointer.
         auto near_model = make_thin_pointer_model(gfx.context, camera, viewport,

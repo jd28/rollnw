@@ -338,28 +338,4 @@ size_t count_nwn_wing_attachment_visual_policy_stripped_meshes(
     return stripped_mesh_count;
 }
 
-std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& appearance, std::string_view race, char sex)
-{
-    nw::String label = appearance.label;
-    nw::string::tolower(&label);
-    for (auto& ch : label) {
-        if (ch == ' ' || ch == '-') {
-            ch = '_';
-        }
-    }
-
-    const std::array<std::string, 3> candidates = {
-        fmt::format("p{}{}0", sex, race),
-        fmt::format("a_{}", label.c_str()),
-        fmt::format("a_{}a", sex),
-    };
-
-    for (const auto& candidate : candidates) {
-        if (nw::kernel::resman().contains({nw::Resref{candidate}, nw::ResourceType::mdl})) {
-            return candidate;
-        }
-    }
-    return std::nullopt;
-}
-
 } // namespace nw::render::viewer

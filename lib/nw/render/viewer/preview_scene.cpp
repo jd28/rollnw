@@ -6082,11 +6082,24 @@ AreaTransientVisualResult remove_area_transient_visuals(
     return result;
 }
 
-static ObjectVisualRefreshResult replace_area_object_visuals(
+ObjectVisualRefreshResult replace_area_object_visuals(
     PreviewScene& scene, PreviewRenderResources& resources,
     std::span<const nw::ObjectHandle> removed,
-    std::span<const nw::ObjectHandle> added, PreviewSceneLoadOptions options)
+    std::span<const nw::ObjectHandle> added, PreviewSceneLoadOptions options, nw::ObjectHandle source_area)
 {
+    if (source_area.type == nw::ObjectType::invalid) { source_area = scene.root_object; }
+    if (!scene.is_area || !scene.area_render_scene || source_area.type != nw::ObjectType::area
+        || !nw::kernel::objects().valid(source_area)) {
+        return {.status = ObjectVisualRefreshStatus::invalid_input, .diagnostic = "Invalid visual source area"};
+    }
+    for (const auto handles : {removed, added}) {
+        std::vector<nw::ObjectHandle> sorted{handles.begin(), handles.end()};
+        std::sort(sorted.begin(), sorted.end());
+        if (sorted.size() > UINT32_MAX || std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end()) {
+            return {.status = ObjectVisualRefreshStatus::invalid_input,
+                .diagnostic = "Visual replacement contains duplicate or too many objects"};
+        }
+    }
     if (!valid_scene_model_columns(scene)) {
         return {.status = ObjectVisualRefreshStatus::invalid_input,
             .diagnostic = "Area object model columns are invalid"};
@@ -6099,7 +6112,7 @@ static ObjectVisualRefreshResult replace_area_object_visuals(
     for (const auto object : added) {
         const auto* spatial = nw::kernel::objects().components().find_spatial(object);
         if (!nw::kernel::objects().valid(object) || !spatial
-            || spatial->area != scene.root_object.id
+            || spatial->area != source_area.id
             || !finite(spatial->position) || !finite(spatial->orientation) || !finite(spatial->scale)) {
             return {.status = ObjectVisualRefreshStatus::invalid_input,
                 .diagnostic = "Area visual replacement contains a stale, non-finite or wrong-area object"};

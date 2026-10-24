@@ -10,6 +10,7 @@
 #include "client_preferences.hpp"
 #include "client_rml_runtime.hpp"
 #include "client_runtime.hpp"
+#include "play_preview_inventory.hpp"
 #include "rollnw_tool_version.hpp"
 #include <RmlUi/Core.h>
 #include <SDL3/SDL.h>
@@ -223,6 +224,20 @@ int run_client_application(const char* executable)
         if (rml_runtime.contexts().palette) {
             palette_context->RemoveEventListener("click", &blueprint_action_listener);
         }
+    });
+    state.play_preview.inventory_document = rml_runtime.load_document(*palette_context,
+        nw::Resource{nw::Resref{"ui/preview_inventory"}, nw::ResourceType::rml});
+    if (!state.play_preview.inventory_document) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadDocument failed: ui/preview_inventory.rml");
+        return 1;
+    }
+    nw::toolset::PlayPreviewInventoryListener inventory_listener{state.play_preview};
+    palette_context->AddEventListener("click", &inventory_listener);
+    const auto inventory_listener_cleanup = create_scope_exit([&] {
+        if (rml_runtime.contexts().palette) {
+            palette_context->RemoveEventListener("click", &inventory_listener);
+        }
+        state.play_preview.inventory_document = nullptr;
     });
     const std::filesystem::path executable_arg{executable};
     state.client_executable = executable_arg.has_parent_path()

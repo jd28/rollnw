@@ -4,13 +4,20 @@
 
 #include "../tools/client/area_navigation.hpp"
 #include "../tools/client/object_edits.hpp"
+#include "../tools/client/pc_input.hpp"
 #include "../tools/client/preview_session.hpp"
+#include "../tools/client/runtime_input.hpp"
 
 #include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/ModelCache.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
+#include <nw/objects/Item.hpp>
 #include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/resources/ResourceManager.hpp>
+#include <nw/serialization/component_propset_json.hpp>
 
 #include <array>
 #include <cmath>
@@ -960,4 +967,359 @@ TEST(ClientPreview, RepeatsLifecycleWithoutGrowingLiveState)
             EXPECT_EQ(area->creatures[index]->handle(), authored_creatures[index]);
         }
     }
+}
+
+TEST(ClientPreview, ItemLoopPreservesIdentityAndAuthoredStateAcrossRestarts)
+{
+    using namespace nw::toolset;
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    auto* source = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_NE(source, nullptr);
+    area->items.push_back(source);
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_area(source->handle(), area->handle().id));
+    ASSERT_TRUE(components.set_position(source->handle(), module->entry_position));
+    const auto source_handle = source->handle();
+    const size_t authored_count = area->items.size();
+    const size_t creature_count = area->creatures.size();
+    nlohmann::json before;
+    ASSERT_TRUE(nw::object_to_component_propset_json(source, before, &nw::kernel::runtime()));
+    const PreviewSessionStartInput start{
+        .area = area->handle(),
+        .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+        .spawn_position = module->entry_position,
+    };
+    nw::ObjectHandle previous_item{};
+    const auto object_count = nw::kernel::objects().object_count();
+    for (int repeat = 0; repeat < 3; ++repeat) {
+        SCOPED_TRACE(repeat);
+        ToolsetPreviewSession session;
+        const auto started = start_toolset_preview(session, start);
+        ASSERT_TRUE(started.ok()) << started.diagnostic;
+        auto world = toolset_preview_item_world(session);
+        ASSERT_EQ(world.ground.size(), authored_count);
+        const auto item = world.ground.back();
+        const auto runtime_area = world.area;
+        EXPECT_NE(item, source_handle);
+        EXPECT_NE(item, previous_item);
+        EXPECT_NE(runtime_area, area->handle());
+        auto* actor = nw::kernel::objects().get<nw::Creature>(started.actor);
+        ASSERT_NE(actor, nullptr);
+        auto* clone = nw::kernel::objects().get<nw::Item>(item);
+        ASSERT_NE(clone, nullptr);
+        const auto apply = [&](PreviewItemAction action, int32_t slot = -1) {
+            PreviewInputSample sample;
+            EXPECT_TRUE(set_preview_item_action(sample, {item, slot, action}));
+            std::array<nw::ObjectSpatialState, 1> spatial;
+            std::array<PreviewActorLocomotion, 1> locomotion;
+            auto result = tick_toolset_preview(session, {&sample, 1}, spatial, locomotion).action_result;
+            sample = {};
+            for (int i = 0; i < 120 && !result.changed && session.active()
+                && toolset_preview_action_state(session).phase != nw::gameplay::ActionPhase::finished;
+                ++i) {
+                result = tick_toolset_preview(session, {&sample, 1}, spatial, locomotion).action_result;
+            }
+            return result;
+        };
+        EXPECT_TRUE(apply(PreviewItemAction::pickup).ok());
+        ASSERT_TRUE(actor->inventory().has_item(clone));
+        const auto rejected = apply(PreviewItemAction::equip, static_cast<int32_t>(nw::EquipIndex::head));
+        EXPECT_FALSE(rejected.ok());
+        EXPECT_FALSE(rejected.changed);
+        EXPECT_TRUE(actor->inventory().has_item(clone));
+        const auto effects_before = actor->effects().size();
+        const auto equipped = apply(PreviewItemAction::equip, static_cast<int32_t>(nw::EquipIndex::belt));
+        ASSERT_TRUE(equipped.ok()) << preview_item_message(equipped);
+        EXPECT_TRUE(equipped.equipment_changed);
+        EXPECT_GT(actor->effects().size(), effects_before);
+        EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), clone);
+        EXPECT_FALSE(actor->inventory().has_item(clone));
+        EXPECT_FALSE(apply(PreviewItemAction::drop).ok());
+        ASSERT_TRUE(apply(PreviewItemAction::unequip, static_cast<int32_t>(nw::EquipIndex::belt)).ok());
+        EXPECT_EQ(actor->effects().size(), effects_before);
+        ASSERT_TRUE(apply(PreviewItemAction::drop).ok());
+        EXPECT_EQ(components.find_spatial(item)->area, runtime_area.id);
+        EXPECT_EQ(components.find_spatial(item)->position, components.find_spatial(started.actor)->position);
+        ASSERT_TRUE(apply(PreviewItemAction::pickup).ok());
+        if (repeat == 1) { ASSERT_TRUE(apply(PreviewItemAction::equip, static_cast<int32_t>(nw::EquipIndex::belt)).ok()); }
+        if (repeat == 2) { ASSERT_TRUE(apply(PreviewItemAction::drop).ok()); }
+        stop_toolset_preview(session);
+        EXPECT_FALSE(nw::kernel::objects().valid(item));
+        EXPECT_FALSE(nw::kernel::objects().valid(runtime_area));
+        EXPECT_FALSE(nw::kernel::objects().valid(started.actor));
+        EXPECT_EQ(nw::kernel::objects().object_count(), object_count);
+        EXPECT_TRUE(nw::kernel::objects().valid(source_handle));
+        EXPECT_EQ(area->items.size(), authored_count);
+        EXPECT_EQ(area->creatures.size(), creature_count);
+        EXPECT_EQ(area->items.back()->handle(), source_handle);
+        nlohmann::json after;
+        ASSERT_TRUE(nw::object_to_component_propset_json(source, after, &nw::kernel::runtime()));
+        EXPECT_EQ(after, before);
+        EXPECT_EQ(apply(PreviewItemAction::pickup).status, PreviewItemStatus::inactive);
+        previous_item = item;
+    }
+}
+
+namespace {
+
+class ClientPickupActions : public ::testing::Test {
+protected:
+    bool fixture_rig = false;
+    nw::toolset::ToolsetPreviewSession session;
+    nw::ObjectHandle item{};
+    nw::ObjectSpatialState spatial;
+    glm::vec3 start_position{};
+    glm::vec3 item_position{};
+
+    void SetUp() override
+    {
+        auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+        ASSERT_NE(module, nullptr);
+        auto* area = module->get_area(0);
+        ASSERT_NE(area, nullptr);
+        // The dedicated distribution indexes pmh0 but has no model payload.
+        // Supply a real supermodel chain for these headless timing checks only;
+        // desktop runs continue to use the installed rig.
+        if (nw::kernel::resman().demand({nw::Resref{"pmh0"}, nw::ResourceType::mdl}).bytes.size() == 0) {
+            auto rig = std::make_unique<nw::model::Mdl>(std::filesystem::path{"test_data/renderer/pickup_rig.mdl"});
+            ASSERT_TRUE(rig->valid());
+            fixture_rig = nw::kernel::models().map_.emplace("pmh0", nw::kernel::ModelPayload{std::move(rig), 1}).second;
+            ASSERT_TRUE(fixture_rig);
+        }
+        auto* source = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+        ASSERT_NE(source, nullptr);
+        area->items.push_back(source);
+        auto& components = nw::kernel::objects().components();
+        ASSERT_TRUE(components.set_area(source->handle(), area->handle().id));
+        ASSERT_TRUE(components.set_position(source->handle(), module->entry_position));
+        const auto started = nw::toolset::start_toolset_preview(session, {
+                                                                             .area = area->handle(),
+                                                                             .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+                                                                             .spawn_position = module->entry_position,
+                                                                         });
+        ASSERT_TRUE(started.ok()) << started.diagnostic;
+        start_position = components.find_spatial(started.actor)->position;
+        item = nw::toolset::toolset_preview_item_world(session).ground.back();
+        const std::array offsets{glm::vec3{4, 0, 10}, glm::vec3{-4, 0, 10}, glm::vec3{0, 4, 10}, glm::vec3{0, -4, 10}};
+        std::array<nw::nav::NavRayProjectionInput, 4> rays;
+        std::array<nw::nav::NavRayProjectionResult, 4> hits;
+        for (size_t i = 0; i < rays.size(); ++i) {
+            rays[i] = {.origin = start_position + offsets[i], .displacement = {0, 0, -20}};
+        }
+        nw::toolset::project_toolset_preview_rays(session, rays, hits);
+        const auto hit = std::ranges::find_if(hits, [](const auto& row) { return row.status == nw::nav::NavStatus::ok; });
+        ASSERT_NE(hit, hits.end());
+        item_position = hit->position;
+        ASSERT_GT(glm::distance(start_position, item_position), 3.0f);
+        ASSERT_TRUE(components.set_position(item, item_position));
+    }
+
+    void TearDown() override
+    {
+        nw::toolset::stop_toolset_preview(session);
+        if (fixture_rig) { nw::kernel::models().release("pmh0"); }
+    }
+
+    nw::toolset::PreviewTickStats tick(nw::toolset::PreviewInputSample sample = {})
+    {
+        std::array<nw::toolset::PreviewActorLocomotion, 1> locomotion;
+        const auto result = nw::toolset::tick_toolset_preview(session, {&sample, 1}, {&spatial, 1}, locomotion);
+        EXPECT_EQ(result.status, nw::toolset::PreviewStatus::ok);
+        return result;
+    }
+
+    void start_pickup()
+    {
+        nw::toolset::PreviewInputSample sample;
+        ASSERT_TRUE(nw::toolset::set_preview_item_action(sample, {item}));
+        const auto result = tick(sample);
+        ASSERT_EQ(result.path_request_count, 1u);
+        ASSERT_EQ(nw::toolset::toolset_preview_action_state(session).phase, nw::gameplay::ActionPhase::moving);
+        ASSERT_EQ(result.action_result.status, nw::gameplay::ActionStatus::accepted);
+    }
+
+    void expect_cancelled(nw::toolset::PreviewInputSample sample)
+    {
+        const auto result = tick(sample);
+        ASSERT_EQ(result.action_result.status, nw::gameplay::ActionStatus::cancelled);
+        const auto stopped_position = spatial.position;
+        for (int i = 0; i < 180; ++i) {
+            EXPECT_EQ(tick().action_result.status, nw::gameplay::ActionStatus::none);
+        }
+        EXPECT_EQ(spatial.position, stopped_position);
+        EXPECT_EQ(nw::kernel::objects().components().find_spatial(item)->area,
+            nw::toolset::toolset_preview_item_world(session).area.id);
+    }
+};
+
+TEST_F(ClientPickupActions, ApproachesAndPicksUpThroughTheExistingMover)
+{
+    start_pickup();
+    size_t transfers = 0;
+    for (int i = 0; i < 1200; ++i) {
+        const auto result = tick();
+        transfers += static_cast<size_t>(result.action_result.changed);
+        if (nw::toolset::toolset_preview_action_state(session).phase == nw::gameplay::ActionPhase::finished) { break; }
+    }
+    const auto action = nw::toolset::toolset_preview_action_state(session);
+    ASSERT_EQ(action.status, nw::gameplay::ActionStatus::applied);
+    EXPECT_EQ(transfers, 1u);
+    EXPECT_GT(glm::distance(spatial.position, start_position), 1.0f);
+    EXPECT_LE(glm::distance(spatial.position, item_position), 1.0f);
+    EXPECT_TRUE(nw::kernel::objects().get<nw::Creature>(session.actor())->inventory().has_item(nw::kernel::objects().get<nw::Item>(item)));
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_FALSE(tick().action_result.changed);
+    }
+}
+
+TEST_F(ClientPickupActions, KeyboardMovementCancelsPickupAndItsRoute)
+{
+    start_pickup();
+    nw::toolset::PcDeviceSample input;
+    input.keys[static_cast<size_t>(nw::toolset::PcKey::w)] = true;
+    nw::toolset::PreviewInputSample sample;
+    ASSERT_EQ(nw::toolset::translate_pc_input_samples({&input, 1}, {&sample, 1}), nw::toolset::PreviewStatus::ok);
+    expect_cancelled(sample);
+}
+
+TEST_F(ClientPickupActions, ControllerDriftKeepsApproachingAndIntentionalMovementCancels)
+{
+    start_pickup();
+    nw::toolset::PcDeviceSample input;
+    input.controller_connected = true;
+    input.left_stick.y = -0.1f;
+    nw::toolset::PreviewInputSample sample;
+    ASSERT_EQ(nw::toolset::translate_pc_input_samples({&input, 1}, {&sample, 1}), nw::toolset::PreviewStatus::ok);
+    EXPECT_EQ(tick(sample).action_result.status, nw::gameplay::ActionStatus::none);
+    EXPECT_EQ(nw::toolset::toolset_preview_action_state(session).phase, nw::gameplay::ActionPhase::moving);
+    input.left_stick.y = -0.75f;
+    ASSERT_EQ(nw::toolset::translate_pc_input_samples({&input, 1}, {&sample, 1}), nw::toolset::PreviewStatus::ok);
+    expect_cancelled(sample);
+}
+
+TEST_F(ClientPickupActions, NewClickReplacesPickupWithoutLeavingADeferredTransfer)
+{
+    start_pickup();
+    nw::toolset::PreviewInputSample sample;
+    ASSERT_TRUE(nw::toolset::set_preview_click_target(sample, start_position));
+    tick(sample);
+    for (int i = 0; i < 180; ++i) {
+        tick();
+    }
+    EXPECT_EQ(nw::toolset::toolset_preview_action_state(session).kind, nw::gameplay::ActionKind::move_to);
+    EXPECT_EQ(nw::toolset::toolset_preview_action_state(session).status, nw::gameplay::ActionStatus::applied);
+    EXPECT_EQ(nw::kernel::objects().components().find_spatial(item)->area,
+        nw::toolset::toolset_preview_item_world(session).area.id);
+}
+
+TEST_F(ClientPickupActions, UnreachableItemFinishesWithoutOwnershipChanges)
+{
+    ASSERT_TRUE(nw::kernel::objects().components().set_position(item, item_position + glm::vec3{0, 0, 3}));
+    start_pickup();
+    for (int i = 0; i < 1200; ++i) {
+        tick();
+        if (nw::toolset::toolset_preview_action_state(session).phase == nw::gameplay::ActionPhase::finished) { break; }
+    }
+    const auto action = nw::toolset::toolset_preview_action_state(session);
+    EXPECT_EQ(action.phase, nw::gameplay::ActionPhase::finished);
+    EXPECT_NE(action.status, nw::gameplay::ActionStatus::applied);
+    EXPECT_EQ(nw::kernel::objects().components().find_spatial(item)->area,
+        nw::toolset::toolset_preview_item_world(session).area.id);
+}
+
+} // namespace
+
+TEST(ClientPreview, ItemCommandIsAnEdgeAndReplacesOtherPointerActions)
+{
+    using namespace nw::toolset;
+    const nw::ObjectHandle item{.id = static_cast<nw::ObjectID>(123), .type = nw::ObjectType::item, .version = 1};
+    PreviewInputSample sample;
+    ASSERT_TRUE(set_preview_click_target(sample, {1, 2, 0}));
+    ASSERT_TRUE(set_preview_item_action(sample, {item}));
+    EXPECT_EQ(sample.flags, preview_input_item_action);
+    PreviewFixedStepState fixed;
+    std::array<PreviewInputSample, 6> outputs;
+    const auto result = build_preview_tick_samples(fixed, 0.05, sample, outputs);
+    ASSERT_EQ(result.tick_count, 3u);
+    EXPECT_EQ(outputs[0].flags, preview_input_item_action);
+    EXPECT_EQ(outputs[0].item_action.item, item);
+    EXPECT_EQ(outputs[1].flags, preview_input_none);
+    EXPECT_EQ(outputs[2].flags, preview_input_none);
+    ASSERT_TRUE(set_preview_click_target(sample, {2, 3, 0}));
+    EXPECT_EQ(sample.flags, preview_input_click_target);
+}
+
+TEST_F(ClientPickupActions, GrabStopsMovementAndCanBeCancelledBeforeCommit)
+{
+    using namespace nw::toolset;
+    using nw::gameplay::ActionPhase;
+    EXPECT_EQ(toolset_preview_action_state(session).pickup_ticks, 30u);
+    start_pickup();
+    for (int i = 0; i < 1200 && toolset_preview_action_state(session).phase == ActionPhase::moving; ++i) {
+        tick();
+    }
+    ASSERT_EQ(toolset_preview_action_state(session).phase, ActionPhase::grabbing);
+    const auto stopped = spatial.position;
+    for (int i = 0; i < 15; ++i) {
+        EXPECT_FALSE(tick().action_result.changed);
+        EXPECT_EQ(spatial.position, stopped);
+        EXPECT_EQ(spatial.velocity, glm::vec3(0.0f));
+    }
+    PreviewInputSample cancel;
+    cancel.flags = preview_input_cancel;
+    expect_cancelled(cancel);
+}
+
+TEST_F(ClientPickupActions, LiveInputFramesDoNotRestartOrSlideTheGrab)
+{
+    using namespace nw::toolset;
+    using nw::gameplay::ActionPhase;
+    RuntimeInputState input;
+    PreviewFixedStepState fixed;
+    ASSERT_TRUE(set_preview_item_action(input.pending, {item}));
+    std::array<PreviewInputSample, 6> samples;
+    std::array<PreviewActorLocomotion, 1> locomotion;
+    constexpr std::array frame_times{0.001, 0.016, 0.05, 0.008, 0.03};
+    size_t transfers = 0;
+    size_t route_requests = 0;
+    bool saw_grab = false;
+    bool advanced_grab = false;
+    bool slid = false;
+    glm::vec3 stopped_position{};
+    for (size_t frame = 0; frame < 300; ++frame) {
+        const auto dt = frame_times[frame % frame_times.size()];
+        PcDeviceSample physical;
+        ASSERT_EQ(acquire_pc_device_sample(input, dt,
+                      {.keyboard = false, .controller = false, .pointer = true}, physical),
+            PreviewStatus::ok);
+        PreviewInputSample sample;
+        ASSERT_EQ(translate_pc_input_samples({&physical, 1}, {&sample, 1}), PreviewStatus::ok);
+        const auto batch = build_preview_tick_samples(fixed, dt, sample, samples);
+        ASSERT_EQ(batch.status, PreviewStatus::ok);
+        if (batch.tick_count == 0) { continue; }
+        const auto result = tick_toolset_preview(session, std::span{samples}.first(batch.tick_count), {&spatial, 1}, locomotion);
+        ASSERT_EQ(result.status, PreviewStatus::ok);
+        consume_runtime_input_edges(input);
+        transfers += result.action_result.changed;
+        route_requests += result.path_request_count;
+        const auto action = toolset_preview_action_state(session);
+        if (action.phase == ActionPhase::grabbing || action.phase == ActionPhase::recovering) {
+            if (!saw_grab) { stopped_position = spatial.position; }
+            saw_grab = true;
+            slid |= spatial.position != stopped_position;
+            advanced_grab |= action.elapsed_ticks > 0;
+        }
+        if (action.phase == ActionPhase::finished) { break; }
+    }
+    EXPECT_TRUE(saw_grab);
+    EXPECT_TRUE(advanced_grab);
+    EXPECT_FALSE(slid);
+    EXPECT_EQ(route_requests, 1u);
+    EXPECT_EQ(transfers, 1u);
+    EXPECT_EQ(toolset_preview_action_state(session).phase, ActionPhase::finished);
+    EXPECT_EQ(toolset_preview_action_state(session).status, nw::gameplay::ActionStatus::applied);
+    EXPECT_TRUE(nw::kernel::objects().get<nw::Creature>(session.actor())->inventory().has_item(nw::kernel::objects().get<nw::Item>(item)));
 }

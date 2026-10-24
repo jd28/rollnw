@@ -10,6 +10,7 @@
 #include "client_frame.hpp"
 #include "client_runtime.hpp"
 #include "client_ui_action.hpp"
+#include "play_preview_inventory.hpp"
 #include "rml_managed_list.hpp"
 #include "runtime_input.hpp"
 #include "smalls_rmlui.hpp"
@@ -269,6 +270,30 @@ std::optional<WorkspaceViewerViewportRequest> render_client_workspace(ClientAppl
             state.viewer_viewport_pointer_owner = nw::toolset::ClientPointerOwner::none;
             apply_shell_layout(doc, state);
             system_interface.SetMouseCursor("arrow");
+        }
+    }
+    nw::toolset::sync_play_preview_inventory(state.play_preview);
+    if (state.play_preview.session.active() && viewer_viewport) {
+        std::optional<glm::vec2> hover_pixel;
+        if (SDL_GetMouseFocus() == surfaces.window && SDL_GetKeyboardFocus() == surfaces.window
+            && state.viewer_viewport_pointer_owner == nw::toolset::ClientPointerOwner::none) {
+            // Poll the current pointer after simulation/camera updates. A still
+            // mouse must lose its old target when the camera or world moves.
+            SDL_Event pointer{};
+            pointer.type = SDL_EVENT_MOUSE_MOTION;
+            SDL_GetMouseState(&pointer.motion.x, &pointer.motion.y);
+            const auto point = nw::toolset::to_context_point(surfaces.window, pointer.motion.x, pointer.motion.y);
+            const auto route = client_world_pointer_route(pointer, surfaces.window,
+                context, palette_context, palette_doc, state, viewer_viewport->kind);
+            if (route.sources.pointer && point_within_viewport(viewer_viewport->rect, point)
+                && !viewport_mouse_hit_blocked(doc, context->GetElementAtPoint(point), point, state)) {
+                hover_pixel = glm::vec2{point.x, point.y};
+            }
+        }
+        const auto hovered = renderer.update_viewer_area_item_hover(hover_pixel, viewer_viewport->rect);
+        if (hover_pixel) {
+            system_interface.SetMouseCursor(hovered.type == nw::ObjectType::item ? "pointer"
+                                                                                 : nw::toolset::play_preview_pointer_cursor(renderer, state.play_preview, *hover_pixel, viewer_viewport->rect));
         }
     }
     auto* viewer_tab = state.workspace.active_tab();

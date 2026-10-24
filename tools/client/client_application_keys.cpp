@@ -7,6 +7,7 @@
 #include "client_application_workbench.hpp"
 #include "client_application_workspace.hpp"
 #include "editor_input.hpp"
+#include "play_preview_inventory.hpp"
 #include "runtime_input.hpp"
 #include "smalls_rmlui.hpp"
 #include <RmlUi/Core.h>
@@ -35,7 +36,11 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
     {
         if (state.play_preview.session.active()
             || state.play_preview.placement_pending()) {
-            if (!event.key.repeat
+            if (!event.key.repeat && state.play_preview.session.active()
+                && (event.key.key == SDLK_I
+                    || (event.key.key == SDLK_ESCAPE && state.play_preview.inventory_visible))) {
+                nw::toolset::toggle_play_preview_inventory(state.play_preview, state.runtime_input);
+            } else if (!event.key.repeat
                 && (event.key.key == SDLK_F9 || event.key.key == SDLK_ESCAPE)) {
                 stop_play_preview(renderer, system_interface, doc, state);
             } else if (!event.key.repeat

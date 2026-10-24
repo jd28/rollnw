@@ -1,11 +1,16 @@
 #include "../tools/client/client_rml_runtime.hpp"
 #include "../tools/client/item_editor_data_model.hpp"
+#include "../tools/client/play_preview_inventory.hpp"
 #include "../tools/client/rml_nwgfx_renderer.hpp"
+#include "../tools/client/runtime_input.hpp"
 #include "../tools/ui/ui_v1.hpp"
 
 #include <nw/gfx/gfx.hpp>
 #include <nw/kernel/Kernel.hpp>
+#include <nw/objects/Area.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/render/viewer/device.hpp>
 #include <nw/render/viewer/session.hpp>
@@ -16,6 +21,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <filesystem>
 
 TEST(ClientGfxResources, ItemAppearanceActionsAlignAtEditorWidths)
@@ -248,4 +254,420 @@ TEST(ClientGfxResources, AreaPreviewAndUiTransitionsRetireSubmittedResourcesSafe
     const auto stats = resource_stats(ctx);
     EXPECT_GT(stats.upload_texture_count, stats.upload_batch_count - stats.upload_failure_count);
     EXPECT_EQ(stats.upload_failure_count, 3u);
+}
+
+TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthoredVisuals)
+{
+    using namespace nw::gfx;
+    using namespace nw::toolset;
+    namespace viewer = nw::render::viewer;
+    const bool owns_video = (SDL_WasInit(SDL_INIT_VIDEO) & SDL_INIT_VIDEO) == 0;
+    if (owns_video) {
+        SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+        ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
+    }
+    const auto video = create_scope_exit([&] { if (owns_video) { SDL_QuitSubSystem(SDL_INIT_VIDEO); } });
+    auto* core = create_core({.app_name = "preview-item-loop", .enable_validation = true});
+    ASSERT_NE(core, nullptr);
+    auto* ctx = create_context(core, {.width = 1000, .height = 760});
+    const auto graphics = create_scope_exit([&] {
+        if (ctx) { destroy_context(ctx); }
+        const auto report = validation_report(core);
+        EXPECT_EQ(report.error_count, 0u) << report.first_error;
+        EXPECT_EQ(report.warning_count, 0u) << report.first_warning;
+        destroy_core(core);
+    });
+    ASSERT_NE(ctx, nullptr);
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    auto* source = nw::kernel::objects().load<nw::Item>("nw_waxbt001");
+    ASSERT_NE(source, nullptr);
+    area->items.push_back(source);
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_area(source->handle(), area->handle().id));
+    ASSERT_TRUE(components.set_position(source->handle(), module->entry_position));
+    const std::filesystem::path root{ROLLNW_TEST_SOURCE_DIR};
+    RmlNwgfxRenderer renderer;
+    ASSERT_TRUE(renderer.initialize(core, ctx));
+    viewer::ViewerDevice device{ctx, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = {root / "lib/nw/render/shaders"}}));
+    auto scene = device.make_session();
+    scene->set_preview_scene_load_options({.area_object_editing = true});
+    ASSERT_TRUE(scene->load_live_object(area->handle(), "preview-item-loop"));
+    const auto baseline_models = scene->scene()->static_models.size();
+    const auto selection = scene->scene()->active_object;
+    const viewer::ViewerViewport viewport{0, 0, 1000, 760};
+    ASSERT_TRUE(scene->fit_to_scene(viewport));
+    scene->camera().set_orbit_view(module->entry_position, 8.0f, 180.0f, 40.0f);
+    Rml::SystemInterface system;
+    ClientRmlRuntime ui{root / "tools/client/ui", nw::kernel::resman()};
+    ASSERT_TRUE(ui.initialize(system, renderer, std::filesystem::path{ROLLNW_TEST_CLIENT_EXECUTABLE}.parent_path(), {1000, 760}));
+    ASSERT_TRUE(ui.create_overlay_contexts({1000, 760}));
+    auto* context = ui.contexts().palette;
+    ASSERT_NE(context, nullptr);
+    auto* backdrop = ui.contexts().toolset->LoadDocumentFromMemory(
+        "<rml><head><style>body {margin:0; width:100%; height:100%; background:#171a1f;}</style></head><body></body></rml>");
+    ASSERT_NE(backdrop, nullptr);
+    backdrop->Show();
+    renderer.on_resize(1000, 760, context);
+    PlayPreviewState preview;
+    preview.inventory_document = ui.load_document(*context,
+        nw::Resource{nw::Resref{"ui/preview_inventory"}, nw::ResourceType::rml});
+    ASSERT_NE(preview.inventory_document, nullptr);
+    PlayPreviewInventoryListener listener{preview};
+    context->AddEventListener("click", &listener);
+    const auto listener_cleanup = create_scope_exit([&] { context->RemoveEventListener("click", &listener); });
+    std::filesystem::create_directories("tmp");
+    const auto capture = [&](const char* name) {
+        EXPECT_TRUE(renderer.begin_frame());
+        ui.contexts().toolset->Update();
+        ui.contexts().toolset->Render();
+        renderer.finish_render_pass();
+        scene->tick(0);
+        scene->render(renderer.command_list(), viewport);
+        context->Update();
+        context->Render();
+        renderer.finish_render_pass();
+        EXPECT_TRUE(capture_screenshot(ctx, renderer.command_list(), name));
+        EXPECT_TRUE(renderer.begin_frame());
+        context->Render();
+        renderer.end_frame();
+    };
+    capture("tmp/preview-items-before.png");
+
+    // Hover is independent of editor selection and preserves existing palette
+    // overrides. Find a visible pointer sample from the item's actual bounds.
+    scene->set_area_object_selection_enabled(false);
+    const auto source_row = std::ranges::find_if(scene->scene()->static_area_model_info,
+        [&](const auto& row) { return row.object == source->handle(); });
+    ASSERT_NE(source_row, scene->scene()->static_area_model_info.end());
+    const auto source_model = static_cast<size_t>(source_row - scene->scene()->static_area_model_info.begin());
+    auto* source_instance = scene->scene()->static_model_instance(source_model);
+    ASSERT_NE(source_instance, nullptr);
+    const auto original_overrides = source_instance->material_override_handles;
+    const auto original_override_count = scene->scene()->material_overrides.size();
+    const auto original_emissive = scene->scene()->static_models[source_model]->materials.front().emissive;
+    const auto clip = scene->camera().get_projection_matrix() * scene->camera().get_view_matrix()
+        * glm::vec4(source_instance->current_bounds.center(), 1.0f);
+    ASSERT_GT(clip.w, 0.0f);
+    const glm::vec2 center{(clip.x / clip.w + 1.0f) * 0.5f * static_cast<float>(viewport.width),
+        (clip.y / clip.w + 1.0f) * 0.5f * static_cast<float>(viewport.height)};
+    std::vector<glm::vec2> pixels;
+    for (int y = -12; y <= 12; y += 2) {
+        for (int x = -12; x <= 12; x += 2) {
+            pixels.push_back(center + glm::vec2{x, y});
+        }
+    }
+    std::vector<viewer::AreaObjectSelection> hits(pixels.size());
+    viewer::select_area_pointer_objects(pixels, scene->camera(), viewport,
+        *scene->scene()->area_render_scene, *scene->scene(), hits,
+        {.triggers_enabled = false, .encounters_enabled = false});
+    const auto hit = std::ranges::find_if(hits, [&](const auto& row) { return row.object == source->handle(); });
+    ASSERT_NE(hit, hits.end());
+    const auto hover_pixel = pixels[static_cast<size_t>(hit - hits.begin())];
+    ASSERT_EQ(scene->update_area_item_hover(hover_pixel, viewport), source->handle());
+    const auto highlighted = source_instance->material_override_handles;
+    ASSERT_FALSE(highlighted.empty());
+    EXPECT_NE(highlighted, original_overrides);
+    EXPECT_EQ(scene->scene()->active_object, selection);
+    EXPECT_EQ(scene->scene()->static_models[source_model]->materials.front().emissive, original_emissive);
+    const auto highlighted_count = scene->scene()->material_overrides.size();
+    for (int frame = 0; frame < 10; ++frame) {
+        EXPECT_EQ(scene->update_area_item_hover(hover_pixel, viewport), source->handle());
+        EXPECT_EQ(source_instance->material_override_handles, highlighted);
+        EXPECT_EQ(scene->scene()->material_overrides.size(), highlighted_count);
+    }
+    capture("tmp/preview-items-hover.png");
+    EXPECT_EQ(scene->update_area_item_hover(std::nullopt, viewport), nw::ObjectHandle{});
+    EXPECT_EQ(source_instance->material_override_handles, original_overrides);
+    EXPECT_EQ(scene->scene()->material_overrides.size(), original_override_count);
+    capture("tmp/preview-items-hover-cleared.png");
+
+    // A stationary pointer follows camera changes, and replacement removes
+    // the temporary material handles even when the item was still hovered.
+    ASSERT_EQ(scene->update_area_item_hover(hover_pixel, viewport), source->handle());
+    const auto saved_camera = scene->camera();
+    scene->camera().set_orbit_view(module->entry_position + glm::vec3{50.0f, 0.0f, 0.0f}, 8.0f, 180.0f, 40.0f);
+    EXPECT_EQ(scene->update_area_item_hover(hover_pixel, viewport), nw::ObjectHandle{});
+    EXPECT_EQ(scene->scene()->material_overrides.size(), original_override_count);
+    scene->camera() = saved_camera;
+    ASSERT_EQ(scene->update_area_item_hover(hover_pixel, viewport), source->handle());
+    const auto replacement_highlighted = source_instance->material_override_handles;
+    const auto started = start_toolset_preview(preview.session, {
+                                                                    .area = area->handle(),
+                                                                    .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+                                                                    .spawn_position = module->entry_position,
+                                                                });
+    ASSERT_TRUE(started.ok()) << started.diagnostic;
+    auto world = toolset_preview_item_world(preview.session);
+    std::vector<nw::ObjectHandle> authored{world.authored.begin(), world.authored.end()};
+    std::vector<nw::ObjectHandle> additions{world.ground.begin(), world.ground.end()};
+    additions.push_back(started.actor);
+    ASSERT_TRUE(scene->replace_area_transient_visuals(authored, additions, world.area).ok());
+    for (const auto handle : replacement_highlighted) {
+        EXPECT_FALSE(scene->scene()->material_overrides.valid(handle));
+    }
+    const auto item = world.ground.back();
+    auto* actor = nw::kernel::objects().get<nw::Creature>(started.actor);
+    ASSERT_NE(actor, nullptr);
+    const auto has_visual = [&](nw::ObjectHandle handle) {
+        return std::ranges::any_of(scene->scene()->static_area_model_info,
+            [&](const auto& row) { return row.object == handle; });
+    };
+    EXPECT_FALSE(has_visual(source->handle()));
+    EXPECT_TRUE(has_visual(item));
+    preview.inventory_visible = true;
+    sync_play_preview_inventory(preview);
+    context->Update();
+    capture("tmp/preview-items-inventory.png");
+    auto* panel = preview.inventory_document->GetElementById("preview_inventory");
+    EXPECT_GT(panel->GetOffsetHeight(), 200);
+    EXPECT_LT(panel->GetOffsetHeight(), 760);
+    for (const auto action : {PreviewItemAction::pickup, PreviewItemAction::equip,
+             PreviewItemAction::unequip, PreviewItemAction::drop, PreviewItemAction::pickup}) {
+        SCOPED_TRACE(static_cast<int>(action));
+        sync_play_preview_inventory(preview);
+        context->Update();
+        const auto found = std::ranges::find_if(preview.inventory_actions,
+            [&](const auto& row) { return row.item == item && row.action == action; });
+        ASSERT_NE(found, preview.inventory_actions.end());
+        const auto index = static_cast<size_t>(found - preview.inventory_actions.begin());
+        auto* button = preview.inventory_document->QuerySelector(
+            ".preview_item_action[data-index='" + std::to_string(index) + "']");
+        ASSERT_NE(button, nullptr);
+        const auto revision = toolset_preview_item_world(preview.session).revision;
+        button->DispatchEvent("click", {});
+        ASSERT_TRUE(preview.pending_item);
+        EXPECT_EQ(toolset_preview_item_world(preview.session).revision, revision);
+        PreviewInputSample sample;
+        ASSERT_TRUE(set_preview_item_action(sample, *preview.pending_item));
+        preview.pending_item.reset();
+        auto tick = tick_toolset_preview(preview.session, {&sample, 1}, preview.spatial_rows, preview.locomotion_rows);
+        sample = {};
+        for (int i = 0; i < 120 && !tick.action_result.changed && toolset_preview_action_state(preview.session).phase != nw::gameplay::ActionPhase::finished; ++i) {
+            tick = tick_toolset_preview(preview.session, {&sample, 1}, preview.spatial_rows, preview.locomotion_rows);
+        }
+        ASSERT_EQ(tick.status, PreviewStatus::ok);
+        const std::array results{tick.action_result};
+        ASSERT_TRUE(results[0].ok()) << preview_item_message(results[0]);
+        world = toolset_preview_item_world(preview.session);
+        std::vector<nw::ObjectHandle> removed;
+        std::vector<nw::ObjectHandle> added;
+        if (results[0].equipment_changed) {
+            removed.push_back(started.actor);
+            added.push_back(started.actor);
+        } else if (action == PreviewItemAction::pickup) {
+            removed.push_back(item);
+        } else {
+            added.push_back(item);
+        }
+        const size_t model_count_before = scene->scene()->static_models.size();
+        ASSERT_TRUE(scene->replace_area_transient_visuals(removed, added, world.area).ok());
+        if (action == PreviewItemAction::equip) { EXPECT_GT(scene->scene()->static_models.size(), model_count_before); }
+        if (action == PreviewItemAction::unequip) { EXPECT_LT(scene->scene()->static_models.size(), model_count_before); }
+        EXPECT_EQ(has_visual(item), action == PreviewItemAction::drop);
+        EXPECT_TRUE(has_visual(started.actor));
+        preview.item_message = preview_item_message(results[0]);
+        preview.inventory_dirty = true;
+        sync_play_preview_inventory(preview);
+        capture(action == PreviewItemAction::equip  ? "tmp/preview-items-equipped.png"
+                : action == PreviewItemAction::drop ? "tmp/preview-items-dropped.png"
+                                                    : "tmp/preview-items-action.png");
+    }
+    world = toolset_preview_item_world(preview.session);
+    std::vector<nw::ObjectHandle> removed{world.ground.begin(), world.ground.end()};
+    removed.push_back(started.actor);
+    ASSERT_TRUE(scene->replace_area_transient_visuals(removed, authored, area->handle()).ok());
+    preview.inventory_visible = false;
+    sync_play_preview_inventory(preview);
+    stop_toolset_preview(preview.session);
+    EXPECT_FALSE(nw::kernel::objects().valid(item));
+    EXPECT_TRUE(has_visual(source->handle()));
+    EXPECT_EQ(scene->scene()->static_models.size(), baseline_models);
+    EXPECT_EQ(scene->scene()->active_object, selection);
+    scene->set_area_object_selection_enabled(true);
+    capture("tmp/preview-items-restored.png");
+}
+
+TEST(ClientGfxResources, PickupApproachRendersAndPublishesInventory)
+{
+    using namespace nw::gfx;
+    using namespace nw::toolset;
+    namespace viewer = nw::render::viewer;
+    const bool owns_video = (SDL_WasInit(SDL_INIT_VIDEO) & SDL_INIT_VIDEO) == 0;
+    if (owns_video) {
+        SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
+        ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
+    }
+    const auto video = create_scope_exit([&] { if (owns_video) { SDL_QuitSubSystem(SDL_INIT_VIDEO); } });
+    auto* core = create_core({.app_name = "pickup-action-preview", .enable_validation = true});
+    ASSERT_NE(core, nullptr);
+    auto* ctx = create_context(core, {.width = 1000, .height = 760});
+    const auto graphics = create_scope_exit([&] {
+        if (ctx) { destroy_context(ctx); }
+        const auto report = validation_report(core);
+        EXPECT_EQ(report.error_count, 0u) << report.first_error;
+        EXPECT_EQ(report.warning_count, 0u) << report.first_warning;
+        destroy_core(core);
+    });
+    ASSERT_NE(ctx, nullptr);
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    auto* source = nw::kernel::objects().load<nw::Item>("nw_waxbt001");
+    ASSERT_NE(source, nullptr);
+    area->items.push_back(source);
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_area(source->handle(), area->handle().id));
+    ASSERT_TRUE(components.set_position(source->handle(), module->entry_position));
+    PlayPreviewState preview;
+    const auto started = start_toolset_preview(preview.session, {
+                                                                    .area = area->handle(),
+                                                                    .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+                                                                    .spawn_position = module->entry_position + glm::vec3{0, 4, 0},
+                                                                });
+    ASSERT_TRUE(started.ok()) << started.diagnostic;
+    auto world = toolset_preview_item_world(preview.session);
+    const auto item = world.ground.back();
+    const nw::nav::NavRayProjectionInput ray{
+        .origin = module->entry_position + glm::vec3{0, 0, 10}, .displacement = {0, 0, -20}};
+    nw::nav::NavRayProjectionResult projected;
+    project_toolset_preview_rays(preview.session, {&ray, 1}, {&projected, 1});
+    ASSERT_EQ(projected.status, nw::nav::NavStatus::ok);
+    ASSERT_TRUE(components.set_position(item, projected.position));
+    const std::filesystem::path root{ROLLNW_TEST_SOURCE_DIR};
+    RmlNwgfxRenderer renderer;
+    ASSERT_TRUE(renderer.initialize(core, ctx));
+    viewer::ViewerDevice device{ctx, nw::kernel::resman()};
+    ASSERT_TRUE(device.initialize({.shader_roots = {root / "lib/nw/render/shaders"}}));
+    auto scene = device.make_session();
+    scene->set_preview_scene_load_options({.area_object_editing = true});
+    ASSERT_TRUE(scene->load_live_object(area->handle(), "pickup-action-preview"));
+    std::vector<nw::ObjectHandle> additions{world.ground.begin(), world.ground.end()};
+    additions.push_back(started.actor);
+    ASSERT_TRUE(scene->replace_area_transient_visuals(world.authored, additions, world.area).ok());
+    const viewer::ViewerViewport viewport{0, 0, 1000, 760};
+    scene->set_area_object_selection_enabled(false);
+    scene->set_area_day_night_autoplay(false);
+    ASSERT_TRUE(scene->fit_to_scene(viewport));
+    scene->camera().set_orbit_view(module->entry_position, 8.0f, 180.0f, 40.0f);
+    scene->tick(0);
+    const auto model = std::ranges::find_if(scene->scene()->static_area_model_info,
+        [&](const auto& row) { return row.object == item; });
+    ASSERT_NE(model, scene->scene()->static_area_model_info.end());
+    const auto index = static_cast<size_t>(model - scene->scene()->static_area_model_info.begin());
+    const auto clip = scene->camera().get_projection_matrix() * scene->camera().get_view_matrix()
+        * glm::vec4(scene->scene()->static_model_instance(index)->current_bounds.center(), 1.0f);
+    const glm::vec2 center{(clip.x / clip.w + 1.0f) * 500.0f, (clip.y / clip.w + 1.0f) * 380.0f};
+    std::vector<glm::vec2> pixels;
+    for (int y = -12; y <= 12; y += 2) {
+        for (int x = -12; x <= 12; x += 2) {
+            pixels.push_back(center + glm::vec2{x, y});
+        }
+    }
+    std::vector<viewer::AreaObjectSelection> hits(pixels.size());
+    viewer::select_area_pointer_objects(pixels, scene->camera(), viewport, *scene->scene()->area_render_scene,
+        *scene->scene(), hits, {.triggers_enabled = false, .encounters_enabled = false});
+    const auto hit = std::ranges::find_if(hits, [&](const auto& row) { return row.object == item; });
+    if (hit == hits.end()) {
+        std::filesystem::create_directories("tmp");
+        ASSERT_TRUE(renderer.begin_frame());
+        scene->render(renderer.command_list(), viewport);
+        ASSERT_TRUE(capture_screenshot(ctx, renderer.command_list(), "tmp/pickup-capture-debug.png"));
+        ASSERT_TRUE(renderer.begin_frame());
+        renderer.end_frame();
+    }
+    ASSERT_NE(hit, hits.end()) << "item position: " << projected.position.x << "," << projected.position.y << "," << projected.position.z;
+    const auto pixel = pixels[static_cast<size_t>(hit - hits.begin())];
+    ASSERT_EQ(scene->update_area_item_hover(pixel, viewport), item);
+
+    Rml::SystemInterface system;
+    ClientRmlRuntime ui{root / "tools/client/ui", nw::kernel::resman()};
+    ASSERT_TRUE(ui.initialize(system, renderer, std::filesystem::path{ROLLNW_TEST_CLIENT_EXECUTABLE}.parent_path(), {1000, 760}));
+    ASSERT_TRUE(ui.create_overlay_contexts({1000, 760}));
+    auto* overlay = ui.contexts().palette;
+    preview.inventory_document = ui.load_document(*overlay,
+        nw::Resource{nw::Resref{"ui/preview_inventory"}, nw::ResourceType::rml});
+    ASSERT_NE(preview.inventory_document, nullptr);
+    auto* background = ui.contexts().toolset->LoadDocumentFromMemory(
+        "<rml><head><style>body {margin:0;width:100%;height:100%;background:#171a1f;}</style></head><body></body></rml>");
+    ASSERT_NE(background, nullptr);
+    background->Show();
+    renderer.on_resize(1000, 760, overlay);
+    const char* capture_dir = std::getenv("ROLLNW_CAPTURE_PICKUP");
+    if (capture_dir) { std::filesystem::create_directories(capture_dir); }
+    size_t transfer_count = 0;
+    size_t grab_frames = 0;
+    size_t path_requests = 0;
+    RuntimeInputState input;
+    PreviewFixedStepState fixed;
+    for (int frame = 0; frame < 80; ++frame) {
+        if (frame >= 6) {
+            if (frame == 6) {
+                ASSERT_TRUE(set_preview_item_action(input.pending, {scene->update_area_item_hover(pixel, viewport)}));
+            }
+            // Include the live input lifetime: a pending click must be consumed
+            // after ticks so the next rendered frame cannot restart the grab.
+            PcDeviceSample physical;
+            ASSERT_EQ(acquire_pc_device_sample(input, 0.05,
+                          {.keyboard = false, .controller = false, .pointer = true}, physical),
+                PreviewStatus::ok);
+            PreviewInputSample sample;
+            ASSERT_EQ(translate_pc_input_samples({&physical, 1}, {&sample, 1}), PreviewStatus::ok);
+            std::array<PreviewInputSample, 6> samples;
+            const auto batch = build_preview_tick_samples(fixed, 0.05, sample, samples);
+            ASSERT_EQ(batch.status, PreviewStatus::ok);
+            ASSERT_GT(batch.tick_count, 0u);
+            const auto tick = tick_toolset_preview(preview.session, std::span{samples}.first(batch.tick_count), preview.spatial_rows, preview.locomotion_rows);
+            ASSERT_EQ(tick.status, PreviewStatus::ok);
+            consume_runtime_input_edges(input);
+            path_requests += tick.path_request_count;
+            if (tick.action_result.changed) {
+                ASSERT_TRUE(tick.action_result.ok());
+                ++transfer_count;
+                const std::array removed{item};
+                ASSERT_TRUE(scene->replace_area_transient_visuals(removed, {}, world.area).ok());
+            }
+            EXPECT_GT(scene->update_area_object_spatial_states(preview.spatial_rows).render_model_root_count, 0u);
+            const auto action = toolset_preview_action_state(preview.session);
+            grab_frames += action.phase == nw::gameplay::ActionPhase::grabbing;
+            const std::array animations{viewer::AreaCreatureAnimationInput{
+                .owner = started.actor,
+                .locomotion = preview.locomotion_rows[0] == PreviewActorLocomotion::walking_forward
+                    ? viewer::AreaCreatureLocomotion::walking_forward
+                    : viewer::AreaCreatureLocomotion::idle,
+                .action_time = static_cast<float>(action.phase == nw::gameplay::ActionPhase::recovering
+                                       ? action.pickup_ticks - action.elapsed_ticks
+                                       : action.elapsed_ticks)
+                    / nw::gameplay::action_ticks_per_second,
+                .grabbing = action.phase == nw::gameplay::ActionPhase::grabbing || action.phase == nw::gameplay::ActionPhase::recovering}};
+            ASSERT_EQ(scene->update_area_creature_animations(animations).rejected_input_count, 0u);
+        }
+        (void)scene->update_area_item_hover(frame < 64 ? std::optional{pixel} : std::nullopt, viewport);
+        preview.inventory_visible = frame >= 64;
+        sync_play_preview_inventory(preview);
+        ASSERT_TRUE(renderer.begin_frame());
+        ui.contexts().toolset->Update();
+        ui.contexts().toolset->Render();
+        renderer.finish_render_pass();
+        scene->tick(50);
+        scene->render(renderer.command_list(), viewport);
+        overlay->Update();
+        overlay->Render();
+        renderer.finish_render_pass();
+        if (capture_dir) {
+            const auto path = std::filesystem::path{capture_dir} / ("frame-" + std::to_string(1000 + frame) + ".png");
+            ASSERT_TRUE(capture_screenshot(ctx, renderer.command_list(), path.string().c_str()));
+            ASSERT_TRUE(renderer.begin_frame());
+        }
+        renderer.end_frame();
+    }
+    EXPECT_GT(grab_frames, 0u);
+    EXPECT_EQ(path_requests, 1u);
+    EXPECT_EQ(transfer_count, 1u);
+    EXPECT_EQ(toolset_preview_action_state(preview.session).status, nw::gameplay::ActionStatus::applied);
+    EXPECT_TRUE(nw::kernel::objects().get<nw::Creature>(started.actor)->inventory().has_item(nw::kernel::objects().get<nw::Item>(item)));
 }
