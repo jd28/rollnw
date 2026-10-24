@@ -6,6 +6,8 @@
 #include <nw/formats/Plt.hpp>
 #include <nw/util/string.hpp>
 
+#include <absl/container/flat_hash_map.h>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -498,16 +500,19 @@ nw::gfx::BindlessTextureIndex upload_surface_texture(const ModelAssetMaterialTex
     }
 
     ModelAssetDecodedTexture metallic_roughness{};
-    ModelAssetDecodedTexture occlusion{};
+    ModelAssetDecodedTexture separate_occlusion{};
     bool source_payload_failed = false;
     if (has_metallic_roughness) {
         metallic_roughness = decode_model_asset_texture_source_rgba8(asset.texture_sources[sources.metallic_roughness], stats);
         source_payload_failed = source_payload_failed || !metallic_roughness.valid();
     }
-    if (has_occlusion) {
-        occlusion = decode_model_asset_texture_source_rgba8(asset.texture_sources[sources.occlusion], stats);
-        source_payload_failed = source_payload_failed || !occlusion.valid();
+    if (has_occlusion && sources.occlusion != sources.metallic_roughness) {
+        separate_occlusion = decode_model_asset_texture_source_rgba8(asset.texture_sources[sources.occlusion], stats);
+        source_payload_failed = source_payload_failed || !separate_occlusion.valid();
     }
+    const auto& occlusion = sources.occlusion == sources.metallic_roughness
+        ? metallic_roughness
+        : separate_occlusion;
 
     const int width = metallic_roughness.valid() ? metallic_roughness.width : occlusion.width;
     const int height = metallic_roughness.valid() ? metallic_roughness.height : occlusion.height;
@@ -522,18 +527,23 @@ nw::gfx::BindlessTextureIndex upload_surface_texture(const ModelAssetMaterialTex
         return desc.fallback_surface;
     }
 
-    std::vector<uint8_t> pixels(static_cast<size_t>(width) * height * 4, kModelSurfaceNeutralAlpha);
-    for (size_t i = 0; i < static_cast<size_t>(width) * height; ++i) {
-        pixels[i * 4 + 0] = occlusion.valid() ? occlusion.pixels[i * 4 + 0] : kModelSurfaceNeutralOcclusion;
-        pixels[i * 4 + 1] = metallic_roughness.valid() ? metallic_roughness.pixels[i * 4 + 1] : kModelSurfaceNeutralRoughness;
-        pixels[i * 4 + 2] = metallic_roughness.valid() ? metallic_roughness.pixels[i * 4 + 2] : kModelSurfaceNeutralMetallic;
-        pixels[i * 4 + 3] = kModelSurfaceNeutralAlpha;
+    // Decoded buffers are owned by this call. Keep the existing G/B or R
+    // channels in place instead of allocating another complete RGBA image.
+    auto& surface = metallic_roughness.valid() ? metallic_roughness : separate_occlusion;
+    if (metallic_roughness.valid()) {
+        const auto* occlusion_pixels = occlusion.valid() ? occlusion.pixels.data() : nullptr;
+        for (size_t i = 0; i < surface.pixels.size(); i += 4) {
+            surface.pixels[i] = occlusion_pixels ? occlusion_pixels[i] : kModelSurfaceNeutralOcclusion;
+            surface.pixels[i + 3] = kModelSurfaceNeutralAlpha;
+        }
+    } else {
+        for (size_t i = 0; i < surface.pixels.size(); i += 4) {
+            surface.pixels[i + 1] = kModelSurfaceNeutralRoughness;
+            surface.pixels[i + 2] = kModelSurfaceNeutralMetallic;
+            surface.pixels[i + 3] = kModelSurfaceNeutralAlpha;
+        }
     }
 
-    ModelAssetDecodedTexture surface{};
-    surface.width = width;
-    surface.height = height;
-    surface.pixels = std::move(pixels);
     const auto texture_index = upload_decoded_texture(desc.ctx, model, surface, nw::gfx::Fmt::RGBA8, stats);
     if (!nw::gfx::bindless_texture_index_valid(texture_index)) {
         material_uses_fallback = true;
@@ -1207,6 +1217,11 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
     std::vector<std::array<nw::gfx::BindlessTextureIndex, 4>> uploaded_indices(
         asset.texture_sources.size(), {invalid, invalid, invalid, invalid});
     std::vector<uint8_t> attempted(asset.texture_sources.size(), 0);
+    struct UploadedSurface {
+        nw::gfx::BindlessTextureIndex index = nw::gfx::kInvalidBindlessTextureIndex;
+        bool uses_fallback = false;
+    };
+    absl::flat_hash_map<uint64_t, UploadedSurface> uploaded_surfaces;
 
     for (size_t i = 0; i < model.materials.size(); ++i) {
         const ModelAssetMaterialTextureSources sources = asset.material_texture_sources.empty()
@@ -1249,7 +1264,19 @@ ModelAssetTextureUploadStats upload_model_asset_material_textures(
             attempted,
             stats,
             material_uses_fallback);
-        material.surface_index = upload_surface_texture(sources, asset, desc, model, stats, material_uses_fallback);
+        material.surface_index = desc.fallback_surface;
+        if (source_index_valid(sources.metallic_roughness) || source_index_valid(sources.occlusion)) {
+            // Material factors are applied by the shader, not baked into pixels.
+            // Ordered source indices fully identify packing within this batch.
+            const uint64_t key = (uint64_t{sources.metallic_roughness} << 32) | sources.occlusion;
+            auto [entry, inserted] = uploaded_surfaces.try_emplace(key);
+            if (inserted) {
+                entry->second.index = upload_surface_texture(sources, asset, desc, model, stats,
+                    entry->second.uses_fallback);
+            }
+            material.surface_index = entry->second.index;
+            material_uses_fallback = material_uses_fallback || entry->second.uses_fallback;
+        }
         material.emissive_index = upload_source_texture(sources.emissive,
             nw::gfx::Fmt::RGBA8Srgb,
             false,

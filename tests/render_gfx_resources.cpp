@@ -136,6 +136,163 @@ protected:
     std::vector<Handle<Texture>> textures;
 };
 
+nw::render::ModelAssetTextureSource make_surface_test_source(std::span<const uint8_t> rgba, uint16_t width = 2, uint16_t height = 2)
+{
+    nw::render::ModelAssetTextureSource source;
+    source.resource = nw::Resource{nw::Resref{"surface_test"}, nw::ResourceType::tga};
+    source.kind = nw::render::ModelAssetTextureSourceKind::encoded_bytes;
+    source.encoded_bytes.resize(18 + rgba.size());
+    source.encoded_bytes[2] = 2;
+    source.encoded_bytes[12] = static_cast<uint8_t>(width);
+    source.encoded_bytes[14] = static_cast<uint8_t>(height);
+    source.encoded_bytes[16] = 32;
+    source.encoded_bytes[17] = 0x28;
+    for (size_t i = 0; i < rgba.size(); i += 4) {
+        source.encoded_bytes[18 + i] = rgba[i + 2];
+        source.encoded_bytes[19 + i] = rgba[i + 1];
+        source.encoded_bytes[20 + i] = rgba[i];
+        source.encoded_bytes[21 + i] = rgba[i + 3];
+    }
+    return source;
+}
+
+TEST_F(RenderGfxResources, SurfacePairsShareUploadsPreserveFactorsAndMatchEveryMip)
+{
+    using namespace nw::render;
+    constexpr auto missing = kInvalidModelAssetTextureSourceIndex;
+    const std::array<uint8_t, 16> mr{10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160};
+    const std::array<uint8_t, 16> ao{200, 11, 12, 13, 210, 21, 22, 23, 220, 31, 32, 33, 230, 41, 42, 43};
+    const std::array<std::array<uint8_t, 16>, 5> expected{{
+        {255, 20, 30, 255, 255, 60, 70, 255, 255, 100, 110, 255, 255, 140, 150, 255},
+        {200, 255, 0, 255, 210, 255, 0, 255, 220, 255, 0, 255, 230, 255, 0, 255},
+        {200, 20, 30, 255, 210, 60, 70, 255, 220, 100, 110, 255, 230, 140, 150, 255},
+        {10, 20, 30, 255, 50, 60, 70, 255, 90, 100, 110, 255, 130, 140, 150, 255},
+        {10, 11, 12, 255, 50, 21, 22, 255, 90, 31, 32, 255, 130, 41, 42, 255},
+    }};
+    const std::array<std::array<uint32_t, 2>, 5> pairs{{{0u, missing}, {missing, 1u}, {0u, 1u}, {0u, 0u}, {1u, 0u}}};
+    ModelAsset asset;
+    asset.texture_sources = {make_surface_test_source(mr), make_surface_test_source(ao)};
+    asset.materials.resize(pairs.size() * 2 + 1);
+    asset.material_texture_sources.resize(asset.materials.size());
+    for (size_t i = 0; i < pairs.size() * 2; ++i) {
+        asset.material_texture_sources[i].metallic_roughness = pairs[i / 2][0];
+        asset.material_texture_sources[i].occlusion = pairs[i / 2][1];
+        asset.materials[i].roughness = 0.1f + 0.05f * static_cast<float>(i);
+        asset.materials[i].metallic = 0.07f * static_cast<float>(i);
+        asset.materials[i].occlusion_strength = 0.09f * static_cast<float>(i);
+    }
+    // An unrelated fallback on the first material must not contaminate a reuse.
+    asset.materials[0].material_uses_fallback = true;
+    RenderModel model;
+    const auto before = resource_stats(context);
+    const auto stats = upload_model_asset_material_textures(asset, {.ctx = context, .fallback_surface = 77u}, model);
+    const auto after = resource_stats(context);
+    ASSERT_TRUE(stats.passed());
+    EXPECT_EQ(stats.uploaded_texture_count, pairs.size());
+    EXPECT_EQ(stats.fallback_material_count, 1u);
+    EXPECT_EQ(after.upload_texture_count - before.upload_texture_count, pairs.size());
+    EXPECT_EQ(after.upload_bytes - before.upload_bytes, pairs.size() * 16);
+    EXPECT_EQ(after.upload_wait_count - before.upload_wait_count, pairs.size());
+    ASSERT_EQ(model.textures.size(), pairs.size());
+    EXPECT_EQ(model.materials.back().surface_index, 77u);
+    for (size_t i = 0; i < pairs.size(); ++i) {
+        const auto index = get_bindless_texture_index(context, model.textures[i]);
+        EXPECT_EQ(model.materials[2 * i].surface_index, index);
+        EXPECT_EQ(model.materials[2 * i + 1].surface_index, index);
+        EXPECT_FALSE(model.materials[2 * i + 1].material_uses_fallback);
+        auto reference = create_texture(context, {.width = 2, .height = 2, .mip_levels = 2, .format = Fmt::RGBA8});
+        ASSERT_TRUE(reference.valid());
+        textures.push_back(reference);
+        ASSERT_TRUE(upload_texture_rgba8(context, reference, expected[i].data(), expected[i].size()));
+        EXPECT_EQ(read_mips(model.textures[i], 4), read_mips(reference, 4));
+    }
+    for (size_t i = 0; i < asset.materials.size(); ++i) {
+        EXPECT_EQ(model.materials[i].roughness, asset.materials[i].roughness);
+        EXPECT_EQ(model.materials[i].metallic, asset.materials[i].metallic);
+        EXPECT_EQ(model.materials[i].occlusion_strength, asset.materials[i].occlusion_strength);
+    }
+    EXPECT_EQ(asset.texture_sources[0].encoded_bytes, make_surface_test_source(mr).encoded_bytes);
+    EXPECT_EQ(asset.texture_sources[1].encoded_bytes, make_surface_test_source(ao).encoded_bytes);
+    const auto handles = model.textures;
+    RenderModel moved{std::move(model)};
+    model.release_gpu_resources();
+    for (auto handle : handles) {
+        EXPECT_TRUE(bindless_texture_index_valid(get_bindless_texture_index(context, handle)));
+    }
+    moved.release_gpu_resources();
+    for (auto handle : handles) {
+        EXPECT_FALSE(bindless_texture_index_valid(get_bindless_texture_index(context, handle)));
+    }
+}
+
+TEST_F(RenderGfxResources, SurfacePairFailuresPreserveFallbacksAndRetryOnLaterBatches)
+{
+    using namespace nw::render;
+    const std::array<uint8_t, 16> pixels{10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160};
+    auto corrupt = make_surface_test_source(pixels);
+    corrupt.encoded_bytes = {1};
+    ModelAsset asset;
+    asset.materials.resize(3);
+    asset.material_texture_sources.resize(3, {.metallic_roughness = 0u, .occlusion = 1u});
+    const ModelAssetTextureUploadDesc desc{.ctx = context, .fallback_surface = 77u};
+    for (bool bad_metallic_roughness : {true, false}) {
+        asset.texture_sources = bad_metallic_roughness
+            ? std::vector{corrupt, make_surface_test_source(pixels)}
+            : std::vector{make_surface_test_source(pixels), corrupt};
+        RenderModel model;
+        const auto stats = upload_model_asset_material_textures(asset, desc, model);
+        EXPECT_EQ(stats.decode_failure_count, 1u);
+        EXPECT_EQ(stats.fallback_material_count, 3u);
+        EXPECT_EQ(stats.uploaded_texture_count, 1u);
+        ASSERT_EQ(model.textures.size(), 1u);
+        const auto uploaded = read_mips(model.textures[0], 4);
+        ASSERT_GE(uploaded.size(), pixels.size());
+        for (size_t i = 0; i < pixels.size(); i += 4) {
+            EXPECT_EQ(uploaded[i], bad_metallic_roughness ? pixels[i] : kModelSurfaceNeutralOcclusion);
+            EXPECT_EQ(uploaded[i + 1], bad_metallic_roughness ? kModelSurfaceNeutralRoughness : pixels[i + 1]);
+            EXPECT_EQ(uploaded[i + 2], bad_metallic_roughness ? kModelSurfaceNeutralMetallic : pixels[i + 2]);
+            EXPECT_EQ(uploaded[i + 3], kModelSurfaceNeutralAlpha);
+        }
+    }
+    asset.texture_sources = {corrupt};
+    for (auto& sources : asset.material_texture_sources) {
+        sources.occlusion = 0u;
+    }
+    RenderModel failed;
+    const auto bad = upload_model_asset_material_textures(asset, desc, failed);
+    EXPECT_EQ(bad.decode_failure_count, 1u);
+    EXPECT_EQ(bad.fallback_material_count, 3u);
+    EXPECT_TRUE(failed.textures.empty());
+    for (auto& material : failed.materials) {
+        EXPECT_EQ(material.surface_index, 77u);
+    }
+
+    asset.texture_sources = {make_surface_test_source(pixels), make_surface_test_source(std::span{pixels}.first(4), 1, 1)};
+    for (auto& sources : asset.material_texture_sources) {
+        sources.occlusion = 1u;
+    }
+    RenderModel mismatched;
+    const auto mismatch = upload_model_asset_material_textures(asset, desc, mismatched);
+    EXPECT_EQ(mismatch.surface_size_mismatch_count, 1u);
+    EXPECT_EQ(mismatch.fallback_material_count, 3u);
+    EXPECT_TRUE(mismatched.textures.empty());
+
+    asset.texture_sources[1] = make_surface_test_source(pixels);
+    RenderModel repaired;
+    const auto success = upload_model_asset_material_textures(asset, desc, repaired);
+    EXPECT_TRUE(success.passed());
+    EXPECT_EQ(success.uploaded_texture_count, 1u);
+    EXPECT_EQ(success.fallback_material_count, 0u);
+    ASSERT_EQ(repaired.textures.size(), 1u);
+    auto expected = pixels;
+    for (size_t i = 3; i < expected.size(); i += 4) {
+        expected[i] = 255;
+    }
+    const auto uploaded = read_mips(repaired.textures[0], 4);
+    ASSERT_GE(uploaded.size(), expected.size());
+    EXPECT_TRUE(std::equal(expected.begin(), expected.end(), uploaded.begin()));
+}
+
 TEST_F(RenderGfxResources, EmptyAndMixedBatchesGenerateAndCopyAllMips)
 {
     const auto before = resource_stats(context);
