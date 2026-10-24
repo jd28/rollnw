@@ -59,7 +59,7 @@ with <code>nw::gfx</code> underneath as the low-level graphics API boundary.</p>
 - deterministic turntable frame generation for downstream tooling</p>
 <p><img alt="c_aribeth turntable" src="../assets/tools/mudl/readme-assets/c_aribeth-turntable.gif"></p>
 <h2 id="quickstart">Quickstart</h2>
-<p>Build instructions live in the root <a href="../index.html#building-mudl">README</a>.</p>
+<p>Build instructions live in the root <a href="../index.html#build">README</a>.</p>
 <div class="codehilite"><pre><span></span><code><span class="c1"># Launch the interactive viewer</span>
 mudl
 
@@ -77,6 +77,9 @@ mudl<span class="w"> </span>report<span class="w"> </span>c_halaster
 
 <span class="c1"># Headless screenshot</span>
 mudl<span class="w"> </span>screenshot<span class="w"> </span>c_aribeth<span class="w"> </span>./out/c_aribeth.png
+
+<span class="c1"># Fixed-step model benchmark (raw host/GPU timings and frame counters)</span>
+mudl<span class="w"> </span>model-benchmark<span class="w"> </span>./tests/test_data/renderer/DamagedHelmet/glTF-Binary/DamagedHelmet.glb<span class="w"> </span>--warmup<span class="w"> </span><span class="m">180</span><span class="w"> </span>--frames<span class="w"> </span><span class="m">600</span><span class="w"> </span>--step-ms<span class="w"> </span><span class="m">16</span><span class="w"> </span>--json<span class="w"> </span>./out/helmet.json
 
 <span class="c1"># Headless turntable image sequence</span>
 mudl<span class="w"> </span>turntable<span class="w"> </span>c_aribeth<span class="w"> </span><span class="m">36</span><span class="w"> </span>--output<span class="w"> </span>./out/c_aribeth
@@ -98,6 +101,20 @@ mudl<span class="w"> </span><span class="nb">help</span>
 <li><code>--debug</code>: enable the optional debug grid overlay.</li>
 </ul>
 <p>Command-specific flags are listed inline below.</p>
+<p><code>model-benchmark &lt;resref|path&gt;</code> runs the common model viewer offscreen. It accepts
+<code>--frames</code> (positive, default 60), <code>--warmup</code> (nonnegative, default 5), <code>--step-ms</code>
+(0..1000, default 0), <code>--width</code>/<code>--height</code> (positive, default 1280/720), <code>--json</code>
+and an optional <code>--screenshot</code>. Use a positive fixed step for animated workloads.
+The camera fits the model using the same policy as <code>screenshot</code>. Requested
+animations and PBR environments must load successfully. <code>--no-pbr-ibl</code> explicitly
+selects fallback lighting.</p>
+<p>The JSON uses <code>schema_version: 1</code> and contains each measured frame's host/GPU timings and work/failure
+counters, query availability, camera and lighting options. Loading and IBL setup
+times are separate. The optional screenshot is captured after the measured
+frames; neither image readback nor JSON formatting is inside the timed loop.
+Submission/validation failures return a nonzero exit code. These offscreen
+durations do not measure presented gameplay FPS; compare identical workloads
+and inspect GPU availability and completeness before summarizing timings.</p>
 <h2 id="commands">Commands</h2>
 <h3 id="interactive-viewer">Interactive viewer</h3>
 <div class="codehilite"><pre><span></span><code>mudl [&lt;resref&gt;]
@@ -132,7 +149,7 @@ mudl<span class="w"> </span>area<span class="w"> </span>ttr01
 mudl turntable &lt;resref&gt; [frames] [--output &lt;dir&gt;]
 mudl frames &lt;count&gt; [&lt;resref&gt;]
 mudl area-screenshot &lt;resref&gt; &lt;path&gt;
-mudl area-benchmark &lt;resref&gt; [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--visible-tile-radius &lt;tiles&gt;] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot &lt;path&gt;]
+mudl area-benchmark &lt;resref&gt; [--step-ms &lt;0..1000&gt;] [--camera fit|gameplay|custom] [--camera-position x,y,z] [--camera-target x,y,z] [--visible-tile-radius &lt;tiles&gt;] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--screenshot &lt;path&gt;]
 mudl area-edit-benchmark &lt;resref&gt; [--samples &lt;count&gt;] [--warmup &lt;count&gt;] [--width &lt;px&gt;] [--height &lt;px&gt;] [--json &lt;path&gt;]
 mudl area-sweep &lt;resref|area-list.txt&gt; [--frames &lt;count&gt;] [--warmup &lt;count&gt;] [--variants minimal|default|all] [--no-local-shadows] [--no-forward-plus] [--forward-plus-gpu-cull] [--no-forward-plus-gpu-cull] [--forward-plus-auto-config] [--forward-plus-config tile,depth[,max]] [--forward-plus-debug off|cluster-lights|depth-slices] [--validate] [--json &lt;path&gt;]
 mudl area --dump &lt;module-path&gt; [--output &lt;path&gt;] [--skip-existing] [--limit &lt;n&gt;]
@@ -141,6 +158,36 @@ mudl area --dump &lt;module-path&gt; [--output &lt;path&gt;] [--skip-existing] [
 <p>Forward+ is enabled by default for local lights. Use <code>--no-forward-plus</code> only for
 fallback or comparison captures. GPU gather is the default Forward+ path;
 <code>--no-forward-plus-gpu-cull</code> forces the CPU reference path for parity runs.</p>
+<p>Area benchmarks default to frozen playback (<code>--step-ms 0</code>). Set <code>--step-ms</code> to
+an integer in 1..1000 to advance animation and particles on every warmup and
+measured frame. The camera and time of day stay fixed; this does not run combat
+or navigation. Reports include the step and per-frame <code>host_timings_ms</code> for
+begin-frame (including waits), tick plus render, end-frame submission, and their
+sum. The final queue drain and JSON serialization are excluded. GPU pass timings
+are asynchronous results; do not add them to host timings. <code>pre_render</code> includes
+animation sampling and runtime synchronization before the existing <code>total_render</code>
+interval, whose meaning is unchanged.</p>
+<p><code>area-benchmark</code> writes its JSON and returns a nonzero status with <code>complete: false</code>
+if any measured frame reports uniform/descriptor allocation failures, failed
+resource or pipeline/buffer binds, or dropped draws/dispatches. The command
+counters include <code>uniform_allocation_failures</code>, <code>uniform_ring_capacity_bytes</code>,
+and <code>uniform_ring_required_bytes</code>. Required bytes include alignment and failed
+nonempty requests, saturating at <code>UINT64_MAX</code>; callers that stop requesting after
+a failure can still make this a lower bound on the complete scene's demand.
+Pass values are deltas within the frame; capacity is repeated, not summed.
+<code>complete</code> describes these command checks, not missing-asset or visual acceptance.</p>
+<p><code>gpu_timings_ms.scene</code> measures the complete scene GPU interval, including gaps
+between passes and excluding presentation. Area benchmarks enable this diagnostic;
+ordinary viewer sessions leave its two extra timestamp queries disabled.
+It is <code>null</code> until a completed timer
+is available (also when queries are unsupported or exhausted). Its summary
+excludes missing results and reports <code>available_samples</code> / <code>missing_samples</code>.
+Results arrive from an earlier frame; they are not paired with the current CPU
+sample. Older individual pass fields still report zero for absent timers.</p>
+<p>Area benchmark reports also include <code>model_texture_cache</code> live texture count,
+retained encoded source bytes, and base-level RGBA upload bytes (excluding mips).
+These weak cache entries share identical encoded textures across live models;
+clearing the lookup does not invalidate textures those models still own.</p>
 <div class="codehilite"><pre><span></span><code><span class="c1"># Single headless screenshot</span>
 mudl<span class="w"> </span>screenshot<span class="w"> </span>c_aribeth<span class="w"> </span>./out/c_aribeth.png
 
@@ -156,6 +203,9 @@ mudl<span class="w"> </span>area-screenshot<span class="w"> </span>ttr01<span cl
 
 <span class="c1"># Headless area render benchmark from a gameplay-style camera</span>
 mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--json<span class="w"> </span>./out/ms_4city.json
+
+<span class="c1"># Advance animation and particles by 16 ms per warmup and measured frame</span>
+mudl<span class="w"> </span>area-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--camera<span class="w"> </span>gameplay<span class="w"> </span>--step-ms<span class="w"> </span><span class="m">16</span><span class="w"> </span>--frames<span class="w"> </span><span class="m">240</span><span class="w"> </span>--warmup<span class="w"> </span><span class="m">30</span><span class="w"> </span>--width<span class="w"> </span><span class="m">1920</span><span class="w"> </span>--height<span class="w"> </span><span class="m">1080</span><span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-playing.json
 
 <span class="c1"># Measure one-tile and 64-tile live editor refreshes without writing the module</span>
 mudl<span class="w"> </span>area-edit-benchmark<span class="w"> </span>ms_4city<span class="w"> </span>--samples<span class="w"> </span><span class="m">10</span><span class="w"> </span>--warmup<span class="w"> </span><span class="m">3</span><span class="w"> </span>--json<span class="w"> </span>./out/ms_4city-edit.json
