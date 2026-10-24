@@ -53,20 +53,33 @@
 <h1 id="rollnw">rollnw</h1>
 <p>rollnw is a C++ framework for RPG tools and runtimes, inspired by Neverwinter
 Nights and growing toward a modern authored game and toolset.</p>
-<ul>
-<li><strong><a href="https://jd28.github.io/rollnw/">nw</a></strong> —  library for content formats, resources,
-  rules, and a <a href="render/index.html">Vulkan renderer</a> with PBR materials,
-  animation, particles, lighting, and shadows.</li>
-<li><strong><a href="smalls/index.html">smalls</a></strong> — a statically typed scripting language
-  for game rules and tooling, with a <a href="https://github.com/jd28/rollnw/blob/main/tools/vscode-smalls/README.md">VS Code extension</a>.</li>
-<li><strong><a href="client/index.html">client</a></strong> — <a href="https://youtu.be/1zftndVT2Is">Demo</a> — import modules, explore areas, and edit
-  objects and terrain with previews, undo, and save.</li>
-<li><strong><a href="mudl/index.html">mudl</a></strong> — inspect models and effects, capture screenshots,
-  and benchmark rendering with NWN and glTF assets.</li>
-</ul>
-<p>The project is in active development. Pin a Git revision and rebuild consumers
+<p>The project is in <em>active development</em>. Pin a Git revision and rebuild consumers
 when updating; APIs and the C++ ABI can change. See the <a href="https://github.com/jd28/rollnw/blob/main/docs/releases.md">release guide</a>
 for snapshot and tool versioning.</p>
+<h2 id="nw"><a href="https://jd28.github.io/rollnw/">nw</a></h2>
+<p>The shared C++ library for content formats, resource management, game objects,
+and rules. Its <a href="render/index.html">renderer</a> brings NWN and glTF
+assets into a common runtime with PBR materials, skinned animation, particles,
+lighting, and shadows. These libraries underpin the tools below and can be used
+in other applications.</p>
+<h2 id="smalls"><a href="smalls/index.html">smalls</a></h2>
+<p>A statically typed, embeddable scripting language for game rules and tooling.
+Modules, generics, arrays, and maps support reusable scripts that connect to
+the library through native functions. The
+<a href="https://github.com/jd28/rollnw/blob/main/tools/vscode-smalls/README.md">VS Code extension</a> provides syntax highlighting
+and language-server support for writing and navigating Smalls code.</p>
+<h2 id="client"><a href="client/index.html">client</a></h2>
+<p>The module viewer and authoring workbench, installed as <code>rollnw-client</code>.
+Import a module into an editable project, explore its areas and resources,
+and edit objects and terrain with previews, undo, and save. Focused editors
+cover creature appearance and progression, item properties, inventory, and
+other supported object data.</p>
+<p><strong>Watch the demos:</strong> <a href="https://youtu.be/1zftndVT2Is">Overview</a> · <a href="https://youtu.be/PvT9pjiYuU0">Area Editing</a></p>
+<h2 id="mudl"><a href="mudl/index.html">mudl</a></h2>
+<p>A model and effects viewer for NWN and glTF assets. Inspect model hierarchies,
+play animations and effects, and check materials through the shared renderer.
+Its command-line tools also produce repeatable screenshots, turntable sequences,
+and fixed-step rendering benchmarks, including offscreen runs.</p>
 <h2 id="build">Build</h2>
 <p>Requires CMake 3.21+ and a C++20 compiler. Renderer tools currently only run on Linux and Windows.
 For a Linux renderer build with Ninja:</p>
