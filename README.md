@@ -8,19 +8,42 @@
 rollnw is a C++ framework for RPG tools and runtimes, inspired by Neverwinter
 Nights and growing toward a modern authored game and toolset.
 
-- **[nw](https://jd28.github.io/rollnw/)** —  library for content formats, resources,
-  rules, and a [Vulkan renderer](lib/nw/render/README.md) with PBR materials,
-  animation, particles, lighting, and shadows.
-- **[smalls](lib/nw/smalls/docs/index.md)** — a statically typed scripting language
-  for game rules and tooling, with a [VS Code extension](tools/vscode-smalls/README.md).
-- **[client](tools/client/README.md)** — [Demo](https://youtu.be/1zftndVT2Is) — import modules, explore areas, and edit
-  objects and terrain with previews, undo, and save.
-- **[mudl](tools/mudl/README.md)** — inspect models and effects, capture screenshots,
-  and benchmark rendering with NWN and glTF assets.
-
-The project is in active development. Pin a Git revision and rebuild consumers
+The project is in *active development*. Pin a Git revision and rebuild consumers
 when updating; APIs and the C++ ABI can change. See the [release guide](docs/releases.md)
 for snapshot and tool versioning.
+
+## [nw](https://jd28.github.io/rollnw/)
+
+The shared C++ library for content formats, resource management, game objects,
+and rules. Its [renderer](lib/nw/render/README.md) brings NWN and glTF
+assets into a common runtime with PBR materials, skinned animation, particles,
+lighting, and shadows. These libraries underpin the tools below and can be used
+in other applications.
+
+## [smalls](lib/nw/smalls/docs/index.md)
+
+A statically typed, embeddable scripting language for game rules and tooling.
+Modules, generics, arrays, and maps support reusable scripts that connect to
+the library through native functions. The
+[VS Code extension](tools/vscode-smalls/README.md) provides syntax highlighting
+and language-server support for writing and navigating Smalls code.
+
+## [client](tools/client/README.md)
+
+The module viewer and authoring workbench, installed as `rollnw-client`.
+Import a module into an editable project, explore its areas and resources,
+and edit objects and terrain with previews, undo, and save. Focused editors
+cover creature appearance and progression, item properties, inventory, and
+other supported object data.
+
+**Watch the demos:** [Overview](https://youtu.be/1zftndVT2Is) · [Area Editing](https://youtu.be/PvT9pjiYuU0)
+
+## [mudl](tools/mudl/README.md)
+
+A model and effects viewer for NWN and glTF assets. Inspect model hierarchies,
+play animations and effects, and check materials through the shared renderer.
+Its command-line tools also produce repeatable screenshots, turntable sequences,
+and fixed-step rendering benchmarks, including offscreen runs.
 
 ## Build
 
