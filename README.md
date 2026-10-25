@@ -36,7 +36,7 @@ and edit objects and terrain with previews, undo, and save. Focused editors
 cover creature appearance and progression, item properties, inventory, and
 other supported object data.
 
-**Watch the demos:** [Overview](https://youtu.be/1zftndVT2Is) · [Area Editing](https://youtu.be/PvT9pjiYuU0)
+**Watch the demos:** [Overview](https://youtu.be/1zftndVT2Is) · [Area Editing](https://youtu.be/PvT9pjiYuU0) · [Item Interactions](https://youtu.be/EhH9qhWr8ok)
 
 ## [mudl](tools/mudl/README.md)
 
