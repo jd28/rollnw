@@ -139,12 +139,16 @@ marker. The action retains its commit status until the pose finishes, so it
 never repeats the mutation or result. Replacement before commit leaves ownership
 unchanged; replacement afterward keeps the committed state. No general animation
 event dispatcher, separate stow/draw swap sequence, or action queue is added.
+The hand clips overlay only their authored channels on the continuing base pose;
+the supplied clips leave root, pelvis and legs unkeyed. The Ozz backend retains
+channel presence when compiling clips so bind-pose fill does not overwrite those
+base channels. Equipment visual replacement preserves the base playback clock.
 The stripped NWN dedicated distribution has model index entries without rig
 payloads. It therefore takes the no-clip fallback unless animation metadata is
 supplied with its content; this is not yet a portable server content package.
 The shared action state accepts resolved tick durations independently of rendering.
 No second scheduler was introduced. Headless tests cover cancellation before
 and after the hand marker, ownership revalidation, exact-cell unequip, and the
-zero-timing fallback. Renderer tests cover both hand clips and missing-clip idle
+zero-timing fallback. Renderer tests cover both hand clips and missing-clip
 fallback. The GPU item-loop test checks a quarterstaff before and after its
 marker, forward/reverse poses, and completion without repeated commits.

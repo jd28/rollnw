@@ -463,6 +463,7 @@ struct ModelInstanceAnimationInputs {
     glm::mat4 root{1.0f};
     float time = 0.0f;
     uint32_t clip = 0;
+    AnimationOverlay overlay;
     uint32_t model_index = kInvalidModelInstanceIndex;
     bool enabled = false;
     bool looping = true;
@@ -478,6 +479,7 @@ struct ModelInstanceAnimationState {
     uint32_t clip = 0;
     float time = 0.0f;
     float playback_rate = 1.0f;
+    AnimationOverlay overlay;
     bool looping = true;
     bool enabled = false;
     ModelInstanceAnimationInputs published_inputs;

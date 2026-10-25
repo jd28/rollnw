@@ -261,6 +261,7 @@ void set_render_model_animation_clip(PreviewScene& scene, uint32_t clip_index, f
         }
         if (auto* instance = scene.static_model_instance(model_index);
             instance && instance->scene_animation_enabled) {
+            instance->animation.overlay = {};
             instance->animation.clip = clip_index;
             instance->animation.time = time;
             instance->animation.playback_rate = 1.0f;
@@ -295,6 +296,7 @@ bool set_render_model_animation_clip_by_name(PreviewScene& scene, std::string_vi
             continue;
         }
         instance->animation.clip = clip_index;
+        instance->animation.overlay = {};
         instance->animation.time = time;
         instance->animation.playback_rate = 1.0f;
         instance->animation.looping = true;
@@ -378,6 +380,7 @@ bool set_default_render_model_animation_clip(
         const bool door_hold = scene.root_object.type == nw::ObjectType::door
             || (model_index < scene.static_area_model_info.size()
                 && scene.static_area_model_info[model_index].kind == nw::ObjectType::door);
+        instance->animation.overlay = {};
         instance->animation.playback_rate = door_hold ? 0.0f : 1.0f;
         instance->animation.looping = !door_hold;
         instance->animation.enabled = can_sample_model_animation;
@@ -471,17 +474,20 @@ AreaCreatureAnimationStats update_area_creature_animations(
             continue;
         }
 
+        const auto previous_overlay = instance->animation.overlay;
+        instance->animation.overlay = {};
         LocomotionClipSelection selection;
         if (input->action != AreaCreatureActionAnimation::none) {
             constexpr std::array names{"", "getlow", "drwright", "drwleft"};
             selection.clip = find_render_model_animation_clip(*model, names[static_cast<size_t>(input->action)]);
-            if (selection.clip != std::numeric_limits<uint32_t>::max()) {
+            if (selection.clip != std::numeric_limits<uint32_t>::max()
+                && input->action == AreaCreatureActionAnimation::pickup) {
                 if (!ensure_render_model_animation_backend(*instance, *model, model_index)) {
                     ++stats.missing_clip_count;
                     continue;
                 }
                 const float time = std::min(input->action_time, model->animations[selection.clip].duration);
-                stats.changed_model_count += !instance->animation.enabled
+                stats.changed_model_count += previous_overlay.clip != UINT32_MAX || !instance->animation.enabled
                     || instance->animation.clip != selection.clip || instance->animation.time != time
                     || instance->animation.playback_rate != 0.0f || instance->animation.looping;
                 instance->animation.clip = selection.clip;
@@ -491,9 +497,17 @@ AreaCreatureAnimationStats update_area_creature_animations(
                 instance->animation.enabled = true;
                 continue;
             }
-            ++stats.missing_clip_count;
+            if (selection.clip != UINT32_MAX) {
+                instance->animation.overlay = {selection.clip,
+                    std::min(input->action_time, model->animations[selection.clip].duration)};
+            } else {
+                ++stats.missing_clip_count;
+            }
         }
-        switch (input->action != AreaCreatureActionAnimation::none ? AreaCreatureLocomotion::idle : input->locomotion) {
+        const bool overlay_changed = previous_overlay.clip != instance->animation.overlay.clip
+            || (previous_overlay.clip != UINT32_MAX && previous_overlay.time != instance->animation.overlay.time);
+        selection = {};
+        switch (input->action == AreaCreatureActionAnimation::pickup ? AreaCreatureLocomotion::idle : input->locomotion) {
         case AreaCreatureLocomotion::walking_forward: {
             constexpr std::array names{"walk"sv, "cwalkf"sv, "ccwalkf"sv, "cwalk"sv};
             selection.clip = find_first_render_model_animation_clip(*model, names);
@@ -531,11 +545,13 @@ AreaCreatureAnimationStats update_area_creature_animations(
         }
         if (selection.clip == std::numeric_limits<uint32_t>::max()) {
             ++stats.missing_clip_count;
+            stats.changed_model_count += overlay_changed;
             continue;
         }
         if (instance->animation.enabled
             && instance->animation.clip == selection.clip
             && instance->animation.playback_rate == selection.playback_rate) {
+            stats.changed_model_count += overlay_changed;
             continue;
         }
         if (!ensure_render_model_animation_backend(*instance, *model, model_index)) {

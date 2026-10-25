@@ -339,9 +339,11 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
         context->Update();
         context->Render();
         renderer.finish_render_pass();
-        EXPECT_TRUE(capture_screenshot(ctx, renderer.command_list(), name));
-        EXPECT_TRUE(renderer.begin_frame());
-        context->Render();
+        if (name) {
+            EXPECT_TRUE(capture_screenshot(ctx, renderer.command_list(), name));
+            EXPECT_TRUE(renderer.begin_frame());
+            context->Render();
+        }
         renderer.end_frame();
     };
     capture("tmp/preview-items-before.png");
@@ -478,7 +480,9 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
             input.action_time = static_cast<float>(pose_tick) / nw::gameplay::action_ticks_per_second;
         }
         ASSERT_EQ(scene->update_area_creature_animations({&input, 1}).rejected_input_count, 0u);
-        scene->tick(0);
+        // Inspect a completed render so pose sampling and dependent attachment
+        // updates run together, just as they do in the client.
+        capture(nullptr);
         if (input.action != viewer::AreaCreatureActionAnimation::none) {
             size_t sampled = 0;
             for (size_t model = 0; model < scene->scene()->static_area_model_info.size(); ++model) {
@@ -486,10 +490,22 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
                 const auto* instance = scene->scene()->static_model_instance(model);
                 if (!instance || !instance->animation.enabled) { continue; }
                 const auto& clips = scene->scene()->static_models[model]->animations;
-                if (clips[instance->animation.clip].name != "drwright") { continue; }
-                EXPECT_FALSE(instance->animation.looping);
-                EXPECT_FLOAT_EQ(instance->animation.playback_rate, 0.0f);
-                EXPECT_FLOAT_EQ(instance->animation.time, std::min(input.action_time, clips[instance->animation.clip].duration));
+                const auto overlay = instance->animation.overlay;
+                if (overlay.clip >= clips.size() || clips[overlay.clip].name != "drwright") { continue; }
+                EXPECT_TRUE(instance->animation.looping);
+                EXPECT_FLOAT_EQ(instance->animation.playback_rate, 1.0f);
+                EXPECT_FLOAT_EQ(overlay.time, std::min(input.action_time, clips[overlay.clip].duration));
+                nw::render::Pose base;
+                ASSERT_TRUE(instance->animation.backend->sample(instance->animation.clip, instance->animation.time, base));
+                ASSERT_EQ(instance->animation.pose.local.size(), base.local.size());
+                ASSERT_EQ(clips[overlay.clip].tracks.size(), base.local.size());
+                for (size_t joint = 0; joint < base.local.size(); ++joint) {
+                    const auto& track = clips[overlay.clip].tracks[joint];
+                    const auto& pose = instance->animation.pose.local[joint];
+                    if (track.translations.empty()) { EXPECT_EQ(pose.translation, base.local[joint].translation); }
+                    if (track.rotations.empty()) { EXPECT_EQ(pose.rotation, base.local[joint].rotation); }
+                    if (track.scales.empty()) { EXPECT_EQ(pose.scale, base.local[joint].scale); }
+                }
                 ++sampled;
             }
             EXPECT_GT(sampled, 0u);
@@ -606,7 +622,34 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
             added.push_back(item);
         }
         const size_t model_count_before = scene->scene()->static_models.size();
+        std::string base_clip;
+        float base_time = 0.0f;
+        if (hand_action) {
+            for (size_t model = 0; model < scene->scene()->static_models.size(); ++model) {
+                if (scene->scene()->static_area_model_info[model].object != started.actor) { continue; }
+                const auto* instance = scene->scene()->static_model_instance(model);
+                if (!instance || !instance->animation.enabled) { continue; }
+                base_clip = scene->scene()->static_models[model]->animations[instance->animation.clip].name;
+                base_time = instance->animation.time;
+                break;
+            }
+            ASSERT_FALSE(base_clip.empty());
+        }
         ASSERT_TRUE(scene->replace_area_transient_visuals(removed, added, world.area).ok());
+        if (hand_action) {
+            size_t retained = 0;
+            for (size_t model = 0; model < scene->scene()->static_models.size(); ++model) {
+                if (scene->scene()->static_area_model_info[model].object != started.actor) { continue; }
+                const auto* instance = scene->scene()->static_model_instance(model);
+                if (!instance || !instance->animation.enabled) { continue; }
+                const auto& clips = scene->scene()->static_models[model]->animations;
+                if (clips[instance->animation.clip].name == base_clip) {
+                    EXPECT_FLOAT_EQ(instance->animation.time, base_time);
+                    ++retained;
+                }
+            }
+            EXPECT_GT(retained, 0u);
+        }
         if (action == PreviewItemAction::equip) { EXPECT_GT(scene->scene()->static_models.size(), model_count_before); }
         if (action == PreviewItemAction::unequip) { EXPECT_LT(scene->scene()->static_models.size(), model_count_before); }
         EXPECT_EQ(has_visual(item), action == PreviewItemAction::drop);

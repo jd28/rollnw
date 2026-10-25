@@ -452,6 +452,49 @@ TEST(RenderModelInstance, RetainedSamplesMatchForcedSamplesAcrossInputChanges)
     EXPECT_EQ(nw::render::sample_changed_model_instance_animations(samples).reused_count, 0u);
 }
 
+TEST(RenderModelInstance, OverlayChangesInvalidateRetainedPosesAndPreserveOtherChannels)
+{
+    using namespace nw::render;
+    auto model = make_two_clip_render_model();
+    auto& overlay = model.animations[1];
+    overlay.tracks[0].translations.clear();
+    overlay.tracks[0].rotations = {{0.0f, glm::quat{1, 0, 0, 0}},
+        {1.0f, glm::angleAxis(1.0f, glm::vec3{0, 0, 1})}};
+    for (const auto kind : {AnimationBackendKind::custom, AnimationBackendKind::ozz}) {
+        ModelInstance instance;
+        instance.animation.enabled = true;
+        instance.animation.time = 0.4f;
+        instance.animation.backend = make_render_model_animation_backend(model, kind);
+        std::array samples{ModelInstanceAnimationSample{.instance = &instance, .model = &model}};
+        ASSERT_EQ(sample_changed_model_instance_animations(samples).sampled_count, 1u);
+        const auto base = instance.animation.pose.local[0];
+        instance.animation.overlay = {1, 0.3f};
+        EXPECT_EQ(sample_changed_model_instance_animations(samples).reused_count, 0u);
+        EXPECT_EQ(instance.animation.pose.local[0].translation, base.translation);
+        EXPECT_EQ(instance.animation.pose.local[0].scale, base.scale);
+        EXPECT_NE(instance.animation.pose.local[0].rotation, base.rotation);
+        EXPECT_EQ(sample_changed_model_instance_animations(samples).reused_count, 1u);
+        instance.animation.overlay.time = 0.6f;
+        EXPECT_EQ(sample_changed_model_instance_animations(samples).reused_count, 0u);
+        instance.animation.time = 0.7f;
+        EXPECT_EQ(sample_changed_model_instance_animations(samples).reused_count, 0u);
+        EXPECT_NE(instance.animation.pose.local[0].translation, base.translation);
+        instance.animation.overlay = {};
+        EXPECT_EQ(sample_changed_model_instance_animations(samples).reused_count, 0u);
+        EXPECT_EQ(instance.animation.pose.local[0].rotation, base.rotation);
+        for (const auto bad : {AnimationOverlay{99, 0.0f}, AnimationOverlay{1, -1.0f},
+                 AnimationOverlay{1, std::numeric_limits<float>::quiet_NaN()}}) {
+            instance.animation.overlay = bad;
+            EXPECT_EQ(sample_changed_model_instance_animations(samples).failed_sample_count, 1u);
+            EXPECT_EQ(sample_changed_model_instance_animations(samples).reused_count, 0u);
+        }
+        model.animations[1].skeleton = 1;
+        instance.animation.overlay = {1, 0.3f};
+        EXPECT_EQ(sample_changed_model_instance_animations(samples).failed_sample_count, 1u);
+        model.animations[1].skeleton = 0;
+    }
+}
+
 TEST(RenderModelInstance, RetainedSamplesRetryFailuresAndRespectInvalidation)
 {
     auto model = make_two_clip_render_model();

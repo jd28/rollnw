@@ -4,8 +4,7 @@
 installed as `rollnw-client`. Import a module into a local project, explore its
 areas and resources, and edit objects and terrain with previews, undo, and save.
 
-[Watch the overview demo](https://youtu.be/1zftndVT2Is) or the
-[area-editing demo](https://youtu.be/PvT9pjiYuU0).
+**Watch the demos:** [Overview](https://youtu.be/1zftndVT2Is) · [Area Editing](https://youtu.be/PvT9pjiYuU0) · [Item Interactions](https://youtu.be/EhH9qhWr8ok)
 
 ## Getting started
 
@@ -229,8 +228,10 @@ rules. The inventory command is available only during play mode.
 **I** or **Escape** closes inventory. **F9**, or **Escape** with inventory closed,
 ends preview and restores the authored items, editor selection, and camera.
 Preview items retain their identity through transfers, then are discarded on
-exit. Hand equipment plays the rig's draw clip, commits at its weapon marker,
-and finishes the clip; unequipping plays it backward. Movement or another action
+exit. Hand equipment overlays the rig's authored draw channels on the continuing
+base animation, commits at its weapon marker, and finishes the clip; unequipping
+plays it backward. Unkeyed channels keep their base pose, including the legs.
+Movement or another action
 can interrupt it, preserving the equipment state already committed. Other slots
 and creatures without draw clips change immediately. Combat,
 encounters, general gameplay scripts, and gameplay persistence are not included.

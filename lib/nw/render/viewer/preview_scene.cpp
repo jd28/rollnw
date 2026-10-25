@@ -6132,6 +6132,30 @@ ObjectVisualRefreshResult replace_area_object_visuals(
                 .diagnostic = "Area object visual construction failed"};
         }
         prime_scene_hold_animation(*replacement);
+        // Equipment refresh rebuilds creature models. Keep the base animation
+        // clock so a hand overlay does not restart the lower body's idle/walk.
+        if (object.type == nw::ObjectType::creature) {
+            for (size_t model_index = 0; model_index < scene.static_models.size(); ++model_index) {
+                if (scene.static_area_model_info[model_index].object != object) { continue; }
+                const auto* instance = scene.static_model_instance(model_index);
+                const auto& model = scene.static_models[model_index];
+                if (!instance || !model || !instance->animation.enabled
+                    || instance->animation.clip >= model->animations.size()) { continue; }
+                const auto& animation = instance->animation;
+                const auto& name = model->animations[animation.clip].name;
+                if (!set_render_model_animation_clip_by_name(*replacement, name, animation.time)) { continue; }
+                for (size_t target = 0; target < replacement->static_models.size(); ++target) {
+                    auto* next = replacement->static_model_instance(target);
+                    const auto& asset = replacement->static_models[target];
+                    if (next && asset && next->animation.clip < asset->animations.size()
+                        && asset->animations[next->animation.clip].name == name) {
+                        next->animation.playback_rate = animation.playback_rate;
+                        next->animation.looping = animation.looping;
+                    }
+                }
+                break;
+            }
+        }
         replacements.push_back(std::move(replacement));
     }
     // Overlay compaction validates every range before publishing it.

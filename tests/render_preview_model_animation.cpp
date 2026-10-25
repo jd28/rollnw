@@ -4,6 +4,7 @@
 
 #include <nw/model/Mdl.hpp>
 #include <nw/render/nwn/model_loader.hpp>
+#include <nw/render/nwn/nwn_animation.hpp>
 
 #include <gtest/gtest.h>
 
@@ -1436,7 +1437,7 @@ TEST(PreviewModelAnimation, GrabUsesSimulationTimeAndRestoresLocomotion)
     EXPECT_EQ(instance->animation.clip, 1u);
 }
 
-TEST(PreviewModelAnimation, MissingActionClipsFallBackToIdle)
+TEST(PreviewModelAnimation, MissingActionClipsPreserveTheirFallbackPolicy)
 {
     namespace viewer = nw::render::viewer;
     auto model = make_two_clip_render_model("no_pickup");
@@ -1454,11 +1455,12 @@ TEST(PreviewModelAnimation, MissingActionClipsFallBackToIdle)
             .action = action}};
         const auto result = viewer::update_area_creature_animations(scene, inputs);
         EXPECT_EQ(result.missing_clip_count, 1u);
-        EXPECT_EQ(scene.static_model_instance(0)->animation.clip, 1u);
+        EXPECT_EQ(scene.static_model_instance(0)->animation.clip,
+            action == viewer::AreaCreatureActionAnimation::pickup ? 1u : 0u);
     }
 }
 
-TEST(PreviewModelAnimation, HandDrawsUseSimulationTimeInBothDirections)
+TEST(PreviewModelAnimation, HandDrawsOverlayContinuingBaseAnimationInBothDirections)
 {
     namespace viewer = nw::render::viewer;
     for (const bool left : {false, true}) {
@@ -1475,19 +1477,74 @@ TEST(PreviewModelAnimation, HandDrawsUseSimulationTimeInBothDirections)
         ASSERT_EQ(viewer::update_area_creature_animations(scene, inputs).changed_model_count, 1u);
         auto* instance = scene.static_model_instance(0);
         ASSERT_NE(instance, nullptr);
-        EXPECT_EQ(instance->animation.clip, 0u);
-        EXPECT_FLOAT_EQ(instance->animation.time, 0.3f);
-        EXPECT_FALSE(instance->animation.looping);
+        EXPECT_EQ(instance->animation.clip, 1u);
+        EXPECT_EQ(instance->animation.overlay.clip, 0u);
+        EXPECT_FLOAT_EQ(instance->animation.overlay.time, 0.3f);
+        EXPECT_TRUE(instance->animation.looping);
         viewer::advance_render_model_animation_times(scene, 5.0f);
-        EXPECT_FLOAT_EQ(instance->animation.time, 0.3f);
+        EXPECT_FLOAT_EQ(instance->animation.time, 5.0f);
+        EXPECT_FLOAT_EQ(instance->animation.overlay.time, 0.3f);
         inputs[0].action_time = 0.1f;
         viewer::update_area_creature_animations(scene, inputs);
-        EXPECT_FLOAT_EQ(instance->animation.time, 0.1f);
+        EXPECT_FLOAT_EQ(instance->animation.overlay.time, 0.1f);
+        EXPECT_FLOAT_EQ(instance->animation.time, 5.0f);
         inputs[0].action = viewer::AreaCreatureActionAnimation::none;
         viewer::update_area_creature_animations(scene, inputs);
         EXPECT_EQ(instance->animation.clip, 1u);
+        EXPECT_EQ(instance->animation.overlay.clip, UINT32_MAX);
+        EXPECT_FLOAT_EQ(instance->animation.time, 5.0f);
         EXPECT_TRUE(instance->animation.looping);
         inputs[0].action = static_cast<viewer::AreaCreatureActionAnimation>(255);
         EXPECT_EQ(viewer::update_area_creature_animations(scene, inputs).rejected_input_count, 1u);
+    }
+}
+
+TEST(PreviewModelAnimation, NwnHandDrawsPreserveUnkeyedBaseChannels)
+{
+    using namespace nw::render;
+    nw::model::Mdl mdl{std::filesystem::path{resolve_test_data_path("test_data/user/development/a_ba.mdl")}};
+    ASSERT_TRUE(mdl.valid());
+    std::vector<int32_t> source_nodes;
+    RenderModel model;
+    model.skeletons.push_back(nwn::build_nwn_skeleton(mdl, source_nodes));
+    for (const auto name : {"pause1", "walk", "drwright", "drwleft"}) {
+        const auto* clip = mdl.model.find_animation(name);
+        ASSERT_NE(clip, nullptr);
+        model.animations.push_back(nwn::build_nwn_clip(*clip, model.skeletons[0], 0, 1.0f));
+    }
+    for (const auto backend : {AnimationBackendKind::custom, AnimationBackendKind::ozz}) {
+        ModelInstance instance;
+        instance.animation.enabled = true;
+        instance.animation.backend = make_render_model_animation_backend(model, backend);
+        ASSERT_TRUE(instance.animation.backend);
+        for (uint32_t base = 0; base < 2; ++base) {
+            for (uint32_t overlay = 2; overlay < 4; ++overlay) {
+                for (const float time : {0.1f, 0.3f, 0.6f}) {
+                    SCOPED_TRACE(::testing::Message() << base << '/' << overlay << '/' << time);
+                    instance.animation.clip = base;
+                    instance.animation.time = time + 0.17f;
+                    instance.animation.overlay = {overlay, time};
+                    Pose base_pose, draw_pose;
+                    ASSERT_TRUE(instance.animation.backend->sample(base, instance.animation.time, base_pose));
+                    ASSERT_TRUE(instance.animation.backend->sample(overlay, time, draw_pose, false));
+                    ASSERT_TRUE(sample_model_instance_animation(instance, model));
+                    size_t unkeyed_joints = 0;
+                    size_t keyed_rotations = 0;
+                    for (size_t joint = 0; joint < model.skeletons[0].joints.size(); ++joint) {
+                        const auto& track = model.animations[overlay].tracks[joint];
+                        const auto& actual = instance.animation.pose.local[joint];
+                        const auto& lower = base_pose.local[joint];
+                        const auto& upper = draw_pose.local[joint];
+                        EXPECT_EQ(actual.translation, track.translations.empty() ? lower.translation : upper.translation);
+                        EXPECT_EQ(actual.rotation, track.rotations.empty() ? lower.rotation : upper.rotation);
+                        EXPECT_EQ(actual.scale, track.scales.empty() ? lower.scale : upper.scale);
+                        keyed_rotations += !track.rotations.empty();
+                        unkeyed_joints += track.translations.empty() && track.rotations.empty() && track.scales.empty();
+                    }
+                    EXPECT_GT(unkeyed_joints, 0u);
+                    EXPECT_GT(keyed_rotations, 0u);
+                }
+            }
+        }
     }
 }

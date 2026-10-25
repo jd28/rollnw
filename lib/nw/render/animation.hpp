@@ -51,7 +51,7 @@ struct Joint {
 
 struct Skeleton {
     std::vector<Joint> joints;
-    std::vector<uint32_t> eval_order; // topological order for build_model_matrices
+    std::vector<uint32_t> eval_order;   // topological order for build_model_matrices
     std::vector<int32_t> node_to_joint; // node index -> joint index, built with eval_order
 };
 
@@ -132,6 +132,16 @@ struct AnimationState {
     bool looping = true;
 };
 
+enum class AnimationSampleMode : uint8_t { replace,
+    overlay };
+
+// One non-looping overlay over the base pose. UINT32_MAX disables it. Clip and
+// time are instance-owned; authored channels replace only their base channels.
+struct AnimationOverlay {
+    uint32_t clip = UINT32_MAX;
+    float time = 0.0f;
+};
+
 namespace detail {
 
 template <typename T>
@@ -159,10 +169,12 @@ T sample_keys(const std::vector<Keyframe<T>>& keys, float time, InterpolationMod
 
 } // namespace detail
 
-inline bool sample_clip(const Skeleton& skeleton, const AnimationClip& clip, float time, Pose& out_pose, bool looping = true)
+inline bool sample_clip(const Skeleton& skeleton, const AnimationClip& clip, float time, Pose& out_pose,
+    bool looping = true, AnimationSampleMode mode = AnimationSampleMode::replace)
 {
     const size_t joint_count = skeleton.joints.size();
-    if (clip.tracks.size() != joint_count) return false;
+    if (clip.tracks.size() != joint_count || mode > AnimationSampleMode::overlay
+        || (mode == AnimationSampleMode::overlay && out_pose.local.size() != joint_count)) return false;
 
     out_pose.local.resize(joint_count);
     out_pose.model.resize(joint_count);
@@ -178,7 +190,7 @@ inline bool sample_clip(const Skeleton& skeleton, const AnimationClip& clip, flo
     for (size_t i = 0; i < joint_count; ++i) {
         const auto& joint = skeleton.joints[i];
         const auto& track = clip.tracks[i];
-        Transform local = joint.bind_local;
+        Transform local = mode == AnimationSampleMode::overlay ? out_pose.local[i] : joint.bind_local;
         if (!track.translations.empty()) {
             local.translation = detail::sample_keys(track.translations, sample_time, track.translation_mode);
         }

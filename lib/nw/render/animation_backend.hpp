@@ -17,7 +17,10 @@ public:
     // Fills out_pose.local with sampled joint transforms in original skeleton order.
     // Does NOT fill out_pose.model — the caller is responsible for calling
     // build_model_matrices() after a successful sample.
-    virtual bool sample(uint32_t clip_index, float time, Pose& out_pose, bool looping = true) = 0;
+    // Overlay requires an existing local pose with the same joint count and
+    // preserves channels absent from the source clip. Invalid shapes reject.
+    virtual bool sample(uint32_t clip_index, float time, Pose& out_pose, bool looping = true,
+        AnimationSampleMode mode = AnimationSampleMode::replace) = 0;
 };
 
 // Placeholder for future backend selection. The first backend candidate is Ozz, but the

@@ -143,14 +143,15 @@ bool set_default_render_model_animation_clip(
 // hold their pose until an explicit transition or clip selection starts playback.
 // Advances one 33 ms tick so newly added creatures do not remain in bind pose.
 bool prime_scene_hold_animation(PreviewScene& scene);
-// Selects idle/directional locomotion or a full-body action clip. Inputs are borrowed,
+// Selects idle/directional locomotion plus an optional action. Inputs are borrowed,
 // must have unique Creature owners, and remain valid only for this call. A
 // missing clip leaves that model's current clip unchanged. Matching rows whose
 // clip is already selected keep their time, so fixed-tick updates do not
 // restart animation playback.
-// Actions override locomotion: getlow/drwright/drwleft sample the simulation's finite,
-// nonnegative action_time, clamped to clip length, with no render-time advance.
-// Missing action clips fall back to idle. Invalid tags/times reject the row.
+// Pickup replaces the full pose; hand draws overlay only authored channels over
+// continuing locomotion. Actions sample finite, nonnegative action_time, clamped
+// to clip length, with no render-time advance. Missing pickup clips fall back to
+// idle; missing hand clips leave locomotion running. Invalid tags/times reject.
 AreaCreatureAnimationStats update_area_creature_animations(
     PreviewScene& scene,
     std::span<const AreaCreatureAnimationInput> inputs);

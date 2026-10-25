@@ -27,12 +27,13 @@ public:
         return true;
     }
 
-    bool sample(uint32_t clip_index, float time, Pose& out_pose, bool looping = true) override
+    bool sample(uint32_t clip_index, float time, Pose& out_pose, bool looping,
+        AnimationSampleMode mode) override
     {
         if (clip_index >= clips_.size()) return false;
         const auto& clip = clips_[clip_index];
         if (clip.skeleton >= skeletons_.size()) return false;
-        return sample_clip(skeletons_[clip.skeleton], clip, time, out_pose, looping);
+        return sample_clip(skeletons_[clip.skeleton], clip, time, out_pose, looping, mode);
     }
 
 private:

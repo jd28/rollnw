@@ -204,12 +204,26 @@ public:
         }
         runtime_clips_[clip_index] = std::move(*built);
         sampling_contexts_[clip_index] = std::make_unique<ozz::animation::SamplingJob::Context>(runtime_clips_[clip_index].num_tracks());
+        // Ozz fills missing channels from bind pose during compilation. Retain
+        // authored presence in runtime joint order so overlays can skip them.
+        if (clip_index >= channel_masks_.size()) { channel_masks_.resize(clip_index + 1); }
+        auto& masks = channel_masks_[clip_index];
+        masks.assign(clip.tracks.size(), 0u);
+        for (size_t original = 0; original < clip.tracks.size(); ++original) {
+            if (original >= original_to_runtime.size()) { continue; }
+            const auto runtime = original_to_runtime[original];
+            if (runtime < 0 || static_cast<size_t>(runtime) >= masks.size()) { continue; }
+            const auto& track = clip.tracks[original];
+            masks[runtime] = (!track.translations.empty() ? 1u : 0u)
+                | (!track.rotations.empty() ? 2u : 0u) | (!track.scales.empty() ? 4u : 0u);
+        }
         return true;
     }
 
     // Fills out_pose.local in original skeleton order. Does not fill out_pose.model;
     // the caller is responsible for calling build_model_matrices() afterward.
-    bool sample(uint32_t clip_index, float time, Pose& out_pose, bool looping = true) override
+    bool sample(uint32_t clip_index, float time, Pose& out_pose, bool looping,
+        AnimationSampleMode mode) override
     {
         if (clip_index >= clip_skeletons_.size()) return false;
         const uint32_t skeleton_index = clip_skeletons_[clip_index];
@@ -222,6 +236,12 @@ public:
         const auto& runtime_clip = runtime_clips_[clip_index];
         const auto& skeleton = skeletons_[skeleton_index];
         const auto& runtime_to_original = runtime_to_original_[skeleton_index];
+
+        if (mode > AnimationSampleMode::overlay
+            || (mode == AnimationSampleMode::overlay
+                && (out_pose.local.size() != skeleton.joints.size()
+                    || clip_index >= channel_masks_.size()
+                    || channel_masks_[clip_index].size() != runtime_to_original.size()))) { return false; }
 
         if (runtime_clip.num_tracks() == 0 || runtime_skeleton.num_joints() == 0) {
             return false;
@@ -270,9 +290,17 @@ public:
                 if (runtime_joint >= runtime_to_original.size()) break;
                 const size_t joint_index = static_cast<size_t>(runtime_to_original[runtime_joint]);
                 if (joint_index >= out_pose.local.size()) continue;
-                out_pose.local[joint_index].translation = {tx[lane], ty[lane], tz[lane]};
-                out_pose.local[joint_index].rotation = glm::normalize(glm::quat(qw[lane], qx[lane], qy[lane], qz[lane]));
-                out_pose.local[joint_index].scale = {sx[lane], sy[lane], sz[lane]};
+                auto& local = out_pose.local[joint_index];
+                if (mode == AnimationSampleMode::replace) {
+                    local.translation = {tx[lane], ty[lane], tz[lane]};
+                    local.rotation = glm::normalize(glm::quat(qw[lane], qx[lane], qy[lane], qz[lane]));
+                    local.scale = {sx[lane], sy[lane], sz[lane]};
+                } else {
+                    const auto mask = channel_masks_[clip_index][runtime_joint];
+                    if (mask & 1u) { local.translation = {tx[lane], ty[lane], tz[lane]}; }
+                    if (mask & 2u) { local.rotation = glm::normalize(glm::quat(qw[lane], qx[lane], qy[lane], qz[lane])); }
+                    if (mask & 4u) { local.scale = {sx[lane], sy[lane], sz[lane]}; }
+                }
             }
         }
         return true;
@@ -285,6 +313,7 @@ private:
     std::vector<std::vector<int32_t>> runtime_to_original_;
     std::vector<std::vector<int32_t>> original_to_runtime_;
     std::vector<ozz::animation::Animation> runtime_clips_;
+    std::vector<std::vector<uint8_t>> channel_masks_; // authored T/R/S bits, runtime joint order
     std::vector<std::unique_ptr<ozz::animation::SamplingJob::Context>> sampling_contexts_;
     ozz::vector<ozz::math::SoaTransform> locals_scratch_; // reused across frames; grows to high-water mark
 };

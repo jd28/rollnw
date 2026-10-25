@@ -217,6 +217,24 @@ SampleResult sample_model_instance_animation_impl(
         return SampleResult::failed_sample;
     }
 
+    if (animation.overlay.clip != UINT32_MAX) {
+        const auto& overlay = animation.overlay;
+        if (overlay.clip >= model.animations.size() || !std::isfinite(overlay.time) || overlay.time < 0.0f
+            || model.animations[overlay.clip].skeleton != clip.skeleton) {
+            publish_render_model_static_node_world_transforms(*sample.instance, model);
+            return SampleResult::failed_sample;
+        }
+        sampled = animation.backend && animation.backend->sample(overlay.clip, overlay.time, animation.pose, false, AnimationSampleMode::overlay);
+        if (!sampled && allow_reference_fallback) {
+            sampled = sample_clip(skeleton, model.animations[overlay.clip], overlay.time,
+                animation.pose, false, AnimationSampleMode::overlay);
+        }
+        if (!sampled) {
+            publish_render_model_static_node_world_transforms(*sample.instance, model);
+            return SampleResult::failed_sample;
+        }
+    }
+
     build_model_matrices(skeleton, animation.pose);
     const bool published_node_transforms = publish_sampled_node_world_transforms(
         *sample.instance,
@@ -303,6 +321,8 @@ ModelInstanceAnimationSampleStats sample_changed_model_instance_animations(
                 && inputs.enabled == animation.enabled
                 && (!animation.enabled
                     || (inputs.clip == animation.clip && same_pose_time
+                        && inputs.overlay.clip == animation.overlay.clip
+                        && (animation.overlay.clip == UINT32_MAX || inputs.overlay.time == animation.overlay.time)
                         && inputs.looping == animation.looping
                         && inputs.reference_fallback == allow_reference_fallback))) {
                 sample.sampled = animation.enabled;
@@ -330,6 +350,7 @@ ModelInstanceAnimationSampleStats sample_changed_model_instance_animations(
                 .root = instance.root_transform,
                 .time = animation.time,
                 .clip = animation.clip,
+                .overlay = animation.overlay,
                 .model_index = instance.render_model_index,
                 .enabled = animation.enabled,
                 .looping = animation.looping,

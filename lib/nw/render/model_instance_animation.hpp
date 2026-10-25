@@ -37,6 +37,9 @@ std::unique_ptr<AnimationBackend> make_render_model_animation_backend(
 // Batch transform from common instance animation state to current pose and skin
 // matrices. Clip indices wrap modulo clip count to preserve existing broadcast
 // UI semantics. Out-of-range skeletons and failed backend samples are rejected.
+// An optional non-looping overlay replaces authored channels after the base
+// sample and before joint/skin matrices. Its index never wraps; invalid indices,
+// negative/non-finite time, or a different skeleton reject the sample.
 //
 // The batch records are non-owning and are not retained. This keeps the protocol
 // compatible with scene-owned instance/model tables without imposing ownership.
