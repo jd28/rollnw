@@ -46,7 +46,7 @@ jobs:
             compiler_name: MSVC
             binary-name: smalls-lsp-win32-x64.exe
             preset: ci-windows
-          - os: macos-14
+          - os: macos-15
             platform_name: macOS
             compiler_name: AppleClang
             binary-name: smalls-lsp-darwin-universal
@@ -65,7 +65,7 @@ jobs:
         run: choco upgrade ninja
 
       - name: macOS - install dependencies
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15'
         run: brew install ninja
 
       - name: linux - install gcc
@@ -104,7 +104,7 @@ jobs:
         run: cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-linux-x64
 
       - name: Prepare macOS Binary
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15'
         run: |
           # ci-macos builds smalls-lsp as a universal (arm64 + x86_64) binary.
           lipo -info build/tools/smalls-lsp/smalls-lsp
@@ -143,7 +143,7 @@ jobs:
             smalls-lsp-win32-x64.exe.json
 
       - name: Upload macOS Universal Binary
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15'
         uses: actions/upload-artifact@v7
         with:
           name: smalls-lsp-darwin-universal

@@ -14,6 +14,17 @@ handling, not merely a tool version bump.
 
 ## Preparing a distribution
 
+Before preparing a release, build and run the **complete test suite twice**:
+once with `ROLLNW_BUILD_RENDERER=ON` and once with `ROLLNW_BUILD_RENDERER=OFF`,
+using separate build directories. Build all configured test dependencies and
+run CTest without a test-name or GoogleTest filter. The renderer-enabled run
+must have a working graphics environment and the required assets; skipped
+graphics tests do not satisfy this gate. Focused regressions and graphics smoke
+checks are useful during development but do not replace either full run.
+Record both configurations and their results, and resolve failures before
+declaring the release prepared. The final release commit must also pass CI
+before tagging or publication.
+
 Use a checkout with full history and all release tags. Set numeric tool versions
 first. Components are `0..65535`, without leading zeroes, to fit Windows version
 resources. A newly approved tool version must exceed its versions in ancestor

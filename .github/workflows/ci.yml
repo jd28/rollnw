@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             platform_name: macOS
             compiler_name: AppleClang
           - os: ubuntu-22.04
@@ -71,7 +71,7 @@ jobs:
 
       # macOS Dependencies
       - name: macOS - install dependencies
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15'
         env:
           HOMEBREW_NO_ANALYTICS: "ON"
           HOMEBREW_NO_AUTO_UPDATE: "ON"
@@ -167,7 +167,7 @@ jobs:
           cmake --preset ci-windows
 
       - name: macOS - configure
-        if: matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15'
         run: |
           cmake --preset ci-macos
 
@@ -670,7 +670,7 @@ jobs:
   macos-tools-package:
     needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 90
     name: macOS AppleClang Tools Package
     permissions:
@@ -703,9 +703,9 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/.ccache/
-          key: macos-14-tools-package-ccache-${{ env.DATE }}
+          key: macos-15-tools-package-ccache-${{ env.DATE }}
           restore-keys: |
-            macos-14-tools-package-ccache-
+            macos-15-tools-package-ccache-
 
       - name: setup ccache
         run: |
