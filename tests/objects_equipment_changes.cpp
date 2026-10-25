@@ -44,6 +44,66 @@ protected:
     }
 };
 
+TEST_F(EquipmentChanges, ExplicitPlacementsPreserveCellsOrderAndUndo)
+{
+    creature->inventory() = nw::Inventory{2, 6, 10, creature};
+    auto* carried = item(2, 3);
+    auto* equipped = item(2, 1);
+    ASSERT_TRUE(creature->inventory().add_item(carried));
+    creature->inventory().items[0].infinite = true;
+    ASSERT_TRUE(nw::equip_item_in_slot(creature, equipped, nw::EquipIndex::belt));
+    const auto before = inventory();
+    const auto occupancy = creature->inventory().inventory_bitset;
+    const auto version = creature->equipment.equip_version;
+    const std::array moved{nw::InventoryPlacement{carried->handle(), {1, 4, 6}}};
+    auto batch = nw::prepare_equipment_changes(creature->handle(), {}, moved);
+    ASSERT_TRUE(batch);
+    EXPECT_EQ(inventory(), before);
+    ASSERT_TRUE(nw::apply_equipment_changes(*batch));
+    EXPECT_EQ(creature->equipment.equip_version, version);
+    EXPECT_EQ(std::pair(creature->inventory().items[0].pos_x, creature->inventory().items[0].pos_y),
+        creature->inventory().slot_to_xy({1, 4, 6}));
+    EXPECT_TRUE(creature->inventory().items[0].infinite);
+    ASSERT_TRUE(nw::apply_equipment_changes(*batch, true));
+    EXPECT_EQ(inventory(), before);
+    EXPECT_EQ(creature->inventory().inventory_bitset, occupancy);
+    ASSERT_TRUE(nw::apply_equipment_changes(*batch));
+
+    const std::array changes{nw::EquipmentChange{10, equipped->handle(), {}}};
+    const std::array placed{nw::InventoryPlacement{equipped->handle(), {1, 5, 8}}};
+    batch = nw::prepare_equipment_changes(creature->handle(), changes, placed);
+    ASSERT_TRUE(batch);
+    ASSERT_TRUE(nw::apply_equipment_changes(*batch));
+    const auto& entry = creature->inventory().items.back();
+    EXPECT_EQ(entry.item.as<nw::ObjectHandle>(), equipped->handle());
+    EXPECT_EQ(std::pair(entry.pos_x, entry.pos_y), creature->inventory().slot_to_xy({1, 5, 8}));
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), nullptr);
+    ASSERT_TRUE(nw::apply_equipment_changes(*batch, true));
+    EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), equipped);
+}
+
+TEST_F(EquipmentChanges, ExplicitPlacementsRejectOverlapAndBoundsWithoutFallback)
+{
+    creature->inventory() = nw::Inventory{1, 6, 10, creature};
+    auto* carried = item(2, 3);
+    auto* equipped = item(2, 1);
+    ASSERT_TRUE(creature->inventory().add_item(carried));
+    ASSERT_TRUE(nw::equip_item_in_slot(creature, equipped, nw::EquipIndex::belt));
+    const auto before = inventory();
+    const auto occupied = creature->inventory().xy_to_slot(before[0].pos_x, before[0].pos_y);
+    const std::array changes{nw::EquipmentChange{10, equipped->handle(), {}}};
+    for (const auto cell : {occupied, nw::InventorySlot{0, 5, 9}, nw::InventorySlot{1, 0, 0}, nw::InventorySlot{0, -1, 0}}) {
+        const std::array placed{nw::InventoryPlacement{equipped->handle(), cell}};
+        EXPECT_FALSE(nw::prepare_equipment_changes(creature->handle(), changes, placed));
+        EXPECT_EQ(inventory(), before);
+        EXPECT_EQ(nw::get_equipped_item(creature, nw::EquipIndex::belt), equipped);
+    }
+    // A tall item's bottom row cannot put its top above the grid.
+    const std::array placed{nw::InventoryPlacement{carried->handle(), {0, 1, 5}}};
+    EXPECT_FALSE(nw::prepare_equipment_changes(creature->handle(), {}, placed));
+    EXPECT_EQ(inventory(), before);
+}
+
 TEST_F(EquipmentChanges, FullInventorySwapUsesFreedCellAndRestoresExactState)
 {
     auto* old = item();

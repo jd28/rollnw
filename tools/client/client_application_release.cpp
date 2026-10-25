@@ -35,6 +35,22 @@ ClientEventFlow process_client_pointer_up(SDL_Event& event, ClientInputDispatchS
     const int frame_width = surfaces.frame_width;
     const int frame_height = surfaces.frame_height;
 
+    if (event.button.button == SDL_BUTTON_LEFT && state.workbench.inventory_view.drag_source) {
+        (void)forward_client_input(dispatch, ClientRmlRecipient::toolset,
+            ClientRmlForwardPhase::before_native, context, window, event);
+        auto drop = std::exchange(state.workbench.inventory_view.pending_drop, std::nullopt);
+        // RmlUi silently cancels a drag when a refresh removes its source node.
+        state.workbench.inventory_view.drag_source.reset();
+        if (drop) {
+            (void)apply_inventory_workbench_click(*drop, state.workbench.inventory_view,
+                object_workbench_target(state.workbench, state.workspace), state.workspace,
+                state.backend, state.shell, command_context(state, CommandSource::widget));
+        }
+        (void)sync_creature_inventory_window(doc, state, true);
+        dispatch.native_handled = true;
+        return ClientEventFlow::finish;
+    }
+
     if (state.workbench.item_preview.dragging) {
         state.workbench.item_preview.dragging = false;
         system_interface.SetMouseCursor("arrow");

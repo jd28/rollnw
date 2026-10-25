@@ -519,6 +519,7 @@ int run_client_frames(ClientApplicationSurfaces& surfaces, ClientRenderer& rende
         const Uint64 overlay_end_counter = SDL_GetPerformanceCounter();
         Uint64 palette_end_counter = overlay_end_counter;
         if (state.shell.command_palette_visible || state.command_view.command_form
+            || state.play_preview.inventory_visible
             || state.loading.project_load.active()
             || state.backend.blueprint_operation_active() || state.backend.blueprint_publication_pending()) {
             const ScopedClientGpuTimer gpu_timer{renderer, kClientGpuTimerPalette};

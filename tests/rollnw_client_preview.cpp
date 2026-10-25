@@ -1323,3 +1323,104 @@ TEST_F(ClientPickupActions, LiveInputFramesDoNotRestartOrSlideTheGrab)
     EXPECT_EQ(toolset_preview_action_state(session).status, nw::gameplay::ActionStatus::applied);
     EXPECT_TRUE(nw::kernel::objects().get<nw::Creature>(session.actor())->inventory().has_item(nw::kernel::objects().get<nw::Item>(item)));
 }
+
+TEST_F(ClientPickupActions, HandEquipmentCommitsAtMarkersAndCancellationPreservesOwnership)
+{
+    using namespace nw::toolset;
+    using namespace nw::gameplay;
+    auto* actor = nw::kernel::objects().get<nw::Creature>(session.actor());
+    auto* weapon = nw::kernel::objects().load<nw::Item>("nw_wdbqs001");
+    ASSERT_TRUE(actor && weapon);
+    ASSERT_TRUE(actor->inventory().add_item(weapon));
+    const auto timing = toolset_preview_action_state(session).hand_timings[0];
+    ASSERT_GT(timing.equip_tick, 1u);
+    ASSERT_GT(timing.unequip_tick, 1u);
+    ASSERT_LT(timing.equip_tick, timing.duration_ticks);
+    ASSERT_LT(timing.unequip_tick, timing.duration_ticks);
+    PreviewInputSample equip;
+    ASSERT_TRUE(set_preview_item_action(equip, {weapon->handle(), 4, PreviewItemAction::equip}));
+    EXPECT_FALSE(tick(equip).action_result.changed);
+    EXPECT_EQ(toolset_preview_action_state(session).phase, ActionPhase::drawing);
+    EXPECT_EQ(toolset_preview_action_state(session).elapsed_ticks, 0u);
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), nullptr);
+    // Cancelling wind-up never publishes equipment or removes the carried item.
+    EXPECT_EQ(tick({.flags = preview_input_cancel}).action_result.status, ActionStatus::cancelled);
+    EXPECT_TRUE(actor->inventory().has_item(weapon));
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), nullptr);
+    EXPECT_FALSE(tick(equip).action_result.changed);
+    const auto standing = spatial.position;
+    for (uint32_t time = 1; time < timing.equip_tick; ++time) {
+        EXPECT_FALSE(tick().action_result.changed);
+        EXPECT_TRUE(actor->inventory().has_item(weapon));
+        EXPECT_EQ(spatial.position, standing);
+    }
+    const auto committed = tick().action_result;
+    ASSERT_TRUE(committed.ok());
+    EXPECT_TRUE(committed.equipment_changed);
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), weapon);
+    EXPECT_EQ(toolset_preview_action_state(session).phase, ActionPhase::drawing);
+    EXPECT_EQ(tick({.flags = preview_input_cancel}).action_result.status, ActionStatus::cancelled);
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), weapon);
+
+    PreviewInputSample unequip;
+    const nw::InventorySlot destination{1, 5, 8};
+    ASSERT_TRUE(set_preview_item_action(unequip, {weapon->handle(), 4, PreviewItemAction::unequip, destination}));
+    EXPECT_FALSE(tick(unequip).action_result.changed);
+    for (uint32_t time = 1; time < timing.unequip_tick; ++time) {
+        EXPECT_FALSE(tick().action_result.changed);
+        EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), weapon);
+    }
+    ASSERT_TRUE(tick().action_result.ok());
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), nullptr);
+    const auto& placed = actor->inventory().items.back();
+    EXPECT_EQ(placed.item.as<nw::ObjectHandle>(), weapon->handle());
+    EXPECT_EQ(std::pair(placed.pos_x, placed.pos_y), actor->inventory().slot_to_xy(destination));
+    for (uint32_t time = timing.unequip_tick; time < timing.duration_ticks + 3; ++time) {
+        EXPECT_EQ(tick().action_result.status, ActionStatus::none);
+    }
+    EXPECT_EQ(toolset_preview_action_state(session).phase, ActionPhase::finished);
+}
+
+TEST_F(ClientPickupActions, HandEquipmentRevalidatesOwnershipAtTheMarker)
+{
+    using namespace nw::toolset;
+    auto* actor = nw::kernel::objects().get<nw::Creature>(session.actor());
+    auto* weapon = nw::kernel::objects().load<nw::Item>("nw_wdbqs001");
+    ASSERT_TRUE(actor && weapon);
+    ASSERT_TRUE(actor->inventory().add_item(weapon));
+    PreviewInputSample equip;
+    ASSERT_TRUE(set_preview_item_action(equip, {weapon->handle(), 4, PreviewItemAction::equip}));
+    EXPECT_FALSE(tick(equip).action_result.changed);
+    ASSERT_TRUE(actor->inventory().remove_item(weapon));
+    const auto timing = toolset_preview_action_state(session).hand_timings[0];
+    for (uint32_t time = 1; time < timing.equip_tick; ++time) {
+        tick();
+    }
+    EXPECT_EQ(tick().action_result.status, nw::gameplay::ActionStatus::rejected);
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), nullptr);
+    nw::kernel::objects().destroy(weapon->handle());
+}
+
+TEST_F(ClientPickupActions, MissingHandTimingCommitsImmediately)
+{
+    using namespace nw::gameplay;
+    auto* actor = nw::kernel::objects().get<nw::Creature>(session.actor());
+    auto* weapon = nw::kernel::objects().load<nw::Item>("nw_wdbqs001");
+    ASSERT_TRUE(actor && weapon);
+    ASSERT_TRUE(actor->inventory().add_item(weapon));
+    const auto area = nw::toolset::toolset_preview_item_world(session).area;
+    std::array states{ActorActionState{.actor = session.actor()}};
+    std::array<ActionMovement, 1> movement;
+    std::array<ActorActionResult, 1> results;
+    const std::array motion{ActionMovementStatus::arrived};
+    for (const auto kind : {ActionKind::equip, ActionKind::unequip}) {
+        const std::array requests{ActorActionRequest{.actor_index = 0, .kind = kind, .target = weapon->handle(), .slot = 4}};
+        ASSERT_TRUE(submit_actor_actions(states, requests, results));
+        ASSERT_TRUE(prepare_actor_actions(area, states, movement, results));
+        ASSERT_TRUE(complete_actor_actions(area, {}, 2.0f, states, motion, results));
+        EXPECT_TRUE(results[0].ok());
+        EXPECT_TRUE(results[0].equipment_changed);
+        EXPECT_EQ(states[0].phase, ActionPhase::finished);
+        EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand), kind == ActionKind::equip ? weapon : nullptr);
+    }
+}

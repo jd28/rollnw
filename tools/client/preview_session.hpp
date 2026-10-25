@@ -24,6 +24,7 @@ struct PreviewItemRequest {
     ObjectHandle item{};
     int32_t slot = -1;
     PreviewItemAction action = PreviewItemAction::pickup;
+    InventorySlot inventory_cell;
 };
 
 enum class PreviewStatus : uint8_t {

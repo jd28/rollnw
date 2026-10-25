@@ -88,6 +88,40 @@ protected:
     }
 };
 
+TEST_F(GameplayActions, PackPlacementCommitsOnlyAtTickAndRejectsUnavailableCells)
+{
+    auto* target = item({2, 2, 0});
+    auto* blocker = item({2, 2, 0});
+    for (auto* picked : {target, blocker}) {
+        submit({.actor_index = 0, .kind = ActionKind::pickup, .target = picked->handle()});
+        prepare();
+        complete();
+        ASSERT_TRUE(results[0].ok());
+    }
+    auto* actor = nw::kernel::objects().get<nw::Creature>(states[0].actor);
+    ASSERT_NE(actor, nullptr);
+    auto& pack = actor->inventory();
+    const auto before = pack.items[0];
+    const auto version = actor->equipment.equip_version;
+    const auto blocked = pack.xy_to_slot(pack.items[1].pos_x, pack.items[1].pos_y);
+    submit({.actor_index = 0, .kind = ActionKind::move_inventory, .target = target->handle(), .inventory_cell = {0, 0, 1}});
+    prepare();
+    EXPECT_EQ(pack.items[0], before);
+    complete();
+    ASSERT_TRUE(results[0].ok());
+    EXPECT_TRUE(results[0].changed);
+    EXPECT_FALSE(results[0].equipment_changed);
+    EXPECT_EQ(std::pair(pack.items[0].pos_x, pack.items[0].pos_y), pack.slot_to_xy({0, 0, 1}));
+    EXPECT_EQ(actor->equipment.equip_version, version);
+    const auto placed = pack.items[0];
+    submit({.actor_index = 0, .kind = ActionKind::move_inventory, .target = target->handle(), .inventory_cell = blocked});
+    prepare();
+    complete();
+    EXPECT_EQ(results[0].status, ActionStatus::rejected);
+    EXPECT_FALSE(results[0].changed);
+    EXPECT_EQ(pack.items[0], placed);
+}
+
 TEST_F(GameplayActions, ApproachRequestsMovementAndCommitsOnlyOnce)
 {
     auto* target = item();

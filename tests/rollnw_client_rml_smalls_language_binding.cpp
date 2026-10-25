@@ -10,6 +10,7 @@
 #include "object_document.hpp"
 #include "object_edits.hpp"
 #include "object_workbench_view.hpp"
+#include "play_preview_inventory.hpp"
 #include "play_preview_view.hpp"
 #include "project.hpp"
 #include "project_resource_drag.hpp"
@@ -17,6 +18,7 @@
 #include "rml_managed_list.hpp"
 #include "rml_smalls_bridge.hpp"
 #include "rml_smalls_language_binding.hpp"
+#include "runtime_input.hpp"
 #include "script_commands.hpp"
 #include "shell_controller.hpp"
 #include "smalls_rmlui.hpp"
@@ -33,6 +35,7 @@
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Encounter.hpp>
 #include <nw/objects/Item.hpp>
+#include <nw/objects/Module.hpp>
 #include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/objects/Placeable.hpp>
@@ -6501,4 +6504,183 @@ TEST(ClientRmlScrollLifetime, ReplacingAndClosingElementsDetachesScrollbarListen
     document->Close();
     context->Update();
     Rml::RemoveContext("scrollbar-lifetime");
+}
+
+TEST(ClientPlayInventory, CommandRequestsControlledInventoryWithoutEditorMutation)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    RmlSmallsBridge bridge;
+    WorkspaceState workspace;
+    ToolsetBackend backend;
+    backend.bind(&bridge, nullptr, &workspace);
+    ASSERT_TRUE(backend.initialize());
+    const auto commands = backend.list_commands("object.inventory.open");
+    ASSERT_EQ(commands.size(), 1u);
+    EXPECT_EQ(commands[0].id, "object.inventory.open");
+    EXPECT_EQ(commands[0].default_binding, "I");
+    const auto inactive = backend.execute_command("object.inventory.open", {}, {});
+    EXPECT_EQ(inactive.status, CommandStatus::rejected);
+    EXPECT_FALSE(inactive.inventory_open_requested);
+    CommandContext context;
+    context.play_preview_active = true;
+    for (const auto source : {CommandSource::palette, CommandSource::shortcut}) {
+        context.source = source;
+        const auto result = backend.execute_command("object.inventory.open", {}, context);
+        EXPECT_TRUE(result.ok());
+        EXPECT_TRUE(result.inventory_open_requested);
+        EXPECT_FALSE(result.undo_action);
+    }
+    const auto invalid = backend.execute_command("object.inventory.open", {"unexpected"}, context);
+    EXPECT_EQ(invalid.status, CommandStatus::rejected);
+    EXPECT_FALSE(invalid.inventory_open_requested);
+}
+
+TEST(ClientPlayInventory, SlotsPagesAndPendingActionsKeepSimulationAuthoritative)
+{
+    using namespace nw::toolset;
+    KernelServiceScope services;
+    auto* module = nw::kernel::load_module("test_data/user/modules/DockerDemo.mod");
+    ASSERT_NE(module, nullptr);
+    auto* area = module->get_area(0);
+    ASSERT_NE(area, nullptr);
+    auto* source = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_NE(source, nullptr);
+    area->items.push_back(source);
+    auto& components = nw::kernel::objects().components();
+    ASSERT_TRUE(components.set_area(source->handle(), area->handle().id));
+    ASSERT_TRUE(components.set_position(source->handle(), module->entry_position));
+    PlayPreviewState preview;
+    const auto started = start_toolset_preview(preview.session, {.area = area->handle(), .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc}, .spawn_position = module->entry_position});
+    ASSERT_TRUE(started.ok()) << started.diagnostic;
+    const auto stop = create_scope_exit([&] { stop_toolset_preview(preview.session); });
+    const auto item = toolset_preview_item_world(preview.session).ground.back();
+    PreviewInputSample pickup;
+    ASSERT_TRUE(set_preview_item_action(pickup, {item}));
+    auto tick = tick_toolset_preview(preview.session, {&pickup, 1}, preview.spatial_rows, preview.locomotion_rows);
+    pickup = {};
+    for (int i = 0; i < 120 && !tick.action_result.changed; ++i) {
+        tick = tick_toolset_preview(preview.session, {&pickup, 1}, preview.spatial_rows, preview.locomotion_rows);
+    }
+    ASSERT_TRUE(tick.action_result.ok());
+    NullRenderInterface renderer;
+    RmlScope rml{renderer};
+    ASSERT_TRUE(rml.initialized());
+    auto* context = Rml::CreateContext("play-inventory", {1000, 760});
+    const auto path = std::filesystem::path{ROLLNW_TEST_SOURCE_DIR} / "tools/client/ui/preview_inventory.rml";
+    preview.inventory_document = context->LoadDocument(path.string());
+    ASSERT_NE(preview.inventory_document, nullptr);
+    ItemIconTextureCache icons;
+    preview.inventory_icons = &icons;
+    RuntimeInputState input;
+    ASSERT_TRUE(open_play_preview_inventory(preview, input));
+    EXPECT_EQ(input.pending.flags, preview_input_cancel);
+    ASSERT_EQ(preview.inventory_rows.status, InventoryViewStatus::ready) << preview.inventory_rows.diagnostic;
+    const auto* first_board = preview.inventory_document->GetElementById("preview_inventory_board");
+    ASSERT_NE(first_board, nullptr);
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_document->GetElementById("preview_inventory_board"), first_board);
+    input.pending.flags = preview_input_none;
+    ASSERT_TRUE(open_play_preview_inventory(preview, input));
+    EXPECT_EQ(input.pending.flags, preview_input_none);
+    EXPECT_EQ(preview.inventory_document->GetElementById("preview_inventory_board"), first_board);
+    PlayPreviewInventoryListener listener{preview};
+    for (const auto* event : play_inventory_events) {
+        context->AddEventListener(event, &listener);
+    }
+    const auto detach = create_scope_exit([&] {
+        for (const auto* event : play_inventory_events) {
+            context->RemoveEventListener(event, &listener);
+        }
+    });
+    // Previous/next wrap without exposing numeric page buttons.
+    preview.inventory_document->GetElementById("preview_inventory_previous")->DispatchEvent("click", {});
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_page, preview.inventory_rows.page_count - 1);
+    preview.inventory_document->GetElementById("preview_inventory_next")->DispatchEvent("click", {});
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_page, 0);
+    auto* page = preview.inventory_document->QuerySelector(".preview_inventory_page[data-page='1']");
+    ASSERT_NE(page, nullptr);
+    page->DispatchEvent("click", {});
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_page, 1);
+    EXPECT_FALSE(preview.pending_item);
+    page = preview.inventory_document->QuerySelector(".preview_inventory_page[data-page='0']");
+    ASSERT_NE(page, nullptr);
+    page->DispatchEvent("click", {});
+    sync_play_preview_inventory(preview);
+    const auto carried = std::ranges::find(preview.inventory_rows.inventory, item, &InventoryRow::item);
+    ASSERT_NE(carried, preview.inventory_rows.inventory.end());
+    const auto index = static_cast<size_t>(carried - preview.inventory_rows.inventory.begin());
+    auto* cell = preview.inventory_document->QuerySelector(".preview_inventory_item[data-item='" + std::to_string(index) + "']");
+    ASSERT_NE(cell, nullptr);
+    // Invalid destinations leave the item carried; no success outline appears.
+    auto* invalid_slot = preview.inventory_document->QuerySelector(".preview_equipment_slot[data-slot='0']");
+    ASSERT_NE(invalid_slot, nullptr);
+    Rml::Dictionary drag_parameters;
+    drag_parameters["drag_element"] = static_cast<void*>(cell);
+    cell->DispatchEvent("dragstart", drag_parameters);
+    invalid_slot->DispatchEvent("dragover", drag_parameters);
+    EXPECT_FALSE(invalid_slot->IsClassSet("inventory_drop_target"));
+    invalid_slot->DispatchEvent("dragdrop", drag_parameters);
+    EXPECT_FALSE(preview.pending_item);
+    cell->DispatchEvent("dragend", drag_parameters);
+    EXPECT_FALSE(preview.inventory_dragging);
+    EXPECT_FALSE(cell->IsClassSet("inventory_drag_source"));
+    EXPECT_FALSE(preview.item_message.empty());
+    // Leaving a valid target clears its outline; ending without a drop cancels.
+    auto* belt_slot = preview.inventory_document->QuerySelector(".preview_equipment_slot[data-slot='10']");
+    ASSERT_NE(belt_slot, nullptr);
+    cell->DispatchEvent("dragstart", drag_parameters);
+    belt_slot->DispatchEvent("dragover", drag_parameters);
+    EXPECT_TRUE(belt_slot->IsClassSet("inventory_drop_target"));
+    belt_slot->DispatchEvent("dragout", drag_parameters);
+    EXPECT_FALSE(belt_slot->IsClassSet("inventory_drop_target"));
+    cell->DispatchEvent("dragend", drag_parameters);
+    EXPECT_FALSE(preview.pending_item);
+    preview.item_message.clear();
+    cell->DispatchEvent("click", {});
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_selection, item);
+    EXPECT_FALSE(preview.pending_item);
+    auto* slot = preview.inventory_document->QuerySelector(".preview_equipment_slot[data-slot='10']");
+    ASSERT_NE(slot, nullptr);
+    const auto revision = toolset_preview_item_world(preview.session).revision;
+    slot->DispatchEvent("click", {});
+    ASSERT_TRUE(preview.pending_item);
+    EXPECT_EQ(preview.pending_item->slot, 10);
+    EXPECT_EQ(preview.pending_item->item, item);
+    EXPECT_EQ(toolset_preview_item_world(preview.session).revision, revision);
+    PreviewInputSample equip;
+    ASSERT_TRUE(set_preview_item_action(equip, *preview.pending_item));
+    preview.pending_item.reset();
+    cell = preview.inventory_document->QuerySelector(".preview_inventory_item[data-item='" + std::to_string(index) + "']");
+    ASSERT_NE(cell, nullptr);
+    drag_parameters["drag_element"] = static_cast<void*>(cell);
+    cell->DispatchEvent("dragstart", drag_parameters);
+    ASSERT_TRUE(preview.inventory_dragging);
+    tick = tick_toolset_preview(preview.session, {&equip, 1}, preview.spatial_rows, preview.locomotion_rows);
+    ASSERT_TRUE(tick.action_result.ok()) << preview_item_message(tick.action_result);
+    // A world change during the drag freezes the old display but rejects the drop.
+    const auto* dragging_board = preview.inventory_document->GetElementById("preview_inventory_board");
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_document->GetElementById("preview_inventory_board"), dragging_board);
+    slot->DispatchEvent("dragdrop", drag_parameters);
+    EXPECT_FALSE(preview.pending_item);
+    cell->DispatchEvent("dragend", drag_parameters);
+    // A displayed old revision also cannot enqueue a click before the next sync.
+    slot->DispatchEvent("click", {});
+    EXPECT_FALSE(preview.pending_item);
+    sync_play_preview_inventory(preview);
+    EXPECT_EQ(preview.inventory_rows.equipment[10].item, item);
+    EXPECT_EQ(preview.inventory_selection, nw::ObjectHandle{});
+    slot = preview.inventory_document->QuerySelector(".preview_equipment_slot[data-slot='10']");
+    ASSERT_NE(slot, nullptr);
+    slot->DispatchEvent("click", {});
+    ASSERT_TRUE(preview.pending_item);
+    EXPECT_EQ(preview.pending_item->action, PreviewItemAction::unequip);
+    toggle_play_preview_inventory(preview, input);
+    EXPECT_FALSE(preview.inventory_visible);
+    EXPECT_FALSE(preview.inventory_document->IsVisible());
 }

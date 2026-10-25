@@ -282,7 +282,7 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
     ASSERT_NE(module, nullptr);
     auto* area = module->get_area(0);
     ASSERT_NE(area, nullptr);
-    auto* source = nw::kernel::objects().load<nw::Item>("nw_waxbt001");
+    auto* source = nw::kernel::objects().load<nw::Item>("nw_wdbqs001");
     ASSERT_NE(source, nullptr);
     area->items.push_back(source);
     auto& components = nw::kernel::objects().components();
@@ -312,13 +312,22 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
     ASSERT_NE(backdrop, nullptr);
     backdrop->Show();
     renderer.on_resize(1000, 760, context);
+    ItemIconTextureCache inventory_icons;
+    renderer.set_generated_textures(&inventory_icons.textures, nullptr);
     PlayPreviewState preview;
+    preview.inventory_icons = &inventory_icons;
     preview.inventory_document = ui.load_document(*context,
         nw::Resource{nw::Resref{"ui/preview_inventory"}, nw::ResourceType::rml});
     ASSERT_NE(preview.inventory_document, nullptr);
     PlayPreviewInventoryListener listener{preview};
-    context->AddEventListener("click", &listener);
-    const auto listener_cleanup = create_scope_exit([&] { context->RemoveEventListener("click", &listener); });
+    for (const auto* event : play_inventory_events) {
+        context->AddEventListener(event, &listener);
+    }
+    const auto listener_cleanup = create_scope_exit([&] {
+        for (const auto* event : play_inventory_events) {
+            context->RemoveEventListener(event, &listener);
+        }
+    });
     std::filesystem::create_directories("tmp");
     const auto capture = [&](const char* name) {
         EXPECT_TRUE(renderer.begin_frame());
@@ -425,20 +434,139 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
     auto* panel = preview.inventory_document->GetElementById("preview_inventory");
     EXPECT_GT(panel->GetOffsetHeight(), 200);
     EXPECT_LT(panel->GetOffsetHeight(), 760);
+    // The built-in handle moves this window without starting an item gesture.
+    auto* move_handle = preview.inventory_document->GetElementById("preview_inventory_move");
+    ASSERT_NE(move_handle, nullptr);
+    const auto original_position = Rml::Vector2f{panel->GetAbsoluteLeft(), panel->GetAbsoluteTop()};
+    const auto move_window = [&](int dx, int dy) {
+        const int x = static_cast<int>(move_handle->GetAbsoluteLeft() + 30);
+        const int y = static_cast<int>(move_handle->GetAbsoluteTop() + 10);
+        context->ProcessMouseMove(x, y, 0);
+        context->ProcessMouseButtonDown(0, 0);
+        context->ProcessMouseMove(x + dx, y + dy, 0);
+        context->ProcessMouseButtonUp(0, 0);
+        context->Update();
+    };
+    move_window(110, -60);
+    EXPECT_NEAR(panel->GetAbsoluteLeft(), original_position.x + 110, 1.0f);
+    EXPECT_NEAR(panel->GetAbsoluteTop(), original_position.y - 60, 1.0f);
+    EXPECT_FALSE(preview.inventory_dragging);
+    EXPECT_FALSE(preview.pending_item);
+    // Hover and item drag tests below run after moving the window.
+    auto* slots = preview.inventory_document->GetElementById("preview_equipment_slots");
+    ASSERT_NE(slots, nullptr);
+    EXPECT_GT(slots->GetOffsetHeight(), 100.0f);
+    EXPECT_GT(slots->GetAbsoluteTop(), panel->GetAbsoluteTop());
+    Rml::ElementList equipment_controls;
+    slots->QuerySelectorAll(equipment_controls, ".preview_equipment_slot");
+    ASSERT_EQ(equipment_controls.size(), 14u);
+    for (auto* slot : equipment_controls) {
+        EXPECT_GE(slot->GetAbsoluteLeft(), slots->GetAbsoluteLeft());
+        EXPECT_GE(slot->GetAbsoluteTop(), slots->GetAbsoluteTop());
+        EXPECT_LE(slot->GetAbsoluteLeft() + slot->GetOffsetWidth(), slots->GetAbsoluteLeft() + slots->GetOffsetWidth());
+        EXPECT_LE(slot->GetAbsoluteTop() + slot->GetOffsetHeight(), slots->GetAbsoluteTop() + slots->GetOffsetHeight());
+    }
+    const auto sample_equipment_pose = [&] {
+        const auto action = toolset_preview_action_state(preview.session);
+        viewer::AreaCreatureAnimationInput input{.owner = started.actor};
+        if (action.phase == nw::gameplay::ActionPhase::drawing) {
+            const auto duration = action.hand_timings[0].duration_ticks;
+            const auto pose_tick = action.kind == nw::gameplay::ActionKind::unequip
+                ? duration - std::min(action.elapsed_ticks, duration)
+                : action.elapsed_ticks;
+            input.action = viewer::AreaCreatureActionAnimation::draw_right;
+            input.action_time = static_cast<float>(pose_tick) / nw::gameplay::action_ticks_per_second;
+        }
+        ASSERT_EQ(scene->update_area_creature_animations({&input, 1}).rejected_input_count, 0u);
+        scene->tick(0);
+        if (input.action != viewer::AreaCreatureActionAnimation::none) {
+            size_t sampled = 0;
+            for (size_t model = 0; model < scene->scene()->static_area_model_info.size(); ++model) {
+                if (scene->scene()->static_area_model_info[model].object != started.actor) { continue; }
+                const auto* instance = scene->scene()->static_model_instance(model);
+                if (!instance || !instance->animation.enabled) { continue; }
+                const auto& clips = scene->scene()->static_models[model]->animations;
+                if (clips[instance->animation.clip].name != "drwright") { continue; }
+                EXPECT_FALSE(instance->animation.looping);
+                EXPECT_FLOAT_EQ(instance->animation.playback_rate, 0.0f);
+                EXPECT_FLOAT_EQ(instance->animation.time, std::min(input.action_time, clips[instance->animation.clip].duration));
+                ++sampled;
+            }
+            EXPECT_GT(sampled, 0u);
+        }
+    };
     for (const auto action : {PreviewItemAction::pickup, PreviewItemAction::equip,
              PreviewItemAction::unequip, PreviewItemAction::drop, PreviewItemAction::pickup}) {
         SCOPED_TRACE(static_cast<int>(action));
         sync_play_preview_inventory(preview);
         context->Update();
-        const auto found = std::ranges::find_if(preview.inventory_actions,
-            [&](const auto& row) { return row.item == item && row.action == action; });
-        ASSERT_NE(found, preview.inventory_actions.end());
-        const auto index = static_cast<size_t>(found - preview.inventory_actions.begin());
-        auto* button = preview.inventory_document->QuerySelector(
-            ".preview_item_action[data-index='" + std::to_string(index) + "']");
-        ASSERT_NE(button, nullptr);
         const auto revision = toolset_preview_item_world(preview.session).revision;
-        button->DispatchEvent("click", {});
+        auto* slot = preview.inventory_document->QuerySelector(".preview_equipment_slot[data-slot='4']");
+        auto* board = preview.inventory_document->GetElementById("preview_inventory_board");
+        ASSERT_NE(slot, nullptr);
+        ASSERT_NE(board, nullptr);
+        if (action == PreviewItemAction::equip || action == PreviewItemAction::unequip) {
+            Rml::Element* source_element = slot;
+            Rml::Element* destination = board;
+            if (action == PreviewItemAction::equip) {
+                const auto carried = std::ranges::find(preview.inventory_rows.inventory, item, &InventoryRow::item);
+                ASSERT_NE(carried, preview.inventory_rows.inventory.end());
+                const auto index = static_cast<size_t>(carried - preview.inventory_rows.inventory.begin());
+                source_element = preview.inventory_document->QuerySelector(
+                    ".preview_inventory_item[data-item='" + std::to_string(index) + "']");
+                destination = slot;
+            }
+            ASSERT_NE(source_element, nullptr);
+            const auto center_of = [](Rml::Element& element) {
+                return Rml::Vector2i{static_cast<int>(element.GetAbsoluteLeft() + element.GetOffsetWidth() / 2),
+                    static_cast<int>(element.GetAbsoluteTop() + element.GetOffsetHeight() / 2)};
+            };
+            const auto from = center_of(*source_element);
+            const auto to = center_of(*destination);
+            context->ProcessMouseMove(from.x, from.y, 0);
+            context->ProcessMouseButtonDown(0, 0);
+            context->ProcessMouseMove(from.x + 4, from.y + 4, 0);
+            ASSERT_TRUE(preview.inventory_dragging);
+            EXPECT_TRUE(source_element->IsClassSet("inventory_drag_source"));
+            // A dirty UI must not replace the native drag source before release.
+            preview.inventory_dirty = true;
+            sync_play_preview_inventory(preview);
+            EXPECT_EQ(preview.inventory_document->GetElementById("preview_inventory_board"), board);
+            if (action == PreviewItemAction::equip) {
+                auto* head = preview.inventory_document->QuerySelector(".preview_equipment_slot[data-slot='0']");
+                ASSERT_NE(head, nullptr);
+                const auto incompatible = center_of(*head);
+                context->ProcessMouseMove(incompatible.x, incompatible.y, 0);
+                context->Update();
+                EXPECT_FALSE(head->IsClassSet("inventory_drop_target"));
+                EXPECT_TRUE(head->IsClassSet("inventory_drop_invalid"));
+                EXPECT_TRUE(head->QuerySelector(".inventory_drop_outline")->IsVisible());
+                capture("tmp/preview-inventory-invalid-equip.png");
+            }
+            context->ProcessMouseMove(to.x, to.y, 0);
+            context->Update();
+            EXPECT_TRUE(destination->IsClassSet("inventory_drop_target"));
+            EXPECT_FALSE(preview.pending_item);
+            capture(action == PreviewItemAction::equip ? "tmp/preview-inventory-drag-equip.png" : "tmp/preview-inventory-drag-pack.png");
+            context->ProcessMouseButtonUp(0, 0);
+            EXPECT_FALSE(preview.inventory_dragging);
+            EXPECT_FALSE(source_element->IsClassSet("inventory_drag_source"));
+            EXPECT_FALSE(destination->IsClassSet("inventory_drop_target"));
+        } else if (action == PreviewItemAction::drop) {
+            const auto carried = std::ranges::find(preview.inventory_rows.inventory, item, &InventoryRow::item);
+            ASSERT_NE(carried, preview.inventory_rows.inventory.end());
+            const auto index = static_cast<size_t>(carried - preview.inventory_rows.inventory.begin());
+            auto* cell = preview.inventory_document->QuerySelector(
+                ".preview_inventory_item[data-item='" + std::to_string(index) + "']");
+            ASSERT_NE(cell, nullptr);
+            cell->DispatchEvent("click", {});
+            Rml::Dictionary key_parameters;
+            key_parameters["key_identifier"] = static_cast<int>(Rml::Input::KI_DELETE);
+            cell->DispatchEvent("keydown", key_parameters);
+        } else {
+            // Pickup comes from the world, not an inventory-panel shortcut.
+            preview.pending_item = PreviewItemRequest{item};
+        }
         ASSERT_TRUE(preview.pending_item);
         EXPECT_EQ(toolset_preview_item_world(preview.session).revision, revision);
         PreviewInputSample sample;
@@ -446,7 +574,21 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
         preview.pending_item.reset();
         auto tick = tick_toolset_preview(preview.session, {&sample, 1}, preview.spatial_rows, preview.locomotion_rows);
         sample = {};
+        const bool hand_action = action == PreviewItemAction::equip || action == PreviewItemAction::unequip;
+        if (hand_action) {
+            ASSERT_EQ(toolset_preview_action_state(preview.session).phase, nw::gameplay::ActionPhase::drawing);
+            EXPECT_FALSE(tick.action_result.changed);
+        }
         for (int i = 0; i < 120 && !tick.action_result.changed && toolset_preview_action_state(preview.session).phase != nw::gameplay::ActionPhase::finished; ++i) {
+            if (hand_action) {
+                sample_equipment_pose();
+                EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::righthand) != nullptr, action == PreviewItemAction::unequip);
+                const auto state = toolset_preview_action_state(preview.session);
+                const auto marker = action == PreviewItemAction::equip ? state.hand_timings[0].equip_tick : state.hand_timings[0].unequip_tick;
+                if (state.elapsed_ticks == marker / 2) {
+                    capture(action == PreviewItemAction::equip ? "tmp/preview-equip-windup.png" : "tmp/preview-unequip-windup.png");
+                }
+            }
             tick = tick_toolset_preview(preview.session, {&sample, 1}, preview.spatial_rows, preview.locomotion_rows);
         }
         ASSERT_EQ(tick.status, PreviewStatus::ok);
@@ -469,13 +611,135 @@ TEST(ClientGfxResources, PlayPreviewItemLoopUsesQueuedControlsAndRestoresAuthore
         if (action == PreviewItemAction::unequip) { EXPECT_LT(scene->scene()->static_models.size(), model_count_before); }
         EXPECT_EQ(has_visual(item), action == PreviewItemAction::drop);
         EXPECT_TRUE(has_visual(started.actor));
-        preview.item_message = preview_item_message(results[0]);
+        if (hand_action) { sample_equipment_pose(); }
+        preview.item_message.clear();
         preview.inventory_dirty = true;
         sync_play_preview_inventory(preview);
         capture(action == PreviewItemAction::equip  ? "tmp/preview-items-equipped.png"
                 : action == PreviewItemAction::drop ? "tmp/preview-items-dropped.png"
                                                     : "tmp/preview-items-action.png");
+        if (hand_action) {
+            for (uint32_t time = 0; time < 120 && toolset_preview_action_state(preview.session).phase == nw::gameplay::ActionPhase::drawing; ++time) {
+                const auto recovery = tick_toolset_preview(preview.session, {&sample, 1}, preview.spatial_rows, preview.locomotion_rows);
+                EXPECT_EQ(recovery.action_result.status, nw::gameplay::ActionStatus::none);
+                sample_equipment_pose();
+            }
+            EXPECT_EQ(toolset_preview_action_state(preview.session).phase, nw::gameplay::ActionPhase::finished);
+            capture(action == PreviewItemAction::equip ? "tmp/preview-equip-finished.png" : "tmp/preview-unequip-finished.png");
+        }
     }
+    // A carried item keeps the clicked cell under the pointer when rearranged.
+    auto* pack_item = preview.inventory_document->QuerySelector(".preview_inventory_item");
+    auto* pack_board = preview.inventory_document->GetElementById("preview_inventory_board");
+    ASSERT_TRUE(pack_item && pack_board);
+    context->ProcessMouseMove(static_cast<int>(pack_item->GetAbsoluteLeft() + 8),
+        static_cast<int>(pack_item->GetAbsoluteTop() + 8), 0);
+    context->ProcessMouseButtonDown(0, 0);
+    context->ProcessMouseMove(static_cast<int>(pack_board->GetAbsoluteLeft() + 6 * 32 + 8),
+        static_cast<int>(pack_board->GetAbsoluteTop() + 2 * 32 + 8), 0);
+    context->Update();
+    ASSERT_TRUE(pack_board->IsClassSet("inventory_drop_target"));
+    auto* footprint = pack_board->QuerySelector(".inventory_drop_outline");
+    ASSERT_NE(footprint, nullptr);
+    EXPECT_EQ(footprint->GetOffsetWidth(), static_cast<float>(preview.inventory_drag.width * 32));
+    EXPECT_EQ(footprint->GetOffsetHeight(), static_cast<float>(preview.inventory_drag.height * 32));
+    context->ProcessMouseButtonUp(0, 0);
+    ASSERT_TRUE(preview.pending_item);
+    EXPECT_EQ(preview.pending_item->action, PreviewItemAction::move_inventory);
+    EXPECT_EQ(preview.pending_item->inventory_cell.col, 6);
+    EXPECT_EQ(preview.pending_item->inventory_cell.row, 2 + preview.inventory_drag.height - 1);
+    const auto destination_cell = preview.pending_item->inventory_cell;
+    PreviewInputSample placement;
+    ASSERT_TRUE(set_preview_item_action(placement, *preview.pending_item));
+    preview.pending_item.reset();
+    const auto placed = tick_toolset_preview(preview.session, {&placement, 1}, preview.spatial_rows, preview.locomotion_rows);
+    ASSERT_TRUE(placed.action_result.ok());
+    EXPECT_FALSE(placed.action_result.equipment_changed);
+    preview.inventory_dirty = true;
+    sync_play_preview_inventory(preview);
+    const auto relocated = std::ranges::find(preview.inventory_rows.inventory, item, &InventoryRow::item);
+    ASSERT_NE(relocated, preview.inventory_rows.inventory.end());
+    EXPECT_EQ(relocated->column, destination_cell.col);
+    EXPECT_EQ(relocated->row, destination_cell.row);
+
+    move_window(-2000, -2000);
+    EXPECT_GE(panel->GetAbsoluteLeft(), 3.0f);
+    EXPECT_GE(panel->GetAbsoluteTop(), 3.0f);
+    panel->RemoveProperty("left");
+    panel->RemoveProperty("top");
+    context->Update();
+    // Fractional display scale must keep all grid cells inside the board. Hover
+    // text is laid out on the first event and disappears when leaving the item.
+    for (const float scale : {1.0f, 1.25f}) {
+        context->SetDensityIndependentPixelRatio(scale);
+        context->Update();
+        pack_board = preview.inventory_document->GetElementById("preview_inventory_board");
+        Rml::ElementList cells;
+        pack_board->QuerySelectorAll(cells, ".preview_inventory_cell");
+        for (auto* cell : cells) {
+            EXPECT_LE(cell->GetAbsoluteLeft() + cell->GetOffsetWidth(), pack_board->GetAbsoluteLeft() + pack_board->GetOffsetWidth() + 1);
+            EXPECT_LE(cell->GetAbsoluteTop() + cell->GetOffsetHeight(), pack_board->GetAbsoluteTop() + pack_board->GetOffsetHeight() + 1);
+        }
+        pack_item = preview.inventory_document->QuerySelector(".preview_inventory_item");
+        context->ProcessMouseMove(static_cast<int>(pack_item->GetAbsoluteLeft() + 8),
+            static_cast<int>(pack_item->GetAbsoluteTop() + 8), 0);
+        context->Update();
+        auto* tooltip = preview.inventory_document->GetElementById("preview_inventory_tooltip");
+        ASSERT_NE(tooltip, nullptr);
+        EXPECT_TRUE(tooltip->IsClassSet("visible"));
+        EXPECT_FALSE(tooltip->GetInnerRML().empty());
+        EXPECT_GT(tooltip->GetOffsetWidth(), 10.0f);
+        EXPECT_GE(tooltip->GetAbsoluteLeft(), 0.0f);
+        EXPECT_LE(tooltip->GetAbsoluteLeft() + tooltip->GetOffsetWidth(), 1000.0f);
+        capture(scale == 1.0f ? "tmp/preview-inventory-hover.png" : "tmp/preview-inventory-hover-scaled.png");
+        context->ProcessMouseMove(0, 0, 0);
+        EXPECT_FALSE(tooltip->IsClassSet("visible"));
+    }
+    context->SetDensityIndependentPixelRatio(1.0f);
+    context->Update();
+    // Closing mid-drag cancels the native cursor ghost without submitting a drop.
+    auto* carried_control = preview.inventory_document->QuerySelector(".preview_inventory_item");
+    ASSERT_NE(carried_control, nullptr);
+    const int drag_x = static_cast<int>(carried_control->GetAbsoluteLeft() + 8);
+    const int drag_y = static_cast<int>(carried_control->GetAbsoluteTop() + 8);
+    context->ProcessMouseMove(drag_x, drag_y, 0);
+    context->ProcessMouseButtonDown(0, 0);
+    context->ProcessMouseMove(drag_x + 8, drag_y + 8, 0);
+    ASSERT_TRUE(preview.inventory_dragging);
+    RuntimeInputState inventory_input;
+    toggle_play_preview_inventory(preview, inventory_input);
+    EXPECT_FALSE(preview.inventory_dragging);
+    EXPECT_FALSE(preview.pending_item);
+    capture("tmp/preview-inventory-drag-cancelled.png");
+    ASSERT_TRUE(open_play_preview_inventory(preview, inventory_input));
+    context->ProcessMouseButtonUp(0, 0);
+    EXPECT_FALSE(preview.pending_item);
+    // The same panel must remain usable in smaller windows; its content scrolls.
+    for (const auto size : {Rml::Vector2i{800, 600}, Rml::Vector2i{640, 480}}) {
+        ASSERT_TRUE(resize_context(ctx, static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y)));
+        renderer.on_resize(static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), context);
+        ui.contexts().toolset->SetDimensions(size);
+        context->Update();
+        EXPECT_GE(panel->GetAbsoluteLeft(), 0.0f);
+        EXPECT_GE(panel->GetAbsoluteTop(), 0.0f);
+        EXPECT_LE(panel->GetAbsoluteLeft() + panel->GetOffsetWidth(), static_cast<float>(size.x));
+        EXPECT_LE(panel->GetAbsoluteTop() + panel->GetOffsetHeight(), static_cast<float>(size.y));
+        auto* content = preview.inventory_document->GetElementById("preview_inventory_main");
+        ASSERT_NE(content, nullptr);
+        EXPECT_LE(content->GetScrollWidth(), content->GetClientWidth() + 1.0f);
+        ASSERT_TRUE(renderer.begin_frame());
+        ui.contexts().toolset->Update();
+        ui.contexts().toolset->Render();
+        context->Render();
+        renderer.finish_render_pass();
+        const auto path = "tmp/preview-inventory-" + std::to_string(size.x) + ".png";
+        ASSERT_TRUE(capture_screenshot(ctx, renderer.command_list(), path.c_str()));
+        ASSERT_TRUE(renderer.begin_frame());
+        renderer.end_frame();
+    }
+    ASSERT_TRUE(resize_context(ctx, 1000, 760));
+    renderer.on_resize(1000, 760, context);
+    ui.contexts().toolset->SetDimensions({1000, 760});
     world = toolset_preview_item_world(preview.session);
     std::vector<nw::ObjectHandle> removed{world.ground.begin(), world.ground.end()};
     removed.push_back(started.actor);
@@ -523,7 +787,9 @@ TEST(ClientGfxResources, PickupApproachRendersAndPublishesInventory)
     auto& components = nw::kernel::objects().components();
     ASSERT_TRUE(components.set_area(source->handle(), area->handle().id));
     ASSERT_TRUE(components.set_position(source->handle(), module->entry_position));
+    ItemIconTextureCache inventory_icons;
     PlayPreviewState preview;
+    preview.inventory_icons = &inventory_icons;
     const auto started = start_toolset_preview(preview.session, {
                                                                     .area = area->handle(),
                                                                     .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
@@ -541,6 +807,7 @@ TEST(ClientGfxResources, PickupApproachRendersAndPublishesInventory)
     const std::filesystem::path root{ROLLNW_TEST_SOURCE_DIR};
     RmlNwgfxRenderer renderer;
     ASSERT_TRUE(renderer.initialize(core, ctx));
+    renderer.set_generated_textures(&inventory_icons.textures, nullptr);
     viewer::ViewerDevice device{ctx, nw::kernel::resman()};
     ASSERT_TRUE(device.initialize({.shader_roots = {root / "lib/nw/render/shaders"}}));
     auto scene = device.make_session();
@@ -643,7 +910,9 @@ TEST(ClientGfxResources, PickupApproachRendersAndPublishesInventory)
                                        ? action.pickup_ticks - action.elapsed_ticks
                                        : action.elapsed_ticks)
                     / nw::gameplay::action_ticks_per_second,
-                .grabbing = action.phase == nw::gameplay::ActionPhase::grabbing || action.phase == nw::gameplay::ActionPhase::recovering}};
+                .action = action.phase == nw::gameplay::ActionPhase::grabbing || action.phase == nw::gameplay::ActionPhase::recovering
+                    ? viewer::AreaCreatureActionAnimation::pickup
+                    : viewer::AreaCreatureActionAnimation::none}};
             ASSERT_EQ(scene->update_area_creature_animations(animations).rejected_input_count, 0u);
         }
         (void)scene->update_area_item_hover(frame < 64 ? std::optional{pixel} : std::nullopt, viewport);

@@ -3,6 +3,7 @@
 #include "client_application_input.hpp"
 #include "client_application_shell.hpp"
 #include "client_application_workspace.hpp"
+#include "play_preview_inventory.hpp"
 #include <RmlUi/Core.h>
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -60,6 +61,9 @@ nw::toolset::CommandResult resolve_command_result(ClientApplicationState& state,
 {
     if (nw::toolset::take_command_form_prompt(state.command_view, result)) { sync_command_form(state); }
     state.quit_requested |= result.ok() && result.quit_requested;
+    if (result.ok() && result.inventory_open_requested) {
+        (void)open_play_preview_inventory(state.play_preview, state.runtime_input);
+    }
 
     nw::toolset::release_area_map_textures(
         result.refreshed_area_maps);
@@ -108,6 +112,12 @@ void execute_palette_command(SDL_Window* window,
     std::string_view command_id)
 {
     if (command_id.empty() || !ensure_backend_ready(state)) {
+        return;
+    }
+
+    if (command_id == "object.inventory.open") {
+        toggle_command_palette(context, palette_context, doc, palette_doc, state, false);
+        (void)dispatch_command_flow(state, command_id, {}, nw::toolset::CommandSource::palette);
         return;
     }
 

@@ -4637,25 +4637,34 @@ TEST_F(SmallsEngineIntegration, Nwn1BaseItemRequirementsUseSmallsRules)
     ASSERT_NE(script, nullptr);
     ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
-    auto run_check = [&]() {
+    auto run_check = [&](int base_item) {
         nw::Vector<nw::smalls::Value> args;
         auto creature_value = nw::smalls::Value::make_object(creature->handle());
         creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
         args.push_back(creature_value);
-        args.push_back(nw::smalls::Value::make_int(*nw::BaseItem::make(0)));
-
+        args.push_back(nw::smalls::Value::make_int(base_item));
         return rt.execute_script(script, "main", args);
     };
 
-    ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def, "feats", {}));
-    auto denied = run_check();
-    ASSERT_TRUE(denied.ok()) << denied.error_message;
-    EXPECT_EQ(denied.value.data.ival, 0);
-
-    ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def, "feats", {45, 50}));
-    auto allowed = run_check();
-    ASSERT_TRUE(allowed.ok()) << allowed.error_message;
-    EXPECT_EQ(allowed.value.data.ival, 1);
+    // ReqFeat columns are alternative proficiencies: martial OR rogue for
+    // shortswords, martial OR elf for longswords, one entry for battleaxes.
+    const std::initializer_list<int32_t> feat_sets[]{{}, {45}, {50}, {256}, {46}, {48}, {49}, {51}, {45, 50}};
+    for (const auto feats : feat_sets) {
+        ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def, "feats", feats));
+        const auto has = [&](int feat) { return std::ranges::find(feats, feat) != feats.end(); };
+        for (const int base_item : {0, 1, 2, 21, 50, -1}) {
+            SCOPED_TRACE(base_item);
+            SCOPED_TRACE(::testing::PrintToString(feats));
+            const bool expected = base_item == 0 ? has(45) || has(50)
+                : base_item == 1                 ? has(45) || has(256)
+                : base_item == 2                 ? has(45)
+                : base_item == 50                ? has(46) || has(48) || has(49) || has(50) || has(51)
+                                                 : base_item == 21;
+            const auto checked = run_check(base_item);
+            ASSERT_TRUE(checked.ok()) << checked.error_message;
+            EXPECT_EQ(checked.value.data.ival, expected ? 1 : 0);
+        }
+    }
 
     nw::kernel::objects().destroy(creature->handle());
 }

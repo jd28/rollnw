@@ -937,6 +937,8 @@ struct ClientViewerViewport::Impl {
                 added.push_back(result.item);
             }
         }
+        // Moving an item between pack cells changes no scene visuals.
+        if (removed.empty() && added.empty()) { return true; }
         const auto replaced = session->replace_area_transient_visuals(removed, added, items.area);
         if (!replaced.ok()) {
             LOG_F(ERROR, "Client preview item visuals: {}", replaced.diagnostic);
@@ -970,11 +972,20 @@ struct ClientViewerViewport::Impl {
                 return false;
             }
             const auto& action = actions[index];
-            input.grabbing = action.phase == nw::gameplay::ActionPhase::grabbing
-                || action.phase == nw::gameplay::ActionPhase::recovering;
-            const auto pose_ticks = action.phase == nw::gameplay::ActionPhase::recovering
+            input.action = viewer::AreaCreatureActionAnimation::none;
+            if (action.phase == nw::gameplay::ActionPhase::grabbing || action.phase == nw::gameplay::ActionPhase::recovering) {
+                input.action = viewer::AreaCreatureActionAnimation::pickup;
+            } else if (action.phase == nw::gameplay::ActionPhase::drawing && action.slot >= 4 && action.slot <= 5) {
+                input.action = action.slot == 4 ? viewer::AreaCreatureActionAnimation::draw_right : viewer::AreaCreatureActionAnimation::draw_left;
+            }
+            auto pose_ticks = action.phase == nw::gameplay::ActionPhase::recovering
                 ? action.pickup_ticks - std::min(action.elapsed_ticks, action.pickup_ticks)
                 : action.elapsed_ticks;
+            if (action.phase == nw::gameplay::ActionPhase::drawing && action.kind == nw::gameplay::ActionKind::unequip
+                && action.slot >= 4 && action.slot <= 5) {
+                const auto duration = action.hand_timings[action.slot - 4].duration_ticks;
+                pose_ticks = duration - std::min(action.elapsed_ticks, duration);
+            }
             input.action_time = static_cast<float>(pose_ticks) / nw::gameplay::action_ticks_per_second;
             switch (locomotion_rows[index]) {
             case nw::toolset::PreviewActorLocomotion::walking_forward:

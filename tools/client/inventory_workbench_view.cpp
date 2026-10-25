@@ -1,6 +1,7 @@
 #include "inventory_workbench_view.hpp"
 #include "client_edit_trace.hpp"
 #include "command_view.hpp"
+#include "object_edits.hpp"
 #include "shell_controller.hpp"
 #include "smalls_rmlui.hpp"
 #include "toolset_backend.hpp"
@@ -12,6 +13,7 @@
 #include <nw/smalls/runtime.hpp>
 
 #include <charconv>
+#include <fmt/format.h>
 #include <utility>
 
 namespace nw::toolset {
@@ -188,7 +190,9 @@ std::string render_creature_inventory_page(const InventoryWorkbenchViewState& st
         const int cell_count = state.creature_inventory.row_count
             * state.creature_inventory.column_count;
         for (int index = 0; index < cell_count; ++index) {
-            markup += "<span class=\"creature_inventory_cell\"></span>";
+            markup += fmt::format("<span class=\"creature_inventory_cell\" style=\"left:{}dp;top:{}dp\"></span>",
+                (index % state.creature_inventory.column_count) * kCreatureInventoryCellDp,
+                (index / state.creature_inventory.column_count) * kCreatureInventoryCellDp);
         }
         markup += "<span id=\"creature_inventory_drop_target\" "
                   "class=\"creature_inventory_drop_target\"></span>";
@@ -205,6 +209,7 @@ std::string render_creature_inventory_page(const InventoryWorkbenchViewState& st
                 label = state.creature_inventory.text_view(row.resref);
             }
             markup += "<div class=\"creature_inventory_item";
+            if (state.creature_inventory.object.type == ObjectType::creature) { markup += " inventory_draggable"; }
             if (state.creature_inventory_selection >= 0
                 && row.source_index
                     == static_cast<uint32_t>(state.creature_inventory_selection)) {
@@ -240,7 +245,7 @@ std::string render_creature_inventory_page(const InventoryWorkbenchViewState& st
             }
             markup += "</div>";
         }
-        markup += "</div><div class=\"creature_inventory_pages\">";
+        markup += "<span class=\"inventory_drop_outline\"></span></div><div class=\"creature_inventory_pages\">";
         for (int page = 0; page < state.creature_inventory.page_count; ++page) {
             markup += "<button class=\"creature_inventory_page";
             if (page == state.creature_inventory_page) {
@@ -269,6 +274,9 @@ bool active_creature_inventory_matches_tab(const InventoryWorkbenchViewState& st
 
 void rebuild_active_creature_inventory(InventoryWorkbenchViewState& state, nw::ObjectHandle object)
 {
+    // Keep ownership of a held pointer until release, even if a refresh removes
+    // its DOM source. The captured epoch/identities will reject stale drops.
+    state.pending_drop.reset();
     const ScopedClientEditPhase trace{ClientEditPhase::inventory};
     nw::toolset::build_object_inventory_rows(
         nw::kernel::runtime(), object, state.item_icon_cache, state.creature_inventory);
@@ -286,6 +294,7 @@ void rebuild_active_creature_inventory(InventoryWorkbenchViewState& state, nw::O
 
 void clear_active_creature_inventory(InventoryWorkbenchViewState& state)
 {
+    state.pending_drop.reset();
     state.creature_inventory = {};
     state.creature_inventory_page = 0;
     state.creature_inventory_selection = -1;
@@ -295,7 +304,7 @@ void clear_active_creature_inventory(InventoryWorkbenchViewState& state)
 bool sync_creature_inventory_window(Rml::ElementDocument* doc, InventoryWorkbenchViewState& state, ObjectWorkbenchTarget target, bool force)
 {
     auto* surface = find_el(doc, "creature_inventory_page_surface");
-    if (!surface || (!force && state.creature_inventory_rendered)) {
+    if (!surface || state.drag_source || (!force && state.creature_inventory_rendered)) {
         return false;
     }
 
@@ -325,7 +334,7 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
             const auto& row = state.creature_inventory.equipment[index];
             content_markup += "<div class=\"creature_equipment_slot";
             if (row.assigned()) {
-                content_markup += " assigned";
+                content_markup += " assigned inventory_draggable";
             } else {
                 content_markup += " empty";
             }
@@ -371,7 +380,7 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
                 content_markup += "\"><span class=\"panel_edit_icon\"><span class=\"panel_edit_cap\"></span>"
                                   "<span class=\"panel_edit_body\"></span><span class=\"panel_edit_tip\"></span></span></button>";
             }
-            content_markup += "</div>";
+            content_markup += "<span class=\"inventory_drop_outline\"></span></div>";
         };
 
         content_markup += "<div class=\"creature_equipment_standard\">"
@@ -428,7 +437,7 @@ void append_creature_inventory_markup(std::string& content_markup, const Invento
                       "</button></div></div>";
 }
 
-std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
+static std::optional<InventoryWorkbenchClick> capture_inventory_control(
     Rml::Element* hit, const InventoryWorkbenchViewState& state, ObjectWorkbenchTarget target,
     const WorkspaceState& workspace, uint64_t module_generation)
 {
@@ -486,13 +495,120 @@ std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
     return click;
 }
 
+std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
+    Rml::Element* hit, const InventoryWorkbenchViewState& state, ObjectWorkbenchTarget target,
+    const WorkspaceState& workspace, uint64_t module_generation)
+{
+    auto click = capture_inventory_control(hit, state, target, workspace, module_generation);
+    // Equipment ownership changes only on a drop. Ordinary clicks still select
+    // carried items for the existing edit/remove controls.
+    if (click && click->kind == InventoryWorkbenchClickKind::equipment) { click->kind = InventoryWorkbenchClickKind::none; }
+    return click;
+}
+
+void cancel_inventory_workbench_drag(Rml::ElementDocument* doc, InventoryWorkbenchViewState& state)
+{
+    const bool dragging = state.drag_source.has_value();
+    state.drag_source.reset();
+    state.pending_drop.reset();
+    state.creature_inventory_rendered = false;
+    if (dragging && doc) {
+        clear_inventory_drag_feedback(doc);
+        doc->GetContext()->ProcessMouseLeave();
+        doc->GetContext()->ProcessMouseButtonUp(0, 0);
+    }
+}
+
+void process_inventory_workbench_drag(Rml::Event& event, InventoryWorkbenchViewState& state,
+    ObjectWorkbenchTarget target, const WorkspaceState& workspace, uint64_t module_generation)
+{
+    auto* hit = event.GetTargetElement();
+    if (!hit) { return; }
+    const auto& type = event.GetType();
+    if (type == "dragend") {
+        clear_inventory_drag_feedback(hit->GetOwnerDocument());
+        state.drag_source.reset();
+        state.creature_inventory_rendered = false;
+        return;
+    }
+    auto* slot = find_ancestor_with_class(hit, "creature_equipment_slot");
+    auto* board = find_ancestor_with_class(hit, "creature_inventory_board");
+    if (type == "dragout") {
+        if (auto* destination = slot ? slot : board) {
+            destination->SetClass("inventory_drop_target", false);
+            destination->SetClass("inventory_drop_invalid", false);
+        }
+        return;
+    }
+    if (type == "dragstart") {
+        if (target.object.type != ObjectType::creature) { return; }
+        auto source = capture_inventory_control(hit, state, target, workspace, module_generation);
+        if (!source || (source->kind != InventoryWorkbenchClickKind::item && source->kind != InventoryWorkbenchClickKind::equipment)) { return; }
+        if (source->kind == InventoryWorkbenchClickKind::equipment && source->equipped_item.type != ObjectType::item) { return; }
+        const bool carried = source->kind == InventoryWorkbenchClickKind::item;
+        if (!begin_inventory_drag(state.drag_geometry, carried ? source->inventory_item : source->equipped_item, *hit, event, carried)) { return; }
+        state.creature_inventory_selection = carried ? source->index : -1;
+        source->selection = state.creature_inventory_selection;
+        state.pending_drop.reset();
+        state.drag_source = std::move(source);
+        hit->SetClass("inventory_drag_source", true);
+        event.StopPropagation();
+        return;
+    }
+    if ((type != "dragover" && type != "dragmove" && type != "dragdrop") || !state.drag_source) { return; }
+    const auto& source = *state.drag_source;
+    if (!target.matches_active_tab || source.object != target.object || state.creature_inventory.object != source.object
+        || workspace.active_tab_id() != source.tab_id || module_generation != source.module_generation
+        || object_mutation_state().epoch != source.mutation_epoch
+        || state.creature_inventory_selection != source.selection || state.creature_inventory_page != source.page) { return; }
+    std::optional<InventoryWorkbenchClick> request;
+    Rml::Element* destination = nullptr;
+    if (source.kind == InventoryWorkbenchClickKind::item && slot) {
+        request = capture_inventory_control(slot, state, target, workspace, module_generation);
+        destination = slot;
+    } else if (board) {
+        request = source;
+        request->kind = InventoryWorkbenchClickKind::placement;
+        request->inventory_cell = inventory_drag_cell(state.drag_geometry, *board, event, state.creature_inventory_page);
+        destination = board;
+    }
+    if (!request || (request->kind != InventoryWorkbenchClickKind::equipment && request->kind != InventoryWorkbenchClickKind::placement)) { return; }
+    event.StopPropagation();
+    const auto* creature = kernel::objects().get<Creature>(source.object);
+    if (!creature || request->index < 0) { return; }
+    std::optional<CreatureInventoryEditBatch> edit;
+    if (request->kind == InventoryWorkbenchClickKind::placement && request->selection >= 0) {
+        if (live_inventory_item(creature->inventory(), request->index) != source.inventory_item) { return; }
+        const std::array placements{InventoryPlacement{source.inventory_item, request->inventory_cell}};
+        edit = prepare_equipment_changes(source.object, {}, placements);
+    } else {
+        if (request->index >= 18) { return; }
+        const auto* equipped = get_equipped_item(creature, static_cast<EquipIndex>(request->index));
+        if ((equipped ? equipped->handle() : ObjectHandle{}) != request->equipped_item
+            || (request->selection >= 0 && live_inventory_item(creature->inventory(), request->selection) != source.inventory_item)) { return; }
+        const auto equipment_slot = static_cast<EquipIndex>(request->index);
+        edit = request->selection >= 0
+            ? make_creature_inventory_equip_edit(source.object, request->selection, equipment_slot)
+            : make_creature_inventory_unequip_edit(source.object, equipment_slot, request->inventory_cell);
+    }
+    if (request->kind == InventoryWorkbenchClickKind::placement) {
+        show_inventory_drag_cells(*destination, state.drag_geometry, request->inventory_cell, edit.has_value());
+    } else {
+        destination->SetClass("inventory_drop_target", edit.has_value() && type != "dragdrop");
+        destination->SetClass("inventory_drop_invalid", !edit && type != "dragdrop");
+    }
+    // The backend repeats validation on release and reports incompatible slots
+    // or insufficient space through the existing authoring command output.
+    if (type == "dragdrop") { state.pending_drop = std::move(request); }
+}
+
 bool apply_inventory_workbench_click(InventoryWorkbenchClick& click,
     InventoryWorkbenchViewState& state, ObjectWorkbenchTarget target,
     const WorkspaceState& workspace, ToolsetBackend& backend,
     ShellController& shell, const CommandContext& context)
 {
     const auto kind = std::exchange(click.kind, InventoryWorkbenchClickKind::none);
-    if (kind == InventoryWorkbenchClickKind::none || kind > InventoryWorkbenchClickKind::remove || click.index < 0
+    if (kind == InventoryWorkbenchClickKind::none || kind > InventoryWorkbenchClickKind::placement || click.index < 0
         || click.release_phase != ClientRmlForwardPhase::before_native || !active_creature_inventory_matches_tab(state, target)
         || target.object != click.object || state.creature_inventory.object != click.object
         || !workspace.active_tab() || workspace.active_tab_id() != click.tab_id || context.active_tab_id != click.tab_id
@@ -505,6 +621,27 @@ bool apply_inventory_workbench_click(InventoryWorkbenchClick& click,
         || inventory->columns() <= 0 || inventory->columns() > Inventory::max_columns
         || inventory->pages() != state.creature_inventory.page_count
         || inventory->rows() != state.creature_inventory.row_count || inventory->columns() != state.creature_inventory.column_count) { return false; }
+    if (kind == InventoryWorkbenchClickKind::placement) {
+        std::optional<CreatureInventoryEditBatch> edit;
+        if (click.selection >= 0) {
+            if (live_inventory_item(*inventory, click.index) != click.inventory_item) { return false; }
+            const std::array placements{InventoryPlacement{click.inventory_item, click.inventory_cell}};
+            edit = prepare_equipment_changes(click.object, {}, placements);
+        } else {
+            const auto* creature = kernel::objects().get<Creature>(click.object);
+            const auto* item = creature && click.index < 18 ? get_equipped_item(creature, static_cast<EquipIndex>(click.index)) : nullptr;
+            if (!item || item->handle() != click.equipped_item) { return false; }
+            edit = make_creature_inventory_unequip_edit(click.object, static_cast<EquipIndex>(click.index), click.inventory_cell);
+        }
+        if (!edit) {
+            shell.append_output("warn", "That inventory space is occupied or outside the pack.");
+            return true;
+        }
+        const auto result = backend.edit_creature_inventory(std::move(*edit), context);
+        if (result.ok()) { state.creature_inventory_selection = -1; }
+        append_command_results(shell, {&result, 1});
+        return true;
+    }
     if (kind == InventoryWorkbenchClickKind::page) {
         if (click.index >= inventory->pages()) { return false; }
         state.creature_inventory_page = click.index;

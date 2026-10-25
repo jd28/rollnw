@@ -170,6 +170,8 @@ struct CommandResult {
     std::vector<std::filesystem::path> refreshed_area_maps;
     // The desktop exits only after the current input callback returns.
     bool quit_requested = false;
+    // Presentation request; the client resolves its currently controlled actor.
+    bool inventory_open_requested = false;
 
     [[nodiscard]] bool ok() const noexcept;
     [[nodiscard]] bool should_log() const noexcept;

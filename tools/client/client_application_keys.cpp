@@ -33,13 +33,64 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
     auto& system_interface = *surfaces.system_interface;
     const int frame_width = surfaces.frame_width;
     const int frame_height = surfaces.frame_height;
+    if (event.key.key == SDLK_ESCAPE && state.workbench.inventory_view.drag_source) {
+        cancel_inventory_workbench_drag(doc, state.workbench.inventory_view);
+        dispatch.native_handled = true;
+        return ClientEventFlow::finish;
+    }
     {
+        const std::array shortcut_inputs{nw::toolset::EditorShortcutInput{
+            .key = event.key.key, .modifiers = event.key.mod, .repeat = event.key.repeat}};
+        std::array<nw::toolset::EditorShortcutAction, 1> shortcut_actions{};
+        (void)nw::toolset::resolve_editor_shortcut_actions(shortcut_inputs, shortcut_actions);
+        const auto shortcut = shortcut_actions.front();
+        if (shortcut == nw::toolset::EditorShortcutAction::palette_toggle) {
+            cancel_area_tile_stroke(renderer, state);
+            cancel_inventory_workbench_drag(doc, state.workbench.inventory_view);
+            if (state.play_preview.inventory_visible) {
+                toggle_play_preview_inventory(state.play_preview, state.runtime_input);
+            }
+            if (state.play_preview.session.active()) {
+                reset_play_preview_input(state.play_preview, state.runtime_input);
+                state.runtime_input.pending.flags |= preview_input_cancel;
+            }
+            append_command_result(state, dispatch_command(state, "rollnw.client.palette.toggle", {}, nw::toolset::CommandSource::shortcut));
+            toggle_command_palette(context, palette_context, doc, palette_doc, state, state.shell.command_palette_visible);
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
+
+        if (state.shell.command_palette_visible && event.key.key == SDLK_ESCAPE) {
+            toggle_command_palette(context, palette_context, doc, palette_doc, state, false);
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
+
+        if (state.shell.command_palette_visible
+            && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
+            && focused_element_has_id(palette_context, "command_input")) {
+            nw::toolset::refresh_command_palette(palette_doc, state.command_view, state.backend);
+            if (!state.command_view.commands.empty()) {
+                execute_palette_command(window, context, palette_context, doc, palette_doc, state, state.command_view.commands.front().id);
+            }
+            dispatch.native_handled = true;
+            return ClientEventFlow::finish;
+        }
+
+        if (state.shell.command_palette_visible) {
+            return ClientEventFlow::finish;
+        }
+
         if (state.play_preview.session.active()
             || state.play_preview.placement_pending()) {
             if (!event.key.repeat && state.play_preview.session.active()
-                && (event.key.key == SDLK_I
+                && ((event.key.key == SDLK_I && (event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_ALT | SDL_KMOD_GUI)) == 0)
                     || (event.key.key == SDLK_ESCAPE && state.play_preview.inventory_visible))) {
-                nw::toolset::toggle_play_preview_inventory(state.play_preview, state.runtime_input);
+                if (state.play_preview.inventory_visible) {
+                    toggle_play_preview_inventory(state.play_preview, state.runtime_input);
+                } else {
+                    (void)dispatch_command_flow(state, "object.inventory.open", {}, nw::toolset::CommandSource::shortcut);
+                }
             } else if (!event.key.repeat
                 && (event.key.key == SDLK_F9 || event.key.key == SDLK_ESCAPE)) {
                 stop_play_preview(renderer, system_interface, doc, state);
@@ -121,25 +172,6 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             return ClientEventFlow::finish;
         }
 
-        const std::array shortcut_inputs{nw::toolset::EditorShortcutInput{
-            .key = event.key.key, .modifiers = event.key.mod, .repeat = event.key.repeat}};
-        std::array<nw::toolset::EditorShortcutAction, 1> shortcut_actions{};
-        (void)nw::toolset::resolve_editor_shortcut_actions(shortcut_inputs, shortcut_actions);
-        const auto shortcut = shortcut_actions.front();
-        if (shortcut == nw::toolset::EditorShortcutAction::palette_toggle) {
-            cancel_area_tile_stroke(renderer, state);
-            append_command_result(state, dispatch_command(state, "rollnw.client.palette.toggle", {}, nw::toolset::CommandSource::shortcut));
-            toggle_command_palette(context, palette_context, doc, palette_doc, state, state.shell.command_palette_visible);
-            dispatch.native_handled = true;
-            return ClientEventFlow::finish;
-        }
-
-        if (state.shell.command_palette_visible && event.key.key == SDLK_ESCAPE) {
-            toggle_command_palette(context, palette_context, doc, palette_doc, state, false);
-            dispatch.native_handled = true;
-            return ClientEventFlow::finish;
-        }
-
         if (!event.key.repeat && event.key.key == SDLK_ESCAPE
             && state.workbench.object_details_combobox.is_active()) {
             close_object_details_combobox(doc, state);
@@ -215,17 +247,6 @@ ClientEventFlow process_client_key_down(SDL_Event& event, ClientInputDispatchSta
             sync_creature_feat_window(doc, state, true);
             sync_creature_spell_window(doc, state, true);
             sync_creature_inventory_window(doc, state, true);
-            dispatch.native_handled = true;
-            return ClientEventFlow::finish;
-        }
-
-        if (state.shell.command_palette_visible
-            && (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
-            && focused_element_has_id(palette_context, "command_input")) {
-            nw::toolset::refresh_command_palette(palette_doc, state.command_view, state.backend);
-            if (!state.command_view.commands.empty()) {
-                execute_palette_command(window, context, palette_context, doc, palette_doc, state, state.command_view.commands.front().id);
-            }
             dispatch.native_handled = true;
             return ClientEventFlow::finish;
         }

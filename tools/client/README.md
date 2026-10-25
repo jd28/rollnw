@@ -150,11 +150,13 @@ and original order, including Store category and infinite-stock status. Unequip
 an equipped item before removing it. Inventory removal saves with the blueprint
 or containing area.
 
-To replace equipped gear, select an inventory item and click the destination
-equipment slot. The displaced item returns to the vacated inventory cell when
+To equip or replace gear, drag an inventory item onto the destination equipment
+slot. Drag equipped gear back into the inventory to unequip it, or drag carried
+items to rearrange them. The footprint outline marks the exact destination cells;
+occupied or out-of-bounds drops leave the item unchanged. **Escape** cancels a drag.
+The displaced item returns to the vacated inventory cell when
 it fits, or the first available space. The entire swap is one undoable action;
-insufficient space leaves both items unchanged. Clicking an occupied slot with
-no inventory item selected unequips it.
+insufficient space leaves both items unchanged.
 
 For placed instances in an Area, select an inventory item and click the **pencil**
 icon to open it in the Item editor. Occupied equipment slots have their own pencil
@@ -208,16 +210,29 @@ within one world unit, faces the item and
 plays the grab before transferring it. The return pose plays afterward. Movement
 or another command cancels an unfinished grab; cancelling after transfer keeps
 the item. Actors without a pickup clip use an immediate transfer.
-Left-click an area surface to request a path there. Press **I** to open inventory;
-opening it stops the actor. Pick up reachable ground items within two world
-units, choose an **Equip to** slot, and use **Equip**, **Unequip**, or **Drop**.
-Drops use the actor's current walkable position. Failed requests leave item
-ownership unchanged; equipment follows the current gameplay rules.
+Left-click an area surface to request a path there. Press **I**, or open the
+command palette with **Ctrl+Shift+P** and run **object.inventory.open**, to open
+inventory. Opening it stops the actor. Drag the panel's top edge to move it.
+The panel shows equipment slots and a
+paged item grid using the items' actual icons and footprints. Drag a carried item
+onto an equipment slot to equip it, or drag equipped gear into the pack to
+unequip it, or move carried items within the pack. A translucent item follows the
+pointer and a footprint outline marks the exact destination cells. Occupied or
+out-of-bounds drops leave the item unchanged. Hover over an item to see its name.
+Dropping elsewhere cancels the drag. You can also select
+a carried item and click a slot, or click equipped gear to unequip it when no
+carried item is selected. Select a carried item and press **Delete** to drop it
+at the actor's current walkable position. Use **< / >** to cycle pack pages.
+Failed requests leave ownership unchanged; equipment follows the current gameplay
+rules. The inventory command is available only during play mode.
 
 **I** or **Escape** closes inventory. **F9**, or **Escape** with inventory closed,
 ends preview and restores the authored items, editor selection, and camera.
 Preview items retain their identity through transfers, then are discarded on
-exit. Equipment changes are immediate; timed equip animations, combat,
+exit. Hand equipment plays the rig's draw clip, commits at its weapon marker,
+and finishes the clip; unequipping plays it backward. Movement or another action
+can interrupt it, preserving the equipment state already committed. Other slots
+and creatures without draw clips change immediately. Combat,
 encounters, general gameplay scripts, and gameplay persistence are not included.
 
 ## Command-line import

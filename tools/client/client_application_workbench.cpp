@@ -208,6 +208,11 @@ ObjectWorkbenchChangeListener::ObjectWorkbenchChangeListener(ClientApplicationSt
 }
 void ObjectWorkbenchChangeListener::ProcessEvent(Rml::Event& event)
 {
+    if (std::ranges::find(inventory_workbench_drag_events, event.GetType()) != std::end(inventory_workbench_drag_events)) {
+        process_inventory_workbench_drag(event, state_.workbench.inventory_view,
+            object_workbench_target(state_.workbench, state_.workspace), state_.workspace, state_.backend.module_generation());
+        return;
+    }
     nw::toolset::process_object_workbench_change(event, state_.workbench, state_.workspace,
         state_.backend, state_.shell, command_context(state_, nw::toolset::CommandSource::widget));
 }

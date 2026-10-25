@@ -344,6 +344,16 @@ ClientEventFlow process_client_pointer_motion(SDL_Event& event, ClientInputDispa
     auto& system_interface = *surfaces.system_interface;
     const int frame_width = surfaces.frame_width;
     const int frame_height = surfaces.frame_height;
+    auto* focused = context ? context->GetFocusElement() : nullptr;
+    if (state.workbench.inventory_view.drag_source
+        || (focused && focused->IsPseudoClassSet("active") && focused->IsClassSet("inventory_draggable"))) {
+        // Keep the source context's hover current even over a native viewport.
+        // The active press covers the first movement before RmlUi emits dragstart.
+        (void)forward_client_input(dispatch, ClientRmlRecipient::toolset,
+            ClientRmlForwardPhase::after_native, context, window, event);
+        dispatch.native_handled = true;
+        return ClientEventFlow::finish;
+    }
     {
         if (update_bottom_dock_resize(doc, state, window, event.motion)) {
             dispatch.native_handled = true;

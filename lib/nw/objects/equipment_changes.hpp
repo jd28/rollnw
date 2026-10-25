@@ -19,6 +19,13 @@ struct EquipmentChange {
     ObjectHandle after{};
 };
 
+// Explicit pack placement. Cell.row is the bottom occupied row, matching
+// Inventory's native coordinates. No fallback to another cell is permitted.
+struct InventoryPlacement {
+    ObjectHandle item{};
+    InventorySlot cell;
+};
+
 struct EquipmentState {
     std::array<EquipItem, 18> equipment;
     std::vector<InventoryItem> inventory;
@@ -42,6 +49,7 @@ struct EquipmentChangeBatch {
     int32_t rows = 0;
     int32_t columns = 0;
     std::vector<EquipmentChange> changes;
+    std::vector<InventoryPlacement> placements;
     std::vector<EquipmentItemFootprint> footprints;
     EquipmentState before;
     EquipmentState after;
@@ -50,7 +58,8 @@ struct EquipmentChangeBatch {
 // Invalid, duplicate, unresolved, foreign or oversized input and insufficient
 // capacity reject before mutation. Empty requests prepare a no-op batch.
 std::optional<EquipmentChangeBatch> prepare_equipment_changes(
-    ObjectHandle creature, std::span<const EquipmentChange> changes);
+    ObjectHandle creature, std::span<const EquipmentChange> changes,
+    std::span<const InventoryPlacement> placements = {});
 
 // Allocation-free storage publication after complete validation. Failure leaves
 // slots, inventory, occupancy and equip_version unchanged. Profile effects and

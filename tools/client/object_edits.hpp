@@ -570,7 +570,7 @@ struct AreaObjectBlueprintLoadResult {
 [[nodiscard]] std::optional<CreatureInventoryEditBatch> make_creature_inventory_equip_edit(
     ObjectHandle creature, uint32_t inventory_index, EquipIndex slot);
 [[nodiscard]] std::optional<CreatureInventoryEditBatch> make_creature_inventory_unequip_edit(
-    ObjectHandle creature, EquipIndex slot);
+    ObjectHandle creature, EquipIndex slot, InventorySlot cell = {});
 [[nodiscard]] ObjectEditApplyResult apply_creature_inventory_edits(
     CreatureInventoryEditBatch& batch, ObjectEditDirection direction);
 [[nodiscard]] CommandResult commit_creature_inventory_edits(

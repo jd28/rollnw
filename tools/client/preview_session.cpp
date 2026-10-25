@@ -242,6 +242,20 @@ bool build_projected_door_links(nav::NavAreaBuildSource& source,
     return true;
 }
 
+bool valid_item_request(const PreviewItemRequest& request) noexcept
+{
+    if (request.item.type != ObjectType::item
+        || (request.action > PreviewItemAction::drop && request.action != PreviewItemAction::move_inventory)
+        || ((request.action == PreviewItemAction::equip || request.action == PreviewItemAction::unequip)
+            && (request.slot < 0 || request.slot >= 18))) { return false; }
+    const auto& cell = request.inventory_cell;
+    const bool automatic = cell.page == -1 && cell.row == -1 && cell.col == -1;
+    const bool explicit_cell = cell.page >= 0 && cell.page < UINT8_MAX && cell.row >= 0
+        && cell.row < Inventory::max_rows && cell.col >= 0 && cell.col < Inventory::max_columns;
+    if (request.action == PreviewItemAction::move_inventory) { return explicit_cell; }
+    return automatic || (request.action == PreviewItemAction::unequip && explicit_cell);
+}
+
 } // namespace
 
 bool valid_preview_pointer_action(const PreviewInputSample& sample) noexcept
@@ -252,12 +266,7 @@ bool valid_preview_pointer_action(const PreviewInputSample& sample) noexcept
     if ((sample.flags & preview_input_click_door) != 0
         && (sample.door_index == UINT32_MAX || !finite(sample.door_bounds_min) || !finite(sample.door_bounds_max)
             || glm::any(glm::greaterThan(sample.door_bounds_min, sample.door_bounds_max)))) { return false; }
-    if ((sample.flags & preview_input_item_action) != 0) {
-        const auto& request = sample.item_action;
-        if (request.item.type != ObjectType::item || request.action > PreviewItemAction::drop
-            || ((request.action == PreviewItemAction::equip || request.action == PreviewItemAction::unequip)
-                && (request.slot < 0 || request.slot >= 18))) { return false; }
-    }
+    if ((sample.flags & preview_input_item_action) != 0 && !valid_item_request(sample.item_action)) { return false; }
     return true;
 }
 
@@ -269,9 +278,7 @@ void clear_preview_pointer_action(PreviewInputSample& sample) noexcept
 bool set_preview_item_action(PreviewInputSample& sample, PreviewItemRequest request) noexcept
 {
     clear_preview_pointer_action(sample);
-    if (request.item.type != ObjectType::item || request.action > PreviewItemAction::drop
-        || ((request.action == PreviewItemAction::equip || request.action == PreviewItemAction::unequip)
-            && (request.slot < 0 || request.slot >= 18))) { return false; }
+    if (!valid_item_request(request)) { return false; }
     sample.item_action = request;
     sample.flags |= preview_input_item_action;
     return true;
@@ -755,12 +762,21 @@ PreviewSessionStartResult start_toolset_preview(
     state.spatial.area = state.item_area.id;
     state.item_revision = 1;
     state.action.actor = state.actor;
-    float pickup_duration = 0.0f;
-    nwn1::resolve_pickup_animation_durations({&state.actor, 1}, {&pickup_duration, 1});
-    const double pickup_ticks = std::ceil(static_cast<double>(pickup_duration) * gameplay::action_ticks_per_second);
-    state.action.pickup_ticks = pickup_ticks > 0.0 && pickup_ticks <= UINT32_MAX
-        ? static_cast<uint32_t>(pickup_ticks)
-        : 0;
+    nwn1::CreatureActionAnimationTimings timings;
+    nwn1::resolve_creature_action_animation_timings({&state.actor, 1}, {&timings, 1});
+    const auto ticks = [](float seconds) {
+        const double value = std::ceil(static_cast<double>(seconds) * gameplay::action_ticks_per_second);
+        return std::isfinite(value) && value > 0.0 && value <= UINT32_MAX ? static_cast<uint32_t>(value) : 0u;
+    };
+    state.action.pickup_ticks = ticks(timings.pickup_duration);
+    for (size_t hand = 0; hand < timings.hands.size(); ++hand) {
+        const auto& source = timings.hands[hand];
+        auto& target = state.action.hand_timings[hand];
+        target.duration_ticks = ticks(source.duration);
+        if (target.duration_ticks == 0) { continue; }
+        target.equip_tick = source.draw_marker >= 0.0f ? ticks(source.draw_marker) : target.duration_ticks;
+        target.unequip_tick = source.draw_marker >= 0.0f ? ticks(source.duration - source.draw_marker) : target.duration_ticks;
+    }
     state.active = true;
 
     result.status = PreviewStatus::ok;
@@ -1068,6 +1084,7 @@ PreviewTickStats tick_toolset_preview(
                 request.kind = sample.item_action.action;
                 request.target = sample.item_action.item;
                 request.slot = sample.item_action.slot;
+                request.inventory_cell = sample.item_action.inventory_cell;
             } else if (!interrupt) {
                 request.kind = gameplay::ActionKind::move_to;
                 request.destination = sample.click_target;
@@ -1373,7 +1390,8 @@ PreviewTickStats tick_toolset_preview(
         }
         gameplay::complete_actor_actions(state.item_area, state.nav_world, pickup_reach,
             action_states, {&motion_status, 1}, action_results);
-        if (state.action.phase == gameplay::ActionPhase::grabbing || state.action.phase == gameplay::ActionPhase::recovering) {
+        if (state.action.phase == gameplay::ActionPhase::grabbing || state.action.phase == gameplay::ActionPhase::recovering
+            || state.action.phase == gameplay::ActionPhase::drawing) {
             clear_route();
             state.locomotion = PreviewActorLocomotion::idle;
             state.spatial.velocity = glm::vec3{0.0f};
@@ -1396,7 +1414,7 @@ PreviewTickStats tick_toolset_preview(
         }
         if (action_results[0].changed) {
             ++state.item_revision;
-            if (!action_results[0].equipment_changed) {
+            if (state.action.kind == gameplay::ActionKind::pickup || state.action.kind == gameplay::ActionKind::drop) {
                 const auto* area = kernel::objects().get<Area>(state.item_area);
                 if (!area) {
                     stats.status = PreviewStatus::actor_failed;

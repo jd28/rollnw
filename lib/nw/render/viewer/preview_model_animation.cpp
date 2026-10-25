@@ -429,6 +429,7 @@ AreaCreatureAnimationStats update_area_creature_animations(
     const auto valid_input = [&inputs](size_t index) {
         if (inputs[index].owner.type != nw::ObjectType::creature
             || inputs[index].locomotion > AreaCreatureLocomotion::turning_right
+            || inputs[index].action > AreaCreatureActionAnimation::draw_left
             || !std::isfinite(inputs[index].action_time) || inputs[index].action_time < 0.0f) {
             return false;
         }
@@ -471,8 +472,9 @@ AreaCreatureAnimationStats update_area_creature_animations(
         }
 
         LocomotionClipSelection selection;
-        if (input->grabbing) {
-            selection.clip = find_render_model_animation_clip(*model, "getlow");
+        if (input->action != AreaCreatureActionAnimation::none) {
+            constexpr std::array names{"", "getlow", "drwright", "drwleft"};
+            selection.clip = find_render_model_animation_clip(*model, names[static_cast<size_t>(input->action)]);
             if (selection.clip != std::numeric_limits<uint32_t>::max()) {
                 if (!ensure_render_model_animation_backend(*instance, *model, model_index)) {
                     ++stats.missing_clip_count;
@@ -491,7 +493,7 @@ AreaCreatureAnimationStats update_area_creature_animations(
             }
             ++stats.missing_clip_count;
         }
-        switch (input->grabbing ? AreaCreatureLocomotion::idle : input->locomotion) {
+        switch (input->action != AreaCreatureActionAnimation::none ? AreaCreatureLocomotion::idle : input->locomotion) {
         case AreaCreatureLocomotion::walking_forward: {
             constexpr std::array names{"walk"sv, "cwalkf"sv, "ccwalkf"sv, "cwalk"sv};
             selection.clip = find_first_render_model_animation_clip(*model, names);

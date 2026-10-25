@@ -1412,7 +1412,7 @@ TEST(PreviewModelAnimation, GrabUsesSimulationTimeAndRestoresLocomotion)
     std::array inputs{viewer::AreaCreatureAnimationInput{.owner = owner,
         .locomotion = viewer::AreaCreatureLocomotion::walking_forward,
         .action_time = 0.25f,
-        .grabbing = true}};
+        .action = viewer::AreaCreatureActionAnimation::pickup}};
     ASSERT_EQ(viewer::update_area_creature_animations(scene, inputs).changed_model_count, 1u);
     auto* instance = scene.static_model_instance(0);
     ASSERT_NE(instance, nullptr);
@@ -1425,7 +1425,7 @@ TEST(PreviewModelAnimation, GrabUsesSimulationTimeAndRestoresLocomotion)
     inputs[0].action_time = 10.0f;
     viewer::update_area_creature_animations(scene, inputs);
     EXPECT_FLOAT_EQ(instance->animation.time, 0.5f);
-    inputs[0].grabbing = false;
+    inputs[0].action = viewer::AreaCreatureActionAnimation::none;
     viewer::update_area_creature_animations(scene, inputs);
     EXPECT_EQ(instance->animation.clip, 1u);
     EXPECT_FLOAT_EQ(instance->animation.playback_rate, 1.0f);
@@ -1436,7 +1436,7 @@ TEST(PreviewModelAnimation, GrabUsesSimulationTimeAndRestoresLocomotion)
     EXPECT_EQ(instance->animation.clip, 1u);
 }
 
-TEST(PreviewModelAnimation, MissingGrabClipFallsBackToIdle)
+TEST(PreviewModelAnimation, MissingActionClipsFallBackToIdle)
 {
     namespace viewer = nw::render::viewer;
     auto model = make_two_clip_render_model("no_pickup");
@@ -1447,10 +1447,47 @@ TEST(PreviewModelAnimation, MissingGrabClipFallsBackToIdle)
     scene.is_area = true;
     scene.add(std::move(model));
     scene.static_area_model_info[0] = {.kind = nw::ObjectType::creature, .object = owner};
-    const std::array inputs{viewer::AreaCreatureAnimationInput{.owner = owner,
-        .locomotion = viewer::AreaCreatureLocomotion::walking_forward,
-        .grabbing = true}};
-    const auto result = viewer::update_area_creature_animations(scene, inputs);
-    EXPECT_EQ(result.missing_clip_count, 1u);
-    EXPECT_EQ(scene.static_model_instance(0)->animation.clip, 1u);
+    for (const auto action : {viewer::AreaCreatureActionAnimation::pickup,
+             viewer::AreaCreatureActionAnimation::draw_right, viewer::AreaCreatureActionAnimation::draw_left}) {
+        const std::array inputs{viewer::AreaCreatureAnimationInput{.owner = owner,
+            .locomotion = viewer::AreaCreatureLocomotion::walking_forward,
+            .action = action}};
+        const auto result = viewer::update_area_creature_animations(scene, inputs);
+        EXPECT_EQ(result.missing_clip_count, 1u);
+        EXPECT_EQ(scene.static_model_instance(0)->animation.clip, 1u);
+    }
+}
+
+TEST(PreviewModelAnimation, HandDrawsUseSimulationTimeInBothDirections)
+{
+    namespace viewer = nw::render::viewer;
+    for (const bool left : {false, true}) {
+        auto model = make_two_clip_render_model("equipment");
+        model->animations[0].name = left ? "drwleft" : "drwright";
+        model->animations[0].duration = 0.666667f;
+        model->animations[1].name = "pause1";
+        const nw::ObjectHandle owner{.id = nw::ObjectID{1}, .type = nw::ObjectType::creature, .version = 1};
+        viewer::PreviewScene scene;
+        scene.is_area = true;
+        scene.add(std::move(model));
+        scene.static_area_model_info[0] = {.kind = nw::ObjectType::creature, .object = owner};
+        std::array inputs{viewer::AreaCreatureAnimationInput{.owner = owner, .action_time = 0.3f, .action = left ? viewer::AreaCreatureActionAnimation::draw_left : viewer::AreaCreatureActionAnimation::draw_right}};
+        ASSERT_EQ(viewer::update_area_creature_animations(scene, inputs).changed_model_count, 1u);
+        auto* instance = scene.static_model_instance(0);
+        ASSERT_NE(instance, nullptr);
+        EXPECT_EQ(instance->animation.clip, 0u);
+        EXPECT_FLOAT_EQ(instance->animation.time, 0.3f);
+        EXPECT_FALSE(instance->animation.looping);
+        viewer::advance_render_model_animation_times(scene, 5.0f);
+        EXPECT_FLOAT_EQ(instance->animation.time, 0.3f);
+        inputs[0].action_time = 0.1f;
+        viewer::update_area_creature_animations(scene, inputs);
+        EXPECT_FLOAT_EQ(instance->animation.time, 0.1f);
+        inputs[0].action = viewer::AreaCreatureActionAnimation::none;
+        viewer::update_area_creature_animations(scene, inputs);
+        EXPECT_EQ(instance->animation.clip, 1u);
+        EXPECT_TRUE(instance->animation.looping);
+        inputs[0].action = static_cast<viewer::AreaCreatureActionAnimation>(255);
+        EXPECT_EQ(viewer::update_area_creature_animations(scene, inputs).rejected_input_count, 1u);
+    }
 }

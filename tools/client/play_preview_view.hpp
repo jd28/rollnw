@@ -1,6 +1,8 @@
 #pragma once
 
+#include "inventory_drag.hpp"
 #include "preview_session.hpp"
+#include "smalls_creature_inventory.hpp"
 #include "viewport_rect.hpp"
 
 #include <array>
@@ -39,13 +41,18 @@ struct PlayPreviewState {
     bool picker_was_showing_areas = false;
     bool visuals_attached = false;
     Rml::ElementDocument* inventory_document = nullptr; // borrowed from Rml runtime
-    std::vector<PreviewItemRequest> inventory_actions;
+    ItemIconTextureCache* inventory_icons = nullptr;    // shared client cache; borrowed while the UI is bound
+    InventoryViewSnapshot inventory_rows;
+    ObjectHandle inventory_selection{};
+    int32_t inventory_page = 0;
     std::optional<PreviewItemRequest> pending_item;
     ObjectHandle inventory_actor{};
     uint64_t inventory_revision = 0;
     std::string item_message;
     bool inventory_visible = false;
     bool inventory_dirty = true;
+    bool inventory_dragging = false;
+    InventoryDragGeometry inventory_drag;
 
     bool placement_pending() const noexcept
     {

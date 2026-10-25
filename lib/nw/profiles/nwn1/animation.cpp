@@ -38,11 +38,11 @@ std::optional<std::string> resolve_creature_base_rig(const nw::AppearanceInfo& a
     return std::nullopt;
 }
 
-bool resolve_pickup_animation_durations(std::span<const nw::ObjectHandle> actors,
-    std::span<float> durations)
+bool resolve_creature_action_animation_timings(std::span<const nw::ObjectHandle> actors,
+    std::span<CreatureActionAnimationTimings> timings)
 {
-    std::fill(durations.begin(), durations.end(), 0.0f);
-    if (actors.size() != durations.size()) { return false; }
+    std::fill(timings.begin(), timings.end(), CreatureActionAnimationTimings{});
+    if (actors.size() != timings.size()) { return false; }
     for (size_t index = 0; index < actors.size(); ++index) {
         const auto actor = actors[index];
         const auto* visual = actor.type == nw::ObjectType::creature && nw::kernel::objects().valid(actor)
@@ -66,11 +66,27 @@ bool resolve_pickup_animation_durations(std::span<const nw::ObjectHandle> actors
         if (!resource || resource->empty()) { continue; }
         auto* mdl = nw::kernel::models().load(*resource);
         if (!mdl) { continue; }
-        for (auto* source = mdl; source; source = source->model.supermodel.get()) {
-            const auto* clip = source->model.find_animation("getlow");
-            if (!clip) { continue; }
-            if (std::isfinite(clip->length) && clip->length > 0.0f) { durations[index] = clip->length; }
-            break;
+        constexpr std::array names{"getlow", "drwright", "drwleft"};
+        for (size_t animation = 0; animation < names.size(); ++animation) {
+            for (auto* source = mdl; source; source = source->model.supermodel.get()) {
+                const auto* clip = source->model.find_animation(names[animation]);
+                if (!clip) { continue; }
+                if (!std::isfinite(clip->length) || clip->length <= 0.0f) { break; }
+                if (animation == 0) {
+                    timings[index].pickup_duration = clip->length;
+                } else {
+                    auto& hand = timings[index].hands[animation - 1];
+                    hand.duration = clip->length;
+                    for (const auto& event : clip->events) {
+                        if (event.name == "draw_weapon" && std::isfinite(event.time)
+                            && event.time >= 0.0f && event.time <= clip->length
+                            && (hand.draw_marker < 0.0f || event.time < hand.draw_marker)) {
+                            hand.draw_marker = event.time;
+                        }
+                    }
+                }
+                break;
+            }
         }
         nw::kernel::models().release(*resource);
     }

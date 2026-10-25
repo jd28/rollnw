@@ -100,6 +100,7 @@ public:
     CommandResult place_creature_items(ObjectHandle creature,
         std::span<const ItemPlacement> placements,
         CommandContext context);
+    CommandResult edit_creature_inventory(CreatureInventoryEditBatch edit, CommandContext context);
     CommandResult place_items(ObjectHandle owner,
         std::span<const ItemPlacement> placements,
         CommandContext context);

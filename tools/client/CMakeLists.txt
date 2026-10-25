@@ -86,6 +86,7 @@ add_executable(rollnw-client
     client_metrics.cpp
     creature_body_part_editor.cpp
     creature_workbench_view.cpp
+    inventory_drag.cpp
     inventory_workbench_view.cpp
     appearance_view.cpp
     appearance_view_runtime.cpp

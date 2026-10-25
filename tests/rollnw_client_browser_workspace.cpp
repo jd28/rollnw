@@ -4890,6 +4890,37 @@ TEST_F(ClientCreatureWorkbench, RealSpellFiltersRejectStaleAndInvalidChoices)
 
 class ClientInventoryWorkbench : public ClientObjectWorkbench {
 protected:
+    std::optional<InventoryWorkbenchClick> capture_drop(InventoryWorkbenchViewState& inventory,
+        Rml::Element* source_element, Rml::Element* destination)
+    {
+        if (!source_element || !destination) { return std::nullopt; }
+        const auto target = object_workbench_target(view, workspace);
+        Rml::Event start{source_element, Rml::EventId::Dragstart, "dragstart", {}, true};
+        process_inventory_workbench_drag(start, inventory, target, workspace, backend.module_generation());
+        Rml::Dictionary parameters;
+        parameters["mouse_x"] = destination->GetAbsoluteLeft() + 160.0f;
+        parameters["mouse_y"] = destination->GetAbsoluteTop() + 96.0f;
+        Rml::Event drop{destination, Rml::EventId::Dragdrop, "dragdrop", parameters, true};
+        process_inventory_workbench_drag(drop, inventory, target, workspace, backend.module_generation());
+        Rml::Event end{source_element, Rml::EventId::Dragend, "dragend", {}, true};
+        process_inventory_workbench_drag(end, inventory, target, workspace, backend.module_generation());
+        return std::exchange(inventory.pending_drop, std::nullopt);
+    }
+
+    class DragListener final : public Rml::EventListener {
+    public:
+        explicit DragListener(ClientInventoryWorkbench& fixture)
+            : owner{fixture}
+        {
+        }
+        void ProcessEvent(Rml::Event& event) override
+        {
+            process_inventory_workbench_drag(event, owner.view.inventory_view,
+                object_workbench_target(owner.view, owner.workspace), owner.workspace, owner.backend.module_generation());
+        }
+        ClientInventoryWorkbench& owner;
+    };
+
     bool load_placed_item_fixture()
     {
         if (!nw::kernel::load_module("test_data/user/modules/DockerDemo.mod")) { return false; }
@@ -5500,6 +5531,132 @@ TEST_F(ClientInventoryWorkbench, PlacedStoreItemEditingUsesManagedSelectionAndSa
     workspace.clear();
 }
 
+TEST_F(ClientInventoryWorkbench, MouseDragsEquipAndUnequipWithoutClickEditsAndCancelCleanly)
+{
+    ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
+    auto* actor = nw::kernel::objects().load_file<nw::Creature>("test_data/user/development/pl_agent_001.utc");
+    auto* item = nw::kernel::objects().load<nw::Item>("x2_it_mbelt001");
+    ASSERT_TRUE(actor && item);
+    ASSERT_TRUE(actor->inventory().add_item(item));
+    activate(actor->handle());
+    auto& inventory = view.inventory_view;
+    const auto target = object_workbench_target(view, workspace);
+    const auto render = [&] {
+        rebuild_active_creature_inventory(inventory, actor->handle());
+        std::string markup{"<div style='display:flex;flex-direction:column;width:440px;height:680px;'>"};
+        append_creature_inventory_markup(markup, inventory, target);
+        document->SetInnerRML(markup + "</div>");
+        context->Update();
+    };
+    render();
+    DragListener listener{*this};
+    for (const auto* event : inventory_workbench_drag_events) {
+        context->AddEventListener(event, &listener);
+    }
+    const auto detach = create_scope_exit([&] {
+        for (const auto* event : inventory_workbench_drag_events) {
+            context->RemoveEventListener(event, &listener);
+        }
+    });
+    const auto move_to = [&](Rml::Element& element) {
+        context->ProcessMouseMove(static_cast<int>(element.GetAbsoluteLeft() + element.GetOffsetWidth() / 2),
+            static_cast<int>(element.GetAbsoluteTop() + element.GetOffsetHeight() / 2), 0);
+    };
+    for (const bool equip : {true, false}) {
+        auto* slot = document->QuerySelector(".creature_equipment_slot[data-slot='10']");
+        auto* board = document->GetElementById("creature_inventory_board");
+        ASSERT_TRUE(slot && board);
+        auto click = capture_inventory_workbench_click(slot, inventory, target, workspace, backend.module_generation());
+        ASSERT_TRUE(click);
+        EXPECT_EQ(click->kind, InventoryWorkbenchClickKind::none);
+        EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
+        auto* source_element = equip ? document->QuerySelector(".creature_inventory_item") : slot;
+        auto* destination = equip ? slot : board;
+        ASSERT_NE(source_element, nullptr);
+        move_to(*source_element);
+        context->ProcessMouseButtonDown(0, 0);
+        move_to(*destination);
+        context->Update();
+        ASSERT_TRUE(inventory.drag_source);
+        EXPECT_TRUE(source_element->IsClassSet("inventory_drag_source"));
+        EXPECT_TRUE(destination->IsClassSet("inventory_drop_target"));
+        EXPECT_FALSE(sync_creature_inventory_window(document, inventory, target, true));
+        EXPECT_EQ(document->GetElementById("creature_inventory_board"), board);
+        const auto history = workspace.undo_count();
+        context->ProcessMouseButtonUp(0, 0);
+        ASSERT_TRUE(inventory.pending_drop);
+        EXPECT_FALSE(inventory.drag_source);
+        EXPECT_FALSE(source_element->IsClassSet("inventory_drag_source"));
+        EXPECT_FALSE(destination->IsClassSet("inventory_drop_target"));
+        EXPECT_EQ(workspace.undo_count(), history);
+        auto drop = std::exchange(inventory.pending_drop, std::nullopt);
+        ASSERT_TRUE(apply_inventory_workbench_click(*drop, inventory, target, workspace, backend, shell, command));
+        EXPECT_EQ(workspace.undo_count(), history + 1);
+        EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), equip ? item : nullptr);
+        EXPECT_EQ(actor->inventory().has_item(item), !equip);
+        render();
+    }
+    // Rearrange the carried item in the same pack, with a cell-sized footprint
+    // rather than a whole-board target. Undo/redo retain the exact coordinates.
+    auto* carried = document->QuerySelector(".creature_inventory_item");
+    auto* board = document->GetElementById("creature_inventory_board");
+    ASSERT_TRUE(carried && board);
+    const auto before_move = actor->inventory().items.back();
+    move_to(*carried);
+    context->ProcessMouseButtonDown(0, 0);
+    context->ProcessMouseMove(static_cast<int>(board->GetAbsoluteLeft() + 8 * 32 + 8),
+        static_cast<int>(board->GetAbsoluteTop() + 4 * 32 + 8), 0);
+    context->Update();
+    ASSERT_TRUE(inventory.drag_source);
+    EXPECT_TRUE(board->IsClassSet("inventory_drop_target"));
+    auto* outline = board->QuerySelector(".inventory_drop_outline");
+    ASSERT_NE(outline, nullptr);
+    EXPECT_EQ(outline->GetOffsetWidth(), 64.0f);
+    EXPECT_EQ(outline->GetOffsetHeight(), 32.0f);
+    context->ProcessMouseButtonUp(0, 0);
+    ASSERT_TRUE(inventory.pending_drop);
+    auto moved = std::exchange(inventory.pending_drop, std::nullopt);
+    ASSERT_TRUE(apply_inventory_workbench_click(*moved, inventory, target, workspace, backend, shell, command));
+    const auto after_move = actor->inventory().items.back();
+    EXPECT_EQ(std::pair(after_move.pos_x, after_move.pos_y), actor->inventory().slot_to_xy({0, 4, 7}));
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(actor->inventory().items.back(), before_move);
+    ASSERT_TRUE(workspace.redo(command).ok());
+    EXPECT_EQ(actor->inventory().items.back(), after_move);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    render();
+    auto* source_element = document->QuerySelector(".creature_inventory_item");
+    auto* slot = document->QuerySelector(".creature_equipment_slot[data-slot='10']");
+    ASSERT_TRUE(source_element && slot);
+    move_to(*source_element);
+    context->ProcessMouseButtonDown(0, 0);
+    move_to(*slot);
+    ASSERT_TRUE(inventory.drag_source);
+    cancel_inventory_workbench_drag(document, inventory);
+    EXPECT_FALSE(inventory.drag_source);
+    EXPECT_FALSE(inventory.pending_drop);
+    EXPECT_FALSE(slot->IsClassSet("inventory_drop_target"));
+    EXPECT_FALSE(source_element->IsClassSet("inventory_drag_source"));
+    EXPECT_EQ(workspace.undo_count(), 2);
+    EXPECT_TRUE(actor->inventory().has_item(item));
+    // A tab switch after drag start invalidates the source context before drop.
+    const auto original_tab = workspace.active_tab_id();
+    move_to(*source_element);
+    context->ProcessMouseButtonDown(0, 0);
+    move_to(*slot);
+    ASSERT_TRUE(inventory.drag_source);
+    workspace.open_tab("other-inventory", "Other", WorkspaceTabKind::preview);
+    context->ProcessMouseButtonUp(0, 0);
+    EXPECT_FALSE(inventory.pending_drop);
+    EXPECT_EQ(workspace.undo_count(), 0); // the newly selected tab has no edits
+    ASSERT_TRUE(workspace.set_active_tab(original_tab));
+    EXPECT_EQ(workspace.undo_count(), 2);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_EQ(nw::get_equipped_item(actor, nw::EquipIndex::belt), item);
+    ASSERT_TRUE(workspace.undo(command).ok());
+    EXPECT_TRUE(actor->inventory().has_item(item));
+}
+
 TEST_F(ClientInventoryWorkbench, NativeSelectionEquipmentAndUndoPreserveLiveItemIdentity)
 {
     ASSERT_NE(nw::kernel::load_module("test_data/user/modules/DockerDemo.mod"), nullptr);
@@ -5527,8 +5684,11 @@ TEST_F(ClientInventoryWorkbench, NativeSelectionEquipmentAndUndoPreserveLiveItem
     EXPECT_EQ(workspace.undo_count(), 0);
     EXPECT_FALSE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
 
-    document->SetInnerRML("<div id='target' class='creature_equipment_slot' data-slot='10'>Belt</div>");
-    click = capture_inventory_workbench_click(document->GetElementById("target"), inventory, target, workspace, backend.module_generation());
+    document->SetInnerRML("<div id='source' class='creature_inventory_item' data-key='"
+        + std::to_string(inventory.creature_inventory_selection)
+        + "'>Item</div><div id='target' class='creature_equipment_slot' data-slot='10'>Belt</div>"
+          "<div id='pack' class='creature_inventory_board'></div>");
+    click = capture_drop(inventory, document->GetElementById("source"), document->GetElementById("target"));
     ASSERT_TRUE(click);
     EXPECT_EQ(click->kind, InventoryWorkbenchClickKind::equipment);
     EXPECT_EQ(click->inventory_item, item->handle());
@@ -5543,7 +5703,7 @@ TEST_F(ClientInventoryWorkbench, NativeSelectionEquipmentAndUndoPreserveLiveItem
     EXPECT_EQ(shell.output_lines.size(), log_count);
 
     rebuild_active_creature_inventory(inventory, actor->handle());
-    click = capture_inventory_workbench_click(document->GetElementById("target"), inventory, target, workspace, backend.module_generation());
+    click = capture_drop(inventory, document->GetElementById("target"), document->GetElementById("pack"));
     ASSERT_TRUE(click);
     EXPECT_EQ(click->equipped_item, item->handle());
     ASSERT_TRUE(apply_inventory_workbench_click(*click, inventory, target, workspace, backend, shell, command));
@@ -5577,8 +5737,11 @@ TEST_F(ClientInventoryWorkbench, SelectedInventoryItemReplacesOccupiedSlotInOneA
     rebuild_active_creature_inventory(inventory, actor->handle());
     inventory.creature_inventory_selection = 0;
     const auto target = object_workbench_target(view, workspace);
-    document->SetInnerRML("<div id='target' class='creature_equipment_slot' data-slot='10'>Belt</div>");
-    auto click = capture_inventory_workbench_click(document->GetElementById("target"), inventory, target, workspace, backend.module_generation());
+    document->SetInnerRML("<div id='source' class='creature_inventory_item' data-key='"
+        + std::to_string(inventory.creature_inventory_selection)
+        + "'>Item</div><div id='target' class='creature_equipment_slot' data-slot='10'>Belt</div>"
+          "<div id='pack' class='creature_inventory_board'></div>");
+    auto click = capture_drop(inventory, document->GetElementById("source"), document->GetElementById("target"));
     ASSERT_TRUE(click);
     EXPECT_EQ(click->equipped_item, old->handle());
     EXPECT_EQ(click->inventory_item, incoming->handle());
@@ -5732,7 +5895,7 @@ TEST_F(ClientInventoryWorkbench, NativeDenseSourceAndSlotChangesRejectBeforeAnEd
     std::swap(actor->inventory().items[static_cast<size_t>(index)], actor->inventory().items[static_cast<size_t>(index + 1)]);
 
     inventory.creature_inventory_selection = index;
-    const auto original = capture_inventory_workbench_click(document->GetElementById("slot"), inventory, target, workspace, backend.module_generation());
+    const auto original = capture_drop(inventory, document->GetElementById("item"), document->GetElementById("slot"));
     ASSERT_TRUE(original);
     ASSERT_EQ(original->kind, InventoryWorkbenchClickKind::equipment);
     const auto log_count = shell.output_lines.size();

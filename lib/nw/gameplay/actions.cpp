@@ -6,6 +6,7 @@
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/ObjectManager.hpp>
+#include <nw/objects/equipment_changes.hpp>
 #include <nw/profiles/nwn1/scriptbridge.hpp>
 
 #include <algorithm>
@@ -26,7 +27,15 @@ bool finite(glm::vec3 value)
 bool active(const ActorActionState& state)
 {
     return state.phase == ActionPhase::requested || state.phase == ActionPhase::moving
-        || state.phase == ActionPhase::grabbing || state.phase == ActionPhase::recovering;
+        || state.phase == ActionPhase::grabbing || state.phase == ActionPhase::recovering
+        || state.phase == ActionPhase::drawing;
+}
+
+EquipmentActionTiming equipment_timing(const ActorActionState& state)
+{
+    if ((state.kind != ActionKind::equip && state.kind != ActionKind::unequip)
+        || state.slot < 4 || state.slot > 5) { return {}; }
+    return state.hand_timings[state.slot - 4];
 }
 
 void finish(ActorActionState& state, ActorActionResult& result, ActionStatus status)
@@ -39,6 +48,13 @@ void finish(ActorActionState& state, ActorActionResult& result, ActionStatus sta
 
 bool valid_request(const ActorActionRequest& request)
 {
+    const auto& cell = request.inventory_cell;
+    const bool automatic = cell.page == -1 && cell.row == -1 && cell.col == -1;
+    const bool explicit_cell = cell.page >= 0 && cell.page < UINT8_MAX && cell.row >= 0
+        && cell.row < Inventory::max_rows && cell.col >= 0 && cell.col < Inventory::max_columns;
+    if (request.kind == ActionKind::move_inventory ? !explicit_cell
+            : request.kind == ActionKind::unequip  ? !automatic && !explicit_cell
+                                                   : !automatic) { return false; }
     switch (request.kind) {
     case ActionKind::move_to:
         return finite(request.destination);
@@ -49,6 +65,7 @@ bool valid_request(const ActorActionRequest& request)
         return request.target.type == ObjectType::item && request.slot >= 0 && request.slot < 18;
     case ActionKind::pickup:
     case ActionKind::drop:
+    case ActionKind::move_inventory:
         return request.target.type == ObjectType::item;
     }
     return false;
@@ -80,6 +97,7 @@ bool submit_actor_actions(std::span<ActorActionState> states,
         state.target = request.target;
         state.destination = request.destination;
         state.slot = request.slot;
+        state.inventory_cell = request.inventory_cell;
         state.elapsed_ticks = 0;
         state.kind = request.kind;
         state.phase = ActionPhase::requested;
@@ -98,7 +116,14 @@ bool prepare_actor_actions(ObjectHandle area, std::span<ActorActionState> states
     const bool area_valid = area.type == ObjectType::area && kernel::objects().valid(area);
     for (size_t index = 0; index < states.size(); ++index) {
         auto& state = states[index];
-        if (state.phase > ActionPhase::finished || state.kind > ActionKind::cancel
+        const auto timing = equipment_timing(state);
+        const bool invalid_draw = state.phase == ActionPhase::drawing
+            && (timing.duration_ticks == 0 || state.elapsed_ticks > timing.duration_ticks
+                || (state.status != ActionStatus::accepted && state.status != ActionStatus::applied
+                    && state.status != ActionStatus::profile_failed));
+        if (state.phase > ActionPhase::drawing || state.kind > ActionKind::move_inventory
+            || timing.equip_tick > timing.duration_ticks || timing.unequip_tick > timing.duration_ticks
+            || invalid_draw
             || ((state.phase == ActionPhase::grabbing || state.phase == ActionPhase::recovering)
                 && state.kind != ActionKind::pickup)
             || (state.kind == ActionKind::move_to && !finite(state.destination))) {
@@ -168,6 +193,18 @@ bool complete_actor_actions(ObjectHandle area, const nav::NavWorldState& navigat
             finish(state, result, ActionStatus::inactive);
             continue;
         }
+        const auto timing = equipment_timing(state);
+        const auto equipment_commit_tick = state.kind == ActionKind::unequip ? timing.unequip_tick : timing.equip_tick;
+        if (state.phase == ActionPhase::drawing) {
+            if (state.elapsed_ticks < timing.duration_ticks) { ++state.elapsed_ticks; }
+            // The commit result is retained in the row; its side effects and
+            // result are never emitted a second time during the remaining pose.
+            if (state.status != ActionStatus::accepted) {
+                if (state.elapsed_ticks >= timing.duration_ticks) { state.phase = ActionPhase::finished; }
+                continue;
+            }
+            if (state.elapsed_ticks < equipment_commit_tick) { continue; }
+        }
         if (state.phase == ActionPhase::recovering) {
             if (state.elapsed_ticks < state.pickup_ticks) { ++state.elapsed_ticks; }
             if (state.elapsed_ticks >= state.pickup_ticks) { state.phase = ActionPhase::finished; }
@@ -189,6 +226,19 @@ bool complete_actor_actions(ObjectHandle area, const nav::NavWorldState& navigat
             finish(state, result, ActionStatus::rejected);
             result.transfer_status = ItemTransferStatus::invalid_ownership;
             continue;
+        }
+        if (state.kind == ActionKind::equip || state.kind == ActionKind::unequip) {
+            const bool equip = state.kind == ActionKind::equip;
+            if (state.slot < 0 || state.slot >= 18 || (equip && !actor->inventory().has_item(item))
+                || (!equip && get_equipped_item(actor, static_cast<EquipIndex>(state.slot)) != item)) {
+                finish(state, result, ActionStatus::rejected);
+                continue;
+            }
+            if (state.phase == ActionPhase::requested && timing.duration_ticks != 0) {
+                state.phase = ActionPhase::drawing;
+                state.elapsed_ticks = 0;
+                if (equipment_commit_tick != 0) { continue; }
+            }
         }
         if (state.kind == ActionKind::pickup || state.kind == ActionKind::drop) {
             if (state.kind == ActionKind::pickup && state.phase == ActionPhase::grabbing) {
@@ -219,14 +269,28 @@ bool complete_actor_actions(ObjectHandle area, const nav::NavWorldState& navigat
                 state.phase = ActionPhase::recovering;
                 state.elapsed_ticks = 0;
             }
-        } else if (state.kind == ActionKind::equip || state.kind == ActionKind::unequip) {
-            const auto slot = static_cast<EquipIndex>(state.slot);
-            const bool equip = state.kind == ActionKind::equip;
-            if (state.slot < 0 || state.slot >= 18 || (equip && !actor->inventory().has_item(item))
-                || (!equip && get_equipped_item(actor, slot) != item)) {
+        } else if (state.kind == ActionKind::move_inventory
+            || (state.kind == ActionKind::unequip && state.inventory_cell.page >= 0)) {
+            const bool unequip = state.kind == ActionKind::unequip;
+            if (!unequip && !actor->inventory().has_item(item)) {
                 finish(state, result, ActionStatus::rejected);
                 continue;
             }
+            const std::array changes{EquipmentChange{state.slot, state.target, {}}};
+            const std::array placements{InventoryPlacement{state.target, state.inventory_cell}};
+            const auto batch = prepare_equipment_changes(state.actor,
+                unequip ? std::span<const EquipmentChange>{changes} : std::span<const EquipmentChange>{}, placements);
+            if (!batch || !apply_equipment_changes(*batch)) {
+                finish(state, result, ActionStatus::rejected);
+                continue;
+            }
+            result.changed = true;
+            result.equipment_changed = unequip;
+            const bool notified = !unequip || nwn1::bridge::publish_equipment_changes(state.actor, batch->changes);
+            finish(state, result, notified ? ActionStatus::applied : ActionStatus::profile_failed);
+        } else if (state.kind == ActionKind::equip || state.kind == ActionKind::unequip) {
+            const auto slot = static_cast<EquipIndex>(state.slot);
+            const bool equip = state.kind == ActionKind::equip;
             const auto before = actor->equipment.equip_version;
             const bool applied = equip ? nwn1::equip_item(actor, item, slot) : nwn1::unequip_item(actor, slot) == item;
             if (kernel::services().generation() != generation || !(actor = kernel::objects().get<Creature>(state.actor))) {
@@ -239,6 +303,9 @@ bool complete_actor_actions(ObjectHandle area, const nav::NavWorldState& navigat
                                                                                    : ActionStatus::rejected);
         } else {
             finish(state, result, ActionStatus::invalid_input);
+        }
+        if (result.equipment_changed && state.elapsed_ticks < timing.duration_ticks) {
+            state.phase = ActionPhase::drawing;
         }
     }
     return true;

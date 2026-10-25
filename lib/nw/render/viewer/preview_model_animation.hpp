@@ -27,11 +27,16 @@ enum class AreaCreatureLocomotion : uint8_t {
     turning_right,
 };
 
+enum class AreaCreatureActionAnimation : uint8_t { none,
+    pickup,
+    draw_right,
+    draw_left };
+
 struct AreaCreatureAnimationInput {
     nw::ObjectHandle owner{};
     AreaCreatureLocomotion locomotion = AreaCreatureLocomotion::idle;
     float action_time = 0.0f;
-    bool grabbing = false;
+    AreaCreatureActionAnimation action = AreaCreatureActionAnimation::none;
 };
 
 struct AreaCreatureAnimationStats {
@@ -138,14 +143,14 @@ bool set_default_render_model_animation_clip(
 // hold their pose until an explicit transition or clip selection starts playback.
 // Advances one 33 ms tick so newly added creatures do not remain in bind pose.
 bool prime_scene_hold_animation(PreviewScene& scene);
-// Selects idle/directional locomotion or the NWN full-body pickup clip. Inputs are borrowed,
+// Selects idle/directional locomotion or a full-body action clip. Inputs are borrowed,
 // must have unique Creature owners, and remain valid only for this call. A
 // missing clip leaves that model's current clip unchanged. Matching rows whose
 // clip is already selected keep their time, so fixed-tick updates do not
 // restart animation playback.
-// Grabbing overrides locomotion: getlow is sampled at the simulation's finite,
+// Actions override locomotion: getlow/drwright/drwleft sample the simulation's finite,
 // nonnegative action_time, clamped to clip length, with no render-time advance.
-// Missing pickup clips fall back to idle. Invalid tags/times reject the row.
+// Missing action clips fall back to idle. Invalid tags/times reject the row.
 AreaCreatureAnimationStats update_area_creature_animations(
     PreviewScene& scene,
     std::span<const AreaCreatureAnimationInput> inputs);

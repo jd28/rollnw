@@ -107,20 +107,22 @@ fn requirements_met(creature: Creature, base_item: BaseItemType): bool {
     }
 
     var requirements = Array.get(_rules, index).requirements;
+    // ReqFeat0..4 are alternative proficiencies, not cumulative requirements.
+    if (Array.len(requirements) == 0) { return true; }
     for (var requirement_index = 0;
          requirement_index < Array.len(requirements);
          requirement_index += 1) {
         var requirement = Array.get(requirements, requirement_index);
-        if (requirement.req_type != Requirements.req_type_feat
-            || !Requirements.match_feat(
+        if (requirement.req_type == Requirements.req_type_feat
+            && Requirements.match_feat(
                 creature,
                 requirement.subtype,
                 requirement.match,
                 requirement.value)) {
-            return false;
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 fn ranged(base_item: BaseItemType): bool {

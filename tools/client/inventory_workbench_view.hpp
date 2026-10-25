@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client_input_routes.hpp"
+#include "inventory_drag.hpp"
 #include "object_workbench.hpp"
 #include "smalls_creature_inventory.hpp"
 
@@ -10,6 +11,7 @@
 namespace Rml {
 class ElementDocument;
 class Element;
+class Event;
 }
 
 namespace nw::toolset {
@@ -24,6 +26,7 @@ enum class InventoryWorkbenchClickKind : uint8_t {
     item,
     page,
     remove,
+    placement,
 };
 
 // Schema 1: a selected UI edge owns its fixed semantic header and tab bytes.
@@ -37,6 +40,7 @@ struct InventoryWorkbenchClick {
     int32_t index = -1;
     int32_t selection = -1;
     int32_t page = 0;
+    InventorySlot inventory_cell;
     InventoryWorkbenchClickKind kind = InventoryWorkbenchClickKind::none;
     ClientRmlForwardPhase release_phase = ClientRmlForwardPhase::none;
     std::string tab_id;
@@ -54,7 +58,16 @@ struct InventoryWorkbenchViewState {
     bool creature_inventory_rendered = false;
     int32_t creature_inventory_page = 0;
     int32_t creature_inventory_selection = -1;
+    // One pointer gesture. Retain identities/epochs, never borrowed DOM nodes.
+    InventoryDragGeometry drag_geometry;
+    std::optional<InventoryWorkbenchClick> drag_source;
+    std::optional<InventoryWorkbenchClick> pending_drop;
 };
+
+inline constexpr const char* inventory_workbench_drag_events[]{"dragstart", "dragover", "dragmove", "dragout", "dragdrop", "dragend"};
+void process_inventory_workbench_drag(Rml::Event& event, InventoryWorkbenchViewState& state,
+    ObjectWorkbenchTarget target, const WorkspaceState& workspace, uint64_t module_generation);
+void cancel_inventory_workbench_drag(Rml::ElementDocument* doc, InventoryWorkbenchViewState& state);
 
 std::optional<InventoryWorkbenchClick> capture_inventory_workbench_click(
     Rml::Element* hit, const InventoryWorkbenchViewState& state, ObjectWorkbenchTarget target,

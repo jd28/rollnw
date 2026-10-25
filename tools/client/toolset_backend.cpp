@@ -586,6 +586,24 @@ void ToolsetBackend::register_native_commands()
             });
     };
 
+    register_or_log(CommandSpec{
+                        .id = "object.inventory.open",
+                        .title = "Open Inventory",
+                        .description = "Open the controlled character's equipment and inventory",
+                        .category = "object",
+                        .default_binding = "I",
+                        .usage = "object.inventory.open",
+                    },
+        [](const CommandInvocation& invocation, CommandContext& context) {
+            if (!invocation.args.empty() || !context.play_preview_active) {
+                return command_result(CommandStatus::rejected,
+                    "Start play mode to open your character's inventory", CommandOutputChannel::warn);
+            }
+            auto result = command_result(CommandStatus::success, {}, CommandOutputChannel::none);
+            result.inventory_open_requested = true;
+            return result;
+        });
+
     const auto register_hidden_editor_command = [&register_or_log](
                                                     std::string id,
                                                     CommandBus::Handler handler) {
@@ -4495,6 +4513,19 @@ CommandResult ToolsetBackend::erase_area_tiles(
     }
     context = context_with_backend_defaults(std::move(context), workspace_);
     auto result = commit_area_tile_erase_edits(std::move(edit), std::move(label), context);
+    if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
+        context.workspace->push_undo(*result.undo_action);
+    }
+    return result;
+}
+
+CommandResult ToolsetBackend::edit_creature_inventory(CreatureInventoryEditBatch edit, CommandContext context)
+{
+    if (blueprint_operation_active() || blueprint_publication_pending()) {
+        return command_result(CommandStatus::rejected, "Finish the blueprint operation before editing", CommandOutputChannel::warn);
+    }
+    context = context_with_backend_defaults(std::move(context), workspace_);
+    auto result = commit_creature_inventory_edits(std::move(edit), "Move Creature item", context);
     if (result.ok() && result.undo_action && context.record_undo && context.workspace) {
         context.workspace->push_undo(*result.undo_action);
     }

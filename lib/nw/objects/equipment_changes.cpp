@@ -76,10 +76,11 @@ bool contains_equipped(const EquipmentState& state, ObjectHandle item)
 } // namespace
 
 std::optional<EquipmentChangeBatch> prepare_equipment_changes(
-    ObjectHandle creature_handle, std::span<const EquipmentChange> changes)
+    ObjectHandle creature_handle, std::span<const EquipmentChange> changes,
+    std::span<const InventoryPlacement> placements)
 {
     const auto* creature = kernel::objects().get<Creature>(creature_handle);
-    if (!creature || changes.size() > 18 || !valid_geometry(creature->inventory())) { return std::nullopt; }
+    if (!creature || changes.size() > 18 || placements.size() > 1024 || !valid_geometry(creature->inventory())) { return std::nullopt; }
     const auto& inventory = creature->inventory();
     EquipmentChangeBatch result;
     result.creature = creature_handle;
@@ -103,7 +104,7 @@ std::optional<EquipmentChangeBatch> prepare_equipment_changes(
         result.changes.push_back(change);
         result.after.equipment[change.slot] = empty_item(change.after) ? EquipItem{} : EquipItem{change.after};
     }
-    if (result.changes.empty()) {
+    if (result.changes.empty() && placements.empty()) {
         result.after = result.before;
         return result;
     }
@@ -139,33 +140,56 @@ std::optional<EquipmentChangeBatch> prepare_equipment_changes(
     for (const auto& equipped : result.after.equipment) {
         if (!equipped.empty() && !final_equipped.insert(equipped.as<ObjectHandle>().to_ull()).second) { return std::nullopt; }
     }
+    std::unordered_set<uint64_t> placed;
+    for (const auto& placement : placements) {
+        const auto& cell = placement.cell;
+        if (!owned.contains(placement.item.to_ull()) || final_equipped.contains(placement.item.to_ull())
+            || !placed.insert(placement.item.to_ull()).second || cell.page < 0 || cell.page >= inventory.pages()
+            || cell.row < 0 || cell.row >= inventory.rows() || cell.col < 0 || cell.col >= inventory.columns()) { return std::nullopt; }
+    }
+    result.placements.assign(placements.begin(), placements.end());
+    const auto placement_for = [&](ObjectHandle item) {
+        return std::ranges::find(placements, item, &InventoryPlacement::item);
+    };
     std::fill(scratch.inventory_bitset.begin(), scratch.inventory_bitset.end(), Inventory::Storage{});
-    for (const auto& entry : inventory.items) {
+    for (auto entry : inventory.items) {
         if (final_equipped.contains(entry.item.as<ObjectHandle>().to_ull())) { continue; }
+        if (const auto requested = placement_for(entry.item.as<ObjectHandle>()); requested != placements.end()) {
+            const auto [x, y] = scratch.slot_to_xy(requested->cell);
+            entry.pos_x = x;
+            entry.pos_y = y;
+        }
         if (!insert_entry(scratch, entry)) { return std::nullopt; }
         scratch.items.push_back(entry);
     }
-    for (const auto& change : result.changes) {
-        if (empty_item(change.before) || contains_equipped(result.after, change.before)) { continue; }
-        const auto* layout = footprint(change.before, inventory);
-        if (!layout || scratch.items.size() >= scratch.items.capacity()) { return std::nullopt; }
-        const auto source = std::ranges::find_if(inventory.items, [&](const auto& entry) {
-            return entry.item.template as<ObjectHandle>() == change.after;
-        });
-        InventorySlot cell;
-        if (source != inventory.items.end()) {
-            const auto preferred = inventory.xy_to_slot(source->pos_x, source->pos_y);
-            if (scratch.check_available(preferred.page, preferred.row, preferred.col,
-                    layout->inventory_width, layout->inventory_height)) { cell = preferred; }
+    // Reserve explicit destinations before placing displaced gear automatically.
+    for (const bool explicit_cells : {true, false}) {
+        for (const auto& change : result.changes) {
+            if (empty_item(change.before) || contains_equipped(result.after, change.before)) { continue; }
+            const auto requested = placement_for(change.before);
+            if ((requested != placements.end()) != explicit_cells) { continue; }
+            const auto* layout = footprint(change.before, inventory);
+            if (!layout || scratch.items.size() >= scratch.items.capacity()) { return std::nullopt; }
+            const auto source = std::ranges::find_if(inventory.items, [&](const auto& entry) {
+                return entry.item.template as<ObjectHandle>() == change.after;
+            });
+            InventorySlot cell;
+            if (requested != placements.end()) {
+                cell = requested->cell;
+            } else if (source != inventory.items.end()) {
+                const auto preferred = inventory.xy_to_slot(source->pos_x, source->pos_y);
+                if (scratch.check_available(preferred.page, preferred.row, preferred.col,
+                        layout->inventory_width, layout->inventory_height)) { cell = preferred; }
+            }
+            if (cell.page < 0) { cell = scratch.find_slot(layout->inventory_width, layout->inventory_height); }
+            if (cell.page < 0) { return std::nullopt; }
+            const auto [x, y] = scratch.slot_to_xy(cell);
+            InventoryItem entry{.pos_x = x, .pos_y = y, .item = change.before};
+            if (!insert_entry(scratch, entry)) { return std::nullopt; }
+            const auto index = source == inventory.items.end() ? scratch.items.size()
+                                                               : std::min(static_cast<size_t>(source - inventory.items.begin()), scratch.items.size());
+            scratch.items.insert(scratch.items.begin() + index, entry);
         }
-        if (cell.page < 0) { cell = scratch.find_slot(layout->inventory_width, layout->inventory_height); }
-        if (cell.page < 0) { return std::nullopt; }
-        const auto [x, y] = scratch.slot_to_xy(cell);
-        InventoryItem entry{.pos_x = x, .pos_y = y, .item = change.before};
-        if (!insert_entry(scratch, entry)) { return std::nullopt; }
-        const auto index = source == inventory.items.end() ? scratch.items.size()
-                                                           : std::min(static_cast<size_t>(source - inventory.items.begin()), scratch.items.size());
-        scratch.items.insert(scratch.items.begin() + index, entry);
     }
     result.after.inventory.assign(scratch.items.begin(), scratch.items.end());
     result.after.occupancy = std::move(scratch.inventory_bitset);
@@ -190,7 +214,7 @@ bool apply_equipment_changes(const EquipmentChangeBatch& batch, bool reverse)
     for (const auto& equipped : replacement.equipment) {
         if (!equipped.empty() && (!equipped.is<ObjectHandle>() || !valid_item(equipped.as<ObjectHandle>()))) { return false; }
     }
-    if (batch.changes.empty()) { return true; }
+    if (batch.changes.empty() && batch.placements.empty()) { return true; }
     static_assert(std::is_nothrow_copy_constructible_v<InventoryItem>);
     static_assert(std::is_nothrow_copy_assignable_v<EquipItem>);
     inventory.items.clear();
@@ -199,7 +223,7 @@ bool apply_equipment_changes(const EquipmentChangeBatch& batch, bool reverse)
     }
     std::copy(replacement.occupancy.begin(), replacement.occupancy.end(), inventory.inventory_bitset.begin());
     creature->equipment.equips = replacement.equipment;
-    ++creature->equipment.equip_version;
+    if (!batch.changes.empty()) { ++creature->equipment.equip_version; }
     return true;
 }
 

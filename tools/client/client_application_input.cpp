@@ -9,6 +9,7 @@
 #include "client_application_workspace.hpp"
 #include "client_preferences.hpp"
 #include "client_runtime.hpp"
+#include "editor_input.hpp"
 #include "runtime_input.hpp"
 #include <RmlUi/Core.h>
 #include <SDL3/SDL.h>
@@ -277,14 +278,21 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             state.workbench.item_preview.dragging = false;
             state.browser.pressed_recent_index = -1;
             nw::toolset::discard_runtime_pointer_input(state.runtime_input);
+            cancel_inventory_workbench_drag(doc, state.workbench.inventory_view);
             nw::toolset::cancel_client_pointer_interactions(context, palette_context, event);
             system_interface.SetMouseCursor("arrow");
             continue;
         }
 
         if (state.play_preview.inventory_visible) {
+            std::array<EditorShortcutAction, 1> shortcuts{};
+            if (event.type == SDL_EVENT_KEY_DOWN) {
+                const std::array samples{EditorShortcutInput{event.key.key, event.key.mod, event.key.repeat}};
+                (void)resolve_editor_shortcut_actions(samples, shortcuts);
+            }
             const bool preview_shortcut = event.type == SDL_EVENT_KEY_DOWN
-                && (event.key.key == SDLK_I || event.key.key == SDLK_ESCAPE || event.key.key == SDLK_F9);
+                && (event.key.key == SDLK_I || event.key.key == SDLK_ESCAPE || event.key.key == SDLK_F9
+                    || shortcuts[0] == EditorShortcutAction::palette_toggle);
             if (!preview_shortcut && (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP || event.type == SDL_EVENT_TEXT_INPUT || event.type == SDL_EVENT_TEXT_EDITING || event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP || event.type == SDL_EVENT_MOUSE_WHEEL)) {
                 (void)nw::toolset::forward_client_input(dispatch, nw::toolset::ClientRmlRecipient::command,
                     nw::toolset::ClientRmlForwardPhase::after_native, palette_context, window, event);
@@ -346,7 +354,7 @@ void poll_client_input(ClientApplicationSurfaces& surfaces, ClientRenderer& rend
             if (process_client_key_down(event, dispatch, surfaces, renderer, state) == ClientEventFlow::next) { continue; }
             break;
         case SDL_EVENT_KEY_UP:
-            if (state.play_preview.session.active()) {
+            if (state.play_preview.session.active() && !state.shell.command_palette_visible) {
                 dispatch.native_handled = true;
             }
             break;

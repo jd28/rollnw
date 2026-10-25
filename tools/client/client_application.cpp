@@ -157,16 +157,23 @@ int run_client_application(const char* executable)
         "blur", &object_workbench_change_listener, true);
     context->AddEventListener(
         "click", &object_workbench_change_listener, false);
+    for (const auto* event : nw::toolset::inventory_workbench_drag_events) {
+        context->AddEventListener(event, &object_workbench_change_listener);
+    }
     const auto workbench_listener_cleanup = create_scope_exit([&] {
         if (!rml_runtime.contexts().toolset) { return; }
         context->RemoveEventListener("change", &object_workbench_change_listener, false);
         context->RemoveEventListener("blur", &object_workbench_change_listener, true);
         context->RemoveEventListener("click", &object_workbench_change_listener, false);
+        for (const auto* event : nw::toolset::inventory_workbench_drag_events) {
+            context->RemoveEventListener(event, &object_workbench_change_listener);
+        }
     });
     renderer.set_rml_generated_textures(
         &state.workbench.inventory_view.item_icon_cache.textures,
         &state.area_tile_editor.palette.textures,
         &state.workbench.item_preview.icons.textures);
+    state.play_preview.inventory_icons = &state.workbench.inventory_view.item_icon_cache;
     state.backend.bind(&state.smalls, &state.shell, &state.workspace);
     state.backend_ready = state.backend.initialize();
     if (!state.backend_ready) {
@@ -232,10 +239,14 @@ int run_client_application(const char* executable)
         return 1;
     }
     nw::toolset::PlayPreviewInventoryListener inventory_listener{state.play_preview};
-    palette_context->AddEventListener("click", &inventory_listener);
+    for (const auto* event : nw::toolset::play_inventory_events) {
+        palette_context->AddEventListener(event, &inventory_listener);
+    }
     const auto inventory_listener_cleanup = create_scope_exit([&] {
         if (rml_runtime.contexts().palette) {
-            palette_context->RemoveEventListener("click", &inventory_listener);
+            for (const auto* event : nw::toolset::play_inventory_events) {
+                palette_context->RemoveEventListener(event, &inventory_listener);
+            }
         }
         state.play_preview.inventory_document = nullptr;
     });

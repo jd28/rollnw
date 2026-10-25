@@ -26,8 +26,10 @@ void stop_play_preview(ClientRenderer& renderer, PlayPreviewState& preview,
     preview.inventory_visible = false;
     preview.inventory_dirty = true;
     preview.pending_item.reset();
-    preview.inventory_actions.clear();
     preview.inventory_actor = ObjectHandle{};
+    preview.inventory_selection = ObjectHandle{};
+    preview.inventory_rows = {};
+    preview.inventory_page = 0;
     preview.item_message.clear();
     sync_play_preview_inventory(preview);
     preview.visuals_attached = false;
@@ -138,7 +140,11 @@ PreviewStatus update_play_preview_frame(ClientRenderer& renderer, PlayPreviewSta
         const bool tick_ok
             = tick_stats.status == PreviewStatus::ok;
         if (tick_stats.action_result.status != PreviewItemStatus::none) {
-            preview.item_message = preview_item_message(tick_stats.action_result);
+            const auto status = tick_stats.action_result.status;
+            preview.item_message = status == PreviewItemStatus::accepted || status == PreviewItemStatus::applied
+                    || status == PreviewItemStatus::cancelled
+                ? ""
+                : preview_item_message(tick_stats.action_result);
             preview.inventory_dirty = true;
         }
         const bool items_ok = !tick_stats.action_result.changed || (tick_ok && renderer.update_toolset_preview_items(toolset_preview_item_world(preview.session), tick_stats.action_result));

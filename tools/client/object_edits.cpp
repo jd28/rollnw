@@ -4173,20 +4173,24 @@ std::optional<CreatureInventoryEditBatch> make_creature_inventory_equip_edit(
 }
 
 std::optional<CreatureInventoryEditBatch> make_creature_inventory_unequip_edit(
-    ObjectHandle creature_handle, EquipIndex slot)
+    ObjectHandle creature_handle, EquipIndex slot, InventorySlot cell)
 {
     auto* creature = kernel::objects().get<Creature>(creature_handle);
     if (!creature || !valid_equip_index(slot)) { return std::nullopt; }
     const auto item = equipped_item_handle(*creature, slot);
     if (item.type != ObjectType::item) { return std::nullopt; }
     const std::array changes{EquipmentChange{static_cast<int32_t>(slot), item, ObjectHandle{}}};
-    return prepare_equipment_changes(creature_handle, changes);
+    const std::array placements{InventoryPlacement{item, cell}};
+    return prepare_equipment_changes(creature_handle, changes,
+        cell.page == -1 && cell.row == -1 && cell.col == -1 ? std::span<const InventoryPlacement>{} : placements);
 }
 
 ObjectEditApplyResult apply_creature_inventory_edits(
     CreatureInventoryEditBatch& batch, ObjectEditDirection direction)
 {
-    if (batch.changes.empty()) { return edit_result(ObjectEditStatus::empty, "Creature inventory edit batch is empty"); }
+    if (batch.changes.empty() && batch.before.inventory == batch.after.inventory) {
+        return edit_result(ObjectEditStatus::empty, "Inventory is unchanged");
+    }
     const bool reverse = direction == ObjectEditDirection::inverse;
     for (const auto& change : batch.changes) {
         const auto incoming = reverse ? change.before : change.after;
@@ -4195,18 +4199,18 @@ ObjectEditApplyResult apply_creature_inventory_edits(
             return edit_result(ObjectEditStatus::invalid_batch, "Item is incompatible with the equipment slot");
         }
     }
-    if (!nwn1::bridge::ensure_nwn1_smalls_initialized()) {
+    if (!batch.changes.empty() && !nwn1::bridge::ensure_nwn1_smalls_initialized()) {
         return edit_result(ObjectEditStatus::failed, "Equipment policy is unavailable");
     }
     if (!nw::apply_equipment_changes(batch, reverse)) {
         return edit_result(ObjectEditStatus::stale_value, "Inventory, equipment, or item dimensions changed before the edit was applied");
     }
-    const bool notified = nwn1::bridge::publish_equipment_changes(batch.creature, batch.changes, reverse);
+    const bool notified = batch.changes.empty() || nwn1::bridge::publish_equipment_changes(batch.creature, batch.changes, reverse);
     ++g_mutation_state.epoch;
-    g_mutation_state.kind = ObjectMutationKind::visual;
+    g_mutation_state.kind = batch.changes.empty() ? ObjectMutationKind::properties : ObjectMutationKind::visual;
     g_mutation_state.visual_kind = ObjectVisualMutationKind::detail;
     g_mutation_state.object = batch.creature;
-    return {ObjectEditStatus::success, static_cast<uint32_t>(batch.changes.size()),
+    return {ObjectEditStatus::success, static_cast<uint32_t>(batch.changes.size() + batch.placements.size()),
         notified ? std::string{} : "Equipment committed, but a profile callback failed; see Output"};
 }
 

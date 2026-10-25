@@ -460,6 +460,7 @@ if(TARGET RmlUi::RmlUi)
         ../external/RmlUi-6.2/Backends/RmlUi_Platform_SDL.cpp
         ../tools/client/creature_body_part_editor.cpp
         ../tools/client/creature_workbench_view.cpp
+        ../tools/client/inventory_drag.cpp
         ../tools/client/inventory_workbench_view.cpp
         ../tools/client/appearance_view.cpp
         ../tools/client/item_editor.cpp

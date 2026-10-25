@@ -127,11 +127,24 @@ clip lasts 0.5 seconds and has no event marker, so the explicit pickup policy
 commits at its end after revalidation. It then plays backward to stand up;
 recovery can be interrupted without undoing the transfer. Missing/invalid clips
 fall back to immediate pickup. Presentation samples simulation-owned time and
-cannot trigger a transfer. Other timed equipment actions are still unimplemented.
+cannot trigger a transfer.
+
+Hand equip/unequip now uses the same fixed tick. NWN1 resolves `drwright` and
+`drwleft` plus the earliest valid `draw_weapon` marker on spawn. The supplied
+clips last about 0.667 seconds with a marker at 0.3 seconds (duplicate authored
+markers become one commit). Equip plays forward; unequip reverses the clip and
+marker time. Missing markers commit at clip end; missing/invalid clips and other
+slots retain immediate changes. Ownership and capacity are revalidated at the
+marker. The action retains its commit status until the pose finishes, so it
+never repeats the mutation or result. Replacement before commit leaves ownership
+unchanged; replacement afterward keeps the committed state. No general animation
+event dispatcher, separate stow/draw swap sequence, or action queue is added.
 The stripped NWN dedicated distribution has model index entries without rig
 payloads. It therefore takes the no-clip fallback unless animation metadata is
 supplied with its content; this is not yet a portable server content package.
 The shared action state accepts resolved tick durations independently of rendering.
-No second scheduler was introduced. Verify interrupted/deferred
-requests, missing clips and stale state with a headless simulation test and a
-rendered animation-marker test before claiming animated swaps are implemented.
+No second scheduler was introduced. Headless tests cover cancellation before
+and after the hand marker, ownership revalidation, exact-cell unequip, and the
+zero-timing fallback. Renderer tests cover both hand clips and missing-clip idle
+fallback. The GPU item-loop test checks a quarterstaff before and after its
+marker, forward/reverse poses, and completion without repeated commits.

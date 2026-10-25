@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../objects/Inventory.hpp"
 #include "../objects/item_transfers.hpp"
 
 #include <glm/vec3.hpp>
 
+#include <array>
 #include <cstdint>
 #include <span>
 
@@ -16,13 +18,15 @@ enum class ActionKind : uint8_t { pickup,
     unequip,
     drop,
     move_to,
-    cancel };
+    cancel,
+    move_inventory };
 enum class ActionPhase : uint8_t { idle,
     requested,
     moving,
     grabbing,
     recovering,
-    finished };
+    finished,
+    drawing };
 enum class ActionStatus : uint8_t {
     none,
     accepted,
@@ -47,9 +51,16 @@ struct ActorActionRequest {
     ObjectHandle target{};
     glm::vec3 destination{0.0f};
     int32_t slot = -1;
+    InventorySlot inventory_cell; // all -1 means automatic placement for unequip
 };
 
-// Version 1 in-process state. One row per actor, in stable owner-defined order.
+struct EquipmentActionTiming {
+    uint32_t duration_ticks = 0;
+    uint32_t equip_tick = 0;
+    uint32_t unequip_tick = 0;
+};
+
+// Version 3 in-process state. One row per actor, in stable owner-defined order.
 // The owner binds actor once, retains rows between ticks, and destroys them with
 // the world. All action progress is explicit data; no VM, callback or allocation
 // is retained. Object handles are existing kernel identities, not portable IDs:
@@ -59,9 +70,13 @@ struct ActorActionState {
     ObjectHandle target{};
     glm::vec3 destination{0.0f};
     int32_t slot = -1;
+    InventorySlot inventory_cell;
     // Owner-resolved clip duration, rounded up to 60 Hz ticks. Zero means the
     // actor has no pickup clip and uses immediate transfer. Retained on replace.
     uint32_t pickup_ticks = 0;
+    // Owner-resolved right/left hand timing. Commit ticks must not exceed the
+    // duration. Zero duration selects immediate equipment changes. Retained on replace.
+    std::array<EquipmentActionTiming, 2> hand_timings;
     uint32_t elapsed_ticks = 0;
     ActionKind kind = ActionKind::cancel;
     ActionPhase phase = ActionPhase::idle;
@@ -114,6 +129,10 @@ bool prepare_actor_actions(ObjectHandle area, std::span<ActorActionState> states
 // A successful grab emits its result immediately, then spends pickup_ticks in
 // recovery playing the clip backward. Recovery never transfers again; replacing
 // it cannot undo the committed item. Its end produces no second result.
+// Hand equipment plays drawing through duration_ticks, committing once at the
+// selected equip/unequip tick. status remains accepted before commit, then holds
+// its commit result while the clip finishes. Replacement after commit preserves
+// equipment. Missing timing and other slots retain immediate behavior.
 bool complete_actor_actions(ObjectHandle area, const nav::NavWorldState& navigation,
     float pickup_reach, std::span<ActorActionState> states,
     std::span<const ActionMovementStatus> movement, std::span<ActorActionResult> results);
