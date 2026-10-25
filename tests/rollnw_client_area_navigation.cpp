@@ -10,6 +10,7 @@
 #include <nw/formats/Tileset.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/objects/Area.hpp>
+#include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
 #include <nw/objects/Item.hpp>
 #include <nw/objects/Module.hpp>
@@ -30,6 +31,7 @@ protected:
         ASSERT_NE(module, nullptr);
         area = module->get_area(0);
         ASSERT_NE(area, nullptr);
+        nw::toolset::ToolsetPreviewSession preview;
         const auto started = nw::toolset::start_toolset_preview(preview, {
                                                                              .area = area->handle(),
                                                                              .actor = nw::Resource{nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
@@ -37,10 +39,27 @@ protected:
                                                                              .camera = {.focus = module->entry_position},
                                                                          });
         ASSERT_TRUE(started.ok()) << started.diagnostic;
-        row = *nw::kernel::objects().components().find_spatial(started.actor);
+        const auto* spatial = nw::kernel::objects().components().find_spatial(started.actor);
+        ASSERT_NE(spatial, nullptr);
+        // Preview owns its actor in an isolated area. Reuse its projected spawn
+        // transform, then create an authored creature for editor placement tests.
+        const std::array placements{nw::toolset::AreaObjectBlueprintPlacement{
+            .resource = {nw::Resref{"pl_agent_001"}, nw::ResourceType::utc},
+            .transform = {spatial->position, spatial->orientation, spatial->scale},
+        }};
+        nw::toolset::stop_toolset_preview(preview);
+        const auto loaded = nw::toolset::load_area_object_blueprints(area->handle(), placements);
+        ASSERT_TRUE(loaded.ok()) << loaded.diagnostic;
+        ASSERT_EQ(loaded.objects.size(), 1u);
+        auto* creature = nw::kernel::objects().get<nw::Creature>(loaded.objects[0]);
+        ASSERT_NE(creature, nullptr);
+        area->creatures.push_back(creature);
+        spatial = nw::kernel::objects().components().find_spatial(creature->handle());
+        ASSERT_NE(spatial, nullptr);
+        row = *spatial;
+        ASSERT_EQ(row.area, area->handle().id);
     }
 
-    nw::toolset::ToolsetPreviewSession preview;
     nw::Area* area = nullptr;
     nw::ObjectSpatialState row;
 };
@@ -243,7 +262,8 @@ TEST_F(ClientAreaNavigation, ChangedEpochInvalidatesTheGestureBeforeAnotherQuery
 {
     nw::toolset::AreaPlacementNavigation navigation;
     const std::array rows{row};
-    ASSERT_TRUE(nw::toolset::validate_area_placements(navigation, area->handle(), rows).ok());
+    const auto valid = nw::toolset::validate_area_placements(navigation, area->handle(), rows);
+    ASSERT_TRUE(valid.ok()) << valid.diagnostic;
     const auto revision = navigation.revision;
     auto tiles = std::move(area->tiles);
 
