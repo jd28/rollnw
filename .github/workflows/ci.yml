@@ -1045,9 +1045,12 @@ jobs:
           ccache -s
 
   linux-renderer-headless:
-    runs-on: ubuntu-22.04
+    # Mesa 23.2.1 / LLVM 15 stalls optimizing the first dragon frame on 22.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     name: Linux Renderer Headless
+    env:
+      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
     steps:
       - name: Get current date
         run: |
@@ -1066,7 +1069,13 @@ jobs:
         timeout-minutes: 10
         with:
           ppa: ppa:ubuntu-toolchain-r/test
-          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev xvfb xauth
+          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers vulkan-tools libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev xvfb xauth
+
+      - name: linux - software renderer info
+        timeout-minutes: 1
+        run: |
+          dpkg-query -W mesa-vulkan-drivers
+          env -u DISPLAY -u WAYLAND_DISPLAY vulkaninfo --summary
 
       - name: linux - select gcc
         run: |
@@ -1078,9 +1087,9 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/.ccache/
-          key: ubuntu-22.04-renderer-ccache-${{ env.DATE }}
+          key: ubuntu-24.04-renderer-ccache-${{ env.DATE }}
           restore-keys: |
-            ubuntu-22.04-renderer-ccache-
+            ubuntu-24.04-renderer-ccache-
 
       - name: setup ccache
         run: |
@@ -1128,6 +1137,7 @@ jobs:
           cmake --build --preset ci-linux-renderer --target mudl rollnw-client
 
       - name: linux - headless graphics smoke
+        timeout-minutes: 5
         run: |
           ./build-ci-linux-renderer/tools/mudl/mudl stats c_aribeth --user tests/test_data/renderer/nwn_dump_user
           ./build-ci-linux-renderer/tools/mudl/mudl stats c_drgshad --user tests/test_data/renderer/nwn_dump_user
