@@ -248,11 +248,13 @@ and click the <strong>minus</strong> button to remove it. Undo restores its cont
 and original order, including Store category and infinite-stock status. Unequip
 an equipped item before removing it. Inventory removal saves with the blueprint
 or containing area.</p>
-<p>To replace equipped gear, select an inventory item and click the destination
-equipment slot. The displaced item returns to the vacated inventory cell when
+<p>To equip or replace gear, drag an inventory item onto the destination equipment
+slot. Drag equipped gear back into the inventory to unequip it, or drag carried
+items to rearrange them. The footprint outline marks the exact destination cells;
+occupied or out-of-bounds drops leave the item unchanged. <strong>Escape</strong> cancels a drag.
+The displaced item returns to the vacated inventory cell when
 it fits, or the first available space. The entire swap is one undoable action;
-insufficient space leaves both items unchanged. Clicking an occupied slot with
-no inventory item selected unequips it.</p>
+insufficient space leaves both items unchanged.</p>
 <p>For placed instances in an Area, select an inventory item and click the <strong>pencil</strong>
 icon to open it in the Item editor. Occupied equipment slots have their own pencil
 icon. The <strong>left arrow</strong> returns to the owner's inventory, including nested containers.
@@ -286,15 +288,42 @@ container positions. Applying to an open area clears its previous undo history
 and leaves it modified for you to save. <strong>Restore Original Files</strong> restores
 updates made to unopened documents; it does not restore the live area.</p>
 <h2 id="play-preview">Play preview</h2>
-<p>Press <strong>F9</strong> in an area to try movement with a test Creature. On first use,
+<p>Press <strong>F9</strong> in an area to try movement and item interactions with a test Creature. On first use,
 choose a Creature blueprint from the project tree; the choice is remembered
-for that project. Preview movement does not modify the authored area.</p>
+for that project. Preview movement and item interactions do not modify the authored area.</p>
 <p>Move with WASD or the controller's left stick, orbit with the right mouse button
 or right stick, and zoom with the wheel, triggers, or shoulder buttons.
-Left-click an area surface to request a path there. <strong>F9</strong> or <strong>Escape</strong> ends
-preview and restores the editor selection and camera.</p>
-<p>This is a movement preview. Scripts, encounters, combat, and gameplay
-persistence do not run.</p>
+Hover over a visible ground item to highlight it. The highlight follows camera
+movement and clears when the pointer leaves the item or an overlay captures input.
+Click the item to approach and pick it up. Keyboard/controller movement or a new
+world click interrupts that action. When the actor has a pickup clip, it stops
+within one world unit, faces the item and
+plays the grab before transferring it. The return pose plays afterward. Movement
+or another command cancels an unfinished grab; cancelling after transfer keeps
+the item. Actors without a pickup clip use an immediate transfer.
+Left-click an area surface to request a path there. Press <strong>I</strong>, or open the
+command palette with <strong>Ctrl+Shift+P</strong> and run <strong>object.inventory.open</strong>, to open
+inventory. Opening it stops the actor. Drag the panel's top edge to move it.
+The panel shows equipment slots and a
+paged item grid using the items' actual icons and footprints. Drag a carried item
+onto an equipment slot to equip it, or drag equipped gear into the pack to
+unequip it, or move carried items within the pack. A translucent item follows the
+pointer and a footprint outline marks the exact destination cells. Occupied or
+out-of-bounds drops leave the item unchanged. Hover over an item to see its name.
+Dropping elsewhere cancels the drag. You can also select
+a carried item and click a slot, or click equipped gear to unequip it when no
+carried item is selected. Select a carried item and press <strong>Delete</strong> to drop it
+at the actor's current walkable position. Use <strong>&lt; / &gt;</strong> to cycle pack pages.
+Failed requests leave ownership unchanged; equipment follows the current gameplay
+rules. The inventory command is available only during play mode.</p>
+<p><strong>I</strong> or <strong>Escape</strong> closes inventory. <strong>F9</strong>, or <strong>Escape</strong> with inventory closed,
+ends preview and restores the authored items, editor selection, and camera.
+Preview items retain their identity through transfers, then are discarded on
+exit. Hand equipment plays the rig's draw clip, commits at its weapon marker,
+and finishes the clip; unequipping plays it backward. Movement or another action
+can interrupt it, preserving the equipment state already committed. Other slots
+and creatures without draw clips change immediately. Combat,
+encounters, general gameplay scripts, and gameplay persistence are not included.</p>
 <h2 id="command-line-import">Command-line import</h2>
 <div class="codehilite"><pre><span></span><code>rollnw-client<span class="w"> </span>import<span class="w"> </span>--json<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-project
 rollnw-client<span class="w"> </span>import<span class="w"> </span>--legacy<span class="w"> </span><span class="s2">"/path/to/example.mod"</span><span class="w"> </span>./example-legacy
