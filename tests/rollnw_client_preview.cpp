@@ -6,7 +6,9 @@
 #include "../tools/client/object_edits.hpp"
 #include "../tools/client/pc_input.hpp"
 #include "../tools/client/preview_session.hpp"
+#ifdef ROLLNW_TEST_CLIENT_EXECUTABLE
 #include "../tools/client/runtime_input.hpp"
+#endif
 
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/ModelCache.hpp>
@@ -1273,6 +1275,7 @@ TEST_F(ClientPickupActions, GrabStopsMovementAndCanBeCancelledBeforeCommit)
     expect_cancelled(cancel);
 }
 
+#ifdef ROLLNW_TEST_CLIENT_EXECUTABLE
 TEST_F(ClientPickupActions, LiveInputFramesDoNotRestartOrSlideTheGrab)
 {
     using namespace nw::toolset;
@@ -1323,6 +1326,8 @@ TEST_F(ClientPickupActions, LiveInputFramesDoNotRestartOrSlideTheGrab)
     EXPECT_EQ(toolset_preview_action_state(session).status, nw::gameplay::ActionStatus::applied);
     EXPECT_TRUE(nw::kernel::objects().get<nw::Creature>(session.actor())->inventory().has_item(nw::kernel::objects().get<nw::Item>(item)));
 }
+
+#endif
 
 TEST_F(ClientPickupActions, HandEquipmentCommitsAtMarkersAndCancellationPreservesOwnership)
 {

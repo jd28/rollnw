@@ -1,7 +1,6 @@
 #pragma once
 
 #include "pc_input.hpp"
-#include "viewport_rect.hpp"
 
 #include <memory>
 #include <optional>
@@ -9,6 +8,9 @@
 struct SDL_Gamepad;
 union SDL_Event;
 class ClientRenderer;
+struct ClientViewportRect;
+struct ClientViewportRay;
+struct ClientAreaDoorHit;
 
 namespace nw::toolset {
 
