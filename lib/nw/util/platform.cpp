@@ -1,5 +1,6 @@
 #include "platform.hpp"
 #include "../log.hpp"
+#include "scope_exit.hpp"
 
 #include <nowide/convert.hpp>
 #include <nowide/cstdlib.hpp>
@@ -16,7 +17,7 @@
 #elif defined(ROLLNW_OS_WINDOWS)
 #define WINVER 0x0A00
 #define _WIN32_WINNT_WIN10 0x0A00 // Windows 10
-#include <ShlObj.h>
+#include <shlobj.h>
 #include <windows.h>
 #endif
 
@@ -35,9 +36,11 @@ fs::path documents_path()
     return home_path() / "Documents"; // On macOS finder shows localized, but is "Documents"
                                       // on disk.  Don't know if this is true on Linux.
 #elif defined(ROLLNW_OS_WINDOWS)
-    PWSTR path;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, NULL, &path))) {
-        return nowide::narrow(path);
+    PWSTR path = nullptr;
+    const auto free_path = create_scope_exit([&] { CoTaskMemFree(path); });
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, &path))
+        && path) {
+        return fs::path(path);
     }
 #endif
     throw std::runtime_error("unable to determine user document path");
@@ -57,7 +60,7 @@ fs::path home_path()
     if (!home) {
         throw std::runtime_error("unable to determine user home path");
     }
-    return fs::path(home);
+    return path_from_string(home);
 }
 
 namespace {
@@ -122,10 +125,20 @@ bool move_file_safely(const fs::path& from, const fs::path& to)
 
 String path_to_string(const std::filesystem::path& path)
 {
-#ifdef _MSC_VER
+#ifdef ROLLNW_OS_WINDOWS
     return nowide::narrow(path.c_str());
 #else
     return path.string();
+#endif
+}
+
+fs::path path_from_string(StringView path)
+{
+    if (path.empty()) { return {}; }
+#ifdef ROLLNW_OS_WINDOWS
+    return fs::path(nowide::widen(path.data(), path.size()));
+#else
+    return fs::path(path);
 #endif
 }
 

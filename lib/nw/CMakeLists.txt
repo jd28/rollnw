@@ -182,6 +182,10 @@ add_library(nw STATIC
 
 target_compile_definitions(nw PUBLIC -DGLM_ENABLE_EXPERIMENTAL)
 
+if(WIN32)
+    target_link_libraries(nw PUBLIC advapi32 shell32 ole32)
+endif()
+
 target_link_libraries(nw PUBLIC
     fmt::fmt
     absl::base

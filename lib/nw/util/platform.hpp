@@ -29,6 +29,9 @@ bool move_file_safely(const std::filesystem::path& from, const std::filesystem::
 /// Converts path to utf8 string
 String path_to_string(const std::filesystem::path& path);
 
+/// Converts a UTF-8 string to the platform's native filesystem path.
+std::filesystem::path path_from_string(StringView path);
+
 /// Converts a time value to local calendar time using the platform reentrant API.
 tm local_time(time_t time);
 

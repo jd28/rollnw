@@ -57,11 +57,18 @@ In order to run all of the tests, you can help the library locate Neverwinter Ni
       .. code:: bash
 
          $ export NWN_ROOT=path/to/game
-         $ export NWN_USER=path/to/nwn-user-dir
+         $ export NWN_HOME=path/to/nwn-user-dir
 
    .. tab:: Windows
 
       .. code:: batch
 
-         set NWN_ROOT=path\to\game
-         set NWN_USER=path\to\nwn-user-dir
+         set "NWN_ROOT=C:\GOG Games\Neverwinter Nights Enhanced Edition"
+         set "NWN_HOME=C:\Users\m\OneDrive\MyDocuments\Neverwinter Nights"
+
+``NWN_HOME`` is the game user-data directory itself (containing folders such as
+``modules``, ``hak``, and ``override``), not its Documents parent. Use your actual
+path; valid overrides take precedence over automatic discovery. Windows discovery
+reads GOG's registered installation path and the current Windows Documents known
+folder, including OneDrive redirection. Restart an already running application
+after changing its environment variables.
