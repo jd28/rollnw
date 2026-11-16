@@ -62,9 +62,11 @@ struct AreaTileSelection {
     std::vector<uint32_t>& output);
 
 // Builds an owned erase batch from unique picked cells. Expands only intersected
-// groups, preserves neighboring group boundaries while fitting ordinary
-// transition tiles, and includes doors attached to changed target tiles. Empty
-// or invalid input clears the complete output.
+// groups, applies the SET's primary rules to candidate topology while preserving
+// neighboring group boundaries, fits ordinary transition tiles, and includes
+// doors attached to changed target tiles. Malformed primary rule tables,
+// boundary conflicts, or excessive rule propagation reject the batch and return
+// an empty output.
 [[nodiscard]] ObjectEditApplyResult build_area_tile_erase_edits(ObjectHandle area,
     std::span<const uint32_t> cells, int32_t terrain, uint64_t seed,
     AreaTileEraseEditBatch& output);
@@ -85,9 +87,12 @@ struct AreaTileSelection {
     AreaTileSelection& output);
 
 // Builds one atomic batch from the ordered tile cells visited by a terrain,
-// crosser, or group gesture. The seed controls variant choice; the chosen
-// AreaTile rows are stored in undo. Height brushes are rejected here because
-// they target the area's corner lattice.
+// crosser, or group gesture. Terrain, group, and eraser gestures apply the SET's
+// primary rules before fitting affected cells; malformed primary rule tables,
+// protected group boundary conflicts, or excessive rule propagation reject the
+// batch. The seed controls variant choice; the chosen AreaTile rows are stored
+// in undo. Height brushes are rejected here because they target the area's
+// corner lattice.
 [[nodiscard]] ObjectEditApplyResult build_area_tile_brush_edits(
     ObjectHandle area,
     std::span<const uint32_t> ordered_tile_indices,
@@ -105,8 +110,10 @@ struct AreaTileSelection {
     AreaTileEditBatch& output);
 
 // Builds one atomic height batch from unique row-major corner-lattice indices.
-// Delta must be -1 or 1. Only tiles incident to changed corners are fitted.
-// The batch is rejected if fitting would vertically split a placed SET group.
+// Delta must be -1 or 1. Applies the SET's primary rules before fitting tiles
+// incident to changed corners. The batch is rejected if primary rules are
+// malformed, propagation exceeds bounds, or fitting would split a placed SET
+// group.
 [[nodiscard]] ObjectEditApplyResult build_area_tile_height_brush_edits(
     ObjectHandle area,
     std::span<const uint32_t> ordered_corner_indices,

@@ -1,0 +1,51 @@
+[GENERAL]
+Name=0
+UnlocalizedName=Malformed Primary Rules Fixture
+Transition=5
+Default=Grass
+
+[TERRAIN TYPES]
+Count=1
+
+[TERRAIN0]
+Name=Grass
+
+[CROSSER TYPES]
+Count=0
+
+[PRIMARY RULES]
+Count=2
+
+[PRIMARY RULE0]
+Placed=Grass
+PlacedHeight=0
+Adjacent=Grass
+AdjacentHeight=0
+Changed=Grass
+ChangedHeight=0
+
+[PRIMARY RULE1]
+Placed=UnknownTerrain
+PlacedHeight=0
+Adjacent=Grass
+AdjacentHeight=0
+Changed=Grass
+ChangedHeight=0
+
+[TILES]
+Count=1
+
+[TILE0]
+Model=tno01_r01_01
+TopLeft=Grass
+TopLeftHeight=0
+TopRight=Grass
+TopRightHeight=0
+BottomLeft=Grass
+BottomLeftHeight=0
+BottomRight=Grass
+BottomRightHeight=0
+Top=
+Right=
+Bottom=
+Left=

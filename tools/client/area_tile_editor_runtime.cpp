@@ -111,15 +111,38 @@ bool preview_area_tile_stroke(ClientRenderer& renderer,
         }
         if (erasing && erase_targets.ok()) {
             const auto* live_area = nw::kernel::objects().get<nw::Area>(area);
-            editor.preview_rows.reserve(erase_cells.size());
-            for (const uint32_t tile_index : erase_cells) {
-                const auto& tile = live_area->tiles[tile_index];
-                editor.preview_rows.push_back({
-                    .tile_index = tile_index,
-                    .tile_id = tile.id,
-                    .height = tile.height,
-                    .orientation = tile.orientation,
-                });
+            const auto& changed_rows = removal_preview.tiles.rows;
+            editor.preview_rows.reserve(erase_cells.size() + changed_rows.size());
+            size_t erase_idx = 0;
+            size_t changed_idx = 0;
+            while (erase_idx < erase_cells.size() || changed_idx < changed_rows.size()) {
+                const uint32_t erase_cell = erase_idx < erase_cells.size()
+                    ? erase_cells[erase_idx]
+                    : std::numeric_limits<uint32_t>::max();
+                const uint32_t changed_cell = changed_idx < changed_rows.size()
+                    ? changed_rows[changed_idx].tile_index
+                    : std::numeric_limits<uint32_t>::max();
+                if (erase_cell <= changed_cell) {
+                    const auto& tile = live_area->tiles[erase_cell];
+                    editor.preview_rows.push_back({
+                        .tile_index = erase_cell,
+                        .tile_id = tile.id,
+                        .height = tile.height,
+                        .orientation = tile.orientation,
+                    });
+                    ++erase_idx;
+                    if (erase_cell == changed_cell) {
+                        ++changed_idx;
+                    }
+                } else {
+                    const auto& row = changed_rows[changed_idx++];
+                    editor.preview_rows.push_back({
+                        .tile_index = row.tile_index,
+                        .tile_id = row.after.id,
+                        .height = row.after.height,
+                        .orientation = row.after.orientation,
+                    });
+                }
             }
         } else {
             const auto& rows

@@ -170,6 +170,90 @@ void load_groups(
     }
 }
 
+void load_primary_rules(const Ini& set,
+    StringView resref,
+    bool terrain_catalog_valid,
+    Tileset& tileset)
+{
+    tileset.primary_rules.clear();
+    tileset.primary_rules_valid = true;
+
+    String raw_count;
+    if (!set.get_to("primary rules/count", raw_count)) {
+        return;
+    }
+
+    int32_t count = 0;
+    if (!set.get_to("primary rules/count", count)
+        || count < 0 || count > max_set_entries) {
+        tileset.primary_rules_valid = false;
+        LOG_F(WARNING,
+            "[tilesets] invalid primary rule count '{}' in {}.set",
+            raw_count, resref);
+        return;
+    }
+    if (count == 0) {
+        return;
+    }
+    if (!terrain_catalog_valid || tileset.terrains.empty()) {
+        tileset.primary_rules_valid = false;
+        LOG_F(WARNING,
+            "[tilesets] primary rules require a valid terrain catalog in {}.set",
+            resref);
+        return;
+    }
+
+    Vector<TilesetPrimaryRule> staged;
+    staged.reserve(static_cast<size_t>(count));
+    for (int32_t index = 0; index < count; ++index) {
+        const auto section = fmt::format("primary rule{}", index);
+        String placed_name;
+        String adjacent_name;
+        String changed_name;
+        TilesetPrimaryRule rule;
+        if (!set.get_to(section + "/placed", placed_name)
+            || !set.get_to(section + "/placedheight", rule.placed_height)
+            || !set.get_to(section + "/adjacent", adjacent_name)
+            || !set.get_to(section + "/adjacentheight", rule.adjacent_height)
+            || !set.get_to(section + "/changed", changed_name)
+            || !set.get_to(section + "/changedheight", rule.changed_height)) {
+            tileset.primary_rules_valid = false;
+            LOG_F(WARNING,
+                "[tilesets] malformed primary rule {} in {}.set",
+                index, resref);
+            return;
+        }
+        rule.placed = named_type_index(tileset.terrains, placed_name);
+        rule.adjacent = named_type_index(tileset.terrains, adjacent_name);
+        rule.changed = named_type_index(tileset.terrains, changed_name);
+        if (rule.placed < 0 || rule.adjacent < 0 || rule.changed < 0
+            || rule.placed_height < 0 || rule.placed_height > 1
+            || rule.adjacent_height < 0 || rule.adjacent_height > 1
+            || rule.changed_height < 0 || rule.changed_height > 1) {
+            tileset.primary_rules_valid = false;
+            LOG_F(WARNING,
+                "[tilesets] out-of-range terrain or height in primary rule {} of {}.set",
+                index, resref);
+            return;
+        }
+        for (size_t prev = 0; prev < staged.size(); ++prev) {
+            if (staged[prev].placed == rule.placed
+                && staged[prev].placed_height == rule.placed_height
+                && staged[prev].adjacent == rule.adjacent
+                && staged[prev].adjacent_height == rule.adjacent_height) {
+                tileset.primary_rules_valid = false;
+                LOG_F(WARNING,
+                    "[tilesets] duplicate primary rule key at rows {} and {} in {}.set",
+                    prev, index, resref);
+                return;
+            }
+        }
+        staged.push_back(rule);
+    }
+
+    tileset.primary_rules = std::move(staged);
+}
+
 } // namespace
 
 const std::type_index TilesetRegistry::type_index{typeid(TilesetRegistry)};
@@ -320,6 +404,7 @@ Tileset* TilesetRegistry::load(StringView resref)
     }
 
     load_groups(set, resref, tileset);
+    load_primary_rules(set, resref, terrain_catalog_valid, tileset);
 
     size_t invalid_topologies = 0;
     for (const auto& topology : tileset.tile_topologies) {

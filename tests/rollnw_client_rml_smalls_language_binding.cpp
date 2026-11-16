@@ -2916,6 +2916,84 @@ TEST(ClientAreaTileEditor, GroupEraserStrokeUsesTheWorkspaceUndoPath)
     }
 }
 
+TEST(ClientAreaTileEditor, EraserPreviewIncludesNeighborsAdjustedByPrimaryRulesAndMatchesCommit)
+{
+    using namespace nw::toolset;
+    auto* tileset = nw::kernel::tilesets().load("rules_primary");
+    ASSERT_NE(tileset, nullptr);
+    auto* area = nw::kernel::objects().make<nw::Area>();
+    ASSERT_NE(area, nullptr);
+    area->tileset = tileset;
+    area->tileset_resref = "rules_primary";
+    area->width = 3;
+    area->height = 1;
+    area->tiles.assign(3, {.id = 0});
+    const auto original = area->tiles;
+
+    WorkspaceState workspace;
+    auto& tab = workspace.open_area_tab("areas/rules_test.caf.json", "Rules Test");
+    ASSERT_TRUE(tab.document.adopt(area->handle()));
+    CommandContext context{
+        .active_tab_id = tab.id,
+        .area_object = area->handle(),
+        .workspace = &workspace,
+    };
+
+    AreaTileEditorState editor;
+    const AreaTileBrush eraser_brush{
+        .kind = AreaTileBrushKind::eraser,
+        .value = 1, // FloorB
+    };
+    editor.palette.rows = {
+        {
+            .kind = AreaTilePaletteRowKind::action,
+            .brush = eraser_brush,
+            .label = "Erase",
+        },
+    };
+    editor.selected_row = 0;
+    editor.cursor_target_index = 1;
+    editor.preview_rows = {{.tile_index = 1}};
+
+    ClientRenderer renderer;
+    ToolsetBackend backend;
+    ShellController shell;
+    ScriptCommandHostReset script_host;
+    backend.bind(nullptr, &shell, &workspace);
+
+    ASSERT_TRUE(begin_area_tile_stroke(renderer, editor, area->handle(),
+        {100.0f, 100.0f}, {.width = 800, .height = 600}, SDL_BUTTON_LEFT,
+        eraser_brush, AreaTilePointerModifier::none, true, shell));
+    EXPECT_TRUE(editor.stroke.active);
+    EXPECT_TRUE(editor.feedback.empty());
+    ASSERT_EQ(editor.preview_rows.size(), 3u);
+    // Neighbor cells 0 and 2 display their adjusted transition tile (tile 4),
+    // while explicit erase target cell 1 preserves its original tile id (tile 0).
+    EXPECT_EQ(editor.preview_rows[0].tile_index, 0u);
+    EXPECT_EQ(editor.preview_rows[0].tile_id, 4);
+    EXPECT_EQ(editor.preview_rows[1].tile_index, 1u);
+    EXPECT_EQ(editor.preview_rows[1].tile_id, 0);
+    EXPECT_EQ(editor.preview_rows[2].tile_index, 2u);
+    EXPECT_EQ(editor.preview_rows[2].tile_id, 4);
+
+    commit_area_tile_stroke(renderer, editor, area->handle(), true, false,
+        backend, context, shell);
+    EXPECT_FALSE(editor.stroke.active);
+    EXPECT_EQ(workspace.undo_count(), 1u);
+    EXPECT_EQ(area->tiles[0].id, 4);
+    EXPECT_EQ(area->tiles[1].id, 1);
+    EXPECT_EQ(area->tiles[2].id, 4);
+
+    ASSERT_TRUE(workspace.undo(context).ok());
+    for (size_t i = 0; i < original.size(); ++i) {
+        EXPECT_TRUE(area_tile_rows_equal(area->tiles[i], original[i]));
+    }
+    ASSERT_TRUE(workspace.redo(context).ok());
+    EXPECT_EQ(area->tiles[0].id, 4);
+    EXPECT_EQ(area->tiles[1].id, 1);
+    EXPECT_EQ(area->tiles[2].id, 4);
+}
+
 TEST(ClientAreaTileEditor, BrushSelectionAndRotationInvalidateStationaryCursor)
 {
     using namespace nw::toolset;

@@ -509,12 +509,24 @@ void mark_vertical_edge_incident(const AreaTopology& topology,
     mark_cell(topology, x, y, affected);
 }
 
+void append_unique_seed(uint32_t corner,
+    std::vector<uint8_t>& seeded,
+    std::vector<uint32_t>& seeds)
+{
+    if (corner < seeded.size() && seeded[corner] == 0) {
+        seeded[corner] = 1;
+        seeds.push_back(corner);
+    }
+}
+
 bool set_terrain_cells(const Area& area,
     std::span<const uint32_t> cells,
     int32_t terrain,
     AreaTopology& topology,
     std::vector<uint8_t>& affected,
-    std::vector<uint8_t>& fit_flags)
+    std::vector<uint8_t>& fit_flags,
+    std::vector<uint8_t>& seeded,
+    std::vector<uint32_t>& seeds)
 {
     if (terrain < 0
         || static_cast<size_t>(terrain) >= area.tileset->terrains.size()) {
@@ -538,6 +550,8 @@ bool set_terrain_cells(const Area& area,
             }
             mark_corner_incident(
                 topology, position[0], position[1], affected);
+            append_unique_seed(
+                static_cast<uint32_t>(index), seeded, seeds);
         }
         topology.horizontal_crossers[horizontal_edge_index(topology, x, y + 1)]
             = -1;
@@ -631,7 +645,9 @@ bool set_eraser_cells(const Area& area,
     int32_t terrain,
     AreaTopology& topology,
     std::vector<uint8_t>& affected,
-    std::vector<uint8_t>& fit_flags)
+    std::vector<uint8_t>& fit_flags,
+    std::vector<uint8_t>& seeded,
+    std::vector<uint32_t>& seeds)
 {
     if (terrain < 0
         || static_cast<size_t>(terrain) >= area.tileset->terrains.size()) {
@@ -646,6 +662,8 @@ bool set_eraser_cells(const Area& area,
     build_placed_group_cell_mask(area, group_cells);
 
     for (const uint32_t tile_index : cells) {
+        const auto& current = area.tiles[tile_index];
+        const bool filling_void = area_tile_is_void(current);
         const int32_t x = static_cast<int32_t>(
             tile_index % static_cast<uint32_t>(area.width));
         const int32_t y = static_cast<int32_t>(
@@ -656,11 +674,17 @@ bool set_eraser_cells(const Area& area,
                     position[0], position[1], selected, group_cells)) {
                 continue;
             }
-            topology.corner_terrains[corner_index(
-                topology, position[0], position[1])]
-                = terrain;
+            const size_t index = corner_index(
+                topology, position[0], position[1]);
+            topology.corner_terrains[index] = terrain;
+            if (filling_void
+                && topology.corner_heights[index] == unset_height) {
+                topology.corner_heights[index] = current.height;
+            }
             mark_corner_incident(
                 topology, position[0], position[1], affected);
+            append_unique_seed(
+                static_cast<uint32_t>(index), seeded, seeds);
         }
 
         if (!horizontal_edge_touches_unselected_group(
@@ -702,7 +726,9 @@ bool change_corner_heights(const Area& area,
     std::span<const uint32_t> corners,
     int32_t delta,
     AreaTopology& topology,
-    std::vector<uint8_t>& affected)
+    std::vector<uint8_t>& affected,
+    std::vector<uint8_t>& seeded,
+    std::vector<uint32_t>& seeds)
 {
     if (!area.tileset->has_height_transition || (delta != -1 && delta != 1)) {
         return false;
@@ -724,6 +750,7 @@ bool change_corner_heights(const Area& area,
         const int32_t y = static_cast<int32_t>(
             index / static_cast<uint32_t>(topology.width + 1));
         mark_corner_incident(topology, x, y, affected);
+        append_unique_seed(index, seeded, seeds);
     }
     return true;
 }
@@ -1173,6 +1200,8 @@ bool overlay_group(const Area& area,
     std::vector<uint8_t>& affected,
     std::vector<uint8_t>& fit_flags,
     std::vector<TileChoice>& fixed,
+    std::vector<uint8_t>& seeded,
+    std::vector<uint32_t>& seeds,
     std::string& diagnostic)
 {
     if (group_index < 0 || orientation < 0 || orientation >= 4
@@ -1229,7 +1258,8 @@ bool overlay_group(const Area& area,
     });
     if (!uncovered_cells.empty()
         && !set_terrain_cells(area, uncovered_cells,
-            area.tileset->default_terrain, topology, affected, fit_flags)) {
+            area.tileset->default_terrain, topology, affected, fit_flags,
+            seeded, seeds)) {
         diagnostic = "The SET default terrain is unavailable for group replacement";
         return false;
     }
@@ -1296,6 +1326,8 @@ bool overlay_group(const Area& area,
             const int32_t y = static_cast<int32_t>(
                 index / static_cast<size_t>(topology.width + 1));
             mark_corner_incident(topology, x, y, affected);
+            append_unique_seed(
+                static_cast<uint32_t>(index), seeded, seeds);
         }
     }
     for (size_t index = 0; index < overlay.horizontal_crossers.size(); ++index) {
@@ -1318,6 +1350,202 @@ bool overlay_group(const Area& area,
             const int32_t y = static_cast<int32_t>(
                 index / static_cast<size_t>(topology.width + 1));
             mark_vertical_edge_incident(topology, x, y, affected);
+        }
+    }
+    return true;
+}
+
+bool corner_touches_fixed_cell(const AreaTopology& topology,
+    int32_t x,
+    int32_t y,
+    std::span<const TileChoice> fixed) noexcept
+{
+    for (int32_t cell_y = y - 1; cell_y <= y; ++cell_y) {
+        for (int32_t cell_x = x - 1; cell_x <= x; ++cell_x) {
+            if (cell_x < 0 || cell_x >= topology.width
+                || cell_y < 0 || cell_y >= topology.height) {
+                continue;
+            }
+            const size_t tile_index = static_cast<size_t>(cell_y)
+                    * static_cast<size_t>(topology.width)
+                + static_cast<size_t>(cell_x);
+            if (fixed[tile_index].id >= 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool corner_touches_unselected_placed_group(const Area& area,
+    const AreaTopology& topology,
+    int32_t x,
+    int32_t y,
+    std::span<const uint8_t> fit_flags,
+    std::span<const TileChoice> fixed) noexcept
+{
+    for (int32_t cell_y = y - 1; cell_y <= y; ++cell_y) {
+        for (int32_t cell_x = x - 1; cell_x <= x; ++cell_x) {
+            if (cell_x < 0 || cell_x >= topology.width
+                || cell_y < 0 || cell_y >= topology.height) {
+                continue;
+            }
+            const size_t tile_index = static_cast<size_t>(cell_y)
+                    * static_cast<size_t>(topology.width)
+                + static_cast<size_t>(cell_x);
+            if (fixed[tile_index].id >= 0) {
+                continue;
+            }
+            const auto& current = area.tiles[tile_index];
+            const bool current_is_group_tile = current.id >= 0
+                && static_cast<size_t>(current.id)
+                    < area.tileset->grouped_tiles.size()
+                && area.tileset->grouped_tiles[static_cast<size_t>(current.id)]
+                    != 0;
+            if (current_is_group_tile
+                && (fit_flags[tile_index] & fit_replace_group) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+const TilesetPrimaryRule* find_primary_rule(
+    std::span<const TilesetPrimaryRule> rules,
+    int32_t placed,
+    int32_t placed_height,
+    int32_t adjacent,
+    int32_t adjacent_height) noexcept
+{
+    for (const auto& rule : rules) {
+        if (rule.placed == placed
+            && rule.placed_height == placed_height
+            && rule.adjacent == adjacent
+            && rule.adjacent_height == adjacent_height) {
+            return &rule;
+        }
+    }
+    return nullptr;
+}
+
+bool apply_primary_rules(const Area& area,
+    std::span<const uint32_t> ordered_seeds,
+    AreaTopology& topology,
+    std::span<const uint8_t> fit_flags,
+    std::span<const TileChoice> fixed,
+    std::vector<uint8_t>& affected,
+    std::string& diagnostic)
+{
+    if (!area.tileset->primary_rules_valid) {
+        diagnostic = "SET primary rules are malformed or unavailable";
+        return false;
+    }
+    const auto rules = std::span<const TilesetPrimaryRule>{
+        area.tileset->primary_rules};
+    if (rules.empty() || ordered_seeds.empty()) {
+        return true;
+    }
+
+    const size_t corner_count = topology.corner_terrains.size();
+    std::vector<uint32_t> queue;
+    queue.reserve(corner_count);
+    std::vector<uint8_t> pending(corner_count, 0);
+    for (const uint32_t corner : ordered_seeds) {
+        if (corner >= corner_count) {
+            diagnostic = "Primary rule seed corner is outside the area lattice";
+            return false;
+        }
+        if (topology.corner_terrains[corner] == unset_value
+            || topology.corner_heights[corner] == unset_height) {
+            continue;
+        }
+        if (pending[corner] == 0) {
+            pending[corner] = 1;
+            queue.push_back(corner);
+        }
+    }
+
+    const size_t max_work = std::max<size_t>(256u, corner_count * 16u);
+    size_t work = 0;
+    size_t head = 0;
+    while (head < queue.size()) {
+        const uint32_t source = queue[head++];
+        pending[source] = 0;
+
+        const int32_t src_terrain = topology.corner_terrains[source];
+        const int64_t src_height = topology.corner_heights[source];
+        if (src_terrain == unset_value || src_height == unset_height) {
+            continue;
+        }
+        const int32_t src_x = static_cast<int32_t>(
+            source % static_cast<uint32_t>(topology.width + 1));
+        const int32_t src_y = static_cast<int32_t>(
+            source / static_cast<uint32_t>(topology.width + 1));
+
+        for (int32_t dy = -1; dy <= 1; ++dy) {
+            for (int32_t dx = -1; dx <= 1; ++dx) {
+                if (dx == 0 && dy == 0) {
+                    continue;
+                }
+                const int32_t adj_x = src_x + dx;
+                const int32_t adj_y = src_y + dy;
+                if (adj_x < 0 || adj_x > topology.width
+                    || adj_y < 0 || adj_y > topology.height) {
+                    continue;
+                }
+                if (corner_touches_fixed_cell(topology, adj_x, adj_y, fixed)) {
+                    continue;
+                }
+                const size_t adj = corner_index(topology, adj_x, adj_y);
+                const int32_t adj_terrain = topology.corner_terrains[adj];
+                const int64_t adj_height = topology.corner_heights[adj];
+                if (adj_terrain == unset_value || adj_height == unset_height) {
+                    continue;
+                }
+
+                if (++work > max_work) {
+                    diagnostic = "Primary rule propagation exceeded the work limit";
+                    return false;
+                }
+
+                const int64_t base_height = std::min(src_height, adj_height);
+                const int64_t rel_placed = src_height - base_height;
+                const int64_t rel_adjacent = adj_height - base_height;
+                int64_t new_height = adj_height;
+                int32_t new_terrain = adj_terrain;
+
+                if (rel_placed <= 1 && rel_adjacent <= 1) {
+                    if (const auto* rule = find_primary_rule(rules,
+                            src_terrain, static_cast<int32_t>(rel_placed),
+                            adj_terrain, static_cast<int32_t>(rel_adjacent))) {
+                        new_terrain = rule->changed;
+                        new_height = base_height + rule->changed_height;
+                    }
+                }
+
+                if (new_terrain == adj_terrain && new_height == adj_height) {
+                    continue;
+                }
+                if (new_height < std::numeric_limits<int32_t>::min()
+                    || new_height > std::numeric_limits<int32_t>::max()) {
+                    diagnostic = "Primary rule height exceeds the supported range";
+                    return false;
+                }
+                if (corner_touches_unselected_placed_group(
+                        area, topology, adj_x, adj_y, fit_flags, fixed)) {
+                    diagnostic = "The brush would split a placed tileset group";
+                    return false;
+                }
+
+                topology.corner_terrains[adj] = new_terrain;
+                topology.corner_heights[adj] = new_height;
+                mark_corner_incident(topology, adj_x, adj_y, affected);
+                if (pending[adj] == 0) {
+                    pending[adj] = 1;
+                    queue.push_back(static_cast<uint32_t>(adj));
+                }
+            }
         }
     }
     return true;
@@ -1516,7 +1744,7 @@ ObjectEditApplyResult build_area_tile_erase_edits(ObjectHandle area_handle,
         std::vector<uint32_t> targets;
         auto resolved = resolve_area_tile_erase_cells(area_handle, cells, targets);
         if (!resolved.ok()) { return resolved; }
-        const auto built = build_area_tile_brush_edits(area_handle, targets,
+        const auto built = build_area_tile_brush_edits(area_handle, cells,
             {.kind = AreaTileBrushKind::eraser, .value = terrain},
             seed, candidate.tiles);
         if (!built.ok()) {
@@ -1737,13 +1965,20 @@ ObjectEditApplyResult build_area_tile_brush_edits(
         std::vector<uint8_t> affected(area->tiles.size(), 0);
         std::vector<TileChoice> fixed(area->tiles.size());
         std::vector<uint32_t> eraser_cells;
+        std::vector<uint8_t> seeded(topology.corner_terrains.size(), 0);
+        std::vector<uint32_t> seeds;
 
         switch (brush.kind) {
         case AreaTileBrushKind::terrain:
             if (!set_terrain_cells(*area, ordered_tile_indices, brush.value,
-                    topology, affected, fit_flags)) {
+                    topology, affected, fit_flags, seeded, seeds)) {
                 return brush_result(ObjectEditStatus::invalid_batch,
                     "Terrain brush is outside the SET terrain catalog");
+            }
+            if (!apply_primary_rules(*area, seeds, topology,
+                    fit_flags, fixed, affected, diagnostic)) {
+                return brush_result(ObjectEditStatus::invalid_batch,
+                    std::move(diagnostic));
             }
             break;
         case AreaTileBrushKind::crosser:
@@ -1760,12 +1995,16 @@ ObjectEditApplyResult build_area_tile_brush_edits(
             if (ordered_tile_indices.size() != 1
                 || !overlay_group(*area, ordered_tile_indices.front(),
                     brush.value, brush.orientation, topology, affected,
-                    fit_flags,
-                    fixed, diagnostic)) {
+                    fit_flags, fixed, seeded, seeds, diagnostic)) {
                 return brush_result(ObjectEditStatus::invalid_batch,
                     diagnostic.empty()
                         ? "Place a tileset feature with one click"
                         : std::move(diagnostic));
+            }
+            if (!apply_primary_rules(*area, seeds, topology,
+                    fit_flags, fixed, affected, diagnostic)) {
+                return brush_result(ObjectEditStatus::invalid_batch,
+                    std::move(diagnostic));
             }
             break;
         case AreaTileBrushKind::eraser:
@@ -1775,9 +2014,14 @@ ObjectEditApplyResult build_area_tile_brush_edits(
                     std::move(diagnostic));
             }
             if (!set_eraser_cells(*area, eraser_cells, brush.value,
-                    topology, affected, fit_flags)) {
+                    topology, affected, fit_flags, seeded, seeds)) {
                 return brush_result(ObjectEditStatus::invalid_batch,
                     "Eraser terrain is outside the SET terrain catalog");
+            }
+            if (!apply_primary_rules(*area, seeds, topology,
+                    fit_flags, fixed, affected, diagnostic)) {
+                return brush_result(ObjectEditStatus::invalid_batch,
+                    std::move(diagnostic));
             }
             break;
         case AreaTileBrushKind::void_tile:
@@ -1926,10 +2170,18 @@ ObjectEditApplyResult build_area_tile_height_brush_edits(
         std::vector<uint8_t> affected(area->tiles.size(), 0);
         std::vector<uint8_t> fit_flags(area->tiles.size(), 0);
         std::vector<TileChoice> fixed(area->tiles.size());
+        std::vector<uint8_t> seeded(topology.corner_terrains.size(), 0);
+        std::vector<uint32_t> seeds;
         if (!change_corner_heights(
-                *area, ordered_corner_indices, delta, topology, affected)) {
+                *area, ordered_corner_indices, delta, topology, affected,
+                seeded, seeds)) {
             return brush_result(ObjectEditStatus::invalid_batch,
                 "This SET does not support the requested terrain height");
+        }
+        if (!apply_primary_rules(*area, seeds, topology,
+                fit_flags, fixed, affected, diagnostic)) {
+            return brush_result(ObjectEditStatus::invalid_batch,
+                std::move(diagnostic));
         }
         return fit_area_tile_edits(area_handle, *area, topology,
             affected, fit_flags, fixed, seed, output);

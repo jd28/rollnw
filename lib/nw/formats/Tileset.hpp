@@ -49,6 +49,18 @@ struct TilesetGroup {
     uint32_t tile_count = 0;
 };
 
+struct TilesetPrimaryRule {
+    int32_t placed = -1;
+    int32_t placed_height = 0;
+    int32_t adjacent = -1;
+    int32_t adjacent_height = 0;
+    int32_t changed = -1;
+    int32_t changed_height = 0;
+
+    bool operator==(const TilesetPrimaryRule&) const noexcept = default;
+};
+static_assert(sizeof(TilesetPrimaryRule) == 24);
+
 /// Abstraction of the SET tileset file.
 struct Tileset {
     uint32_t strref = std::numeric_limits<uint32_t>::max();
@@ -60,9 +72,11 @@ struct Tileset {
     Vector<TilesetGroup> groups;
     Vector<int32_t> group_tile_ids;
     Vector<uint8_t> grouped_tiles;
+    Vector<TilesetPrimaryRule> primary_rules;
     float tile_height = 5.0;
     int32_t default_terrain = -1;
     bool has_height_transition = false;
+    bool primary_rules_valid = true;
 };
 
 } // namespace nw

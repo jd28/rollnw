@@ -1,8 +1,12 @@
 # Terrain painter: apply SET primary rules
 
-Status: planned, 2026-10-25. Tier 1 extension of the existing tile-authoring
-pipeline. Baseline: `main` at `ef3f11d58eaaf745b6a6b3acb4311043dbf18205`.
-This document plans the implementation; rule application is not implemented.
+Status: implemented; Aurora reference parity unverified, 2026-11-15. Tier 1
+extension of the existing tile-authoring pipeline. Baseline: `main` at
+`5f2f8f66e14b9e6c13174159bdab134a66801831`.
+See `issues/terrain-primary-rules-evidence/README.md` and
+`issues/terrain-primary-rules-evidence/cases.json` for the stock corpus audit,
+corpus-derived semantics contract (with explicit `ASSUMPTION` labels where
+Aurora Toolset captures are absent), and test/memory verification.
 
 The painter currently edits corner terrain/heights and then searches for tiles
 matching that topology. It never loads or applies `[PRIMARY RULES]`. Authored
@@ -316,38 +320,41 @@ expanding the work to unrelated groups, full-area repair, or runtime navigation.
 
 ### Phase 1: establish the rule contract
 
-- [ ] Reproduce the corpus audit against active resource precedence and record
+- [x] Reproduce the corpus audit against active resource precedence and record
   exact SET hashes, rows and counts. Include the user's relevant custom sets
   when available; do not extrapolate stock counts to HAK content.
-- [ ] Capture before/after reference cases for `tin01`/`tic01` room boundaries,
-  `ttr01` height changes, and `tno01` cascades/conflicts, plus an empty-rule set
-  and `ttf01` identity rules. Resolve every semantics-gate question above.
-- [ ] Record supported height encodings, no-match/duplicate policy, seed and
+- [ ] Capture before/after reference cases from Aurora Toolset for `tin01`/`tic01`
+  room boundaries, `ttr01` height changes, and `tno01` cascades/conflicts, plus
+  an empty-rule set and `ttf01` identity rules. Resolve every semantics-gate
+  question above against Aurora output (current implementation uses
+  corpus-derived semantics; Aurora parity remains unverified).
+- [x] Record supported height encodings, no-match/duplicate policy, seed and
   processing order, operation coverage, and deterministic termination bounds.
   Add minimal failing regressions with exact expected topology.
 
 ### Phase 2: load and apply
 
-- [ ] Add flat rows and loader validation; verify unchanged rendering when
+- [x] Add flat rows and loader validation; verify unchanged rendering when
   authoring rules are malformed and explicit brush rejection for that state.
-- [ ] Implement the batch transformation and connect terrain/height builders.
+- [x] Implement the batch transformation and connect terrain/height builders.
   Reuse matching, masks, seed handling, and complete edit rows; do not introduce
   a second fitter or per-terrain special cases.
-- [ ] Integrate verified eraser/group behavior and any demonstrated crosser
+- [x] Integrate verified eraser/group behavior and any demonstrated crosser
   interaction. Keep protected groups, voids, and occupied hooks explicit.
-- [ ] Ensure the preview represents every changed neighbor and commit uses the
+- [x] Ensure the preview represents every changed neighbor and commit uses the
   identical deterministic transformation for the same inputs and seed.
 
 ### Phase 3: verify and close
 
-- [ ] Test all four rotations, borders, multiple elevations, ordered batches,
+- [x] Test all four rotations, borders, multiple elevations, ordered batches,
   conflicts/cycles, invalid data, groups/doors/voids, and full row preservation.
-- [ ] Verify one undo action includes all propagated edits; undo/redo and
+- [x] Verify one undo action includes all propagated edits; undo/redo and
   save/reload preserve complete tile rows. Redo must not rerun selection.
 - [ ] Run focused suites, existing painter regressions, and measured preview
-  workloads. Record results and remaining differences from the reference.
+  workloads across the full before/after N/R/T/A/W benchmark matrix and compare
+  against Aurora reference captures.
 - [ ] Repeat the simplification/self-check below and mark this issue complete
-  only when its done criteria are met.
+  only when its done criteria (including Aurora reference verification) are met.
 
 ## Critical Details
 
