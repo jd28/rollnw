@@ -23,3 +23,7 @@ risks and deferred opportunities are explicit on the current status page.
 ## Combat / rules work
 
 - [NWN1 combat rules completion plan](nwn1-combat-rules-completion.md) — verified coverage ledger and priority list; headline bug: Weapon Focus/Spec/Crit feats are unarmed-only for every real weapon.
+
+## Smalls runtime
+
+- [`load_config!` early-call corruption](smalls-load-config-early-call-corruption.md) — a `load_config!`-backed module touched too early from `Init.init()` can end up with its data permanently cached empty; root cause narrowed, not fully pinned down.

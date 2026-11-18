@@ -62,10 +62,13 @@ correct in both cases), so something downstream of *when* it loads, not *what*
 it loads. Moving the registration to run lazily on first `resolve()`/
 `has_feat_check()` call keeps `baseitems`' first-load point exactly where it
 already was and all 199 `Smalls*` suite tests pass. This is a workaround, not
-a root-cause fix — the underlying order-sensitivity in the smalls runtime is
-unidentified and could bite the next thing that eagerly touches `baseitems`
-(or similar lazily-loaded config) from `Init.init()`. Worth its own
-investigation; out of scope for this doc.
+a root-cause fix. Root cause investigated separately and narrowed to a strong,
+not-yet-confirmed lead (a `load_config!`-backed module's data getting
+permanently cached empty when first touched too early in native module-load
+sequencing) — see
+[the dedicated writeup](smalls-load-config-early-call-corruption.md). Could
+bite the next thing that eagerly touches `baseitems` (or similar lazily-loaded
+config) from `Init.init()`; out of scope for this doc beyond the cross-link.
 
 ## Coverage ledger
 
