@@ -6,6 +6,8 @@
 #include "asan.hpp"
 #include "templates.hpp"
 
+#include <absl/container/flat_hash_set.h>
+
 #include <assert.h>
 #include <memory>
 #include <stack>
@@ -244,12 +246,46 @@ struct ObjectPool {
 
     void clear()
     {
-        free_list_.clear();
+        // Anything not currently in free_list_ is a live object -- a prior
+        // free() already ran its destructor and poisoned the slot, but
+        // nothing has run ~T() for objects a caller never explicitly freed
+        // (e.g. a bulk teardown that assumes the backing memory going away
+        // makes individual destruction unnecessary; it doesn't, for any T
+        // with a non-trivial destructor). Destruct those before handing the
+        // chunk back.
+        //
+        // T's destructor can itself free() *other* slots in this same pool
+        // (e.g. an Item's destructor destroying Items nested in its own
+        // inventory) -- free_list_ grows mid-loop as a result. A one-time
+        // snapshot would go stale and this would destruct an
+        // already-destructed nested object a second time. free_set is kept
+        // current instead: drain_new_frees() folds in whatever free() has
+        // appended since the last check, immediately before each slot's
+        // liveness is tested.
+        absl::flat_hash_set<T*> free_set;
+        free_set.reserve(free_list_.size());
+        size_t drained = 0;
+        auto drain_new_frees = [this, &free_set, &drained]() {
+            for (; drained < free_list_.size(); ++drained) {
+                free_set.insert(free_list_[drained]);
+            }
+        };
+        drain_new_frees();
         for (size_t i = 0; i < chunks_.size(); ++i) {
+            T* chunk = chunks_[i];
+            for (size_t j = 0; j < chunk_size_; ++j) {
+                T* slot = &chunk[j];
+                drain_new_frees();
+                if (!free_set.contains(slot)) {
+                    slot->~T();
+                    drain_new_frees();
+                }
+            }
             // Hand clean memory back to the underlying allocator.
-            nw::asan::unpoison(chunks_[i], sizeof(T) * chunk_size_);
-            allocator_->deallocate(chunks_[i]);
+            nw::asan::unpoison(chunk, sizeof(T) * chunk_size_);
+            allocator_->deallocate(chunk);
         }
+        free_list_.clear();
         chunks_.clear();
         allocated_ = 0;
     }

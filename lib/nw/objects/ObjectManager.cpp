@@ -32,11 +32,11 @@ ObjectArray::ObjectArray(nw::MemoryResource* allocator)
     : allocator_{allocator}
     , object_array_{2048, allocator}
     , player_array_{2048, allocator}
+    , items_{128, allocator}
     , areas_{128, allocator}
     , creatures_{128, allocator}
     , doors_{128, allocator}
     , encounters_{128, allocator}
-    , items_{128, allocator}
     , stores_{128, allocator}
     , placeables_{128, allocator}
     , players_{128, allocator}
@@ -44,6 +44,29 @@ ObjectArray::ObjectArray(nw::MemoryResource* allocator)
     , triggers_{128, allocator}
     , waypoints_{128, allocator}
 {
+}
+
+ObjectArray::~ObjectArray()
+{
+    // Destroy every still-live object through the same path individual
+    // destruction already uses, before the member pools below destruct
+    // implicitly (reverse declaration order). destroy() nulls a slot's
+    // `obj` the instant it runs, so if a destructor started here cascades
+    // into destroying another object (e.g. a Creature's equipped Item, or
+    // an Item nested in another Item's inventory) -- this loop reads each
+    // slot fresh when it gets there and simply finds it already null,
+    // skipping it. No separate bookkeeping needed; this reuses destroy()'s
+    // own validity check.
+    for (size_t i = 0; i < object_array_.array.size(); ++i) {
+        if (auto* obj = object_array_.array[i].obj) {
+            destroy(obj->handle());
+        }
+    }
+    for (size_t i = 0; i < player_array_.array.size(); ++i) {
+        if (auto* obj = player_array_.array[i].obj) {
+            destroy(obj->handle());
+        }
+    }
 }
 
 ObjectBase* ObjectArray::alloc(ObjectType type)

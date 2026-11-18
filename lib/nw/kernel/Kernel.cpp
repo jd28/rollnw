@@ -239,8 +239,14 @@ void Services::shutdown()
     if (!serices_started_ && !services_created_) { return; }
     LOG_F(INFO, "kernel: shutting down kernel services");
 
-    services_ = std::array<ServiceEntry, 32>{};
+    // kernel_scope_.reset() runs each service's destructor via its finalizer
+    // (LIFO, i.e. dependents destruct before what they depend on). A
+    // destructor may itself look up another still-live service (e.g. a
+    // Creature's destructor looking up ObjectManager to release something it
+    // owns) -- that only works if services_ (the lookup table) is still
+    // intact while this runs. Clear it only after, not before.
     kernel_scope_.reset();
+    services_ = std::array<ServiceEntry, 32>{};
     services_count_ = 0;
     serices_started_ = false;
     services_created_ = false;
@@ -467,7 +473,9 @@ nlohmann::json stats()
 
 void unload_module()
 {
-    // Since everything is getting nuked, it's not necessary to call Module::destroy
+    // Module (like every other live object) is destructed by
+    // ObjectArray::~ObjectArray() when shutdown() below resets kernel_scope_
+    // and that cascades into ~ObjectManager(). No explicit call needed here.
     services().shutdown();
     services().module_loaded_ = false;
     services().start();

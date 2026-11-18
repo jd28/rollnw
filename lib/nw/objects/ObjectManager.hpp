@@ -64,6 +64,7 @@ struct ObjectArrayInternal {
 struct ObjectArray {
 
     ObjectArray(nw::MemoryResource* allocator);
+    ~ObjectArray();
 
     /// Allocate an object
     ObjectBase* alloc(ObjectType type);
@@ -87,11 +88,17 @@ private:
     ObjectArrayInternal object_array_;
     ObjectArrayInternal player_array_;
 
+    // Members destruct in reverse declaration order. Creature/Player/
+    // Placeable/Store (and Item itself, for nested containers) all release
+    // Item references from their own destructor (Equips::destroy()/
+    // Inventory::destroy() call nw::kernel::objects().destroy() on each
+    // contained/equipped item) -- items_ must still be live when that runs,
+    // so it's declared first here to destruct last.
+    ObjectPool<Item> items_;
     ObjectPool<Area> areas_;
     ObjectPool<Creature> creatures_;
     ObjectPool<Door> doors_;
     ObjectPool<Encounter> encounters_;
-    ObjectPool<Item> items_;
     ObjectPool<Store> stores_;
     ObjectPool<Placeable> placeables_;
     ObjectPool<Player> players_;
@@ -188,8 +195,12 @@ struct ObjectManager : public kernel::Service {
     [[nodiscard]] size_t tag_count() const noexcept { return object_tag_map_.size(); }
 
     ObjectComponentSystem components_;
-    ObjectArray objects_array_;
+    // Declared before objects_array_ so it destructs after: objects_array_'s
+    // pools call ObjectManager::destroy() from their own objects'
+    // destructors (Equips::destroy()/Inventory::destroy() on teardown),
+    // which looks tags up here. Must still be live when that runs.
     absl::btree_multimap<InternedString, ObjectHandle> object_tag_map_;
+    ObjectArray objects_array_;
     void (*destroy_callback_)(ObjectBase*) = nullptr;
 
     void initialize_new_object(ObjectBase* object);

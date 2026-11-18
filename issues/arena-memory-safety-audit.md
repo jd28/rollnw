@@ -1,6 +1,6 @@
 # Arena/memory-safety audit: findings and fix plan
 
-Status (2026-11-18): **finding #4 (Dialog) fixed**; #1/#2/#3/#5 still plan
+Status (2026-11-18): **findings #1, #3, #4 (Dialog) fixed**; #2/#5 still plan
 only. Grew out
 of [the `load_config!`/`ResourceManager` investigation](smalls-load-config-early-call-corruption.md)
 (fixed, separately) — fixing that surfaced a question worth answering
@@ -81,6 +81,72 @@ involved:
   during bulk teardown, rather than assuming bulk implies skip-safe. Small,
   mechanical, no new abstraction needed; same shape as `ObjectPool<T>::free()`
   already has, just invoked in a loop instead of per-handle.
+- **#1 and #3 (game objects, `Module`) — FIXED (2026-11-18), turned out to be
+  one fix, not two.** `ObjectPool<T>::clear()` (`lib/nw/util/memory.hpp`) now
+  walks every chunk slot and calls `~T()` on anything not in the free list
+  before handing chunks back to the allocator — but a snapshot of the free
+  list taken once at the start goes stale, because `T`'s destructor can itself
+  `free()` *other* slots in the same pool (an `Item`'s destructor destroying
+  `Item`s nested in its own inventory); fixed by re-draining the free list
+  immediately before testing each slot (`drain_new_frees()`), so a
+  nested-destruction's `free()` call is visible to the rest of the loop
+  instead of leaving the now-dead slot to be double-destructed.
+
+  That alone wasn't enough: fixing the leak surfaced three latent
+  destructor-ordering bugs, all from the same root cause — C++ destructs
+  members in reverse declaration order, and several of this cleanup path's
+  cross-references didn't respect that order:
+  1. `Services::shutdown()` (`Kernel.cpp`) cleared the service lookup table
+     `services_` *before* calling `kernel_scope_.reset()` — but a service's
+     destructor (e.g. a `Creature`'s, cascading into releasing an equipped
+     `Item`) can itself look up another still-"live" service
+     (`nw::kernel::objects()`) mid-teardown; with the table already cleared
+     this threw `"kernel: unable to load object service"` (SIGABRT). Fixed by
+     resetting the scope first, clearing the table only after.
+  2. `ObjectArray`'s pool members (`items_`, `areas_`, `creatures_`, ...) were
+     declared in a fairly arbitrary order, so `items_` destructed *before*
+     `creatures_`/`players_`/`stores_`/`placeables_` — but those types'
+     destructors release their equipped/contained `Item`s through the normal
+     handle path, which needs `items_` still alive. Fixed by declaring
+     `items_` first (destructs last).
+  3. `ObjectManager`'s `object_tag_map_` was declared *after* `objects_array_`
+     — but tag lookups during the same nested item/creature teardown need the
+     map still alive while objects are destructing. Fixed by declaring
+     `object_tag_map_` before `objects_array_`.
+  4. Even with ordering fixed, nothing had ever walked `ObjectArray`'s live
+     handles and called `destroy()` on them before its pools implicitly
+     destructed — `ObjectPool<T>::clear()`'s own slot-by-slot `~T()` calls
+     don't go through the handle-validity path, so a container `Item`
+     destructing mid-`clear()` and cascading into destroying a *contained*
+     Item via the normal `ObjectArray::destroy()` path raced with `clear()`'s
+     own iteration over the same pool, causing a double-destruction (crashed
+     as a SIGSEGV through a corrupted vtable). Fixed with an explicit
+     `ObjectArray::~ObjectArray()` that walks every slot in `object_array_`/
+     `player_array_` and calls the existing `destroy(handle)` for each one
+     *before* the pools below it destruct — `destroy()`'s own `valid(hndl)`
+     guard (it nulls the slot immediately) makes this safe against the exact
+     cascading-destruction case that broke `clear()`'s own bookkeeping.
+
+  This closes #3 for free: `Module` is allocated through the same
+  `objects_array_.alloc(ObjectType::module)` path as every other object type
+  (confirmed by reading `make_module()` → `ObjectManager::make<T>()`), so it
+  already gets a handle in `object_array_` and the new `~ObjectArray()` walk
+  destructs it like anything else. The stale `unload_module()` comment
+  ("since everything is getting nuked, it's not necessary to call
+  Module::destroy") has been reworded to say why that's true now (it cascades
+  through `~ObjectArray()`), rather than resting on the "bulk teardown, skip
+  individual work" assumption this whole audit exists to distrust.
+
+  Verified: `*Object*:*Module*:*Area*:*Creature*` (399 tests) and the full
+  1834-test suite both pass clean under a normal build; same 399-test filter
+  re-run clean under ASan/UBSan with zero crashes and zero leak-report frames
+  inside `ObjectPool<T>::clear()`, the new `ObjectArray::~ObjectArray()`, or
+  the reordered `Services::shutdown()` — confirming the fix doesn't leak and
+  the three ordering bugs are gone. (ASan did report a large pre-existing
+  leak volume dominated by the smalls VM/Runtime and a few tests that
+  construct objects directly without going through `ObjectManager` at all —
+  unrelated to this fix; the VM/Runtime volume is exactly what #2 below still
+  needs to cover.)
 - **#4 (Dialog) — FIXED (2026-11-18), dropped the arena.** `Dialog` is edited
   interactively — individual node add/delete/undo/redo is the normal access
   pattern, not a cohort that's born and dies together. An arena (bump
@@ -171,16 +237,22 @@ Before choosing a representation for new or changed data:
    run showed nothing (all green) until re-run under ASan, which caught 3
    more real leaks the arena had been silently absorbing. Budget ASan
    verification time for 2–4 as well, not just a green `rollnw_test` run.
-2. `ObjectPool<T>::clear()`: walk live slots calling `~T()` before freeing
-   pool chunks — fixes #1 at the pool level, reusable by whatever currently
-   relies on the "everything's getting nuked" assumption.
+2. ~~`ObjectPool<T>::clear()`: walk live slots calling `~T()` before freeing
+   pool chunks.~~ **Done** — plus the three destructor-ordering fixes
+   (`Services::shutdown()`, `ObjectArray` pool member order, `ObjectManager`
+   member order) and the new `ObjectArray::~ObjectArray()` handle-walk it
+   turned out to need. See #1/#3 above for the full chain.
 3. `TypedHandlePool`: same shape for #2 — give it a real destructor instead
    of the "caller's responsibility" comment, or make `RuntimeObjectPool`
    responsible for walking its own live handles before the pool beneath it
    is torn down.
-4. `unload_module()`: once 2–3 exist, remove the now-incorrect "no need to
-   call `Module::destroy`" shortcut (or confirm it's now safe because the
-   pools underneath handle it) and explicitly destruct `Module` itself (#3).
+4. ~~`unload_module()`: once 2–3 exist, remove the now-incorrect "no need to
+   call `Module::destroy`" shortcut ... and explicitly destruct `Module`
+   itself (#3).~~ **Done** — turned out to need no explicit call: `Module`
+   goes through the same handle-array path as every other object type, so
+   step 2's `~ObjectArray()` walk already covers it. Reworded the
+   `unload_module()` comment to say why, instead of resting on the
+   bulk-teardown assumption this audit distrusts.
 5. `Palette`: fix the one-level-only recursion in `~Palette()`/
    `PaletteTreeNode::clear()`.
 6. Regression: for 2–4 specifically, a real test that creates several live
