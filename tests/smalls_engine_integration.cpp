@@ -4669,6 +4669,100 @@ TEST_F(SmallsEngineIntegration, Nwn1BaseItemRequirementsUseSmallsRules)
     nw::kernel::objects().destroy(creature->handle());
 }
 
+// Regression for the weapon-category master-feat registration bug: before the
+// fix, init.smalls only ever registered Weapon Focus/Specialization/Improved
+// Critical/Overwhelming Critical/Devastating Critical/Weapon of Choice for
+// BaseItemType(-1) (unarmed). mfeat.resolve() for a real weapon's base item
+// silently returned 0 regardless of whether the creature had the matching
+// feat. This drives the real per-base-item feat ids straight out of
+// nwn1.baseitems (data-driven, not hardcoded), so it fails the same way the
+// original bug did if nwn1.master_feats._ensure_weapon_category_feats()
+// regresses.
+TEST_F(SmallsEngineIntegration, Nwn1WeaponCategoryMasterFeatsResolveForRealWeapons)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto* creature = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    ASSERT_NE(creature, nullptr);
+
+    nw::smalls::Value stats_ref;
+    const nw::smalls::StructDef* stats_def = nullptr;
+    ASSERT_NO_FATAL_FAILURE(require_propset(rt, creature->handle(),
+        "nwn1.propsets.CreatureStats", stats_ref, stats_def));
+
+    std::string_view source = R"(
+        import nwn1.baseitems as BaseItems;
+        import nwn1.master_feats as mfeat;
+        import nwn1.constants as Const;
+
+        fn feat_id(selector: int): int {
+            if (selector == 0) { return BaseItems.weapon_focus_feat(Const.base_item_longsword); }
+            if (selector == 1) { return BaseItems.weapon_specialization_feat(Const.base_item_longsword); }
+            if (selector == 2) { return BaseItems.weapon_improved_critical_feat(Const.base_item_longsword); }
+            if (selector == 3) { return BaseItems.epic_weapon_overwhelming_critical_feat(Const.base_item_longsword); }
+            if (selector == 4) { return BaseItems.epic_weapon_devastating_critical_feat(Const.base_item_longsword); }
+            return BaseItems.weapon_of_choice_feat(Const.base_item_longsword);
+        }
+
+        fn main(target: Creature, selector: int): int {
+            if (selector == 0) { return mfeat.resolve(target, Const.mfeat_weapon_focus, Const.base_item_longsword); }
+            if (selector == 1) { return mfeat.resolve(target, Const.mfeat_weapon_spec, Const.base_item_longsword); }
+            if (selector == 2) { return mfeat.resolve(target, Const.mfeat_improved_crit, Const.base_item_longsword); }
+            if (selector == 3) { return mfeat.resolve(target, Const.mfeat_overwhelming_crit, Const.base_item_longsword); }
+            if (selector == 4) { return mfeat.resolve(target, Const.mfeat_devastating_crit, Const.base_item_longsword); }
+            return mfeat.resolve(target, Const.mfeat_weapon_of_choice, Const.base_item_longsword);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_weapon_category_mfeat", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto feat_id = [&](int selector) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(nw::smalls::Value::make_int(selector));
+        const auto result = rt.execute_script(script, "feat_id", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    auto resolve = [&](int selector) {
+        nw::Vector<nw::smalls::Value> args;
+        auto creature_value = nw::smalls::Value::make_object(creature->handle());
+        creature_value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+        args.push_back(creature_value);
+        args.push_back(nw::smalls::Value::make_int(selector));
+        const auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    // longsword's real per-base-item feat ids, so this proves the init.smalls
+    // registration loop actually ran against baseitems.2da data, not just that
+    // mfeat.resolve() returns a hardcoded value.
+    const char* names[]{"weapon_focus", "weapon_spec", "improved_crit",
+        "overwhelming_crit", "devastating_crit", "weapon_of_choice"};
+    const int32_t expected_bonus[]{1, 2, 1, 1, 1, 1};
+
+    for (int selector = 0; selector < 6; ++selector) {
+        SCOPED_TRACE(names[selector]);
+        const int feat = feat_id(selector);
+        ASSERT_GE(feat, 0) << "longsword is expected to have a real feat for every weapon category";
+
+        ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def, "feats", {feat}));
+        EXPECT_EQ(resolve(selector), expected_bonus[selector])
+            << "creature has the matching feat; resolve() must return the category bonus for a real weapon";
+
+        ASSERT_NO_FATAL_FAILURE(write_propset_int_array(rt, stats_ref, stats_def, "feats", {}));
+        EXPECT_EQ(resolve(selector), 0)
+            << "creature lacks the feat; resolve() must return 0";
+    }
+
+    nw::kernel::objects().destroy(creature->handle());
+}
+
 TEST_F(SmallsEngineIntegration, NativePlaceableAppearanceInfoAndSmallsRules)
 {
     auto& rt = nw::kernel::runtime();

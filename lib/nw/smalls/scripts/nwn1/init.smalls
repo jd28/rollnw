@@ -829,11 +829,16 @@ fn init_master_feats() {
     mfeat.add(Const.mfeat_weapon_focus, BaseItemType(-1), Const.feat_weapon_focus_unarmed);
     mfeat.add(Const.mfeat_weapon_focus_epic, BaseItemType(-1), Const.feat_epic_weapon_focus_unarmed);
     mfeat.add(Const.mfeat_weapon_spec, BaseItemType(-1), Const.feat_weapon_specialization_unarmed);
-    mfeat.add(Const.mfeat_weapon_spec_epic, BaseItemType(-1), Const.feat_epic_devastating_critical_unarmed);
+    mfeat.add(Const.mfeat_weapon_spec_epic, BaseItemType(-1), Const.feat_epic_weapon_specialization_unarmed);
     mfeat.add(Const.mfeat_devastating_crit, BaseItemType(-1), Const.feat_epic_devastating_critical_unarmed);
     mfeat.add(Const.mfeat_improved_crit, BaseItemType(-1), Const.feat_improved_critical_unarmed);
     mfeat.add(Const.mfeat_overwhelming_crit, BaseItemType(-1), Const.feat_epic_overwhelming_critical_unarmed);
 
+    // Real-weapon registrations for these same categories are lazy, in
+    // nwn1.master_feats._ensure_weapon_category_feats() (triggered on first
+    // resolve()/has_feat_check() call) rather than eager here: loading
+    // baseitems this early, during Init.init() itself, was found to disturb
+    // unrelated equipment/visual state that several tests depend on.
 }
 
 fn init() {

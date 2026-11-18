@@ -19,3 +19,7 @@ The [performance evidence archive](render-perf-evidence/README.md) retains compl
 rejected and deferred investigations. Archived status does not imply a problem
 was solved. Their historical plans/checklists do not authorize new work; remaining
 risks and deferred opportunities are explicit on the current status page.
+
+## Combat / rules work
+
+- [NWN1 combat rules completion plan](nwn1-combat-rules-completion.md) — verified coverage ledger and priority list; headline bug: Weapon Focus/Spec/Crit feats are unarmed-only for every real weapon.

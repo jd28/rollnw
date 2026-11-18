@@ -44,6 +44,7 @@ fn get(mfeat: MasterFeat, rule_type: $T): Feat {
 }
 
 fn has_feat_check(obj: Creature, mfeat: MasterFeat, rule_type: $T): bool {
+    _ensure_weapon_category_feats();
     return Cre.has_feat(obj, get(mfeat, rule_type));
 }
 
@@ -81,6 +82,7 @@ fn has_favored_enemy(obj: Creature, target: object): bool {
 
 fn resolve(obj: Creature, mfeat: MasterFeat, rule_type: $T): int {
     _ensure_init();
+    _ensure_weapon_category_feats();
     const mf = mfeat as int;
 
     if(mf < 0 || mf >= _mfeat_count) { return 0; } // [TODO] should be script failure
@@ -99,4 +101,49 @@ fn set_bonus(mfeat: MasterFeat, bonus: int) {
     const mf = mfeat as int;
     if(mf < 0 || mf >= _mfeat_count) { return; } // [TODO] should be script failure
     _mfeat_bonuses[mf] = bonus;
+}
+
+var _weapon_category_feats_registered = false;
+
+// Weapon Focus/Specialization/Improved Critical/Overwhelming Critical/
+// Devastating Critical/Weapon of Choice are keyed by real base item in
+// baseitems.2da; init.smalls only seeds the BaseItemType(-1) (unarmed) entry
+// for each. Registered here lazily, on first real resolve()/has_feat_check()
+// call, rather than eagerly during Init.init(): loading baseitems that early
+// was found to disturb unrelated equipment/visual state several tests depend
+// on, even though baseitems' own data is unaffected (regression-tested
+// separately). This keeps baseitems' first-load point exactly where it
+// already was — the first time something actually needs it.
+fn _ensure_weapon_category_feats() {
+    if (_weapon_category_feats_registered) { return; }
+    _weapon_category_feats_registered = true;
+
+    for (var wi = 0; wi < baseitems.count(); wi += 1) {
+        var bi = CoreItem.BaseItemType(wi);
+        if (!baseitems.is_weapon(bi)) { continue; }
+
+        var wf = baseitems.weapon_focus_feat(bi);
+        if (wf >= 0) { add(Const.mfeat_weapon_focus, bi, Feat(wf)); }
+
+        var wfe = baseitems.epic_weapon_focus_feat(bi);
+        if (wfe >= 0) { add(Const.mfeat_weapon_focus_epic, bi, Feat(wfe)); }
+
+        var ws = baseitems.weapon_specialization_feat(bi);
+        if (ws >= 0) { add(Const.mfeat_weapon_spec, bi, Feat(ws)); }
+
+        var wse = baseitems.epic_weapon_specialization_feat(bi);
+        if (wse >= 0) { add(Const.mfeat_weapon_spec_epic, bi, Feat(wse)); }
+
+        var ic = baseitems.weapon_improved_critical_feat(bi);
+        if (ic >= 0) { add(Const.mfeat_improved_crit, bi, Feat(ic)); }
+
+        var oc = baseitems.epic_weapon_overwhelming_critical_feat(bi);
+        if (oc >= 0) { add(Const.mfeat_overwhelming_crit, bi, Feat(oc)); }
+
+        var dc = baseitems.epic_weapon_devastating_critical_feat(bi);
+        if (dc >= 0) { add(Const.mfeat_devastating_crit, bi, Feat(dc)); }
+
+        var woc = baseitems.weapon_of_choice_feat(bi);
+        if (woc >= 0) { add(Const.mfeat_weapon_of_choice, bi, Feat(woc)); }
+    }
 }
