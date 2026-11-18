@@ -160,11 +160,25 @@ void ResourceManager::initialize(kernel::ServiceInitTime time)
         auto elapsed = std::chrono::high_resolution_clock::now() - start;
         LOG_F(INFO, "kernel: resource system initialized ({}ms)",
             std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+
+        // module_pre_load adds containers but module_post_load (below) is the
+        // only other point that rebuilds the registry, and HAKs/module
+        // resources get mounted in between. Without this, anything that
+        // queries resman between the two sees every resource as missing --
+        // not stale, just not built yet -- and if that result gets cached
+        // anywhere the false negative outlives the window. Build immediately
+        // with whatever containers exist now; module_post_load rebuilds
+        // again once HAKs are mounted.
+        if (time == kernel::ServiceInitTime::module_pre_load) {
+            if (frozen_) { unfreeze(); }
+            build_registry();
+        }
     }
 
     if (time == kernel::ServiceInitTime::kernel_start || time == kernel::ServiceInitTime::module_post_load) {
         LOG_F(INFO, "kernel: resource system building resource registry...");
         auto start = std::chrono::high_resolution_clock::now();
+        if (frozen_) { unfreeze(); }
         build_registry();
         auto elapsed = std::chrono::high_resolution_clock::now() - start;
         LOG_F(INFO, "kernel: resource system resource registry built ({}ms)", std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
@@ -359,9 +373,16 @@ Container* ResourceManager::module_container() const
 
 void ResourceManager::unfreeze()
 {
+    // Deliberately does not clear registry_/base_twoda_registry_: a query
+    // between unfreeze() and the next build_registry() must still see the
+    // last-built (if now slightly stale) registry, not nothing. Clearing
+    // eagerly here made every resource look transiently missing during that
+    // window, and callers that cache a demand()/contains() result without
+    // distinguishing "really absent" from "registry mid-rebuild" latched
+    // that false negative permanently. build_registry() clears and rebuilds
+    // from scratch, which is where stale/removed entries actually get
+    // dropped.
     frozen_ = false;
-    registry_.clear();
-    base_twoda_registry_.clear();
     advance_generation();
 }
 
@@ -455,6 +476,7 @@ void ResourceManager::build_registry()
 
     ENSURE_OR_RETURN(!frozen_, "[resman] asset registry is already frozen");
     Container* current = nullptr;
+    registry_.clear();
     base_twoda_registry_.clear();
 
     size_t sz = 0;

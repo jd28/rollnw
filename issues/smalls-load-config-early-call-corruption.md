@@ -1,124 +1,101 @@
-# `load_config!` can permanently cache empty data read during a resman unfreeze window
+# `load_config!` could permanently cache empty data read during a resman rebuild gap — fixed
 
-Status (2026-11-17): root cause confirmed by direct instrumentation. Not
-fixed — three candidate fix locations identified, no fix chosen yet since
-each has real tradeoffs (see Recommendation). Discovered while fixing
+Status (2026-11-18): **fixed**, verified by re-running the original failing
+scenario against the fix with no other workaround. Discovered while fixing
 [the weapon-category master-feat bug](nwn1-combat-rules-completion.md) — the
 first attempt at that fix (an eager loop over `baseitems.count()` inside
 `nwn1.init.init()`) was logically correct but broke 6 unrelated equipment/
-visual tests. The shipped fix (lazy registration on first real use) avoids
-triggering this bug rather than fixing it.
+visual tests. The shipped weapon-feat fix (lazy registration on first real
+use) avoids triggering this bug rather than fixing it; this doc is the actual
+infrastructure fix, landed separately in `lib/nw/resources/ResourceManager.cpp`.
 
-## Root cause
+## Root cause (revised — the first write-up of this was wrong about the mechanism)
 
-`nw::kernel::load_module(...)` unfreezes and re-freezes the **global**
-`nw::kernel::resman()` at least once during its own internal sequence (to
-mount the module's container/HAKs), well before it returns.
-`ResourceManager::unfreeze()` (`lib/nw/resources/ResourceManager.cpp:360-366`)
-eagerly does `registry_.clear()` — so for the duration of that window,
-`resman.contains(...)`/`resman.demand(...)` report **every** resource as
-missing, correct ones included, until something calls `build_registry()`
-again.
+An earlier pass through this investigation concluded `ResourceManager::unfreeze()`'s
+eager `registry_.clear()` was the cause. That was real but **not** the dominant
+mechanism — fixing only that did not close the original bug when re-tested.
 
-If anything triggers a `load_config!`-backed config load during that exact
-window, it reads back nothing and that *transient* emptiness gets **cached
-permanently** by two independent, uncoordinated caches:
+The actual cause: `nw::kernel::load_module(...)`, when services are already
+running (true for every module load after the first — the normal case, not an
+edge case), calls `Services::shutdown()` first. That wipes the entire service
+array and the arena backing it (`services_ = std::array<ServiceEntry, 32>{};
+kernel_scope_.reset();` — a deliberate design: with as much static/global
+state as this engine has, a full arena wipe sidesteps auditing every service
+for module-awareness, rather than something to undo). `Services::start()`
+then constructs a brand-new `ResourceManager` from scratch.
 
-- `Runtime::config_array_cache_` (`lib/nw/smalls/runtime.cpp:7072-7080`,
-  populated at `:7340-7341` for the data-spec path specifically used here)
-  caches by `(canonical_path, config_type)` with no distinction between "this
-  value is genuinely empty" and "resman happened to be unfrozen when I asked."
-- `nwn1.baseitems`'s own `_loaded` flag (`lib/nw/smalls/scripts/nwn1/baseitems.smalls:17-47`)
-  does the same thing one layer up, for the same reason.
+That fresh instance's `initialize()` only had two trigger points:
+`kernel_start`/`module_post_load` call `build_registry()`; `kernel_start`/
+`module_pre_load` add the base/override containers and call
+`update_container_search()`, but **not** `build_registry()`. Module/HAK
+containers get mounted in between (`resman().load_module(path)`,
+`load_module_haks(...)`, both outside `ResourceManager::initialize()`). So for
+a fresh instance going through a normal module load, there's a real window —
+between `module_pre_load` (containers exist) and `module_post_load` (registry
+finally built) — where the registry is simply empty, correctly reflecting
+"not built yet." Anything that queries `kernel::resman()` in that window gets
+a true-at-the-time "not found," and if that result gets cached anywhere
+without distinguishing "not built yet" from "genuinely absent," the false
+negative outlives the window.
 
-In the broken (eager) version of the weapon-feat fix, `nwn1.init.init()` gets
-triggered natively (`lib/nw/profiles/nwn1/scriptbridge.cpp:49`,
-`ensure_nwn1_smalls_initialized()`) more than once *during*
-`load_module("DockerDemo.mod")`'s own sequence — once while resman is frozen
-(succeeds), then again while resman is transiently unfrozen (fails), both
-*before* `load_module()` returns to the caller. The lazy fix never triggers
-`baseitems` loading until well after `load_module()` has returned and resman
-has settled, so it never lands in the unfrozen window — that's *why* it
-works, not because the underlying hazard is fixed.
+In the broken (eager) weapon-feat fix, the native NWN1 bridge's
+`ensure_nwn1_smalls_initialized()` (`lib/nw/profiles/nwn1/scriptbridge.cpp:49`)
+ends up calling into `nwn1.baseitems` from inside that exact window during
+`load_module("DockerDemo.mod")`. Confirmed by instrumenting `ResourceManager`
+directly (object identity via pointer, not just flags) across the whole
+sequence — the registry genuinely has zero content between the two
+`initialize()` calls, not stale/wrong content.
 
-## Evidence trail (direct instrumentation, now reverted — not kept in tree)
+## Fix
 
-Added temporary `fprintf` tracing at: `Runtime::load_config_array_value`
-(cache state, `resman_needs_build_`, and — critically — the identity of
-`kernel::resman()` vs. the Runtime's own private `resman_`, confirmed to be
-parent/child, `lib/nw/smalls/runtime.hpp:1426` +
-`lib/nw/smalls/runtime.cpp:261`, *not* related to this bug), `load_data_sources`
-(`lib/nw/smalls/data_transform.cpp:622`, prints `resources.is_frozen()` and
-`resources.contains(...)` right before `demand()`), and the test itself
-(prints `nw::kernel::resman().is_frozen()` at each statement). Running
-`Nwn1EquipmentArmorClassProducerUsesEquippedItems` with the eager weapon-feat
-loop reinstated:
+`lib/nw/resources/ResourceManager.cpp`:
 
-```
-[call 1] frozen=1 contains=1 → demand succeeds, is_valid=1   (113 real entries)
-DIAG2 frozen BEFORE load_module = 1
-[call 2] frozen=0 contains=0 → demand fails,   is_valid=0    ("baseitems.2da is missing")
-DIAG2 frozen AFTER load_module = 1
-DIAG2 frozen AFTER load target / armor / make_item_from_gff / shield instantiate = 1 (unchanged for the rest of the test)
-[call 3] frozen=1 contains=1 → demand succeeds, is_valid=1   (too late — assertions already failed)
-```
+1. `initialize()`: also call `build_registry()` immediately after containers
+   are added at `module_pre_load`, not only at `module_post_load`. The
+   registry is now built as soon as *any* containers exist, with whatever's
+   there at the time (base/override game data); `module_post_load` rebuilds
+   again once module/HAK containers are mounted. No window where containers
+   exist but the registry doesn't reflect them, at any point in the sequence.
+2. `unfreeze()`: stopped eagerly clearing `registry_`/`base_twoda_registry_`.
+   Not the dominant fix, but a real, independent improvement kept regardless:
+   a query between `unfreeze()` and the next `build_registry()` (anywhere this
+   happens, not just module loading) now sees the last-built, possibly
+   slightly stale registry instead of nothing. `build_registry()` now does
+   the clearing itself, right before rebuilding from scratch.
+3. Both `initialize()` call sites now `unfreeze()` first if already frozen —
+   needed because step 1 means the registry can legitimately be frozen again
+   by the time `module_post_load` runs, and `build_registry()` requires
+   `!frozen_`.
 
-Both call 1 and call 2 happen **before** `load_module()` returns (interleaved
-between the `BEFORE`/`AFTER load_module` prints) — confirming the unfreeze/
-refreeze cycle is entirely internal to `load_module()`, not caused by
-anything the test itself does afterward (an earlier pass through this
-investigation wrongly suspected the test's own `rt.add_module_path(...)`
-call; that call touches a *different*, Runtime-private `resman_`, not
-`kernel::resman()`, and turned out to be an unrelated correlation — ruled out
-by this trace). `kernel::resman()` stays frozen for the entire remainder of
-the test once `load_module()` returns, so once past this window, everything
-is consistent and correct — the corruption is a one-time race during module
-loading, not an ongoing issue.
+This does **not** change the arena-wipe-on-load_module design — that stays
+exactly as it was. The fix is entirely about making sure the always-rebuilt,
+freshly-constructed `ResourceManager`'s registry is never left inconsistent
+with its own containers at any point, regardless of what queries it or when.
 
-## Recommendation (not yet implemented — needs a decision)
+## Verification
 
-Three independent places could close this, each a different kind of fix:
+Re-applied the original eager weapon-feat loop (`baseitems.count()` inside
+`nwn1.init.init()`'s `init_master_feats()`) on top of this fix and reran the
+6 originally-failing tests plus the full `Smalls*`/`KernelResources*`
+suites — all pass, including with the eager trigger reinstated (i.e. the fix
+closes the hazard itself; it doesn't just happen to dodge it like the lazy
+weapon-feat workaround does). The shipped weapon-feat fix was **not** reverted
+to the eager version — the lazy registration in `master_feats.smalls` stays
+as-is; there's no reason to re-churn code that already works, and it's
+harmless defense-in-depth regardless.
 
-1. **`ResourceManager::unfreeze()`**: don't `registry_.clear()` eagerly;
-   either defer the clear until `build_registry()` actually rebuilds, or keep
-   serving the old (stale but not-yet-wrong) registry until then. Fixes the
-   hazard at its actual source — a resource transiently *reporting* missing
-   when it isn't. Risk: `registry_`'s stale-serving window could mask a
-   genuine removal (e.g. an unloaded module's resource) for longer; needs
-   checking every other `unfreeze()` caller's expectations.
-2. **`load_config_array_value` / `load_data_spec_as_config_array` caching**:
-   never cache a `make_empty_array()`/failed result — only cache real,
-   non-empty successes. Narrower, smalls-runtime-local fix; doesn't help any
-   *other* native caller that might hit the same unfrozen-resman window and
-   draw a wrong one-time conclusion (this bug's shape isn't specific to
-   `load_config!`).
-3. **The native trigger point**: move `ensure_nwn1_smalls_initialized()`'s
-   first real call (or whatever triggers it this early) to run only after
-   `load_module()` has fully settled resman (e.g. gate on
-   `ServiceInitTime::module_post_instantiation` rather than whatever earlier
-   point currently fires it, if that's adjustable). Sidesteps the window
-   rather than closing it — doesn't protect against some *other* native path
-   hitting the same race differently in the future.
+## Follow-up (flagged, not done)
 
-(1) is the most principled fix (closes the actual hazard), (2) is the
-narrowest/safest to land quickly, (3) doesn't generalize. Given the shipped
-weapon-feat fix already avoids this specific trigger, there's no urgency
-forcing a choice — but (2) alone was tried in isolation during this
-investigation (treating a zero-length `definitions` array as non-cacheable)
-and did **not** fix the test by itself, which makes sense now: the moment of
-failure wasn't "zero-length array," it was `resman.demand()` itself returning
-invalid because resman was unfrozen — the cache was never going to see
-anything cacheable as empty vs. correct from inside `load_data_sources`
-without resman-level information. A real fix needs (1) and/or (2) together,
-or (1) alone.
+User flagged: audit all memory usage across the engine after this change,
+given how much state is static/global and how central the arena-wipe-on-load
+pattern is to managing that. Not scoped or started in this pass.
 
 ## Systemic note
 
-This is a general hazard, not specific to `baseitems` or to `load_config!`:
-**any** code — native or smalls — that queries `nw::kernel::resman()` during
-a `load_module()`-internal unfreeze/rebuild window gets a false "not found,"
-and anything that caches that result without distinguishing "transiently
-unavailable" from "genuinely absent" will stay wrong after the window closes.
-Worth a wider audit of `config_array_cache_`-style caches and other
-`resman().demand()` call sites that might run during module load, not just
-this one.
+This was a general hazard, not specific to `baseitems` or `load_config!`:
+**any** code — native or smalls — that queried `nw::kernel::resman()` during
+the `module_pre_load` → `module_post_load` window got a correct-at-the-time
+"not found," and anything caching that without distinguishing "not built yet"
+from "genuinely absent" would stay wrong after the window closed. The fix
+closes the window itself rather than patching individual callers, so it
+protects every current and future caller, not just this one.

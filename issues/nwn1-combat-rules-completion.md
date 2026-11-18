@@ -62,12 +62,17 @@ correct in both cases), so something downstream of *when* it loads, not *what*
 it loads. Moving the registration to run lazily on first `resolve()`/
 `has_feat_check()` call keeps `baseitems`' first-load point exactly where it
 already was and all 199 `Smalls*` suite tests pass. This is a workaround, not
-a root-cause fix. Root cause investigated separately and confirmed: `load_module()`
-transiently unfreezes the global resource manager during its own sequence,
-and anything that queries a `load_config!`-backed resource in that window
-gets a false "not found" that two independent caches then lock in permanently
-— see [the dedicated writeup](smalls-load-config-early-call-corruption.md)
-for the full trace and candidate fixes (none chosen yet). Could
+a root-cause fix. Root cause investigated separately, confirmed, and
+**fixed**: a freshly-constructed `ResourceManager` (every `load_module()`
+call wipes and recreates one) left its registry genuinely unbuilt between
+`module_pre_load` and `module_post_load`, so anything querying resman in that
+window got a real-at-the-time "not found" that caches then locked in
+permanently — see
+[the dedicated writeup](smalls-load-config-early-call-corruption.md) for the
+full trace and the fix (`lib/nw/resources/ResourceManager.cpp`, verified by
+re-running the eager weapon-feat loop against it with no other workaround).
+Lazy registration is kept as-is regardless — no reason to re-churn working
+code. Could
 bite the next thing that eagerly touches `baseitems` (or similar lazily-loaded
 config) from `Init.init()`; out of scope for this doc beyond the cross-link.
 
