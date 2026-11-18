@@ -2,6 +2,8 @@
 
 #include "../log.hpp"
 
+#include <absl/container/flat_hash_set.h>
+
 namespace nw {
 
 // == TypedHandlePool =========================================================
@@ -157,6 +159,25 @@ void TypedHandlePool::destroy(TypedHandle h)
     free_list_head_ = h.id;
 
     --live_count_;
+}
+
+void TypedHandlePool::for_each_live(const std::function<void(void*)>& fn)
+{
+    absl::flat_hash_set<uint32_t> free_set;
+    for (uint32_t idx = free_list_head_; idx != sentinal;) {
+        free_set.insert(idx);
+        auto* header = static_cast<TypedHandleHeader*>(get_by_index(idx));
+        if (!header) { break; }
+        idx = header->free_list_next;
+    }
+
+    size_t total = objects_per_chunk_ * chunks_.size();
+    for (uint32_t idx = 0; idx < total; ++idx) {
+        if (free_set.contains(idx)) { continue; }
+        auto* header = static_cast<TypedHandleHeader*>(get_by_index(idx));
+        if (!header) { continue; }
+        fn(reinterpret_cast<uint8_t*>(header) + sizeof(TypedHandleHeader));
+    }
 }
 
 void* TypedHandlePool::get_by_index(uint32_t index)

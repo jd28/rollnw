@@ -25,7 +25,47 @@ RuntimeObjectPool::RuntimeObjectPool()
     variant_layouts_[TYPE_EVENT] = VariantLayout{6, 2, 2};
 }
 
-RuntimeObjectPool::~RuntimeObjectPool() = default;
+RuntimeObjectPool::~RuntimeObjectPool()
+{
+    // pools_[type_id] is a TypedHandlePool -- type-erased, so it can't
+    // destruct its own contents (that's the whole point of it, per its own
+    // "caller is responsible" comment). Nobody was, on this bulk-teardown
+    // path: pools_'s implicit destruction below just frees raw chunk bytes,
+    // leaking any still-live Effect/Event/user-variant's inline Strings.
+    // Walk every live slot here, before that happens, and run the same
+    // per-type destruction destroy() already does for the individual-handle
+    // path. Effect/VariantObject destructors only touch their own inline
+    // Strings (no cross-handle references), so unlike ObjectPool<T>::clear()
+    // there's no cascading-destruction hazard to guard against here.
+    for (int type_id = 0; type_id < 256; ++type_id) {
+        auto& pool = pools_[type_id];
+        if (!pool) { continue; }
+        if (type_id == TYPE_EFFECT) {
+            pool->for_each_live([](void* data) {
+                static_cast<Effect*>(data)->~Effect();
+            });
+        } else {
+            uint16_t num_strings = variant_layouts_[type_id].num_strings;
+            pool->for_each_live([num_strings](void* data) {
+                auto* variant = static_cast<VariantObject*>(data);
+                for (uint16_t i = 0; i < num_strings; ++i) {
+                    variant->strings()[i].~String();
+                }
+                variant->~VariantObject();
+            });
+        }
+    }
+
+    // unmanaged_array_pool_'s UnmanagedArrayHandle doesn't own its IArray*
+    // through a real destructor (deletion only happens explicitly, in
+    // destroy_unmanaged_array()) -- so any array whose handle was never
+    // destroyed leaks the same way. Delete what's still live before
+    // unmanaged_array_pool_ destructs below.
+    unmanaged_array_pool_.for_each_live([](UnmanagedArrayHandle& wrapper) {
+        delete wrapper.array;
+        wrapper.array = nullptr;
+    });
+}
 
 TypedHandle RuntimeObjectPool::allocate_effect()
 {

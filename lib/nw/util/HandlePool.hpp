@@ -3,7 +3,10 @@
 #include "../kernel/Memory.hpp"
 #include "ChunkVector.hpp"
 
+#include <absl/container/flat_hash_set.h>
+
 #include <cstdint>
+#include <functional>
 #include <utility>
 
 namespace nw {
@@ -96,6 +99,22 @@ struct HandlePool {
         return storage_[h.id].gen == h.generation;
     }
 
+    /// Invokes fn(payload) for every slot not currently on the free list.
+    /// Payload's own destructor (run implicitly when storage_ tears down)
+    /// may be trivial even though Payload itself owns something non-trivial
+    /// behind a raw pointer (e.g. UnmanagedArrayHandle's IArray*) -- use this
+    /// to run the real cleanup before that happens.
+    void for_each_live(const std::function<void(Payload&)>& fn)
+    {
+        absl::flat_hash_set<uint32_t> free_set;
+        for (uint32_t idx = free_list_head_; idx != sentinal; idx = storage_[idx].free_list_next) {
+            free_set.insert(idx);
+        }
+        for (uint32_t idx = 0; idx < storage_.size(); ++idx) {
+            if (!free_set.contains(idx)) { fn(storage_[idx].value); }
+        }
+    }
+
 private:
     struct PayloadEntry {
         Payload value;
@@ -175,6 +194,13 @@ struct TypedHandlePool {
 
     /// Destroys object (caller responsible for cleanup)
     void destroy(TypedHandle h);
+
+    /// Invokes fn(data) for every slot not currently on the free list, with
+    /// a pointer to the raw object bytes (same pointer get() would return).
+    /// This pool is type-erased and can't call a destructor itself -- use
+    /// this to run the caller's own cleanup for every still-live object
+    /// before the pool's chunks are freed.
+    void for_each_live(const std::function<void(void*)>& fn);
 
     /// Gets the number of live objects
     size_t size() const { return live_count_; }
