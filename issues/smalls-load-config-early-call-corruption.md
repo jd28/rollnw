@@ -1,124 +1,124 @@
-# `load_config!` can permanently cache empty data if first called too early
+# `load_config!` can permanently cache empty data read during a resman unfreeze window
 
-Status (2026-11-17): root cause narrowed to a specific, strong lead; not fully
-pinned down, not fixed. Discovered while fixing
+Status (2026-11-17): root cause confirmed by direct instrumentation. Not
+fixed — three candidate fix locations identified, no fix chosen yet since
+each has real tradeoffs (see Recommendation). Discovered while fixing
 [the weapon-category master-feat bug](nwn1-combat-rules-completion.md) — the
 first attempt at that fix (an eager loop over `baseitems.count()` inside
 `nwn1.init.init()`) was logically correct but broke 6 unrelated equipment/
 visual tests. The shipped fix (lazy registration on first real use) avoids
-triggering this bug rather than fixing it. This doc exists so the underlying
-bug doesn't get lost, and so the next thing that eagerly touches a
-`load_config!`-backed module from `Init.init()` has a known trap to check for.
+triggering this bug rather than fixing it.
 
-## Reproduction
+## Root cause
 
-In `lib/nw/smalls/scripts/nwn1/init.smalls`'s `init_master_feats()` (called
-from `init()`, called from `Init.init()`), add any single call into
-`nwn1.baseitems` that triggers `_ensure_loaded()` — even a bare
-`baseitems.count();` with no other logic is sufficient. Then run
-`SmallsEngineIntegration.Nwn1EquipmentArmorClassProducerUsesEquippedItems`
-(or any of the other 5 listed below). It fails:
-`NItem.calculate_item_ac(shield) != 1` (returns 0, expected 1), because
-`BaseItems.base_ac(BaseItemType(14))` returns 0 instead of 1 — `baseitems`'
-own data is empty when it should have 113 entries.
+`nw::kernel::load_module(...)` unfreezes and re-freezes the **global**
+`nw::kernel::resman()` at least once during its own internal sequence (to
+mount the module's container/HAKs), well before it returns.
+`ResourceManager::unfreeze()` (`lib/nw/resources/ResourceManager.cpp:360-366`)
+eagerly does `registry_.clear()` — so for the duration of that window,
+`resman.contains(...)`/`resman.demand(...)` report **every** resource as
+missing, correct ones included, until something calls `build_registry()`
+again.
 
-Failing tests, all in `tests/smalls_engine_integration.cpp`:
-`Nwn1EquipCallbacksUpdateVisualRowsForChangedSlot`,
-`Nwn1EquipCallbacksRebuildHumanoidBodyRowsForHeadSlot`,
-`Nwn1HumanoidMirrorsBodyVariationsButKeepsArmorPartsIndependent`,
-`Nwn1ItemResolveVisualReturnsAttachmentValues`,
-`Nwn1StandaloneItemVisualWritesVisualRows`,
-`Nwn1EquipmentArmorClassProducerUsesEquippedItems`.
+If anything triggers a `load_config!`-backed config load during that exact
+window, it reads back nothing and that *transient* emptiness gets **cached
+permanently** by two independent, uncoordinated caches:
 
-## Evidence trail
+- `Runtime::config_array_cache_` (`lib/nw/smalls/runtime.cpp:7072-7080`,
+  populated at `:7340-7341` for the data-spec path specifically used here)
+  caches by `(canonical_path, config_type)` with no distinction between "this
+  value is genuinely empty" and "resman happened to be unfrozen when I asked."
+- `nwn1.baseitems`'s own `_loaded` flag (`lib/nw/smalls/scripts/nwn1/baseitems.smalls:17-47`)
+  does the same thing one layer up, for the same reason.
 
-Instrumented `publish_baseitem_info` (`lib/nw/smalls/native/core_item.cpp:53`)
-with an `fprintf` logging the incoming array size and early-return paths, and
-instrumented the `Nwn1EquipmentArmorClassProducerUsesEquippedItems` test with
-extra reads of `nw::kernel::rules().baseitems.entries.size()` at several
-points. Observed call sequence, with the eager `baseitems.count()` call added
-to `init_master_feats()`:
+In the broken (eager) version of the weapon-feat fix, `nwn1.init.init()` gets
+triggered natively (`lib/nw/profiles/nwn1/scriptbridge.cpp:49`,
+`ensure_nwn1_smalls_initialized()`) more than once *during*
+`load_module("DockerDemo.mod")`'s own sequence — once while resman is frozen
+(succeeds), then again while resman is transiently unfrozen (fails), both
+*before* `load_module()` returns to the caller. The lazy fix never triggers
+`baseitems` loading until well after `load_module()` has returned and resman
+has settled, so it never lands in the unfrozen window — that's *why* it
+works, not because the underlying hazard is fixed.
 
-1. `publish_baseitem_info` called, `array_size=113` (looks correct).
-2. `publish_baseitem_info` called again almost immediately, `array_size=0` —
-   logs "zero-size array, publishing empty, returning true". This call wins:
-   `rules().baseitems.entries.size() == 0` from this point through the rest
-   of the test (confirmed at four separate checkpoints, including right after
-   `shield->instantiate()`, which runs in C++ before any smalls script in the
-   test even executes).
-3. `BaseItems.base_ac(BaseItemType(14))` returns 0 (wrong; should be 1) —
-   confirms the empty data is what's actually read, not just what gets
-   published transiently.
-4. At test teardown, `publish_baseitem_info` is called a *third* time with
-   `array_size=113` again — too late to matter for the test's assertions, and
-   its relationship to calls 1–2 is not understood (see Open question).
+## Evidence trail (direct instrumentation, now reverted — not kept in tree)
 
-Without the eager call (lazy registration, as shipped), `publish_baseitem_info`
-is observed to succeed once, early, with 113 entries, and `rules().baseitems`
-stays populated throughout — no second call, no corruption.
+Added temporary `fprintf` tracing at: `Runtime::load_config_array_value`
+(cache state, `resman_needs_build_`, and — critically — the identity of
+`kernel::resman()` vs. the Runtime's own private `resman_`, confirmed to be
+parent/child, `lib/nw/smalls/runtime.hpp:1426` +
+`lib/nw/smalls/runtime.cpp:261`, *not* related to this bug), `load_data_sources`
+(`lib/nw/smalls/data_transform.cpp:622`, prints `resources.is_frozen()` and
+`resources.contains(...)` right before `demand()`), and the test itself
+(prints `nw::kernel::resman().is_frozen()` at each statement). Running
+`Nwn1EquipmentArmorClassProducerUsesEquippedItems` with the eager weapon-feat
+loop reinstated:
 
-## Leading hypothesis
+```
+[call 1] frozen=1 contains=1 → demand succeeds, is_valid=1   (113 real entries)
+DIAG2 frozen BEFORE load_module = 1
+[call 2] frozen=0 contains=0 → demand fails,   is_valid=0    ("baseitems.2da is missing")
+DIAG2 frozen AFTER load_module = 1
+DIAG2 frozen AFTER load target / armor / make_item_from_gff / shield instantiate = 1 (unchanged for the rest of the test)
+[call 3] frozen=1 contains=1 → demand succeeds, is_valid=1   (too late — assertions already failed)
+```
 
-`nwn1.baseitems._ensure_loaded()` (`lib/nw/smalls/scripts/nwn1/baseitems.smalls:17-47`)
-does, per entry: `if (definition.id == index) { push real info/rules,
-valid=true } else { push an EMPTY placeholder (empty label), valid=false }`.
-`publish_baseitem_info` (`core_item.cpp:118-120`) separately rejects the whole
-publish if `valid_count == 0` — i.e., if *every* entry turned out to be an
-empty placeholder, even though the array's *size* (113) looked normal.
+Both call 1 and call 2 happen **before** `load_module()` returns (interleaved
+between the `BEFORE`/`AFTER load_module` prints) — confirming the unfreeze/
+refreeze cycle is entirely internal to `load_module()`, not caused by
+anything the test itself does afterward (an earlier pass through this
+investigation wrongly suspected the test's own `rt.add_module_path(...)`
+call; that call touches a *different*, Runtime-private `resman_`, not
+`kernel::resman()`, and turned out to be an unrelated correlation — ruled out
+by this trace). `kernel::resman()` stays frozen for the entire remainder of
+the test once `load_module()` returns, so once past this window, everything
+is consistent and correct — the corruption is a one-time race during module
+loading, not an ongoing issue.
 
-That fits call 1 exactly: `array_size=113` but internally all 113 are
-placeholders (every `definition.id != index`), so `publish_baseitem_info`
-returns `false` without having logged a size-based early return — consistent
-with the observed log (no "early return false" or "zero-size" line attached
-to that first 113-sized call, because the `valid_count==0` return path wasn't
-instrumented in this pass). Critically, this failure path does **not** set
-`baseitems`' local `_loaded` flag, so a second call is free to retry.
+## Recommendation (not yet implemented — needs a decision)
 
-Why would every `definition.id` fail to match its array index at that early
-point, when the same config resolves correctly moments later? Unconfirmed.
-`Runtime::load_config_array_value` (`lib/nw/smalls/runtime.cpp:7057-7062`)
-opens with `if (resman_needs_build_) { resman_.build_registry();
-resman_needs_build_ = false; }` — a lazy, dirty-flag-gated resource registry
-rebuild. The native module-load sequence
-(`lib/nw/kernel/Kernel.cpp:334-431`: `resman_load_module` → `make_module` →
-`load_haks` → `load_custom_tlk` → `module_post_load` services →
-`instantiate`) mounts HAKs *after* the base module resources. If the
-native-triggered `Init.init()` call (`lib/nw/profiles/nwn1/scriptbridge.cpp:49`,
-via `ensure_nwn1_smalls_initialized()`) fires from inside this sequence before
-HAK/override content is fully layered into the registry, `load_config!` could
-read back a 2da view where row ids aren't yet assigned the way they are once
-everything is mounted — this is plausible but **not verified**; no
-instrumentation was added inside `load_config_array_value` or the 2da
-indexing path itself to confirm it.
+Three independent places could close this, each a different kind of fix:
 
-What the second (empty, 0-length `definitions`) call means is separately
-unexplained — a *different* resman state than call 1's "113 but all
-placeholder," not simply "the same bad state again."
+1. **`ResourceManager::unfreeze()`**: don't `registry_.clear()` eagerly;
+   either defer the clear until `build_registry()` actually rebuilds, or keep
+   serving the old (stale but not-yet-wrong) registry until then. Fixes the
+   hazard at its actual source — a resource transiently *reporting* missing
+   when it isn't. Risk: `registry_`'s stale-serving window could mask a
+   genuine removal (e.g. an unloaded module's resource) for longer; needs
+   checking every other `unfreeze()` caller's expectations.
+2. **`load_config_array_value` / `load_data_spec_as_config_array` caching**:
+   never cache a `make_empty_array()`/failed result — only cache real,
+   non-empty successes. Narrower, smalls-runtime-local fix; doesn't help any
+   *other* native caller that might hit the same unfrozen-resman window and
+   draw a wrong one-time conclusion (this bug's shape isn't specific to
+   `load_config!`).
+3. **The native trigger point**: move `ensure_nwn1_smalls_initialized()`'s
+   first real call (or whatever triggers it this early) to run only after
+   `load_module()` has fully settled resman (e.g. gate on
+   `ServiceInitTime::module_post_instantiation` rather than whatever earlier
+   point currently fires it, if that's adjustable). Sidesteps the window
+   rather than closing it — doesn't protect against some *other* native path
+   hitting the same race differently in the future.
 
-## Open question / next steps for whoever picks this up
+(1) is the most principled fix (closes the actual hazard), (2) is the
+narrowest/safest to land quickly, (3) doesn't generalize. Given the shipped
+weapon-feat fix already avoids this specific trigger, there's no urgency
+forcing a choice — but (2) alone was tried in isolation during this
+investigation (treating a zero-length `definitions` array as non-cacheable)
+and did **not** fix the test by itself, which makes sense now: the moment of
+failure wasn't "zero-length array," it was `resman.demand()` itself returning
+invalid because resman was unfrozen — the cache was never going to see
+anything cacheable as empty vs. correct from inside `load_data_sources`
+without resman-level information. A real fix needs (1) and/or (2) together,
+or (1) alone.
 
-1. Instrument `load_config_array_value`'s 2da/definition-indexing path
-   directly (not just `publish_baseitem_info`) to see the raw `id` values
-   call 1 actually produces, and whether `resman_needs_build_` is true at
-   that point.
-2. Explain the second call's `array_size=0` (completely empty `definitions`,
-   not just id-mismatched) — a different failure mode than call 1's, and the
-   one that actually locks in the corruption via the `array->size()==0`
-   fast-success path in `publish_baseitem_info`.
-3. Explain the third, late, correct (113) call — if something *does*
-   eventually call `_ensure_loaded()` successfully after `_loaded` was
-   already (wrongly) latched true from call 2, that implies either multiple
-   independent pieces of state keyed to "baseitems" (not a true singleton),
-   or a different, ungated caller publishing directly.
-4. Once understood, the real fix is almost certainly in `publish_baseitem_info`
-   and/or `_ensure_loaded()`: treat *any* unsuccessful/degenerate publish
-   (zero-length array, all-placeholder array, or validation failure) the same
-   way — never cache `_loaded = true` unless at least one real entry
-   published. A partial version of this (rejecting zero-length without
-   caching) was tried in isolation during this investigation and was **not**
-   sufficient by itself, consistent with there being more than one failure
-   mode in play (see point 2).
-5. Treat this as a candidate systemic issue, not a `baseitems`-only one: any
-   other `_ensure_loaded()`-style lazy config module touched from inside the
-   native-triggered early `Init.init()` call (rather than from its normal,
-   later, first-real-use point) should be checked for the same failure shape.
+## Systemic note
+
+This is a general hazard, not specific to `baseitems` or to `load_config!`:
+**any** code — native or smalls — that queries `nw::kernel::resman()` during
+a `load_module()`-internal unfreeze/rebuild window gets a false "not found,"
+and anything that caches that result without distinguishing "transiently
+unavailable" from "genuinely absent" will stay wrong after the window closes.
+Worth a wider audit of `config_array_cache_`-style caches and other
+`resman().demand()` call sites that might run during module load, not just
+this one.
