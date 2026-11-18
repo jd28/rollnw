@@ -26,4 +26,8 @@ risks and deferred opportunities are explicit on the current status page.
 
 ## Smalls runtime
 
-- [`load_config!` early-call corruption](smalls-load-config-early-call-corruption.md) — a `load_config!`-backed module touched too early from `Init.init()` can end up with its data permanently cached empty; root cause narrowed, not fully pinned down.
+- [`load_config!` early-call corruption](smalls-load-config-early-call-corruption.md) — fixed in `ResourceManager`; root cause confirmed and closed, not just avoided.
+
+## Engine / memory
+
+- [Arena/memory-safety audit](arena-memory-safety-audit.md) — ranked leak findings from a full sweep of arena/scope allocation (`ObjectPool`, effects, `Module`, `Dialog`, `Palette`); fix plan written, nothing implemented yet.

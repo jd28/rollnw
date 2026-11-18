@@ -3,7 +3,6 @@
 #include "../i18n/LocString.hpp"
 #include "../resources/assets.hpp"
 #include "../serialization/Serialization.hpp"
-#include "../util/memory.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -133,6 +132,7 @@ public:
     explicit Dialog(const nlohmann::json& archive);
     Dialog(const Dialog&) = delete;
     Dialog& operator=(const Dialog&) = delete;
+    ~Dialog();
 
     static constexpr int json_archive_version = 1;
     static constexpr ResourceType::type restype = ResourceType::dlg;
@@ -193,7 +193,6 @@ public:
 
 private:
     bool is_valid_ = false;
-    MemoryArena arena_;
 
     bool load(const GffStruct gff);
     bool read_nodes(const GffStruct gff, DialogNodeType node_type);

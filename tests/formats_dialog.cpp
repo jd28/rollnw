@@ -39,6 +39,7 @@ TEST(Dialog, PtrAddRemove)
 
     dlg.starts[0]->remove_ptr(ptr1);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 2);
+    dlg.delete_ptr(ptr1); // remove_ptr only untracks; it's never re-added.
 
     auto ptr2 = dlg.starts[0]->add_ptr(dlg.starts[0]->node->pointers[0], true);
     EXPECT_TRUE(ptr2);
@@ -229,6 +230,7 @@ TEST(Dialog, InternalNodeOps)
     EXPECT_EQ(entries + 1, dlg.entries.size());
     dlg.remove_node_internal(node1, nw::DialogNodeType::entry);
     EXPECT_EQ(entries, dlg.entries.size());
+    delete node1; // remove_node_internal only untracks; it's never re-added.
 
     size_t replies = dlg.replies.size();
     auto node2 = dlg.create_node(nw::DialogNodeType::reply);
@@ -236,6 +238,7 @@ TEST(Dialog, InternalNodeOps)
     EXPECT_EQ(replies + 1, dlg.replies.size());
     dlg.remove_node_internal(node2, nw::DialogNodeType::reply);
     EXPECT_EQ(replies, dlg.replies.size());
+    delete node2;
 
     auto ptr1 = dlg.starts[0];
     dlg.remove_ptr(ptr1);
@@ -287,8 +290,10 @@ TEST(Dialog, RemoveLinkedNode)
     ASSERT_NE(dlg.starts[0], nullptr);
     ASSERT_NE(dlg.starts[0]->node, nullptr);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 2);
-    dlg.starts[0]->remove_ptr(dlg.starts[0]->node->pointers[0]);
+    auto removed = dlg.starts[0]->node->pointers[0];
+    dlg.starts[0]->remove_ptr(removed);
     EXPECT_EQ(dlg.starts[0]->node->pointers.size(), 0);
+    dlg.delete_ptr(removed); // remove_ptr only untracks; it's never re-added.
 }
 
 TEST(Dialog, DeleteNode)

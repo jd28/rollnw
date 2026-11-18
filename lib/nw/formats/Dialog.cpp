@@ -171,8 +171,31 @@ void DialogNode::set_action_param(const String& key, const String& value)
 
 Dialog::Dialog()
     : is_valid_{true}
-    , arena_(MB(1))
 {
+}
+
+Dialog::~Dialog()
+{
+    // Nodes/pointers are allocated individually (plain new); unlike
+    // delete_node()/delete_ptr(), which recurse through the live tree
+    // structure for a single explicit deletion, this walks the flat,
+    // duplicate-free ownership lists directly so it destroys everything
+    // exactly once regardless of links or reachability from `starts`.
+    for (auto ptr : starts) {
+        delete ptr;
+    }
+    for (auto node : entries) {
+        for (auto ptr : node->pointers) {
+            delete ptr;
+        }
+        delete node;
+    }
+    for (auto node : replies) {
+        for (auto ptr : node->pointers) {
+            delete ptr;
+        }
+        delete node;
+    }
 }
 
 Dialog::Dialog(const GffStruct archive)
@@ -236,7 +259,7 @@ DialogPtr* Dialog::add_string(String value, nw::LanguageID lang, bool feminine)
 
 DialogNode* Dialog::create_node(DialogNodeType type)
 {
-    auto result = new (arena_.allocate(sizeof(DialogNode), alignof(DialogNode))) DialogNode;
+    auto result = new DialogNode;
     result->type = type;
     result->parent = this;
     return result;
@@ -244,8 +267,7 @@ DialogNode* Dialog::create_node(DialogNodeType type)
 
 DialogPtr* Dialog::create_ptr()
 {
-
-    auto ptr = new (arena_.allocate(sizeof(DialogPtr), alignof(DialogPtr))) DialogPtr;
+    auto ptr = new DialogPtr;
     ptr->parent = this;
     return ptr;
 }
@@ -256,14 +278,19 @@ void Dialog::delete_node(DialogNode* node)
     for (auto ptr : node->pointers) {
         delete_ptr(ptr);
     }
-    node->~DialogNode();
+    delete node;
 }
 
 void Dialog::delete_ptr(DialogPtr* ptr)
 {
-    if (!ptr || ptr->is_link) { return; }
-    delete_node(ptr->node);
-    ptr->~DialogPtr();
+    if (!ptr) { return; }
+    // A link doesn't own its target node -- other pointers may still
+    // reference it -- so only a non-link recurses into delete_node(). The
+    // link wrapper itself is still this Dialog's own allocation either way.
+    if (!ptr->is_link) {
+        delete_node(ptr->node);
+    }
+    delete ptr;
 }
 
 size_t Dialog::node_index(DialogNode* node, DialogNodeType type) const
@@ -287,7 +314,14 @@ void Dialog::remove_ptr(DialogPtr* ptr)
 {
     auto it = std::remove(std::begin(starts), std::end(starts), ptr);
     starts.erase(it, std::end(starts));
-    if (ptr->is_link) { return; }
+    if (ptr->is_link) {
+        // A link doesn't own a node to recurse into, and once unlinked here
+        // there's no mechanism that remembers to relink it later -- unlike a
+        // non-link subtree, which callers do remove-then-re-add (see
+        // Dialog.InternalNodeOps). Nothing keeps this alive otherwise.
+        delete ptr;
+        return;
+    }
 
     Vector<DialogNode*> subnodes;
     ptr->get_all_subnodes(subnodes);
@@ -345,20 +379,25 @@ void Dialog::remove_node_internal(DialogNode* node, DialogNodeType type)
         }
     }
 
+    // Dangling links to the now-removed node: nothing else references them
+    // (unlike the node itself, which a caller may still hold and re-add --
+    // see Dialog.InternalNodeOps), so they're deleted here rather than left
+    // for a caller that was never given a pointer to them.
+    auto erase_links_to = [node](Vector<DialogPtr*>& pointers) {
+        for (auto it = pointers.begin(); it != pointers.end();) {
+            if ((*it)->is_link && (*it)->node == node) {
+                delete *it;
+                it = pointers.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    };
     for (auto e : entries) {
-        auto it = std::remove_if(std::begin(e->pointers), std::end(e->pointers),
-            [node](DialogPtr* ptr) {
-                return ptr->is_link && ptr->node == node;
-            });
-        e->pointers.erase(it, std::end(e->pointers));
+        erase_links_to(e->pointers);
     }
-
     for (auto e : replies) {
-        auto it = std::remove_if(std::begin(e->pointers), std::end(e->pointers),
-            [node](DialogPtr* ptr) {
-                return ptr->is_link && ptr->node == node;
-            });
-        e->pointers.erase(it, std::end(e->pointers));
+        erase_links_to(e->pointers);
     }
 }
 
