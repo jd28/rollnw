@@ -103,3 +103,24 @@ TEST(Palette, GffRoundTrip)
     // EXPECT_EQ(out.header.list_idx_offset, g.head_->list_idx_offset);
     // EXPECT_EQ(out.header.list_idx_count, g.head_->list_idx_count);
 }
+
+TEST(Palette, ClearRecursivelyFreesWholeSubtree)
+{
+    nw::Palette p;
+    auto* branch = p.add_branch("branch"s, 0);
+    auto* category = branch->add_category("category"s, 0);
+    category->add_blueprint("bp1"s, nw::Resref("bp1"), 0);
+    category->add_blueprint("bp2"s, nw::Resref("bp2"), 0);
+
+    // branch + category + 2 blueprints = 4 nodes allocated from the pool.
+    EXPECT_EQ(p.node_pool_.size(), 4u);
+
+    branch->clear();
+
+    // clear() resets `branch` itself (still allocated), but must free
+    // everything below it -- category and both blueprints, not just the
+    // direct child (category).
+    EXPECT_EQ(p.node_pool_.size(), 1u);
+    EXPECT_TRUE(branch->children.empty());
+    EXPECT_TRUE(branch->name.empty());
+}

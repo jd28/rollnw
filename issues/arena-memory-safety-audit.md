@@ -1,7 +1,7 @@
 # Arena/memory-safety audit: findings and fix plan
 
-Status (2026-11-18): **findings #1, #3, #4 (Dialog) fixed**; #2/#5 still plan
-only. Grew out
+Status (2026-11-18): **all findings fixed** (#1/#3 ObjectPool+Module, #2
+TypedHandlePool/RuntimeObjectPool, #4 Dialog, #5 Palette). Grew out
 of [the `load_config!`/`ResourceManager` investigation](smalls-load-config-early-call-corruption.md)
 (fixed, separately) — fixing that surfaced a question worth answering
 properly: does this engine's arena/scope memory model actually destruct
@@ -147,6 +147,58 @@ involved:
   construct objects directly without going through `ObjectManager` at all —
   unrelated to this fix; the VM/Runtime volume is exactly what #2 below still
   needs to cover.)
+- **#2 (`Effect`/`VariantObject`/unmanaged-array payloads) — FIXED
+  (2026-11-18).** `TypedHandlePool` (`lib/nw/util/HandlePool.hpp/.cpp`) is a
+  type-erased raw-byte pool — it allocates fixed-size slots and hands back
+  `void*`, with no idea what's actually stored there, so it genuinely can't
+  call a destructor itself (its own comment says as much: "caller is
+  responsible for destroying object contents before pool destruction").
+  `RuntimeObjectPool::destroy(TypedHandle)` already has the correct per-type
+  logic for the individual-handle path (dispatch on `Effect` vs. a generic
+  `VariantObject` with N inline `String`s) — but nothing ever ran that logic
+  for objects still live when `RuntimeObjectPool` itself gets bulk-destructed
+  (every module unload): `~RuntimeObjectPool() = default;` just let `pools_`
+  (an array of `unique_ptr<TypedHandlePool>`) free raw chunk bytes, leaking
+  every live `Effect`/`Event`/user-variant's inline `String`s.
+
+  Fixed by giving both pool types a way to walk their own live slots without
+  needing to know what's stored in them: added `for_each_live()` to
+  `HandlePool<Payload>` (template, header-only — snapshots the free list into
+  a set, then calls `fn(payload)` for every constructed slot not in it) and
+  to `TypedHandlePool` (same shape, but calls `fn(void*)` with the raw object
+  pointer `get()` would return, since it has no `Payload` type to hand back).
+  `RuntimeObjectPool::~RuntimeObjectPool()` now uses these — for every
+  registered `pools_[type_id]`, walks its live slots and runs the matching
+  per-type destructor (the same branch `destroy()` already had: `~Effect()`,
+  or N `~String()` calls + `~VariantObject()`) before `pools_`'s implicit
+  destruction frees the chunks. `Effect`/`VariantObject` destructors only
+  touch their own inline `String`s (confirmed by reading `Effect::~Effect()`)
+  — no cross-handle references — so unlike `ObjectPool<T>::clear()` there's
+  no cascading-destruction hazard here; a single free-list snapshot per pool
+  is enough.
+
+  Found and fixed a second instance of the same bug shape while in this
+  code: `unmanaged_array_pool_` (a `HandlePool<UnmanagedArrayHandle>`, used
+  for propset array storage) stores `UnmanagedArrayHandle{IArray* array;
+  Handle generic_handle;}` — a plain struct with an implicit, trivial
+  destructor that never deletes `array`. `delete wrapper->array` only ever
+  happened inside the explicit `destroy_unmanaged_array()` call; any array
+  whose handle outlived that call leaked the same way. Fixed in the same
+  `~RuntimeObjectPool()`, using the new `HandlePool::for_each_live()` to
+  delete every still-live `array` before `unmanaged_array_pool_` destructs.
+
+  Verified: targeted filter (`*Runtime*:*Effect*:*Event*:*Variant*:
+  *HandlePool*`, 122 tests) passes under a normal build; a combined filter
+  covering that plus `*Object*:*Module*:*Area*:*Creature*` (499 tests) passes
+  clean under ASan/UBSan with zero crashes, and zero leak-report frames in
+  `RuntimeObject.cpp`, `HandlePool.cpp`, or `HandlePool.hpp`, and zero leaks
+  whose allocation site is `allocate_effect()`/`allocate_event()`/
+  `allocate_variant()`/`allocate_unmanaged_array()` — confirmed by reading
+  every leak stack that even mentions `Effect`/`VariantObject` by name; each
+  one turned out to be an unrelated local vector inside `dispatch_on_effects`
+  or the smalls VM/GC (which just happens to take `Effect*` parameters), not
+  an actual `Effect`/variant object leaking. Full 1834-test suite passes
+  clean under the normal build.
 - **#4 (Dialog) — FIXED (2026-11-18), dropped the arena.** `Dialog` is edited
   interactively — individual node add/delete/undo/redo is the normal access
   pattern, not a cohort that's born and dies together. An arena (bump
@@ -186,8 +238,43 @@ involved:
   and ASan/UBSan (`ci-linux-clang-asan-ubsan` preset), zero `Dialog.cpp`
   frames in the leak report; full 1834-test suite run to confirm no
   unrelated regression.
-- **#5 (Palette) is unrelated to the arena question** — fix the recursion to
-  walk the whole tree, not just depth 1.
+- **#5 (Palette) — FIXED (2026-11-18), unrelated to the arena question** —
+  a plain tree-walk bug, not a destructor-correctness one. `Palette::
+  ~Palette()` and `PaletteTreeNode::clear()` both called `node_pool_.free()`
+  on direct children only — `node->children` is a `Vector<PaletteTreeNode*>`
+  of raw pointers, so destructing *that* vector (which is all `free()` does
+  for the node itself) frees the pointer array, not the pointed-to
+  grandchildren. Turned out `PaletteTreeNode::clear()` is dead code (no call
+  site anywhere in the codebase outside its own definition) — but the shape
+  is real and was one call site away from a live bug, so fixed both with one
+  shared recursive helper (`free_subtree()`, post-order: free every child's
+  own subtree before freeing the child itself, so nothing dereferences an
+  already-freed pointer).
+
+  The two call sites have different exposure, worth being precise about:
+  `~Palette()`'s *leak* half was already incidentally masked before this fix
+  — `ObjectPool<T>::clear()` (fixed under #1 above) walks every slot in the
+  whole pool at `~ObjectPool()` time regardless of tree structure, so any
+  grandchild `~Palette()`'s shallow loop missed still got its `String`s
+  destructed when `node_pool_` itself destructed afterward, just not in any
+  particular (tree) order — correct outcome, by accident, via a different
+  layer's fix. `clear()`'s bug is not masked the same way: it's meant to
+  reset *one* node for reuse while the `Palette`/pool stays alive, and a
+  grandchild it fails to free stays allocated (an orphaned, unreachable pool
+  slot) for the `Palette`'s entire remaining lifetime, not just until the
+  next process-wide sweep — `ObjectPool<T>::clear()` only runs at whole-pool
+  destruction, so it doesn't help here at all. Fixed on its own terms now,
+  not relying on #1's sweep for either call site.
+
+  Verified: existing `Palette.*`/`ClientAreaTileEdits.Palette*` tests (which
+  exercise `~Palette()` on real 3-level GFF-loaded trees via RAII) pass under
+  both a normal build and ASan/UBSan, zero `Palette.cpp` leak-report frames.
+  Added `Palette.ClearRecursivelyFreesWholeSubtree` (`tests/
+  legacy_palette.cpp`) as new coverage for `clear()`'s recursion specifically
+  (previously exercised by nothing, dead code or not) — builds a branch →
+  category → two blueprints tree, calls `clear()` on the branch, and checks
+  `node_pool_.size()` drops from 4 to 1 (only the reset branch itself
+  remains allocated), not 4 to 3 (the old, depth-1-only behavior).
 
 **Considered, not adopted — `StaticDialog`.** Checked actual usage first:
 `Dialog` is used *only* by the toolset editor today (`tools/client/dialog_document.cpp`,
@@ -242,10 +329,14 @@ Before choosing a representation for new or changed data:
    (`Services::shutdown()`, `ObjectArray` pool member order, `ObjectManager`
    member order) and the new `ObjectArray::~ObjectArray()` handle-walk it
    turned out to need. See #1/#3 above for the full chain.
-3. `TypedHandlePool`: same shape for #2 — give it a real destructor instead
+3. ~~`TypedHandlePool`: same shape for #2 — give it a real destructor instead
    of the "caller's responsibility" comment, or make `RuntimeObjectPool`
    responsible for walking its own live handles before the pool beneath it
-   is torn down.
+   is torn down.~~ **Done** — `TypedHandlePool` stays type-erased (it still
+   can't call a destructor itself), but both it and `HandlePool<Payload>`
+   gained `for_each_live()`, and `RuntimeObjectPool::~RuntimeObjectPool()`
+   uses it to run the right per-type cleanup (and to fix the
+   `unmanaged_array_pool_`/`IArray*` leak found along the way). See #2 above.
 4. ~~`unload_module()`: once 2–3 exist, remove the now-incorrect "no need to
    call `Module::destroy`" shortcut ... and explicitly destruct `Module`
    itself (#3).~~ **Done** — turned out to need no explicit call: `Module`
@@ -253,11 +344,17 @@ Before choosing a representation for new or changed data:
    step 2's `~ObjectArray()` walk already covers it. Reworded the
    `unload_module()` comment to say why, instead of resting on the
    bulk-teardown assumption this audit distrusts.
-5. `Palette`: fix the one-level-only recursion in `~Palette()`/
-   `PaletteTreeNode::clear()`.
+5. ~~`Palette`: fix the one-level-only recursion in `~Palette()`/
+   `PaletteTreeNode::clear()`.~~ **Done** — shared recursive `free_subtree()`
+   helper; also added the first regression test for `clear()`'s recursion
+   (previously dead code, untested either way). See #5 above.
 6. Regression: for 2–4 specifically, a real test that creates several live
    objects/effects of different types, unloads the module, and verifies (via
    an instrumented counting allocator, or ASan leak detection if already
    wired into CI) that their destructors actually ran — the existing test
    suite passing is not evidence here, since these leaks don't crash or fail
    assertions, they just leak, which is exactly why they went unnoticed.
+   Not done as a dedicated test; covered so far by ASan/UBSan leak-detection
+   runs against the existing suite at each fix (2, 3, 5) rather than one
+   purpose-built regression test — revisit if a future change needs a
+   standing guard rather than one-off verification.

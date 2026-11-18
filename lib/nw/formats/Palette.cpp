@@ -57,6 +57,22 @@ PaletteTreeNode* PaletteTreeNode::add_category(String node_name, uint32_t node_s
     return node;
 }
 
+namespace {
+
+// node_pool_.free() only destructs/frees `node` itself -- node->children is
+// a Vector<PaletteTreeNode*> of raw pointers, so destructing it just frees
+// the pointer array, not the pointed-to nodes. Recurse so a whole subtree's
+// pool slots are freed, not just the direct children.
+void free_subtree(ObjectPool<PaletteTreeNode>& pool, PaletteTreeNode* node)
+{
+    for (auto* child : node->children) {
+        free_subtree(pool, child);
+    }
+    pool.free(node);
+}
+
+} // anonymous namespace
+
 void PaletteTreeNode::clear()
 {
     id = std::numeric_limits<uint8_t>::max();
@@ -67,8 +83,8 @@ void PaletteTreeNode::clear()
     cr = 0.0;
     faction.clear();
 
-    for (auto& it : children) {
-        parent->node_pool_.free(it);
+    for (auto* it : children) {
+        free_subtree(parent->node_pool_, it);
     }
 
     children.clear();
@@ -87,8 +103,8 @@ Palette::Palette(const Gff& archive)
 
 Palette::~Palette()
 {
-    for (auto& it : children) {
-        node_pool_.free(it);
+    for (auto* it : children) {
+        free_subtree(node_pool_, it);
     }
 }
 
