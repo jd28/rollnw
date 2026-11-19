@@ -286,10 +286,9 @@ deep investment (listed here rather than guessed at):
   "M-series iPad only," or "A14+") rather than discovering the constraint
   from a crash report.
 - **Distribution channel.** App Store vs TestFlight vs sideloaded/enterprise
-  changes what's permissible (background networking entitlements, file
-  access for NWN module import — iPadOS's sandboxed file model is a real
-  departure from `tools/client`'s free-form filesystem project/import flow
-  in `project_import.cpp`/`client_preferences.cpp`) and the signing story.
+  changes what's permissible (background networking entitlements, the file
+  access needed for the game-data transfer story below) and the signing
+  story.
 - **GameNetworkingSockets on iOS, client role only.** GNS itself has real
   upstream iOS support (its `GNS_APPLE_EMBEDDED` CMake mode — see Current
   state above), and iPadOS never hosts (above), so this only needs GNS's
@@ -313,16 +312,95 @@ deep investment (listed here rather than guessed at):
   external-keyboard-optional path. RmlUI itself can take touch events
   (SDL3 reports them), but the *interaction design* built on top is 100%
   new work, not a backend concern at all.
-- **Module import mostly moves off-device, but isn't fully eliminated.**
-  Because the iPad never runs its own server, the `NWN_ROOT`/`NWN_HOME` +
-  `project_import.cpp` module-import flow against a local NWN:EE install
-  has nowhere to run on iPad and doesn't need to: importing happens once,
-  on the server's host (the Mac/Linux box from Phase 2). What's left to
-  design is narrower but not zero — the project/area *browsing and editing*
-  UI on iPad still needs its own answer for anything that currently assumes
-  local filesystem access for non-import purposes (screenshots, exported
-  files, `client_preferences.cpp` settings storage) under iPadOS's sandboxed
-  file model.
+- **Project-authoring import moves off-device.** Because the iPad never runs
+  its own server, the `project_import.cpp` module-import flow (NWN:EE
+  install -> editable project JSON/CAF) has nowhere to run on iPad and
+  doesn't need to: that happens once, on the server's host (the Mac/Linux
+  box from Phase 2). What's left to design is narrower but not zero — the
+  project/area *browsing and editing* UI on iPad still needs its own answer
+  for anything that currently assumes local filesystem access for
+  non-import purposes (screenshots, exported files, `client_preferences.cpp`
+  settings storage) under iPadOS's sandboxed file model. This is separate
+  from, and smaller than, the raw game-data transfer problem below.
+
+#### Getting NWN game data onto iPadOS
+
+Project-authoring import moving server-side (above) does **not** mean the
+iPad client is free of needing local game data. `tools/client`'s own
+startup path requires it unconditionally: `client_application.cpp` fails
+outright — "failed to find NWN install; set NWN_ROOT and NWN_HOME" — if it
+can't find a local NWN:EE data tree, independent of whether any server is
+involved, because BioWare/Beamdog's assets are never bundled with rollnw
+and never will be. A remote server supplies authoritative object/module
+state, but resolving a resref to an actual mesh/texture/2da is a client-side
+job today and there is no reason that changes on iPad. This is exactly the
+problem OpenMW's iOS port solves for Morrowind's data files, for the same
+underlying reason (the game data is the user's own legally-owned copy, not
+something the app can ship) — "how do I get my data files onto the
+sandboxed device" is a real, previously-solved problem worth copying from,
+not a novel one.
+
+Two distinct transfers, different size/frequency profiles:
+
+1. **Base NWN:EE data** (`nwn/data` plus any expansions) — large (likely
+   multiple GB), one-time per device.
+2. **Per-module hak sets** — smaller individually, but changes per server/
+   module the user connects to, and needs rechecking whenever a new server
+   is joined.
+
+iOS has no "point at an arbitrary folder on this volume" primitive, so this
+needs a deliberately layered set of mechanisms rather than one, roughly in
+build-it-first order:
+
+1. **Finder/iTunes file sharing** (`UIFileSharingEnabled` +
+   `LSSupportsOpeningDocumentsInPlace` in `Info.plist`) as the primary bulk
+   path. Plug the iPad into the Mac — plausibly the same Mac running the
+   Phase 2 server — and drag the existing `nwn/data`/hak folders straight
+   into the app's Documents from Finder's Files tab. This is nearly free to
+   add (two plist keys, no new code) and, importantly, needs **no new
+   container/package format**: it preserves the same directory layout
+   `ResourceManager` already scans, so the only change on the resource-
+   loading side is pointing its root at the app's Documents directory
+   instead of `NWN_ROOT` — the scanning code itself is unchanged from
+   desktop.
+2. **AirDrop / Share Sheet "Open in rollnw-client"** for single files (one
+   hak, a small pre-zipped module pack) — register a custom document type
+   (UTI) so dropping a file via AirDrop, Mail, or another app's share sheet
+   routes it straight into the app through `application(_:open:)`. This is
+   the literal "AirDrop, like OpenMW" mechanism the question was about —
+   good for small, occasional transfers, not a realistic way to move a
+   multi-GB base install.
+3. **Files app document picker** (`UIDocumentPickerViewController` +
+   security-scoped bookmarks) — the Apple-blessed way to point at a folder
+   already sitting in iCloud Drive or a third-party cloud provider without
+   copying it. Useful once data is already staged somewhere cloud-synced,
+   but doesn't solve getting it there in the first place — complements (1)
+   and (2), doesn't replace them.
+4. **Stretch: an in-app LAN HTTP(S) upload server**, foreground-only (iOS
+   suspends background sockets), so transfer can happen wirelessly from any
+   machine on the same Wi-Fi without a cable — the same pattern several iOS
+   file-manager/emulator apps use to avoid requiring one. Real added
+   complexity (a small server plus a minimal upload page, and it should
+   require an on-screen PIN so other devices on the same network can't push
+   files uninvited). Worth building only if cable-based Finder sharing
+   proves too much friction in practice — not a day-one requirement, and
+   unrelated to the GameNetworkingSockets game-protocol work above (it's a
+   plain file upload, nothing to do with the game server connection).
+
+Recommend shipping (1) first — it covers the large bulk-transfer case for
+near-zero implementation cost and requires no new resource-loading code.
+Add (2) next for convenience on small files. Treat (3) and (4) as later
+polish once the core transfer story already works, not blockers for a
+first working iPad build.
+
+Worth scoping into Phase 3 regardless of which mechanisms ship: a
+connect-time **data manifest check** — the server reports which haks/
+version hashes a module expects, the client diffs that against its local
+data tree and tells the user exactly what's missing *before* anything fails
+deep inside resource loading. On desktop a missing hak is at least visible
+in a terminal/log; on a touch device with no console, "here's what to go
+get and where" is the difference between a usable error and a silent pink
+missing-texture box with no explanation.
 
 Given the size of this phase, treat it as its own planning pass once
 Phases 1-2 land and the open questions above have answers — this document
@@ -338,6 +416,7 @@ guess wrong.
 | SPIRV-Cross MSL gaps on this project's actual shaders | Storage buffer register convention, compute shaders, shared `.inc.hlsl` | Validate against the real shader set early in Phase 1, not a synthetic test shader |
 | GNS's iOS embedded-build mode (client role only — iPad never hosts) is unexercised by this project | Lower risk than an unsupported platform, but still unverified in practice | Named as an early spike with a fallback path, not assumed to work untested |
 | iPad client has no reachable server to use without Phase 2 | iPad is client-only (`local_server.cpp`'s subprocess model doesn't apply there); the client is inert without a `rollnw-server` running elsewhere | Noted as a soft prerequisite in Phase 3, not just a graphics dependency |
+| iPad has no local game data and no way to point at an arbitrary folder | `client_application.cpp` won't even start without a resolvable NWN:EE data tree; this holds regardless of server location | Layered transfer plan in Phase 3 (Finder file sharing first, AirDrop/UTI second, Files picker + LAN upload later); no new asset package format needed |
 | One-laptop verification | Phase 0/1 acceptance currently depends on manual runs on a single M5 Air | Phase 2 adds macOS CI specifically to turn this into a durable guarantee |
 | iPadOS sandboxing vs the desktop import/project model | `project_import.cpp`'s filesystem assumptions don't hold | Named as an open question to resolve before Phase 3 work starts, not mid-phase |
 
