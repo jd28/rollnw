@@ -8,6 +8,10 @@ acceptance. Record the reason and verification limits, then move it to closed/
 and update local links. Preserve the original contracts, regression evidence and
 checkpoint history. Related work that remains unresolved stays active.
 
+## Platform work
+
+- [macOS/iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md) — planning only; phased native Metal backend, macOS client/server, then touch-adapted full toolset on iPad.
+
 ## Renderer work
 
 Start with [renderer status and next work](rendering-performance-overhaul.md)
