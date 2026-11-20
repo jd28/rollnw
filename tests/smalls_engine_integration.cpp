@@ -5797,3 +5797,746 @@ TEST_F(SmallsEngineIntegration, ObjInvalidComparisonNoCast)
 
     nw::kernel::objects().destroy(creature->handle());
 }
+
+// == NWN1 combat-rules completion ===========================================
+// Regressions for the gaps closed out of issues/nwn1-combat-rules-completion.md.
+// Each test names the rule it pins rather than the function it calls, because
+// several of these were "implemented" in the sense that code existed and
+// nothing ever reached it.
+
+namespace {
+
+// Loads drorry.utc and runs `source`'s `main(Creature, int)` for each selector,
+// returning the integer results. Several of the rules below are cheapest to pin
+// by asking the rules layer the same question under different creature state.
+struct CombatRuleHarness {
+    nw::smalls::Runtime* rt = nullptr;
+    nw::Creature* creature = nullptr;
+    nw::smalls::Script* script = nullptr;
+
+    int call(const char* fn, int selector) const
+    {
+        nw::Vector<nw::smalls::Value> args;
+        auto value = nw::smalls::Value::make_object(creature->handle());
+        value.type_id = rt->object_subtype_for_tag(creature->handle().type);
+        args.push_back(value);
+        args.push_back(nw::smalls::Value::make_int(selector));
+        const auto result = rt->execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    }
+};
+
+} // namespace
+
+#define COMBAT_RULE_HARNESS(harness, module_name, source_text)                      \
+    auto& rt_ref = nw::kernel::runtime();                                           \
+    rt_ref.add_module_path(fs::path("stdlib/nwn1"));                                \
+    auto* loaded_creature = nw::kernel::objects().load_file<nw::Creature>(          \
+        "test_data/user/development/drorry.utc");                                   \
+    ASSERT_NE(loaded_creature, nullptr);                                            \
+    auto* loaded_script = rt_ref.load_module_from_source(module_name, source_text); \
+    ASSERT_NE(loaded_script, nullptr);                                              \
+    ASSERT_EQ(loaded_script->errors(), 0) << "Script has errors";                   \
+    CombatRuleHarness harness{&rt_ref, loaded_creature, loaded_script};
+
+// The attack progression is one attack plus one per `iter` points of BAB past
+// the first. `ab / iter` under-counted at every tier and gave a BAB 1-4
+// character zero attacks, which left resolve_attack_type() returning
+// attack_type_invalid for low-level creatures.
+TEST_F(SmallsEngineIntegration, Nwn1AttackCountProgressionIsOneBasedNotFloorDivision)
+{
+    std::string_view source = R"(
+        import nwn1.combat as NC;
+        import nwn1.creature as NCre;
+        import nwn1.constants as Const;
+
+        fn main(target: Creature, selector: int): int {
+            var bab = NC.base_attack_bonus(target);
+            var iter = NCre.weapon_iteration_for_attack(target, Const.attack_type_onhand);
+            if (selector == 0) { return bab; }
+            if (selector == 1) { return iter; }
+            if (selector == 2) { return NC.resolve_number_of_attacks_onhand(target); }
+            // The progression this is supposed to implement, derived here
+            // independently of the implementation under test.
+            if (bab < 1 || iter <= 0) { return 0; }
+            var expected = 1 + (bab - 1) / iter;
+            if (iter == 5 && expected > 4) { expected = 4; }
+            if (iter == 3 && expected > 6) { expected = 6; }
+            return expected;
+        }
+    )";
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* script = rt.load_module_from_source("test.nwn1_attack_progression", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    // Two fixtures on purpose: one epic creature to pin the 4/6 caps, and one
+    // weak creature to pin the low-BAB end, which is where `ab / iter`
+    // produced zero attacks and is invisible once a cap applies.
+    for (const char* path : {"test_data/user/development/drorry.utc",
+             "test_data/user/development/nw_chicken.utc"}) {
+        SCOPED_TRACE(path);
+        auto* creature = nw::kernel::objects().load_file<nw::Creature>(path);
+        ASSERT_NE(creature, nullptr);
+
+        auto call = [&](int selector) {
+            nw::Vector<nw::smalls::Value> args;
+            auto value = nw::smalls::Value::make_object(creature->handle());
+            value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+            args.push_back(value);
+            args.push_back(nw::smalls::Value::make_int(selector));
+            const auto result = rt.execute_script(script, "main", args);
+            EXPECT_TRUE(result.ok()) << result.error_message;
+            return result.value.data.ival;
+        };
+
+        const int bab = call(0);
+        const int iter = call(1);
+        const int onhand = call(2);
+        const int expected = call(3);
+
+        EXPECT_GT(iter, 0);
+        EXPECT_EQ(onhand, expected);
+        if (bab >= 1) {
+            EXPECT_GE(onhand, 1)
+                << "a creature with BAB " << bab << " must get at least one attack";
+            if (bab < iter) {
+                // The exact case the old formula got wrong: floor(bab/iter) == 0.
+                EXPECT_EQ(onhand, 1);
+            }
+        }
+    }
+}
+
+// Rapid Shot and Flurry of Blows registered a -2 attack penalty and no extra
+// attack, so taking either feat made a character strictly worse.
+TEST_F(SmallsEngineIntegration, Nwn1RapidShotAndFlurryGrantTheirExtraAttack)
+{
+    std::string_view source = R"(
+        import nwn1.combat as NC;
+        import nwn1.combat_modes as modes;
+        import nwn1.constants as Const;
+        from nwn1.propsets import { CreatureCombat };
+
+        fn main(target: Creature, selector: int): int {
+            var combat = get_propset!(CreatureCombat)(target);
+
+            if (selector == 0) {
+                combat.combat_mode = 0;
+                return NC.resolve_number_of_attacks_onhand(target);
+            }
+            if (selector == 1) {
+                combat.combat_mode = Const.combat_mode_rapid_shot;
+                return NC.resolve_number_of_attacks_onhand(target);
+            }
+            if (selector == 2) {
+                combat.combat_mode = Const.combat_mode_rapid_shot;
+                return modes.can_use(Const.combat_mode_rapid_shot, target) ? 1 : 0;
+            }
+            if (selector == 3) {
+                combat.combat_mode = Const.combat_mode_flurry_of_blows;
+                return NC.resolve_number_of_attacks_onhand(target);
+            }
+            if (selector == 4) {
+                combat.combat_mode = Const.combat_mode_flurry_of_blows;
+                return modes.can_use(Const.combat_mode_flurry_of_blows, target) ? 1 : 0;
+            }
+            // Power Attack is not an extra-attack mode; it must not add one.
+            combat.combat_mode = Const.combat_mode_power_attack;
+            return NC.resolve_number_of_attacks_onhand(target);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_mode_extra_attacks", source);
+
+    const int baseline = harness.call("main", 0);
+    ASSERT_GE(baseline, 1);
+
+    const int rapid_shot = harness.call("main", 1);
+    const int rapid_shot_usable = harness.call("main", 2);
+    const int flurry = harness.call("main", 3);
+    const int flurry_usable = harness.call("main", 4);
+    const int power_attack = harness.call("main", 5);
+
+    // The extra attack is gated on the mode being usable with what is equipped,
+    // so assert the implication rather than assuming the fixture's loadout.
+    EXPECT_EQ(rapid_shot, baseline + (rapid_shot_usable ? 1 : 0));
+    EXPECT_EQ(flurry, baseline + (flurry_usable ? 1 : 0));
+    EXPECT_EQ(power_attack, baseline) << "Power Attack must not grant an extra attack";
+}
+
+// Improved Parry (feat.2da row 18) grants +4 to Parry skill checks. It was
+// declared in constants.smalls and referenced nowhere.
+TEST_F(SmallsEngineIntegration, Nwn1ImprovedParryAddsFourToParrySkill)
+{
+    std::string_view source = R"(
+        import nwn1.creature as NCre;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.constants as Const;
+        import core.object as Obj;
+
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+            if (selector == 0) {
+                Cre.remove_feat(target, Const.feat_improved_parry);
+                return NCre.get_skill_rank_full(target, Const.skill_parry, Obj.invalid);
+            }
+            if (selector == 1) {
+                Cre.add_feat(target, Const.feat_improved_parry);
+                return NCre.get_skill_rank_full(target, Const.skill_parry, Obj.invalid);
+            }
+            // Improved Parry must not leak into an unrelated skill.
+            Cre.add_feat(target, Const.feat_improved_parry);
+            return NCre.get_skill_rank_full(target, Const.skill_discipline, Obj.invalid);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_improved_parry", source);
+
+    const int without = harness.call("main", 0);
+    const int with = harness.call("main", 1);
+    const int discipline_with = harness.call("main", 2);
+
+    EXPECT_EQ(with, without + 4);
+
+    // Re-check discipline with the feat removed to confirm the +4 was Parry-only.
+    std::string_view discipline_source = R"(
+        import nwn1.creature as NCre;
+        import nwn1.creature_state as Cre;
+        import nwn1.constants as Const;
+        import core.object as Obj;
+
+        fn main(target: Creature, _selector: int): int {
+            Cre.remove_feat(target, Const.feat_improved_parry);
+            return NCre.get_skill_rank_full(target, Const.skill_discipline, Obj.invalid);
+        }
+    )";
+    auto* discipline_script = rt_ref.load_module_from_source(
+        "test.nwn1_improved_parry_discipline", discipline_source);
+    ASSERT_NE(discipline_script, nullptr);
+    ASSERT_EQ(discipline_script->errors(), 0);
+    CombatRuleHarness discipline_harness{&rt_ref, loaded_creature, discipline_script};
+    EXPECT_EQ(discipline_with, discipline_harness.call("main", 0));
+}
+
+// Base-tier Resist Energy now resolves through mfeat_resist_energy, which had
+// been declared and never populated.
+TEST_F(SmallsEngineIntegration, Nwn1ResistEnergyResolvesThroughMasterFeat)
+{
+    std::string_view source = R"(
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.master_feats as mfeat;
+        import nwn1.constants as Const;
+
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+            if (selector == 0) {
+                Cre.remove_feat(target, Const.feat_resist_energy_fire);
+                return mfeat.resolve(target, Const.mfeat_resist_energy, Const.damage_type_fire);
+            }
+            if (selector == 1) {
+                Cre.add_feat(target, Const.feat_resist_energy_fire);
+                return mfeat.resolve(target, Const.mfeat_resist_energy, Const.damage_type_fire);
+            }
+            // Fire resistance must not answer for a different element.
+            Cre.add_feat(target, Const.feat_resist_energy_fire);
+            return mfeat.resolve(target, Const.mfeat_resist_energy, Const.damage_type_cold);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_resist_energy_mfeat", source);
+
+    EXPECT_EQ(harness.call("main", 0), 0);
+    EXPECT_EQ(harness.call("main", 1), 5);
+    EXPECT_EQ(harness.call("main", 2), 0);
+}
+
+// Mechanical guard for the audit's systemic finding: a master-feat category
+// whose registrations and consumers disagree can only ever resolve to 0 while
+// looking implemented. This is the check that would have caught the
+// weapon-category bug without an audit.
+TEST_F(SmallsEngineIntegration, Nwn1MasterFeatRegistrationsAreSelfConsistent)
+{
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.init as Init;
+        import nwn1.master_feats as mfeat;
+        import nwn1.constants as Const;
+
+        fn problem_count(): int {
+            Init.init();
+            return arr.len(mfeat.validate());
+        }
+
+        // Registration count for a category id, so a failure says which one.
+        fn registrations(mf: int): int {
+            Init.init();
+            return mfeat.registration_count(Const.MasterFeat(mf));
+        }
+
+        fn bonus(mf: int): int {
+            Init.init();
+            return mfeat.bonus_of(Const.MasterFeat(mf));
+        }
+    )";
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* script = rt.load_module_from_source("test.nwn1_mfeat_validate", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call1 = [&](const char* fn, int arg) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(nw::smalls::Value::make_int(arg));
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    nw::Vector<nw::smalls::Value> no_args;
+    const auto count_result = rt.execute_script(script, "problem_count", no_args);
+    ASSERT_TRUE(count_result.ok()) << count_result.error_message;
+
+    // Report the offending categories rather than just the count, so a failure
+    // points at the category instead of sending the reader back to the guard.
+    if (count_result.value.data.ival != 0) {
+        constexpr int mfeat_arcane_defense = 7;
+        constexpr int mfeat_epic_spell = 14;
+        constexpr int mfeat_resist_energy_epic = 17;
+        for (int mf = 0; mf < 18; ++mf) {
+            const int registrations = call1("registrations", mf);
+            const int bonus = call1("bonus", mf);
+            const bool documented_inert = mf == mfeat_arcane_defense
+                || mf == mfeat_epic_spell
+                || mf == mfeat_resist_energy_epic;
+            const bool consistent = documented_inert
+                ? (registrations == 0 && bonus == 0)
+                : (registrations > 0 && bonus != 0);
+            EXPECT_TRUE(consistent)
+                << "master feat " << mf << ": registrations=" << registrations
+                << " bonus=" << bonus
+                << (documented_inert ? " (documented inert)" : "");
+        }
+    }
+    EXPECT_EQ(count_result.value.data.ival, 0);
+
+    // Weapon-keyed categories must carry real base items, not only the
+    // BaseItemType(-1) unarmed sentinel -- that is exactly how Weapon Focus and
+    // friends silently did nothing for every real weapon.
+    constexpr int mfeat_improved_crit = 0;
+    constexpr int mfeat_weapon_focus = 1;
+    constexpr int mfeat_weapon_spec = 2;
+    constexpr int mfeat_weapon_of_choice = 9;
+    constexpr int mfeat_weapon_focus_epic = 10;
+    constexpr int mfeat_weapon_spec_epic = 11;
+    constexpr int mfeat_overwhelming_crit = 12;
+    constexpr int mfeat_devastating_crit = 13;
+    for (const int mf : {mfeat_improved_crit, mfeat_weapon_focus, mfeat_weapon_spec,
+             mfeat_weapon_of_choice, mfeat_weapon_focus_epic, mfeat_weapon_spec_epic,
+             mfeat_overwhelming_crit, mfeat_devastating_crit}) {
+        EXPECT_GT(call1("registrations", mf), 1)
+            << "weapon-keyed master feat " << mf
+            << " registers only the unarmed sentinel";
+    }
+}
+
+// Negative damage immunity is vulnerability -- the target takes extra damage.
+// damage_immunity_effect_delta() has always been able to return a negative
+// delta; the smalls layer clamped it to 0 and threw the vulnerability away.
+TEST_F(SmallsEngineIntegration, Nwn1NegativeDamageImmunityIsVulnerability)
+{
+    std::string_view source = R"(
+        import core.object as Obj;
+        import nwn1.combat as NC;
+        import nwn1.effects as Eff;
+        import nwn1.init as Init;
+        import nwn1.constants as Const;
+
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+
+            if (selector == 0) {
+                return NC.resolve_damage_immunity(target, Const.damage_type_fire, Obj.invalid);
+            }
+            if (selector == 1) {
+                Obj.apply_effect(target, Eff.damage_immunity(Const.damage_type_fire, -50));
+                return NC.resolve_damage_immunity(target, Const.damage_type_fire, Obj.invalid);
+            }
+            if (selector == 2) {
+                // All of a weapon's applicable physical types being
+                // vulnerabilities must survive the best-of-types pick, which
+                // used to start its max at 0 and floored every negative away.
+                Obj.apply_effect(target, Eff.damage_immunity(Const.damage_type_slashing, -25));
+                return NC.resolve_damage_base_immunity(target, Obj.invalid, false, false, true);
+            }
+            if (selector == 3) {
+                Obj.apply_effect(target, Eff.damage_immunity(Const.damage_type_acid, 50));
+                return NC.resolve_damage_immunity(target, Const.damage_type_acid, Obj.invalid);
+            }
+            return 0;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_vulnerability", source);
+
+    EXPECT_EQ(harness.call("main", 0), 0) << "no immunity effects means no delta";
+    EXPECT_EQ(harness.call("main", 1), -50) << "a net-negative immunity must survive as vulnerability";
+    EXPECT_EQ(harness.call("main", 2), -25) << "best-of-physical-types must be able to report a vulnerability";
+    // Positive immunity must be untouched by the vulnerability change.
+    EXPECT_EQ(harness.call("main", 3), 50) << "an immunity increase still resolves normally";
+}
+
+// A helpless target is flat-footed: it loses its dodge AC, and the
+// target_state flat-footed bit (checked by Deflect Arrows and Sneak Attack, and
+// previously never set by anything) is reported.
+TEST_F(SmallsEngineIntegration, Nwn1HelplessTargetIsFlatFootedAndLosesDodgeArmorClass)
+{
+    std::string_view source = R"(
+        import core.object as Obj;
+        import nwn1.combat as NC;
+        import nwn1.combat_primitives as Comb;
+        import nwn1.effects as Eff;
+        import nwn1.init as Init;
+        import nwn1.modifier as Mod;
+        import nwn1.constants as Const;
+        from nwn1.propsets import { CreatureCombat };
+
+        // Haste's +4 dodge is the simplest dodge source to stand up here.
+        fn hasted_armor_class(target: Creature): int {
+            var combat = get_propset!(CreatureCombat)(target);
+            combat.hasted = 1;
+            return Mod.compute_armor_class(target, Obj.invalid);
+        }
+
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+
+            if (selector == 0) {
+                var combat = get_propset!(CreatureCombat)(target);
+                combat.hasted = 0;
+                return Mod.compute_armor_class(target, Obj.invalid);
+            }
+            if (selector == 1) { return hasted_armor_class(target); }
+            if (selector == 2) { return Comb.is_helpless(target) ? 1 : 0; }
+            if (selector == 3) {
+                Obj.apply_effect(target, Eff.paralyze());
+                return Comb.is_helpless(target) ? 1 : 0;
+            }
+            if (selector == 4) { return hasted_armor_class(target); }
+            if (selector == 5) {
+                // The trace is the authoritative armor class on one attack
+                // path, so it has to agree with compute_armor_class().
+                return Mod.explain_armor_class(target, Obj.invalid).armor_class;
+            }
+            return 0;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_flat_footed", source);
+
+    const int unhasted = harness.call("main", 0);
+    const int hasted = harness.call("main", 1);
+    EXPECT_EQ(hasted, unhasted + 4) << "haste contributes +4 dodge while not helpless";
+
+    EXPECT_EQ(harness.call("main", 2), 0) << "fixture must start out able to act";
+    EXPECT_EQ(harness.call("main", 3), 1) << "paralysis must read as helpless";
+
+    const int hasted_while_helpless = harness.call("main", 4);
+    EXPECT_EQ(hasted_while_helpless, unhasted) << "a helpless target keeps no dodge AC";
+    EXPECT_EQ(harness.call("main", 5), hasted_while_helpless)
+        << "explain_armor_class must match compute_armor_class";
+}
+
+// Flat-footed also has to reach combat's target_state, which is what Sneak
+// Attack and Deflect Arrows actually consult.
+TEST_F(SmallsEngineIntegration, Nwn1HelplessTargetReportsFlatFootedTargetState)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/nw_chicken.utc");
+    ASSERT_NE(attacker, nullptr);
+    ASSERT_NE(target, nullptr);
+
+    std::string_view source = R"(
+        import core.object as Obj;
+        import nwn1.combat as NC;
+        import nwn1.effects as Eff;
+        import nwn1.init as Init;
+
+        const target_state_flatfooted = 128;
+
+        fn main(attacker: Creature, target: Creature, apply_paralysis: int): int {
+            Init.init();
+            if (apply_paralysis != 0) {
+                Obj.apply_effect(target, Eff.paralyze());
+            }
+            var state = NC.resolve_target_state(attacker, target, 4.0);
+            return (state / target_state_flatfooted) % 2;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_flat_footed_state", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call = [&](int apply_paralysis) {
+        nw::Vector<nw::smalls::Value> args;
+        auto a = nw::smalls::Value::make_object(attacker->handle());
+        a.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        auto t = nw::smalls::Value::make_object(target->handle());
+        t.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(a);
+        args.push_back(t);
+        args.push_back(nw::smalls::Value::make_int(apply_paralysis));
+        const auto result = rt.execute_script(script, "main", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    EXPECT_EQ(call(0), 0) << "an unimpaired target is not flat-footed";
+    EXPECT_EQ(call(1), 1) << "a paralyzed target must set the flat-footed bit";
+}
+
+// Damage application and the death effect. Nothing in the attack pipeline wrote
+// hit points before this, so a resolved attack had no consequence at all.
+TEST_F(SmallsEngineIntegration, Nwn1DamageApplicationAndDeathEffectReachHitPoints)
+{
+    std::string_view source = R"(
+        import core.object as Obj;
+        import nwn1.effects as Eff;
+        import nwn1.hitpoints as HP;
+        import nwn1.init as Init;
+        from nwn1.propsets import { CreatureHealth };
+
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+            var health = get_propset!(CreatureHealth)(target);
+
+            if (selector == 0) { return HP.get_current_hitpoints(target); }
+            if (selector == 1) { return HP.apply_damage(target, 3); }
+            if (selector == 2) { return health.hp_current; }
+            if (selector == 3) {
+                // Overkill is clamped, and the return value reports what was
+                // actually removed rather than what was asked for.
+                return HP.apply_damage(target, 100000);
+            }
+            if (selector == 4) { return health.hp_current; }
+            if (selector == 5) {
+                HP.heal_damage(target, 100000);
+                return health.hp_current > 0 ? 1 : 0;
+            }
+            if (selector == 6) {
+                Obj.apply_effect(target, Eff.death());
+                return health.hp_current;
+            }
+            // Damage below 1 must be a no-op, not a heal.
+            return HP.apply_damage(target, 0);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_damage_application", source);
+
+    const int start_hp = harness.call("main", 0);
+    ASSERT_GT(start_hp, 3) << "fixture needs headroom for this to mean anything";
+
+    EXPECT_EQ(harness.call("main", 1), 3);
+    EXPECT_EQ(harness.call("main", 2), start_hp - 3);
+
+    EXPECT_EQ(harness.call("main", 3), start_hp - 3) << "overkill reports only what was removed";
+    EXPECT_EQ(harness.call("main", 4), 0);
+
+    EXPECT_EQ(harness.call("main", 5), 1) << "healing must bring the fixture back";
+    EXPECT_EQ(harness.call("main", 6), 0) << "the death effect drops the target to 0 hit points";
+    EXPECT_EQ(harness.call("main", 7), 0) << "non-positive damage is a no-op";
+}
+
+// Evasion / Improved Evasion change what a Reflex save means for damage.
+// The save roll is random, so this pins the *set* of reachable outcomes over
+// many trials rather than any single roll.
+TEST_F(SmallsEngineIntegration, Nwn1EvasionChangesReflexDamageOutcomes)
+{
+    std::string_view source = R"(
+        import core.bit as bit;
+        import core.object as Obj;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.saving_throws as Saves;
+        import nwn1.constants as Const;
+
+        const amount = 10;
+
+        // Bit 0: saw 0 damage. Bit 1: saw half. Bit 2: saw full.
+        fn outcomes(target: Creature, selector: int): int {
+            Init.init();
+            Cre.remove_feat(target, Const.feat_evasion);
+            Cre.remove_feat(target, Const.feat_improved_evasion);
+            if (selector == 1) { Cre.add_feat(target, Const.feat_evasion); }
+            if (selector == 2) { Cre.add_feat(target, Const.feat_improved_evasion); }
+
+            var seen = 0;
+            for (var i = 0; i < 400; i += 1) {
+                var taken = Saves.resolve_reflex_damage(
+                    target, 10, amount, Const.saving_throw_vs_all, Obj.invalid);
+                if (taken == 0) { seen = bit.or(seen, 1); }
+                elif (taken == amount / 2) { seen = bit.or(seen, 2); }
+                elif (taken == amount) { seen = bit.or(seen, 4); }
+                else { return -1; }
+            }
+            return seen;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_evasion", source);
+
+    // Both a natural 1 and a natural 20 are reachable in 400 trials, so each
+    // configuration must show exactly its two legal outcomes.
+    EXPECT_EQ(harness.call("outcomes", 0), 2 | 4) << "no feat: half on save, full on failure";
+    EXPECT_EQ(harness.call("outcomes", 1), 1 | 4) << "Evasion: none on save, full on failure";
+    EXPECT_EQ(harness.call("outcomes", 2), 1 | 2) << "Improved Evasion: none on save, half on failure";
+}
+
+// The two save-or-die rules. Both are random, so each is pinned by "never
+// without the feat, and reachable with it".
+TEST_F(SmallsEngineIntegration, Nwn1SaveOrDieRulesRequireTheirFeatAndCanFire)
+{
+    std::string_view source = R"(
+        import nwn1.combat as NC;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.master_feats as mfeat;
+        import nwn1.constants as Const;
+
+        fn death_attack_kills(attacker: Creature, target: Creature, trials: int): int {
+            Init.init();
+            var kills = 0;
+            for (var i = 0; i < trials; i += 1) {
+                if (NC.resolve_death_attack_kill(attacker, target)) { kills += 1; }
+            }
+            return kills;
+        }
+
+        fn death_attack_dc(attacker: Creature, _unused: int): int {
+            Init.init();
+            return NC.death_attack_dc(attacker);
+        }
+
+        fn assassin_levels(attacker: Creature, _unused: int): int {
+            return Cre.get_level_by_class(attacker, Const.class_type_assassin);
+        }
+
+        // Devastating Critical's data wiring: the feat must resolve for a real
+        // base item, which is what the headline audit bug broke.
+        fn devastating_critical_registered(_attacker: Creature, _unused: int): int {
+            Init.init();
+            return mfeat.get(Const.mfeat_devastating_crit, Const.base_item_longsword)
+                != Const.feat_type_invalid ? 1 : 0;
+        }
+
+        fn devastating_critical_dc(attacker: Creature, _unused: int): int {
+            Init.init();
+            return NC.devastating_critical_dc(attacker);
+        }
+    )";
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* script = rt.load_module_from_source("test.nwn1_save_or_die", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/nw_chicken.utc");
+    ASSERT_NE(attacker, nullptr);
+    ASSERT_NE(target, nullptr);
+
+    auto obj_arg = [&](nw::Creature* cre) {
+        auto value = nw::smalls::Value::make_object(cre->handle());
+        value.type_id = rt.object_subtype_for_tag(cre->handle().type);
+        return value;
+    };
+
+    auto call_pair = [&](const char* fn, int second) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(obj_arg(attacker));
+        args.push_back(nw::smalls::Value::make_int(second));
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    // Devastating Critical: the per-base-item registration must exist, and the
+    // DC must follow 10 + half level + Strength modifier.
+    EXPECT_EQ(call_pair("devastating_critical_registered", 0), 1)
+        << "mfeat_devastating_crit must resolve for a real base item";
+    EXPECT_GE(call_pair("devastating_critical_dc", 0), 10);
+
+    // Death Attack: no assassin levels on the fixture means it must never fire.
+    const int assassin_levels = call_pair("assassin_levels", 0);
+    nw::Vector<nw::smalls::Value> trial_args;
+    trial_args.push_back(obj_arg(attacker));
+    trial_args.push_back(obj_arg(target));
+    trial_args.push_back(nw::smalls::Value::make_int(200));
+    const auto kills = rt.execute_script(script, "death_attack_kills", trial_args);
+    ASSERT_TRUE(kills.ok()) << kills.error_message;
+
+    if (assassin_levels <= 0) {
+        EXPECT_EQ(kills.value.data.ival, 0)
+            << "Death Attack must not fire without assassin levels";
+    } else {
+        EXPECT_GT(kills.value.data.ival, 0) << "Death Attack must be able to kill";
+        EXPECT_LT(kills.value.data.ival, 200) << "a natural 20 always saves";
+    }
+    EXPECT_GE(call_pair("death_attack_dc", 0), 10);
+}
+
+// Ammunition is spent per ranged attack, and an empty quiver means no attack.
+TEST_F(SmallsEngineIntegration, Nwn1RangedAttacksConsumeAmmunition)
+{
+    std::string_view source = R"(
+        import nwn1.baseitems as BaseItems;
+        import nwn1.combat as NC;
+        import nwn1.init as Init;
+        import nwn1.constants as Const;
+
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+            // Melee weapons need no ammunition and must never be blocked.
+            if (selector == 0) {
+                return NC.consume_ammunition(target, Const.base_item_longsword) ? 1 : 0;
+            }
+            // A bow with no quiver equipped cannot shoot.
+            if (selector == 1) {
+                return NC.consume_ammunition(target, Const.base_item_longbow) ? 1 : 0;
+            }
+            if (selector == 2) { return BaseItems.ammunition_type(Const.base_item_longbow); }
+            if (selector == 3) { return BaseItems.ammunition_type(Const.base_item_longsword); }
+            if (selector == 4) { return BaseItems.arcane_spell_failure(Const.base_item_towershield); }
+            if (selector == 5) { return BaseItems.arcane_spell_failure(Const.base_item_smallshield); }
+            return BaseItems.arcane_spell_failure(Const.base_item_longsword);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_ammunition", source);
+
+    EXPECT_EQ(harness.call("main", 0), 1) << "melee needs no ammunition";
+    EXPECT_EQ(harness.call("main", 1), 0) << "a bow with no arrows cannot attack";
+    EXPECT_EQ(harness.call("main", 2), 1) << "longbow draws arrows (AmmunitionType 1)";
+    EXPECT_EQ(harness.call("main", 3), -1) << "a longsword has no ammunition type";
+
+    // Shield arcane spell failure, straight from baseitems.2da.
+    EXPECT_EQ(harness.call("main", 4), 50) << "tower shield";
+    EXPECT_EQ(harness.call("main", 5), 5) << "small shield";
+    EXPECT_EQ(harness.call("main", 6), 0) << "a longsword contributes none";
+}

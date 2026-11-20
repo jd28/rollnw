@@ -47,6 +47,16 @@ type AttackData {
     special_attack: int;   // 0 = none; else SpecialAttack value that triggered on this hit
 };
 
+// A creature is helpless while paralyzed, stunned, or asleep. Helplessness is
+// what makes a target flat-footed: it loses its dodge AC and is open to Sneak
+// Attack. Presence of the effect is the state, so this probes rather than
+// caching -- no propset field, nothing to keep in sync.
+fn is_helpless(obj: object): bool {
+    return Native.object_find_first_effect_of(obj, Const.effect_type_paralyze as int, -1, 0) >= 0
+        || Native.object_find_first_effect_of(obj, Const.effect_type_stunned as int, -1, 0) >= 0
+        || Native.object_find_first_effect_of(obj, Const.effect_type_sleep as int, -1, 0) >= 0;
+}
+
 fn alignment_flags_from_values(good_evil: int, lawful_chaotic: int): int {
     var result = alignment_flag_none;
 

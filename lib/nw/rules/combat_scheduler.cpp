@@ -135,6 +135,7 @@ struct CombatPolicyCache {
     smalls::BytecodeModule* bytecode_module = nullptr;
     const smalls::CompiledFunction* resolve_attack = nullptr;
     const smalls::CompiledFunction* resolve_attack_cooldown_ticks = nullptr;
+    const smalls::CompiledFunction* commit_attack_damage = nullptr;
     AttackDataOffsetCache offsets;
 };
 
@@ -309,7 +310,10 @@ void scheduled_attack_event_callback(const kernel::EventHandle& ev)
         return;
     }
 
-    combat::resolve_attack(attacker, target);
+    AttackData data;
+    if (combat::resolve_attack(attacker, target, &data)) {
+        combat::commit_attack(&data);
+    }
 }
 
 void auto_attack_event_callback(const kernel::EventHandle& ev)
@@ -336,7 +340,10 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
         return;
     }
 
-    combat::resolve_attack(attacker, target);
+    AttackData data;
+    if (combat::resolve_attack(attacker, target, &data)) {
+        combat::commit_attack(&data);
+    }
 
     auto delay = combat::resolve_attack_cooldown_ticks(attacker, state->round_ticks);
     auto* next = new AutoAttackEvent{.attacker = payload->attacker, .generation = payload->generation};
@@ -389,6 +396,22 @@ bool initialize_policy(smalls::Runtime& runtime)
             candidate.module);
         combat_policy = {};
         return false;
+    }
+
+    // Optional hook: a policy without it resolves attacks without applying
+    // damage, which is how every profile behaved before this existed. An
+    // unexpected signature is ignored rather than fatal, for the same reason.
+    const std::array commit_damage_parameters{runtime.object_type(), runtime.int_type()};
+    candidate.commit_attack_damage = candidate.bytecode_module->get_function("commit_attack_damage");
+    if (candidate.commit_attack_damage
+        && !(function_has_parameters(runtime, candidate.commit_attack_damage,
+                 commit_damage_parameters)
+            && is_int_compatible_type(runtime,
+                candidate.commit_attack_damage->return_type))) {
+        LOG_F(WARNING,
+            "[combat] package policy '{}.commit_attack_damage' has an unexpected signature; ignoring it",
+            candidate.module);
+        candidate.commit_attack_damage = nullptr;
     }
 
     if (!resolve_attack_data_offsets(runtime,
@@ -551,6 +574,49 @@ bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
     auto delay = combat::resolve_attack_cooldown_ticks(attacker, round_ticks);
     combat::schedule_attack(attacker, target, delay);
     return true;
+}
+
+// Applies the resolved damage total to the target through the policy's
+// commit_attack_damage hook. Returns the hit points actually removed.
+int commit_attack_damage(AttackData* data)
+{
+    if (!data || !data->target || data->damage_total <= 0) {
+        return 0;
+    }
+    if (!combat_policy_is_current() || !combat_policy.commit_attack_damage) {
+        return 0;
+    }
+
+    auto& rt = kernel::runtime();
+    Vector<smalls::Value> args;
+    args.push_back(make_object_arg(rt, data->target->handle()));
+    args.push_back(smalls::Value::make_int(data->damage_total));
+
+    const auto result = rt.execute_compiled(combat_policy.bytecode_module,
+        combat_policy.commit_attack_damage, args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "[combat] {}.commit_attack_damage failed: {}",
+            combat_policy.module, result.error_message);
+        return 0;
+    }
+
+    const int applied = result.value.data.ival;
+    if (auto* cre = data->target->as_creature()) {
+        data->is_killing_blow = creature_is_dead(*cre);
+    }
+    return applied;
+}
+
+int commit_attack(AttackData* data)
+{
+    if (!data || !data->target) {
+        return 0;
+    }
+
+    // Damage lands before effects so that an effect keyed off the target being
+    // dead (or alive) sees the post-damage state.
+    const int applied = commit_attack_damage(data);
+    return applied + commit_attack_effects(data);
 }
 
 int commit_attack_effects(AttackData* data)

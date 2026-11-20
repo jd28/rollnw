@@ -643,11 +643,18 @@ fn _compute_ac_creature(target: Creature, attacker: object): int {
         - _ac_max(target, Const.effect_type_ac_decrease, Const.ac_deflection, attacker),
         ac_min, ac_max);
 
-    // Dodge AC: sum effects + modifier registry.
-    dodge += _ac_sum(target, Const.effect_type_ac_increase, Const.ac_dodge, attacker)
-           - _ac_sum(target, Const.effect_type_ac_decrease, Const.ac_dodge, attacker);
-    dodge += _ac_mod(target, Const.ac_dodge, attacker);
-    dodge = Math.clamp(dodge, ac_min, ac_max);
+    // Dodge AC: sum effects + modifier registry. A flat-footed (helpless)
+    // target keeps none of it -- dodge bonuses require the freedom to move.
+    // This covers the Haste bonus seeded above as well as Dodge, Tumble, and
+    // combat-mode dodge from the registry.
+    if (C.is_helpless(target)) {
+        dodge = 0;
+    } else {
+        dodge += _ac_sum(target, Const.effect_type_ac_increase, Const.ac_dodge, attacker)
+               - _ac_sum(target, Const.effect_type_ac_decrease, Const.ac_dodge, attacker);
+        dodge += _ac_mod(target, Const.ac_dodge, attacker);
+        dodge = Math.clamp(dodge, ac_min, ac_max);
+    }
 
     return result + natural + armor + deflect + dodge + shield;
 }
@@ -788,7 +795,19 @@ fn explain_armor_class(target: object, attacker: object): ArmorClassTrace {
         });
     }
 
-    var dodge_base = combat.hasted != 0 ? 4 : 0;
+    // A flat-footed (helpless) target keeps no dodge AC. Suppressed here as
+    // well as in _compute_ac_creature() because the attack path takes its
+    // authoritative armor class from this trace's total.
+    const flat_footed = C.is_helpless(creature);
+    if (flat_footed) {
+        arr.push(terms, ArmorClassTraceTerm {
+            tag = "flat_footed_dodge_suppressed",
+            value = 0,
+            subtype = Const.ac_dodge as int,
+        });
+    }
+
+    var dodge_base = (!flat_footed && combat.hasted != 0) ? 4 : 0;
     if (dodge_base != 0) {
         arr.push(terms, ArmorClassTraceTerm {
             tag = "haste_dodge_armor_class",
@@ -797,8 +816,11 @@ fn explain_armor_class(target: object, attacker: object): ArmorClassTrace {
         });
     }
 
-    var dodge_effect = _ac_sum(creature, Const.effect_type_ac_increase, Const.ac_dodge, attacker)
-        - _ac_sum(creature, Const.effect_type_ac_decrease, Const.ac_dodge, attacker);
+    var dodge_effect = 0;
+    if (!flat_footed) {
+        dodge_effect = _ac_sum(creature, Const.effect_type_ac_increase, Const.ac_dodge, attacker)
+            - _ac_sum(creature, Const.effect_type_ac_decrease, Const.ac_dodge, attacker);
+    }
     if (dodge_effect != 0) {
         arr.push(terms, ArmorClassTraceTerm {
             tag = "dodge_effect_armor_class",
@@ -807,7 +829,10 @@ fn explain_armor_class(target: object, attacker: object): ArmorClassTrace {
         });
     }
 
-    var dodge_mod = _ac_mod(creature, Const.ac_dodge, attacker);
+    var dodge_mod = 0;
+    if (!flat_footed) {
+        dodge_mod = _ac_mod(creature, Const.ac_dodge, attacker);
+    }
     if (dodge_mod != 0) {
         arr.push(terms, ArmorClassTraceTerm {
             tag = "dodge_modifier_armor_class",

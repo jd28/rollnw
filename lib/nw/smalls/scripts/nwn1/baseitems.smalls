@@ -280,6 +280,37 @@ fn epic_weapon_devastating_critical_feat(base_item: BaseItemType): int {
     return Array.get(_rules, index).epic_weapon_devastating_critical_feat;
 }
 
+// Raw baseitems.2da MaxRange. Exposed for ranged-range work but deliberately
+// not consumed yet: the column's unit is not documented anywhere in the data
+// (melee weapons carry 100 and a longbow 200, so it is plainly not metres) and
+// gating attacks on a guessed unit would be worse than not gating them.
+fn max_range(base_item: BaseItemType): int {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
+        return 0;
+    }
+    return Array.get(_rules, index).max_range;
+}
+
+// Ammunition type a ranged weapon consumes (baseitems.2da AmmunitionType),
+// or -1 for weapons that need none -- slings, darts, thrown weapons.
+fn ammunition_type(base_item: BaseItemType): int {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
+        return -1;
+    }
+    return Array.get(_rules, index).ammunition_type;
+}
+
+// Arcane spell failure percentage contributed by wearing/wielding this item.
+fn arcane_spell_failure(base_item: BaseItemType): int {
+    var index = base_item as int;
+    if (!_is_valid_index(index)) {
+        return 0;
+    }
+    return Array.get(_rules, index).arcane_spell_failure;
+}
+
 fn weapon_of_choice_feat(base_item: BaseItemType): int {
     var index = base_item as int;
     if (!_is_valid_index(index)) {

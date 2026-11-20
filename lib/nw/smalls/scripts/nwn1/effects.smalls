@@ -45,6 +45,16 @@ fn register_effect_types() {
     _register_effect_type(Const.effect_type_haste, Const.object_mask_creature, effect_event_apply_remove);
     _register_effect_type(Const.effect_type_temporary_hitpoints, Const.object_mask_creature, effect_event_apply_remove);
 
+    // Death takes effect on apply and has nothing to undo on remove.
+    _register_effect_type(Const.effect_type_death, Const.object_mask_creature, effect_event_apply);
+
+    // Helpless conditions. These carry no apply/remove bookkeeping of their
+    // own: presence on the creature is the state, probed by
+    // combat_primitives.is_helpless().
+    _register_effect_type(Const.effect_type_paralyze, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_stunned, Const.object_mask_creature, effect_event_none);
+    _register_effect_type(Const.effect_type_sleep, Const.object_mask_creature, effect_event_none);
+
     _register_effect_type(Const.effect_type_miss_chance, Const.object_mask_creature, effect_event_none);
 
     _register_effect_type(Const.effect_type_saving_throw_increase, Const.object_mask_creature, effect_event_none);
@@ -70,6 +80,15 @@ fn _on_haste_effect(cre: Creature, is_apply: bool) {
     if (combat.hasted == 0) {
         combat.attacks_extra -= 1;
     }
+}
+
+// Instant death: drop the creature to 0 hit points. combat_scheduler's
+// is-dead check reads hp_current <= 0, so this is the whole of it.
+fn _on_death_effect(cre: Creature) {
+    var health = get_propset!(CreatureHealth)(cre);
+    if (health.hp_current <= 0) { return; }
+    health.hp_current = 0;
+    NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
 }
 
 fn _on_temp_hitpoints_effect(cre: Creature, effect: eff.Effect, is_apply: bool) {
@@ -98,6 +117,8 @@ fn on_effects(obj: object, effects_batch: array!(eff.Effect), is_apply: bool) {
                 var effect_type = eff.get_type(effect);
                 if (effect_type == Const.effect_type_haste as int) {
                     _on_haste_effect(cre, is_apply);
+                } elif (effect_type == Const.effect_type_death as int) {
+                    if (is_apply) { _on_death_effect(cre); }
                 } elif (effect_type == Const.effect_type_temporary_hitpoints as int) {
                     _on_temp_hitpoints_effect(cre, effect, is_apply);
                 } elif (effect_type == Const.effect_type_damage_immunity_increase as int
@@ -117,6 +138,32 @@ fn on_effects(obj: object, effects_batch: array!(eff.Effect), is_apply: bool) {
         default: {
         }
     }
+}
+
+// == Condition constructors =================================================
+
+fn death(): eff.Effect {
+    var result = eff.create();
+    eff.set_type(result, Const.effect_type_death as int);
+    return result;
+}
+
+fn paralyze(): eff.Effect {
+    var result = eff.create();
+    eff.set_type(result, Const.effect_type_paralyze as int);
+    return result;
+}
+
+fn stunned(): eff.Effect {
+    var result = eff.create();
+    eff.set_type(result, Const.effect_type_stunned as int);
+    return result;
+}
+
+fn sleep(): eff.Effect {
+    var result = eff.create();
+    eff.set_type(result, Const.effect_type_sleep as int);
+    return result;
 }
 
 fn ability_modifier(ability: Const.Ability, modifier: int): eff.Effect {

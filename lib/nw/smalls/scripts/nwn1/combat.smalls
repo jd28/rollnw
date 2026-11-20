@@ -5,8 +5,8 @@ import nwn1.special_attack as special_attack;
 import nwn1.classes as Classes;
 
 from nwn1.combat_primitives import { AttackData, DamageResult };
-from nwn1.propsets import { CombatEpochKeys, CombatWeapon, CreatureCombat, CreatureCombatCache, CreatureStats };
-from core.item import { BaseItemType };
+from nwn1.propsets import { CombatEpochKeys, CombatWeapon, CreatureCombat, CreatureCombatCache, CreatureStats, ItemStats };
+from core.item import { BaseItemType, EquipIndex };
 from core.types import { DamageRoll, DiceRoll };
 import core.array as arr;
 import core.bit as bit;
@@ -24,6 +24,8 @@ import nwn1.player as PlayerRules;
 import nwn1.saving_throws as saving_throws;
 import nwn1.init as nwn1init;
 import nwn1.creature_size as CreatureSize;
+import nwn1.effects as effects_nwn1;
+import nwn1.hitpoints as hitpoints;
 import core.object as Obj;
 
 from nwn1.cachedefs import {
@@ -1064,7 +1066,7 @@ fn sync_combat_round_state_from_native(obj: Creature): CreatureCombat {
     if (cache.off_mode_epoch != combat.combat_mode) { need_recompute_attack_counts = true; }
 
     if (need_recompute_attack_counts) {
-        var onhand = resolve_number_of_attacks_onhand(obj);
+        var onhand = _resolve_number_of_attacks_onhand_from_handle(combat, obj);
         var offhand = resolve_number_of_attacks_offhand(obj);
         if (combat.attacks_onhand != onhand) { combat.attacks_onhand = onhand; }
         if (combat.attacks_offhand != offhand) { combat.attacks_offhand = offhand; }
@@ -1127,13 +1129,33 @@ fn _sync_defense_round_window(attacker: Creature, target: Creature): CreatureCom
     return tgt_combat;
 }
 
-fn resolve_number_of_attacks_onhand(obj: Creature): int {
+// Rapid Shot and Flurry of Blows each trade a -2 attack penalty (registered in
+// init.smalls) for one extra attack per round. The penalty was already applied
+// and the attack never was, which made both modes a strict downgrade.
+// can_use() gates on the required weapon being equipped, so no extra weapon
+// check is needed here.
+fn _combat_mode_extra_attacks(combat: CreatureCombat, obj: Creature): int {
+    const mode = combat.combat_mode;
+    if (mode != Const.combat_mode_rapid_shot && mode != Const.combat_mode_flurry_of_blows) {
+        return 0;
+    }
+    if (!combat_modes.can_use(mode, obj)) {
+        return 0;
+    }
+    return 1;
+}
+
+// Attacks per round follow the 3E/NWN progression: one attack, plus one more
+// for every `iter` points of base attack bonus past the first. The previous
+// `ab / iter` under-counted by one at every tier (and yielded zero attacks
+// below BAB `iter`); the 4/6 caps below are only correct for this formula.
+fn _resolve_number_of_attacks_onhand_from_handle(combat: CreatureCombat, obj: Creature): int {
     var ab = base_attack_bonus(obj);
     var iter = NCre.weapon_iteration_for_attack(obj, Const.attack_type_onhand);
 
     var onhand = 0;
-    if (iter > 0) {
-        onhand = ab / iter;
+    if (iter > 0 && ab >= 1) {
+        onhand = 1 + (ab - 1) / iter;
     }
 
     if (iter == 5 && onhand > 4) {
@@ -1143,7 +1165,16 @@ fn resolve_number_of_attacks_onhand(obj: Creature): int {
         onhand = 6;
     }
 
+    if (onhand > 0) {
+        onhand += _combat_mode_extra_attacks(combat, obj);
+    }
+
     return onhand;
+}
+
+fn resolve_number_of_attacks_onhand(obj: Creature): int {
+    var combat = get_propset!(CreatureCombat)(obj);
+    return _resolve_number_of_attacks_onhand_from_handle(combat, obj);
 }
 
 fn resolve_number_of_attacks_offhand(obj: Creature): int {
@@ -1161,7 +1192,7 @@ fn resolve_number_of_attacks_offhand(obj: Creature): int {
 
 fn prepare_attack_round(attacker: Creature) {
     var combat = get_propset!(CreatureCombat)(attacker);
-    combat.attacks_onhand = resolve_number_of_attacks_onhand(attacker);
+    combat.attacks_onhand = _resolve_number_of_attacks_onhand_from_handle(combat, attacker);
     combat.attacks_offhand = resolve_number_of_attacks_offhand(attacker);
 
     var total_attacks = combat.attacks_onhand + combat.attacks_offhand + combat.attacks_extra;
@@ -1169,6 +1200,84 @@ fn prepare_attack_round(attacker: Creature) {
         combat.attack_current = 0;
         combat.epic_dodge_used = 0;
     }
+}
+
+// Devastating Critical save DC: 10 + half the attacker's character level +
+// the attacker's Strength modifier.
+fn devastating_critical_dc(attacker: Creature): int {
+    return 10
+        + Cre.get_total_levels(attacker) / 2
+        + NCre.get_ability_modifier(attacker, Const.ability_strength);
+}
+
+// True when a critical hit kills outright through Devastating Critical. The
+// feat used to be registered purely as a has-feat flag with no consumer, so it
+// did nothing whatsoever.
+fn resolve_devastating_critical(attacker: Creature, target: object,
+    attack_type: Const.AttackType): bool {
+    if (!(target is Creature)) { return false; }
+    if (!mfeat.has_devastating_critical(attacker, attack_type)) { return false; }
+    return !saving_throws.resolve_saving_throw(
+        target,
+        Const.saving_throw_fort,
+        devastating_critical_dc(attacker),
+        Const.saving_throw_vs_death,
+        attacker);
+}
+
+// Death Attack save DC: 10 + assassin level + the attacker's Intelligence
+// modifier.
+fn death_attack_dc(attacker: Creature): int {
+    return 10
+        + Cre.get_level_by_class(attacker, Const.class_type_assassin)
+        + NCre.get_ability_modifier(attacker, Const.ability_intelligence);
+}
+
+// True when a Death Attack kills outright. Only the bonus damage dice were
+// implemented before; the save-or-die that defines the feat was missing, which
+// left Death Attack as a plain damage bump.
+fn resolve_death_attack_kill(attacker: Creature, target: object): bool {
+    if (!(target is Creature)) { return false; }
+    if (Cre.get_level_by_class(attacker, Const.class_type_assassin) <= 0) { return false; }
+    return !saving_throws.resolve_saving_throw(
+        target,
+        Const.saving_throw_fort,
+        death_attack_dc(attacker),
+        Const.saving_throw_vs_death,
+        attacker);
+}
+
+// Equipment slot that holds the ammunition a ranged base item consumes, or
+// equip_index_righthand for thrown weapons, which spend themselves.
+// baseitems.2da AmmunitionType: 1 arrow, 2 bolt, 3 bullet; thrown weapons
+// (dart, shuriken, throwing axe) carry a type but draw from the weapon stack.
+fn _ammunition_slot(base_item: BaseItemType, ammo_type: int): EquipIndex {
+    if (ammo_type == 1) { return Const.equip_index_arrows; }
+    if (ammo_type == 2) { return Const.equip_index_bolts; }
+    if (ammo_type == 3) { return Const.equip_index_bullets; }
+    return Const.equip_index_righthand;
+}
+
+// Spends one unit of ammunition for a ranged attack. Returns false when the
+// weapon needs ammunition and none is left, in which case no attack happens.
+fn consume_ammunition(attacker: Creature, base_item: BaseItemType): bool {
+    const ammo_type = baseitems.ammunition_type(base_item);
+    if (ammo_type < 0) { return true; }
+
+    const slot = _ammunition_slot(base_item, ammo_type);
+    var ammo = CoreItem.get_equipped_item(attacker, slot);
+    if ((ammo as object) == Obj.invalid) { return false; }
+
+    var stats = get_propset!(ItemStats)(ammo);
+    if (stats.stack_size <= 0) { return false; }
+    stats.stack_size -= 1;
+    return true;
+}
+
+// Combat policy hook, called by nw::combat::commit_attack() once an attack has
+// been resolved. Returns the hit points actually removed.
+fn commit_attack_damage(target: object, amount: int): int {
+    return hitpoints.apply_damage(target, amount);
 }
 
 fn _target_parry_limit(target: Creature): int {
@@ -1275,6 +1384,14 @@ fn resolve_damage_immunity(obj: object, damage_type: Const.Damage, versus: objec
         effect_delta = get_cached_immunity(cache, damage_type);
     } else {
         effect_delta = C.damage_immunity_effect_delta(obj, damage_type, versus);
+    }
+    // Immunities from different sources do not stack -- the best one applies.
+    // A net-negative effect delta is vulnerability, though, and must not be
+    // erased by the mere absence of an immunity modifier (max(0, -50) == 0), so
+    // it combines additively with whatever immunity is present. This matches
+    // how _make_elemental_damage_result() sums the two sources.
+    if (effect_delta < 0) {
+        return mod_bonus + effect_delta;
     }
     if (mod_bonus >= effect_delta) {
         return mod_bonus;
@@ -1563,8 +1680,16 @@ fn resolve_target_distance_sq(attacker: Creature, target: object): float {
 fn resolve_target_state(attacker: Creature, target: object, distance_sq: float): int {
     const target_state_none = 0;
     const target_state_flanked = 64;
+    const target_state_flatfooted = 128;
 
     if (target is Creature) {
+        // Flat-footed was checked in two places (Deflect Arrows, Sneak Attack)
+        // but never set by anything, so both checks were dead. A helpless
+        // target -- paralyzed, stunned, or asleep -- is flat-footed.
+        if (C.is_helpless(target)) {
+            return bit.or(target_state_flatfooted,
+                is_flanked(target, attacker, distance_sq) ? target_state_flanked : target_state_none);
+        }
         if (is_flanked(target, attacker, distance_sq)) {
             return target_state_flanked;
         }
@@ -1653,26 +1778,34 @@ fn resolve_damage_base_immunity(obj: object, versus: object,
     const damage_type_piercing = 1;
     const damage_type_slashing = 2;
 
+    // Best-for-the-defender across the physical types the weapon deals. `any`
+    // is needed so that a weapon whose every applicable type is a vulnerability
+    // (negative immunity) reports it, instead of being floored at 0 by the
+    // starting value.
     var best = 0;
+    var any = false;
 
     if (has_bludgeoning) {
         var imm = resolve_damage_immunity(obj, Const.Damage(damage_type_bludgeoning), versus);
-        if (imm > best) {
+        if (!any || imm > best) {
             best = imm;
+            any = true;
         }
     }
 
     if (has_piercing) {
         var imm = resolve_damage_immunity(obj, Const.Damage(damage_type_piercing), versus);
-        if (imm > best) {
+        if (!any || imm > best) {
             best = imm;
+            any = true;
         }
     }
 
     if (has_slashing) {
         var imm = resolve_damage_immunity(obj, Const.Damage(damage_type_slashing), versus);
-        if (imm > best) {
+        if (!any || imm > best) {
             best = imm;
+            any = true;
         }
     }
 
@@ -1749,8 +1882,12 @@ fn _make_elemental_damage_result(target: object, attacker: Creature, dmg_type: C
     } else {
         imm_effect_delta = C.damage_immunity_effect_delta(target, dmg_type, attacker);
     }
+    // A net-negative immunity is vulnerability: the target takes extra damage
+    // of this type. damage_immunity_effect_delta() already returns
+    // increase - decrease and can go negative; clamping it to 0 here used to
+    // throw that away. Floor at -100 (200% damage) to mirror the +100 ceiling.
     var imm_pct = _damage_immunity_modifier_bonus(target, dmg_type, attacker) + imm_effect_delta;
-    if (imm_pct < 0) { imm_pct = 0; }
+    if (imm_pct < -100) { imm_pct = -100; }
     if (imm_pct > 100) { imm_pct = 100; }
     result.immunity = remaining * imm_pct / 100;
     if (result.immunity > remaining) { result.immunity = remaining; }
@@ -1871,9 +2008,10 @@ fn _resolve_base_damage_impl(attacker_combat: CreatureCombat, attacker: Creature
     result.amount = base_amount;
     var remaining = base_amount;
 
+    // Negative immunity is vulnerability -- see _make_elemental_damage_result().
     var immunity_pct = resolve_damage_base_immunity(
         target, attacker, has_bludgeoning, has_piercing, has_slashing);
-    if (immunity_pct < 0) { immunity_pct = 0; }
+    if (immunity_pct < -100) { immunity_pct = -100; }
     if (immunity_pct > 100) { immunity_pct = 100; }
     result.immunity = remaining * immunity_pct / 100;
     if (result.immunity > remaining) { result.immunity = remaining; }
@@ -2405,7 +2543,17 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
     var attack_roll = NativeCombat.roll_uniform_int(1, 20);
     var attack_result = attack_result_miss_by_roll;
 
-    if (attack_roll == 1) {
+    // A ranged attack spends one unit of ammunition whether or not it lands.
+    // With the quiver empty there is nothing to shoot, so the attack auto-fails
+    // before anything else is rolled.
+    var out_of_ammunition = false;
+    if (is_ranged && !consume_ammunition(attacker, base_item)) {
+        out_of_ammunition = true;
+    }
+
+    if (out_of_ammunition) {
+        attack_result = attack_result_miss_by_auto_fail;
+    } elif (attack_roll == 1) {
         attack_result = attack_result_miss_by_auto_fail;
     } elif (attack_roll == 20) {
         attack_result = attack_result_hit_by_auto_success;
@@ -2517,11 +2665,19 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
                     }
                 }
             }
-            // Death Attack: uses assassin levels; not crit-multiplied.
+            // Death Attack: uses assassin levels; not crit-multiplied. The
+            // bonus dice were already here; the save-or-die that actually
+            // defines the feat was missing, which left Death Attack as a plain
+            // damage bump. DC is 10 + assassin level + the attacker's
+            // Intelligence modifier.
             if (requested_special == Const.special_attack_type_death_attack) {
-                var da_dice = (Cre.get_level_by_class(attacker, Const.class_type_assassin) + 1) / 2;
+                var assassin_level = Cre.get_level_by_class(attacker, Const.class_type_assassin);
+                var da_dice = (assassin_level + 1) / 2;
                 if (da_dice > 0) {
                     special_attack_bonus = roll_dice(da_dice, 6, 0, 1);
+                }
+                if (resolve_death_attack_kill(attacker, target)) {
+                    arr.push(effects_to_apply, effects_nwn1.death());
                 }
             }
 
@@ -2545,6 +2701,12 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
         critical_multiplier = _resolve_critical_multiplier_from_handle(combat, attacker, attack_type, target);
     } elif (attack_result <= attack_result_hit_by_roll) {
         critical_multiplier = 1;
+    }
+
+    // Devastating Critical: on a critical hit the target must save or die.
+    if (attack_result == attack_result_hit_by_critical
+        && resolve_devastating_critical(attacker, target, attack_type)) {
+        arr.push(effects_to_apply, effects_nwn1.death());
     }
 
     // Sneak Attack: eligible on flanked or flat-footed hit vs. non-immune creature.

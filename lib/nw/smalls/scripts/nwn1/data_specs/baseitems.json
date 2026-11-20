@@ -50,7 +50,10 @@
           { "target": "weapon_improved_critical_feat", "value": { "kind": "column", "column": "WeaponImprovedCriticalFeat", "type": "int", "on_missing": "default", "default": -1 } },
           { "target": "epic_weapon_overwhelming_critical_feat", "value": { "kind": "column", "column": "EpicWeaponOverwhelmingCriticalFeat", "type": "int", "on_missing": "default", "default": -1 } },
           { "target": "epic_weapon_devastating_critical_feat", "value": { "kind": "column", "column": "EpicWeaponDevastatingCriticalFeat", "type": "int", "on_missing": "default", "default": -1 } },
-          { "target": "weapon_of_choice_feat", "value": { "kind": "column", "column": "WeaponOfChoiceFeat", "type": "int", "on_missing": "default", "default": -1 } }
+          { "target": "weapon_of_choice_feat", "value": { "kind": "column", "column": "WeaponOfChoiceFeat", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "max_range", "value": { "kind": "column", "column": "MaxRange", "type": "int", "on_missing": "default", "default": 0 } },
+          { "target": "ammunition_type", "value": { "kind": "column", "column": "AmmunitionType", "type": "int", "on_missing": "default", "default": -1 } },
+          { "target": "arcane_spell_failure", "value": { "kind": "column", "column": "ArcaneSpellFailure", "type": "int", "on_missing": "default", "default": 0 } }
         ]
       }
     ]

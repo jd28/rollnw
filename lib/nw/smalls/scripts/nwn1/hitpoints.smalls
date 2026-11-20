@@ -69,3 +69,58 @@ fn initialize_creature_health(cre: Creature): bool {
     health.hp_current = health.hp_max;
     return NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
 }
+
+// Applies `amount` points of damage to `obj`, clamping at 0, and returns the
+// hit points actually removed. Creature damage goes through the health propset
+// and then syncs native vitals, which is what combat_scheduler's is-dead check
+// (hp_current <= 0) reads.
+//
+// Nothing in the attack pipeline wrote hit points before this: resolve_attack()
+// produced a damage_total that every caller discarded, so attacks resolved
+// without consequence.
+fn apply_damage(obj: object, amount: int): int {
+    if (amount <= 0) { return 0; }
+
+    switch (obj) {
+        case Creature(cre): {
+            var health = get_propset!(CreatureHealth)(cre);
+            var before = health.hp_current;
+            var after = before - amount;
+            if (after < 0) { after = 0; }
+            health.hp_current = after;
+            NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
+            return before - after;
+        }
+        case Door(door): {
+            var state = get_propset!(DoorState)(door);
+            var before = state.hp_current;
+            var after = before - amount;
+            if (after < 0) { after = 0; }
+            state.hp_current = after;
+            return before - after;
+        }
+        case Placeable(placeable): {
+            var state = get_propset!(PlaceableState)(placeable);
+            var before = state.hp_current;
+            var after = before - amount;
+            if (after < 0) { after = 0; }
+            state.hp_current = after;
+            return before - after;
+        }
+        default: {
+            return 0;
+        }
+    }
+}
+
+fn heal_damage(cre: Creature, amount: int): int {
+    if (amount <= 0) { return 0; }
+    var health = get_propset!(CreatureHealth)(cre);
+    var before = health.hp_current;
+    var hp_max = get_max_hitpoints(cre);
+    var after = before + amount;
+    if (after > hp_max) { after = hp_max; }
+    health.hp_current = after;
+    NativeCreature.set_vitals(cre, health.hp_current, health.hp_max);
+    return after - before;
+}

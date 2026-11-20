@@ -376,6 +376,8 @@ const feat_epic_great_strength_1 = Feat(814);
 const feat_epic_great_strength_10 = Feat(823);
 const feat_deflect_arrows = Feat(8);
 const feat_improved_parry = Feat(18);
+const feat_evasion = Feat(206);
+const feat_improved_evasion = Feat(212);
 const combat_mode_parry = 1;
 const combat_mode_power_attack = 2;
 const combat_mode_improved_power_attack = 3;
@@ -527,6 +529,19 @@ const effect_type_miss_chance = EffectType(75);
 const effect_type_concealment = EffectType(76);
 const effect_type_bonus_spell_of_level = EffectType(78);
 
+// rollnw-local effect types. Every id above mirrors NWN's engine effect id;
+// these do not. The engine ids for these conditions could not be confirmed
+// against game data, and guessing them would bake in a silent mismatch, so
+// they are allocated from a private range well clear of NWN's. Effects are
+// runtime-only -- the nwn1 GFF propset policy carries no effect payload, it
+// only skips the `effect_epoch` cache field -- so renumbering these onto the
+// engine ids later is a contained change with no save-compatibility cost.
+// The effect registry is a hash map keyed by id, so the range is free.
+const effect_type_death = EffectType(900);
+const effect_type_paralyze = EffectType(901);
+const effect_type_stunned = EffectType(902);
+const effect_type_sleep = EffectType(903);
+
 // Effect aggregation policies (used with C.aggregate_effect_int)
 const effect_agg_sum = 0;
 const effect_agg_max = 1;
@@ -573,7 +588,19 @@ const special_attack_smite_good = 472;
 const special_attack_type_sneak = 1000;
 const special_attack_type_death_attack = 1001;
 
-// Master Feat types
+// Master Feat types. Ids mirror NWN's masterfeats.2da row order, so they are
+// data identifiers and must not be renumbered or removed even when a category
+// carries no mechanic here:
+//   mfeat_arcane_defense    -- Arcane Defense keys off spell school; a faithful
+//                              implementation needs the school threaded into
+//                              saving throws, which arrives with the
+//                              casting-in-combat layer.
+//   mfeat_epic_spell        -- grouping row only; NWN attaches no modifier to
+//                              it, the Epic Spell feats just grant spells.
+//   mfeat_resist_energy_epic -- ten graded ranks per element cannot be
+//                              expressed by this one-feat-per-key map; the
+//                              epic tier stays a feat-range scan in
+//                              init.resistance_modifier_energy().
 type MasterFeat(int);
 
 const mfeat_improved_crit = MasterFeat(0);

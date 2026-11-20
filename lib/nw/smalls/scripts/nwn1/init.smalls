@@ -534,40 +534,36 @@ fn dr_modifier_epic(obj: Creature, _vs: object, _subtype: int): int {
 }
 
 // == Damage Resistance Modifiers ============================================
+// Epic Energy Resistance has ten graded ranks per element, which the one
+// feat-per-key mfeat map cannot express, so the epic tier stays a range scan.
+// The base tier is a single feat per element and does go through
+// mfeat_resist_energy -- see init_master_feats().
 fn resistance_modifier_energy(obj: Creature, _vs: object, subtype: int): int {
     var start = -1;
     var stop = -1;
-    var base_feat = -1;
     if (subtype == Const.damage_type_acid as int) {
         start = Const.feat_epic_energy_resistance_acid_1 as int;
         stop = Const.feat_epic_energy_resistance_acid_10 as int;
-        base_feat = Const.feat_resist_energy_acid as int;
     } elif (subtype == Const.damage_type_cold as int) {
         start = Const.feat_epic_energy_resistance_cold_1 as int;
         stop = Const.feat_epic_energy_resistance_cold_10 as int;
-        base_feat = Const.feat_resist_energy_cold as int;
     } elif (subtype == Const.damage_type_electrical as int) {
         start = Const.feat_epic_energy_resistance_electrical_1 as int;
         stop = Const.feat_epic_energy_resistance_electrical_10 as int;
-        base_feat = Const.feat_resist_energy_electrical as int;
     } elif (subtype == Const.damage_type_fire as int) {
         start = Const.feat_epic_energy_resistance_fire_1 as int;
         stop = Const.feat_epic_energy_resistance_fire_10 as int;
-        base_feat = Const.feat_resist_energy_fire as int;
     } elif (subtype == Const.damage_type_sonic as int) {
         start = Const.feat_epic_energy_resistance_sonic_1 as int;
         stop = Const.feat_epic_energy_resistance_sonic_10 as int;
-        base_feat = Const.feat_resist_energy_sonic as int;
     } else {
         return 0;
     }
     var nth = Cre.highest_feat_in_range(obj, Const.Feat(start), Const.Feat(stop));
     if (nth as int >= 0) {
         return ((nth as int) - start + 1) * 10;
-    } elif (Cre.has_feat(obj, Const.Feat(base_feat))) {
-        return 5;
     }
-    return 0;
+    return mfeat.resolve(obj, Const.mfeat_resist_energy, Const.Damage(subtype));
 }
 
 // == Ability Modifiers =====================================================
@@ -583,6 +579,16 @@ fn ability_modifier_dragon_disciple(obj: Creature, _vs: object, subtype: int): i
 fn skill_modifier_stonecunning_search(obj: Creature, _vs: object, subtype: int): int {
     if (subtype != Const.skill_search as int) { return 0; }
     if (Cre.has_feat(obj, Const.feat_stonecunning)) { return 2; }
+    return 0;
+}
+
+// Improved Parry (feat.2da row 18, "ImpParry", Int 13) grants +4 to Parry skill
+// checks -- it does not extend Parry's per-round attempt limit. Routing it
+// through mod_type_skill makes it live in combat.smalls' parry resolution,
+// which goes through resolve_skill_check -> get_skill_rank_full.
+fn skill_modifier_improved_parry(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_parry as int) { return 0; }
+    if (Cre.has_feat(obj, Const.feat_improved_parry)) { return 4; }
     return 0;
 }
 
@@ -694,6 +700,7 @@ fn init_modifiers() {
 
     // == Skills ==============================================================
     modifier.register_modifier(Const.mod_type_skill, "stonecunning_search", skill_modifier_stonecunning_search, Const.skill_search as int);
+    modifier.register_modifier(Const.mod_type_skill, "improved_parry", skill_modifier_improved_parry, Const.skill_parry as int);
 
 }
 
@@ -814,6 +821,16 @@ fn init_master_feats() {
     mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_illusion, Const.feat_epic_spell_focus_illusion);
     mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_necromancy, Const.feat_epic_spell_focus_necromancy);
     mfeat.add(Const.mfeat_spell_focus_epic, Const.spell_school_transmutation, Const.feat_epic_spell_focus_transmutation);
+
+    // Base-tier Resist Energy by damage type, consumed by
+    // resistance_modifier_energy(). The epic tier is deliberately not here:
+    // ten graded ranks per element do not fit one-feat-per-key.
+    mfeat.set_bonus(Const.mfeat_resist_energy, 5);
+    mfeat.add(Const.mfeat_resist_energy, Const.damage_type_acid, Const.feat_resist_energy_acid);
+    mfeat.add(Const.mfeat_resist_energy, Const.damage_type_cold, Const.feat_resist_energy_cold);
+    mfeat.add(Const.mfeat_resist_energy, Const.damage_type_electrical, Const.feat_resist_energy_electrical);
+    mfeat.add(Const.mfeat_resist_energy, Const.damage_type_fire, Const.feat_resist_energy_fire);
+    mfeat.add(Const.mfeat_resist_energy, Const.damage_type_sonic, Const.feat_resist_energy_sonic);
 
     mfeat.set_bonus(Const.mfeat_weapon_focus, 1);
     mfeat.set_bonus(Const.mfeat_weapon_focus_epic, 2);

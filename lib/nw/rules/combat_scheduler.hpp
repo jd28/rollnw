@@ -32,5 +32,14 @@ bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
 /// Returns number of effects processed.
 int commit_attack_effects(AttackData* data);
 
+/// Applies the resolved damage total to the target via the policy's
+/// `commit_attack_damage` hook, setting AttackData::is_killing_blow.
+/// Returns the hit points actually removed; 0 if the policy has no hook.
+int commit_attack_damage(AttackData* data);
+
+/// Commits a resolved attack: damage first, then effect intents.
+/// Returns hit points removed plus effects processed.
+int commit_attack(AttackData* data);
+
 } // namespace combat
 } // namespace nw

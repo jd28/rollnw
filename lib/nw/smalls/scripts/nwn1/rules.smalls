@@ -261,6 +261,9 @@ type BaseItemRules {
     epic_weapon_overwhelming_critical_feat:int;
     epic_weapon_devastating_critical_feat: int;
     weapon_of_choice_feat:                 int;
+    max_range:                             int;
+    ammunition_type:                       int;
+    arcane_spell_failure:                  int;
 };
 
 [[value_type]]

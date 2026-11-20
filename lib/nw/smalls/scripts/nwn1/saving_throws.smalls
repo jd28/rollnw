@@ -98,3 +98,33 @@ fn resolve_saving_throw(obj: object, save_type: Const.Save, dc: int,
     var save = get_saving_throw(obj, save_type, save_vs, versus, false);
     return roll + save >= dc;
 }
+
+// Reflex-save-for-half damage, with Evasion and Improved Evasion applied.
+// Returns the damage the target actually takes.
+//
+// This is the entry point area/breath/trap damage should use instead of calling
+// resolve_saving_throw() and halving by hand: Evasion only means anything at
+// the point where a Reflex save is being converted into a damage amount.
+//
+//   no feat         -- save: half damage,  fail: full damage
+//   Evasion         -- save: no damage,    fail: full damage
+//   Improved Evasion-- save: no damage,    fail: half damage
+fn resolve_reflex_damage(obj: object, dc: int, amount: int,
+    save_vs: Const.SaveVersus, versus: object): int {
+    if (amount <= 0) { return 0; }
+
+    const saved = resolve_saving_throw(obj, Const.saving_throw_reflex, dc, save_vs, versus);
+
+    var has_evasion = false;
+    var has_improved_evasion = false;
+    if (obj is Creature) {
+        has_improved_evasion = Cre.has_feat(obj, Const.feat_improved_evasion);
+        has_evasion = has_improved_evasion
+            || Cre.has_feat(obj, Const.feat_evasion);
+    }
+
+    if (saved) {
+        return has_evasion ? 0 : amount / 2;
+    }
+    return has_improved_evasion ? amount / 2 : amount;
+}

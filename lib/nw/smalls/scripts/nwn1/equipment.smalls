@@ -54,3 +54,34 @@ fn sync_equipment_armor_class(creature: Creature): bool {
 
     return true;
 }
+
+// Total arcane spell failure percentage from equipped gear, as sourced from
+// baseitems.2da ArcaneSpellFailure (small shield 5, large shield 15, tower
+// shield 50 -- matching NWN).
+//
+// Armour-derived spell failure is NOT included: in NWN it comes from armor.2da
+// keyed by the armour's AC tier, and that column is not in the ArmorEntry data
+// spec. Adding it needs armor.2da, which this repo's test data does not carry,
+// so it could not be verified here.
+fn arcane_spell_failure(creature: Creature): int {
+    if (creature == O.invalid) {
+        return 0;
+    }
+
+    var total = 0;
+
+    var offhand = ItemBase.get_equipped_item(creature, Const.equip_index_lefthand);
+    if (offhand != O.invalid) {
+        var stats = get_propset!(ItemStats)(offhand);
+        total += BaseItems.arcane_spell_failure(ItemBase.BaseItemType(stats.base_item));
+    }
+
+    var chest = ItemBase.get_equipped_item(creature, Const.equip_index_chest);
+    if (chest != O.invalid) {
+        var stats = get_propset!(ItemStats)(chest);
+        total += BaseItems.arcane_spell_failure(ItemBase.BaseItemType(stats.base_item));
+    }
+
+    if (total > 100) { total = 100; }
+    return total;
+}

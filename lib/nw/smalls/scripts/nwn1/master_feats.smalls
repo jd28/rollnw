@@ -74,6 +74,12 @@ fn has_overwhelming_critical(obj: Creature, attack_type: AttackType): bool {
     return has_feat_check(obj, Const.mfeat_overwhelming_crit, base_item);
 }
 
+fn has_devastating_critical(obj: Creature, attack_type: AttackType): bool {
+    var weapon = weapon_for_attack(obj, attack_type);
+    var base_item = item.get_baseitem_type(weapon);
+    return has_feat_check(obj, Const.mfeat_devastating_crit, base_item);
+}
+
 fn has_favored_enemy(obj: Creature, target: object): bool {
     if (!(target is Creature)) { return false; }
     const ps = get_propset!(CreatureStats)(target as Creature);
@@ -146,4 +152,89 @@ fn _ensure_weapon_category_feats() {
         var woc = baseitems.weapon_of_choice_feat(bi);
         if (woc >= 0) { add(Const.mfeat_weapon_of_choice, bi, Feat(woc)); }
     }
+}
+
+// == Registration consistency guard =========================================
+// Three of the findings in the NWN1 combat-rules audit shared one shape: a
+// master-feat category whose registrations and whose consumers disagreed, so
+// resolve()/has_feat_check() could only ever return 0 while the feature looked
+// implemented. This guard makes that shape mechanically detectable instead of
+// something an audit has to notice.
+
+// Mirror-only masterfeats.2da rows: no bonus and no registrations, by design.
+// See the MasterFeat comment block in nwn1.constants.
+fn _is_documented_inert(mf: int): bool {
+    return mf == Const.mfeat_arcane_defense as int
+        || mf == Const.mfeat_epic_spell as int
+        || mf == Const.mfeat_resist_energy_epic as int;
+}
+
+// Categories keyed by base item. Each must carry real-weapon entries and not
+// just the BaseItemType(-1) unarmed sentinel -- registering only the sentinel
+// is exactly how Weapon Focus and friends silently did nothing for every real
+// weapon.
+fn _weapon_keyed_categories(): array!(int) {
+    var result: array!(int) = {};
+    arr.push(result, Const.mfeat_weapon_focus as int);
+    arr.push(result, Const.mfeat_weapon_focus_epic as int);
+    arr.push(result, Const.mfeat_weapon_spec as int);
+    arr.push(result, Const.mfeat_weapon_spec_epic as int);
+    arr.push(result, Const.mfeat_improved_crit as int);
+    arr.push(result, Const.mfeat_overwhelming_crit as int);
+    arr.push(result, Const.mfeat_devastating_crit as int);
+    arr.push(result, Const.mfeat_weapon_of_choice as int);
+    return result;
+}
+
+fn registration_count(mfeat: MasterFeat): int {
+    _ensure_init();
+    _ensure_weapon_category_feats();
+    const mf = mfeat as int;
+    if (mf < 0 || mf >= _mfeat_count) { return 0; }
+    return map.len(_mfeat_values[mf]);
+}
+
+fn bonus_of(mfeat: MasterFeat): int {
+    _ensure_init();
+    const mf = mfeat as int;
+    if (mf < 0 || mf >= _mfeat_count) { return 0; }
+    return _mfeat_bonuses[mf];
+}
+
+// Returns one diagnostic per inconsistent category; empty means consistent.
+// Call after nwn1.init.init() has run.
+fn validate(): array!(string) {
+    _ensure_init();
+    _ensure_weapon_category_feats();
+
+    var problems: array!(string) = {};
+
+    for (var mf = 0; mf < _mfeat_count; mf += 1) {
+        const count = map.len(_mfeat_values[mf]);
+        const bonus = _mfeat_bonuses[mf];
+
+        if (_is_documented_inert(mf)) {
+            if (count != 0 || bonus != 0) {
+                arr.push(problems, f"mfeat {mf}: documented as inert but carries {count} registration(s) and bonus {bonus}");
+            }
+            continue;
+        }
+
+        if (count == 0) {
+            arr.push(problems, f"mfeat {mf}: bonus {bonus} is set but no feats are registered, so resolve() can only return 0");
+            continue;
+        }
+
+        if (bonus == 0) {
+            arr.push(problems, f"mfeat {mf}: {count} feat(s) registered but bonus is 0, so resolve() can only return 0");
+        }
+    }
+
+    for (var wmf in _weapon_keyed_categories()) {
+        if (map.len(_mfeat_values[wmf]) <= 1) {
+            arr.push(problems, f"mfeat {wmf}: only the unarmed sentinel is registered, so every real weapon resolves to nothing");
+        }
+    }
+
+    return problems;
 }

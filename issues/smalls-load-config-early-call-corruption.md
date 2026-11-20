@@ -2,7 +2,7 @@
 
 Status (2026-11-18): **fixed**, verified by re-running the original failing
 scenario against the fix with no other workaround. Discovered while fixing
-[the weapon-category master-feat bug](nwn1-combat-rules-completion.md) — the
+[the weapon-category master-feat bug](closed/nwn1-combat-rules-completion.md) — the
 first attempt at that fix (an eager loop over `baseitems.count()` inside
 `nwn1.init.init()`) was logically correct but broke 6 unrelated equipment/
 visual tests. The shipped weapon-feat fix (lazy registration on first real
