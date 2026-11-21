@@ -44,4 +44,3 @@ risks and deferred opportunities are explicit on the current status page.
 
 ## Engine / memory
 
-- [Arena/memory-safety audit](arena-memory-safety-audit.md) — ranked leak findings from a full sweep of arena/scope allocation (`ObjectPool`, effects, `Module`, `Dialog`, `Palette`); fix plan written, nothing implemented yet.

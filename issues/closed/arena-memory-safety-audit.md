@@ -2,7 +2,7 @@
 
 Status (2026-11-18): **all findings fixed** (#1/#3 ObjectPool+Module, #2
 TypedHandlePool/RuntimeObjectPool, #4 Dialog, #5 Palette). Grew out
-of [the `load_config!`/`ResourceManager` investigation](smalls-load-config-early-call-corruption.md)
+of [the `load_config!`/`ResourceManager` investigation](../smalls-load-config-early-call-corruption.md)
 (fixed, separately) — fixing that surfaced a question worth answering
 properly: does this engine's arena/scope memory model actually destruct
 everything it should, or does the module-load/unload cycle quietly leak?
