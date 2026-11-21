@@ -171,6 +171,14 @@ void Tlk::save_as(const std::filesystem::path& path)
     Vector<TlkElement> ele;
     ele.resize(entry_count);
 
+    // The number of entries the loaded table actually has, captured before
+    // header_.str_count is reassigned below. Both loops fall back to reading
+    // elements_[i] for entries that were not modified, and that is only valid
+    // for indices this table already had: a default-constructed Tlk has no
+    // element array at all, and an appended strref pushes the new count past
+    // the end of the old one.
+    const uint32_t loaded_count = elements_ ? header_.str_count : 0;
+
     uint32_t orig_str_offset = header_.str_offset;
     header_.str_offset = static_cast<uint32_t>(sizeof(TlkHeader) + (ele.size() * sizeof(TlkElement)));
     uint32_t offset = 0;
@@ -185,7 +193,7 @@ void Tlk::save_as(const std::filesystem::path& path)
             tmp = from_utf8_by_langid(it->second, language_id());
             ele[i].size = static_cast<uint32_t>(tmp.size());
             offset += ele[i].size;
-        } else if (i < header_.str_count) {
+        } else if (i < loaded_count) {
             if (TlkFlags::text & elements_[i].flags) {
                 ele[i].flags |= TlkFlags::text;
                 ele[i].offset = offset;
@@ -219,7 +227,7 @@ void Tlk::save_as(const std::filesystem::path& path)
             // shifted the offset of every string after it.
             tmp = from_utf8_by_langid(it->second, language_id());
             ostream_write(f, tmp.data(), tmp.size());
-        } else if (i < header_.str_count) {
+        } else if (i < loaded_count) {
             if (TlkFlags::text & elements_[i].flags) {
                 ostream_write(f, bytes_.data() + orig_str_offset + elements_[i].offset, elements_[i].size);
             }

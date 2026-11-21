@@ -84,6 +84,56 @@ TEST(Tlk, SetBeyondTheEndSurvivesSaveAndReload)
     EXPECT_EQ(reloaded.get(1000), "Silence");
 }
 
+// A table built from nothing rather than loaded from a file. save_as() used to
+// reassign header_.str_count before its second loop and then index elements_ by
+// the new count, so this faulted outright: a default-constructed Tlk has no
+// element array at all.
+TEST(Tlk, BuildsFromScratch)
+{
+    std::filesystem::create_directories("tmp");
+
+    nw::Tlk built;
+    EXPECT_TRUE(built.valid());
+    EXPECT_EQ(built.size(), 0u);
+
+    built.set(0, "first");
+    built.set(10, "Mönch");
+    built.set(11, "last");
+    built.save_as("tmp/dialog_scratch.tlk");
+
+    nw::Tlk reloaded{"tmp/dialog_scratch.tlk"};
+    ASSERT_TRUE(reloaded.valid());
+    EXPECT_EQ(reloaded.size(), 12u) << "the highest strref set must be included";
+    EXPECT_EQ(reloaded.get(0), "first");
+    EXPECT_EQ(reloaded.get(10), "Mönch");
+    EXPECT_EQ(reloaded.get(11), "last");
+    // The strrefs never set are present but empty, not garbage.
+    EXPECT_EQ(reloaded.get(5), "");
+    EXPECT_EQ(reloaded.get(12), "");
+}
+
+// Appending past a gap: strrefs between the old end and the new one were not
+// modified, so the fallback branch ran for indices beyond the loaded element
+// array.
+TEST(Tlk, AppendingPastAGapDoesNotReadOffTheEnd)
+{
+    std::filesystem::create_directories("tmp");
+
+    nw::Tlk t{english_tlk()};
+    ASSERT_TRUE(t.valid());
+    const uint32_t end = static_cast<uint32_t>(t.size());
+
+    t.set(end + 4, "beyond a gap");
+    t.save_as("tmp/dialog_gap.tlk");
+
+    nw::Tlk reloaded{"tmp/dialog_gap.tlk"};
+    ASSERT_TRUE(reloaded.valid());
+    EXPECT_EQ(reloaded.size(), end + 5);
+    EXPECT_EQ(reloaded.get(end + 4), "beyond a gap");
+    EXPECT_EQ(reloaded.get(end + 1), "") << "the gap must be empty, not stale data";
+    EXPECT_EQ(reloaded.get(1000), "Silence") << "existing entries must survive";
+}
+
 TEST(Tlk, Set)
 {
     nw::Tlk t = nw::Tlk(english_tlk());

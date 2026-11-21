@@ -123,9 +123,19 @@ current count wrote a table too small to hold it and the string vanished on
 reload. `Tlk.SetBeyondTheEndSurvivesSaveAndReload` covers it, and was confirmed
 to fail against the old behaviour before being relied on.
 
-Still untested, and not claimed to work: building a table from a
-default-constructed `Tlk` rather than a loaded one. Every `Tlk` test starts from
-a loaded table.
+A third defect, **fixed 2026-11-21**: `save_as()` reassigns
+`header_.str_count` to the new entry count *between* its two loops, and the
+second loop then indexed `elements_` by that new count. For a loaded table that
+read off the end of the old element array whenever a strref was appended past a
+gap; for a default-constructed `Tlk`, where `elements_` is null, it segfaulted
+outright. Both loops now fall back on a `loaded_count` captured before the
+reassignment and gated on `elements_` being live. `Tlk.BuildsFromScratch` and
+`Tlk.AppendingPastAGapDoesNotReadOffTheEnd` cover it; both were confirmed to
+crash against the old code.
+
+Building a table from scratch now works, so `Tlk` is usable as a writer and not
+only as a reader -- which is what a synthetic TLK fixture would need, should one
+ever be wanted.
 
 ## The V1.1 hak was NWN2 content
 
