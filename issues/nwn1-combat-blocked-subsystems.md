@@ -69,6 +69,11 @@ This is the largest of the three and overlaps a design decision that is already
 open elsewhere: the real-time vs turn-based scheduling split in
 `combat_scheduler`. It should not be designed as a side effect of a rules fix.
 
+The neighbour-query half now has its own plan:
+[spatial queries](spatial-queries.md). That covers the index and the "what is
+near this point" capability only — threat ranges, provoking actions and a
+reaction slot per round remain this item's own design.
+
 ## 3. Casting-in-combat layer — blocked on a cast pipeline
 
 Concentration checks, AoO while casting, and spell interruption all need a spell

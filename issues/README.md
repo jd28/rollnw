@@ -26,6 +26,11 @@ risks and deferred opportunities are explicit on the current status page.
 
 ## Combat / rules work
 
+- [Spatial queries](spatial-queries.md) — plan for "what is near this point", the capability attacks of
+  opportunity, reach, Cleave, Mobility and firing-into-melee all wait on. Recommends a per-area array
+  sorted by `position.x` (sweep and prune, as NWN did) over a 10 m tile grid, because combat radii are
+  ~2 m. Carries a declared workload contract, eight registered benchmarks, and a stress plan whose
+  differential oracle is the retained phase-0 linear scan.
 - [Blocked combat subsystems](nwn1-combat-blocked-subsystems.md) — what is left of the combat ledger,
   grouped by shared blocker: the `iprp_onhittype` data, spatial/movement events for attacks of
   opportunity, a cast pipeline, and a missing initiative system. Effect expiry is inert engine-wide and
