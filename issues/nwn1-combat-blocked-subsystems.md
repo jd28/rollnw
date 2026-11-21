@@ -31,15 +31,17 @@ damage rolls. What it has for handlers is three no-op stubs, and
 engine already locates a real install (`lib/nw/util/game_install.*`,
 `Config::install_path()`) and `StaticKey`/`Bif` can mount `nwn_base.key` +
 `base_2da.bif`. The table is `iprp_onhit.2da` (not `iprp_onhittype`), with
-`iprp_onhitdur.2da` alongside it. Both are now data specs, and both are in test
-data.
+`iprp_onhitdur.2da` alongside it. Both are now data specs.
 
-**The row ids are nothing like a reasonable guess**, which is the whole argument
-against hardcoding them: Sleep 0, Stun 1, Hold 2, Confusion 3, *gap at 4*, Daze
-5, Doom 6, Fear 7, Knock 8, Slow 9, LesserDispel 10, DispelMagic 11,
-GreaterDispel 12, MordsDisjunction 13, Silence 14, Deafness 15, Blindness 16,
-LevelDrain 17, AbilityDrain 18, ItemPoison 19, Disease 20, SlayRG 21, SlayAG 22,
-SlayAlignment 23, Vorpal 24, Wounding 25.
+**Test fixtures are synthetic, not game data.** They carry the real labels at
+deliberately different rows, which tests the data-driven property harder than
+the shipping table would: anything hardcoded to the real ids fails against them.
+
+**The row ids are nothing like a reasonable guess** -- an earlier draft of this
+plan guessed Vorpal at 19; it is not -- and the shipping table leaves a gap in
+the middle of the range. That is the whole argument against hardcoding them.
+Read the labels and ids from the install when you need them rather than copying
+them here.
 
 Behaviour is registered against the stable `Label` string and resolved to a row
 at load, so a reordered, trimmed or extended table leaves a handler unregistered

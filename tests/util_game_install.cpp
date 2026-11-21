@@ -1,5 +1,9 @@
+#include "test_nwn_root.hpp"
+
 #include <gtest/gtest.h>
 
+#include <nw/kernel/Kernel.hpp>
+#include <nw/resources/ResourceManager.hpp>
 #include <nw/util/game_install.hpp>
 #include <nw/util/platform.hpp>
 #include <nw/util/scope_exit.hpp>
@@ -184,3 +188,38 @@ TEST_F(GameInstall, DocumentsUsesTheCurrentWindowsKnownFolder)
     EXPECT_EQ(nw::documents_path().native(), std::wstring{path});
 }
 #endif
+
+// The two install tiers the test suite depends on, asserted rather than assumed.
+//
+// The dedicated-server data ships every rules resource with real bytes, but its
+// KEY *indexes* the visual resources while the BIFs carry zero bytes for them:
+// mdl 32,787, tga 28,196, dds 6,737 and plt 1,565 are all present in the index
+// and empty on disk. So "is it in the index" and "does the file exist" both
+// answer yes for resources the server install does not actually provide, and
+// only the payload tells the truth.
+TEST(GameInstallTiers, RulesResourcesArePresentAndVisualTierIsProbedByPayload)
+{
+    // Tier A, a hard requirement: main() already refuses to run without the
+    // dedicated data, so rules resources must be readable here.
+    const auto feats = nw::kernel::resman().demand(
+        nw::Resource{nw::Resref{"feat"}, nw::ResourceType::twoda});
+    EXPECT_GT(feats.bytes.size(), 0u)
+        << "feat.2da must come from the install; the repo ships no copy";
+
+    const auto baseitems = nw::kernel::resman().demand(
+        nw::Resource{nw::Resref{"baseitems"}, nw::ResourceType::twoda});
+    EXPECT_GT(baseitems.bytes.size(), 0u);
+
+    // Tier B is optional. Whichever way it resolves, it must agree with whether
+    // a model payload is actually readable -- never with mere index presence.
+    const auto model = nw::kernel::resman().demand(
+        nw::Resource{nw::Resref{"plc_a01"}, nw::ResourceType::mdl});
+    EXPECT_EQ(nw::test::has_full_game_assets(), model.bytes.size() > 0)
+        << "the full-asset probe must track payload, not index membership";
+
+    if (!nw::test::has_full_game_assets()) {
+        // Document the server-install shape so a failure here is informative:
+        // the resource resolves, it just has nothing in it.
+        EXPECT_EQ(model.bytes.size(), 0u);
+    }
+}

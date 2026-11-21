@@ -13,6 +13,19 @@ See the `docs <https://rollnw.readthedocs.io/en/latest/>`__ and
 `tests <https://github.com/jd28/rollnw/tree/main/tests>`__ for more info,
 or open an IDE in browser in the quickstart section below.
 
+.. note::
+
+   rollnw is an independent, unofficial project. It is **not affiliated with,
+   authorized by, sponsored by, or endorsed by** BioWare, Beamdog, Electronic
+   Arts, or Wizards of the Coast. Neverwinter Nights, Dungeons & Dragons and
+   related names are the trademarks of their respective owners, used here only
+   to describe what this project interoperates with.
+
+   No game assets or game data are distributed with this repository. You need
+   your own copy of the game — and so does the test suite, which reads game
+   data from an installation and refuses to start without one. See
+   :doc:`gs/building`.
+
 .. warning::
 
    rollnw is in active transition. Older docs and APIs may show a
@@ -47,7 +60,8 @@ features
 - NWN and glTF model rendering docs now live with the renderer code in
   `lib/nw/render <https://github.com/jd28/rollnw/tree/main/lib/nw/render>`__.
 - ``nw::gfx``, ``lib/nw/render``, and ``mudl`` form the current renderer validation path for NWN model, area, spell, VFX, particle, and glTF/PBR work.
-- A Resource Manager that can load all NWN containers (e.g. erf, key, nwsync) and also Zip files.
+- A Resource Manager that can load NWN containers (erf, key, directories) and also Zip files. nwsync is
+  deliberately unsupported, see :doc:`structure/resources`.
 - An implementation of NWN's `Localization System <https://rollnw.readthedocs.io/en/latest/structure/i18n.html>`__ focused
   on utf8 everywhere.
 - Smalls is the active rules/script transition path for modern embedded tooling and rule experiments.

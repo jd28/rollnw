@@ -1,3 +1,5 @@
+#include "test_nwn_root.hpp"
+
 #include <gtest/gtest.h>
 
 #include <nw/kernel/Kernel.hpp>
@@ -6,8 +8,8 @@
 
 TEST(KernelStrings, LoadTLk)
 {
-    nw::kernel::strings().load_dialog_tlk("test_data/root/lang/en/data/dialog.tlk");
-    nw::kernel::strings().load_custom_tlk("test_data/root/lang/en/data/dialog.tlk");
+    nw::kernel::strings().load_dialog_tlk(nw::test::dedicated_dialog_tlk().value());
+    nw::kernel::strings().load_custom_tlk(nw::test::dedicated_dialog_tlk().value());
 
     EXPECT_EQ(nw::kernel::strings().get(1000), "Silence");
     EXPECT_EQ(nw::kernel::strings().get(0x01001000), "Stay here and don't move until I return.");
@@ -41,7 +43,7 @@ TEST(KernelStrings, Intern)
 
 TEST(KernelStrings, TextRefResolution)
 {
-    nw::kernel::strings().load_dialog_tlk("test_data/root/lang/en/data/dialog.tlk");
+    nw::kernel::strings().load_dialog_tlk(nw::test::dedicated_dialog_tlk().value());
 
     nw::TextRef ref = nw::kernel::strings().make_text_ref(1000);
     EXPECT_EQ(nw::kernel::strings().get(ref), "Silence");

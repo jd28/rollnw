@@ -207,8 +207,12 @@ void Tlk::save_as(const std::filesystem::path& path)
     for (uint32_t i = 0; i < max_strref; ++i) {
         auto it = modified_strings_.find(i);
         if (it != std::end(modified_strings_)) {
+            // Write the codepage-converted string, not the UTF-8 original.
+            // The element's size was computed from the converted length above,
+            // so writing the original truncated every non-ASCII string and
+            // shifted the offset of every string after it.
             tmp = from_utf8_by_langid(it->second, language_id());
-            ostream_write(f, it->second.data(), it->second.size());
+            ostream_write(f, tmp.data(), tmp.size());
         } else if (i < header_.str_count) {
             if (TlkFlags::text & elements_[i].flags) {
                 ostream_write(f, bytes_.data() + orig_str_offset + elements_[i].offset, elements_[i].size);

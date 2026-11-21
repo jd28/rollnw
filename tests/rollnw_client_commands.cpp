@@ -20,6 +20,8 @@
 #include "nw/smalls/Smalls.hpp"
 #include "nw/smalls/runtime.hpp"
 
+#include "test_nwn_root.hpp"
+
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
@@ -100,11 +102,9 @@ std::filesystem::path development_resource_path(std::string_view filename)
 
 std::filesystem::path dialog_tlk_path()
 {
-    const std::filesystem::path repo_root_path = "tests/test_data/root/lang/en/data/dialog.tlk";
-    if (std::filesystem::exists(repo_root_path)) {
-        return repo_root_path;
-    }
-    return "test_data/root/lang/en/data/dialog.tlk";
+    // From the dedicated-server data; the repo ships no TLK.
+    auto path = nw::test::dedicated_dialog_tlk();
+    return path ? *path : std::filesystem::path{};
 }
 
 void update_imported_module_metadata(const std::filesystem::path& root,

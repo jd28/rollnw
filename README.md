@@ -65,6 +65,25 @@ fails, set `NWN_ROOT` to the game installation and `NWN_HOME` to its user direct
 In the toolset, choose **Import Module...** on Home. See the
 [toolset guide](tools/client/README.md#getting-started) for the workflow.
 
+### Running the tests
+
+**The test suite requires an NWN installation.** This repository ships no game
+assets, so the tests read game data from an install rather than from a copy
+checked in here. The suite refuses to start without one.
+
+Dedicated-server data is enough for everything except renderer work, and
+`scripts/ci/ensure_nwn.sh` fetches it (this is what CI uses):
+
+```sh
+./scripts/ci/ensure_nwn.sh        # downloads to ./nwn
+NWN_ROOT=./nwn ./build/tests/rollnw_test
+```
+
+`NWN_ROOT` can point at any installation containing `data/nwn_base.key` —
+dedicated server, GOG, Steam or Beamdog client. Note that the dedicated-server
+data indexes models, textures and PLT layers but ships **zero bytes** for them,
+so tests needing those assets skip unless `NWN_ROOT` is a full game install.
+
 ## More
 
 [Documentation](https://jd28.github.io/rollnw/) ·
@@ -73,3 +92,11 @@ In the toolset, choose **Import Module...** on Home. See the
 
 MIT licensed. Thanks to BioWare, Beamdog, and the open-source projects that make
 rollnw possible; dependencies retain their own licenses.
+
+rollnw is an independent, unofficial project. It is **not affiliated with,
+authorized by, sponsored by, or endorsed by BioWare, Beamdog, Electronic Arts,
+or Wizards of the Coast.** Neverwinter Nights, Dungeons & Dragons, and related
+names are the trademarks of their respective owners, used here only to describe
+what this project interoperates with. No game assets or game data are
+distributed with this repository — you need your own copy of the game, and so
+does the test suite.

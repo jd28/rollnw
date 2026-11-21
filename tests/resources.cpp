@@ -369,12 +369,38 @@ TEST(Erf, visit)
     EXPECT_EQ(e.size(), count);
 }
 
+// V1.1 is NWN2's ERF variant. This used to read an NWN2 hak committed to the
+// repo, which both shipped third-party game content and only exercised the read
+// path. Writing one here covers the round trip instead, and the fixture is
+// generated rather than distributed.
 TEST(Erf, v1_1)
 {
-    Erf e("test_data/user/hak/westgate2.hak");
+    std::filesystem::create_directories("tmp");
+    Resource probe{"build"sv, nw::ResourceType::txt};
+
+    // Re-save an existing V1.0 fixture as V1.1. V1.1 keys use 32-byte resrefs
+    // where V1.0 uses 16, so this exercises the width-dependent offset maths on
+    // both the write and the read side.
+    nw::ResourceData original;
+    {
+        Erf writer{"test_data/user/hak/hak_with_description.hak"};
+        ASSERT_TRUE(writer.valid());
+        ASSERT_EQ(writer.version, nw::ErfVersion::v1_0);
+        original = writer.demand(probe);
+        ASSERT_GT(original.bytes.size(), 0u);
+
+        writer.version = nw::ErfVersion::v1_1;
+        ASSERT_TRUE(writer.save_as(fs::path("tmp/v1_1.hak")));
+    }
+
+    Erf e("tmp/v1_1.hak");
     EXPECT_TRUE(e.valid());
-    EXPECT_EQ(e.name(), "westgate2.hak");
+    EXPECT_EQ(e.name(), "v1_1.hak");
     EXPECT_EQ(e.version, nw::ErfVersion::v1_1);
+
+    auto data = e.demand(probe);
+    EXPECT_EQ(data.bytes.size(), original.bytes.size())
+        << "a resource written into a V1.1 container must read back out of it";
 }
 
 // == StaticDirectory =========================================================
@@ -392,11 +418,14 @@ TEST(StaticDirectory, Construction)
     ASSERT_TRUE(rm.add_custom_container(&d, false));
     rm.build_registry();
 
-    auto data = rm.demand({"feat"sv, ResourceType::twoda});
+    // Any file in the directory will do; this one is a synthetic fixture, not a
+    // shipped game table.
+    auto data = rm.demand({"twoda_parse"sv, ResourceType::twoda});
     EXPECT_TRUE(data.bytes.size());
-    EXPECT_EQ(data.bytes.size(), std::filesystem::file_size("./test_data/user/development/feat.2da"));
+    EXPECT_EQ(data.bytes.size(),
+        std::filesystem::file_size("./test_data/user/development/twoda_parse.2da"));
 
-    EXPECT_FALSE(StaticDirectory{"./test_data/user/development/feat.2da"}.valid());
+    EXPECT_FALSE(StaticDirectory{"./test_data/user/development/twoda_parse.2da"}.valid());
     EXPECT_FALSE(StaticDirectory{"./doesnotexist"}.valid());
 }
 

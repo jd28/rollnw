@@ -162,7 +162,8 @@ private:
     /// lookup does not duplicate the complete visible-resource registry.
     ResourceRegistry base_twoda_registry_;
 
-    // currentgame, savegame, nwsync_savegame - Not dealing with this for now..
+    // currentgame and savegame containers are not handled yet. nwsync is not a
+    // gap: support was removed deliberately, see docs/structure/resources.rst.
 
     std::filesystem::path module_path_;
     ModuleResourceFormat module_format_ = ModuleResourceFormat::invalid;

@@ -11,7 +11,7 @@ namespace nw {
 /// Configuration options, maybe there will be an actual config file.. someday.
 struct ConfigOptions {
     bool include_install = true; ///< Load Game install files
-    bool include_user = true;    ///< Load User files, note: if false, value overrides ``include_nwsync``
+    bool include_user = true;    ///< Load User files
     std::optional<std::string> profile;
     std::string combat_policy_module;
     std::string effects_policy_module;

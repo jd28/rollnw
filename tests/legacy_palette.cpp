@@ -14,9 +14,21 @@
 
 using namespace std::literals;
 
+namespace {
+
+// The standard palettes are game content, so they come from the install rather
+// than from a copy in the repo. Gff already accepts ResourceData directly, so
+// no temporary file is needed.
+nw::Gff install_gff(std::string_view resref)
+{
+    return nw::Gff{nw::kernel::resman().demand({resref, nw::ResourceType::itp})};
+}
+
+} // namespace
+
 TEST(Palette, LoadCreature)
 {
-    nw::Gff g{"test_data/user/scratch/creaturepalstd.itp"};
+    nw::Gff g = install_gff("creaturepalstd"sv);
     nw::Palette c{g};
     EXPECT_TRUE(c.children.size() > 0);
     auto node = c.children[0];
@@ -35,7 +47,7 @@ TEST(Palette, LoadCreature)
     EXPECT_TRUE(bluenode->cr >= 11.0f);
     EXPECT_EQ(bluenode->faction, "Hostile");
 
-    nw::Gff g2{"test_data/user/scratch/creaturepal.itp"};
+    nw::Gff g2 = install_gff("creaturepal"sv);
     nw::Palette p2{g2};
     EXPECT_TRUE(p2.valid());
     EXPECT_EQ(p2.resource_type, nw::ResourceType::utc);
@@ -43,7 +55,7 @@ TEST(Palette, LoadCreature)
 
 TEST(Palette, LoadTileset)
 {
-    nw::Gff g{"test_data/user/scratch/tde01palstd.itp"};
+    nw::Gff g = install_gff("tde01palstd"sv);
     nw::Palette c{g};
     EXPECT_TRUE(c.valid());
     EXPECT_TRUE(c.children.size() > 0);
@@ -64,7 +76,7 @@ TEST(Palette, JsonConversion)
     auto j2 = pal2.to_json();
     EXPECT_EQ(j1, j2);
 
-    nw::Gff g2{"test_data/user/scratch/creaturepalstd.itp"};
+    nw::Gff g2 = install_gff("creaturepalstd"sv);
     nw::Palette pal3{g2};
     auto j3 = pal3.to_json();
     std::ofstream f2{"tmp/creaturepalstd.itp.json", std::ios::binary};
@@ -73,7 +85,7 @@ TEST(Palette, JsonConversion)
 
 TEST(Palette, GffRoundTrip)
 {
-    nw::Gff g{"test_data/user/scratch/creaturepal.itp"};
+    nw::Gff g = install_gff("creaturepal"sv);
     EXPECT_TRUE(g.valid());
     nw::Palette f{g};
     nw::GffBuilder out = nw::serialize(f);

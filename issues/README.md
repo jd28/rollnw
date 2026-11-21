@@ -26,6 +26,10 @@ risks and deferred opportunities are explicit on the current status page.
 
 ## Combat / rules work
 
+- [Getting game content out of the test data](test-data-game-content-removal.md) — `tests/test_data/` is
+  163 MB and carries complete game TLKs, models, haks and rule tables. Synthetic fixtures are also the
+  stronger test for data-driven code; migration tiers plus `probe_nwn_install()` + `GTEST_SKIP()` for
+  what cannot be synthesised.
 - [Spatial queries](spatial-queries.md) — plan for "what is near this point", the capability attacks of
   opportunity, reach, Cleave, Mobility and firing-into-melee all wait on. Recommends a per-area array
   sorted by `position.x` (sweep and prune, as NWN did) over a 10 m tile grid, because combat radii are

@@ -7182,9 +7182,14 @@ TEST_F(SmallsEngineIntegration, Nwn1SkillMasteryAndSlipperyMind)
 }
 
 // On-hit weapon properties resolve through iprp_onhit.2da by label, not by
-// hardcoded row id. Row ids are data -- base NWN already has a gap at row 4,
-// and a module may reorder or extend the table -- so binding behaviour to a
-// row number would silently attach the wrong effect.
+// hardcoded row id. Row ids are data: a module may reorder, trim or extend the
+// table, and base NWN itself leaves a gap in it, so binding behaviour to a row
+// number would silently attach the wrong effect.
+//
+// The fixtures behind this test are synthetic and deliberately put the labels
+// at *different* rows than the shipping game does. That is the point: if any of
+// this were hardcoded to the real ids, these assertions would fail. No game
+// data is used.
 TEST_F(SmallsEngineIntegration, Nwn1OnHitPropertiesResolveByLabelFromTable)
 {
     std::string_view source = R"(
@@ -7252,36 +7257,41 @@ TEST_F(SmallsEngineIntegration, Nwn1OnHitPropertiesResolveByLabelFromTable)
         return result.value.data.ival;
     };
 
-    ASSERT_GT(call_int("property_count"), 20) << "the on-hit table must be loaded";
+    ASSERT_GE(call_int("property_count"), 6) << "the on-hit table must be loaded";
 
-    // The labels the handlers bind to must exist, and at the rows the real
-    // table actually uses -- which are not the ones a reasonable person guesses.
-    EXPECT_EQ(row_of(0), 24) << "Vorpal";
-    EXPECT_EQ(row_of(1), 0) << "Sleep";
-    EXPECT_EQ(row_of(2), 1) << "Stun";
-    EXPECT_EQ(row_of(3), 25) << "Wounding";
-    EXPECT_EQ(row_of(4), 16) << "Blindness";
+    // Resolved from the fixture, which scrambles the rows relative to the real
+    // game on purpose.
+    EXPECT_EQ(row_of(0), 2) << "Vorpal";
+    EXPECT_EQ(row_of(1), 3) << "Sleep";
+    EXPECT_EQ(row_of(2), 0) << "Stun";
+    EXPECT_EQ(row_of(3), 4) << "Wounding";
+    EXPECT_EQ(row_of(4), 5) << "Blindness";
 
     EXPECT_EQ(row_of(5), -1) << "an unknown label must bind nothing";
 
-    // Row 4 is a gap in base iprp_onhit.2da; it must read as absent rather
-    // than crashing on a default-constructed entry.
+    // The fixture leaves row 1 empty, as the shipping table also has a gap. It
+    // must read as absent rather than crashing on a default-constructed entry
+    // whose string fields are not readable.
     nw::Vector<nw::smalls::Value> gap_args;
-    gap_args.push_back(nw::smalls::Value::make_int(4));
+    gap_args.push_back(nw::smalls::Value::make_int(1));
     const auto gap = rt.execute_script(script, "label_of", gap_args);
     EXPECT_TRUE(gap.ok()) << gap.error_message;
 
     // Chance and duration come from iprp_onhitdur.2da, keyed by cost value.
     EXPECT_EQ(call_int("handlers_registered"), 1);
-    // Row 0 is "5%" for 5 rounds; row 4 is "75%" for 1 round.
     nw::Vector<nw::smalls::Value> a0;
     a0.push_back(nw::smalls::Value::make_int(0));
-    EXPECT_EQ(rt.execute_script(script, "chance_of", a0).value.data.ival, 5);
-    EXPECT_EQ(rt.execute_script(script, "rounds_of", a0).value.data.ival, 5);
-    nw::Vector<nw::smalls::Value> a4;
-    a4.push_back(nw::smalls::Value::make_int(4));
-    EXPECT_EQ(rt.execute_script(script, "chance_of", a4).value.data.ival, 75);
-    EXPECT_EQ(rt.execute_script(script, "rounds_of", a4).value.data.ival, 1);
+    EXPECT_EQ(rt.execute_script(script, "chance_of", a0).value.data.ival, 100);
+    EXPECT_EQ(rt.execute_script(script, "rounds_of", a0).value.data.ival, 2);
+    nw::Vector<nw::smalls::Value> a3;
+    a3.push_back(nw::smalls::Value::make_int(3));
+    EXPECT_EQ(rt.execute_script(script, "chance_of", a3).value.data.ival, 5);
+    EXPECT_EQ(rt.execute_script(script, "rounds_of", a3).value.data.ival, 1);
+
+    // A gap in the duration table must also mean "never fires".
+    nw::Vector<nw::smalls::Value> a2;
+    a2.push_back(nw::smalls::Value::make_int(2));
+    EXPECT_EQ(rt.execute_script(script, "chance_of", a2).value.data.ival, 0);
 
     // A cost value naming no row must mean "never fires", not "always fires".
     nw::Vector<nw::smalls::Value> bogus;
