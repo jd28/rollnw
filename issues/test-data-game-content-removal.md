@@ -117,11 +117,15 @@ non-ASCII modified string was truncated and double-encoded, and every string
 after it had its offset shifted. ASCII was unaffected, which is why the existing
 `Tlk.Save` test passed. Fixed.
 
-Still open in the same function, not fixed here: `save_as()` uses one
-`max_strref` as both a count and an index (`ele.resize(max_strref)`,
-`header_.str_count = max_strref`), so setting a strref at or beyond the current
-count silently drops it, and building a table from a default-constructed `Tlk`
-can fault.
+A second defect in the same function, **fixed 2026-11-21**: `save_as()` used one
+`max_strref` as both a count and an index, so setting a strref at or beyond the
+current count wrote a table too small to hold it and the string vanished on
+reload. `Tlk.SetBeyondTheEndSurvivesSaveAndReload` covers it, and was confirmed
+to fail against the old behaviour before being relied on.
+
+Still untested, and not claimed to work: building a table from a
+default-constructed `Tlk` rather than a loaded one. Every `Tlk` test starts from
+a loaded table.
 
 ## The V1.1 hak was NWN2 content
 

@@ -52,8 +52,10 @@ features
   live in the `client README <https://github.com/jd28/rollnw/tree/main/tools/client>`__.
 - The beginnings of a novel `Rules System <https://rollnw.readthedocs.io/en/latest/structure/rules.html>`__ designed for
   easily adding, overriding, expanding, or removing any rule and reasonable performance
-- A `combat engine <https://github.com/jd28/rollnw/blob/main/api/combat.cpp>`__ that's very
-  nearing being able to simulate melee battles.
+- A combat engine that resolves melee and ranged attacks through the Smalls
+  rules layer, applies the resulting damage and effects, and schedules attack
+  rounds. The NWN1 rule coverage and its remaining gaps are tracked in
+  `issues/ <https://github.com/jd28/rollnw/tree/main/issues>`__.
 - Objects (i.e. Creatures, Waypoints, etc) are implemented at a toolset level. In other words, their features cover blueprints and area instances, with support for effects and item properties. Loading objects from resman or the filesystem is transparent whether the source is GFF or JSON.
 - A recursive descent `NWScript Parser <https://rollnw.readthedocs.io/en/latest/structure/script.html>`__. This remains useful for NWN compatibility, but new rules and scripting experiments are moving toward Smalls.
 - Implementations of pretty much every `NWN File Format <https://rollnw.readthedocs.io/en/latest/structure/formats.html>`__
@@ -120,7 +122,7 @@ Credits
 
 -  `Bioware <https://bioware.com>`__, `Beamdog <https://beamdog.com>`__ - The game itself
 -  `abseil <https://abseil.io/>`__ - Foundational
--  `Catch2 <https://github.com/catchorg/Catch2>`__ - Testing
+-  `googletest <https://github.com/google/googletest>`__ - Testing
 -  `glm <https://www.opengl.org/sdk/libs/GLM/>`__ - Mathematics
 -  `Vulkan <https://www.vulkan.org/>`__,
    `Dear ImGui <https://github.com/ocornut/imgui>`__,

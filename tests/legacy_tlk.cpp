@@ -60,6 +60,30 @@ TEST(Tlk, NonAsciiTextSurvivesSaveAndReload)
     EXPECT_EQ(reloaded.get(2), "Épée");
 }
 
+// save_as() used to treat its bound as both a count and an index, so a strref
+// set at or beyond the table's current size was written into a table too small
+// to hold it and vanished on reload.
+TEST(Tlk, SetBeyondTheEndSurvivesSaveAndReload)
+{
+    std::filesystem::create_directories("tmp");
+
+    nw::Tlk t{english_tlk()};
+    ASSERT_TRUE(t.valid());
+    const uint32_t past_end = static_cast<uint32_t>(t.size());
+
+    t.set(past_end, "appended entry");
+    EXPECT_EQ(t.get(past_end), "appended entry");
+    t.save_as("tmp/dialog_appended.tlk");
+
+    nw::Tlk reloaded{"tmp/dialog_appended.tlk"};
+    ASSERT_TRUE(reloaded.valid());
+    EXPECT_EQ(reloaded.size(), past_end + 1)
+        << "the table must grow to include the new strref";
+    EXPECT_EQ(reloaded.get(past_end), "appended entry");
+    // The entry before it must be untouched.
+    EXPECT_EQ(reloaded.get(1000), "Silence");
+}
+
 TEST(Tlk, Set)
 {
     nw::Tlk t = nw::Tlk(english_tlk());

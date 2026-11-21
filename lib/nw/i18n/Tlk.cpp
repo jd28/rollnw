@@ -157,13 +157,19 @@ void Tlk::save()
 
 void Tlk::save_as(const std::filesystem::path& path)
 {
-    uint32_t max_strref = header_.str_count;
+    // `str_count` is a count; `modified_strings_` keys are indices. Taking the
+    // max of the two as if they were the same kind of number dropped the
+    // highest strref ever written: setting strref N when str_count was <= N
+    // produced a table of N entries, which does not include index N.
+    uint32_t entry_count = header_.str_count;
     for (const auto& [k, v] : modified_strings_) {
-        max_strref = std::max(max_strref, k);
+        if (k == std::numeric_limits<uint32_t>::max()) { continue; }
+        entry_count = std::max(entry_count, k + 1);
     }
+    const uint32_t max_strref = entry_count;
 
     Vector<TlkElement> ele;
-    ele.resize(max_strref);
+    ele.resize(entry_count);
 
     uint32_t orig_str_offset = header_.str_offset;
     header_.str_offset = static_cast<uint32_t>(sizeof(TlkHeader) + (ele.size() * sizeof(TlkElement)));
