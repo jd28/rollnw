@@ -274,6 +274,29 @@ type BaseItemDefinition {
     rules: BaseItemRules;
 };
 
+// iprp_onhit.2da: which on-hit effect an ip_on_hit_properties subtype selects.
+// `label` is the key behaviour is registered against -- row ids are data and
+// are not safe to hardcode, since a module may reorder or extend the table.
+[[value_type]]
+type OnHitPropertyEntry {
+    [[index]]
+    id:          int;
+    label:       string;
+    name_strref: int;
+    param_table: int;
+};
+
+// iprp_onhitdur.2da: an on-hit property's cost value selects a row here, which
+// carries the percentage chance the effect fires and how long it lasts.
+[[value_type]]
+type OnHitDurationEntry {
+    [[index]]
+    id:              int;
+    label:           string;
+    effect_chance:   int;
+    duration_rounds: int;
+};
+
 [[value_type]]
 type PlaceableRules {
     [[index]]

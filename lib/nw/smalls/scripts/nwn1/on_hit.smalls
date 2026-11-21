@@ -1,14 +1,22 @@
 import core.array as arr;
+import core.combat as NativeCombat;
+import core.effects as effects;
 import core.item as item;
 from core.types import { DamageRoll };
 
 import nwn1.constants as Const;
+import nwn1.effects as nwn1effects;
+import nwn1.onhit_tables as onhit_tables;
 
 [[value_type]]
 type OnHitResult {
     negate_hit: bool;
     base_damage_bonus: int;
     rolls: array!(DamageRoll);
+    // Effect intents the caller applies to the target. Conditions are the whole
+    // point of most on-hit properties, which the damage-only result could not
+    // express.
+    effects: array!(effects.Effect);
 };
 
 type OnHitHandler {
@@ -22,21 +30,37 @@ var handlers: array!(OnHitHandler) = {};
 
 fn _result(negate_hit: bool, base_damage_bonus: int): OnHitResult {
     var rolls: array!(DamageRoll) = {};
+    var effs: array!(effects.Effect) = {};
     var r = OnHitResult {
         negate_hit = false,
         base_damage_bonus = 0,
         rolls = rolls,
+        effects = effs,
     };
     r.negate_hit = negate_hit;
     r.base_damage_bonus = base_damage_bonus;
     return r;
 }
 
+var _registered = false;
+
 fn clear_handlers() {
     arr.clear(handlers);
 }
 
+// Registration is lazy, not part of Init.init(), because resolving on-hit
+// labels loads iprp_onhit.2da -- and forcing a config load during Init.init()
+// is exactly what disturbed unrelated equipment/visual state when the
+// weapon-category master feats were first wired eagerly. This keeps the
+// table's first load at the first attack that actually needs it.
+fn _ensure_registered() {
+    if (_registered) { return; }
+    _registered = true;
+    register_default_handlers();
+}
+
 fn has_handlers(): bool {
+    _ensure_registered();
     return arr.len(handlers) > 0;
 }
 
@@ -63,6 +87,7 @@ fn resolve_weapon_on_hit(
     critical_multiplier: int,
     is_ranged: bool,
 ): OnHitResult {
+    _ensure_registered();
     var result = _result(false, 0);
     var properties = item.item_properties(weapon);
     for (var ip in properties) {
@@ -82,10 +107,88 @@ fn resolve_weapon_on_hit(
             for (var roll in partial.rolls) {
                 arr.push(result.rolls, roll);
             }
+            for (var e in partial.effects) {
+                arr.push(result.effects, e);
+            }
         }
     }
 
     return result;
+}
+
+// Registers a handler against an on-hit label rather than a row id, resolving
+// the label through iprp_onhit.2da. Returns false when the table does not carry
+// that label, so a trimmed or reordered table leaves the handler unregistered
+// instead of bound to the wrong effect.
+fn register_handler_for_label(
+    label: string,
+    payload: fn(Creature, object, Item, Const.AttackType, int, int, bool, item.ItemProperty): OnHitResult,
+): bool {
+    const row = onhit_tables.row_for_label(label);
+    if (row < 0) { return false; }
+    register_handler(f"onhit_{label}", Const.ip_on_hit_properties, row, payload);
+    return true;
+}
+
+// On-hit effects are probabilistic: the property's cost value selects a row in
+// iprp_onhitdur.2da carrying the percentage chance and the duration in rounds.
+fn _triggers(ip: item.ItemProperty): bool {
+    const chance = onhit_tables.effect_chance(ip.cost_value);
+    if (chance <= 0) { return false; }
+    if (chance >= 100) { return true; }
+    return NativeCombat.roll_uniform_int(1, 100) <= chance;
+}
+
+fn _duration_seconds(ip: item.ItemProperty): float {
+    return (onhit_tables.duration_rounds(ip.cost_value) as float) * Const.seconds_per_round;
+}
+
+fn _handler_vorpal(
+    _attacker: Creature,
+    target: object,
+    _weapon: Item,
+    _attack_type: Const.AttackType,
+    _attack_result: int,
+    _critical_multiplier: int,
+    _is_ranged: bool,
+    ip: item.ItemProperty,
+): OnHitResult {
+    var out = _result(false, 0);
+    if (!(target is Creature) || !_triggers(ip)) { return out; }
+    arr.push(out.effects, nwn1effects.death());
+    return out;
+}
+
+fn _handler_sleep(
+    _attacker: Creature,
+    target: object,
+    _weapon: Item,
+    _attack_type: Const.AttackType,
+    _attack_result: int,
+    _critical_multiplier: int,
+    _is_ranged: bool,
+    ip: item.ItemProperty,
+): OnHitResult {
+    var out = _result(false, 0);
+    if (!(target is Creature) || !_triggers(ip)) { return out; }
+    arr.push(out.effects, nwn1effects.sleep(_duration_seconds(ip)));
+    return out;
+}
+
+fn _handler_stun(
+    _attacker: Creature,
+    target: object,
+    _weapon: Item,
+    _attack_type: Const.AttackType,
+    _attack_result: int,
+    _critical_multiplier: int,
+    _is_ranged: bool,
+    ip: item.ItemProperty,
+): OnHitResult {
+    var out = _result(false, 0);
+    if (!(target is Creature) || !_triggers(ip)) { return out; }
+    arr.push(out.effects, nwn1effects.stunned(_duration_seconds(ip)));
+    return out;
 }
 
 fn _stub_on_hit_properties(
@@ -127,9 +230,45 @@ fn _stub_on_hit_cast_spell(
     return _result(false, 0);
 }
 
+// Labels this profile understands, paired with the handler that implements
+// them. Everything else in iprp_onhit.2da is deliberately absent rather than
+// registered as a no-op -- see unimplemented_labels().
 fn register_default_handlers() {
     clear_handlers();
-    register_handler("stub_on_hit_properties", Const.ip_on_hit_properties, -1, _stub_on_hit_properties);
-    register_handler("stub_on_monster_hit", Const.ip_on_monster_hit, -1, _stub_on_monster_hit);
-    register_handler("stub_on_hit_cast_spell", Const.ip_onhitcastspell, -1, _stub_on_hit_cast_spell);
+    register_handler_for_label("Vorpal", _handler_vorpal);
+    register_handler_for_label("Sleep", _handler_sleep);
+    register_handler_for_label("Stun", _handler_stun);
+}
+
+// Every on-hit label in the table that nothing handles yet, with the reason
+// grouped by what it needs. Exposed so the gap is inspectable and testable
+// rather than looking like silence.
+//
+//   needs new condition effect types:
+//     Hold, Confusion, Daze, Doom, Fear, Silence, Deafness, Blindness, Slow,
+//     Knock
+//   needs recurring per-round damage (a repeating event, not expiry):
+//     Wounding, ItemPoison, Disease
+//   needs the spell pipeline:
+//     LesserDispel, DispelMagic, GreaterDispel, MordsDisjunction
+//   needs race/alignment parameter tables wired:
+//     SlayRG, SlayAG, SlayAlignment
+//   needs level machinery:
+//     LevelDrain
+//   expressible, not yet done:
+//     AbilityDrain (ability_decrease exists; needs the ability param table)
+fn unimplemented_labels(): array!(string) {
+    var result: array!(string) = {};
+    for (var row = 0; row < onhit_tables.property_count(); row += 1) {
+        var label = onhit_tables.label_for_row(row);
+        if (label == "") { continue; }
+        var handled = false;
+        for (var h in handlers) {
+            if (h.property_type == Const.ip_on_hit_properties as int && h.property_subtype == row) {
+                handled = true;
+            }
+        }
+        if (!handled) { arr.push(result, label); }
+    }
+    return result;
 }

@@ -7180,3 +7180,115 @@ TEST_F(SmallsEngineIntegration, Nwn1SkillMasteryAndSlipperyMind)
     EXPECT_LT(std::abs(fort_with - fort_without), 120)
         << "Fortitude gets no reroll, so holding the feat must not shift it materially";
 }
+
+// On-hit weapon properties resolve through iprp_onhit.2da by label, not by
+// hardcoded row id. Row ids are data -- base NWN already has a gap at row 4,
+// and a module may reorder or extend the table -- so binding behaviour to a
+// row number would silently attach the wrong effect.
+TEST_F(SmallsEngineIntegration, Nwn1OnHitPropertiesResolveByLabelFromTable)
+{
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.init as Init;
+        import nwn1.on_hit as on_hit;
+        import nwn1.onhit_tables as tables;
+
+        // Selector rather than a string argument, so the test does not have to
+        // marshal strings across the boundary.
+        fn label_at(which: int): string {
+            if (which == 0) { return "Vorpal"; }
+            if (which == 1) { return "Sleep"; }
+            if (which == 2) { return "Stun"; }
+            if (which == 3) { return "Wounding"; }
+            if (which == 4) { return "Blindness"; }
+            return "NotARealOnHitEffect";
+        }
+
+        fn row_of(which: int): int {
+            Init.init();
+            return tables.row_for_label(label_at(which));
+        }
+
+        fn label_of(row: int): string {
+            Init.init();
+            return tables.label_for_row(row);
+        }
+
+        fn property_count(): int { Init.init(); return tables.property_count(); }
+
+        fn chance_of(cost_value: int): int { Init.init(); return tables.effect_chance(cost_value); }
+        fn rounds_of(cost_value: int): int { Init.init(); return tables.duration_rounds(cost_value); }
+
+        fn handlers_registered(): int {
+            Init.init();
+            return on_hit.has_handlers() ? 1 : 0;
+        }
+
+        fn unimplemented_count(): int {
+            Init.init();
+            on_hit.has_handlers();
+            return arr.len(on_hit.unimplemented_labels());
+        }
+
+    )";
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* script = rt.load_module_from_source("test.nwn1_onhit_tables", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call_int = [&](const char* fn) {
+        nw::Vector<nw::smalls::Value> args;
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+    auto row_of = [&](int which) {
+        nw::Vector<nw::smalls::Value> args;
+        args.push_back(nw::smalls::Value::make_int(which));
+        const auto result = rt.execute_script(script, "row_of", args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    ASSERT_GT(call_int("property_count"), 20) << "the on-hit table must be loaded";
+
+    // The labels the handlers bind to must exist, and at the rows the real
+    // table actually uses -- which are not the ones a reasonable person guesses.
+    EXPECT_EQ(row_of(0), 24) << "Vorpal";
+    EXPECT_EQ(row_of(1), 0) << "Sleep";
+    EXPECT_EQ(row_of(2), 1) << "Stun";
+    EXPECT_EQ(row_of(3), 25) << "Wounding";
+    EXPECT_EQ(row_of(4), 16) << "Blindness";
+
+    EXPECT_EQ(row_of(5), -1) << "an unknown label must bind nothing";
+
+    // Row 4 is a gap in base iprp_onhit.2da; it must read as absent rather
+    // than crashing on a default-constructed entry.
+    nw::Vector<nw::smalls::Value> gap_args;
+    gap_args.push_back(nw::smalls::Value::make_int(4));
+    const auto gap = rt.execute_script(script, "label_of", gap_args);
+    EXPECT_TRUE(gap.ok()) << gap.error_message;
+
+    // Chance and duration come from iprp_onhitdur.2da, keyed by cost value.
+    EXPECT_EQ(call_int("handlers_registered"), 1);
+    // Row 0 is "5%" for 5 rounds; row 4 is "75%" for 1 round.
+    nw::Vector<nw::smalls::Value> a0;
+    a0.push_back(nw::smalls::Value::make_int(0));
+    EXPECT_EQ(rt.execute_script(script, "chance_of", a0).value.data.ival, 5);
+    EXPECT_EQ(rt.execute_script(script, "rounds_of", a0).value.data.ival, 5);
+    nw::Vector<nw::smalls::Value> a4;
+    a4.push_back(nw::smalls::Value::make_int(4));
+    EXPECT_EQ(rt.execute_script(script, "chance_of", a4).value.data.ival, 75);
+    EXPECT_EQ(rt.execute_script(script, "rounds_of", a4).value.data.ival, 1);
+
+    // A cost value naming no row must mean "never fires", not "always fires".
+    nw::Vector<nw::smalls::Value> bogus;
+    bogus.push_back(nw::smalls::Value::make_int(999));
+    EXPECT_EQ(rt.execute_script(script, "chance_of", bogus).value.data.ival, 0);
+
+    // The unhandled labels are a known, inspectable set rather than silence.
+    EXPECT_GT(call_int("unimplemented_count"), 0)
+        << "most on-hit effects are still unimplemented and must say so";
+}

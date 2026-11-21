@@ -407,6 +407,10 @@ const feat_improved_disarm = Feat(16);
 const feat_crippling_strike = Feat(222);
 const feat_skill_mastery = Feat(225);
 const feat_slippery_mind = Feat(259);
+
+// An NWN combat round is six seconds. Used to turn table-driven durations
+// expressed in rounds into the seconds an Effect's duration wants.
+const seconds_per_round = 6.0;
 const combat_mode_parry = 1;
 const combat_mode_power_attack = 2;
 const combat_mode_improved_power_attack = 3;

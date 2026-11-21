@@ -1,0 +1,98 @@
+// On-hit item property tables, loaded from iprp_onhit.2da and
+// iprp_onhitdur.2da.
+//
+// The point of this module is that nothing downstream hardcodes a row id. The
+// subtype of an `ip_on_hit_properties` property is a row in iprp_onhit.2da, and
+// those rows are *data*: a module can reorder them, extend them, or leave gaps
+// (base NWN already has a hole at row 4). Code keys off the stable `Label`
+// string instead, and resolves label -> row here at load. A label that is not
+// in the table resolves to -1 and registers nothing, rather than silently
+// binding to whatever happens to occupy that row.
+
+from nwn1.rules import { OnHitPropertyEntry, OnHitDurationEntry };
+
+import core.array as Array;
+
+var _loaded = false;
+var _properties: array!(OnHitPropertyEntry);
+var _property_valid: array!(bool);
+var _durations: array!(OnHitDurationEntry);
+var _duration_valid: array!(bool);
+
+// load_config! returns an array indexed by the [[index]] field, so a table with
+// a gap -- base iprp_onhit.2da has one at row 4 -- yields a default-constructed
+// entry there whose string fields are not readable. Track validity by the same
+// id == index test baseitems.smalls uses, and never touch an invalid row.
+fn _ensure_loaded(): bool {
+    if (_loaded) { return true; }
+    _loaded = true;
+
+    _properties = load_config!(OnHitPropertyEntry)("nwn1.data.iprp_onhit");
+    for (var i = 0; i < Array.len(_properties); i += 1) {
+        Array.push(_property_valid, Array.get(_properties, i).id == i);
+    }
+
+    _durations = load_config!(OnHitDurationEntry)("nwn1.data.iprp_onhitdur");
+    for (var i = 0; i < Array.len(_durations); i += 1) {
+        Array.push(_duration_valid, Array.get(_durations, i).id == i);
+    }
+    return true;
+}
+
+fn _property_is_valid(row: int): bool {
+    _ensure_loaded();
+    if (row < 0 || row >= Array.len(_property_valid)) { return false; }
+    return Array.get(_property_valid, row);
+}
+
+fn property_count(): int {
+    _ensure_loaded();
+    return Array.len(_properties);
+}
+
+fn duration_count(): int {
+    _ensure_loaded();
+    return Array.len(_durations);
+}
+
+// Row index for an on-hit label, or -1 when the table does not carry it.
+// Labels must match the table's own casing.
+fn row_for_label(label: string): int {
+    _ensure_loaded();
+    for (var i = 0; i < Array.len(_properties); i += 1) {
+        if (!_property_is_valid(i)) { continue; }
+        if (Array.get(_properties, i).label == label) { return i; }
+    }
+    return -1;
+}
+
+fn label_for_row(row: int): string {
+    if (!_property_is_valid(row)) { return ""; }
+    return Array.get(_properties, row).label;
+}
+
+// Which parameter table the property's param_value indexes, or -1 for the
+// properties that take no parameter (Vorpal, Wounding, LevelDrain, Knock).
+fn param_table_for_row(row: int): int {
+    if (!_property_is_valid(row)) { return -1; }
+    return Array.get(_properties, row).param_table;
+}
+
+fn _duration_is_valid(row: int): bool {
+    _ensure_loaded();
+    if (row < 0 || row >= Array.len(_duration_valid)) { return false; }
+    return Array.get(_duration_valid, row);
+}
+
+// Percentage chance the effect fires, from the property's cost value. Zero when
+// the cost value names no row, which means the property never triggers rather
+// than always triggering.
+fn effect_chance(cost_value: int): int {
+    if (!_duration_is_valid(cost_value)) { return 0; }
+    return Array.get(_durations, cost_value).effect_chance;
+}
+
+fn duration_rounds(cost_value: int): int {
+    if (!_duration_is_valid(cost_value)) { return 0; }
+    return Array.get(_durations, cost_value).duration_rounds;
+}

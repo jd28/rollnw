@@ -17,7 +17,7 @@ None of these should be attempted by inferring the missing pieces. The whole
 point of the audit that produced the parent issue was that guessed-at or
 unreachable rule code looks implemented and silently does nothing.
 
-## 1. On-hit weapon properties — blocked on game data
+## 1. On-hit weapon properties — PARTLY DONE 2026-11-20
 
 `on_hit.smalls` has real dispatch: handlers register by
 `(property_type, property_subtype)` and `resolve_weapon_on_hit()` fans item
@@ -26,19 +26,62 @@ damage rolls. What it has for handlers is three no-op stubs, and
 `register_default_handlers()` **is never called from anywhere**, so
 `has_handlers()` is false and the entire path is inert at runtime.
 
-Two independent blockers:
+**The data blocker was overstated.** This doc said the subtype vocabulary was
+"not in the repo", which was true of test data but not of the capability: the
+engine already locates a real install (`lib/nw/util/game_install.*`,
+`Config::install_path()`) and `StaticKey`/`Bif` can mount `nwn_base.key` +
+`base_2da.bif`. The table is `iprp_onhit.2da` (not `iprp_onhittype`), with
+`iprp_onhitdur.2da` alongside it. Both are now data specs, and both are in test
+data.
 
-- **The subtype vocabulary is not in the repo.** Which on-hit effect a property
-  means (Vorpal, Wounding, Stun, Blindness, Slay Race, Ability Drain, ...) is a
-  row index into `iprp_onhittype.2da`. This repo's test data carries 13 2das and
-  none of them are `iprp_*` or `itempropdef.2da`. Handlers keyed on hardcoded
-  row ids would be unverifiable and silently wrong for every property. The
-  engine's `ip_option_name()` native reads these tables, but returns a strref,
-  so name-based matching needs a TLK that is also absent.
+**The row ids are nothing like a reasonable guess**, which is the whole argument
+against hardcoding them: Sleep 0, Stun 1, Hold 2, Confusion 3, *gap at 4*, Daze
+5, Doom 6, Fear 7, Knock 8, Slow 9, LesserDispel 10, DispelMagic 11,
+GreaterDispel 12, MordsDisjunction 13, Silence 14, Deafness 15, Blindness 16,
+LevelDrain 17, AbilityDrain 18, ItemPoison 19, Disease 20, SlayRG 21, SlayAG 22,
+SlayAlignment 23, Vorpal 24, Wounding 25.
+
+Behaviour is registered against the stable `Label` string and resolved to a row
+at load, so a reordered, trimmed or extended table leaves a handler unregistered
+rather than bound to the wrong effect. An unknown label binds nothing. The gap
+row is handled by the same `id == index` validity test `baseitems.smalls` uses,
+because `load_config!` yields a default-constructed entry there whose string
+fields are not readable.
+
+**The real model**, which was not obvious: on-hit effects are probabilistic and
+timed. The property's `cost_value` indexes `iprp_onhitdur.2da`, which carries
+`EffectChance` (a percentage) and `DurationRounds`. A cost value naming no row
+means the property never fires, not that it always fires.
+
+Done: the data specs, label-keyed registration, the chance/duration plumbing,
+`OnHitResult` carrying effect intents (it could previously only express damage),
+and handlers for **Vorpal**, **Sleep** and **Stun**. `register_default_handlers()`
+was dead code called from nowhere; it now runs, lazily on first use rather than
+from `Init.init()`, because resolving labels loads a 2da and forcing a config
+load during init is what disturbed unrelated tests when the weapon-category
+feats were first wired eagerly.
+
+Remaining, and inspectable via `on_hit.unimplemented_labels()` rather than
+silent:
+
+- **New condition effect types**: Hold, Confusion, Daze, Doom, Fear, Silence,
+  Deafness, Blindness, Slow, Knock.
+- **Recurring per-round damage** (a repeating event, not expiry): Wounding,
+  ItemPoison, Disease.
+- **The spell pipeline**: LesserDispel, DispelMagic, GreaterDispel,
+  MordsDisjunction.
+- **Race/alignment parameter tables**: SlayRG, SlayAG, SlayAlignment.
+- **Level machinery**: LevelDrain.
+- **Expressible, just not done**: AbilityDrain — `ability_decrease` exists and
+  `param_table_for_row()` already reports which parameter table to read.
+
+Still true:
 - **Several properties need per-round ticking.** Wounding, item poison and
   disease are damage over time. Single-shot expiry now works (see the shared
   blocker below), but a *recurring* per-round tick does not exist — that needs a
   repeating event, not a scheduled removal.
+- **`itempropdef.2da` is still absent from test data**, so the item-property
+  definition metadata (`ip_definition_*` natives) remains unexercised.
 
 Reachable subset once the 2da exists: Vorpal and the three Slay variants map
 onto the `death` effect type added by the parent issue, and Stun/Sleep map onto

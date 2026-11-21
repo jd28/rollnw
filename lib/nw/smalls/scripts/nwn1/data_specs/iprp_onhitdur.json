@@ -1,0 +1,21 @@
+{
+  "source": {
+    "kind": "twoda",
+    "resource": "iprp_onhitdur",
+    "valid_when": {
+      "column": "Label",
+      "on_missing": "omit_row"
+    }
+  },
+  "output": {
+    "config_path": "nwn1.data.iprp_onhitdur",
+    "entry_type": "nwn1.rules.OnHitDurationEntry",
+    "snapshot_filename": { "column": "Label" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "label", "value": { "kind": "column", "column": "Label", "type": "string" } },
+      { "target": "effect_chance", "value": { "kind": "column", "column": "EffectChance", "type": "int", "on_missing": "default", "default": 0 } },
+      { "target": "duration_rounds", "value": { "kind": "column", "column": "DurationRounds", "type": "int", "on_missing": "default", "default": 0 } }
+    ]
+  }
+}

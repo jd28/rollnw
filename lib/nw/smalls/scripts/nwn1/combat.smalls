@@ -2805,6 +2805,11 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
                 }
                 on_hit_base_damage_bonus += amount;
             }
+            for (var on_hit_effect in on_hit_result.effects) {
+                if (effects.is_valid(on_hit_effect)) {
+                    arr.push(effects_to_apply, on_hit_effect);
+                }
+            }
             if (on_hit_result.negate_hit) {
                 attack_result = attack_result_miss_by_roll;
                 critical_multiplier = 0;

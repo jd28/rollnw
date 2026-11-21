@@ -1,0 +1,21 @@
+{
+  "source": {
+    "kind": "twoda",
+    "resource": "iprp_onhit",
+    "valid_when": {
+      "column": "Label",
+      "on_missing": "omit_row"
+    }
+  },
+  "output": {
+    "config_path": "nwn1.data.iprp_onhit",
+    "entry_type": "nwn1.rules.OnHitPropertyEntry",
+    "snapshot_filename": { "column": "Label" },
+    "fields": [
+      { "target": "id", "value": { "kind": "row_index" } },
+      { "target": "label", "value": { "kind": "column", "column": "Label", "type": "string" } },
+      { "target": "name_strref", "value": { "kind": "column", "column": "Name", "type": "int", "on_missing": "default", "default": -1 } },
+      { "target": "param_table", "value": { "kind": "column", "column": "Param1ResRef", "type": "int", "on_missing": "default", "default": -1 } }
+    ]
+  }
+}
