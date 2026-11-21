@@ -148,21 +148,27 @@ fn death(): eff.Effect {
     return result;
 }
 
-fn paralyze(): eff.Effect {
+// Helpless conditions are timed in practice -- a paralysis that never ends is
+// not a game rule. `seconds` defaults to 0 (permanent) only so an explicitly
+// indefinite condition stays expressible; callers should pass a duration.
+fn paralyze(seconds: float = 0.0): eff.Effect {
     var result = eff.create();
     eff.set_type(result, Const.effect_type_paralyze as int);
+    eff.set_duration(result, seconds);
     return result;
 }
 
-fn stunned(): eff.Effect {
+fn stunned(seconds: float = 0.0): eff.Effect {
     var result = eff.create();
     eff.set_type(result, Const.effect_type_stunned as int);
+    eff.set_duration(result, seconds);
     return result;
 }
 
-fn sleep(): eff.Effect {
+fn sleep(seconds: float = 0.0): eff.Effect {
     var result = eff.create();
     eff.set_type(result, Const.effect_type_sleep as int);
+    eff.set_duration(result, seconds);
     return result;
 }
 

@@ -8,6 +8,10 @@
 [[native]] fn get_int(effect: Effect, index: int): int;
 [[native]] fn set_int(effect: Effect, index: int, value: int): void;
 [[native]] fn set_ints(effect: Effect, values: array!(int)): void;
+// Lifetime in seconds; zero or negative is permanent. Set before applying --
+// expiry is scheduled at apply time.
+[[native]] fn get_duration(effect: Effect): float;
+[[native]] fn set_duration(effect: Effect, seconds: float): void;
 [[native]] fn get_type(effect: Effect): int;
 [[native]] fn set_type(effect: Effect, effect_type: int): void;
 [[native]] fn get_subtype(effect: Effect): int;

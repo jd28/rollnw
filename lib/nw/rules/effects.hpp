@@ -103,7 +103,13 @@ struct Effect : RuntimeObject {
     /// Gets the versus value
     const Versus& versus() const noexcept;
 
+    /// Lifetime in seconds. Zero or negative means permanent -- the effect
+    /// lasts until something removes it explicitly. A positive duration is
+    /// scheduled for removal by EffectSystem::apply_to().
     float duration = 0.0f;
+    /// Calendar expiry, unused: nothing maintains a world calendar yet, and
+    /// expiry runs off the EventSystem tick clock instead. Retained because
+    /// the serialization profile mirrors NWN's fields.
     uint32_t expire_day = 0;
     uint32_t expire_time = 0;
 

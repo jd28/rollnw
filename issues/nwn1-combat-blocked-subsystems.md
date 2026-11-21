@@ -36,9 +36,9 @@ Two independent blockers:
   engine's `ip_option_name()` native reads these tables, but returns a strref,
   so name-based matching needs a TLK that is also absent.
 - **Several properties need per-round ticking.** Wounding, item poison and
-  disease are damage/condition over time. `Effect` has `duration`, `expire_day`
-  and `expire_time` fields and **nothing anywhere processes expiry** — see the
-  shared blocker below.
+  disease are damage over time. Single-shot expiry now works (see the shared
+  blocker below), but a *recurring* per-round tick does not exist — that needs a
+  repeating event, not a scheduled removal.
 
 Reachable subset once the 2da exists: Vorpal and the three Slay variants map
 onto the `death` effect type added by the parent issue, and Stun/Sleep map onto
@@ -129,7 +129,7 @@ so what is left is grouped by its blocker:
 | --- | --- |
 | Spatial neighbour query (item 2) | **Cleave** (6), **Great Cleave** (391), **Opportunist** (224), **Mobility** (26, +4 AC vs AoO) |
 | Initiative (item 4) | **Improved Initiative** (377), **Blooded** (379), **Epic Superior Initiative** (753), **Uncanny Dodge 1-6** (195, 251-255), **Uncanny Reflex** (226) |
-| Effect expiry (below) | **Slippery Mind** (259, a delayed re-save) |
+| ~~Effect expiry~~ — unblocked 2026-11-20 | **Slippery Mind** (259, a delayed re-save) is now implementable |
 | Nothing — just unbuilt | **Called Shot** (5), **Defensive Roll** (killing-blow detection now exists via `AttackData::is_killing_blow`, but once-per-day tracking has no substrate), **Crippling Strike** (sneak attack also deals Strength damage; expressible with the existing `ability_decrease` effect), **Skill Mastery** (225, needs a "take 10" path in skill checks) |
 
 **Cleave specifically.** Kill *detection* is now available — `commit_attack()`
@@ -169,12 +169,28 @@ changed mid-task:
   is undocumented and plainly not metres (a longsword carries 100, a longbow
   200, and one row holds `*`). Ranged range gating waits on knowing the unit.
 
-## Shared blocker: effect expiry
+## Shared blocker: effect expiry — FIXED 2026-11-20
 
-Cutting across items 1 and 3, and worth fixing on its own: **effect durations
-are inert engine-wide.** `Effect::duration`, `expire_day` and `expire_time` are
-stored and never processed, so every effect persists until explicitly removed.
-This predates the parent issue — Haste has always behaved this way — but it now
-also means the `paralyze`/`stunned`/`sleep` conditions added for flat-footed
-support have no natural end. Anything with a timed condition or damage over time
-needs this first.
+`Effect::duration` was stored and never acted on, so every effect was permanent
+regardless of its duration. It turned out `EventType::remove_effect` was already
+fully implemented in `EventSystem::process()` and simply never scheduled;
+`EffectSystem::apply_to()` now schedules it. Durations are seconds, zero or
+negative means permanent, and the condition constructors in `nwn1.effects` take
+one. `expire_day`/`expire_time` stay unused — there is no world calendar, and
+expiry runs off the tick clock instead.
+
+The canonical rate now lives in one place, `kernel::ticks_per_second` (60), with
+`gameplay::action_ticks_per_second` an alias of it rather than a second constant
+that merely has to agree.
+
+What this unblocks: timed conditions generally, and specifically the durational
+half of **Called Shot** and **Slippery Mind**. Wounding, item poison and disease
+additionally need damage *recurring* per round, which is a scheduling question
+rather than an expiry one — a repeating event, not a single removal.
+
+Still open, and worth knowing: `round_ticks` in `combat_scheduler` defaults to
+**60**, which at 60 ticks/second is a one-second combat round. An NWN round is
+six seconds, so that default looks like it should be 360. Nothing depends on it
+being wrong today because nothing drives sustained combat, but it will change
+attack pacing when something does, so it wants a deliberate decision rather than
+a silent fix.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../kernel/EventSystem.hpp"
 #include "../objects/Inventory.hpp"
 #include "../objects/item_transfers.hpp"
 
@@ -11,7 +12,8 @@
 
 namespace nw::gameplay {
 
-constexpr uint32_t action_ticks_per_second = 60;
+// Alias of the engine-wide rate; kept under this name for existing callers.
+constexpr uint32_t action_ticks_per_second = static_cast<uint32_t>(kernel::ticks_per_second);
 
 enum class ActionKind : uint8_t { pickup,
     equip,

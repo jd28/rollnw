@@ -9,6 +9,11 @@
 
 namespace nw::kernel {
 
+/// Fixed simulation rate for every tick-denominated delay in the engine:
+/// EventSystem delays, action progress, and effect durations. One definition on
+/// purpose -- a second constant that merely has to agree with this one drifts.
+inline constexpr uint64_t ticks_per_second = 60;
+
 enum struct EventType {
     apply_effect,
     remove_effect,

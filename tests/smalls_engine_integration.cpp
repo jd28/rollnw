@@ -3,6 +3,7 @@
 #include "smalls_fixtures.hpp"
 
 #include <nw/formats/StaticTwoDA.hpp>
+#include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Rules.hpp>
 #include <nw/objects/Creature.hpp>
 #include <nw/objects/Door.hpp>
@@ -6988,4 +6989,73 @@ TEST_F(SmallsEngineIntegration, Nwn1DisarmAndSpecialAttackFeatGating)
 
     EXPECT_EQ(call("disarm_unarmed_target", 50), 0)
         << "an unarmed target can never be disarmed";
+}
+
+// Effect durations were stored and never acted on. EventType::remove_effect is
+// fully implemented in EventSystem::process(), but nothing ever scheduled one,
+// so every effect was permanent regardless of its duration -- including the
+// helpless conditions that make a target flat-footed.
+TEST_F(SmallsEngineIntegration, Nwn1EffectDurationsExpireOnTheTickClock)
+{
+    std::string_view source = R"(
+        import core.effects as eff;
+        import core.object as Obj;
+        import nwn1.combat_primitives as Comb;
+        import nwn1.effects as Eff;
+        import nwn1.init as Init;
+
+        fn apply_timed_paralysis(target: Creature, _unused: int): int {
+            Init.init();
+            Obj.apply_effect(target, Eff.paralyze(2.0));
+            return Comb.is_helpless(target) ? 1 : 0;
+        }
+
+        fn apply_permanent_paralysis(target: Creature, _unused: int): int {
+            Init.init();
+            Obj.apply_effect(target, Eff.paralyze());
+            return Comb.is_helpless(target) ? 1 : 0;
+        }
+
+        fn helpless(target: Creature, _unused: int): int {
+            return Comb.is_helpless(target) ? 1 : 0;
+        }
+
+        fn duration_round_trips(target: Creature, _unused: int): int {
+            Init.init();
+            var e = Eff.paralyze(3.5);
+            // Scaled to avoid comparing floats in the harness.
+            var seconds = eff.get_duration(e);
+            eff.destroy(e);
+            return (seconds * 10.0) as int;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_effect_expiry", source);
+    auto& events = nw::kernel::events();
+
+    EXPECT_EQ(harness.call("duration_round_trips", 0), 35)
+        << "a duration set in script must reach the native effect";
+
+    // A two-second paralysis at 60 ticks/s expires at tick 120.
+    ASSERT_EQ(harness.call("apply_timed_paralysis", 0), 1) << "paralysis applies";
+
+    const uint64_t start = events.current_tick();
+    events.advance(119);
+    events.process();
+    EXPECT_EQ(harness.call("helpless", 0), 1)
+        << "still paralyzed one tick before expiry";
+
+    events.advance(1);
+    events.process();
+    EXPECT_EQ(harness.call("helpless", 0), 0)
+        << "paralysis must end once its duration elapses";
+    EXPECT_GE(events.current_tick() - start, 120u);
+
+    // Zero duration stays permanent, so an indefinite condition is still
+    // expressible -- and so this test cannot pass by everything expiring.
+    ASSERT_EQ(harness.call("apply_permanent_paralysis", 0), 1);
+    events.advance(60 * 60 * 24);
+    events.process();
+    EXPECT_EQ(harness.call("helpless", 0), 1)
+        << "a zero duration means permanent, even a simulated day later";
 }

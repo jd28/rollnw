@@ -1,5 +1,6 @@
 #include "effects.hpp"
 
+#include "../kernel/EventSystem.hpp"
 #include "../kernel/Kernel.hpp"
 #include "../kernel/TwoDACache.hpp"
 #include "../objects/ObjectBase.hpp"
@@ -12,6 +13,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace nw {
 
@@ -436,6 +438,44 @@ bool EffectSystem::apply(ObjectBase* obj, Effect* effect)
     return false;
 }
 
+namespace {
+
+// Effect durations were stored and never acted on: EventType::remove_effect is
+// fully implemented in EventSystem::process(), but nothing ever scheduled one,
+// so every effect was permanent regardless of its duration. Scheduling it here
+// is the missing half.
+//
+// Resolution is one tick, so a duration shorter than a tick still lasts a tick
+// rather than expiring instantly. The event resolves the effect by handle, so
+// an effect destroyed or removed before expiry is skipped rather than
+// double-freed.
+void schedule_effect_expiry(ObjectBase* obj, Effect* effect)
+{
+    if (!obj || !effect || !(effect->duration > 0.0f)) {
+        return;
+    }
+
+    // Deliberately not kernel::events(), which throws when the service is
+    // absent; an effect applied without an event service stays permanent
+    // instead of taking the caller down.
+    auto* event_system = kernel::services().get_mut<kernel::EventSystem>();
+    if (!event_system) {
+        return;
+    }
+
+    const double ticks = std::ceil(static_cast<double>(effect->duration)
+        * static_cast<double>(kernel::ticks_per_second));
+    if (!(ticks >= 1.0)) {
+        return;
+    }
+    constexpr double max_ticks = 1e15; // far past any real duration; keeps the cast defined
+    const uint64_t delay = static_cast<uint64_t>(std::min(ticks, max_ticks));
+
+    event_system->add_in(kernel::EventType::remove_effect, obj, delay, effect);
+}
+
+} // namespace
+
 bool EffectSystem::apply_to(ObjectBase* obj, Effect* effect)
 {
     if (!obj || !effect) {
@@ -455,6 +495,8 @@ bool EffectSystem::apply_to(ObjectBase* obj, Effect* effect)
     if (event_callback_) {
         event_callback_(obj, effect, true);
     }
+
+    schedule_effect_expiry(obj, effect);
 
     return true;
 }

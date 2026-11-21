@@ -95,6 +95,15 @@ void register_core_effects(Runtime& rt)
                 return;
             }
             e->handle().subtype = subtype; })
+        .function("get_duration", +[](nw::TypedHandle eff) -> float {
+            auto* e = nw::kernel::effects().get(eff);
+            return e ? e->duration : 0.0f; })
+        .function("set_duration", +[](nw::TypedHandle eff, float seconds) {
+            auto* e = nw::kernel::effects().get(eff);
+            if (!e) {
+                return;
+            }
+            e->duration = seconds; })
         .function("register_type_metadata", +[](int32_t effect_type, int32_t object_mask, int32_t event_mask, bool has_versus_component) {
             nw::kernel::effects().add(
                 nw::EffectType::make(effect_type),
