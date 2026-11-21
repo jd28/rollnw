@@ -9,6 +9,7 @@ from nwn1.propsets import { PlaceableState };
 import nwn1.classes as Classes;
 import nwn1.constants as Const;
 import nwn1.creature as NCre;
+import nwn1.modifier as Mod;
 
 const stack_sum = 0;
 
@@ -82,6 +83,15 @@ fn get_saving_throw(obj: object, save_type: Const.Save, save_vs: Const.SaveVersu
 
     if (base) {
         return Math.max(0, result);
+    }
+
+    // Feat bonuses (Great Fortitude, Iron Will, Lightning Reflexes and their
+    // epic counterparts) arrive through the modifier registry. mod_type_save
+    // was declared and had no dispatch at all before this, which is why those
+    // feats did nothing. They sit outside the `base` path deliberately: base
+    // saves are innate plus class progression, matching GetBaseSavingThrow.
+    if (obj is Creature) {
+        result += Mod.sum_modifiers(obj, Const.mod_type_save, save_type as int, versus);
     }
 
     result += _effect_delta(obj, save_type, save_vs, versus);

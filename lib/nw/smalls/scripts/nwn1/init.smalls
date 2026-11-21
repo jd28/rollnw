@@ -162,6 +162,27 @@ fn _mode_can_use_always(_obj: Creature): bool {
     return true;
 }
 
+// Combat modes checked nothing at all before this, so any creature could use
+// Expertise, Improved Expertise, Power Attack or Improved Power Attack without
+// holding the feat. That is not cosmetic: can_use() gates the Rapid Shot and
+// Flurry of Blows extra attack, so an unqualified creature was being handed a
+// free attack whenever the mode field was set.
+fn _mode_can_use_expertise(obj: Creature): bool {
+    return Cre.has_feat(obj, Const.feat_expertise);
+}
+
+fn _mode_can_use_improved_expertise(obj: Creature): bool {
+    return Cre.has_feat(obj, Const.feat_improved_expertise);
+}
+
+fn _mode_can_use_power_attack(obj: Creature): bool {
+    return Cre.has_feat(obj, Const.feat_power_attack);
+}
+
+fn _mode_can_use_improved_power_attack(obj: Creature): bool {
+    return Cre.has_feat(obj, Const.feat_improved_power_attack);
+}
+
 fn _mode_apply_none(_obj: Creature) {
 }
 
@@ -219,12 +240,14 @@ fn _is_ranged_weapon_base_item(base_item: BaseItemType): bool {
 }
 
 fn _mode_can_use_flurry(obj: Creature): bool {
+    if (!Cre.has_feat(obj, Const.feat_flurry_of_blows)) { return false; }
     var rh = nwn1item.get_baseitem_type(Item.get_equipped_item(obj, Const.equip_index_righthand));
     var lh = nwn1item.get_baseitem_type(Item.get_equipped_item(obj, Const.equip_index_lefthand));
     return _is_monk_weapon_base_item(rh) && _is_monk_weapon_base_item(lh);
 }
 
 fn _mode_can_use_rapid_shot(obj: Creature): bool {
+    if (!Cre.has_feat(obj, Const.feat_rapid_shot)) { return false; }
     var rh = nwn1item.get_baseitem_type(Item.get_equipped_item(obj, Const.equip_index_righthand));
     return _is_ranged_weapon_base_item(rh);
 }
@@ -308,7 +331,59 @@ fn _register_special_attack(
         impact);
 }
 
+// Special attacks had the same hole the combat modes did: special_attack.usable()
+// returns true for anything unregistered, so Knockdown, Improved Knockdown and
+// Disarm were available to any creature regardless of feats. Registering a
+// usable callback is how a special attack states its requirement.
+fn _special_attack_requires_knockdown(obj: Creature, _target: object): bool {
+    return Cre.has_feat(obj, Const.feat_knockdown);
+}
+
+fn _special_attack_requires_improved_knockdown(obj: Creature, _target: object): bool {
+    return Cre.has_feat(obj, Const.feat_improved_knockdown);
+}
+
+fn _special_attack_requires_disarm(obj: Creature, _target: object): bool {
+    return Cre.has_feat(obj, Const.feat_disarm);
+}
+
+fn _special_attack_requires_improved_disarm(obj: Creature, _target: object): bool {
+    return Cre.has_feat(obj, Const.feat_improved_disarm);
+}
+
+fn _special_attack_ab_none(_obj: Creature, _target: object): int {
+    return 0;
+}
+
 fn init_special_attacks() {
+    _register_special_attack(
+        Const.feat_knockdown as int,
+        _special_attack_ab_none,
+        _special_attack_damage_none,
+        _special_attack_requires_knockdown,
+        _special_attack_impact_none);
+
+    _register_special_attack(
+        Const.feat_improved_knockdown as int,
+        _special_attack_ab_none,
+        _special_attack_damage_none,
+        _special_attack_requires_improved_knockdown,
+        _special_attack_impact_none);
+
+    _register_special_attack(
+        Const.feat_disarm as int,
+        _special_attack_ab_none,
+        _special_attack_damage_none,
+        _special_attack_requires_disarm,
+        _special_attack_impact_none);
+
+    _register_special_attack(
+        Const.feat_improved_disarm as int,
+        _special_attack_ab_none,
+        _special_attack_damage_none,
+        _special_attack_requires_improved_disarm,
+        _special_attack_impact_none);
+
     _register_special_attack(
         Const.special_attack_smite_good,
         _special_attack_ab_smite_good,
@@ -327,17 +402,17 @@ fn init_special_attacks() {
 fn init_combat_modes() {
     _register_combat_mode(Const.combat_mode_expertise,
         _mode_bonus_minus_5, _mode_damage_none, _mode_ac_plus_5,
-        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+        _mode_can_use_expertise, _mode_apply_none, _mode_remove_none);
     _register_combat_mode(Const.combat_mode_improved_expertise,
         _mode_bonus_minus_10, _mode_damage_none, _mode_ac_plus_10,
-        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+        _mode_can_use_improved_expertise, _mode_apply_none, _mode_remove_none);
 
     _register_combat_mode(Const.combat_mode_power_attack,
         _mode_bonus_minus_5, _mode_damage_plus_5, _mode_ac_none,
-        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+        _mode_can_use_power_attack, _mode_apply_none, _mode_remove_none);
     _register_combat_mode(Const.combat_mode_improved_power_attack,
         _mode_bonus_minus_10, _mode_damage_plus_10, _mode_ac_none,
-        _mode_can_use_always, _mode_apply_none, _mode_remove_none);
+        _mode_can_use_improved_power_attack, _mode_apply_none, _mode_remove_none);
 
     _register_combat_mode(Const.combat_mode_flurry_of_blows,
         _mode_bonus_minus_2, _mode_damage_none, _mode_ac_none,
@@ -575,6 +650,35 @@ fn ability_modifier_dragon_disciple(obj: Creature, _vs: object, subtype: int): i
     return dragon_disciple_ability(obj, _vs, subtype);
 }
 
+// == Saving Throw Modifiers =================================================
+// Great Fortitude / Iron Will / Lightning Reflexes grant +2 to their save; the
+// epic versions grant +4 and stack with the base feat, as in NWN. These are
+// registered per save type, so sum_modifiers only pays for the one being
+// resolved.
+fn save_modifier_fortitude(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.saving_throw_fort as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_great_fortitude)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_epic_fortitude)) { result += 4; }
+    return result;
+}
+
+fn save_modifier_reflex(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.saving_throw_reflex as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_lightning_reflexes)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_epic_reflexes)) { result += 4; }
+    return result;
+}
+
+fn save_modifier_will(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.saving_throw_will as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_iron_will)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_epic_will)) { result += 4; }
+    return result;
+}
+
 // == Skill Modifiers =======================================================
 fn skill_modifier_stonecunning_search(obj: Creature, _vs: object, subtype: int): int {
     if (subtype != Const.skill_search as int) { return 0; }
@@ -589,6 +693,56 @@ fn skill_modifier_stonecunning_search(obj: Creature, _vs: object, subtype: int):
 fn skill_modifier_improved_parry(obj: Creature, _vs: object, subtype: int): int {
     if (subtype != Const.skill_parry as int) { return 0; }
     if (Cre.has_feat(obj, Const.feat_improved_parry)) { return 4; }
+    return 0;
+}
+
+// Passive skill-bonus feats. None of these were declared anywhere, so Alertness,
+// Combat Casting and every racial skill affinity did nothing -- and races.smalls
+// has no skill handling either, so the affinities had no alternative path.
+// Registered per skill so sum_modifiers only pays for the skill being resolved.
+fn skill_modifier_listen(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_listen as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_alertness)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_listen)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_partial_skill_affinity_listen)) { result += 1; }
+    return result;
+}
+
+fn skill_modifier_spot(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_spot as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_alertness)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_spot)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_partial_skill_affinity_spot)) { result += 1; }
+    return result;
+}
+
+fn skill_modifier_search(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_search as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_search)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_partial_skill_affinity_search)) { result += 1; }
+    return result;
+}
+
+fn skill_modifier_concentration(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_concentration as int) { return 0; }
+    var result = 0;
+    if (Cre.has_feat(obj, Const.feat_combat_casting)) { result += 4; }
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_concentration)) { result += 2; }
+    return result;
+}
+
+fn skill_modifier_lore(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_lore as int) { return 0; }
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_lore)) { return 2; }
+    return 0;
+}
+
+fn skill_modifier_move_silently(obj: Creature, _vs: object, subtype: int): int {
+    if (subtype != Const.skill_move_silently as int) { return 0; }
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_move_silently)) { return 2; }
     return 0;
 }
 
@@ -698,9 +852,20 @@ fn init_modifiers() {
     // == Damage Resistance ===================================================
     modifier.register_modifier(Const.mod_type_dmg_resistance, "energy", resistance_modifier_energy, -1);
 
+    // == Saving Throws =======================================================
+    modifier.register_modifier(Const.mod_type_save, "great_fortitude", save_modifier_fortitude, Const.saving_throw_fort as int);
+    modifier.register_modifier(Const.mod_type_save, "lightning_reflexes", save_modifier_reflex, Const.saving_throw_reflex as int);
+    modifier.register_modifier(Const.mod_type_save, "iron_will", save_modifier_will, Const.saving_throw_will as int);
+
     // == Skills ==============================================================
     modifier.register_modifier(Const.mod_type_skill, "stonecunning_search", skill_modifier_stonecunning_search, Const.skill_search as int);
     modifier.register_modifier(Const.mod_type_skill, "improved_parry", skill_modifier_improved_parry, Const.skill_parry as int);
+    modifier.register_modifier(Const.mod_type_skill, "listen_bonuses", skill_modifier_listen, Const.skill_listen as int);
+    modifier.register_modifier(Const.mod_type_skill, "spot_bonuses", skill_modifier_spot, Const.skill_spot as int);
+    modifier.register_modifier(Const.mod_type_skill, "search_bonuses", skill_modifier_search, Const.skill_search as int);
+    modifier.register_modifier(Const.mod_type_skill, "concentration_bonuses", skill_modifier_concentration, Const.skill_concentration as int);
+    modifier.register_modifier(Const.mod_type_skill, "lore_bonuses", skill_modifier_lore, Const.skill_lore as int);
+    modifier.register_modifier(Const.mod_type_skill, "move_silently_bonuses", skill_modifier_move_silently, Const.skill_move_silently as int);
 
 }
 

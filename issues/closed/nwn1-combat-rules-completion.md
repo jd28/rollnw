@@ -190,8 +190,17 @@ and is summed over equipped gear by `equipment.arcane_spell_failure()`.
   the armour's AC tier; that column is not in the `ArmorEntry` data spec, and
   `armor.2da` is not in this repo's test data, so it could not be verified.
 - **Dex-to-AC suppression while flat-footed** — NWN keeps Dex. See above.
-- **Mounted combat, called shots, Point Blank / Precise Shot / Rapid Reload /
-  Deadly Shot** — absent from base NWN1 too. Their absence is correct.
+- **Mounted combat** — absent from base NWN1 too. Its absence is correct.
+
+**Correction (2026-11-20):** the original plan listed "called shots, Point
+Blank / Precise Shot / Rapid Reload / Deadly Shot" as "absent from base NWN1
+too; their absence is correct", and this record repeated it. That was wrong on
+the facts: Called Shot is `feat.2da` row 5 (`CShot`) and Point Blank Shot is row
+27 (`PBShot`), both in base NWN1. Point Blank Shot does carry no mechanic of its
+own in NWN — it is a prerequisite feat — so nothing is owed there, but Called
+Shot has real mechanics (targeting a limb for a penalty and an effect) and is a
+genuine gap. It is tracked with the rest of the feat backlog in
+[blocked combat subsystems](../nwn1-combat-blocked-subsystems.md).
 
 ## Verification limits
 

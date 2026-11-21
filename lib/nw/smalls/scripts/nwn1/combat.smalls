@@ -1247,6 +1247,35 @@ fn resolve_death_attack_kill(attacker: Creature, target: object): bool {
         attacker);
 }
 
+// Disarm: the target makes a Discipline check against the attacker's attack
+// roll, as Knockdown does, and drops its weapon on failure. Improved Disarm
+// adds 4 to the DC the target has to beat.
+//
+// Deviation from NWN, deliberate: NWN drops the weapon on the ground, and there
+// is no primitive here for placing an item into an area, so it goes into the
+// target's own inventory instead. unequip_item_in_slot() clears the slot and
+// hands back the item without re-homing it, so failing to place it would orphan
+// the item -- if the inventory will not take it the weapon is put back and the
+// disarm does not happen, rather than leaking it.
+fn resolve_disarm(attacker: Creature, target: Creature, improved: bool,
+    attack_roll_total: int): bool {
+    var weapon = CoreItem.get_equipped_item(target, Const.equip_index_righthand);
+    if ((weapon as object) == Obj.invalid) { return false; }
+
+    const dc = attack_roll_total + (improved ? 4 : 0);
+    if (NCre.resolve_skill_check(target, Const.skill_discipline, dc, attacker)) {
+        return false;
+    }
+
+    var removed = CoreItem.unequip_item_in_slot(target, Const.equip_index_righthand);
+    if ((removed as object) == Obj.invalid) { return false; }
+    if (!CoreItem.inventory_add_item(target, removed)) {
+        CoreItem.equip_item_in_slot(target, removed, Const.equip_index_righthand);
+        return false;
+    }
+    return true;
+}
+
 // Equipment slot that holds the ammunition a ranged base item consumes, or
 // equip_index_righthand for thrown weapons, which spend themselves.
 // baseitems.2da AmmunitionType: 1 arrow, 2 bolt, 3 bullet; thrown weapons
@@ -2662,6 +2691,13 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
                         if (!NCre.resolve_skill_check(target, Const.skill_discipline, attack_roll + attack_bonus, attacker)) {
                             special_attack_type = requested_special;
                         }
+                    }
+                }
+                if (requested_special == Const.feat_disarm || requested_special == Const.feat_improved_disarm) {
+                    if (resolve_disarm(attacker, target,
+                            requested_special == Const.feat_improved_disarm,
+                            attack_roll + attack_bonus)) {
+                        special_attack_type = requested_special;
                     }
                 }
             }

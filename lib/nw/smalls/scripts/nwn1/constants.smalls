@@ -378,6 +378,32 @@ const feat_deflect_arrows = Feat(8);
 const feat_improved_parry = Feat(18);
 const feat_evasion = Feat(206);
 const feat_improved_evasion = Feat(212);
+const feat_great_fortitude = Feat(14);
+const feat_iron_will = Feat(22);
+const feat_lightning_reflexes = Feat(24);
+const feat_epic_fortitude = Feat(583);
+const feat_epic_reflexes = Feat(585);
+const feat_epic_will = Feat(695);
+const feat_power_attack = Feat(28);
+const feat_improved_power_attack = Feat(19);
+const feat_expertise = Feat(389);
+const feat_improved_expertise = Feat(390);
+const feat_flurry_of_blows = Feat(204);
+const feat_rapid_shot = Feat(30);
+const feat_alertness = Feat(0);
+const feat_combat_casting = Feat(7);
+// Racial skill affinities grant +2; the half-elf "partial" variants grant +1.
+const feat_skill_affinity_lore = Feat(234);
+const feat_skill_affinity_listen = Feat(237);
+const feat_skill_affinity_search = Feat(238);
+const feat_skill_affinity_spot = Feat(239);
+const feat_skill_affinity_concentration = Feat(243);
+const feat_skill_affinity_move_silently = Feat(247);
+const feat_partial_skill_affinity_listen = Feat(244);
+const feat_partial_skill_affinity_search = Feat(245);
+const feat_partial_skill_affinity_spot = Feat(246);
+const feat_disarm = Feat(9);
+const feat_improved_disarm = Feat(16);
 const combat_mode_parry = 1;
 const combat_mode_power_attack = 2;
 const combat_mode_improved_power_attack = 3;
@@ -557,7 +583,31 @@ const ip_on_monster_hit = ItemPropertyType(72);
 const ip_massive_criticals = ItemPropertyType(74);
 const ip_onhitcastspell = ItemPropertyType(82);
 
-// Modifier type constants (match C++ nwn1::mod_type_* values)
+// Modifier type constants (match C++ nwn1::mod_type_* values).
+//
+// Because they mirror the C++ enum, several are declared here without any
+// dispatch behind them -- sum_modifiers() is never called with them and nothing
+// registers against them. That is not the same as "unused data id": some are a
+// real mechanic that is simply unbuilt, and a modifier registered against one
+// of those would silently do nothing. As of 2026-11-20 the ones with no
+// dispatch are:
+//
+//   initiative        -- no initiative system exists at all; this constant is
+//                        its only mention anywhere. Blocks Improved Initiative,
+//                        Blooded, Epic Superior Initiative, and the
+//                        "hasn't acted yet" sense of flat-footed.
+//   regeneration      -- no regeneration tick.
+//   movement_speed    -- no movement rules consume it.
+//   spell_resistance  -- no spell pipeline to apply it in.
+//   spell_immunity    -- same.
+//   immunity          -- effect-category immunity (vs. dmg_immunity, which is
+//                        wired); needs the condition vocabulary to be richer.
+//   crit_multiplier   -- intentional: resolve_critical_multiplier() computes
+//   crit_threat          these directly off the weapon cache instead. Either
+//                        wire them or keep them documented, but do not assume
+//                        registering one has any effect.
+//
+// See issues/nwn1-combat-blocked-subsystems.md before building on any of these.
 const mod_type_ability = ModifierType(0);
 const mod_type_armor_class = ModifierType(1);
 const mod_type_attack_bonus = ModifierType(2);

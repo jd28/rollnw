@@ -26,10 +26,10 @@ risks and deferred opportunities are explicit on the current status page.
 
 ## Combat / rules work
 
-- [Blocked combat subsystems](nwn1-combat-blocked-subsystems.md) — the last three rules from the
-  completed ledger, each blocked on a shared missing piece: the `iprp_onhittype` data, spatial/movement
-  events for attacks of opportunity, and a cast pipeline. Effect expiry is inert engine-wide and blocks
-  two of them.
+- [Blocked combat subsystems](nwn1-combat-blocked-subsystems.md) — what is left of the combat ledger,
+  grouped by shared blocker: the `iprp_onhittype` data, spatial/movement events for attacks of
+  opportunity, a cast pipeline, and a missing initiative system. Effect expiry is inert engine-wide and
+  blocks two of them. Also carries the `feat.2da` backlog and the modifier types with no dispatch.
 - [NWN1 combat rules completion plan](closed/nwn1-combat-rules-completion.md) — closed 2026-11-19;
   everything the engine layer can express is implemented and regression-tested.
 

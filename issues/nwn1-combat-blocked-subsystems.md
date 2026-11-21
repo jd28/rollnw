@@ -1,10 +1,17 @@
-# NWN1 combat: subsystems blocking the last three rules
+# NWN1 combat: subsystems blocking the remaining rules
 
-Status (2026-11-19): open, nothing implemented. Split out of
+Status (2026-11-20): open. Split out of
 [the combat rules completion plan](closed/nwn1-combat-rules-completion.md) when
-that closed. Every other item on that ledger is done; these three are blocked on
-a missing subsystem or missing game data, not on rules work, and each blocker is
-shared rather than per-feat. Ordered by how much new design each needs.
+that closed, as the items blocked on a missing subsystem or missing game data
+rather than on rules work. Each blocker is shared rather than per-feat. Ordered
+by how much new design each needs.
+
+Updated 2026-11-20 after sweeping `feat.2da` against the feat ids the rules
+actually name, and the modifier-type enum against what has dispatch behind it.
+That found a fourth blocker -- no initiative system -- and a batch of base NWN1
+feats that do nothing. The unblocked ones from that batch have since been
+implemented (saving-throw feats, combat-mode and special-attack feat gating,
+the passive skill bonuses, Disarm); the rest are under Feat backlog below.
 
 None of these should be attempted by inferring the missing pieces. The whole
 point of the audit that produced the parent issue was that guessed-at or
@@ -83,6 +90,79 @@ and saving throws have no school parameter — `SaveVersus` has 20 values and no
 of them are schools. `get_saving_throw()` also does not consult the modifier
 registry at all, so `mod_type_save` (declared, id 14) has no dispatch; wiring
 that is a prerequisite.
+
+## 4. Initiative — nothing exists
+
+`mod_type_initiative` is declared in `constants.smalls` and that declaration is
+its only mention in the codebase. There is no initiative roll, no turn order and
+no "has this creature acted yet this combat" state.
+
+Blocks, concretely:
+
+- **Improved Initiative** (`feat.2da` 377), **Blooded** (379), **Epic Superior
+  Initiative** (753) — all three absent from the rules.
+- **The other sense of flat-footed.** What is implemented is the *helpless*
+  sense (paralyzed/stunned/asleep). NWN's other sense is "has not acted yet",
+  which needs initiative. This matters for correctness of a feat, not just
+  coverage: **Uncanny Dodge** (195, 251-255) and **Uncanny Reflex** (226) negate
+  the not-yet-acted sense and should *not* negate genuine helplessness, so
+  implementing them against the currently-available sense would be wrong rather
+  than incomplete.
+
+This also overlaps the real-time vs turn-based scheduling split in
+`combat_scheduler`, so it wants designing rather than patching.
+
+## Feat backlog, grouped by what blocks each
+
+Found by diffing `feat.2da` against the feat ids the rules actually name. Every
+feat below is in base NWN1 with a standing mechanical effect and does nothing
+here. The ones that were *not* blocked have since been implemented -- saves,
+the combat-mode and special-attack feats, the passive skill bonuses, Disarm --
+so what is left is grouped by its blocker:
+
+| Blocked on | Feats |
+| --- | --- |
+| Spatial neighbour query (item 2) | **Cleave** (6), **Great Cleave** (391), **Opportunist** (224), **Mobility** (26, +4 AC vs AoO) |
+| Initiative (item 4) | **Improved Initiative** (377), **Blooded** (379), **Epic Superior Initiative** (753), **Uncanny Dodge 1-6** (195, 251-255), **Uncanny Reflex** (226) |
+| Effect expiry (below) | **Slippery Mind** (259, a delayed re-save) |
+| Nothing — just unbuilt | **Called Shot** (5), **Defensive Roll** (killing-blow detection now exists via `AttackData::is_killing_blow`, but once-per-day tracking has no substrate), **Crippling Strike** (sneak attack also deals Strength damage; expressible with the existing `ability_decrease` effect), **Skill Mastery** (225, needs a "take 10" path in skill checks) |
+
+**Cleave specifically.** Kill *detection* is now available — `commit_attack()`
+sets `AttackData::is_killing_blow` — but Cleave's extra attack is against
+*another creature within reach*, and target selection needs the neighbour query.
+The natural decomposition when that exists: the rules layer grants the extra
+attack on a killing blow, the action layer picks the target. Granting it now
+without a consumer would be exactly the registered-and-inert pattern this
+cluster of issues exists to eliminate.
+
+**Point Blank Shot** (27) is in NWN1 but carries no mechanic of its own there --
+it is a prerequisite feat -- so nothing is owed. The parent plan's claim that
+Called Shot is likewise absent from base NWN1 was simply wrong; see the
+correction on that record.
+
+## Smaller inconsistencies worth a pass
+
+Not blocked on anything, just noted during the audit and left alone rather than
+changed mid-task:
+
+- **Two formulas for one concept.** `_make_elemental_damage_result()` *sums*
+  the modifier-registry immunity and the effect delta;
+  `resolve_damage_immunity()` takes the *max* of them (with vulnerability
+  special-cased additively). Both are now deliberate and commented, but they
+  should probably agree.
+- **`is_flanked()` reads `CreatureCombat.off_target`**, which is a
+  modifier-cache invalidation key rather than a gameplay target. It works by
+  accident, and it is the wrong seam -- the more so now that flanking shares a
+  code path with flat-footed in `resolve_target_state()`.
+- **`on_hit.register_default_handlers()` is dead code**, called from nowhere, so
+  even the stub dispatch never runs. Worth deleting or wiring when item 1 is
+  picked up.
+- **`armor.2da` is not in the data spec.** `ArmorEntry` carries exactly `id` and
+  `cost`. Armour AC tier, the max-Dex cap and armour-derived arcane spell
+  failure all live in that 2da, and it is not in the test data either.
+- **`baseitems.2da` `MaxRange` is loaded but unused**, because the column's unit
+  is undocumented and plainly not metres (a longsword carries 100, a longbow
+  200, and one row holds `*`). Ranged range gating waits on knowing the unit.
 
 ## Shared blocker: effect expiry
 

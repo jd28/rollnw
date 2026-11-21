@@ -5916,56 +5916,88 @@ TEST_F(SmallsEngineIntegration, Nwn1AttackCountProgressionIsOneBasedNotFloorDivi
 TEST_F(SmallsEngineIntegration, Nwn1RapidShotAndFlurryGrantTheirExtraAttack)
 {
     std::string_view source = R"(
+        import core.item as Item;
         import nwn1.combat as NC;
         import nwn1.combat_modes as modes;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
         import nwn1.constants as Const;
         from nwn1.propsets import { CreatureCombat };
 
-        fn main(target: Creature, selector: int): int {
+        // selector 0 baseline, 1 the mode active, 2 whether the mode is usable,
+        // 3 Power Attack as a control -- it must never add an attack.
+        // mode: 0 Rapid Shot, 1 Flurry of Blows.
+        fn measure(target: Creature, mode: int, selector: int): int {
+            Init.init();
+            Cre.add_feat(target, Const.feat_rapid_shot);
+            Cre.add_feat(target, Const.feat_flurry_of_blows);
+            Cre.add_feat(target, Const.feat_power_attack);
+
+            // Flurry needs monk weapons in both hands; empty hands qualify, so
+            // clearing them is the loadout-independent way to reach it.
+            if (mode == 1) {
+                Item.unequip_item_in_slot(target, Const.equip_index_righthand);
+                Item.unequip_item_in_slot(target, Const.equip_index_lefthand);
+            }
+
             var combat = get_propset!(CreatureCombat)(target);
+            var mode_id = mode == 0 ? Const.combat_mode_rapid_shot : Const.combat_mode_flurry_of_blows;
 
             if (selector == 0) {
                 combat.combat_mode = 0;
                 return NC.resolve_number_of_attacks_onhand(target);
             }
             if (selector == 1) {
-                combat.combat_mode = Const.combat_mode_rapid_shot;
+                combat.combat_mode = mode_id;
                 return NC.resolve_number_of_attacks_onhand(target);
             }
             if (selector == 2) {
-                combat.combat_mode = Const.combat_mode_rapid_shot;
-                return modes.can_use(Const.combat_mode_rapid_shot, target) ? 1 : 0;
+                combat.combat_mode = mode_id;
+                return modes.can_use(mode_id, target) ? 1 : 0;
             }
-            if (selector == 3) {
-                combat.combat_mode = Const.combat_mode_flurry_of_blows;
-                return NC.resolve_number_of_attacks_onhand(target);
-            }
-            if (selector == 4) {
-                combat.combat_mode = Const.combat_mode_flurry_of_blows;
-                return modes.can_use(Const.combat_mode_flurry_of_blows, target) ? 1 : 0;
-            }
-            // Power Attack is not an extra-attack mode; it must not add one.
             combat.combat_mode = Const.combat_mode_power_attack;
             return NC.resolve_number_of_attacks_onhand(target);
         }
     )";
 
-    COMBAT_RULE_HARNESS(harness, "test.nwn1_mode_extra_attacks", source);
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* script = rt.load_module_from_source("test.nwn1_mode_extra_attacks", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
 
-    const int baseline = harness.call("main", 0);
-    ASSERT_GE(baseline, 1);
+    // One fixture per mode, chosen so each mode is actually reachable: the
+    // ranger carries a longbow, and drorry has the base attack bonus to show a
+    // difference once its hands are cleared for Flurry.
+    struct Case {
+        const char* path;
+        int mode;
+        const char* name;
+    };
+    for (const Case& c : {Case{"test_data/user/development/rangerdexranged.utc", 0, "rapid shot"},
+             Case{"test_data/user/development/drorry.utc", 1, "flurry of blows"}}) {
+        SCOPED_TRACE(c.name);
+        auto* creature = nw::kernel::objects().load_file<nw::Creature>(c.path);
+        ASSERT_NE(creature, nullptr);
 
-    const int rapid_shot = harness.call("main", 1);
-    const int rapid_shot_usable = harness.call("main", 2);
-    const int flurry = harness.call("main", 3);
-    const int flurry_usable = harness.call("main", 4);
-    const int power_attack = harness.call("main", 5);
+        auto call = [&](int selector) {
+            nw::Vector<nw::smalls::Value> args;
+            auto value = nw::smalls::Value::make_object(creature->handle());
+            value.type_id = rt.object_subtype_for_tag(creature->handle().type);
+            args.push_back(value);
+            args.push_back(nw::smalls::Value::make_int(c.mode));
+            args.push_back(nw::smalls::Value::make_int(selector));
+            const auto result = rt.execute_script(script, "measure", args);
+            EXPECT_TRUE(result.ok()) << result.error_message;
+            return result.value.data.ival;
+        };
 
-    // The extra attack is gated on the mode being usable with what is equipped,
-    // so assert the implication rather than assuming the fixture's loadout.
-    EXPECT_EQ(rapid_shot, baseline + (rapid_shot_usable ? 1 : 0));
-    EXPECT_EQ(flurry, baseline + (flurry_usable ? 1 : 0));
-    EXPECT_EQ(power_attack, baseline) << "Power Attack must not grant an extra attack";
+        const int baseline = call(0);
+        ASSERT_GE(baseline, 1) << "fixture needs at least one attack to show a difference";
+        ASSERT_EQ(call(2), 1) << "mode must be usable here or this proves nothing";
+        EXPECT_EQ(call(1), baseline + 1) << "the mode grants one extra attack";
+        EXPECT_EQ(call(3), baseline) << "Power Attack must not grant an extra attack";
+    }
 }
 
 // Improved Parry (feat.2da row 18) grants +4 to Parry skill checks. It was
@@ -6539,4 +6571,421 @@ TEST_F(SmallsEngineIntegration, Nwn1RangedAttacksConsumeAmmunition)
     EXPECT_EQ(harness.call("main", 4), 50) << "tower shield";
     EXPECT_EQ(harness.call("main", 5), 5) << "small shield";
     EXPECT_EQ(harness.call("main", 6), 0) << "a longsword contributes none";
+}
+
+// Great Fortitude, Iron Will and Lightning Reflexes (and their epic versions)
+// were absent from the rules entirely, and mod_type_save had no dispatch at
+// all, so no feat could have granted a save bonus even if it had been declared.
+TEST_F(SmallsEngineIntegration, Nwn1SaveBonusFeatsReachSavingThrows)
+{
+    std::string_view source = R"(
+        import core.object as Obj;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.saving_throws as Saves;
+        import nwn1.constants as Const;
+
+        fn clear(target: Creature) {
+            Cre.remove_feat(target, Const.feat_great_fortitude);
+            Cre.remove_feat(target, Const.feat_iron_will);
+            Cre.remove_feat(target, Const.feat_lightning_reflexes);
+            Cre.remove_feat(target, Const.feat_epic_fortitude);
+            Cre.remove_feat(target, Const.feat_epic_will);
+            Cre.remove_feat(target, Const.feat_epic_reflexes);
+        }
+
+        fn save_of(target: Creature, which: int): int {
+            var save = Const.saving_throw_fort;
+            if (which == 1) { save = Const.saving_throw_reflex; }
+            if (which == 2) { save = Const.saving_throw_will; }
+            return Saves.get_saving_throw(target, save, Const.saving_throw_vs_all, Obj.invalid, false);
+        }
+
+        // selector: 0-2 baseline fort/reflex/will, 3-5 with the +2 feat,
+        // 6-8 with base+epic stacked, 9-11 base save with the +2 feat held.
+        fn main(target: Creature, selector: int): int {
+            Init.init();
+            clear(target);
+
+            if (selector < 3) { return save_of(target, selector); }
+
+            if (selector < 6) {
+                var which = selector - 3;
+                if (which == 0) { Cre.add_feat(target, Const.feat_great_fortitude); }
+                if (which == 1) { Cre.add_feat(target, Const.feat_lightning_reflexes); }
+                if (which == 2) { Cre.add_feat(target, Const.feat_iron_will); }
+                return save_of(target, which);
+            }
+
+            if (selector < 9) {
+                var which = selector - 6;
+                if (which == 0) {
+                    Cre.add_feat(target, Const.feat_great_fortitude);
+                    Cre.add_feat(target, Const.feat_epic_fortitude);
+                }
+                if (which == 1) {
+                    Cre.add_feat(target, Const.feat_lightning_reflexes);
+                    Cre.add_feat(target, Const.feat_epic_reflexes);
+                }
+                if (which == 2) {
+                    Cre.add_feat(target, Const.feat_iron_will);
+                    Cre.add_feat(target, Const.feat_epic_will);
+                }
+                return save_of(target, which);
+            }
+
+            // Feat bonuses must stay out of the base save.
+            var which_base = selector - 9;
+            if (which_base == 0) { Cre.add_feat(target, Const.feat_great_fortitude); }
+            if (which_base == 1) { Cre.add_feat(target, Const.feat_lightning_reflexes); }
+            if (which_base == 2) { Cre.add_feat(target, Const.feat_iron_will); }
+            var save = Const.saving_throw_fort;
+            if (which_base == 1) { save = Const.saving_throw_reflex; }
+            if (which_base == 2) { save = Const.saving_throw_will; }
+            return Saves.get_saving_throw(target, save, Const.saving_throw_vs_all, Obj.invalid, true);
+        }
+
+        // A Fortitude feat must not leak into the other two saves.
+        fn cross_talk(target: Creature, which: int): int {
+            Init.init();
+            clear(target);
+            Cre.add_feat(target, Const.feat_great_fortitude);
+            return save_of(target, which);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_save_feats", source);
+
+    const char* names[] = {"fortitude", "reflex", "will"};
+    for (int which = 0; which < 3; ++which) {
+        SCOPED_TRACE(names[which]);
+        const int baseline = harness.call("main", which);
+        EXPECT_EQ(harness.call("main", 3 + which), baseline + 2) << "the +2 feat";
+        EXPECT_EQ(harness.call("main", 6 + which), baseline + 6) << "epic stacks on the base feat";
+        EXPECT_EQ(harness.call("main", 9 + which), baseline)
+            << "base saves exclude feat bonuses";
+    }
+
+    // Only Fortitude is held; the other two must be unchanged from baseline.
+    const int fort_base = harness.call("main", 0);
+    const int reflex_base = harness.call("main", 1);
+    const int will_base = harness.call("main", 2);
+    EXPECT_EQ(harness.call("cross_talk", 0), fort_base + 2);
+    EXPECT_EQ(harness.call("cross_talk", 1), reflex_base);
+    EXPECT_EQ(harness.call("cross_talk", 2), will_base);
+}
+
+// Combat modes checked nothing, so any creature could use Expertise, Improved
+// Expertise, Power Attack or Improved Power Attack without the feat. can_use()
+// gates the Rapid Shot / Flurry extra attack, so this was handing out free
+// attacks, not just mislabelling a mode.
+TEST_F(SmallsEngineIntegration, Nwn1CombatModesRequireTheirFeat)
+{
+    std::string_view source = R"(
+        import core.item as Item;
+        import nwn1.baseitems as BaseItems;
+        import nwn1.combat_modes as modes;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.item as NwnItem;
+        import nwn1.constants as Const;
+
+        fn clear(target: Creature) {
+            Cre.remove_feat(target, Const.feat_expertise);
+            Cre.remove_feat(target, Const.feat_improved_expertise);
+            Cre.remove_feat(target, Const.feat_power_attack);
+            Cre.remove_feat(target, Const.feat_improved_power_attack);
+            Cre.remove_feat(target, Const.feat_rapid_shot);
+            Cre.remove_feat(target, Const.feat_flurry_of_blows);
+        }
+
+        fn mode_of(which: int): int {
+            if (which == 0) { return Const.combat_mode_expertise; }
+            if (which == 1) { return Const.combat_mode_improved_expertise; }
+            if (which == 2) { return Const.combat_mode_power_attack; }
+            return Const.combat_mode_improved_power_attack;
+        }
+
+        fn grant(target: Creature, which: int) {
+            if (which == 0) { Cre.add_feat(target, Const.feat_expertise); }
+            if (which == 1) { Cre.add_feat(target, Const.feat_improved_expertise); }
+            if (which == 2) { Cre.add_feat(target, Const.feat_power_attack); }
+            if (which == 3) { Cre.add_feat(target, Const.feat_improved_power_attack); }
+        }
+
+        fn without_feat(target: Creature, which: int): int {
+            Init.init();
+            clear(target);
+            return modes.can_use(mode_of(which), target) ? 1 : 0;
+        }
+
+        fn with_feat(target: Creature, which: int): int {
+            Init.init();
+            clear(target);
+            grant(target, which);
+            return modes.can_use(mode_of(which), target) ? 1 : 0;
+        }
+
+        // Rapid Shot needs the feat *and* a ranged weapon; report each half so
+        // the assertion does not depend on the fixture's loadout.
+        fn rapid_shot_state(target: Creature, selector: int): int {
+            Init.init();
+            clear(target);
+            if (selector >= 1) { Cre.add_feat(target, Const.feat_rapid_shot); }
+            if (selector == 2) {
+                var rh = NwnItem.get_baseitem_type(
+                    Item.get_equipped_item(target, Const.equip_index_righthand));
+                return BaseItems.ranged(rh) ? 1 : 0;
+            }
+            return modes.can_use(Const.combat_mode_rapid_shot, target) ? 1 : 0;
+        }
+
+        // Parry is deliberately not feat-gated: NWN gates it on the skill.
+        fn parry_open(target: Creature, _unused: int): int {
+            Init.init();
+            clear(target);
+            return modes.can_use(Const.combat_mode_parry, target) ? 1 : 0;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_mode_feat_gating", source);
+
+    const char* names[] = {"expertise", "improved expertise", "power attack",
+        "improved power attack"};
+    for (int which = 0; which < 4; ++which) {
+        SCOPED_TRACE(names[which]);
+        EXPECT_EQ(harness.call("without_feat", which), 0) << "unusable without the feat";
+        EXPECT_EQ(harness.call("with_feat", which), 1) << "usable with the feat";
+    }
+
+    EXPECT_EQ(harness.call("rapid_shot_state", 0), 0) << "no feat means no Rapid Shot";
+    const int has_ranged = harness.call("rapid_shot_state", 2);
+    EXPECT_EQ(harness.call("rapid_shot_state", 1), has_ranged)
+        << "with the feat, Rapid Shot tracks whether a ranged weapon is equipped";
+
+    EXPECT_EQ(harness.call("parry_open", 0), 1) << "Parry is not feat-gated";
+}
+
+
+// Alertness, Combat Casting and the racial skill affinities were absent from
+// the rules entirely, and races.smalls has no skill handling, so none of them
+// had any path to a skill rank.
+TEST_F(SmallsEngineIntegration, Nwn1PassiveSkillBonusFeatsReachSkillRanks)
+{
+    std::string_view source = R"(
+        import core.array as arr;
+        import core.object as Obj;
+        import nwn1.creature as NCre;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.constants as Const;
+
+        fn feat_of(which: int): Const.Feat {
+            if (which == 0) { return Const.feat_alertness; }
+            if (which == 1) { return Const.feat_combat_casting; }
+            if (which == 2) { return Const.feat_skill_affinity_listen; }
+            if (which == 3) { return Const.feat_skill_affinity_spot; }
+            if (which == 4) { return Const.feat_skill_affinity_search; }
+            if (which == 5) { return Const.feat_skill_affinity_concentration; }
+            if (which == 6) { return Const.feat_skill_affinity_lore; }
+            if (which == 7) { return Const.feat_skill_affinity_move_silently; }
+            if (which == 8) { return Const.feat_partial_skill_affinity_listen; }
+            if (which == 9) { return Const.feat_partial_skill_affinity_search; }
+            return Const.feat_partial_skill_affinity_spot;
+        }
+
+        fn clear(target: Creature) {
+            for (var i = 0; i < 11; i += 1) {
+                Cre.remove_feat(target, feat_of(i));
+            }
+        }
+
+        fn skill_of(which: int): Const.Skill {
+            if (which == 0) { return Const.skill_listen; }
+            if (which == 1) { return Const.skill_spot; }
+            if (which == 2) { return Const.skill_search; }
+            if (which == 3) { return Const.skill_concentration; }
+            if (which == 4) { return Const.skill_lore; }
+            return Const.skill_move_silently;
+        }
+
+        fn rank(target: Creature, skill: int): int {
+            return NCre.get_skill_rank_full(target, skill_of(skill), Obj.invalid);
+        }
+
+        fn baseline(target: Creature, skill: int): int {
+            Init.init();
+            clear(target);
+            return rank(target, skill);
+        }
+
+        // Grant feat `which`, then read skill `skill`. Encoded as which*16+skill
+        // so one entry point covers the whole matrix.
+        fn with_feat(target: Creature, packed: int): int {
+            Init.init();
+            clear(target);
+            Cre.add_feat(target, feat_of(packed / 16));
+            return rank(target, packed % 16);
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_skill_bonus_feats", source);
+
+    enum Skill { kListen = 0, kSpot, kSearch, kConcentration, kLore, kMoveSilently };
+
+    int base[6];
+    for (int skill = 0; skill < 6; ++skill) {
+        base[skill] = harness.call("baseline", skill);
+    }
+
+    // feat index -> {skill, expected bonus}
+    struct Expect {
+        int feat;
+        int skill;
+        int bonus;
+        const char* name;
+    };
+    const Expect cases[] = {
+        {0, kListen, 2, "Alertness -> Listen"},
+        {0, kSpot, 2, "Alertness -> Spot"},
+        {1, kConcentration, 4, "Combat Casting -> Concentration"},
+        {2, kListen, 2, "Skill Affinity: Listen"},
+        {3, kSpot, 2, "Skill Affinity: Spot"},
+        {4, kSearch, 2, "Skill Affinity: Search"},
+        {5, kConcentration, 2, "Skill Affinity: Concentration"},
+        {6, kLore, 2, "Skill Affinity: Lore"},
+        {7, kMoveSilently, 2, "Skill Affinity: Move Silently"},
+        {8, kListen, 1, "Partial Skill Affinity: Listen"},
+        {9, kSearch, 1, "Partial Skill Affinity: Search"},
+        {10, kSpot, 1, "Partial Skill Affinity: Spot"},
+    };
+
+    for (const Expect& e : cases) {
+        SCOPED_TRACE(e.name);
+        EXPECT_EQ(harness.call("with_feat", e.feat * 16 + e.skill),
+            base[e.skill] + e.bonus);
+    }
+
+    // Alertness must not leak into an unrelated skill.
+    EXPECT_EQ(harness.call("with_feat", 0 * 16 + kLore), base[kLore])
+        << "Alertness touches only Listen and Spot";
+    // Combat Casting must not leak either.
+    EXPECT_EQ(harness.call("with_feat", 1 * 16 + kListen), base[kListen]);
+}
+
+// Disarm / Improved Disarm were absent from the rules, and special attacks had
+// the same unguarded-usable hole the combat modes did: special_attack.usable()
+// returns true for anything unregistered, so Knockdown was available to any
+// creature regardless of feats.
+TEST_F(SmallsEngineIntegration, Nwn1DisarmAndSpecialAttackFeatGating)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/dexweapfin.utc");
+    ASSERT_NE(attacker, nullptr);
+    ASSERT_NE(target, nullptr);
+
+    std::string_view source = R"(
+        import core.item as Item;
+        import core.object as Obj;
+        import nwn1.combat as NC;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.special_attack as SA;
+        import nwn1.constants as Const;
+
+        fn target_is_armed(_attacker: Creature, target: Creature, _selector: int): int {
+            Init.init();
+            return (Item.get_equipped_item(target, Const.equip_index_righthand) as object)
+                != Obj.invalid ? 1 : 0;
+        }
+
+        // Feat gating, which is independent of any roll.
+        fn usable(attacker: Creature, target: Creature, selector: int): int {
+            Init.init();
+            Cre.remove_feat(attacker, Const.feat_knockdown);
+            Cre.remove_feat(attacker, Const.feat_improved_knockdown);
+            Cre.remove_feat(attacker, Const.feat_disarm);
+            Cre.remove_feat(attacker, Const.feat_improved_disarm);
+
+            var feat = Const.feat_knockdown;
+            if (selector % 4 == 1) { feat = Const.feat_improved_knockdown; }
+            if (selector % 4 == 2) { feat = Const.feat_disarm; }
+            if (selector % 4 == 3) { feat = Const.feat_improved_disarm; }
+
+            if (selector >= 4) { Cre.add_feat(attacker, feat); }
+            return SA.usable(feat as int, attacker, target) ? 1 : 0;
+        }
+
+        // A disarm against an unarmed target can never succeed, whatever the
+        // roll -- there is nothing to take.
+        fn disarm_unarmed_target(attacker: Creature, target: Creature, trials: int): int {
+            Init.init();
+            Item.unequip_item_in_slot(target, Const.equip_index_righthand);
+            var successes = 0;
+            for (var i = 0; i < trials; i += 1) {
+                if (NC.resolve_disarm(attacker, target, true, 1000)) { successes += 1; }
+            }
+            return successes;
+        }
+
+        // With an unbeatable DC the armed target is disarmed, exactly once --
+        // the second attempt finds the hand already empty.
+        fn disarm_twice(attacker: Creature, target: Creature, _unused: int): int {
+            Init.init();
+            var first = NC.resolve_disarm(attacker, target, true, 1000) ? 1 : 0;
+            var second = NC.resolve_disarm(attacker, target, true, 1000) ? 1 : 0;
+            return first * 10 + second;
+        }
+
+        // The weapon must still exist on the target, in inventory, not orphaned.
+        fn weapon_in_inventory(_attacker: Creature, target: Creature, _unused: int): int {
+            var items = Item.inventory_items(target);
+            var count = 0;
+            for (var it in items) { count += 1; }
+            return count;
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_disarm", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call = [&](const char* fn, int selector) {
+        nw::Vector<nw::smalls::Value> args;
+        auto a = nw::smalls::Value::make_object(attacker->handle());
+        a.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        auto t = nw::smalls::Value::make_object(target->handle());
+        t.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(a);
+        args.push_back(t);
+        args.push_back(nw::smalls::Value::make_int(selector));
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    const char* names[] = {"knockdown", "improved knockdown", "disarm",
+        "improved disarm"};
+    for (int which = 0; which < 4; ++which) {
+        SCOPED_TRACE(names[which]);
+        EXPECT_EQ(call("usable", which), 0) << "unusable without the feat";
+        EXPECT_EQ(call("usable", 4 + which), 1) << "usable with the feat";
+    }
+
+    ASSERT_EQ(call("target_is_armed", 0), 1) << "fixture must start armed";
+
+    const int inventory_before = call("weapon_in_inventory", 0);
+    EXPECT_EQ(call("disarm_twice", 0), 10)
+        << "an unbeatable DC disarms once; the second attempt has nothing to take";
+    EXPECT_EQ(call("target_is_armed", 0), 0) << "the hand is empty afterwards";
+    EXPECT_EQ(call("weapon_in_inventory", 0), inventory_before + 1)
+        << "the weapon must be re-homed in the target's inventory, not orphaned";
+
+    EXPECT_EQ(call("disarm_unarmed_target", 50), 0)
+        << "an unarmed target can never be disarmed";
 }
