@@ -6849,7 +6849,10 @@ TEST_F(SmallsEngineIntegration, Nwn1PassiveSkillBonusFeatsReachSkillRanks)
     const Expect cases[] = {
         {0, kListen, 2, "Alertness -> Listen"},
         {0, kSpot, 2, "Alertness -> Spot"},
-        {1, kConcentration, 4, "Combat Casting -> Concentration"},
+        // Combat Casting cancels a situational -4 when casting defensively; it
+        // is not a flat bonus, and neither the penalty nor defensive casting
+        // exists yet, so it must contribute nothing rather than something.
+        {1, kConcentration, 0, "Combat Casting -> Concentration (no flat bonus)"},
         {2, kListen, 2, "Skill Affinity: Listen"},
         {3, kSpot, 2, "Skill Affinity: Spot"},
         {4, kSearch, 2, "Skill Affinity: Search"},
@@ -6870,7 +6873,6 @@ TEST_F(SmallsEngineIntegration, Nwn1PassiveSkillBonusFeatsReachSkillRanks)
     // Alertness must not leak into an unrelated skill.
     EXPECT_EQ(harness.call("with_feat", 0 * 16 + kLore), base[kLore])
         << "Alertness touches only Listen and Spot";
-    // Combat Casting must not leak either.
     EXPECT_EQ(harness.call("with_feat", 1 * 16 + kListen), base[kListen]);
 }
 
@@ -6929,7 +6931,7 @@ TEST_F(SmallsEngineIntegration, Nwn1DisarmAndSpecialAttackFeatGating)
             Item.unequip_item_in_slot(target, Const.equip_index_righthand);
             var successes = 0;
             for (var i = 0; i < trials; i += 1) {
-                if (NC.resolve_disarm(attacker, target, true, 1000)) { successes += 1; }
+                if (NC.resolve_disarm(attacker, target, 1000)) { successes += 1; }
             }
             return successes;
         }
@@ -6938,8 +6940,8 @@ TEST_F(SmallsEngineIntegration, Nwn1DisarmAndSpecialAttackFeatGating)
         // the second attempt finds the hand already empty.
         fn disarm_twice(attacker: Creature, target: Creature, _unused: int): int {
             Init.init();
-            var first = NC.resolve_disarm(attacker, target, true, 1000) ? 1 : 0;
-            var second = NC.resolve_disarm(attacker, target, true, 1000) ? 1 : 0;
+            var first = NC.resolve_disarm(attacker, target, 1000) ? 1 : 0;
+            var second = NC.resolve_disarm(attacker, target, 1000) ? 1 : 0;
             return first * 10 + second;
         }
 
@@ -7058,4 +7060,123 @@ TEST_F(SmallsEngineIntegration, Nwn1EffectDurationsExpireOnTheTickClock)
     events.process();
     EXPECT_EQ(harness.call("helpless", 0), 1)
         << "a zero duration means permanent, even a simulated day later";
+}
+
+// Three feats verified against the game's own descriptions in dialog.tlk, each
+// of which turned out to need nothing the engine was missing.
+TEST_F(SmallsEngineIntegration, Nwn1SkillMasteryAndSlipperyMind)
+{
+    std::string_view source = R"(
+        import core.object as Obj;
+        import nwn1.creature as NCre;
+        import nwn1.creature_state as Cre;
+        import nwn1.init as Init;
+        import nwn1.saving_throws as Saves;
+        import nwn1.constants as Const;
+
+        // Skill Mastery takes 20 on Disable Trap / Open Lock / Set Trap, so a
+        // DC that a 20 reaches must always succeed, and a DC beyond even that
+        // must always fail. Counted over trials because the no-feat case rolls.
+        fn open_lock_successes(target: Creature, packed: int): int {
+            Init.init();
+            Cre.remove_feat(target, Const.feat_skill_mastery);
+            if (packed / 1000 == 1) { Cre.add_feat(target, Const.feat_skill_mastery); }
+            const dc = packed % 1000;
+            var hits = 0;
+            for (var i = 0; i < 200; i += 1) {
+                if (NCre.resolve_skill_check(target, Const.skill_open_lock, dc, Obj.invalid)) {
+                    hits += 1;
+                }
+            }
+            return hits;
+        }
+
+        // Skill Mastery must not reach an unlisted skill.
+        fn discipline_successes(target: Creature, dc: int): int {
+            Init.init();
+            Cre.add_feat(target, Const.feat_skill_mastery);
+            var hits = 0;
+            for (var i = 0; i < 200; i += 1) {
+                if (NCre.resolve_skill_check(target, Const.skill_discipline, dc, Obj.invalid)) {
+                    hits += 1;
+                }
+            }
+            return hits;
+        }
+
+        fn rank_of(target: Creature, which: int): int {
+            Init.init();
+            if (which == 0) {
+                return NCre.get_skill_rank_full(target, Const.skill_open_lock, Obj.invalid);
+            }
+            return NCre.get_skill_rank_full(target, Const.skill_discipline, Obj.invalid);
+        }
+
+        // Slippery Mind rerolls a failed Will save versus mind-affecting
+        // spells. Two chances beat one, so successes must rise -- and only for
+        // that save and that category.
+        fn will_mind_successes(target: Creature, packed: int): int {
+            Init.init();
+            Cre.remove_feat(target, Const.feat_slippery_mind);
+            if (packed / 1000 == 1) { Cre.add_feat(target, Const.feat_slippery_mind); }
+            const dc = packed % 1000;
+            var hits = 0;
+            for (var i = 0; i < 400; i += 1) {
+                if (Saves.resolve_saving_throw(target, Const.saving_throw_will, dc,
+                        Const.saving_throw_vs_mind_spells, Obj.invalid)) {
+                    hits += 1;
+                }
+            }
+            return hits;
+        }
+
+        fn fort_mind_successes(target: Creature, packed: int): int {
+            Init.init();
+            Cre.remove_feat(target, Const.feat_slippery_mind);
+            if (packed / 1000 == 1) { Cre.add_feat(target, Const.feat_slippery_mind); }
+            const dc = packed % 1000;
+            var hits = 0;
+            for (var i = 0; i < 400; i += 1) {
+                if (Saves.resolve_saving_throw(target, Const.saving_throw_fort, dc,
+                        Const.saving_throw_vs_mind_spells, Obj.invalid)) {
+                    hits += 1;
+                }
+            }
+            return hits;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_skill_mastery_slippery_mind", source);
+
+    // A DC exactly at rank + 20 is reachable only by rolling a 20.
+    const int lock_rank = harness.call("rank_of", 0);
+    const int reachable_only_by_twenty = lock_rank + 20;
+
+    EXPECT_EQ(harness.call("open_lock_successes", 1000 + reachable_only_by_twenty), 200)
+        << "take 20 must always clear a DC of rank + 20";
+    const int without = harness.call("open_lock_successes", reachable_only_by_twenty);
+    EXPECT_LT(without, 200)
+        << "without the feat the same DC needs a natural 20 and must sometimes fail";
+
+    // Beyond rank + 20 nothing succeeds, feat or not.
+    EXPECT_EQ(harness.call("open_lock_successes", 1000 + reachable_only_by_twenty + 1), 0)
+        << "take 20 is not a bonus; an unreachable DC still fails";
+
+    // Discipline is not one of the three listed skills.
+    const int disc_rank = harness.call("rank_of", 1);
+    EXPECT_LT(harness.call("discipline_successes", disc_rank + 20), 200)
+        << "Skill Mastery must not reach an unlisted skill";
+
+    // Slippery Mind: a mid DC, where a reroll clearly helps.
+    const int mid_dc = 15;
+    const int will_without = harness.call("will_mind_successes", mid_dc);
+    const int will_with = harness.call("will_mind_successes", 1000 + mid_dc);
+    EXPECT_GT(will_with, will_without)
+        << "a reroll on failure must raise the success count over 400 trials";
+
+    // The reroll is scoped to Will saves; Fortitude must be unaffected.
+    const int fort_without = harness.call("fort_mind_successes", mid_dc);
+    const int fort_with = harness.call("fort_mind_successes", 1000 + mid_dc);
+    EXPECT_LT(std::abs(fort_with - fort_without), 120)
+        << "Fortitude gets no reroll, so holding the feat must not shift it materially";
 }

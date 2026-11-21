@@ -355,6 +355,18 @@ fn _special_attack_ab_none(_obj: Creature, _target: object): int {
     return 0;
 }
 
+// Disarm applies a -6 penalty to the attacker's own attack roll; Improved
+// Disarm reduces it to -4. This is the penalty, not a bonus to the defender's
+// Discipline DC -- resolve_attack() already folds a special attack's attack
+// bonus modifier into attack_bonus.
+fn _special_attack_ab_disarm(_obj: Creature, _target: object): int {
+    return -6;
+}
+
+fn _special_attack_ab_improved_disarm(_obj: Creature, _target: object): int {
+    return -4;
+}
+
 fn init_special_attacks() {
     _register_special_attack(
         Const.feat_knockdown as int,
@@ -372,14 +384,14 @@ fn init_special_attacks() {
 
     _register_special_attack(
         Const.feat_disarm as int,
-        _special_attack_ab_none,
+        _special_attack_ab_disarm,
         _special_attack_damage_none,
         _special_attack_requires_disarm,
         _special_attack_impact_none);
 
     _register_special_attack(
         Const.feat_improved_disarm as int,
-        _special_attack_ab_none,
+        _special_attack_ab_improved_disarm,
         _special_attack_damage_none,
         _special_attack_requires_improved_disarm,
         _special_attack_impact_none);
@@ -726,12 +738,16 @@ fn skill_modifier_search(obj: Creature, _vs: object, subtype: int): int {
     return result;
 }
 
+// Combat Casting is deliberately absent here. Its description is "does not
+// suffer the standard -4 penalty to Concentration checks when casting
+// defensively within four meters of an enemy" -- it cancels a situational
+// penalty, it is not a flat bonus. Neither defensive casting nor that penalty
+// exists yet, so an unconditional +4 would be strictly wrong rather than
+// approximate. It belongs with the casting-in-combat layer.
 fn skill_modifier_concentration(obj: Creature, _vs: object, subtype: int): int {
     if (subtype != Const.skill_concentration as int) { return 0; }
-    var result = 0;
-    if (Cre.has_feat(obj, Const.feat_combat_casting)) { result += 4; }
-    if (Cre.has_feat(obj, Const.feat_skill_affinity_concentration)) { result += 2; }
-    return result;
+    if (Cre.has_feat(obj, Const.feat_skill_affinity_concentration)) { return 2; }
+    return 0;
 }
 
 fn skill_modifier_lore(obj: Creature, _vs: object, subtype: int): int {

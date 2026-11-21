@@ -2464,9 +2464,23 @@ fn get_skill_rank_full(obj: Creature, skill: Const.Skill, versus: object): int {
 }
 
 // Skill check: rank + 20 < dc => impossible; else rank + d20 >= dc => success.
+// Skill Mastery: "When using the Disable Trap, Open Lock, and Set Trap skills,
+// the character automatically takes 20 on any skill checks, even if in combat."
+// Take 20 is not a bonus -- it replaces the roll, so the check never fails for
+// a reachable DC and never benefits from a lucky roll.
+fn _takes_twenty(obj: Creature, skill: Const.Skill): bool {
+    if (skill != Const.skill_disable_trap
+        && skill != Const.skill_open_lock
+        && skill != Const.skill_set_trap) {
+        return false;
+    }
+    return Cre.has_feat(obj, Const.feat_skill_mastery);
+}
+
 fn resolve_skill_check(obj: Creature, skill: Const.Skill, dc: int, versus: object): bool {
     var rank = get_skill_rank_full(obj, skill, versus);
     if (rank + 20 < dc) { return false; }
+    if (_takes_twenty(obj, skill)) { return true; }
     return rank + NativeCombat.roll_uniform_int(1, 20) >= dc;
 }
 

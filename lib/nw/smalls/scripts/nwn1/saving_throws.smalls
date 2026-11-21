@@ -98,15 +98,42 @@ fn get_saving_throw(obj: object, save_type: Const.Save, save_vs: Const.SaveVersu
     return Math.max(0, result);
 }
 
-fn resolve_saving_throw(obj: object, save_type: Const.Save, dc: int,
+// Slippery Mind: "Characters failing their Will save versus mind-affecting
+// spells get an automatic reroll." One reroll, and only for that save and that
+// category -- a natural 1 still fails outright, as it does on the first roll.
+fn _has_slippery_mind_reroll(obj: object, save_type: Const.Save,
+    save_vs: Const.SaveVersus): bool {
+    if (save_type != Const.saving_throw_will) { return false; }
+    if (save_vs != Const.saving_throw_vs_mind_spells) { return false; }
+    if (obj is Creature) {
+        return Cre.has_feat(obj, Const.feat_slippery_mind);
+    }
+    return false;
+}
+
+fn _roll_saving_throw(obj: object, save_type: Const.Save, dc: int,
     save_vs: Const.SaveVersus, versus: object): bool {
     var roll = NativeCombat.roll_uniform_int(1, 20);
     if (roll == 1) { return false; }
     if (roll == 20) { return true; }
 
-    dc = Math.clamp(dc, 1, 255);
     var save = get_saving_throw(obj, save_type, save_vs, versus, false);
     return roll + save >= dc;
+}
+
+fn resolve_saving_throw(obj: object, save_type: Const.Save, dc: int,
+    save_vs: Const.SaveVersus, versus: object): bool {
+    dc = Math.clamp(dc, 1, 255);
+
+    if (_roll_saving_throw(obj, save_type, dc, save_vs, versus)) {
+        return true;
+    }
+
+    if (_has_slippery_mind_reroll(obj, save_type, save_vs)) {
+        return _roll_saving_throw(obj, save_type, dc, save_vs, versus);
+    }
+
+    return false;
 }
 
 // Reflex-save-for-half damage, with Evasion and Improved Evasion applied.

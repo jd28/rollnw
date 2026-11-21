@@ -125,12 +125,22 @@ here. The ones that were *not* blocked have since been implemented -- saves,
 the combat-mode and special-attack feats, the passive skill bonuses, Disarm --
 so what is left is grouped by its blocker:
 
+**Feat mechanics are now verifiable.** The install's `lang/en/data/dialog.tlk`
+plus `feat.2da`'s `FEAT`/`DESCRIPTION` strrefs give the authoritative text for
+every feat, which is the input this backlog previously lacked. TLK V3.0 is a
+trivial format -- 20-byte header, then 40-byte entries of
+`flags, soundResRef[16], volumeVariance, pitchVariance, offsetToString,
+stringSize, soundLength`, with string data at `entries_offset + offsetToString`.
+Reading it settled four feats and **caught two implementations of mine that were
+wrong** (see below). No game data belongs in this repo; read it in place.
+
 | Blocked on | Feats |
 | --- | --- |
 | Spatial neighbour query (item 2) | **Cleave** (6), **Great Cleave** (391), **Opportunist** (224), **Mobility** (26, +4 AC vs AoO) |
 | Initiative (item 4) | **Improved Initiative** (377), **Blooded** (379), **Epic Superior Initiative** (753), **Uncanny Dodge 1-6** (195, 251-255), **Uncanny Reflex** (226) |
-| ~~Effect expiry~~ — unblocked 2026-11-20 | **Slippery Mind** (259, a delayed re-save) is now implementable |
-| Nothing — just unbuilt | **Called Shot** (5), **Defensive Roll** (killing-blow detection now exists via `AttackData::is_killing_blow`, but once-per-day tracking has no substrate), **Crippling Strike** (sneak attack also deals Strength damage; expressible with the existing `ability_decrease` effect), **Skill Mastery** (225, needs a "take 10" path in skill checks) |
+| ~~Effect expiry~~ — unblocked 2026-11-20 | nothing left here; **Slippery Mind** turned out not to need it (see below) |
+| Nothing — just unbuilt | **Called Shot** (5): -4 attack, Discipline check, legs give -20% movement and -2 Dexterity, arms a cumulative -2 attack. `ObjectSpatialState.movement_rate` exists, so this is reachable. **Defensive Roll** (223): Reflex save at DC = damage dealt for half damage, once per day, not while flat-footed — killing-blow detection and flat-footed both exist now, but "once per day" has no reset substrate |
+| ~~Nothing — done 2026-11-20~~ | **Crippling Strike** (222), **Skill Mastery** (225), **Slippery Mind** (259) |
 
 **Cleave specifically.** Kill *detection* is now available — `commit_attack()`
 sets `AttackData::is_killing_blow` — but Cleave's extra attack is against
@@ -139,6 +149,26 @@ The natural decomposition when that exists: the rules layer grants the extra
 attack on a killing blow, the action layer picks the target. Granting it now
 without a consumer would be exactly the registered-and-inert pattern this
 cluster of issues exists to eliminate.
+
+**Two corrections from reading the descriptions**, both to code already shipped
+in this cluster:
+
+- **Combat Casting** was implemented as a flat +4 to Concentration. It is not:
+  it "does not suffer the standard -4 penalty to Concentration checks when
+  casting defensively within four meters of an enemy" — it cancels a situational
+  penalty. Neither defensive casting nor that penalty exists, so the flat bonus
+  was strictly wrong and has been removed. The feat belongs with item 3.
+- **Disarm** modelled Improved Disarm as +4 to the target's Discipline DC. It is
+  not: the attacker takes **-6** on the attack roll, reduced to **-4** by
+  Improved Disarm, and "the combatant with the larger weapon gains a +4 bonus
+  per size category of difference." The penalty now sits on the attack roll via
+  the special attack's attack-bonus modifier, and the size difference applies to
+  the Discipline DC.
+
+Also worth recording: **Slippery Mind** is an immediate "automatic reroll" of a
+failed Will save, not the delayed re-save this doc previously assumed, so it
+never needed effect expiry. **Skill Mastery** takes **20** — not 10 — on Disable
+Trap, Open Lock and Set Trap.
 
 **Point Blank Shot** (27) is in NWN1 but carries no mechanic of its own there --
 it is a prerequisite feat -- so nothing is owed. The parent plan's claim that

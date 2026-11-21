@@ -1247,9 +1247,15 @@ fn resolve_death_attack_kill(attacker: Creature, target: object): bool {
         attacker);
 }
 
-// Disarm: the target makes a Discipline check against the attacker's attack
-// roll, as Knockdown does, and drops its weapon on failure. Improved Disarm
-// adds 4 to the DC the target has to beat.
+// Disarm: "A successful hit deals normal damage, and if the opponent fails a
+// Discipline check then the weapon flies from the opponent's hands." The -6
+// attack penalty (-4 with Improved Disarm) lives on the attacker's attack roll,
+// registered as the special attack's attack bonus modifier in init.smalls --
+// not as a bonus to this Discipline DC.
+//
+// "the combatant with the larger weapon gains a +4 bonus per size category of
+// difference": applied here to the Discipline DC, since that is the contest the
+// weapon sizes decide.
 //
 // Deviation from NWN, deliberate: NWN drops the weapon on the ground, and there
 // is no primitive here for placing an item into an area, so it goes into the
@@ -1257,12 +1263,15 @@ fn resolve_death_attack_kill(attacker: Creature, target: object): bool {
 // hands back the item without re-homing it, so failing to place it would orphan
 // the item -- if the inventory will not take it the weapon is put back and the
 // disarm does not happen, rather than leaking it.
-fn resolve_disarm(attacker: Creature, target: Creature, improved: bool,
-    attack_roll_total: int): bool {
+fn resolve_disarm(attacker: Creature, target: Creature, attack_roll_total: int): bool {
     var weapon = CoreItem.get_equipped_item(target, Const.equip_index_righthand);
     if ((weapon as object) == Obj.invalid) { return false; }
 
-    const dc = attack_roll_total + (improved ? 4 : 0);
+    var attacker_weapon = CoreItem.get_equipped_item(attacker, Const.equip_index_righthand);
+    const attacker_size = baseitems.weapon_size(item.get_baseitem_type(attacker_weapon));
+    const target_size = baseitems.weapon_size(item.get_baseitem_type(weapon));
+    const dc = attack_roll_total + (attacker_size - target_size) * 4;
+
     if (NCre.resolve_skill_check(target, Const.skill_discipline, dc, attacker)) {
         return false;
     }
@@ -2694,9 +2703,7 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
                     }
                 }
                 if (requested_special == Const.feat_disarm || requested_special == Const.feat_improved_disarm) {
-                    if (resolve_disarm(attacker, target,
-                            requested_special == Const.feat_improved_disarm,
-                            attack_roll + attack_bonus)) {
+                    if (resolve_disarm(attacker, target, attack_roll + attack_bonus)) {
                         special_attack_type = requested_special;
                     }
                 }
@@ -2756,6 +2763,15 @@ fn resolve_attack(attacker: Creature, target: object): AttackData {
             var sneak_dice = compute_sneak_attack_dice(attacker);
             if (sneak_dice > 0) {
                 special_attack_bonus = roll_dice(sneak_dice, 6, 0, 1);
+
+                // Crippling Strike: "deals an additional 2 points of ability
+                // score Strength damage when they make a successful sneak
+                // attack." Ability damage is not timed -- it persists until
+                // something restores it -- so the effect is permanent.
+                if (Cre.has_feat(attacker, Const.feat_crippling_strike)) {
+                    arr.push(effects_to_apply,
+                        effects_nwn1.ability_modifier(Const.ability_strength, -2));
+                }
             }
         }
     }
