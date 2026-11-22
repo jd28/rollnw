@@ -21,7 +21,7 @@
       { "target": "prereq_feat1", "value": { "kind": "column", "column": "PREREQFEAT1", "type": "int", "on_missing": "default", "default": -1 } },
       { "target": "prereq_feat2", "value": { "kind": "column", "column": "PREREQFEAT2", "type": "int", "on_missing": "default", "default": -1 } },
       { "target": "max_cr", "value": { "kind": "column", "column": "MAXCR", "type": "float", "on_missing": "default", "default": 0.0 } },
-      { "target": "cr_value", "value": { "kind": "column", "column": "CRValue", "type": "float", "on_missing": "default", "default": 0.0 } },
+      { "target": "cr_value", "value": { "kind": "column", "column": "CRValue", "type": "float", "on_missing": "default", "default": 1.0 } },
       { "target": "passive", "value": { "kind": "constant", "type": "bool", "value": false } },
       { "target": "uses", "value": { "kind": "column", "column": "USESPERDAY", "type": "int", "on_missing": "default", "default": 0 } },
       { "target": "epic", "value": { "kind": "column", "column": "PreReqEpic", "type": "bool", "on_missing": "default", "default": false } },

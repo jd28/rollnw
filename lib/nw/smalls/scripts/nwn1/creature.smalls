@@ -1739,11 +1739,11 @@ fn _challenge_rating_equipment_value(obj: Creature): float {
 fn _challenge_rating_special_ability_levels(stats: CreatureStats): float {
     var result = 0.0;
     for (var ability in stats.special_abilities) {
+        // Innate level 0 contributes nothing. Counting half a level for every
+        // cantrip inflated the CR of anything with a wide level-0 list.
         var innate = Spells.innate_level(ability.spell);
         if (innate > 0) {
             result += innate as float;
-        } else {
-            result += 0.5;
         }
     }
     return result;
@@ -1759,8 +1759,6 @@ fn _challenge_rating_total_spell_levels(obj: Creature): float {
         var innate = Spells.innate_level(Spell(ability));
         if (innate > 0) {
             result += innate as float;
-        } else {
-            result += 0.5;
         }
     }
     return result;
@@ -1788,6 +1786,7 @@ fn _challenge_rating_feat_value(feat: int): float {
     if (entry.id != feat) {
         return 0.0;
     }
+    // feat.2da leaves CRValue unset on 55 of 1116 rows; those count as 1.
     return entry.cr_value;
 }
 
@@ -1818,11 +1817,15 @@ fn calculate_challenge_rating(obj: Creature): float {
     var walkrate = CreatureSpeeds.get_base_moverate(walkrate_row);
     var player_walkrate = CreatureSpeeds.get_base_moverate(0);
     var average_hitpoints = _challenge_rating_class_average_hitpoints(obj);
-    if (walkrate == 0.0 || player_walkrate == 0.0 || average_hitpoints == 0.0) {
-        return 0.0;
-    }
 
-    var hitpoint_cr = ((health.hp as float) / average_hitpoints) * 0.2 * hd_f * (walkrate / player_walkrate);
+    // An unresolvable walk rate or hit-die total drops this one term. It used
+    // to return 0.0 for the whole rating, which reported CR 0 for every
+    // creature whose speed row or racial modifier did not resolve -- the orc,
+    // goblin and bugbear bosses among them, each of which the game rates 10.
+    var hitpoint_cr = 0.0;
+    if (walkrate != 0.0 && player_walkrate != 0.0 && average_hitpoints != 0.0) {
+        hitpoint_cr = ((health.hp as float) / average_hitpoints) * 0.2 * hd_f * (walkrate / player_walkrate);
+    }
 
     var ability_total = 0;
     for (var i = 0; i < 6; i += 1) {
@@ -1833,7 +1836,10 @@ fn calculate_challenge_rating(obj: Creature): float {
     var special_ability_levels = _challenge_rating_special_ability_levels(stats);
     var specabil_cr = (special_ability_levels / (hd_f * (hd_f + 1.0) + (hd_f * 5.0))) * 0.15 * hd_f;
 
-    var total_spell_levels = _challenge_rating_total_spell_levels(obj);
+    // The special-ability levels count toward this term as well as their own.
+    // The loadout holds per-class memorized/known spells keyed by class id, so
+    // it does not already include them.
+    var total_spell_levels = _challenge_rating_total_spell_levels(obj) + special_ability_levels;
     var spells_cr = (total_spell_levels / (hd_f * (hd_f + 1.0))) * 0.15 * hd_f;
 
     var bonus_saves = stats.save_fort + stats.save_reflex + stats.save_will;
@@ -1863,22 +1869,32 @@ fn calculate_challenge_rating(obj: Creature): float {
         + saves_cr
         + feat_cr;
 
-    var race_modifier = races.cr_modifier(stats.race);
-    if (race_modifier == 0.0) { return 0.0; }
-    additive_cr *= race_modifier;
+    // racialtypes.2da leaves CRModifier unset on 9 of 30 rows; an unset
+    // modifier is skipped rather than zeroing the rating.
+    additive_cr *= races.cr_modifier(stats.race);
 
-    if (additive_cr < 1.5) {
-        if (additive_cr > 0.75) {
-            additive_cr -= 0.35;
-        } else {
+    // Below 1.5 the approximation is pulled down by a quarter; at or below
+    // three quarters, by a bit more. These two constants were transposed.
+    if (additive_cr > 0.75) {
+        if (additive_cr < 1.5) {
             additive_cr -= 0.25;
         }
+    } else {
+        additive_cr -= 0.35;
+    }
+
+    // Truncate, then round up only past a half -- exactly .5 rounds down.
+    // Math.round() rounded it up. cr_adjust is whole, so adding it before or
+    // after the truncation is the same number.
+    var whole = Math.floor(additive_cr);
+    if (additive_cr - whole > 0.5) {
+        whole += 1.0;
     }
 
     additive_cr += stats.cr_adjust as float;
 
     if (additive_cr > 0.75) {
-        return Math.round(additive_cr);
+        return whole + (stats.cr_adjust as float);
     }
     return FractionalCr.resolve(additive_cr);
 }

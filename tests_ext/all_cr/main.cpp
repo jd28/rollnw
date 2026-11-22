@@ -12,12 +12,21 @@
 
 namespace {
 
+// The propset carrying the imported CR. Resolved once: when this type cannot
+// be found every creature yields nullopt, the run reports "0 creatures, 0
+// invalid" and exits 0 -- which is how this harness sat vacuous from 2026-08-11
+// (c9793c29d moved CreatureStats out of core.creature) until 2026-11-22.
+nw::smalls::TypeID creature_stats_type()
+{
+    return nw::kernel::runtime().type_id("nwn1.propsets.CreatureStats", false);
+}
+
 std::optional<float> imported_creature_cr(const nw::Creature* creature)
 {
     if (!creature) { return std::nullopt; }
 
     auto& rt = nw::kernel::runtime();
-    auto tid = rt.type_id("core.creature.CreatureStats", false);
+    auto tid = creature_stats_type();
     if (tid == nw::smalls::invalid_type_id) { return std::nullopt; }
 
     auto stats = rt.find_propset_ref(tid, creature->handle());
@@ -57,6 +66,13 @@ int main(int argc, char* argv[])
     nw::test::register_source_nwn1_packages();
     nw::kernel::services().start();
 
+    // Fail loudly rather than comparing nothing and reporting success.
+    if (creature_stats_type() == nw::smalls::invalid_type_id) {
+        LOG_F(ERROR, "cannot resolve 'nwn1.propsets.CreatureStats'; every "
+                     "comparison would be skipped");
+        return 1;
+    }
+
     int count = 0;
     size_t invalid = 0;
     float mismatch_amount = 0.0f;
@@ -94,8 +110,15 @@ int main(int argc, char* argv[])
     nw::kernel::resman().visit(callback);
 
     const float average_mismatch = invalid == 0 ? 0.0f : mismatch_amount / static_cast<float>(invalid);
-    LOG_F(INFO, "processing all creatures {}, {} invalid, average mismatch: {}, biggent mismatch: {}",
+    LOG_F(INFO, "processing all creatures {}, {} invalid, average mismatch: {}, biggest mismatch: {}",
         count, invalid, average_mismatch, biggest_mismatch);
+
+    // A run that compared no creature at all proved nothing, so it is not a
+    // pass. The install supplies thousands.
+    if (count == 0) {
+        LOG_F(ERROR, "no creature was compared; the corpus or the CR lookup is broken");
+        return 1;
+    }
 
     return 0;
 }
