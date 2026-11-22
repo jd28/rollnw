@@ -7368,10 +7368,15 @@ TEST_F(SmallsEngineIntegration, Nwn1ScriptsCanScheduleAttacks)
     auto& rt = nw::kernel::runtime();
     rt.add_module_path(fs::path("stdlib/nwn1"));
 
+    // dexweapfin attacks, drorry defends, and not the other way round: drorry
+    // holds Devastating Critical, which is save-or-die, so with it attacking
+    // the sequence ends the moment a critical lands. That made this test flaky
+    // rather than wrong -- it passed whenever the early attacks happened not to
+    // crit.
     auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
-        "test_data/user/development/drorry.utc");
-    auto* target = nw::kernel::objects().load_file<nw::Creature>(
         "test_data/user/development/dexweapfin.utc");
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
     ASSERT_NE(attacker, nullptr);
     ASSERT_NE(target, nullptr);
 

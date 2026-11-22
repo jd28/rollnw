@@ -741,11 +741,23 @@ bool pin_target_alive(nw::Creature* target)
     return apply_benchmark_effect(target, effect);
 }
 
+bool target_is_alive(nw::Creature* target)
+{
+    const auto* vitals = nw::kernel::objects().components().find_vitals(target->handle());
+    return vitals && vitals->hp_current > 0;
+}
+
 // Resolve plus commit: the whole consequence of one attack, including damage
 // application and effect intents.
+//
+// The attacker is dexweapfin, not drorry, on purpose. drorry holds Devastating
+// Critical, which is save-or-die -- it ignores hit points entirely and kills a
+// target pinned to a million of them within a couple of attacks. This benchmark
+// originally used drorry against drorry and spent nearly all its iterations
+// resolving attacks against a corpse, which is not what it claims to measure.
 static void BM_combat_resolve_and_commit(benchmark::State& state)
 {
-    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/dexweapfin.utc");
     auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
     if (!obj || !vs) {
         state.SkipWithError("failed to load commit benchmark creatures");
@@ -761,10 +773,55 @@ static void BM_combat_resolve_and_commit(benchmark::State& state)
             benchmark::DoNotOptimize(nw::combat::commit_attack(&data));
         }
     }
+    // A dead target would mean most iterations measured attacking a corpse.
+    if (!target_is_alive(vs)) {
+        state.SkipWithError("benchmark target died; measurement is not representative");
+    }
+}
+
+// One complete scheduled attack: the event fires, the policy resolves it, the
+// result is committed, and the next attack is scheduled. This is what the loop
+// costs per attack per actor, and so what a script-driven encounter pays.
+static void BM_combat_auto_attack_cycle(benchmark::State& state)
+{
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/dexweapfin.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load auto-attack benchmark creatures");
+        return;
+    }
+    if (!pin_target_alive(vs)) {
+        state.SkipWithError("failed to pin benchmark target alive");
+        return;
+    }
+
+    auto& events = nw::kernel::events();
+    const auto pacing = nw::combat::resolve_attack_cooldown_ticks(obj, 0);
+    if (!nw::combat::start_auto_attack(obj, vs, 0, 0)) {
+        state.SkipWithError("failed to start auto attack");
+        return;
+    }
+
+    int64_t dispatched = 0;
+    for (auto _ : state) {
+        events.advance(pacing);
+        dispatched += events.process();
+    }
+
+    // The scheduler stops the sequence when the target dies, so an empty queue
+    // here means the loop was timing nothing.
+    if (dispatched == 0 || events.pending() == 0) {
+        state.SkipWithError("auto attack sequence did not survive the run");
+        return;
+    }
+    nw::combat::stop_auto_attack(obj);
+    events.advance(pacing);
+    events.process();
 }
 
 BENCHMARK(BM_combat_resolve_attack_cooldown_ticks);
 BENCHMARK(BM_combat_resolve_and_commit);
+BENCHMARK(BM_combat_auto_attack_cycle);
 
 BENCHMARK(BM_creature_attack);
 BENCHMARK(BM_creature_attack_2);

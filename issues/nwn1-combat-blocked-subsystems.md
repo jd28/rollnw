@@ -353,13 +353,39 @@ binary's `stdlib`; CI runs them from the install tree. Running from
 `build/benchmarks` fails to find fixtures, and running from `build/tests` throws
 `multiple directories provide selected package 'nwn1'`.
 
-**Unexplained, worth a look:** a third benchmark driving the full
-`start_auto_attack` cycle (advance one pacing interval, `process()`, repeat) was
-dropped because the sequence stops partway through a run. It is not the target
-dying — `BM_combat_resolve_and_commit` sustains thousands of iterations against
-the same pinned target, and pinning via a temporary-hitpoints effect is needed
-because `commit` writes hit points through the `CreatureHealth` propset, so
-`set_vitals()` alone does not hold. `Nwn1ScriptsCanScheduleAttacks` also
-sustains the sequence until the target dies. So something terminates
-`AutoAttackState` under repeated dispatch that neither of those paths hits.
-Worth finding before anything depends on long-running auto-attack.
+**Resolved 2026-11-21, and it was not a scheduler bug.** The third benchmark
+driving the full `start_auto_attack` cycle stopped partway through a run because
+the target was being **killed by Devastating Critical**, which is save-or-die
+and therefore ignores hit points entirely: the target was pinned to a million of
+them and died in two attacks anyway. The scheduler was behaving correctly --
+`auto_attack_event_callback()` stops the sequence when the target is dead.
+
+My reasoning for ruling death out was itself the bug. I argued it could not be
+death because `BM_combat_resolve_and_commit` sustained thousands of iterations
+against the same pinned target. It sustained them *because it never checks
+whether the target is alive* -- it resolved and committed attacks against a
+corpse for nearly its entire run. That benchmark was registered and hard-gated
+in `bench-pr` while measuring something it did not claim to measure.
+
+Fixed by making the attacker `dexweapfin`, which has no save-or-die feat and
+does ordinary damage (~42 per attack), and by adding an explicit liveness check
+to both benchmarks so a dead target fails loudly instead of quietly producing a
+number. `BM_combat_auto_attack_cycle` is now registered too.
+
+The same flaw had made `Nwn1ScriptsCanScheduleAttacks` flaky rather than wrong:
+with drorry attacking, the sequence ended whenever an early attack happened to
+crit, and passed whenever it did not. Same fix.
+
+Current numbers on this machine: pacing query **~6.9 µs**, resolve-plus-commit
+**~126 µs**, full scheduled cycle **~122 µs**. The cycle matching
+resolve-plus-commit is the useful part -- event dispatch and rescheduling are
+negligible next to resolving an attack, so the attack itself is where any
+optimisation has to go.
+
+Two lessons worth keeping:
+
+- A benchmark that cannot fail is a benchmark that can lie. Both of these now
+  assert their own preconditions.
+- Save-or-die cannot be defended against with hit points, so anything that
+  needs a durable target in a loop has to disable the feat or pick a creature
+  without it.

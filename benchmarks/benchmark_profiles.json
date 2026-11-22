@@ -16,6 +16,7 @@
     "BM_smalls_attack_phase_base_damage_result": {"domain": "smalls", "group": "combat"},
     "BM_combat_resolve_attack_cooldown_ticks": {"domain": "cpp", "group": "combat"},
     "BM_combat_resolve_and_commit": {"domain": "cpp", "group": "combat"},
+    "BM_combat_auto_attack_cycle": {"domain": "cpp", "group": "combat"},
     "BM_damage_reduction_scan/0": {"domain": "cpp", "group": "combat"},
     "BM_damage_reduction_scan/8": {"domain": "cpp", "group": "combat"},
     "BM_damage_reduction_scan/32": {"domain": "cpp", "group": "combat"},
@@ -129,6 +130,7 @@
       "hard": [
         "BM_combat_resolve_attack_cooldown_ticks",
         "BM_combat_resolve_and_commit",
+        "BM_combat_auto_attack_cycle",
         "BM_creature_attack_direct_nwn1_combat_module_context",
         "BM_creature_attack_direct_nwn1_combat_module_context_case_drorry",
         "BM_creature_attack_direct_nwn1_combat_module_context_case_dexweapfin",
