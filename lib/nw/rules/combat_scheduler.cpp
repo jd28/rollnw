@@ -136,6 +136,7 @@ struct CombatPolicyCache {
     const smalls::CompiledFunction* resolve_attack = nullptr;
     const smalls::CompiledFunction* resolve_attack_cooldown_ticks = nullptr;
     const smalls::CompiledFunction* commit_attack_damage = nullptr;
+    const smalls::CompiledFunction* resolve_initiative = nullptr;
     AttackDataOffsetCache offsets;
 };
 
@@ -244,6 +245,8 @@ struct AutoAttackState {
     uint64_t generation = 0;
     // 0 = defer to the policy's own pacing; see resolve_attack_cooldown_ticks.
     uint32_t pacing_ticks = 0;
+    // Rolled once, on the transition into combat, and cleared on the way out.
+    int32_t initiative = 0;
     bool active = false;
 };
 
@@ -278,6 +281,20 @@ AutoAttackState& upsert_auto_attack_state(ObjectHandle attacker)
 
     auto_attack_states.push_back(AutoAttackState{.attacker = attacker});
     return auto_attack_states.back();
+}
+
+// Same-tick ordering for one creature's combat events. Negated because the
+// event queue takes the lowest priority first, and higher initiative acts
+// first. A creature not in combat sorts at 0 alongside everything that does
+// not care about initiative.
+int64_t combat_event_priority(const AutoAttackState* state)
+{
+    return state && state->active ? -static_cast<int64_t>(state->initiative) : 0;
+}
+
+int64_t combat_event_priority(ObjectHandle attacker)
+{
+    return combat_event_priority(find_auto_attack_state(attacker));
 }
 
 void scheduled_attack_payload_delete(void* data)
@@ -333,11 +350,13 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
     auto* target = kernel::objects().get_object_base(state->target);
     if (!target) {
         state->active = false;
+        state->initiative = 0;
         return;
     }
 
     if (auto* cre = target->as_creature(); cre && creature_is_dead(*cre)) {
         state->active = false;
+        state->initiative = 0;
         return;
     }
 
@@ -349,7 +368,7 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
     auto delay = combat::resolve_attack_cooldown_ticks(attacker, state->pacing_ticks);
     auto* next = new AutoAttackEvent{.attacker = payload->attacker, .generation = payload->generation};
     kernel::events().add_custom(payload->attacker, &auto_attack_event_callback, delay,
-        next, &auto_attack_payload_delete);
+        next, &auto_attack_payload_delete, combat_event_priority(state));
 }
 
 } // namespace
@@ -413,6 +432,22 @@ bool initialize_policy(smalls::Runtime& runtime)
             "[combat] package policy '{}.commit_attack_damage' has an unexpected signature; ignoring it",
             candidate.module);
         candidate.commit_attack_damage = nullptr;
+    }
+
+    // Optional hook, same contract as commit_attack_damage: without it every
+    // creature's initiative is 0, which ties and leaves same-tick ordering to
+    // insertion order.
+    const std::array initiative_parameters{creature_type};
+    candidate.resolve_initiative = candidate.bytecode_module->get_function("resolve_initiative");
+    if (candidate.resolve_initiative
+        && !(function_has_parameters(runtime, candidate.resolve_initiative,
+                 initiative_parameters)
+            && is_int_compatible_type(runtime,
+                candidate.resolve_initiative->return_type))) {
+        LOG_F(WARNING,
+            "[combat] package policy '{}.resolve_initiative' has an unexpected signature; ignoring it",
+            candidate.module);
+        candidate.resolve_initiative = nullptr;
     }
 
     if (!resolve_attack_data_offsets(runtime,
@@ -518,6 +553,33 @@ uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t pacing
         : 1;
 }
 
+int resolve_initiative(const Creature* attacker)
+{
+    if (!attacker || !combat_policy_is_current() || !combat_policy.resolve_initiative) {
+        return 0;
+    }
+
+    auto& runtime = kernel::runtime();
+    Vector<smalls::Value> args;
+    args.push_back(make_object_arg(runtime, attacker->handle()));
+
+    const auto result = runtime.execute_compiled(combat_policy.bytecode_module,
+        combat_policy.resolve_initiative, args);
+    if (!result.ok()) {
+        LOG_F(WARNING, "[combat] {}.resolve_initiative failed: {}",
+            combat_policy.module, result.error_message);
+        return 0;
+    }
+    return result.value.data.ival;
+}
+
+int current_initiative(const Creature* attacker)
+{
+    if (!attacker) { return 0; }
+    const auto* state = find_auto_attack_state(attacker->handle());
+    return state && state->active ? state->initiative : 0;
+}
+
 bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_ticks)
 {
     if (!attacker || !target) {
@@ -526,7 +588,7 @@ bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_tick
 
     auto* payload = new ScheduledAttackEvent{attacker->handle(), target->handle()};
     kernel::events().add_custom(attacker->handle(), &scheduled_attack_event_callback, delay_ticks,
-        payload, &scheduled_attack_payload_delete);
+        payload, &scheduled_attack_payload_delete, combat_event_priority(attacker->handle()));
     return true;
 }
 
@@ -538,15 +600,21 @@ bool start_auto_attack(Creature* attacker, ObjectBase* target,
     }
 
     auto& state = upsert_auto_attack_state(attacker->handle());
+    const bool entering_combat = !state.active;
     state.target = target->handle();
     // 0 is meaningful here -- it defers to the policy -- so it is not clamped.
     state.pacing_ticks = pacing_ticks;
     state.active = true;
     ++state.generation;
+    // Once per combat, not once per call: retargeting mid-fight must not buy a
+    // fresh roll. stop_auto_attack is what ends a combat and clears this.
+    if (entering_combat) {
+        state.initiative = resolve_initiative(attacker);
+    }
 
     auto* payload = new AutoAttackEvent{.attacker = attacker->handle(), .generation = state.generation};
     kernel::events().add_custom(attacker->handle(), &auto_attack_event_callback, initial_delay_ticks,
-        payload, &auto_attack_payload_delete);
+        payload, &auto_attack_payload_delete, combat_event_priority(&state));
     return true;
 }
 
@@ -562,6 +630,7 @@ bool stop_auto_attack(Creature* attacker)
     }
 
     state->active = false;
+    state->initiative = 0;
     ++state->generation;
     return true;
 }

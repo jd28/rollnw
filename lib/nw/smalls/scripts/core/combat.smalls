@@ -18,6 +18,8 @@ import core.effects as effects;
 [[native]] fn schedule_attack(attacker: Creature, target: object, delay_ticks: int): bool;
 [[native]] fn start_auto_attack(attacker: Creature, target: object, initial_delay_ticks: int, pacing_ticks: int): bool;
 [[native]] fn stop_auto_attack(attacker: Creature): bool;
+// The initiative the attacker rolled on entering combat; 0 when out of combat.
+[[native]] fn combat_initiative(attacker: Creature): int;
 
 [[native]] fn creature_effect_version(obj: Creature): int;
 [[native]] fn creature_equip_version(obj: Creature): int;

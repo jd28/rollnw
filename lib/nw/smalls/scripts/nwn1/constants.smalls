@@ -408,6 +408,14 @@ const feat_crippling_strike = Feat(222);
 const feat_skill_mastery = Feat(225);
 const feat_slippery_mind = Feat(259);
 
+// Initiative feats. Improved Initiative's SUCCESSOR in feat.2da is Superior
+// Initiative, so the two do not stack -- the later one replaces it. Blooded is
+// its own chain (SUCCESSOR is unset) and stacks with whichever of the pair
+// applies; it also grants +2 Spot, which lives with the skill modifiers.
+const feat_improved_initiative = Feat(377);
+const feat_blooded = Feat(379);
+const feat_epic_superior_initiative = Feat(753);
+
 // An NWN combat round is six seconds. Used to turn table-driven durations
 // expressed in rounds into the seconds an Effect's duration wants.
 const seconds_per_round = 6.0;
@@ -608,13 +616,9 @@ const ip_onhitcastspell = ItemPropertyType(82);
 // dispatch behind them -- sum_modifiers() is never called with them and nothing
 // registers against them. That is not the same as "unused data id": some are a
 // real mechanic that is simply unbuilt, and a modifier registered against one
-// of those would silently do nothing. As of 2026-11-20 the ones with no
+// of those would silently do nothing. As of 2026-11-21 the ones with no
 // dispatch are:
 //
-//   initiative        -- no initiative system exists at all; this constant is
-//                        its only mention anywhere. Blocks Improved Initiative,
-//                        Blooded, Epic Superior Initiative, and the
-//                        "hasn't acted yet" sense of flat-footed.
 //   regeneration      -- no regeneration tick.
 //   movement_speed    -- no movement rules consume it.
 //   spell_resistance  -- no spell pipeline to apply it in.

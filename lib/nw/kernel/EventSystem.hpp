@@ -26,6 +26,10 @@ using EventDataDeleter = void (*)(void*);
 
 struct EventHandle {
     uint64_t tick = 0;
+    /// Tie-break among events due on the same tick, lowest first. Zero is the
+    /// neutral value, so anything that does not care keeps insertion order.
+    /// Combat uses the negated initiative roll, which is why it is signed.
+    int64_t priority = 0;
     uint64_t sequence = 0;
     EventType type;
     ObjectHandle object;
@@ -36,7 +40,8 @@ struct EventHandle {
 
     bool operator<(const EventHandle& rhs) const
     {
-        return std::tie(tick, sequence) < std::tie(rhs.tick, rhs.sequence);
+        return std::tie(tick, priority, sequence)
+            < std::tie(rhs.tick, rhs.priority, rhs.sequence);
     }
 
     bool operator>(const EventHandle& rhs) const
@@ -46,7 +51,8 @@ struct EventHandle {
 
     bool operator==(const EventHandle& rhs) const
     {
-        return std::tie(tick, sequence) == std::tie(rhs.tick, rhs.sequence);
+        return std::tie(tick, priority, sequence)
+            == std::tie(rhs.tick, rhs.priority, rhs.sequence);
     }
 };
 
@@ -66,9 +72,9 @@ struct EventSystem : public Service {
     void add_at(EventType type, ObjectHandle object, uint64_t at_tick, void* data = nullptr);
 
     void add_custom(ObjectBase* object, EventCallback callback, uint64_t delay_ticks = 0, void* data = nullptr,
-        EventDataDeleter data_deleter = nullptr);
+        EventDataDeleter data_deleter = nullptr, int64_t priority = 0);
     void add_custom(ObjectHandle object, EventCallback callback, uint64_t delay_ticks = 0, void* data = nullptr,
-        EventDataDeleter data_deleter = nullptr);
+        EventDataDeleter data_deleter = nullptr, int64_t priority = 0);
 
     uint64_t current_tick() const noexcept;
     void set_current_tick(uint64_t tick) noexcept;

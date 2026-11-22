@@ -1,6 +1,6 @@
 # NWN1 combat: subsystems blocking the remaining rules
 
-Status (2026-11-20): open. Split out of
+Status (2026-11-21): open. Split out of
 [the combat rules completion plan](closed/nwn1-combat-rules-completion.md) when
 that closed, as the items blocked on a missing subsystem or missing game data
 rather than on rules work. Each blocker is shared rather than per-feat. Ordered
@@ -12,6 +12,8 @@ That found a fourth blocker -- no initiative system -- and a batch of base NWN1
 feats that do nothing. The unblocked ones from that batch have since been
 implemented (saving-throw feats, combat-mode and special-attack feat gating,
 the passive skill bonuses, Disarm); the rest are under Feat backlog below.
+Initiative itself was built on 2026-11-21 (item 4), leaving only the
+acted-yet-this-combat state it was also blocking.
 
 None of these should be attempted by inferring the missing pieces. The whole
 point of the audit that produced the parent issue was that guessed-at or
@@ -141,26 +143,58 @@ of them are schools. `get_saving_throw()` also does not consult the modifier
 registry at all, so `mod_type_save` (declared, id 14) has no dispatch; wiring
 that is a prerequisite.
 
-## 4. Initiative — nothing exists
+## 4. Initiative — MOSTLY DONE 2026-11-21
 
-`mod_type_initiative` is declared in `constants.smalls` and that declaration is
-its only mention in the codebase. There is no initiative roll, no turn order and
-no "has this creature acted yet this combat" state.
+The roll, its feats and its effect on ordering are built. What remains is the
+flat-footed sense that depends on per-combat "has acted yet" state.
 
-Blocks, concretely:
+**What exists now.**
 
-- **Improved Initiative** (`feat.2da` 377), **Blooded** (379), **Epic Superior
-  Initiative** (753) — all three absent from the rules.
+- `nwn1.combat.resolve_initiative(attacker)` — d20 + Dex modifier + whatever is
+  registered against `mod_type_initiative`. It is an *optional* combat-policy
+  hook, resolved by name in `initialize_policy` the same way
+  `commit_attack_damage` is: a policy without it leaves every creature at 0,
+  which ties and falls back to insertion order, i.e. exactly the old behaviour.
+  The engine never interprets the number, so a profile is free to make
+  initiative mean a speed stat or a card draw.
+- `mod_type_initiative` has dispatch. `init.smalls` registers the feat bonuses
+  against it, and it is in `modifier._dispatched_modifier_types()`, so the
+  registry guard now accepts registrations there instead of reporting them inert.
+- **Improved Initiative** (377, +4), **Blooded** (379, +2 initiative and +2
+  Spot), **Epic Superior Initiative** (753, +8). Improved's `SUCCESSOR` in
+  `feat.2da` is 753, so the pair does **not** stack — the +8 replaces the +4,
+  and the rule reads that relationship out of `nwn1.feats.successor()` rather
+  than hardcoding it. Blooded's `SUCCESSOR` is unset, so it stacks with
+  whichever of the pair applies. A test asserts both `SUCCESSOR` values, which
+  is what pins the distinction between this and the save feats to data rather
+  than to two literals in two rules.
+- **Ordering.** `EventHandle` grew a signed `priority` field, compared as
+  `(tick, priority, sequence)` — lowest first, so combat stores the negated
+  roll. A tick's attacks come out in initiative order with `sequence` still
+  breaking ties deterministically, and priority never outranks the tick. No
+  cancel-and-requeue, and nothing that passes no priority changes behaviour
+  because 0 is the neutral value.
+- **Once per combat.** `AutoAttackState` caches the roll, rolled on the
+  inactive→active transition in `start_auto_attack` and cleared when the
+  sequence ends (stopped, target gone, target dead). Retargeting mid-fight
+  keeps the existing roll. `nw::combat::current_initiative()` and the
+  `core.combat.combat_initiative` native expose the cached value read-only.
+
+**What is still blocked.**
+
 - **The other sense of flat-footed.** What is implemented is the *helpless*
-  sense (paralyzed/stunned/asleep). NWN's other sense is "has not acted yet",
-  which needs initiative. This matters for correctness of a feat, not just
-  coverage: **Uncanny Dodge** (195, 251-255) and **Uncanny Reflex** (226) negate
-  the not-yet-acted sense and should *not* negate genuine helplessness, so
+  sense (paralyzed/stunned/asleep). NWN's other sense is "has not acted yet
+  this combat", which needs per-combat acted-yet state — initiative alone does
+  not supply it. This matters for correctness of a feat, not just coverage:
+  **Uncanny Dodge** (195, 251-255) and **Uncanny Reflex** (226) negate the
+  not-yet-acted sense and should *not* negate genuine helplessness, so
   implementing them against the currently-available sense would be wrong rather
   than incomplete.
-
-This also overlaps the real-time vs turn-based scheduling split in
-`combat_scheduler`, so it wants designing rather than patching.
+- **Turn-based scheduling.** Initiative orders events *within* a tick. A
+  genuinely turn-based mode is a different scheduling mode, not a different
+  initiative rule, and is still unbuilt. The groundwork is that pacing already
+  belongs to the policy, so that mode can replace it without touching the
+  scheduler.
 
 ## Feat backlog, grouped by what blocks each
 
@@ -182,7 +216,8 @@ wrong** (see below). No game data belongs in this repo; read it in place.
 | Blocked on | Feats |
 | --- | --- |
 | Spatial neighbour query (item 2) | **Cleave** (6), **Great Cleave** (391), **Opportunist** (224), **Mobility** (26, +4 AC vs AoO) |
-| Initiative (item 4) | **Improved Initiative** (377), **Blooded** (379), **Epic Superior Initiative** (753), **Uncanny Dodge 1-6** (195, 251-255), **Uncanny Reflex** (226) |
+| Acted-yet state (item 4) | **Uncanny Dodge 1-6** (195, 251-255), **Uncanny Reflex** (226) — initiative itself is done; these need the not-yet-acted sense of flat-footed |
+| ~~Initiative — done 2026-11-21~~ | **Improved Initiative** (377), **Blooded** (379), **Epic Superior Initiative** (753) |
 | ~~Effect expiry~~ — unblocked 2026-11-20 | nothing left here; **Slippery Mind** turned out not to need it (see below) |
 | Nothing — just unbuilt | **Called Shot** (5): -4 attack, Discipline check, legs give -20% movement and -2 Dexterity, arms a cumulative -2 attack. `ObjectSpatialState.movement_rate` exists, so this is reachable. **Defensive Roll** (223): Reflex save at DC = damage dealt for half damage, once per day, not while flat-footed — killing-blow detection and flat-footed both exist now, but "once per day" has no reset substrate |
 | ~~Nothing — done 2026-11-20~~ | **Crippling Strike** (222), **Skill Mastery** (225), **Slippery Mind** (259) |
@@ -273,7 +308,7 @@ consequence:
 | Injected fault | Caught by |
 | --- | --- |
 | Knockdown's registration removed | `usable()` defaults open; the attack is ungated rather than disabled |
-| Modifier registered against `mod_type_initiative` | nothing sums this type, so it contributes nothing |
+| Modifier registered against `mod_type_regeneration` | nothing sums this type, so it contributes nothing |
 | `effect_type_sleep` registered for dispatch | registered for dispatch with no `on_effects` branch |
 | `"Vorpal"` misspelled as `"Vorpall"` | label did not resolve, so the property does nothing |
 
@@ -287,6 +322,10 @@ no consumer, and *not* a registry nobody reads at all — `mod_type_regeneration
 with zero registrations still looks fine. Closing that needs either a
 convention where registries record their consumers, or a build-time scan of call
 sites. The asymmetric half is the half that fires in practice.
+
+`mod_type_initiative` was this guard's own example of an inert type until
+initiative was built on 2026-11-21; the probe now watches
+`mod_type_regeneration` instead, and asserts initiative *is* populated.
 
 **Not yet guarded**, and a different mechanism each: stale documentation
 claims, and tests that pass for the wrong reason — the German TLK

@@ -26,6 +26,18 @@ bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out = nu
 /// combat round -- pacing belongs to the policy, which is what lets a
 /// turn-based or action-driven mode replace it without touching the scheduler.
 uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t pacing_ticks = 0);
+
+/// Rolls initiative for `attacker` via the policy's optional
+/// `resolve_initiative` hook. Returns 0 if the policy has no hook, which makes
+/// every creature tie and leaves same-tick ordering to insertion order -- how
+/// the scheduler behaved before initiative existed.
+int resolve_initiative(const Creature* attacker);
+
+/// The initiative rolled when `attacker` entered combat, or 0 if it is not in
+/// combat. Rolled once per combat: starting an auto-attack while already
+/// attacking (retargeting) keeps the existing roll.
+int current_initiative(const Creature* attacker);
+
 bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_ticks);
 bool start_auto_attack(Creature* attacker, ObjectBase* target,
     uint64_t initial_delay_ticks = 0, uint32_t pacing_ticks = 0);

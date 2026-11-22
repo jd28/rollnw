@@ -1766,6 +1766,18 @@ fn resolve_attack_cooldown_ticks(attacker: Creature, pacing_ticks: int): int {
     return cooldown;
 }
 
+// Initiative for one creature: d20 + Dex modifier + whatever is registered
+// against mod_type_initiative. The engine calls this once per combat, on the
+// transition into combat, and orders same-tick attack events by the result;
+// it does not interpret the number otherwise, so a profile is free to make
+// initiative mean something else entirely (a fixed speed stat, a card draw)
+// without the scheduler caring.
+fn resolve_initiative(attacker: Creature): int {
+    return roll_uniform_int(1, 20)
+        + NCre.get_ability_modifier(attacker, Const.ability_dexterity)
+        + modifier.sum_modifiers(attacker, Const.mod_type_initiative, -1, Obj.invalid);
+}
+
 fn resolve_dual_wield_penalty_onhand(obj: Creature): int {
     var combat = get_propset!(CreatureCombat)(obj);
     ensure_dual_wield_cache(combat, obj);

@@ -819,7 +819,24 @@ static void BM_combat_auto_attack_cycle(benchmark::State& state)
     events.process();
 }
 
+// Initiative is paid once per combat, not per attack, so this is here to pin
+// the cost of entering combat rather than of fighting. It is a policy call like
+// pacing is, and the same script-dispatch overhead dominates it.
+static void BM_combat_resolve_initiative(benchmark::State& state)
+{
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj) {
+        state.SkipWithError("failed to load initiative benchmark creature");
+        return;
+    }
+    for (auto _ : state) {
+        auto initiative = nw::combat::resolve_initiative(obj);
+        benchmark::DoNotOptimize(initiative);
+    }
+}
+
 BENCHMARK(BM_combat_resolve_attack_cooldown_ticks);
+BENCHMARK(BM_combat_resolve_initiative);
 BENCHMARK(BM_combat_resolve_and_commit);
 BENCHMARK(BM_combat_auto_attack_cycle);
 

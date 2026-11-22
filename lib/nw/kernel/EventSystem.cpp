@@ -67,16 +67,17 @@ void EventSystem::add_at(EventType type, ObjectHandle object, uint64_t at_tick, 
 }
 
 void EventSystem::add_custom(ObjectBase* object, EventCallback callback, uint64_t delay_ticks, void* data,
-    EventDataDeleter data_deleter)
+    EventDataDeleter data_deleter, int64_t priority)
 {
-    add_custom(object ? object->handle() : ObjectHandle{}, callback, delay_ticks, data, data_deleter);
+    add_custom(object ? object->handle() : ObjectHandle{}, callback, delay_ticks, data, data_deleter, priority);
 }
 
 void EventSystem::add_custom(ObjectHandle object, EventCallback callback, uint64_t delay_ticks, void* data,
-    EventDataDeleter data_deleter)
+    EventDataDeleter data_deleter, int64_t priority)
 {
     EventHandle ev;
     ev.tick = current_tick_ + delay_ticks;
+    ev.priority = priority;
     ev.type = EventType::custom;
     ev.object = object;
     ev.data = data;

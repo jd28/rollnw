@@ -12,6 +12,7 @@ from core.types import { Feat };
 import nwn1.creature as NCre;
 import nwn1.combat_modes as combat_modes;
 import nwn1.effects as nwn1effects;
+import nwn1.feats as Feats;
 import nwn1.item as nwn1item;
 import nwn1.master_feats as mfeat;
 import nwn1.modifier as modifier;
@@ -691,6 +692,42 @@ fn save_modifier_will(obj: Creature, _vs: object, subtype: int): int {
     return result;
 }
 
+// == Initiative Modifiers ==================================================
+// Improved Initiative and Superior Initiative are a SUCCESSOR chain in
+// feat.2da: the later one replaces the earlier rather than stacking with it.
+// The relationship is read from data so a profile that re-points SUCCESSOR
+// gets the right answer without editing this; only the magnitudes, which no
+// 2da carries, are literal here.
+fn _initiative_chain_bonus(obj: Creature): int {
+    const has_improved = Cre.has_feat(obj, Const.feat_improved_initiative);
+    const has_superior = Cre.has_feat(obj, Const.feat_epic_superior_initiative);
+
+    if (!has_improved) {
+        return has_superior ? 8 : 0;
+    }
+    if (!has_superior) {
+        return 4;
+    }
+
+    // With no feat table to consult, assume the documented NWN relationship.
+    // Guessing "stacks" would silently hand out +12.
+    if (!Feats.exists(Const.feat_improved_initiative)) {
+        return 8;
+    }
+
+    const supersedes = Feats.successor(Const.feat_improved_initiative)
+        == Const.feat_epic_superior_initiative as int;
+    return supersedes ? 8 : 12;
+}
+
+fn initiative_modifier_feats(obj: Creature, _vs: object, _subtype: int): int {
+    var result = _initiative_chain_bonus(obj);
+    // Blooded has no SUCCESSOR, so it stacks with whichever of the pair
+    // applies. Its other half is +2 Spot, which lives with the skills.
+    if (Cre.has_feat(obj, Const.feat_blooded)) { result += 2; }
+    return result;
+}
+
 // == Skill Modifiers =======================================================
 fn skill_modifier_stonecunning_search(obj: Creature, _vs: object, subtype: int): int {
     if (subtype != Const.skill_search as int) { return 0; }
@@ -725,6 +762,7 @@ fn skill_modifier_spot(obj: Creature, _vs: object, subtype: int): int {
     if (subtype != Const.skill_spot as int) { return 0; }
     var result = 0;
     if (Cre.has_feat(obj, Const.feat_alertness)) { result += 2; }
+    if (Cre.has_feat(obj, Const.feat_blooded)) { result += 2; }
     if (Cre.has_feat(obj, Const.feat_skill_affinity_spot)) { result += 2; }
     if (Cre.has_feat(obj, Const.feat_partial_skill_affinity_spot)) { result += 1; }
     return result;
@@ -872,6 +910,9 @@ fn init_modifiers() {
     modifier.register_modifier(Const.mod_type_save, "great_fortitude", save_modifier_fortitude, Const.saving_throw_fort as int);
     modifier.register_modifier(Const.mod_type_save, "lightning_reflexes", save_modifier_reflex, Const.saving_throw_reflex as int);
     modifier.register_modifier(Const.mod_type_save, "iron_will", save_modifier_will, Const.saving_throw_will as int);
+
+    // == Initiative ==========================================================
+    modifier.register_modifier(Const.mod_type_initiative, "initiative_feats", initiative_modifier_feats, -1);
 
     // == Skills ==============================================================
     modifier.register_modifier(Const.mod_type_skill, "stonecunning_search", skill_modifier_stonecunning_search, Const.skill_search as int);

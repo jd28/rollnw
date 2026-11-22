@@ -30,6 +30,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <limits>
+#include <set>
 
 namespace fs = std::filesystem;
 
@@ -7470,6 +7471,244 @@ TEST_F(SmallsEngineIntegration, Nwn1ScriptsCanScheduleAttacks)
     EXPECT_EQ(events.pending(), 0u) << "the sequence must stop itself on death";
 }
 
+// Initiative. mod_type_initiative existed as a bare constant with no dispatch
+// and no registrations, so Improved Initiative, Blooded and Superior
+// Initiative could not have done anything even if they had been declared.
+// Improved and Superior are a SUCCESSOR chain in feat.2da, meaning the later
+// replaces the earlier -- unlike the save feats, which have no SUCCESSOR and
+// therefore do stack.
+TEST_F(SmallsEngineIntegration, Nwn1InitiativeFeatsSupersedeRatherThanStack)
+{
+    std::string_view source = R"(
+        import core.bit as bit;
+        import core.object as Obj;
+        import nwn1.combat as NC;
+        import nwn1.creature as NCre;
+        import nwn1.creature_state as Cre;
+        import nwn1.feats as Feats;
+        import nwn1.init as Init;
+        import nwn1.modifier as Mod;
+        import nwn1.constants as Const;
+
+        fn bit_set(value: int, mask: int): bool {
+            return bit.and(value, mask) != 0;
+        }
+
+        fn clear(target: Creature) {
+            Cre.remove_feat(target, Const.feat_improved_initiative);
+            Cre.remove_feat(target, Const.feat_blooded);
+            Cre.remove_feat(target, Const.feat_epic_superior_initiative);
+        }
+
+        fn initiative_bonus(target: Creature): int {
+            return Mod.sum_modifiers(target, Const.mod_type_initiative, -1, Obj.invalid);
+        }
+
+        // selector: bitmask -- 1 improved, 2 superior, 4 blooded.
+        fn bonus_for(target: Creature, selector: int): int {
+            Init.init();
+            clear(target);
+            if (bit_set(selector, 1)) { Cre.add_feat(target, Const.feat_improved_initiative); }
+            if (bit_set(selector, 2)) { Cre.add_feat(target, Const.feat_epic_superior_initiative); }
+            if (bit_set(selector, 4)) { Cre.add_feat(target, Const.feat_blooded); }
+            return initiative_bonus(target);
+        }
+
+        // Blooded's other half. Reported as a delta so the creature's own Spot
+        // ranks and other bonuses cannot make this pass on their own.
+        fn blooded_spot_delta(target: Creature, _unused: int): int {
+            Init.init();
+            clear(target);
+            const without = Mod.sum_modifiers(target, Const.mod_type_skill, Const.skill_spot as int, Obj.invalid);
+            Cre.add_feat(target, Const.feat_blooded);
+            const with_feat = Mod.sum_modifiers(target, Const.mod_type_skill, Const.skill_spot as int, Obj.invalid);
+            clear(target);
+            return with_feat - without;
+        }
+
+        // And it must not leak into initiative's neighbours.
+        fn blooded_reflex_delta(target: Creature, _unused: int): int {
+            Init.init();
+            clear(target);
+            const without = Mod.sum_modifiers(target, Const.mod_type_save, Const.saving_throw_reflex as int, Obj.invalid);
+            Cre.add_feat(target, Const.feat_blooded);
+            const with_feat = Mod.sum_modifiers(target, Const.mod_type_save, Const.saving_throw_reflex as int, Obj.invalid);
+            clear(target);
+            return with_feat - without;
+        }
+
+        // The supersession is read from feat.2da's SUCCESSOR column, not
+        // hardcoded; this is the same lookup the rule makes.
+        fn improved_successor(_target: Creature, _unused: int): int {
+            return Feats.successor(Const.feat_improved_initiative);
+        }
+
+        // Great Fortitude's SUCCESSOR is unset, which is why the save feats
+        // stack and these do not. Asserted so the distinction is pinned to
+        // data rather than to two different literals in two rules.
+        fn great_fortitude_successor(_target: Creature, _unused: int): int {
+            return Feats.successor(Const.feat_great_fortitude);
+        }
+
+        fn dex_modifier(target: Creature, _unused: int): int {
+            return NCre.get_ability_modifier(target, Const.ability_dexterity);
+        }
+
+        // One roll of the policy's initiative, with the feats of `selector`.
+        fn roll(target: Creature, selector: int): int {
+            Init.init();
+            clear(target);
+            if (bit_set(selector, 1)) { Cre.add_feat(target, Const.feat_improved_initiative); }
+            if (bit_set(selector, 2)) { Cre.add_feat(target, Const.feat_epic_superior_initiative); }
+            if (bit_set(selector, 4)) { Cre.add_feat(target, Const.feat_blooded); }
+            return NC.resolve_initiative(target);
+        }
+
+        fn cleanup(target: Creature, _unused: int): int {
+            clear(target);
+            return 0;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_initiative", source);
+
+    // The relationship under test comes from the game data, not from this file.
+    EXPECT_EQ(harness.call("improved_successor", 0), 753)
+        << "feat.2da says Superior Initiative succeeds Improved Initiative";
+    EXPECT_EQ(harness.call("great_fortitude_successor", 0), -1)
+        << "Great Fortitude has no successor, which is why save feats stack";
+
+    EXPECT_EQ(harness.call("bonus_for", 0), 0) << "no initiative feats";
+    EXPECT_EQ(harness.call("bonus_for", 1), 4) << "Improved Initiative";
+    EXPECT_EQ(harness.call("bonus_for", 2), 8) << "Superior Initiative";
+    EXPECT_EQ(harness.call("bonus_for", 3), 8)
+        << "Superior Initiative replaces Improved Initiative; +12 would be stacking";
+    EXPECT_EQ(harness.call("bonus_for", 4), 2) << "Blooded";
+    EXPECT_EQ(harness.call("bonus_for", 5), 6) << "Blooded stacks with Improved";
+    EXPECT_EQ(harness.call("bonus_for", 6), 10) << "Blooded stacks with Superior";
+    EXPECT_EQ(harness.call("bonus_for", 7), 10)
+        << "Blooded stacks, but Improved is still replaced by Superior";
+
+    EXPECT_EQ(harness.call("blooded_spot_delta", 0), 2)
+        << "Blooded is +2 initiative and +2 Spot";
+    EXPECT_EQ(harness.call("blooded_reflex_delta", 0), 0)
+        << "Blooded must not leak into saves";
+
+    // A roll is d20 + Dex + the feat bonus, so it is bounded even though the
+    // die is not. Checked over enough rolls to see both ends of the die.
+    const int dex = harness.call("dex_modifier", 0);
+    int lowest = std::numeric_limits<int>::max();
+    int highest = std::numeric_limits<int>::min();
+    for (int i = 0; i < 200; ++i) {
+        const int value = harness.call("roll", 3); // Improved + Superior = +8
+        ASSERT_GE(value, 1 + dex + 8) << "below d20 + Dex + 8";
+        ASSERT_LE(value, 20 + dex + 8) << "above d20 + Dex + 8";
+        lowest = std::min(lowest, value);
+        highest = std::max(highest, value);
+    }
+    EXPECT_LT(lowest, highest) << "resolve_initiative must actually roll a die";
+
+    harness.call("cleanup", 0);
+}
+
+// The engine side: initiative is rolled once per combat, cached, and turned
+// into the event priority that orders a tick's attacks. Rolled on the
+// inactive->active transition rather than per call, so retargeting mid-fight
+// does not buy a fresh roll.
+TEST_F(SmallsEngineIntegration, InitiativeIsRolledOncePerCombatAndOrdersAttackEvents)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/dexweapfin.utc");
+    auto* first_target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    auto* second_target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/nw_chicken.utc");
+    ASSERT_NE(attacker, nullptr);
+    ASSERT_NE(first_target, nullptr);
+    ASSERT_NE(second_target, nullptr);
+
+    std::string_view source = R"(
+        import core.combat as NativeCombat;
+        import nwn1.init as Init;
+
+        fn start(attacker: Creature, target: Creature, _unused: int): int {
+            Init.init();
+            return NativeCombat.start_auto_attack(attacker, target, 30, 0) ? 1 : 0;
+        }
+
+        fn stop(attacker: Creature, _target: Creature, _unused: int): int {
+            return NativeCombat.stop_auto_attack(attacker) ? 1 : 0;
+        }
+
+        fn initiative(attacker: Creature, _target: Creature, _unused: int): int {
+            return NativeCombat.combat_initiative(attacker);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.initiative_scheduling", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call = [&](const char* fn, nw::Creature* target) {
+        nw::Vector<nw::smalls::Value> args;
+        auto a = nw::smalls::Value::make_object(attacker->handle());
+        a.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        auto t = nw::smalls::Value::make_object(target->handle());
+        t.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(a);
+        args.push_back(t);
+        args.push_back(nw::smalls::Value::make_int(0));
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    auto& events = nw::kernel::events();
+    events.process_until(std::numeric_limits<uint64_t>::max());
+
+    EXPECT_EQ(call("initiative", first_target), 0)
+        << "a creature that is not in combat has no initiative";
+
+    ASSERT_EQ(call("start", first_target), 1);
+    const int rolled = call("initiative", first_target);
+    EXPECT_NE(rolled, 0) << "entering combat must roll initiative";
+
+    // The scheduled attack carries the roll as its event priority, negated
+    // because the queue takes the lowest first and higher initiative acts
+    // first. This is the whole wiring: without it the roll is a number nobody
+    // reads, which is how mod_type_initiative sat unused for so long.
+    ASSERT_GT(events.pending(), 0u);
+    EXPECT_EQ(events.queue_.top().priority, -static_cast<int64_t>(rolled));
+
+    // Retargeting is not a new combat. Repeated so that a re-roll could not
+    // coincidentally match -- one match is 1-in-20, twenty in a row is not.
+    for (int i = 0; i < 20; ++i) {
+        auto* target = (i % 2 == 0) ? second_target : first_target;
+        ASSERT_EQ(call("start", target), 1);
+        ASSERT_EQ(call("initiative", target), rolled)
+            << "retargeting mid-combat re-rolled initiative";
+    }
+
+    // Leaving combat drops it, and the next combat rolls afresh.
+    ASSERT_EQ(call("stop", first_target), 1);
+    EXPECT_EQ(call("initiative", first_target), 0)
+        << "initiative must not survive the combat it was rolled for";
+
+    std::set<int> seen;
+    for (int i = 0; i < 60; ++i) {
+        ASSERT_EQ(call("start", first_target), 1);
+        seen.insert(call("initiative", first_target));
+        ASSERT_EQ(call("stop", first_target), 1);
+    }
+    EXPECT_GT(seen.size(), 1u)
+        << "each combat must roll its own initiative, not reuse the first roll";
+
+    events.process_until(std::numeric_limits<uint64_t>::max());
+}
+
 // Registry consistency. The recurring defect across this ruleset has not been
 // wrong logic, it has been machinery that is declared, looks implemented, and
 // nothing can reach: mod_type_save declared with its own declaration as its
@@ -7513,6 +7752,11 @@ TEST_F(SmallsEngineIntegration, Nwn1RegistriesAreSelfConsistent)
         fn initiative_modifiers_registered(): int {
             Init.init();
             return modifier.registration_count(Const.mod_type_initiative);
+        }
+
+        fn regeneration_modifiers_registered(): int {
+            Init.init();
+            return modifier.registration_count(Const.mod_type_regeneration);
         }
 
         fn knockdown_registered(): int {
@@ -7572,11 +7816,14 @@ TEST_F(SmallsEngineIntegration, Nwn1RegistriesAreSelfConsistent)
     EXPECT_EQ(call("knockdown_registered"), 1)
         << "Knockdown must be registered or it is ungated";
 
+    EXPECT_GT(call("initiative_modifiers_registered"), 0)
+        << "the initiative feats register here; if this is 0 nothing bonuses initiative";
+
     // And a type with no dispatch must stay empty -- registering against
-    // initiative today would silently do nothing, which is what the guard
+    // regeneration today would silently do nothing, which is what the guard
     // reports.
-    EXPECT_EQ(call("initiative_modifiers_registered"), 0)
-        << "nothing sums mod_type_initiative; a registration here would be inert";
+    EXPECT_EQ(call("regeneration_modifiers_registered"), 0)
+        << "nothing sums mod_type_regeneration; a registration here would be inert";
 
     // Effect types: registered-for-dispatch implies on_effects handles it, and
     // every handled type is registered or its branch is unreachable.

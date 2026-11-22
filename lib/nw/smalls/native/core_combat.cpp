@@ -392,6 +392,15 @@ bool stop_auto_attack(nw::ObjectHandle attacker)
     return cre && nw::combat::stop_auto_attack(cre);
 }
 
+// The initiative the attacker rolled on entering combat, or 0 if it is not in
+// combat. Read-only on purpose: the roll belongs to the combat policy, and the
+// engine caches it so that same-tick ordering is stable for the whole fight.
+int32_t combat_initiative(nw::ObjectHandle attacker)
+{
+    auto* cre = as_creature(attacker);
+    return cre ? nw::combat::current_initiative(cre) : 0;
+}
+
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -420,6 +429,7 @@ void register_core_combat(Runtime& rt)
         .function("schedule_attack", +[](nw::ObjectHandle attacker, nw::ObjectHandle target, int32_t delay_ticks) -> bool { return schedule_attack(attacker, target, delay_ticks); })
         .function("start_auto_attack", +[](nw::ObjectHandle attacker, nw::ObjectHandle target, int32_t initial_delay_ticks, int32_t pacing_ticks) -> bool { return start_auto_attack(attacker, target, initial_delay_ticks, pacing_ticks); })
         .function("stop_auto_attack", +[](nw::ObjectHandle attacker) -> bool { return stop_auto_attack(attacker); })
+        .function("combat_initiative", +[](nw::ObjectHandle attacker) -> int32_t { return combat_initiative(attacker); })
         .function("creature_equip_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_equip_version(obj); })
         .finalize();
 }

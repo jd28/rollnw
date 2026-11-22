@@ -37,8 +37,10 @@ risks and deferred opportunities are explicit on the current status page.
   differential oracle is the retained phase-0 linear scan.
 - [Blocked combat subsystems](nwn1-combat-blocked-subsystems.md) — what is left of the combat ledger,
   grouped by shared blocker: the `iprp_onhittype` data, spatial/movement events for attacks of
-  opportunity, a cast pipeline, and a missing initiative system. Effect expiry is inert engine-wide and
-  blocks two of them. Also carries the `feat.2da` backlog and the modifier types with no dispatch.
+  opportunity, a cast pipeline, and per-combat acted-yet state. Initiative is built as of 2026-11-21 —
+  the roll, its three feats read against `feat.2da`'s `SUCCESSOR` column, and a signed `priority` on
+  `EventHandle` that orders a tick's attacks. Also carries the `feat.2da` backlog and the modifier
+  types with no dispatch.
 - [NWN1 combat rules completion plan](closed/nwn1-combat-rules-completion.md) — closed 2026-11-19;
   everything the engine layer can express is implemented and regression-tested.
 

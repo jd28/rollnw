@@ -1136,6 +1136,7 @@ fn _dispatched_modifier_types(): array!(int) {
     arr.push(result, Const.mod_type_dmg_reduction as int);
     arr.push(result, Const.mod_type_dmg_resistance as int);
     arr.push(result, Const.mod_type_hitpoints as int);
+    arr.push(result, Const.mod_type_initiative as int);
     arr.push(result, Const.mod_type_save as int);
     arr.push(result, Const.mod_type_skill as int);
     arr.push(result, Const.mod_type_damage as int);
