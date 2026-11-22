@@ -5,6 +5,7 @@
 #include "../../objects/ObjectManager.hpp"
 #include "../../rules/Dice.hpp"
 #include "../../rules/combat.hpp"
+#include "../../rules/combat_scheduler.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -358,6 +359,39 @@ int32_t creature_equip_version(nw::ObjectHandle obj)
     return cre ? static_cast<int32_t>(cre->equipment.equip_version) : 0;
 }
 
+// Scheduling, exposed as requests rather than callbacks. A script asks the
+// engine to schedule work; it never hands over a closure for the engine to
+// retain, which would put VM state in the event queue and break the
+// explicit-data contract the action system already holds itself to.
+bool schedule_attack(nw::ObjectHandle attacker, nw::ObjectHandle target, int32_t delay_ticks)
+{
+    auto* cre = as_creature(attacker);
+    auto* tgt = nw::kernel::objects().get_object_base(target);
+    if (!cre || !tgt || delay_ticks < 0) {
+        return false;
+    }
+    return nw::combat::schedule_attack(cre, tgt, static_cast<uint64_t>(delay_ticks));
+}
+
+bool start_auto_attack(nw::ObjectHandle attacker, nw::ObjectHandle target,
+    int32_t initial_delay_ticks, int32_t pacing_ticks)
+{
+    auto* cre = as_creature(attacker);
+    auto* tgt = nw::kernel::objects().get_object_base(target);
+    if (!cre || !tgt || initial_delay_ticks < 0 || pacing_ticks < 0) {
+        return false;
+    }
+    return nw::combat::start_auto_attack(cre, tgt,
+        static_cast<uint64_t>(initial_delay_ticks),
+        static_cast<uint32_t>(pacing_ticks));
+}
+
+bool stop_auto_attack(nw::ObjectHandle attacker)
+{
+    auto* cre = as_creature(attacker);
+    return cre && nw::combat::stop_auto_attack(cre);
+}
+
 } // namespace
 
 void register_core_combat(Runtime& rt)
@@ -383,6 +417,9 @@ void register_core_combat(Runtime& rt)
             return eff ? eff->handle().to_typed_handle() : nw::TypedHandle{}; })
         .function("roll_dice", +[](int32_t dice, int32_t sides, int32_t bonus, int32_t multiplier) -> int32_t { return roll_dice_amount(dice, sides, bonus, multiplier); })
         .function("creature_effect_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_effect_version(obj); })
+        .function("schedule_attack", +[](nw::ObjectHandle attacker, nw::ObjectHandle target, int32_t delay_ticks) -> bool { return schedule_attack(attacker, target, delay_ticks); })
+        .function("start_auto_attack", +[](nw::ObjectHandle attacker, nw::ObjectHandle target, int32_t initial_delay_ticks, int32_t pacing_ticks) -> bool { return start_auto_attack(attacker, target, initial_delay_ticks, pacing_ticks); })
+        .function("stop_auto_attack", +[](nw::ObjectHandle attacker) -> bool { return stop_auto_attack(attacker); })
         .function("creature_equip_version", +[](nw::ObjectHandle obj) -> int32_t { return creature_equip_version(obj); })
         .finalize();
 }

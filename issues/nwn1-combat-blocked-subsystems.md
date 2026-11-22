@@ -314,11 +314,15 @@ is nwn1's model, commented as such in `resolve_attack_cooldown_ticks`.
 exposes scheduling — `core.combat` is queries and dice only — so this is new
 surface, in two sizes:
 
-- *Small, and probably enough for combat:* natives wrapping the existing
-  `schedule_attack`, `start_auto_attack` and `stop_auto_attack`. These already
-  do the work and take plain handles plus a tick delay, so they are thin
-  bindings. This alone would let a script start, retarget and stop an
-  attack sequence.
+- *Small, and probably enough for combat:* **done 2026-11-21.**
+  `core.combat` now exposes `schedule_attack`, `start_auto_attack` and
+  `stop_auto_attack`. Request-shaped on purpose: a script asks the engine to
+  schedule, and never hands over a closure the engine must retain, which would
+  put VM state in the event queue and break the explicit-data contract
+  `nw::gameplay`'s action rows already hold themselves to — the thing that makes
+  the queue reconstructible for checkpoint and replay.
+  `Nwn1ScriptsCanScheduleAttacks` drives a one-shot attack, an auto-attack
+  sequence, and a script-issued stop, and checks damage was committed.
 - *Larger, and the real generalisation:* a script-callable "call me back in N
   ticks". `EventSystem::add_custom` takes a C function pointer, so a script
   callback needs a dispatch shim — exactly the shape `dispatch_on_effects()`
@@ -329,3 +333,33 @@ surface, in two sizes:
 The second is what makes pacing genuinely script-owned rather than
 script-advised, and it is the piece a turn-based mode will want anyway, since
 "grant this actor its turn" is a scheduling decision rather than a cooldown.
+The shape should stay a returned **next-allowed-tick**, not a registered
+callback, for the reason above. Not built yet: nothing consumes it, and a
+scheduling mode with no consumer is the registered-and-inert pattern this
+cluster exists to eliminate.
+
+## Attack-loop benchmarks, and one unexplained symptom
+
+`BM_combat_resolve_attack_cooldown_ticks` and `BM_combat_resolve_and_commit` are
+registered in `benchmark_profiles.json` as `cpp`/`combat`, hard in `bench-pr`
+(6% threshold), so pacing, commit and scheduler changes show up as regressions.
+First numbers on this machine: the pacing query **~7.4 µs**, resolve-plus-commit
+**~110-130 µs**. The pacing query is worth noting — the scheduler calls it
+between every attack, and it runs a smalls VM call plus a full
+attacks-per-round recomputation.
+
+Note benchmarks only run from a directory holding both `test_data` and the
+binary's `stdlib`; CI runs them from the install tree. Running from
+`build/benchmarks` fails to find fixtures, and running from `build/tests` throws
+`multiple directories provide selected package 'nwn1'`.
+
+**Unexplained, worth a look:** a third benchmark driving the full
+`start_auto_attack` cycle (advance one pacing interval, `process()`, repeat) was
+dropped because the sequence stops partway through a run. It is not the target
+dying — `BM_combat_resolve_and_commit` sustains thousands of iterations against
+the same pinned target, and pinning via a temporary-hitpoints effect is needed
+because `commit` writes hit points through the `CreatureHealth` propset, so
+`set_vitals()` alone does not hold. `Nwn1ScriptsCanScheduleAttacks` also
+sustains the sequence until the target dies. So something terminates
+`AutoAttackState` under repeated dispatch that neither of those paths hits.
+Worth finding before anything depends on long-running auto-attack.

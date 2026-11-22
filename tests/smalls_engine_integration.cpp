@@ -7357,3 +7357,110 @@ TEST_F(SmallsEngineIntegration, Nwn1CombatPacingComesFromThePolicyNotTheEngine)
     // its own without the policy changing.
     EXPECT_LT(harness.call("cooldown", 120), policy_pacing);
 }
+
+// Scripts can now schedule attacks. Deliberately request-shaped rather than
+// callback-shaped: a script asks the engine to schedule, and the engine keeps
+// no VM state in its event queue -- the same explicit-data contract
+// nw::gameplay's action rows hold themselves to, and what makes the queue
+// reconstructible for checkpoint and replay.
+TEST_F(SmallsEngineIntegration, Nwn1ScriptsCanScheduleAttacks)
+{
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+
+    auto* attacker = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/drorry.utc");
+    auto* target = nw::kernel::objects().load_file<nw::Creature>(
+        "test_data/user/development/dexweapfin.utc");
+    ASSERT_NE(attacker, nullptr);
+    ASSERT_NE(target, nullptr);
+
+    std::string_view source = R"(
+        import core.combat as NativeCombat;
+        import nwn1.hitpoints as HP;
+        import nwn1.init as Init;
+
+        fn schedule(attacker: Creature, target: Creature, delay: int): int {
+            Init.init();
+            return NativeCombat.schedule_attack(attacker, target, delay) ? 1 : 0;
+        }
+
+        fn start_auto(attacker: Creature, target: Creature, pacing: int): int {
+            Init.init();
+            return NativeCombat.start_auto_attack(attacker, target, 0, pacing) ? 1 : 0;
+        }
+
+        fn stop_auto(attacker: Creature, _target: Creature, _unused: int): int {
+            return NativeCombat.stop_auto_attack(attacker) ? 1 : 0;
+        }
+
+        fn target_hp(_attacker: Creature, target: Creature, _unused: int): int {
+            return HP.get_current_hitpoints(target);
+        }
+    )";
+
+    auto* script = rt.load_module_from_source("test.nwn1_script_scheduling", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call = [&](const char* fn, int arg) {
+        nw::Vector<nw::smalls::Value> args;
+        auto a = nw::smalls::Value::make_object(attacker->handle());
+        a.type_id = rt.object_subtype_for_tag(attacker->handle().type);
+        auto t = nw::smalls::Value::make_object(target->handle());
+        t.type_id = rt.object_subtype_for_tag(target->handle().type);
+        args.push_back(a);
+        args.push_back(t);
+        args.push_back(nw::smalls::Value::make_int(arg));
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    auto& events = nw::kernel::events();
+    const int start_hp = call("target_hp", 0);
+    ASSERT_GT(start_hp, 0);
+
+    // A one-shot attack scheduled from script lands when its tick arrives, and
+    // not before.
+    const size_t pending_before = events.pending();
+    ASSERT_EQ(call("schedule", 30), 1);
+    EXPECT_EQ(events.pending(), pending_before + 1) << "the request reached the queue";
+
+    events.advance(29);
+    events.process();
+    EXPECT_EQ(call("target_hp", 0), start_hp) << "not resolved before its tick";
+
+    events.advance(1);
+    events.process();
+
+    // An auto-attack sequence started from script reschedules itself.
+    ASSERT_EQ(call("start_auto", 0), 1);
+    events.advance(360);
+    events.process();
+    EXPECT_GT(events.pending(), 0u) << "auto-attack must keep a future event queued";
+
+    // And stopping it from script drains the sequence.
+    ASSERT_EQ(call("stop_auto", 0), 1);
+    for (int i = 0; i < 5; ++i) {
+        events.advance(360);
+        events.process();
+    }
+    EXPECT_EQ(events.pending(), 0u) << "stopping must leave nothing rescheduling";
+
+    EXPECT_LT(call("target_hp", 0), start_hp)
+        << "a scheduled attack must commit its damage";
+
+    // Restarted and left alone, the sequence terminates on its own once the
+    // target is dead rather than attacking a corpse forever. This only became
+    // observable once damage was actually committed -- the first version of
+    // this test ran 10 rounds, killed the target, and then failed on its own
+    // expectation that the sequence would still be queued.
+    ASSERT_EQ(call("start_auto", 0), 1);
+    for (int i = 0; i < 500 && events.pending() > 0; ++i) {
+        events.advance(360);
+        events.process();
+    }
+    EXPECT_EQ(call("target_hp", 0), 0) << "the target should be dead by now";
+    EXPECT_EQ(events.pending(), 0u) << "the sequence must stop itself on death";
+}

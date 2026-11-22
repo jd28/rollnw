@@ -12,5 +12,12 @@ import core.effects as effects;
 [[native]] fn effect_best_damage_reduction(obj: object, effect_type: EffectType, power: int): effects.Effect;
 [[native]] fn effect_best_damage_resistance(obj: object, effect_type: EffectType, damage_type: Damage): effects.Effect;
 [[native]] fn roll_dice(dice: int, sides: int, bonus: int, multiplier: int): int;
+// Scheduling. These are requests, not callbacks: a script asks the engine to
+// schedule an attack, and the engine keeps no script state in its event queue.
+// `pacing_ticks` of 0 means "use the combat policy's own pacing".
+[[native]] fn schedule_attack(attacker: Creature, target: object, delay_ticks: int): bool;
+[[native]] fn start_auto_attack(attacker: Creature, target: object, initial_delay_ticks: int, pacing_ticks: int): bool;
+[[native]] fn stop_auto_attack(attacker: Creature): bool;
+
 [[native]] fn creature_effect_version(obj: Creature): int;
 [[native]] fn creature_equip_version(obj: Creature): int;

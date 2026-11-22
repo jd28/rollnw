@@ -1,6 +1,8 @@
+#include <nw/kernel/EventSystem.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Memory.hpp>
 #include <nw/objects/Creature.hpp>
+#include <nw/objects/ObjectComponentSystem.hpp>
 #include <nw/objects/ObjectManager.hpp>
 #include <nw/rules/combat_scheduler.hpp>
 #include <nw/rules/effects.hpp>
@@ -698,6 +700,71 @@ static void BM_smalls_attack_phase_base_damage_result(benchmark::State& state)
 {
     benchmark_smalls_decompose(state, "bench_base_damage_result");
 }
+
+// == Scheduling =============================================================
+// The attack loop's cost, so changes to pacing, commit or the scheduler show up
+// as regressions rather than as a surprise in a profile later. These matter
+// more than the single-call benchmarks above now that scripts can schedule
+// attacks: a script-driven encounter pays the full cycle per attack.
+
+// Policy pacing query. With a 0 budget this takes the profile's own pacing,
+// which is the path the scheduler uses between every attack.
+static void BM_combat_resolve_attack_cooldown_ticks(benchmark::State& state)
+{
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj) {
+        state.SkipWithError("failed to load cooldown benchmark creature");
+        return;
+    }
+    for (auto _ : state) {
+        auto ticks = nw::combat::resolve_attack_cooldown_ticks(obj, 0);
+        benchmark::DoNotOptimize(ticks);
+    }
+}
+
+// Keeps a benchmark target from dying mid-run, so the measurement is of landing
+// attacks rather than of the scheduler's dead-target early-out.
+//
+// Done with a temporary-hitpoints effect rather than set_vitals(): commit writes
+// hit points through the CreatureHealth propset, so pinning native vitals alone
+// does nothing -- the propset still counts down and the target dies. Temp HP
+// raises hp_current and hp_max together, through the same path commit uses.
+// Applied once, outside the timed loop; topping up per iteration would need
+// PauseTiming, whose overhead swamps work this small.
+bool pin_target_alive(nw::Creature* target)
+{
+    constexpr int32_t temporary_hitpoints = 15;
+    constexpr int32_t huge = 1'000'000;
+    auto* effect = nw::kernel::effects().create(nw::EffectType::make(temporary_hitpoints));
+    if (!effect) { return false; }
+    effect->set_int(0, huge);
+    return apply_benchmark_effect(target, effect);
+}
+
+// Resolve plus commit: the whole consequence of one attack, including damage
+// application and effect intents.
+static void BM_combat_resolve_and_commit(benchmark::State& state)
+{
+    auto obj = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    auto vs = nwk::objects().load_file<nw::Creature>("test_data/user/development/drorry.utc");
+    if (!obj || !vs) {
+        state.SkipWithError("failed to load commit benchmark creatures");
+        return;
+    }
+    if (!pin_target_alive(vs)) {
+        state.SkipWithError("failed to pin benchmark target alive");
+        return;
+    }
+    for (auto _ : state) {
+        nw::AttackData data;
+        if (nw::combat::resolve_attack(obj, vs, &data)) {
+            benchmark::DoNotOptimize(nw::combat::commit_attack(&data));
+        }
+    }
+}
+
+BENCHMARK(BM_combat_resolve_attack_cooldown_ticks);
+BENCHMARK(BM_combat_resolve_and_commit);
 
 BENCHMARK(BM_creature_attack);
 BENCHMARK(BM_creature_attack_2);
