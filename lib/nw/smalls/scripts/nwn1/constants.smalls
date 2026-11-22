@@ -411,6 +411,18 @@ const feat_slippery_mind = Feat(259);
 // An NWN combat round is six seconds. Used to turn table-driven durations
 // expressed in rounds into the seconds an Effect's duration wants.
 const seconds_per_round = 6.0;
+
+// Mirrors kernel::ticks_per_second. Duplicated because the scheduler's tick
+// clock is C++ and this is a script-side profile value; a test asserts the two
+// agree rather than trusting the comment.
+const ticks_per_second = 60;
+
+// How long this profile's combat round lasts in scheduler ticks: six seconds at
+// 60 ticks per second. This is a *profile* pacing choice, not an engine law --
+// nw::combat asks the policy how long until an actor's next attack and does not
+// define a round itself, which is the seam a turn-based or action-driven mode
+// replaces.
+const combat_round_ticks = 360;
 const combat_mode_parry = 1;
 const combat_mode_power_attack = 2;
 const combat_mode_improved_power_attack = 3;

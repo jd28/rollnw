@@ -276,3 +276,56 @@ six seconds, so that default looks like it should be 360. Nothing depends on it
 being wrong today because nothing drives sustained combat, but it will change
 attack pacing when something does, so it wants a deliberate decision rather than
 a silent fix.
+
+## Combat pacing and who may schedule
+
+Recorded 2026-11-21 because the current division of labour is not obvious from
+either side of the boundary.
+
+**How it works today.** C++ owns the loop entirely; scripts are consulted for
+decisions and cannot initiate anything.
+
+1. `nw::combat::start_auto_attack()` registers an `AutoAttackState` and posts a
+   custom event on `kernel::events()`.
+2. `auto_attack_event_callback()` fires, calls the policy's `resolve_attack`,
+   commits the result through `commit_attack()`, then asks the policy
+   `resolve_attack_cooldown_ticks` how long to wait and posts the next event.
+3. `EventSystem` is a tick-ordered priority queue driven by `advance()` /
+   `process()`, both C++.
+
+So the policy answers *"what happens"* and *"how long until the next one"*. It
+cannot say *"attack again now"*, *"attack this other target"*, or *"wake me in N
+ticks"*.
+
+**Pacing is no longer the engine's.** `resolve_attack_cooldown_ticks` and
+friends used to default `round_ticks` to 60, which at
+`kernel::ticks_per_second` (60) is a one-second round where NWN's is six —
+attacks landed six times too fast. The parameter is now `pacing_ticks` and
+defaults to **0, meaning "use the policy's own pacing"**; the nwn1 policy
+answers with `Const.combat_round_ticks` (360) divided among the attacker's
+attacks. An explicit budget is still honoured, so a caller can impose one.
+
+That is the seam the other models plug into, and none of them need the scheduler
+to change: a turn-based mode returns a sentinel until its turn is granted, and an
+action-driven one a per-attack recovery with no round at all. The round-division
+is nwn1's model, commented as such in `resolve_attack_cooldown_ticks`.
+
+**What "scripts can schedule attacks" needs.** Nothing in `core/*.smalls`
+exposes scheduling — `core.combat` is queries and dice only — so this is new
+surface, in two sizes:
+
+- *Small, and probably enough for combat:* natives wrapping the existing
+  `schedule_attack`, `start_auto_attack` and `stop_auto_attack`. These already
+  do the work and take plain handles plus a tick delay, so they are thin
+  bindings. This alone would let a script start, retarget and stop an
+  attack sequence.
+- *Larger, and the real generalisation:* a script-callable "call me back in N
+  ticks". `EventSystem::add_custom` takes a C function pointer, so a script
+  callback needs a dispatch shim — exactly the shape `dispatch_on_effects()`
+  already uses to call `on_effects` in smalls, and what
+  `EffectSystem::apply_to()` now uses to schedule effect expiry. Worth copying
+  that pattern rather than inventing one.
+
+The second is what makes pacing genuinely script-owned rather than
+script-advised, and it is the piece a turn-based mode will want anyway, since
+"grant this actor its turn" is a scheduling decision rather than a cooldown.

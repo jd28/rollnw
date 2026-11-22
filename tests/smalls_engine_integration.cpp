@@ -7302,3 +7302,58 @@ TEST_F(SmallsEngineIntegration, Nwn1OnHitPropertiesResolveByLabelFromTable)
     EXPECT_GT(call_int("unimplemented_count"), 0)
         << "most on-hit effects are still unimplemented and must say so";
 }
+
+// Combat pacing belongs to the policy, not the engine. nw::combat passes a
+// pacing budget of 0 by default, meaning "use the profile's own pacing", and
+// the nwn1 policy answers with a six-second round divided among the attacker's
+// attacks. The engine previously hardcoded a 60-tick default, which at 60 ticks
+// per second is a one-second round.
+TEST_F(SmallsEngineIntegration, Nwn1CombatPacingComesFromThePolicyNotTheEngine)
+{
+    std::string_view source = R"(
+        import nwn1.combat as NC;
+        import nwn1.constants as Const;
+
+        // selector 0: policy pacing (budget 0). Otherwise an explicit budget.
+        fn cooldown(target: Creature, selector: int): int {
+            return NC.resolve_attack_cooldown_ticks(target, selector);
+        }
+
+        fn round_ticks(_target: Creature, _unused: int): int {
+            return Const.combat_round_ticks;
+        }
+
+        fn ticks_per_second(_target: Creature, _unused: int): int {
+            return Const.ticks_per_second;
+        }
+    )";
+
+    COMBAT_RULE_HARNESS(harness, "test.nwn1_combat_pacing", source);
+
+    // The script-side tick rate must agree with the engine's; it is mirrored,
+    // not shared, because the tick clock is C++ and this is a profile value.
+    EXPECT_EQ(harness.call("ticks_per_second", 0),
+        static_cast<int>(nw::kernel::ticks_per_second));
+    EXPECT_EQ(harness.call("round_ticks", 0),
+        6 * static_cast<int>(nw::kernel::ticks_per_second))
+        << "an NWN combat round is six seconds";
+
+    const int round = harness.call("round_ticks", 0);
+    const int policy_pacing = harness.call("cooldown", 0);
+    ASSERT_GT(policy_pacing, 0);
+
+    // Asking with no budget is exactly asking with the profile's round, which
+    // is what "the engine does not define a round" means in practice. Asserted
+    // as an identity rather than by re-deriving the divisor: the policy divides
+    // by onhand + offhand + extra attacks, and a test that recomputes that is
+    // just a second copy of the rule.
+    EXPECT_EQ(policy_pacing, harness.call("cooldown", round));
+
+    // And it is no longer the one-second round the engine used to impose.
+    EXPECT_GT(policy_pacing, harness.call("cooldown", 60))
+        << "the old 60-tick default would have paced attacks six times too fast";
+
+    // An explicit budget is still honoured, so another pacing model can impose
+    // its own without the policy changing.
+    EXPECT_LT(harness.call("cooldown", 120), policy_pacing);
+}

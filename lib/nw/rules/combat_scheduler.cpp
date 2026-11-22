@@ -242,7 +242,8 @@ struct AutoAttackState {
     ObjectHandle attacker;
     ObjectHandle target;
     uint64_t generation = 0;
-    uint32_t round_ticks = 60;
+    // 0 = defer to the policy's own pacing; see resolve_attack_cooldown_ticks.
+    uint32_t pacing_ticks = 0;
     bool active = false;
 };
 
@@ -345,7 +346,7 @@ void auto_attack_event_callback(const kernel::EventHandle& ev)
         combat::commit_attack(&data);
     }
 
-    auto delay = combat::resolve_attack_cooldown_ticks(attacker, state->round_ticks);
+    auto delay = combat::resolve_attack_cooldown_ticks(attacker, state->pacing_ticks);
     auto* next = new AutoAttackEvent{.attacker = payload->attacker, .generation = payload->generation};
     kernel::events().add_custom(payload->attacker, &auto_attack_event_callback, delay,
         next, &auto_attack_payload_delete);
@@ -492,17 +493,17 @@ bool resolve_attack(Creature* attacker, ObjectBase* target, AttackData* out)
     return true;
 }
 
-uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t round_ticks)
+uint32_t resolve_attack_cooldown_ticks(const Creature* attacker, uint32_t pacing_ticks)
 {
     if (!attacker || !combat_policy_is_current()) { return 1; }
 
     auto& runtime = kernel::runtime();
     Vector<smalls::Value> args;
     args.push_back(make_object_arg(runtime, attacker->handle()));
-    const auto bounded_round_ticks = std::min<uint32_t>(round_ticks,
+    const auto bounded_pacing_ticks = std::min<uint32_t>(pacing_ticks,
         static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
     args.push_back(smalls::Value::make_int(
-        static_cast<int32_t>(bounded_round_ticks)));
+        static_cast<int32_t>(bounded_pacing_ticks)));
 
     const auto result = runtime.execute_compiled(combat_policy.bytecode_module,
         combat_policy.resolve_attack_cooldown_ticks, args);
@@ -530,7 +531,7 @@ bool schedule_attack(Creature* attacker, ObjectBase* target, uint64_t delay_tick
 }
 
 bool start_auto_attack(Creature* attacker, ObjectBase* target,
-    uint64_t initial_delay_ticks, uint32_t round_ticks)
+    uint64_t initial_delay_ticks, uint32_t pacing_ticks)
 {
     if (!attacker || !target) {
         return false;
@@ -538,7 +539,8 @@ bool start_auto_attack(Creature* attacker, ObjectBase* target,
 
     auto& state = upsert_auto_attack_state(attacker->handle());
     state.target = target->handle();
-    state.round_ticks = std::max<uint32_t>(1, round_ticks);
+    // 0 is meaningful here -- it defers to the policy -- so it is not clamped.
+    state.pacing_ticks = pacing_ticks;
     state.active = true;
     ++state.generation;
 
@@ -565,13 +567,13 @@ bool stop_auto_attack(Creature* attacker)
 }
 
 bool resolve_attack_and_schedule(Creature* attacker, ObjectBase* target,
-    uint32_t round_ticks, AttackData* out)
+    uint32_t pacing_ticks, AttackData* out)
 {
     if (!combat::resolve_attack(attacker, target, out) || !attacker || !target) {
         return false;
     }
 
-    auto delay = combat::resolve_attack_cooldown_ticks(attacker, round_ticks);
+    auto delay = combat::resolve_attack_cooldown_ticks(attacker, pacing_ticks);
     combat::schedule_attack(attacker, target, delay);
     return true;
 }

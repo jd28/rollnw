@@ -1739,7 +1739,14 @@ fn sync_target_context(combat: CreatureCombat, attacker: Creature, target: objec
     return combat;
 }
 
-fn resolve_attack_cooldown_ticks(attacker: Creature, round_ticks: int): int {
+// Ticks until this attacker's next attack. `pacing_ticks` is a budget the
+// caller may impose; zero or less means "use this profile's own pacing", which
+// for NWN1 is a six-second round divided among the attacker's attacks.
+//
+// The division by attacks-per-round is this profile's model, not the engine's.
+// A turn-based mode would return a sentinel until its turn is granted, and an
+// action-driven one a per-attack recovery independent of any round.
+fn resolve_attack_cooldown_ticks(attacker: Creature, pacing_ticks: int): int {
     var attacks_per_round = resolve_number_of_attacks_onhand(attacker)
         + resolve_number_of_attacks_offhand(attacker)
         + _combat_attacks_extra(attacker);
@@ -1747,8 +1754,9 @@ fn resolve_attack_cooldown_ticks(attacker: Creature, round_ticks: int): int {
         attacks_per_round = 1;
     }
 
+    var round_ticks = pacing_ticks;
     if (round_ticks <= 0) {
-        round_ticks = 1;
+        round_ticks = Const.combat_round_ticks;
     }
 
     var cooldown = round_ticks / attacks_per_round;
