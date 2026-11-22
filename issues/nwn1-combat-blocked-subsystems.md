@@ -225,11 +225,18 @@ correction on that record.
 Not blocked on anything, just noted during the audit and left alone rather than
 changed mid-task:
 
-- **Two formulas for one concept.** `_make_elemental_damage_result()` *sums*
-  the modifier-registry immunity and the effect delta;
-  `resolve_damage_immunity()` takes the *max* of them (with vulnerability
-  special-cased additively). Both are now deliberate and commented, but they
-  should probably agree.
+- ~~**Two formulas for one concept.**~~ Resolved 2026-11-21: damage immunity
+  sums across sources, so `resolve_damage_immunity()` now adds the
+  modifier-registry term and the effect delta instead of taking the max, which
+  is what `_make_elemental_damage_result()` already did. Summing also keeps
+  vulnerability intact without a special case.
+
+  Note this is currently **unobservable**: nothing anywhere registers a
+  `mod_type_dmg_immunity` modifier, so that term is always 0 and max and sum
+  agree. It is not covered by a new test either — the modifier registry has no
+  unregister, and `RestoreGameServices` is a no-op on the common path, so a test
+  that registered an immunity modifier would leak into every later test that
+  resolves damage. The change matters once a real immunity modifier exists.
 - **`is_flanked()` reads `CreatureCombat.off_target`**, which is a
   modifier-cache invalidation key rather than a gameplay target. It works by
   accident, and it is the wrong seam -- the more so now that flanking shares a

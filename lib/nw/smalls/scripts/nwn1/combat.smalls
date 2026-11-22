@@ -1423,18 +1423,15 @@ fn resolve_damage_immunity(obj: object, damage_type: Const.Damage, versus: objec
     } else {
         effect_delta = C.damage_immunity_effect_delta(obj, damage_type, versus);
     }
-    // Immunities from different sources do not stack -- the best one applies.
-    // A net-negative effect delta is vulnerability, though, and must not be
-    // erased by the mere absence of an immunity modifier (max(0, -50) == 0), so
-    // it combines additively with whatever immunity is present. This matches
-    // how _make_elemental_damage_result() sums the two sources.
-    if (effect_delta < 0) {
-        return mod_bonus + effect_delta;
-    }
-    if (mod_bonus >= effect_delta) {
-        return mod_bonus;
-    }
-    return effect_delta;
+    // Damage immunity sums across sources, so the modifier registry and the
+    // effect delta add rather than competing. This is what
+    // _make_elemental_damage_result() already did; the two paths disagreed,
+    // with this one taking the max, and summing is the intended rule.
+    //
+    // Summing also keeps vulnerability intact for free: a net-negative effect
+    // delta reduces whatever immunity is present instead of being erased by
+    // max(0, -50). Callers clamp the result to [-100, 100].
+    return mod_bonus + effect_delta;
 }
 
 fn resolve_damage_reduction(obj: object, power: int, versus: object): int {
