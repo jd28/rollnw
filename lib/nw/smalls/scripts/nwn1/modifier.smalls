@@ -1108,3 +1108,80 @@ fn sum_damage_modifiers_effective(obj: Creature, versus: object, effective_subty
     }
     return total;
 }
+
+// == Registry consistency guard ==============================================
+// The recurring defect this guards against: machinery that is declared, looks
+// implemented, and nothing can reach. mod_type_save was declared with exactly
+// one reference in the whole codebase -- its own declaration -- so the save
+// feats had nowhere to go even once written. Several other types are declared
+// because the enum mirrors C++'s, and a modifier registered against one of
+// those silently contributes nothing.
+//
+// Registrations are introspectable; dispatch is not, so the dispatched set is
+// listed here and the asymmetric check -- registrations imply dispatch -- is
+// what runs. That is the direction the bug actually travels: someone registers
+// against a type nothing reads and sees no effect and no error.
+
+const mod_type_count = 20;
+
+// Modifier types some code path actually sums. Keep in step with the comment
+// block above the mod_type_* constants in nwn1.constants.
+fn _dispatched_modifier_types(): array!(int) {
+    var result: array!(int) = {};
+    arr.push(result, Const.mod_type_ability as int);
+    arr.push(result, Const.mod_type_armor_class as int);
+    arr.push(result, Const.mod_type_attack_bonus as int);
+    arr.push(result, Const.mod_type_concealment as int);
+    arr.push(result, Const.mod_type_dmg_immunity as int);
+    arr.push(result, Const.mod_type_dmg_reduction as int);
+    arr.push(result, Const.mod_type_dmg_resistance as int);
+    arr.push(result, Const.mod_type_hitpoints as int);
+    arr.push(result, Const.mod_type_save as int);
+    arr.push(result, Const.mod_type_skill as int);
+    arr.push(result, Const.mod_type_damage as int);
+    arr.push(result, Const.mod_type_damage_special_attack as int);
+    return result;
+}
+
+fn _is_dispatched_modifier_type(mod_type: int): bool {
+    for (var t in _dispatched_modifier_types()) {
+        if (t == mod_type) { return true; }
+    }
+    return false;
+}
+
+// How many modifiers are registered against a type, across both partitions.
+fn registration_count(mod_type: Const.ModifierType): int {
+    const idx = mod_type as int;
+    if (idx < 0) { return 0; }
+
+    var total = 0;
+    if (idx < arr.len(modifiers_any)) { total += arr.len(modifiers_any[idx]); }
+    if (idx < arr.len(modifiers_specific)) { total += arr.len(modifiers_specific[idx]); }
+
+    // Attack bonus and damage keep their own structured tables.
+    if (mod_type == Const.mod_type_attack_bonus) {
+        total += arr.len(attack_bonus_modifiers);
+    }
+    if (mod_type == Const.mod_type_damage) {
+        total += arr.len(damage_modifiers_any) + arr.len(damage_modifiers_specific);
+    }
+    return total;
+}
+
+// One diagnostic per inconsistency; empty means consistent. Call after
+// nwn1.init.init().
+fn validate(): array!(string) {
+    var problems: array!(string) = {};
+
+    for (var mt = 0; mt < mod_type_count; mt += 1) {
+        const count = registration_count(Const.ModifierType(mt));
+        const dispatched = _is_dispatched_modifier_type(mt);
+
+        if (count > 0 && !dispatched) {
+            arr.push(problems, f"mod_type {mt}: {count} modifier(s) registered but nothing sums this type, so they contribute nothing");
+        }
+    }
+
+    return problems;
+}

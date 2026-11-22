@@ -139,3 +139,37 @@ fn sum_damage_special_attack_modifiers(obj: Creature, versus: object, subtype: i
     }
     return total;
 }
+
+// == Registry consistency guard ==============================================
+// usable() returns true for any attack id that was never registered, so an
+// unregistered special attack is not disabled -- it is ungated. Knockdown and
+// Improved Knockdown were never registered and were therefore available to any
+// creature regardless of feats. This asserts every id the rules can request is
+// registered, so the default-open behaviour cannot hide a missing requirement.
+
+fn is_registered(attack_type_id: int): bool {
+    return map.has(registered_special_attacks, attack_type_id);
+}
+
+// Every special attack the nwn1 rules can request. combat.smalls dispatches on
+// these, so each needs a registration to be gated at all.
+fn _requestable_attack_ids(): array!(int) {
+    var result: array!(int) = {};
+    arr.push(result, Const.feat_knockdown as int);
+    arr.push(result, Const.feat_improved_knockdown as int);
+    arr.push(result, Const.feat_disarm as int);
+    arr.push(result, Const.feat_improved_disarm as int);
+    arr.push(result, Const.special_attack_smite_good);
+    arr.push(result, Const.special_attack_smite_evil);
+    return result;
+}
+
+fn validate(): array!(string) {
+    var problems: array!(string) = {};
+    for (var id in _requestable_attack_ids()) {
+        if (!is_registered(id)) {
+            arr.push(problems, f"special attack {id}: not registered, so usable() defaults to true and the attack is ungated rather than disabled");
+        }
+    }
+    return problems;
+}

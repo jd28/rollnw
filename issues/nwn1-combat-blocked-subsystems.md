@@ -220,6 +220,49 @@ it is a prerequisite feat -- so nothing is owed. The parent plan's claim that
 Called Shot is likewise absent from base NWN1 was simply wrong; see the
 correction on that record.
 
+## Registry consistency guards
+
+Added 2026-11-21. The recurring defect in this ruleset has not been wrong logic,
+it has been **machinery that is declared, looks implemented, and nothing can
+reach**: `mod_type_save` declared with its own declaration as its only reference
+in the codebase, Knockdown never registered and therefore *ungated* rather than
+disabled, weapon feats keyed only to the unarmed sentinel,
+`register_default_handlers()` called from nowhere. Every one needed a person to
+go looking. `Nwn1RegistriesAreSelfConsistent` makes that class mechanical.
+
+`modifier.validate()` reports any modifier registered against a type nothing
+sums. Registrations are introspectable but dispatch is not, so the dispatched
+set is listed in `modifier.smalls` beside the explanation and the check runs
+**asymmetrically** — registrations imply dispatch. That is the direction the bug
+travels: someone registers against a type nothing reads, sees no effect, and
+gets no error.
+
+`special_attack.validate()` reports any requestable attack id that is not
+registered. This one matters because `usable()` **returns true for unregistered
+ids**, so a missing registration does not disable an attack, it removes its
+requirement entirely.
+
+`master_feats.validate()` was the prototype and is unchanged.
+
+Both new guards were confirmed to have teeth rather than trusted: removing
+Knockdown's registration fails the test with "usable() defaults open and the
+attack is ungated rather than disabled", and registering a modifier against
+`mod_type_initiative` fails it with "nothing sums this type, so they contribute
+nothing".
+
+**Known limit.** The dispatched-types list is hand-maintained, because script
+cannot introspect whether a consumer exists. So these catch a registration with
+no consumer, and *not* a registry nobody reads at all — `mod_type_regeneration`
+with zero registrations still looks fine. Closing that needs either a
+convention where registries record their consumers, or a build-time scan of call
+sites. The asymmetric half is the half that fires in practice.
+
+**Not yet guarded**, and a different mechanism each: implementations that exist
+but are never driven (effect durations were stored and never processed), stale
+documentation claims, and tests that pass for the wrong reason — the German TLK
+test asserting on the pre-save object hid three `save_as` bugs, and a benchmark
+that could not fail reported attacks against a corpse.
+
 ## Smaller inconsistencies worth a pass
 
 Not blocked on anything, just noted during the audit and left alone rather than

@@ -7469,3 +7469,85 @@ TEST_F(SmallsEngineIntegration, Nwn1ScriptsCanScheduleAttacks)
     EXPECT_EQ(call("target_hp", 0), 0) << "the target should be dead by now";
     EXPECT_EQ(events.pending(), 0u) << "the sequence must stop itself on death";
 }
+
+// Registry consistency. The recurring defect across this ruleset has not been
+// wrong logic, it has been machinery that is declared, looks implemented, and
+// nothing can reach: mod_type_save declared with its own declaration as its
+// only reference, Knockdown never registered and therefore ungated rather than
+// disabled, weapon feats keyed only to the unarmed sentinel. Each needed a
+// person to go looking. These checks make that class mechanical.
+TEST_F(SmallsEngineIntegration, Nwn1RegistriesAreSelfConsistent)
+{
+    std::string_view source = R"(
+        import core.array as arr;
+        import nwn1.init as Init;
+        import nwn1.master_feats as mfeat;
+        import nwn1.modifier as modifier;
+        import nwn1.special_attack as special_attack;
+        import nwn1.constants as Const;
+
+        fn modifier_problems(): int {
+            Init.init();
+            return arr.len(modifier.validate());
+        }
+
+        fn special_attack_problems(): int {
+            Init.init();
+            return arr.len(special_attack.validate());
+        }
+
+        fn master_feat_problems(): int {
+            Init.init();
+            return arr.len(mfeat.validate());
+        }
+
+        // Spot checks that the guards have teeth, rather than passing because
+        // they inspect nothing.
+        fn save_modifiers_registered(): int {
+            Init.init();
+            return modifier.registration_count(Const.mod_type_save);
+        }
+
+        fn initiative_modifiers_registered(): int {
+            Init.init();
+            return modifier.registration_count(Const.mod_type_initiative);
+        }
+
+        fn knockdown_registered(): int {
+            Init.init();
+            return special_attack.is_registered(Const.feat_knockdown as int) ? 1 : 0;
+        }
+    )";
+
+    auto& rt = nw::kernel::runtime();
+    rt.add_module_path(fs::path("stdlib/nwn1"));
+    auto* script = rt.load_module_from_source("test.nwn1_registry_consistency", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0) << "Script has errors";
+
+    auto call = [&](const char* fn) {
+        nw::Vector<nw::smalls::Value> args;
+        const auto result = rt.execute_script(script, fn, args);
+        EXPECT_TRUE(result.ok()) << result.error_message;
+        return result.value.data.ival;
+    };
+
+    EXPECT_EQ(call("modifier_problems"), 0)
+        << "a modifier is registered against a type nothing sums; it contributes nothing";
+    EXPECT_EQ(call("special_attack_problems"), 0)
+        << "a requestable special attack is unregistered, so usable() defaults "
+           "open and the attack is ungated rather than disabled";
+    EXPECT_EQ(call("master_feat_problems"), 0);
+
+    // Teeth: the guards must be looking at populated registries, not empty ones.
+    EXPECT_GT(call("save_modifiers_registered"), 0)
+        << "the save feats register here; if this is 0 the guard above is vacuous";
+    EXPECT_EQ(call("knockdown_registered"), 1)
+        << "Knockdown must be registered or it is ungated";
+
+    // And a type with no dispatch must stay empty -- registering against
+    // initiative today would silently do nothing, which is what the guard
+    // reports.
+    EXPECT_EQ(call("initiative_modifiers_registered"), 0)
+        << "nothing sums mod_type_initiative; a registration here would be inert";
+}
