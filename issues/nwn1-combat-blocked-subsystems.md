@@ -242,13 +242,44 @@ registered. This one matters because `usable()` **returns true for unregistered
 ids**, so a missing registration does not disable an attack, it removes its
 requirement entirely.
 
+`effects.validate()` reports an effect type registered with an apply or remove
+event mask that `on_effects` has no branch for -- it applies and its state
+change never happens, which is how a death effect without a handler would look
+-- and the reverse, a branch for a type nobody registers, which is unreachable
+because `apply_to()` rejects unregistered types outright. Registrations are
+recorded script-side because the native registry has no public query.
+
+**That guard found a dead field first.** `EffectTypeMetadata::event_mask` was
+written by `add()` and **never read**, while `object_mask` beside it *is* read
+to gate apply. So every `effect_event_none` / `_apply` / `_apply_remove` passed
+at registration was decorative: `dispatch_on_effects()` marshalled into the VM
+and called `on_effects` for every applied effect, including the fourteen types
+with no handler. `EffectSystem::wants_event_dispatch()` now consults it and the
+batch is filtered before anything is marshalled, which makes the mask mean what
+it says and removes a per-application VM call for most types.
+
+`on_hit.validate()` reports a label `register_default_handlers()` asked for that
+`iprp_onhit.2da` does not carry -- `register_handler_for_label()` returns false
+and callers ignored it, so a typo'd or renamed label registered nothing and the
+property went back to doing nothing silently -- and a handler bound to a subtype
+with no row, which can never fire.
+
 `master_feats.validate()` was the prototype and is unchanged.
 
-Both new guards were confirmed to have teeth rather than trusted: removing
-Knockdown's registration fails the test with "usable() defaults open and the
-attack is ungated rather than disabled", and registering a modifier against
-`mod_type_initiative` fails it with "nothing sums this type, so they contribute
-nothing".
+Every guard was confirmed to have teeth rather than trusted, by breaking the
+thing it watches and checking the test fails with a message naming the
+consequence:
+
+| Injected fault | Caught by |
+| --- | --- |
+| Knockdown's registration removed | `usable()` defaults open; the attack is ungated rather than disabled |
+| Modifier registered against `mod_type_initiative` | nothing sums this type, so it contributes nothing |
+| `effect_type_sleep` registered for dispatch | registered for dispatch with no `on_effects` branch |
+| `"Vorpal"` misspelled as `"Vorpall"` | label did not resolve, so the property does nothing |
+
+The test also asserts each registry it inspects is populated -- save modifiers
+present, Knockdown registered, more than ten effect types registered, on-hit
+handlers present -- so it cannot pass by looking at nothing.
 
 **Known limit.** The dispatched-types list is hand-maintained, because script
 cannot introspect whether a consumer exists. So these catch a registration with
@@ -257,9 +288,8 @@ with zero registrations still looks fine. Closing that needs either a
 convention where registries record their consumers, or a build-time scan of call
 sites. The asymmetric half is the half that fires in practice.
 
-**Not yet guarded**, and a different mechanism each: implementations that exist
-but are never driven (effect durations were stored and never processed), stale
-documentation claims, and tests that pass for the wrong reason — the German TLK
+**Not yet guarded**, and a different mechanism each: stale documentation
+claims, and tests that pass for the wrong reason — the German TLK
 test asserting on the pre-save object hid three `save_as` bugs, and a benchmark
 that could not fail reported attacks against a corpse.
 

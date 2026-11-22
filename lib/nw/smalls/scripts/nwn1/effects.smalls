@@ -1,3 +1,4 @@
+import core.array as arr;
 import core.effects as eff;
 import core.creature as NativeCreature;
 import nwn1.creature_state as Cre;
@@ -15,9 +16,27 @@ const effect_event_apply = 1;
 const effect_event_remove = 2;
 const effect_event_apply_remove = 3;
 
+// Registrations are recorded here as well as handed to the native registry,
+// which has no public query. validate() reads these.
+var _registered_types: array!(int) = {};
+var _registered_event_masks: array!(int) = {};
+
 fn _register_effect_type(effect_type: Const.EffectType, object_mask: ObjectMask, event_mask: int,
     has_versus_component: bool = false) {
     eff.register_type_metadata(effect_type as int, object_mask as int, event_mask, has_versus_component);
+    arr.push(_registered_types, effect_type as int);
+    arr.push(_registered_event_masks, event_mask);
+}
+
+fn is_type_registered(effect_type: Const.EffectType): bool {
+    for (var t in _registered_types) {
+        if (t == effect_type as int) { return true; }
+    }
+    return false;
+}
+
+fn registered_type_count(): int {
+    return arr.len(_registered_types);
 }
 
 fn register_effect_types() {
@@ -319,4 +338,64 @@ fn skill_modifier(skill: Const.Skill, modifier: int): eff.Effect {
     eff.set_subtype(result, skill as int);
     eff.set_int(result, 0, value);
     return result;
+}
+
+// == Registry consistency guard ==============================================
+// Two ways an effect type goes wrong silently.
+//
+// A type registered with an apply or remove event mask is asking to be
+// dispatched to on_effects. If on_effects has no branch for it, the effect
+// applies and whatever state change it was supposed to make never happens --
+// which is how a death effect with no handler would look.
+//
+// The reverse is just as quiet: a branch in on_effects for a type nobody
+// registers is unreachable, because apply_to() rejects unregistered types
+// outright.
+//
+// The event mask is load-bearing for this guard, and until 2026-11-21 it was
+// stored and never read, so every applied effect reached on_effects regardless
+// of its mask. EffectSystem::wants_event_dispatch() now consults it.
+
+// Effect types on_effects actually branches on. Keep in step with on_effects.
+fn _handled_effect_types(): array!(int) {
+    var result: array!(int) = {};
+    arr.push(result, Const.effect_type_haste as int);
+    arr.push(result, Const.effect_type_death as int);
+    arr.push(result, Const.effect_type_temporary_hitpoints as int);
+    arr.push(result, Const.effect_type_damage_immunity_increase as int);
+    arr.push(result, Const.effect_type_damage_immunity_decrease as int);
+    arr.push(result, Const.effect_type_damage_resistance as int);
+    arr.push(result, Const.effect_type_damage_reduction as int);
+    return result;
+}
+
+fn _is_handled(effect_type: int): bool {
+    for (var t in _handled_effect_types()) {
+        if (t == effect_type) { return true; }
+    }
+    return false;
+}
+
+fn validate(): array!(string) {
+    var problems: array!(string) = {};
+
+    for (var i = 0; i < arr.len(_registered_types); i += 1) {
+        const t = arr.get(_registered_types, i);
+        const mask = arr.get(_registered_event_masks, i);
+        if (mask != effect_event_none && !_is_handled(t)) {
+            arr.push(problems, f"effect type {t}: registered for dispatch (event mask {mask}) but on_effects has no branch, so applying it changes nothing");
+        }
+    }
+
+    for (var h in _handled_effect_types()) {
+        var found = false;
+        for (var t in _registered_types) {
+            if (t == h) { found = true; }
+        }
+        if (!found) {
+            arr.push(problems, f"effect type {h}: handled in on_effects but never registered, so apply_to() rejects it and the branch is unreachable");
+        }
+    }
+
+    return problems;
 }

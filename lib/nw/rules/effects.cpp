@@ -24,6 +24,20 @@ void dispatch_on_effects(nw::ObjectBase* obj, const nw::Vector<nw::Effect*>& eff
 {
     if (!obj || effects.empty()) { return; }
 
+    // Honour the registered event mask. It was stored and never read, so every
+    // applied effect reached the policy regardless of whether it had a handler
+    // -- decorative at the registration site and a per-application VM call for
+    // the majority of types that want nothing.
+    nw::Vector<nw::Effect*> wanted;
+    wanted.reserve(effects.size());
+    for (auto* effect : effects) {
+        if (effect && nw::kernel::effects().wants_event_dispatch(effect->handle().type, is_apply)) {
+            wanted.push_back(effect);
+        }
+    }
+    if (wanted.empty()) { return; }
+    const nw::Vector<nw::Effect*>& effects_to_dispatch = wanted;
+
     auto& rt = nw::kernel::runtime();
     auto* script = rt.get_module(nw::kernel::config().effects_policy_module());
     if (!script) { return; }
@@ -43,13 +57,13 @@ void dispatch_on_effects(nw::ObjectBase* obj, const nw::Vector<nw::Effect*>& eff
     args.push_back(object_value);
 
     nw::Vector<nw::TypedHandle> pinned_handles;
-    pinned_handles.reserve(effects.size());
+    pinned_handles.reserve(effects_to_dispatch.size());
 
     nw::Vector<nw::smalls::Value> marshaled_effects;
-    marshaled_effects.reserve(effects.size());
+    marshaled_effects.reserve(effects_to_dispatch.size());
     nw::smalls::TypeID effect_value_type = nw::smalls::invalid_type_id;
 
-    for (const auto* effect : effects) {
+    for (const auto* effect : effects_to_dispatch) {
         if (!effect) { continue; }
         auto effect_handle = effect->handle().to_typed_handle();
         auto effect_value = nw::smalls::detail::make_value(&rt, effect_handle);
@@ -415,6 +429,14 @@ bool EffectSystem::add(EffectType type, uint32_t object_mask, uint32_t event_mas
     it->second.apply = std::move(apply);
     it->second.remove = std::move(remove);
     return added;
+}
+
+bool EffectSystem::wants_event_dispatch(EffectType type, bool is_apply) const
+{
+    auto it = registry_.find(*type);
+    if (it == std::end(registry_)) { return false; }
+    const uint32_t wanted = is_apply ? effect_event_apply : effect_event_remove;
+    return (it->second.event_mask & wanted) != 0;
 }
 
 bool EffectSystem::apply(ObjectBase* obj, Effect* effect)

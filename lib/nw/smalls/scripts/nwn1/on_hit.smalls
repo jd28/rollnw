@@ -120,12 +120,20 @@ fn resolve_weapon_on_hit(
 // the label through iprp_onhit.2da. Returns false when the table does not carry
 // that label, so a trimmed or reordered table leaves the handler unregistered
 // instead of bound to the wrong effect.
+// Labels whose registration was attempted and failed, i.e. the table does not
+// carry them. Recorded rather than returned-and-ignored: a typo'd or renamed
+// label otherwise registers nothing and the property silently does nothing.
+var _unresolved_labels: array!(string) = {};
+
 fn register_handler_for_label(
     label: string,
     payload: fn(Creature, object, Item, Const.AttackType, int, int, bool, item.ItemProperty): OnHitResult,
 ): bool {
     const row = onhit_tables.row_for_label(label);
-    if (row < 0) { return false; }
+    if (row < 0) {
+        arr.push(_unresolved_labels, label);
+        return false;
+    }
     register_handler(f"onhit_{label}", Const.ip_on_hit_properties, row, payload);
     return true;
 }
@@ -235,6 +243,7 @@ fn _stub_on_hit_cast_spell(
 // registered as a no-op -- see unimplemented_labels().
 fn register_default_handlers() {
     clear_handlers();
+    arr.clear(_unresolved_labels);
     register_handler_for_label("Vorpal", _handler_vorpal);
     register_handler_for_label("Sleep", _handler_sleep);
     register_handler_for_label("Stun", _handler_stun);
@@ -271,4 +280,35 @@ fn unimplemented_labels(): array!(string) {
         if (!handled) { arr.push(result, label); }
     }
     return result;
+}
+
+// == Registry consistency guard ==============================================
+// Two silent failures this catches.
+//
+// A label register_default_handlers() asks for that the table does not carry
+// registers nothing, and the property it was meant to implement goes back to
+// doing nothing with no error -- the same shape as the weapon feats that were
+// keyed only to the unarmed sentinel.
+//
+// A handler bound to a subtype with no row in iprp_onhit.2da can never fire,
+// because resolve_weapon_on_hit() matches handlers against the subtypes real
+// item properties carry.
+fn validate(): array!(string) {
+    _ensure_registered();
+
+    var problems: array!(string) = {};
+
+    for (var label in _unresolved_labels) {
+        arr.push(problems, f"on-hit label '{label}': not present in iprp_onhit.2da, so its handler was never registered and the property does nothing");
+    }
+
+    for (var h in handlers) {
+        if (h.property_type != Const.ip_on_hit_properties as int) { continue; }
+        if (h.property_subtype < 0) { continue; }
+        if (onhit_tables.label_for_row(h.property_subtype) == "") {
+            arr.push(problems, f"on-hit handler '{h.tag}': bound to subtype {h.property_subtype}, which has no row in iprp_onhit.2da, so it can never fire");
+        }
+    }
+
+    return problems;
 }

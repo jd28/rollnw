@@ -7480,9 +7480,11 @@ TEST_F(SmallsEngineIntegration, Nwn1RegistriesAreSelfConsistent)
 {
     std::string_view source = R"(
         import core.array as arr;
+        import nwn1.effects as nwn1effects;
         import nwn1.init as Init;
         import nwn1.master_feats as mfeat;
         import nwn1.modifier as modifier;
+        import nwn1.on_hit as on_hit;
         import nwn1.special_attack as special_attack;
         import nwn1.constants as Const;
 
@@ -7517,6 +7519,31 @@ TEST_F(SmallsEngineIntegration, Nwn1RegistriesAreSelfConsistent)
             Init.init();
             return special_attack.is_registered(Const.feat_knockdown as int) ? 1 : 0;
         }
+
+        fn effect_problems(): int {
+            Init.init();
+            return arr.len(nwn1effects.validate());
+        }
+
+        fn on_hit_problems(): int {
+            Init.init();
+            return arr.len(on_hit.validate());
+        }
+
+        fn effect_types_registered(): int {
+            Init.init();
+            return nwn1effects.registered_type_count();
+        }
+
+        fn death_type_registered(): int {
+            Init.init();
+            return nwn1effects.is_type_registered(Const.effect_type_death) ? 1 : 0;
+        }
+
+        fn on_hit_handlers(): int {
+            Init.init();
+            return on_hit.has_handlers() ? 1 : 0;
+        }
     )";
 
     auto& rt = nw::kernel::runtime();
@@ -7550,4 +7577,21 @@ TEST_F(SmallsEngineIntegration, Nwn1RegistriesAreSelfConsistent)
     // reports.
     EXPECT_EQ(call("initiative_modifiers_registered"), 0)
         << "nothing sums mod_type_initiative; a registration here would be inert";
+
+    // Effect types: registered-for-dispatch implies on_effects handles it, and
+    // every handled type is registered or its branch is unreachable.
+    EXPECT_EQ(call("effect_problems"), 0)
+        << "an effect type is registered for dispatch with no on_effects branch, "
+           "or handled in on_effects without being registered";
+    EXPECT_GT(call("effect_types_registered"), 10)
+        << "the effect registry must be populated or the guard above is vacuous";
+    EXPECT_EQ(call("death_type_registered"), 1);
+
+    // On-hit: every label the profile asks for resolved, and no handler is
+    // bound to a subtype the table does not have.
+    EXPECT_EQ(call("on_hit_problems"), 0)
+        << "an on-hit label did not resolve, so its property silently does "
+           "nothing, or a handler is bound to a nonexistent subtype";
+    EXPECT_EQ(call("on_hit_handlers"), 1)
+        << "on-hit handlers must be registered or the guard above is vacuous";
 }

@@ -224,6 +224,13 @@ struct EffectSystem : public kernel::Service {
     bool add(EffectType type, uint32_t object_mask, uint32_t event_mask, EffectFunc apply, EffectFunc remove,
         bool has_versus_component = false);
 
+    /// True when the type is registered and its event mask selects this event.
+    /// Effect types registered with ``effect_event_none`` want no script
+    /// dispatch at all; before this was consulted the mask was stored and never
+    /// read, so every applied effect reached the policy's ``on_effects``
+    /// whether or not it had a handler there.
+    bool wants_event_dispatch(EffectType type, bool is_apply) const;
+
     /// Applies an effect to an object
     bool apply(ObjectBase* obj, Effect* effect);
 
