@@ -219,6 +219,25 @@ VkDevice create_logical_device(VulkanCore* vk)
     VkPhysicalDeviceFeatures2 device_features2{};
     device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+    // shaderDrawParameters is required because the shader compiler lowers
+    // SV_InstanceID to InstanceIndex - BaseInstance, which declares
+    // OpCapability DrawParameters in every shader that reads an instance id
+    // (render_pbr_static_instanced.vs, render_particle_billboard.vs,
+    // render_sound_debug_dot.vs) regardless of the draw's base instance.
+    // Without it those pipelines fail to create.
+    VkPhysicalDeviceVulkan11Features supported_features_11{};
+    supported_features_11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    VkPhysicalDeviceFeatures2 supported_features2{};
+    supported_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    supported_features2.pNext = &supported_features_11;
+    vkGetPhysicalDeviceFeatures2(vk->physical_device, &supported_features2);
+    if (!supported_features_11.shaderDrawParameters) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Selected Vulkan physical device does not support required feature "
+            "shaderDrawParameters");
+        return VK_NULL_HANDLE;
+    }
+
     VkPhysicalDeviceFeatures supported_core_features{};
     vkGetPhysicalDeviceFeatures(vk->physical_device, &supported_core_features);
     if (!supported_core_features.multiDrawIndirect || !supported_core_features.drawIndirectFirstInstance) {
@@ -251,11 +270,16 @@ VkDevice create_logical_device(VulkanCore* vk)
     vk->features_12.descriptorBindingVariableDescriptorCount = VK_TRUE;
     vk->features_12.drawIndirectCount = VK_TRUE; // vkCmdDrawIndexedIndirectCount (GPU-driven draw counts)
 
+    // Enable Vulkan 1.1 features: see the shaderDrawParameters note above.
+    vk->features_11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    vk->features_11.shaderDrawParameters = VK_TRUE;
+    vk->features_12.pNext = &vk->features_11;
+
     // Enable descriptor buffer extension (bindless-first descriptor model).
     static VkPhysicalDeviceDescriptorBufferFeaturesEXT desc_buffer_features{};
     desc_buffer_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT;
     desc_buffer_features.descriptorBuffer = VK_TRUE;
-    vk->features_12.pNext = &desc_buffer_features;
+    vk->features_11.pNext = &desc_buffer_features;
 
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

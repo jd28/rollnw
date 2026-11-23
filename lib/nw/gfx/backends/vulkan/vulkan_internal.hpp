@@ -99,6 +99,7 @@ struct VulkanCore {
     VkPhysicalDeviceProperties properties{};
     VkPhysicalDeviceVulkan13Features features_13{};
     VkPhysicalDeviceVulkan12Features features_12{};
+    VkPhysicalDeviceVulkan11Features features_11{};
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{};
     VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer_props{};
     uint32_t graphics_queue_timestamp_valid_bits = 0;

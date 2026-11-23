@@ -579,6 +579,30 @@ void add_prepared_render_model_surface_submission_stats(
     }
 }
 
+// Narrows an instance-row span to the rows a batch actually draws, so the
+// draw can use a zero base instance. SV_InstanceID must stay draw-local:
+// DXC maps it to Vulkan's InstanceIndex (which includes firstInstance) while
+// Slang subtracts BaseInstance to match D3D, so a non-zero base instance
+// makes the shader's g_model_surface_instances[instance_id] lookup
+// compiler-dependent. Selecting the rows through the storage binding keeps
+// both compilers correct and costs nothing -- the backend already folds
+// StorageSpan::offset into the descriptor's device address.
+// Callers must have bounds-checked first_instance/instance_count against the
+// span; the rows are 128-byte PreparedModelSurfaceInstance entries, so every
+// offset stays well aligned.
+nw::gfx::StorageSpan instance_rows_for_batch(
+    const nw::gfx::StorageSpan& instance_storage,
+    uint32_t first_instance,
+    uint32_t instance_count) noexcept
+{
+    constexpr auto stride
+        = static_cast<uint32_t>(sizeof(PreparedModelSurfaceInstance));
+    return nw::gfx::StorageSpan{
+        instance_storage.buffer,
+        instance_storage.offset + first_instance * stride,
+        instance_count * stride};
+}
+
 } // namespace
 
 bool upload_render_model_views(const ModelRenderContext& render_ctx,
@@ -1050,14 +1074,14 @@ void render_prepared_render_model_surface_instances(
     nw::gfx::cmd_bind_resources(cmd, pipeline,
         scene_uniforms,
         plt_palette_storage(render_ctx, dummy_storage),
-        instance_storage,
+        instance_rows_for_batch(
+            instance_storage, first_instance, instance_count),
         forward_plus_bindings.cluster_headers,
         forward_plus_bindings.cluster_light_indices,
         forward_plus_bindings.lights,
         draw_uniforms);
-    nw::gfx::cmd_draw_indexed_base_instance(cmd,
-        primitive.index_count, first_instance,
-        instance_count);
+    nw::gfx::cmd_draw_indexed(cmd,
+        primitive.index_count, instance_count);
     record_result(instance_count, 0u);
 }
 
@@ -1146,14 +1170,14 @@ bool render_prepared_render_model_shadow_surface_instances(
     nw::gfx::cmd_bind_resources(cmd, pipeline,
         scene_uniforms,
         dummy_storage,
-        instance_storage,
+        instance_rows_for_batch(
+            instance_storage, first_instance, instance_count),
         dummy_storage,
         dummy_storage,
         dummy_storage,
         draw_uniforms);
-    nw::gfx::cmd_draw_indexed_base_instance(cmd,
-        primitive.index_count, first_instance,
-        instance_count);
+    nw::gfx::cmd_draw_indexed(cmd,
+        primitive.index_count, instance_count);
     return true;
 }
 
