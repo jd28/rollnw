@@ -1,6 +1,6 @@
 // PBR skinned mesh vertex shader.
 
-StructuredBuffer<float4x4> g_bones : register(t3, space0);
+[[vk::binding(3, 0)]] StructuredBuffer<float4x4> g_bones : register(t3, space0);
 
 #include "scene_constants.inc.hlsl"
 #include "model_draw_constants.inc.hlsl"

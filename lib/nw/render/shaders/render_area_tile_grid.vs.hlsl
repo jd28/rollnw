@@ -1,4 +1,4 @@
-cbuffer AreaTileGridConstants : register(b1) {
+[[vk::binding(1, 0)]] cbuffer AreaTileGridConstants : register(b1) {
     float4x4 view;
     float4x4 projection;
     float4 viewport_line;

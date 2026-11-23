@@ -8,7 +8,7 @@ struct PltPaletteLayer {
     uint colors[PLT_PALETTE_PIXEL_COUNT];
 };
 
-StructuredBuffer<PltPaletteLayer> g_plt_palette : register(t2, space0);
+[[vk::binding(2, 0)]] StructuredBuffer<PltPaletteLayer> g_plt_palette : register(t2, space0);
 
 uint plt_palette_width(uint layer) {
     return g_plt_palette[layer].dimensions.x;

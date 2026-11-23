@@ -1,7 +1,7 @@
 // PBR pixel shader — GGX Cook-Torrance, 3-point studio lighting.
 
-Texture2D<float4> g_textures[] : register(t2, space1);
-SamplerState g_sampler : register(s3, space1);
+[[vk::binding(2, 1)]] Texture2D<float4> g_textures[] : register(t2, space1);
+[[vk::binding(3, 1)]] SamplerState g_sampler : register(s3, space1);
 
 #include "scene_constants.inc.hlsl"
 #include "plt_palette.inc.hlsl"

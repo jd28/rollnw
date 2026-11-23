@@ -16,7 +16,7 @@ struct ClusterHeader {
     uint _pad1;
 };
 
-cbuffer CullParams : register(b1) {
+[[vk::binding(1, 0)]] cbuffer CullParams : register(b1) {
     float4x4 g_view;
     float4x4 g_projection;
     float4x4 g_inverse_projection;
@@ -26,9 +26,9 @@ cbuffer CullParams : register(b1) {
     uint4 g_counts;         // light_count, cluster_count, tile_size, reserved
 };
 
-StructuredBuffer<ForwardPlusLightData> g_lights : register(t2);      // storage slot 0 (read)
-RWStructuredBuffer<ClusterHeader> g_cluster_headers : register(u3);  // storage slot 1 (write)
-RWStructuredBuffer<uint> g_cluster_indices : register(u5);           // storage slot 2 (write)
+[[vk::binding(2, 0)]] StructuredBuffer<ForwardPlusLightData> g_lights : register(t2);      // storage slot 0 (read)
+[[vk::binding(3, 0)]] RWStructuredBuffer<ClusterHeader> g_cluster_headers : register(u3);  // storage slot 1 (write)
+[[vk::binding(5, 0)]] RWStructuredBuffer<uint> g_cluster_indices : register(u5);           // storage slot 2 (write)
 
 float depth_for_slice_boundary(uint boundary)
 {

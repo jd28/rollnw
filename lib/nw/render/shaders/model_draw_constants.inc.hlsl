@@ -1,5 +1,5 @@
 // Model draw protocol v1. Layout matches ModelDrawConstants in model_renderer.hpp.
-cbuffer ModelDrawConstants : register(b4) {
+[[vk::binding(4, 0)]] cbuffer ModelDrawConstants : register(b4) {
     float4x4 draw_model;
     float4x4 draw_normal_matrix;
     float4 sc_albedo;

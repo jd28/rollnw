@@ -1,4 +1,4 @@
-cbuffer ParticleDrawConstants : register(b1) {
+[[vk::binding(1, 0)]] cbuffer ParticleDrawConstants : register(b1) {
     float4x4 view;
     float4x4 projection;
     uint texture_index;

@@ -1,7 +1,13 @@
 // Scene constants. Common model shaders share this block across a view's draws.
 // Layout must match SceneConstants in lib/nw/render/render_context.hpp exactly.
+//
+// The [[vk::binding(binding, set)]] attribute below is load-bearing, not
+// decoration — lib/nw/gfx/backends/vulkan/vulkan_context.cpp builds its
+// descriptor set layouts from matching literals and nothing checks the two
+// agree. Read the binding contract table there before changing a binding or
+// adding a resource to any shader.
 
-cbuffer SceneConstants : register(b1) {
+[[vk::binding(1, 0)]] cbuffer SceneConstants : register(b1) {
     float4x4 view;
     float4x4 projection;
     float4x4 model;

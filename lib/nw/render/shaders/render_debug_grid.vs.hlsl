@@ -1,4 +1,4 @@
-cbuffer DebugGridConstants : register(b1) {
+[[vk::binding(1, 0)]] cbuffer DebugGridConstants : register(b1) {
     float4x4 view;
     float4x4 projection;
     float4 minor_color;

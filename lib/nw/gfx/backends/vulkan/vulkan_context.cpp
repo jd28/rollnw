@@ -23,6 +23,27 @@ constexpr VkDeviceSize kVertexRingSize = 16 * 1024 * 1024;
 constexpr uint32_t kBindlessTextureCapacity = 4096;
 constexpr double kNanosecondsToSeconds = 1.0e-9;
 
+// Descriptor binding contract, shared with the shaders.
+//
+// Shader resources in lib/nw/render/shaders/*.hlsl carry explicit
+// [[vk::binding(binding, set)]] attributes that must match the literals this
+// file uses to build descriptor set layouts:
+//
+//   set 0, binding 1   primary uniform span        cbuffer ... register(b1)
+//   set 0, binding 4   secondary uniform span      cbuffer ... register(b4)
+//   set 0, binding 2   storage slot 0              t2 / u2
+//   set 0, binding 3   storage slot 1              t3 / u3
+//   set 0, binding 5   storage slot 2              t5 / u5
+//   set 0, binding 6   storage slot 3              t6
+//   set 0, binding 7   storage slot 4              t7
+//   set 1, binding 2   bindless sampled textures
+//   set 1, binding 3   bindless samplers
+//
+// Nothing reflects the compiled shader to verify this, so changing one side
+// alone breaks every affected pipeline with no compile or validation error.
+// Before the attributes existed the agreement rested entirely on DXC's
+// default register-to-binding mapping; pinning it in source keeps the layout
+// stable across a change of shader compiler.
 uint32_t graphics_storage_binding_for_slot(uint32_t slot) noexcept
 {
     // Graphics pipelines reserve b4 for the optional secondary uniform span.

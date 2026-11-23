@@ -1,4 +1,4 @@
-cbuffer ParticleDrawConstants : register(b1) {
+[[vk::binding(1, 0)]] cbuffer ParticleDrawConstants : register(b1) {
     float4x4 view;
     float4x4 projection;
     uint texture_index;
@@ -22,7 +22,7 @@ struct ParticleBillboardInstance {
     float4 color;
 };
 
-StructuredBuffer<ParticleBillboardInstance> g_instances : register(t2, space0);
+[[vk::binding(2, 0)]] StructuredBuffer<ParticleBillboardInstance> g_instances : register(t2, space0);
 
 struct VSInput {
     float2 corner   : POSITION;

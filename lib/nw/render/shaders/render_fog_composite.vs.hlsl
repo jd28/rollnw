@@ -1,4 +1,4 @@
-cbuffer FogCompositeConstants : register(b1) {
+[[vk::binding(1, 0)]] cbuffer FogCompositeConstants : register(b1) {
     uint color_texture_index;
     uint depth_texture_index;
     float fog_amount;

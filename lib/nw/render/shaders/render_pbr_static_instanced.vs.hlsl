@@ -5,6 +5,7 @@ struct ModelSurfaceInstance {
     float4x4 root_normal_matrix;
 };
 
+[[vk::binding(3, 0)]]
 StructuredBuffer<ModelSurfaceInstance> g_model_surface_instances
     : register(t3, space0);
 

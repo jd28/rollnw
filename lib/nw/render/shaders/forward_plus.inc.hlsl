@@ -18,9 +18,9 @@ struct ForwardPlusLightRange {
     uint _pad0;
 };
 
-StructuredBuffer<ForwardPlusClusterHeader> g_forward_plus_clusters : register(t5, space0);
-StructuredBuffer<uint> g_forward_plus_light_indices : register(t6, space0);
-StructuredBuffer<ForwardPlusLightData> g_forward_plus_lights : register(t7, space0);
+[[vk::binding(5, 0)]] StructuredBuffer<ForwardPlusClusterHeader> g_forward_plus_clusters : register(t5, space0);
+[[vk::binding(6, 0)]] StructuredBuffer<uint> g_forward_plus_light_indices : register(t6, space0);
+[[vk::binding(7, 0)]] StructuredBuffer<ForwardPlusLightData> g_forward_plus_lights : register(t7, space0);
 
 bool forward_plus_enabled() {
     return forward_plus_params.x != 0
