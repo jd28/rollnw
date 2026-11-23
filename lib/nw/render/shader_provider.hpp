@@ -22,6 +22,15 @@ std::optional<std::string> expand_shader_includes(
     std::string_view source_name,
     const ShaderIncludeResolver& resolver);
 
+/// Pipeline stage a shader entry point is compiled for. The shaders carry no
+/// `[shader(...)]` attribute, so the stage has to be supplied explicitly; it
+/// is derived from the `.vs.`/`.ps.`/`.cs.` filename infix.
+enum class ShaderStage {
+    vertex,
+    pixel,
+    compute,
+};
+
 class ShaderProvider {
 public:
     ShaderProvider(nw::gfx::Context* ctx, nw::ResourceManager* resources);
@@ -36,14 +45,16 @@ private:
     nw::gfx::Handle<nw::gfx::Shader> compile_hlsl(
         const std::string& name,
         const std::string& source,
-        const wchar_t* target_profile);
+        ShaderStage stage);
 
     nw::gfx::Context* ctx_ = nullptr;
     nw::ResourceManager* resources_ = nullptr;
     std::unordered_map<std::string, nw::gfx::Handle<nw::gfx::Shader>> shaders_;
-    bool dxc_available_ = false;
-    void* dxc_compiler_ = nullptr;
-    void* dxc_utils_ = nullptr;
+    bool compiler_available_ = false;
+    // slang::IGlobalSession / slang::ISession, type-erased so the Slang
+    // headers stay private to shader_provider.cpp.
+    void* slang_global_session_ = nullptr;
+    void* slang_session_ = nullptr;
 };
 
 } // namespace nw::render

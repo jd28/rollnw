@@ -81,8 +81,8 @@ if(UNIX)
     )
 endif()
 
-if(ROLLNW_DXC_RUNTIME_LIBS)
-    install(FILES ${ROLLNW_DXC_RUNTIME_LIBS} DESTINATION bin)
+if(ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+    install(FILES ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS} DESTINATION bin)
 endif()
 
 # Platform-specific system libs

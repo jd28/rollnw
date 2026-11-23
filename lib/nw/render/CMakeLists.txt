@@ -26,85 +26,94 @@ add_library(nw-render STATIC
 target_include_directories(nw-render PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 target_link_libraries(nw-render PUBLIC nw nw-gfx)
 
-set(ROLLNW_DXC_RUNTIME_LIBS "" PARENT_SCOPE)
+set(ROLLNW_SHADER_COMPILER_RUNTIME_LIBS "" PARENT_SCOPE)
 
+# Slang is the shader compiler: it consumes the same HLSL sources DXC did and
+# emits SPIR-V for the Vulkan backend, and it is the only option that ships
+# prebuilt binaries for every platform this project targets. DXC publishes
+# Windows-x64 and Linux-x86_64 only -- no macOS build and no arm64 build of
+# any kind -- so the Apple port would otherwise require building a fork of
+# LLVM 3.7 from source. See issues/shader-toolchain-slang-migration.md.
+set(ROLLNW_SLANG_VERSION "2026.22.1" CACHE STRING "Slang release to fetch")
+
+# Per-platform asset name and SHA-256 of the official release archive.
 if(WIN32)
-    FetchContent_Declare(dxc_prebuilt
-        URL      https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/dxc_2026_02_20.zip
-        URL_HASH SHA256=a1e89031421cf3c1fca6627766ab3020ca4f962ac7e2caa7fab2b33a8436151e
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    FetchContent_MakeAvailable(dxc_prebuilt)
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(DXC_ARCH x64)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|aarch64)$")
+        set(ROLLNW_SLANG_ASSET "windows-aarch64.zip")
+        set(ROLLNW_SLANG_SHA256 "7c50b36af8428533f524604d10cf84936dbd94d8536940d0611cb754ad4bea7c")
     else()
-        set(DXC_ARCH x86)
+        set(ROLLNW_SLANG_ASSET "windows-x86_64.zip")
+        set(ROLLNW_SLANG_SHA256 "e72344f7b0323cec8b039c534caaf4680e7ba629489fc796ea4c7f7adb7deb68")
     endif()
-
-    find_path(DXC_INCLUDE_DIR
-        NAMES dxc/dxcapi.h dxcapi.h
-        PATHS
-            ${dxc_prebuilt_SOURCE_DIR}/include
-            ${dxc_prebuilt_SOURCE_DIR}/inc
-        NO_DEFAULT_PATH)
-    if(NOT DXC_INCLUDE_DIR)
-        message(FATAL_ERROR "nw-render: DXC headers not found in prebuilt package")
-    endif()
-
-    target_include_directories(nw-render SYSTEM PRIVATE ${DXC_INCLUDE_DIR})
-    target_link_libraries(nw-render PUBLIC ${dxc_prebuilt_SOURCE_DIR}/lib/${DXC_ARCH}/dxcompiler.lib)
-    target_compile_definitions(nw-render PRIVATE NW_RENDER_HAS_DXC=1)
-    set(ROLLNW_DXC_RUNTIME_LIBS
-        ${dxc_prebuilt_SOURCE_DIR}/bin/${DXC_ARCH}/dxcompiler.dll
-        ${dxc_prebuilt_SOURCE_DIR}/bin/${DXC_ARCH}/dxil.dll
-        PARENT_SCOPE)
 elseif(APPLE)
-    find_library(DXC_LIB dxcompiler
-        PATHS /opt/homebrew/lib /usr/local/lib
-        NO_DEFAULT_PATH)
-    find_path(DXC_INCLUDE dxc/dxcapi.h
-        PATHS /opt/homebrew/include /usr/local/include
-        NO_DEFAULT_PATH)
-    if(DXC_LIB AND DXC_INCLUDE)
-        target_include_directories(nw-render SYSTEM PRIVATE ${DXC_INCLUDE})
-        target_link_libraries(nw-render PUBLIC ${DXC_LIB})
-        target_compile_definitions(nw-render PRIVATE NW_RENDER_HAS_DXC=1)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
+        set(ROLLNW_SLANG_ASSET "macos-aarch64.tar.gz")
+        set(ROLLNW_SLANG_SHA256 "1d5370a07be409b94685ea4bd84b7bd191313a6b1fae8795f451009bc0dc3fd7")
     else()
-        message(WARNING
-            "nw-render: DXC not found — shaders will not compile at runtime.\n"
-            "Install with: brew install directx-shader-compiler")
+        set(ROLLNW_SLANG_ASSET "macos-x86_64.tar.gz")
+        set(ROLLNW_SLANG_SHA256 "4288c32f577d2444b211f6d40f490bfe73276c48ffc5bb8ce90e4ff29b209d2b")
     endif()
 elseif(UNIX)
-    set(ROLLNW_DXC_URL
-        "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505/linux_dxc_2025_05_24.x86_64.tar.gz"
-        CACHE STRING "DXC archive URL")
-    set(ROLLNW_DXC_SHA256
-        "b99655f65215287825fcdd49102b17e2a1608eff79ffaf9457514c2676892aa5"
-        CACHE STRING "DXC archive SHA-256")
-    FetchContent_Declare(dxc_prebuilt
-        URL      "${ROLLNW_DXC_URL}"
-        URL_HASH "SHA256=${ROLLNW_DXC_SHA256}"
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    FetchContent_MakeAvailable(dxc_prebuilt)
-
-    find_path(DXC_INCLUDE_DIR
-        NAMES dxc/dxcapi.h dxcapi.h
-        PATHS
-            ${dxc_prebuilt_SOURCE_DIR}/include
-            ${dxc_prebuilt_SOURCE_DIR}/inc
-        NO_DEFAULT_PATH)
-    if(NOT DXC_INCLUDE_DIR)
-        message(FATAL_ERROR "nw-render: DXC headers not found in prebuilt package")
+    # The glibc-tagged archives are built against an older glibc than the
+    # untagged ones and are the portable choice for a dev/CI machine.
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+        set(ROLLNW_SLANG_ASSET "linux-aarch64-glibc-2.28.tar.gz")
+        set(ROLLNW_SLANG_SHA256 "fb603ad10e8558874a298b2a701d212ed135f6e6236cf9a7011563f44de7312f")
+    else()
+        set(ROLLNW_SLANG_ASSET "linux-x86_64-glibc-2.28.tar.gz")
+        set(ROLLNW_SLANG_SHA256 "0c0e243ac15b7878237e6854313f45c791408227d5bc634f3ad1ac487edbfaf5")
     endif()
-
-    target_include_directories(nw-render SYSTEM PRIVATE ${DXC_INCLUDE_DIR})
-    target_link_libraries(nw-render PUBLIC ${dxc_prebuilt_SOURCE_DIR}/lib/libdxcompiler.so)
-    target_compile_definitions(nw-render PRIVATE NW_RENDER_HAS_DXC=1)
-    set(ROLLNW_DXC_RUNTIME_LIBS
-        ${dxc_prebuilt_SOURCE_DIR}/lib/libdxcompiler.so
-        ${dxc_prebuilt_SOURCE_DIR}/lib/libdxil.so
-        PARENT_SCOPE)
+else()
+    message(FATAL_ERROR "nw-render: no Slang release known for this platform")
 endif()
+
+set(ROLLNW_SLANG_URL
+    "https://github.com/shader-slang/slang/releases/download/v${ROLLNW_SLANG_VERSION}/slang-${ROLLNW_SLANG_VERSION}-${ROLLNW_SLANG_ASSET}"
+    CACHE STRING "Slang archive URL")
+
+FetchContent_Declare(slang_prebuilt
+    URL      "${ROLLNW_SLANG_URL}"
+    URL_HASH "SHA256=${ROLLNW_SLANG_SHA256}"
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(slang_prebuilt)
+
+find_path(SLANG_INCLUDE_DIR
+    NAMES slang.h
+    PATHS "${slang_prebuilt_SOURCE_DIR}/include"
+    NO_DEFAULT_PATH)
+if(NOT SLANG_INCLUDE_DIR)
+    message(FATAL_ERROR "nw-render: slang.h not found in the Slang release archive")
+endif()
+
+# Windows links the import library and ships DLLs beside the binary; the
+# Unix-likes link the shared object directly.
+if(WIN32)
+    set(ROLLNW_SLANG_LINK_LIB "${slang_prebuilt_SOURCE_DIR}/lib/slang.lib")
+    file(GLOB ROLLNW_SLANG_RUNTIME
+        "${slang_prebuilt_SOURCE_DIR}/bin/slang*.dll")
+elseif(APPLE)
+    set(ROLLNW_SLANG_LINK_LIB "${slang_prebuilt_SOURCE_DIR}/lib/libslang.dylib")
+    file(GLOB ROLLNW_SLANG_RUNTIME
+        "${slang_prebuilt_SOURCE_DIR}/lib/libslang*.dylib")
+else()
+    set(ROLLNW_SLANG_LINK_LIB "${slang_prebuilt_SOURCE_DIR}/lib/libslang.so")
+    file(GLOB ROLLNW_SLANG_RUNTIME
+        "${slang_prebuilt_SOURCE_DIR}/lib/libslang*.so*")
+endif()
+
+if(NOT EXISTS "${ROLLNW_SLANG_LINK_LIB}")
+    message(FATAL_ERROR
+        "nw-render: Slang link library not found at ${ROLLNW_SLANG_LINK_LIB}")
+endif()
+
+target_include_directories(nw-render SYSTEM PRIVATE ${SLANG_INCLUDE_DIR})
+target_link_libraries(nw-render PUBLIC "${ROLLNW_SLANG_LINK_LIB}")
+target_compile_definitions(nw-render PRIVATE NW_RENDER_HAS_SLANG=1)
+
+# The core module is embedded in the library, so the lib/slang-standard-module-*
+# tree in the archive is not a runtime dependency and is deliberately not
+# installed (verified by compiling with that directory moved aside).
+set(ROLLNW_SHADER_COMPILER_RUNTIME_LIBS ${ROLLNW_SLANG_RUNTIME} PARENT_SCOPE)
 
 set(ROLLNW_OZZ_DIR "${CMAKE_SOURCE_DIR}/external/ozz-animation-0.16.0")
 if(NOT EXISTS "${ROLLNW_OZZ_DIR}/CMakeLists.txt")
