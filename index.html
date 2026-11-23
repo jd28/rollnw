@@ -95,12 +95,33 @@ for the available configurations.</p>
 fails, set <code>NWN_ROOT</code> to the game installation and <code>NWN_HOME</code> to its user directory.
 In the toolset, choose <strong>Import Module...</strong> on Home. See the
 <a href="client/index.html#getting-started">toolset guide</a> for the workflow.</p>
+<h3 id="running-the-tests">Running the tests</h3>
+<p><strong>The test suite requires an NWN installation.</strong> This repository ships no game
+assets, so the tests read game data from an install rather than from a copy
+checked in here. The suite refuses to start without one.</p>
+<p>Dedicated-server data is enough for everything except renderer work, and
+<code>scripts/ci/ensure_nwn.sh</code> fetches it (this is what CI uses):</p>
+<div class="codehilite"><pre><span></span><code>./scripts/ci/ensure_nwn.sh<span class="w">        </span><span class="c1"># downloads to ./nwn</span>
+<span class="nv">NWN_ROOT</span><span class="o">=</span>./nwn<span class="w"> </span>./build/tests/rollnw_test
+</code></pre></div>
+
+<p><code>NWN_ROOT</code> can point at any installation containing <code>data/nwn_base.key</code> —
+dedicated server, GOG, Steam or Beamdog client. Note that the dedicated-server
+data indexes models, textures and PLT layers but ships <strong>zero bytes</strong> for them,
+so tests needing those assets skip unless <code>NWN_ROOT</code> is a full game install.</p>
 <h2 id="more">More</h2>
 <p><a href="https://jd28.github.io/rollnw/">Documentation</a> ·
 <a href="https://github.com/jd28/rollnw/blob/main/tests">Tests</a> ·
 <a href="https://github.com/jd28/rollnw/blob/main/issues/README.md">Local issues</a></p>
 <p>MIT licensed. Thanks to BioWare, Beamdog, and the open-source projects that make
 rollnw possible; dependencies retain their own licenses.</p>
+<p>rollnw is an independent, unofficial project. It is <strong>not affiliated with,
+authorized by, sponsored by, or endorsed by BioWare, Beamdog, Electronic Arts,
+or Wizards of the Coast.</strong> Neverwinter Nights, Dungeons &amp; Dragons, and related
+names are the trademarks of their respective owners, used here only to describe
+what this project interoperates with. No game assets or game data are
+distributed with this repository — you need your own copy of the game, and so
+does the test suite.</p>
       </article>
     </main>
   </div>
