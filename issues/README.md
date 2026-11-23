@@ -10,7 +10,8 @@ checkpoint history. Related work that remains unresolved stays active.
 
 ## Platform work
 
-- [macOS/iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md) — planning only; phased native Metal backend, macOS client/server, then touch-adapted full toolset on iPad.
+- [Shader toolchain migration: DXC to Slang](shader-toolchain-slang-migration.md) — planning only; prerequisite for the macOS port. DXC ships no Apple or arm64 build, and one compiler serving SPIR-V and MSL removes the two-tool binding-layout problem.
+- [macOS/iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md) — planning only; phased native Metal backend, macOS client/server, then touch-adapted full toolset on iPad. Shader toolchain decision amended 2026-11-22 and delegated to the plan above.
 
 ## Renderer work
 

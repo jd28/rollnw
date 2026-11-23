@@ -1,6 +1,15 @@
 # macOS / iPadOS port and nw::gfx Metal backend
 
-Status: planning, no implementation started. Landed on `main`, but grounded
+Status: planning, no implementation started. **Amended 2026-11-22: the
+shader toolchain decision below was revised from SPIRV-Cross to Slang, and
+Phase 0's DXC step was found to rest on a false premise.** The shader
+toolchain now has its own prerequisite plan —
+[Shader toolchain migration: DXC to Slang](shader-toolchain-slang-migration.md)
+— which should land before Phase 0 begins. Superseded sections record what
+the earlier reasoning was and why it changed rather than silently dropping
+it, so the revision stays auditable.
+
+Landed on `main`, but grounded
 against the in-progress `server` branch: every `nw::gfx`/`tools/client` fact
 below is true on both, but `tools/server` and the GameNetworkingSockets
 build (`ROLLNW_BUILD_SERVER`, `cmake/GameNetworkingSockets.cmake`) exist only
@@ -25,12 +34,37 @@ the correctness oracle; this is an addition, not a replacement.
   maps cleanly onto Metal argument buffers (Tier 2, Apple7/A13+ and all
   M-series) — no redesign needed, just a different implementation of the same
   contract.
-- Shaders are authored once in HLSL (`bin/shaders/*.hlsl`, `lib/nw/render/
-  shader_provider.cpp`) and compiled via DXC (`libdxcompiler.so`, loaded
-  through `dxcapi.h` when `NW_RENDER_HAS_DXC`) straight to SPIR-V. `glslang`
-  is vendored with its HLSL frontend explicitly disabled
-  (`ENABLE_HLSL OFF`) — it exists only to supply `SPIRV` plumbing, DXC is the
-  real compiler. `SPIRV-Reflect` is already vendored for binding reflection.
+- Shaders are authored once in HLSL (28 files, 2,624 lines, in
+  `lib/nw/render/shaders/`; `bin/shaders/` is a gitignored build copy) and
+  compiled **at runtime only** — there is no offline bake — by DXC through
+  `dxcapi.h` when `NW_RENDER_HAS_DXC`, straight to SPIR-V
+  (`lib/nw/render/shader_provider.cpp:207`).
+- **Correction (2026-11-22): DXC ships no macOS artifact and no arm64
+  artifact of any kind.** Its latest release (v1.9.2609) contains exactly
+  three assets: a Windows zip, `linux_dxc_2026_09_28.x86_x64.tar.gz`, and a
+  PDB bundle. There is also no core Homebrew formula, contrary to the
+  `brew install directx-shader-compiler` advice
+  `lib/nw/render/CMakeLists.txt:74-76` prints. Getting DXC onto Apple
+  Silicon means building a fork of LLVM/Clang 3.7 from source. This
+  invalidates Phase 0's DXC step as originally written and is the reason
+  the shader toolchain migration is now a prerequisite to this plan.
+- **Correction (2026-11-22): `glslang` and `SPIRV-Reflect` are dead
+  dependencies.** Both are vendored and linked by
+  `lib/nw/gfx/backends/vulkan/CMakeLists.txt:8-21,55-57`, but neither is
+  `#include`d by any file in `lib/`, `tools/`, or `tests/` (verified by
+  grep). The earlier claim that SPIRV-Reflect supplies "binding
+  reflection" is not true today — see the next bullet for what actually
+  determines bindings.
+- **The descriptor binding contract is hardcoded in C++**, not reflected.
+  `vulkan_context.cpp` builds descriptor set layouts from literal
+  set/binding numbers (`:575`, `:584`, `:629`, `:2597`, and
+  `graphics_storage_binding_for_slot` at `:26`) that agree with the
+  shaders' plain HLSL `register()` declarations only by way of DXC's
+  default register-to-binding mapping. No shader carries a
+  `[[vk::binding]]` attribute. Any shader compiler with a different
+  default silently breaks every pipeline — which is why the migration plan
+  pins bindings explicitly before changing compilers. The full contract
+  table lives in that plan.
 - `VK_USE_PLATFORM_MACOS_MVK` / `VK_USE_PLATFORM_METAL_EXT` are already in
   `lib/nw/gfx/CMakeLists.txt` and `backends/vulkan/CMakeLists.txt` for `APPLE`
   — someone anticipated MoltenVK, but MoltenVK itself is not vendored or
@@ -124,10 +158,18 @@ using the existing Vulkan backend, unmodified, over MoltenVK.
 - Extend `cmake/GameNetworkingSockets.cmake`'s platform special-casing to
   `CMAKE_SYSTEM_NAME STREQUAL "Darwin"` (compile defs, crypto backend
   selection) — same OpenSSL crypto path already used on Linux should apply.
-- Get DXC running on macOS: Microsoft ships `libdxcompiler.dylib` for macOS;
-  swap `bin/libdxcompiler.so` fetch/load logic for the Apple case. Confirm
-  `-spirv` output is unaffected by host OS (it should be — DXC's SPIR-V
-  backend is host-independent).
+- ~~Get DXC running on macOS: Microsoft ships `libdxcompiler.dylib` for
+  macOS.~~ **Superseded — the premise is false; Microsoft ships no macOS
+  DXC build.** Phase 0 instead depends on
+  [the Slang migration](shader-toolchain-slang-migration.md) having landed,
+  after which the shader compiler is a pinned, hash-verified
+  `macos-aarch64` prebuilt and this step reduces to "it downloads." If for
+  some reason Phase 0 must start before that plan completes, the only
+  alternatives are building DXC from source on Apple Silicon (an LLVM 3.7
+  fork, officially untested on that host) or taking a third-party prebuilt
+  mirror as a load-bearing dependency — neither is acceptable as a
+  durable answer, only as a throwaway unblock consistent with Phase 0's
+  explicitly disposable nature.
 - New `macos-renderer-dev` CMakePresets entry mirroring `linux-renderer-dev`.
 - Acceptance: `rollnw-client` launches, imports a module, renders a test
   area, `rollnw-server` accepts a client connection, and the full
@@ -155,10 +197,15 @@ Structure, mirroring the Vulkan backend's shape:
   ::cpu_visible` — a closer match to Vulkan's `cpu_visible` than most APIs,
   since Apple Silicon unified memory makes "shared" cheap.
   (map_buffer/unmap_buffer become close to no-ops for shared storage.)
-- Pipelines: `MTLRenderPipelineState`/`MTLComputePipelineState` built from
-  reflected binding info (same `SPIRV-Reflect` metadata already produced for
-  the Vulkan path, since both backends compile from the same SPIR-V — see
-  shader pipeline below).
+- Pipelines: `MTLRenderPipelineState`/`MTLComputePipelineState`. Note the
+  Vulkan backend does **not** reflect binding info — it uses the hardcoded
+  set/binding table described in Current state, so the Metal backend needs
+  its own explicit argument-buffer index mapping derived from the same
+  contract, not a reflection pass. (The original text here claimed
+  `SPIRV-Reflect` metadata was "already produced for the Vulkan path";
+  SPIRV-Reflect is linked but unused.) Once the shader sources carry
+  explicit `[[vk::binding]]` attributes from the migration plan's Phase A,
+  that contract is readable in one place instead of two.
 - Bindless textures: Metal argument buffers, Tier 2
   (`MTLArgumentBuffersTier2`, available on every Apple Silicon GPU this
   project will target). `get_bindless_texture_index` becomes an index into
@@ -187,40 +234,57 @@ Structure, mirroring the Vulkan backend's shape:
 - GPU timers (`cmd_begin_gpu_timer`): `MTLCounterSampleBuffer`, a different
   API shape from Vulkan timestamp queries but equivalent capability.
 
-**Shader pipeline decision — recommend SPIRV-Cross, not Apple's Metal Shader
-Converter:**
+**Shader pipeline decision — Slang, superseding the earlier SPIRV-Cross
+recommendation (revised 2026-11-22):**
 
-Both DXC→SPIR-V→SPIRV-Cross→MSL and DXC→DXIL→Apple's `metal-shaderconverter`
-are viable. Recommend SPIRV-Cross:
+The original decision here was DXC -> SPIR-V -> SPIRV-Cross -> MSL, chosen
+because it reused the SPIR-V already produced for Vulkan. Two findings
+changed it:
 
-- It consumes the exact SPIR-V already produced today for the Vulkan
-  backend — zero divergence in the shader source-of-truth, one compile
-  step added after the existing one, no new DXC output mode to validate.
-- `metal-shaderconverter` consumes DXIL, a separate DXC output target from
-  the SPIR-V already in use, and is a newer/less-adopted tool outside
-  Apple's own game-porting-toolkit context; it buys nothing here since
-  SPIR-V is already the project's cross-compilation pivot format.
-- SPIRV-Cross's MSL backend explicitly supports argument buffers
-  (`msl_argument_buffers`) for the bindless path and ordinary binding/set
-  decorations for everything else — the existing Vulkan backend uses normal
-  SPIR-V binding decorations (descriptor buffers are an API-side resource
-  supply mechanism, not a different shader interface), so no shader-side
-  rework is implied.
-- Known SPIRV-Cross risk surface to validate early, specifically against
-  this project's shaders: `RWStructuredBuffer`/storage-buffer register
-  mapping (t2/t3/t5/t6/t7 convention in `gfx.hpp`'s comments), the compute
-  shaders (`forward_plus_cull.cs.hlsl`, `render_compute_smoke.cs.hlsl`), and
-  `.inc.hlsl` shared includes that assume HLSL/SPIR-V binding conventions.
+- DXC cannot be obtained for Apple Silicon at all (see Current state), so
+  "reuse the existing compiler" was never actually available on this
+  platform.
+- The pipeline required two tools with independently-evolving opinions
+  about descriptor layout to agree. The risk list the original decision
+  wrote for itself — storage-buffer register mapping, the compute shaders,
+  the shared `.inc.hlsl` includes — was a direct consequence of that
+  two-tool split, not of anything about MSL.
+
+Slang resolves both: it ships pinned prebuilts for macos-aarch64 (and
+linux-aarch64, which DXC also lacks), and it emits SPIR-V and MSL from one
+front end with one layout engine, so the two targets agree by
+construction. Full reasoning, phasing and acceptance criteria live in
+[Shader toolchain migration: DXC to Slang](shader-toolchain-slang-migration.md);
+that work is a prerequisite to Phase 0 of this plan, not part of Phase 1.
+
+What remains Phase 1's responsibility is only the Metal half: enabling
+Slang's MSL/`metallib` target for the Metal backend and validating it
+against this project's real shader set — the compute shaders
+(`forward_plus_cull.cs.hlsl`, `render_compute_smoke.cs.hlsl`) and the 12
+bindless `space1` texture/sampler declarations first, since those are the
+least conventional HLSL in the set. By then it is a target flag on a
+compiler already in the build.
+
+**SPIRV-Cross remains the documented fallback.** Slang's Metal backend is
+younger than SPIRV-Cross's MSL backend, which has years of shipped mileage
+behind it via MoltenVK. If Slang's MSL output proves inadequate during
+Phase 1, the fallback is SPIRV-Cross consuming *Slang-generated* SPIR-V —
+which keeps the single-source-of-truth property, requires no shader
+changes, and still involves no DXC. Note also that Phase 0 runs on
+MoltenVK, which uses SPIRV-Cross internally regardless, so nothing about
+this choice affects Phase 0.
 
 For distribution, split compile-time from runtime:
 
-- macOS dev builds may keep DXC in the loop at build/first-run time (fast
-  iteration, matches today's Vulkan dev flow).
-- iOS/iPadOS must not depend on runtime DXC or SPIRV-Cross invocation —
-  compile all shaders to `.metallib` offline as a build step and bundle
-  them. This avoids any ambiguity around shipping a third-party JIT/compiler
-  dylib in an App Store build and removes a large, unnecessary cold-start
-  cost on a tablet.
+- macOS dev builds may keep a runtime compiler in the loop for fast
+  iteration, matching today's Vulkan dev flow.
+- iOS/iPadOS must not invoke a shader compiler at runtime — compile all
+  shaders to `.metallib` offline as a build step and bundle them. This
+  avoids any ambiguity around shipping a third-party JIT/compiler dylib in
+  an App Store build and removes a large, unnecessary cold-start cost on a
+  tablet. With one tool serving both targets this is the same offline bake
+  step the migration plan's Phase D introduces for SPIR-V, parameterized
+  by target, rather than a Metal-only special path.
 
 Acceptance for Phase 1: `ROLLNW_BUILD_RENDERER` on macOS with the Metal
 backend selected builds `rollnw-client`/`mudl`, the full `render_gfx_*`/
@@ -413,7 +477,9 @@ guess wrong.
 | Risk | Why it matters | Mitigation already in this plan |
 | --- | --- | --- |
 | Metal indirect-draw model mismatch | `cmd_draw_indexed_indirect*` is load-bearing for GPU-driven culling work already in `nw::render` | Called out explicitly in Phase 1 as the highest-uncertainty item; interim scope cut allowed if flagged |
-| SPIRV-Cross MSL gaps on this project's actual shaders | Storage buffer register convention, compute shaders, shared `.inc.hlsl` | Validate against the real shader set early in Phase 1, not a synthetic test shader |
+| Shader compiler unobtainable on Apple Silicon | DXC ships no macOS or arm64 build and has no Homebrew formula; the original Phase 0 step assumed otherwise | Resolved by making [the Slang migration](shader-toolchain-slang-migration.md) a prerequisite to Phase 0 — Slang ships pinned macos-aarch64 prebuilts |
+| Shader compiler change renumbers SPIR-V bindings | `vulkan_context.cpp` hardcodes every set/binding literal and agrees with the shaders only via DXC's default register mapping; a silent renumber breaks all pipelines with no compile error | Migration plan pins bindings with explicit `[[vk::binding]]` before any compiler swap, and diffs the decorations as the first acceptance gate |
+| Slang's MSL backend is younger than SPIRV-Cross's | Metal codegen quality is unproven on this shader set, unlike SPIRV-Cross's MoltenVK-hardened path | SPIRV-Cross retained as documented fallback consuming Slang-generated SPIR-V; validate the compute shaders and bindless `space1` declarations first in Phase 1 |
 | GNS's iOS embedded-build mode (client role only — iPad never hosts) is unexercised by this project | Lower risk than an unsupported platform, but still unverified in practice | Named as an early spike with a fallback path, not assumed to work untested |
 | iPad client has no reachable server to use without Phase 2 | iPad is client-only (`local_server.cpp`'s subprocess model doesn't apply there); the client is inert without a `rollnw-server` running elsewhere | Noted as a soft prerequisite in Phase 3, not just a graphics dependency |
 | iPad has no local game data and no way to point at an arbitrary folder | `client_application.cpp` won't even start without a resolvable NWN:EE data tree; this holds regardless of server location | Layered transfer plan in Phase 3 (Finder file sharing first, AirDrop/UTI second, Files picker + LAN upload later); no new asset package format needed |
