@@ -247,7 +247,17 @@ bool GffField::get_to(T& value) const
                 // in case not doing it is ub..
                 if (entry_->type % 2) {
                     int32_t temp = 0;
-                    memcpy(&temp, &entry_->data_or_offset, bytes);
+                    if (bytes == 1) {
+                        int8_t v = 0;
+                        memcpy(&v, &entry_->data_or_offset, sizeof(v));
+                        temp = v;
+                    } else if (bytes == 2) {
+                        int16_t v = 0;
+                        memcpy(&v, &entry_->data_or_offset, sizeof(v));
+                        temp = v;
+                    } else {
+                        memcpy(&temp, &entry_->data_or_offset, sizeof(temp));
+                    }
                     value = static_cast<T>(temp);
                 } else {
                     uint32_t temp = 0;
@@ -268,7 +278,8 @@ bool GffField::get_to(T& value) const
             memcpy(&value, &entry_->data_or_offset, sizeof(T));
             return true;
         } else {
-            size_t off = entry_->data_or_offset + parent_->head_->field_data_offset;
+            size_t off = static_cast<size_t>(entry_->data_or_offset)
+                + static_cast<size_t>(parent_->head_->field_data_offset);
             CHECK_OFF(off < parent_->data_.bytes.size());
 
             if constexpr (std::is_same_v<T, Resref>) {
@@ -339,6 +350,7 @@ bool GffField::get_to(T& value) const
             } else {
                 T temp;
                 CHECK_OFF(parent_->data_.bytes.read_at(off, &temp, sizeof(T)));
+                value = temp;
                 return true;
             }
         }

@@ -560,3 +560,25 @@ TEST(ObjectSystem, LoadPlayer)
     auto pl3 = nwk::objects().load_file<nw::Player>(fs::path("test_data/user/servervault/CDKEY/testmonkpc.bic"));
     EXPECT_TRUE(pl3);
 }
+
+TEST(ObjectSystem, RejectsMismatchedHandleTypes)
+{
+    auto* item = nwk::objects().make<nw::Item>();
+    ASSERT_NE(item, nullptr);
+    const nw::ObjectHandle item_handle = item->handle();
+
+    nw::ObjectHandle forged = item_handle;
+    forged.type = nw::ObjectType::creature;
+
+    EXPECT_EQ(nwk::objects().get_object_base(forged), nullptr);
+    EXPECT_EQ(nwk::objects().get<nw::Creature>(item_handle), nullptr);
+    EXPECT_EQ(nwk::objects().get<nw::Creature>(forged), nullptr);
+    EXPECT_EQ(nwk::objects().get<nw::Item>(item_handle), item);
+
+    nwk::objects().destroy(forged);
+    EXPECT_TRUE(nwk::objects().valid(item_handle));
+    EXPECT_EQ(nwk::objects().get<nw::Item>(item_handle), item);
+
+    nwk::objects().destroy(item_handle);
+    EXPECT_FALSE(nwk::objects().valid(item_handle));
+}

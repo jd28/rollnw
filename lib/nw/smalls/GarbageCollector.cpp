@@ -1120,7 +1120,26 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
         break;
     }
 
-    case TK_sum:
+    case TK_sum: {
+        if (!type->contains_heap_refs) return has_young_refs;
+        if (!type->type_params[0].is<SumID>()) { return false; }
+        const SumDef* def = runtime_->type_table_.get(type->type_params[0].as<SumID>());
+        if (!def) { return false; }
+
+        uint8_t* data = static_cast<uint8_t*>(heap_->get_ptr(ptr));
+        uint32_t tag = *reinterpret_cast<uint32_t*>(data + def->tag_offset);
+        if (tag >= def->variant_count) { return has_young_refs; }
+
+        const VariantDef& variant = def->variants[tag];
+        if (variant.payload_type == invalid_type_id) { return has_young_refs; }
+
+        uint8_t* payload_base = data + def->union_offset + variant.payload_offset;
+        runtime_->scan_value_heap_refs(variant.payload_type, payload_base, [&](HeapPtr* child_ptr) {
+            try_mark_child(*child_ptr);
+        });
+        break;
+    }
+
     case TK_fixed_array: {
         if (!type->contains_heap_refs) return has_young_refs;
         uint8_t* data = static_cast<uint8_t*>(heap_->get_ptr(ptr));

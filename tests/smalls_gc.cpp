@@ -6,6 +6,7 @@
 #include <nw/rules/effects.hpp>
 #include <nw/smalls/GarbageCollector.hpp>
 #include <nw/smalls/Smalls.hpp>
+#include <nw/smalls/VirtualMachine.hpp>
 #include <nw/smalls/runtime.hpp>
 
 #include <stdexcept>
@@ -1241,4 +1242,97 @@ TEST_F(SmallsGCTest, PropsetShadowArrayStorageInvariant)
 
     nw::kernel::objects().destroy(creature->handle());
     EXPECT_EQ(runtime.resolve_array(nums_val), nullptr);
+}
+
+TEST_F(SmallsGCTest, FreshVmEarlyFailureDoesNotCrash)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* script = runtime.load_module_from_source("test.gc_fresh_vm", R"(
+        fn ok(): int { return 7; }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    BytecodeModule* module = runtime.get_or_compile_module(script);
+    ASSERT_NE(module, nullptr);
+
+    VirtualMachine fresh_vm;
+    Value missing = fresh_vm.execute(module, "does_not_exist", {});
+    EXPECT_TRUE(fresh_vm.failed());
+    EXPECT_EQ(missing.type_id, invalid_type_id);
+
+    Value result = fresh_vm.execute(module, "ok", {});
+    EXPECT_FALSE(fresh_vm.failed());
+    EXPECT_EQ(result.data.ival, 7);
+}
+
+TEST_F(SmallsGCTest, WriteBarriersPreserveYoungValuesInOldContainers)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    auto* script = runtime.load_module_from_source("test.gc_write_barriers", R"(
+        import core.array as arr;
+
+        type Box = Empty | Text(string);
+
+        var g_list: array!(string) = {};
+
+        fn push_text(s: string) {
+            arr.push(g_list, s);
+        }
+
+        fn set_text(i: int, s: string) {
+            arr.set(g_list, i, s);
+        }
+
+        fn get_text(i: int): string {
+            return arr.get(g_list, i);
+        }
+    )");
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    ASSERT_TRUE(runtime.execute_script(script, "push_text", {Value::make_string(runtime.alloc_string("seed"))}).ok());
+
+    TypeID box_tid = runtime.type_id("test.gc_write_barriers.Box", false);
+    ASSERT_NE(box_tid, invalid_type_id);
+    const Type* box_type = runtime.get_type(box_tid);
+    ASSERT_NE(box_type, nullptr);
+    const SumDef* box_def = runtime.type_table_.get(box_type->type_params[0].as<SumID>());
+    ASSERT_NE(box_def, nullptr);
+
+    HeapPtr old_sum = runtime.alloc_sum(box_tid);
+    ASSERT_NE(old_sum.value, 0u);
+    Runtime::ScopedRoots roots{runtime, 1};
+    roots.add(Value::make_heap(old_sum, box_tid));
+
+    // Promote g_list and old_sum to old generation.
+    for (int i = 0; i < 4; ++i) {
+        gc->collect_minor();
+    }
+    ASSERT_TRUE(gc->is_old(old_sum));
+
+    // Mutate old containers with freshly allocated young strings via array.push, array.set, and write_sum_payload.
+    ASSERT_TRUE(runtime.execute_script(script, "push_text", {Value::make_string(runtime.alloc_string("young_pushed"))}).ok());
+    ASSERT_TRUE(runtime.execute_script(script, "set_text", {Value::make_int(0), Value::make_string(runtime.alloc_string("young_set"))}).ok());
+    HeapPtr young_sum_str = runtime.alloc_string("young_sum");
+    runtime.write_sum_tag(old_sum, box_def, 1);
+    runtime.write_sum_payload(old_sum, box_def, 1, Value::make_string(young_sum_str));
+
+    gc->collect_minor();
+
+    auto r0 = runtime.execute_script(script, "get_text", {Value::make_int(0)});
+    ASSERT_TRUE(r0.ok());
+    EXPECT_EQ(runtime.get_string_view(r0.value.data.hptr), "young_set");
+
+    auto r1 = runtime.execute_script(script, "get_text", {Value::make_int(1)});
+    ASSERT_TRUE(r1.ok());
+    EXPECT_EQ(runtime.get_string_view(r1.value.data.hptr), "young_pushed");
+
+    Value sum_payload = runtime.read_sum_payload(old_sum, box_def, 1);
+    ASSERT_EQ(sum_payload.storage, ValueStorage::heap);
+    EXPECT_TRUE(heap_contains(runtime, sum_payload.data.hptr));
+    EXPECT_EQ(runtime.get_string_view(sum_payload.data.hptr), "young_sum");
 }

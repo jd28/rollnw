@@ -373,10 +373,10 @@ struct ToolsetPreviewSession::Impl {
             nav::release_nav_agents(nav_world, agents);
         }
         if (service_generation == kernel::services().generation()) {
-            if (item_area.type == ObjectType::area && kernel::objects().valid(item_area)) {
+            if (auto* item_area_obj = kernel::objects().get<Area>(item_area)) {
                 // Area destruction releases its rows; clear explicitly destroys
                 // the objects referenced by those native owning containers.
-                kernel::objects().get<Area>(item_area)->clear();
+                item_area_obj->clear();
                 kernel::objects().destroy(item_area);
             }
             if (actor.type != ObjectType::invalid && kernel::objects().valid(actor)) {

@@ -236,7 +236,19 @@ inline ObjectType serial_id_to_obj_type(StringView id)
 template <typename T>
 T* ObjectManager::get(ObjectHandle hndl)
 {
-    return static_cast<T*>(objects_array_.get(hndl));
+    if constexpr (std::is_same_v<T, ObjectBase>) {
+        return objects_array_.get(hndl);
+    } else if constexpr (std::is_same_v<T, Creature>) {
+        if (hndl.type != ObjectType::creature && hndl.type != ObjectType::player) {
+            return nullptr;
+        }
+        return static_cast<T*>(objects_array_.get(hndl));
+    } else {
+        if (hndl.type != T::object_type) {
+            return nullptr;
+        }
+        return static_cast<T*>(objects_array_.get(hndl));
+    }
 }
 
 template <typename T>

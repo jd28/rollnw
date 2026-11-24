@@ -183,7 +183,7 @@ uint8_t* VirtualMachine::current_frame_stack_data()
 
 String VirtualMachine::get_stack_trace() const
 {
-    auto config = rt_->diagnostic_config();
+    auto config = rt_ ? rt_->diagnostic_config() : DiagnosticConfig{};
 
     if (frames_.empty()) {
         return "Stack trace: (no frames)\n";
@@ -693,6 +693,7 @@ void CallFrame::enumerate_stack_roots(GCRootVisitor& visitor, Runtime* runtime)
 Value VirtualMachine::execute(BytecodeModule* module, StringView function_name, const Vector<Value>& args,
     uint64_t gas_limit)
 {
+    rt_ = &nw::kernel::runtime();
     const CompiledFunction* func = module->get_function(function_name);
     if (!func) {
         fail(fmt::format("Function not found: {}", function_name));
@@ -705,6 +706,7 @@ Value VirtualMachine::execute(BytecodeModule* module, StringView function_name, 
 Value VirtualMachine::execute(BytecodeModule* module, const CompiledFunction* func, const Vector<Value>& args,
     uint64_t gas_limit)
 {
+    rt_ = &nw::kernel::runtime();
     // Track entry frame depth for reentrant execution
     size_t entry_depth = frames_.size();
     Value saved_reg0{};
@@ -774,6 +776,7 @@ Value VirtualMachine::execute(BytecodeModule* module, const CompiledFunction* fu
 
 Value VirtualMachine::execute_closure(Closure* closure, const Vector<Value>& args, uint64_t gas_limit)
 {
+    rt_ = &nw::kernel::runtime();
     if (!closure || !closure->function || !closure->module) {
         fail("execute_closure: invalid closure");
         return {};
@@ -1705,7 +1708,11 @@ lbl_SUMINIT: {
 
     if (payload_reg != 255) {
         Value payload = reg(payload_reg);
-        rt_->write_sum_payload(data, sum_def, tag_value, payload);
+        if (sum_val.storage == ValueStorage::heap) {
+            rt_->write_sum_payload(sum_val.data.hptr, sum_def, tag_value, payload);
+        } else {
+            rt_->write_sum_payload(data, sum_def, tag_value, payload);
+        }
     }
     DISPATCH();
 }
@@ -1790,14 +1797,32 @@ lbl_CLOSURE: {
             uint8_t index = static_cast<uint8_t>(desc >> 1);
 
             if (is_local) {
-                closure->upvalues.push_back(get_or_create_upvalue(frame, index));
+                Upvalue* uv = get_or_create_upvalue(frame, index);
+                closure->upvalues.push_back(uv);
+                if (rt_->gc() && uv) {
+                    if (uv->heap_ptr.value != 0) {
+                        rt_->gc()->write_barrier(closure_ptr, uv->heap_ptr);
+                    }
+                    if (!uv->is_open() && uv->closed.storage == ValueStorage::heap && uv->closed.data.hptr.value != 0) {
+                        rt_->gc()->write_barrier(closure_ptr, uv->closed.data.hptr);
+                    }
+                }
             } else {
                 if (!frame.closure || index >= frame.closure->upvalues.size()) {
                     fail("Closure upvalue index out of range");
                     ok = false;
                     break;
                 }
-                closure->upvalues.push_back(frame.closure->upvalues[index]);
+                Upvalue* uv = frame.closure->upvalues[index];
+                closure->upvalues.push_back(uv);
+                if (rt_->gc() && uv) {
+                    if (uv->heap_ptr.value != 0) {
+                        rt_->gc()->write_barrier(closure_ptr, uv->heap_ptr);
+                    }
+                    if (!uv->is_open() && uv->closed.storage == ValueStorage::heap && uv->closed.data.hptr.value != 0) {
+                        rt_->gc()->write_barrier(closure_ptr, uv->closed.data.hptr);
+                    }
+                }
             }
         }
         if (!ok) { break; }
@@ -2405,6 +2430,9 @@ lbl_STACK_INDEXSET: {
         }
     } else {
         write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
+    }
+    if (base.storage == ValueStorage::heap) {
+        rt_->write_barrier_for_value(base.data.hptr, elem_type_id, val, ptr);
     }
     DISPATCH();
 }
@@ -3030,7 +3058,11 @@ vm_exit:
 
             if (payload_reg != 255) {
                 Value payload = reg(payload_reg);
-                rt_->write_sum_payload(data, sum_def, tag_value, payload);
+                if (sum_val.storage == ValueStorage::heap) {
+                    rt_->write_sum_payload(sum_val.data.hptr, sum_def, tag_value, payload);
+                } else {
+                    rt_->write_sum_payload(data, sum_def, tag_value, payload);
+                }
             }
             break;
         }
@@ -3115,14 +3147,32 @@ vm_exit:
                     uint8_t index = static_cast<uint8_t>(desc >> 1);
 
                     if (is_local) {
-                        closure->upvalues.push_back(get_or_create_upvalue(frame, index));
+                        Upvalue* uv = get_or_create_upvalue(frame, index);
+                        closure->upvalues.push_back(uv);
+                        if (rt_->gc() && uv) {
+                            if (uv->heap_ptr.value != 0) {
+                                rt_->gc()->write_barrier(closure_ptr, uv->heap_ptr);
+                            }
+                            if (!uv->is_open() && uv->closed.storage == ValueStorage::heap && uv->closed.data.hptr.value != 0) {
+                                rt_->gc()->write_barrier(closure_ptr, uv->closed.data.hptr);
+                            }
+                        }
                     } else {
                         if (!frame.closure || index >= frame.closure->upvalues.size()) {
                             fail("Closure upvalue index out of range");
                             ok = false;
                             break;
                         }
-                        closure->upvalues.push_back(frame.closure->upvalues[index]);
+                        Upvalue* uv = frame.closure->upvalues[index];
+                        closure->upvalues.push_back(uv);
+                        if (rt_->gc() && uv) {
+                            if (uv->heap_ptr.value != 0) {
+                                rt_->gc()->write_barrier(closure_ptr, uv->heap_ptr);
+                            }
+                            if (!uv->is_open() && uv->closed.storage == ValueStorage::heap && uv->closed.data.hptr.value != 0) {
+                                rt_->gc()->write_barrier(closure_ptr, uv->closed.data.hptr);
+                            }
+                        }
                     }
                 }
                 if (!ok) { break; }
@@ -3743,6 +3793,9 @@ vm_exit:
             } else {
                 write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
             }
+            if (base.storage == ValueStorage::heap) {
+                rt_->write_barrier_for_value(base.data.hptr, elem_type_id, val, ptr);
+            }
             break;
         }
 
@@ -4328,6 +4381,9 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
         }
         arr->append_value(val, *rt_);
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->write_barrier_for_value(arr_val.data.hptr, elem_type, val);
+        }
         rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = Value(rt_->void_type());
         return;
@@ -4462,6 +4518,9 @@ void VirtualMachine::call_intrinsic(IntrinsicId id, uint8_t dest_reg, uint8_t ar
             return;
         }
         Value arr_val = reg(static_cast<uint8_t>(dest_reg + 1));
+        if (arr_val.storage == ValueStorage::heap) {
+            rt_->write_barrier_for_value(arr_val.data.hptr, elem_type, val);
+        }
         rt_->mark_array_mutation(arr_val);
         reg(dest_reg) = Value(rt_->void_type());
         return;
@@ -5338,6 +5397,9 @@ void VirtualMachine::op_field_offset_access(Opcode op, uint8_t a, uint8_t b, uin
                 return;
             }
             std::memcpy(dst, src, access_type->size);
+            if (struct_val.storage == ValueStorage::heap) {
+                rt_->write_barrier_for_value(struct_val.data.hptr, access_type_id, val, dst);
+            }
         } else {
             if (!rt_->write_value_field_at_offset(struct_val, effective_offset, access_type_id, val)) {
                 fail("Field write failed (type mismatch?)");
