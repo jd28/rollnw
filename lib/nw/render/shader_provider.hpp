@@ -3,24 +3,11 @@
 #include <nw/gfx/gfx.hpp>
 #include <nw/resources/ResourceManager.hpp>
 
-#include <functional>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 namespace nw::render {
-
-using ShaderIncludeResolver = std::function<std::optional<std::string>(std::string_view filename)>;
-
-/// Expands `#include "file"` lines by splicing in resolved content, wrapped in
-/// #line directives so compiler diagnostics point at the original files. Each
-/// include is spliced at most once per expansion. Returns nullopt if an include
-/// cannot be resolved or nesting exceeds the depth limit.
-std::optional<std::string> expand_shader_includes(
-    std::string_view source,
-    std::string_view source_name,
-    const ShaderIncludeResolver& resolver);
 
 /// Pipeline stage a shader entry point is compiled for. The shaders carry no
 /// `[shader(...)]` attribute, so the stage has to be supplied explicitly; it
@@ -55,6 +42,8 @@ private:
     // headers stay private to shader_provider.cpp.
     void* slang_global_session_ = nullptr;
     void* slang_session_ = nullptr;
+    // ResourceFileSystem, owned here and borrowed by the session.
+    void* slang_file_system_ = nullptr;
 };
 
 } // namespace nw::render

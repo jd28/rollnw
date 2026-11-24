@@ -1,3 +1,5 @@
+#pragma once
+
 static const uint PLT_LAYER_COUNT = 10u;
 static const uint PLT_PALETTE_MAX_WIDTH = 256u;
 static const uint PLT_PALETTE_MAX_HEIGHT = 176u;

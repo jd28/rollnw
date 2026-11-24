@@ -1,6 +1,8 @@
 // Shadow sampling from SceneConstants.
 // Requires the bindless `g_textures` array and scene_constants.inc.hlsl.
 
+#pragma once
+
 uint scene_shadow_cascade_index(float scene_distance) {
     uint cascade = 0;
     if (scene_distance > scene_shadow_split_distances.x) cascade = 1;

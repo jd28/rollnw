@@ -2,6 +2,8 @@
 // Requires the bindless `g_textures` array to be declared before inclusion.
 // Layout of ShadowConstants must match the C++ side exactly.
 
+#pragma once
+
 [[vk::binding(4, 0)]] cbuffer ShadowConstants : register(b4) {
     float4x4 world_to_shadow[3];
     uint4 shadow_texture_indices;

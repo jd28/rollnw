@@ -4,8 +4,9 @@
 
 #include <fmt/format.h>
 
+#include <atomic>
+#include <cstring>
 #include <filesystem>
-#include <unordered_set>
 
 #ifdef NW_RENDER_HAS_SLANG
 #include <slang-com-ptr.h>
@@ -15,8 +16,6 @@
 namespace nw::render {
 
 namespace {
-
-constexpr int max_include_depth = 8;
 
 // See ShaderProvider::initialize for why the SPIR-V profile is pinned.
 constexpr const char* kSpirvProfile = "spirv_1_6";
@@ -35,6 +34,119 @@ SlangStage slang_stage_for(ShaderStage stage) noexcept
     return SLANG_STAGE_NONE;
 }
 
+bool same_guid(const SlangUUID& lhs, const SlangUUID& rhs) noexcept
+{
+    return std::memcmp(&lhs, &rhs, sizeof(SlangUUID)) == 0;
+}
+
+// Slang's COM interfaces deliberately declare non-virtual destructors, as COM
+// requires; both implementations below are only ever destroyed through their
+// own static type. The warning is about the vendored bases, not this code.
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
+
+// Slang releases the blobs it is handed, so this owns a copy of the bytes
+// rather than borrowing the ResourceManager's.
+class SourceBlob : public ISlangBlob {
+public:
+    explicit SourceBlob(std::string source)
+        : source_(std::move(source))
+    {
+    }
+
+    // The COM bases declare non-virtual destructors; both of these types are
+    // only ever deleted through their own static type, and saying so keeps
+    // -Wdelete-non-virtual-dtor honest about it.
+    virtual ~SourceBlob() = default;
+
+    SLANG_IUNKNOWN_ALL
+
+    SLANG_NO_THROW void const* SLANG_MCALL getBufferPointer() override { return source_.data(); }
+    SLANG_NO_THROW size_t SLANG_MCALL getBufferSize() override { return source_.size(); }
+
+private:
+    ISlangUnknown* getInterface(const SlangUUID& uuid)
+    {
+        if (same_guid(uuid, ISlangUnknown::getTypeGuid())
+            || same_guid(uuid, ISlangBlob::getTypeGuid())) {
+            return static_cast<ISlangBlob*>(this);
+        }
+        return nullptr;
+    }
+
+    std::string source_;
+    std::atomic<uint32_t> m_refCount{1};
+};
+
+// Resolves shader #include through ResourceManager instead of the real
+// filesystem, so a module or hak can override a shader the same way it
+// overrides any other resource. This is the reason the provider supplies a
+// file system at all -- a stock filesystem-backed compiler cannot see those.
+class ResourceFileSystem : public ISlangFileSystem {
+public:
+    explicit ResourceFileSystem(nw::ResourceManager* resources)
+        : resources_(resources)
+    {
+    }
+
+    virtual ~ResourceFileSystem() = default;
+
+    SLANG_NO_THROW SlangResult SLANG_MCALL queryInterface(
+        SlangUUID const& uuid, void** outObject) override
+    {
+        if (void* intf = castAs(uuid)) {
+            *outObject = intf;
+            return SLANG_OK;
+        }
+        return SLANG_E_NO_INTERFACE;
+    }
+
+    // ShaderProvider owns this and releases the session before destroying it,
+    // so the reference count is deliberately inert.
+    SLANG_NO_THROW uint32_t SLANG_MCALL addRef() override { return 1; }
+    SLANG_NO_THROW uint32_t SLANG_MCALL release() override { return 1; }
+
+    SLANG_NO_THROW void* SLANG_MCALL castAs(const SlangUUID& guid) override
+    {
+        if (same_guid(guid, ISlangUnknown::getTypeGuid())
+            || same_guid(guid, ISlangCastable::getTypeGuid())
+            || same_guid(guid, ISlangFileSystem::getTypeGuid())) {
+            return static_cast<ISlangFileSystem*>(this);
+        }
+        return nullptr;
+    }
+
+    SLANG_NO_THROW SlangResult SLANG_MCALL loadFile(
+        char const* path, ISlangBlob** outBlob) override
+    {
+        if (!path || !outBlob) { return SLANG_E_INVALID_ARG; }
+
+        // Resource names are a flat namespace, so match on the filename even
+        // if Slang hands back a combined path.
+        const auto filename = std::filesystem::path{path}.filename();
+        const auto resource = nw::Resource::from_path(filename);
+        if (!resource.valid() || resource.type != nw::ResourceType::hlsl) {
+            return SLANG_E_NOT_FOUND;
+        }
+
+        auto data = resources_->demand(resource);
+        if (!data.bytes.size()) { return SLANG_E_NOT_FOUND; }
+
+        const auto view = data.bytes.string_view();
+        *outBlob = new SourceBlob(std::string{view.data(), view.size()});
+        return SLANG_OK;
+    }
+
+private:
+    nw::ResourceManager* resources_ = nullptr;
+};
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 // Slang reports warnings as well as errors through the diagnostic blob, and
 // reports them on success too, so this is called after every step rather than
 // only on failure.
@@ -49,78 +161,7 @@ void log_slang_diagnostics(
 }
 #endif
 
-// Returns the include filename if the line is `#include "file"`, otherwise nullopt.
-std::optional<std::string_view> parse_include_line(std::string_view line)
-{
-    size_t pos = line.find_first_not_of(" \t");
-    if (pos == std::string_view::npos || line[pos] != '#') { return {}; }
-    constexpr std::string_view directive = "#include";
-    if (line.compare(pos, directive.size(), directive) != 0) { return {}; }
-    const size_t open = line.find('"', pos + directive.size());
-    if (open == std::string_view::npos) { return {}; }
-    const size_t close = line.find('"', open + 1);
-    if (close == std::string_view::npos) { return {}; }
-    return line.substr(open + 1, close - open - 1);
-}
-
-bool expand_includes_impl(std::string_view source, std::string_view source_name,
-    const ShaderIncludeResolver& resolver, int depth,
-    std::unordered_set<std::string>& seen, std::string& out)
-{
-    if (depth > max_include_depth) {
-        LOG_F(ERROR, "shader include depth limit exceeded in: {}", source_name);
-        return false;
-    }
-
-    size_t line_no = 0;
-    size_t start = 0;
-    while (start <= source.size()) {
-        size_t end = source.find('\n', start);
-        std::string_view line = source.substr(start,
-            end == std::string_view::npos ? std::string_view::npos : end - start);
-        ++line_no;
-
-        if (auto include = parse_include_line(line)) {
-            const std::string filename{*include};
-            if (seen.insert(filename).second) {
-                auto content = resolver(filename);
-                if (!content) {
-                    LOG_F(ERROR, "failed to resolve shader include \"{}\" in: {}", filename, source_name);
-                    return false;
-                }
-                out += fmt::format("#line 1 \"{}\"\n", filename);
-                if (!expand_includes_impl(*content, filename, resolver, depth + 1, seen, out)) {
-                    return false;
-                }
-                if (!out.empty() && out.back() != '\n') { out += '\n'; }
-                out += fmt::format("#line {} \"{}\"\n", line_no + 1, source_name);
-            }
-        } else {
-            out += line;
-            if (end != std::string_view::npos) { out += '\n'; }
-        }
-
-        if (end == std::string_view::npos) { break; }
-        start = end + 1;
-    }
-    return true;
-}
-
 } // namespace
-
-std::optional<std::string> expand_shader_includes(
-    std::string_view source,
-    std::string_view source_name,
-    const ShaderIncludeResolver& resolver)
-{
-    std::string out;
-    out.reserve(source.size());
-    std::unordered_set<std::string> seen;
-    if (!expand_includes_impl(source, source_name, resolver, 0, seen, out)) {
-        return {};
-    }
-    return out;
-}
 
 ShaderProvider::ShaderProvider(nw::gfx::Context* ctx, nw::ResourceManager* resources)
     : ctx_(ctx)
@@ -140,6 +181,8 @@ ShaderProvider::~ShaderProvider()
     if (slang_global_session_) {
         static_cast<slang::IGlobalSession*>(slang_global_session_)->release();
     }
+    // Deleted last: the session borrows it without holding a reference.
+    delete static_cast<ResourceFileSystem*>(slang_file_system_);
 #endif
 }
 
@@ -175,9 +218,13 @@ bool ShaderProvider::initialize()
     options[0].value.kind = slang::CompilerOptionValueKind::Int;
     options[0].value.intValue0 = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
 
+    auto* file_system = new ResourceFileSystem{resources_};
+
     slang::SessionDesc desc{};
     desc.targets = &target;
     desc.targetCount = 1;
+    // Shader #include resolves through ResourceManager; see ResourceFileSystem.
+    desc.fileSystem = file_system;
     // HLSL's default matrix layout is column-major, which is what DXC used
     // for these same sources and what the C++ side uploads glm matrices as.
     // Slang's API default is ROW_MAJOR (unlike its own slangc CLI default),
@@ -190,12 +237,14 @@ bool ShaderProvider::initialize()
     slang::ISession* session = nullptr;
     if (SLANG_FAILED(global_session->createSession(desc, &session)) || !session) {
         LOG_F(ERROR, "Failed to create Slang session");
+        delete file_system;
         global_session->release();
         return false;
     }
 
     slang_global_session_ = global_session;
     slang_session_ = session;
+    slang_file_system_ = file_system;
     compiler_available_ = true;
     LOG_F(INFO, "Slang available for runtime HLSL compilation (profile {})",
         kSpirvProfile);
@@ -251,22 +300,10 @@ nw::gfx::Handle<nw::gfx::Shader> ShaderProvider::load_and_compile(const std::str
         return {};
     }
 
+    // Handed to Slang verbatim; its preprocessor resolves #include through
+    // ResourceFileSystem, so module and hak overrides apply to headers too.
     const auto source_view = data.bytes.string_view();
-    auto source = expand_shader_includes(source_view, name,
-        [this](std::string_view filename) -> std::optional<std::string> {
-            const auto res = nw::Resource::from_path(std::filesystem::path{filename});
-            if (!res.valid() || res.type != nw::ResourceType::hlsl) { return {}; }
-            auto bytes = resources_->demand(res);
-            if (!bytes.bytes.size()) { return {}; }
-            const auto view = bytes.bytes.string_view();
-            return std::string{view.data(), view.size()};
-        });
-    if (!source) {
-        LOG_F(ERROR, "Failed to expand shader includes for: {}", name);
-        return {};
-    }
-
-    return compile_hlsl(name, *source, stage);
+    return compile_hlsl(name, std::string{source_view.data(), source_view.size()}, stage);
 }
 
 nw::gfx::Handle<nw::gfx::Shader> ShaderProvider::compile_hlsl(
@@ -282,10 +319,6 @@ nw::gfx::Handle<nw::gfx::Shader> ShaderProvider::compile_hlsl(
 
     auto* session = static_cast<slang::ISession*>(slang_session_);
 
-    // The source arrives already include-expanded (expand_shader_includes
-    // resolves through ResourceManager so a module or hak can override a
-    // shader), so Slang is handed one self-contained translation unit and
-    // never needs its own file system.
     Slang::ComPtr<slang::IBlob> diagnostics;
     slang::IModule* module = session->loadModuleFromSourceString(
         name.c_str(), name.c_str(), source.c_str(), diagnostics.writeRef());

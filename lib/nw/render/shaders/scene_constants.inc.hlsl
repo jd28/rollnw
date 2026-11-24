@@ -7,6 +7,8 @@
 // agree. Read the binding contract table there before changing a binding or
 // adding a resource to any shader.
 
+#pragma once
+
 [[vk::binding(1, 0)]] cbuffer SceneConstants : register(b1) {
     float4x4 view;
     float4x4 projection;

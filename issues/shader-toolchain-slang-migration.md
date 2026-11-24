@@ -461,10 +461,21 @@ Original scope:
 Each of these is independently landable after Phase B, and none should be
 bundled into it:
 
-- **`ISlangFileSystem` bridged to `ResourceManager`**, replacing
-  `expand_shader_includes`' textual splicing. Gets real `#line`/debug
-  info, proper module semantics, and deletes ~70 lines of hand-rolled
-  preprocessing, while preserving hak/module shader override.
+- ~~`ISlangFileSystem` bridged to `ResourceManager`.~~ **DONE 2026-11-23.**
+  `ResourceFileSystem` in `shader_provider.cpp` resolves `#include` through
+  `ResourceManager::demand`, so Slang's own preprocessor runs and module/hak
+  shader override now applies to headers as well as entry points. The
+  hand-rolled `expand_shader_includes` and its `ShaderIncludeResolver` are
+  gone from the public header, along with the 10 tests that covered the
+  splicer; `WaterShadersUseCommonRenderModelContracts` stays because it reads
+  the shader files directly rather than exercising the expander. Net −90
+  lines. Required adding `#pragma once` to all seven `.inc.hlsl` headers:
+  the old splicer deduplicated by filename, so the headers had never needed
+  guards, and a real preprocessor would otherwise double-include them. (No
+  live diamond existed — the headers are leaves — so this was insurance, not
+  a fix.) Verified by the creature corpus staying 9/10 byte-identical to the
+  DXC baseline with the same single 1-byte outlier, and the suite unchanged
+  at 1093/1101 — the 10 fewer tests are exactly the removed ones.
 - **Offline bake as a build step.** `slangc` compiles all 21 entry points
   to SPIR-V at build time; the runtime loads blobs and only falls back to
   compiling when a module/hak overrides a shader. This is what the Metal

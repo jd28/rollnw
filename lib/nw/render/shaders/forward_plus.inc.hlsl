@@ -1,3 +1,5 @@
+#pragma once
+
 struct ForwardPlusClusterHeader {
     uint offset;
     uint count;
