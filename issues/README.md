@@ -13,6 +13,10 @@ checkpoint history. Related work that remains unresolved stays active.
 - [Shader toolchain migration: DXC to Slang](shader-toolchain-slang-migration.md) — planning only; prerequisite for the macOS port. DXC ships no Apple or arm64 build, and one compiler serving SPIR-V and MSL removes the two-tool binding-layout problem.
 - [macOS/iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md) — planning only; phased native Metal backend, macOS client/server, then touch-adapted full toolset on iPad. Shader toolchain decision amended 2026-11-22 and delegated to the plan above.
 
+## Gameplay work
+
+- [Ability use pipeline](server-ability-use-pipeline.md) — design plus first slice; profile-agnostic "use ability" action, handler dispatch with no ambient context, and the spatial-query boundary that blocks point/area targeting and telegraphs.
+
 ## Renderer work
 
 Start with [renderer status and next work](rendering-performance-overhaul.md)

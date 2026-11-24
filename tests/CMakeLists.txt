@@ -324,6 +324,7 @@ add_executable(rollnw_test
     smalls_runtime.cpp
     smalls_const_eval.cpp
     smalls_corpus.cpp
+    nwn1_ability_pipeline.cpp
     smalls_engine_integration.cpp
     smalls_lsp_bootstrap.cpp
     smalls_modules.cpp

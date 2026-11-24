@@ -1,0 +1,227 @@
+// Ability use dispatch. Design: issues/server-ability-use-pipeline.md.
+//
+// A handler is a pure function of an explicit context. There is deliberately no
+// GetSpellDC()/GetSpellTargetObject() equivalent: if a handler needs a value it
+// is a field on AbilityUse. Handlers describe what should happen and return it;
+// the caller applies the effects and spends the use. That keeps handlers
+// testable without a world, keeps interruption uniform, and makes a dry run
+// ("what would this do?") free for toolset preview.
+
+import core.array as arr;
+import core.effects as eff;
+from core.types import { Class, Spell };
+
+import nwn1.creature as NCre;
+
+// Ability domains. What `ability` means depends on the domain; core carries
+// both as opaque integers and never learns that 0 is a spell.
+const domain_spell = 0;
+const domain_feat = 1;
+const domain_special_ability = 2;
+const domain_item_property = 3;
+
+// One effect and the object it lands on. The pipeline applies these; a handler
+// never calls apply_effect itself.
+type EffectApplication {
+    target: object;
+    effect: eff.Effect;
+};
+
+// Everything a handler is allowed to know. Caster-derived values are snapshots
+// taken when the ability was used, not lookups at impact: the caster may be
+// buffed, drained or dead by the time a delayed ability resolves.
+[[value_type]]
+type AbilityUse {
+    domain: int;
+    ability: int;        // spell_id / feat_id, profile-defined
+    source: int;         // class_id for spells, -1 otherwise
+    tier: int;           // spell level
+    modifier: int;       // metamagic code
+
+    caster: Creature;
+    target: object;      // invalid for point and area uses
+
+    has_point: bool;
+    point_x: float;
+    point_y: float;
+    point_z: float;
+
+    // Filled by the pipeline at impact. Empty until area collection exists,
+    // which is blocked on a spatial query -- see the design doc.
+    affected: array!(object);
+
+    caster_level: int;
+    effective_level: int;
+    save_dc: int;
+    is_hostile: bool;
+};
+
+[[value_type]]
+type AbilityUseResult {
+    handled: bool;
+    consume_use: bool;
+    effects: array!(EffectApplication);
+};
+
+// Not a [[value_type]]: it holds a closure, and iterating an array of value
+// types whose fields include closures is a known VM limitation.
+type AbilityHandler {
+    tag: string;
+    domain: int;
+    ability: int;        // -1 matches any ability in the domain
+    payload: fn(AbilityUse): AbilityUseResult;
+};
+
+var handlers: array!(AbilityHandler) = {};
+
+fn empty_result(): AbilityUseResult {
+    var effects: array!(EffectApplication) = {};
+    return AbilityUseResult {
+        handled = false,
+        consume_use = false,
+        effects = effects,
+    };
+}
+
+// Queues one effect against one target.
+fn push_effect(result: AbilityUseResult, target: object, effect: eff.Effect) {
+    arr.push(result.effects, EffectApplication { target = target, effect = effect });
+}
+
+fn clear_handlers() {
+    arr.clear(handlers);
+}
+
+fn has_handlers(): bool {
+    return arr.len(handlers) > 0;
+}
+
+fn handler_count(): int {
+    return arr.len(handlers);
+}
+
+fn register_handler(
+    tag: string,
+    domain: int,
+    ability: int,
+    payload: fn(AbilityUse): AbilityUseResult,
+) {
+    arr.push(handlers, AbilityHandler {
+        tag = tag,
+        domain = domain,
+        ability = ability,
+        payload = payload,
+    });
+}
+
+// Builds the cast-time context for a spell. The caller supplies target and
+// point; everything caster-derived is snapshotted here from the existing rules.
+fn make_spell_use(
+    caster: Creature,
+    class_: Class,
+    spell: Spell,
+    meta: int,
+    target: object,
+    is_hostile: bool,
+): AbilityUse {
+    var affected: array!(object) = {};
+    return AbilityUse {
+        domain = domain_spell,
+        ability = spell as int,
+        source = class_ as int,
+        tier = NCre.effective_spell_level(class_, spell, meta),
+        modifier = meta,
+
+        caster = caster,
+        target = target,
+
+        has_point = false,
+        point_x = 0.0,
+        point_y = 0.0,
+        point_z = 0.0,
+
+        affected = affected,
+
+        caster_level = NCre.get_caster_level(caster, class_),
+        effective_level = NCre.effective_spell_level(class_, spell, meta),
+        save_dc = NCre.get_spell_dc(caster, class_, spell),
+        is_hostile = is_hostile,
+    };
+}
+
+// Whether the caster currently has a use of this spell available. Slot
+// accounting already lives in creature rules; this is the pipeline's gate.
+fn can_use_spell(caster: Creature, class_: Class, spell: Spell, meta: int): bool {
+    return NCre.get_available_spell_uses(caster, class_, spell, 0, meta) > 0;
+}
+
+// Dispatches to every handler matching (domain, ability) and merges what they
+// return. Matching mirrors on_hit: an ability of -1 means "any in domain".
+fn resolve_use(use: AbilityUse): AbilityUseResult {
+    var result = empty_result();
+    for (var h in handlers) {
+        if (h.domain != use.domain) {
+            continue;
+        }
+        if (h.ability >= 0 && h.ability != use.ability) {
+            continue;
+        }
+        var f = h.payload;
+        var partial = f(use);
+        if (partial.handled) {
+            result.handled = true;
+        }
+        if (partial.consume_use) {
+            result.consume_use = true;
+        }
+        for (var application in partial.effects) {
+            arr.push(result.effects, application);
+        }
+    }
+    return result;
+}
+
+// Placeholder occupying the spell domain until real content exists, matching
+// the inert stubs in on_hit. It deliberately claims nothing: a wildcard handler
+// that reported `handled` and `consume_use` would silently spend a slot for
+// every spell in the game and look like working casting.
+fn _stub_spell(_use: AbilityUse): AbilityUseResult {
+    return empty_result();
+}
+
+fn register_default_handlers() {
+    clear_handlers();
+    register_handler("stub_spell", domain_spell, -1, _stub_spell);
+}
+
+// Status returned by the bridge entry point below.
+const use_status_unavailable = -1;   // caster has no use of this available
+const use_status_unhandled = 0;      // no handler claimed it
+const use_status_handled = 1;        // a handler resolved it
+
+// The entry point the action layer calls through scriptbridge: gate on slot
+// availability, snapshot the cast-time context, dispatch.
+//
+// It deliberately stops at resolution. Applying the returned effects and
+// spending the slot belong to the caller that owns the action row and the
+// ability store, and are wired when ActionKind::use_ability lands; doing half
+// of it here would leave a use spent with nothing applied on an interrupt.
+fn resolve_spell_use(
+    caster: Creature,
+    class_: Class,
+    spell: Spell,
+    meta: int,
+    target: object,
+    is_hostile: bool,
+): int {
+    if (!can_use_spell(caster, class_, spell, meta)) {
+        return use_status_unavailable;
+    }
+
+    var use = make_spell_use(caster, class_, spell, meta, target, is_hostile);
+    var result = resolve_use(use);
+    if (!result.handled) {
+        return use_status_unhandled;
+    }
+    return use_status_handled;
+}
