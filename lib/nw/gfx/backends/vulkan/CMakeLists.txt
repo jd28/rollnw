@@ -1,26 +1,3 @@
-# glslang
-set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "" FORCE)
-set(ENABLE_HLSL             OFF CACHE BOOL "" FORCE)
-set(ENABLE_CTEST            OFF CACHE BOOL "" FORCE)
-set(ENABLE_OPT              OFF CACHE BOOL "" FORCE)
-set(ENABLE_SPVREMAPPER      OFF CACHE BOOL "" FORCE)
-set(SKIP_GLSLANG_INSTALL    ON  CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/glslang glslang EXCLUDE_FROM_ALL SYSTEM)
-rollnw_silence_target_warnings(
-    glslang
-    SPIRV
-    glslang-default-resource-limits
-    MachineIndependent
-    GenericCodeGen
-    OSDependent
-)
-
-# SPIRV-Reflect
-set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "" FORCE)
-set(SPIRV_REFLECT_STATIC_LIB ON  CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/SPIRV-Reflect SPIRV-Reflect EXCLUDE_FROM_ALL SYSTEM)
-rollnw_silence_target_warnings(spirv-reflect-static)
-
 add_library(nw-gfx STATIC
     vulkan_all.cpp
 )
@@ -29,9 +6,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
 set_project_warnings(nw-gfx OWN_SOURCES NO_INTERFACE)
 
 # nw-gfx does not link nw, so it inherits no warnings from it. Its only
-# translation unit exists to compile vendored implementations -- VulkanMemory-
-# Allocator, glslang, SPIRV-Reflect -- whose warnings are not ours to fix; 224
-# of the 225 it reports come from vk_mem_alloc.h alone. Warnings stay enabled on
+# translation unit exists to compile vendored implementations -- volk and
+# VulkanMemoryAllocator -- whose warnings are not ours to fix; 224 of the 225
+# it reports come from vk_mem_alloc.h alone. Warnings stay enabled on
 # the target so that first-party sources added here are checked, and are
 # silenced for this file only. NO_INTERFACE keeps the flags off consumers, which
 # compile vendored imgui sources that would otherwise flood the build.
@@ -40,8 +17,6 @@ set_source_files_properties(vulkan_all.cpp PROPERTIES COMPILE_OPTIONS -w)
 target_include_directories(nw-gfx PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/lib/nw/gfx
-    ${CMAKE_SOURCE_DIR}/external/glslang
-    ${CMAKE_SOURCE_DIR}/external/SPIRV-Reflect
     ${CMAKE_SOURCE_DIR}/external/SDL/src/video/khronos
 )
 
@@ -52,10 +27,6 @@ target_include_directories(nw-gfx SYSTEM PUBLIC
 
 target_link_libraries(nw-gfx PUBLIC
     SDL3::SDL3
-    glslang
-    SPIRV
-    glslang-default-resource-limits
-    spirv-reflect-static
 )
 
 if(ROLLNW_ENABLE_TRACY)

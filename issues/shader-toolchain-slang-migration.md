@@ -428,7 +428,21 @@ compile at runtime, still from `.hlsl` sources, still to the same SPIR-V.
   coexists with a global-scope `uniform` (shader-slang/slang#14013) still
   does not apply, because nothing here reflects bindings.
 
-### Phase C — delete what the swap orphans
+### Phase C — delete what the swap orphans — **DONE**
+
+Removed 2026-11-23. `glslang` and `SPIRV-Reflect` were linked by
+`lib/nw/gfx/backends/vulkan/CMakeLists.txt` and included by nothing: no
+`#include` and no symbol reference anywhere in `lib`, `tools` or `tests`, and
+`vulkan_all.cpp` compiles only volk, VMA and the three Vulkan sources (a stale
+comment in that CMakeLists claimed otherwise and has been corrected). Both
+`add_subdirectory` calls, both include directories, all four link entries and
+both git submodules are gone, along with a stale `lightweightvk` entry that
+was in `.gitmodules` but unregistered and referenced by nothing. SDL is now
+the only submodule. Verified by a fresh configure plus the full suite at
+1103/1111, unchanged. Drops 55 MB from a clone and removes three repositories
+from every `submodules: true` CI checkout.
+
+Original scope:
 
 - Remove the `glslang` and `SPIRV-Reflect` link dependencies and
   `add_subdirectory` calls from
