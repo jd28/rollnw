@@ -422,9 +422,39 @@ jobs:
           $env:HOST_CCACHE_DIR="$(ccache -k cache_dir)"
           md $env:HOST_CCACHE_DIR -ea 0
 
+      - name: windows - download Slang
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $version = "2026.22.1"
+          $asset = "slang-$version-windows-x86_64.zip"
+          $url = "https://github.com/shader-slang/slang/releases/download/v$version/$asset"
+          $file = Join-Path $env:RUNNER_TEMP $asset
+          $expected = "e72344f7b0323cec8b039c534caaf4680e7ba629489fc796ea4c7f7adb7deb68"
+
+          for ($attempt = 1; ; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $url -OutFile $file -TimeoutSec 300
+              break
+            } catch {
+              if ($attempt -ge 8) { throw }
+              Start-Sleep -Seconds 5
+            }
+          }
+
+          $actual = (Get-FileHash -Path $file -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) {
+            throw "Slang archive SHA-256 mismatch: expected $expected, got $actual"
+          }
+
+          # CMake wants a URL, so forward slashes even on Windows.
+          $archive_url = "file:///" + $file.Replace('\', '/')
+          "SLANG_ARCHIVE_URL=$archive_url" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        shell: pwsh
+
       - name: windows - configure renderer
         run: |
-          cmake --preset ci-windows-renderer
+          cmake --preset ci-windows-renderer "-DROLLNW_SLANG_URL=$env:SLANG_ARCHIVE_URL"
 
       - name: windows - build renderer tools
         run: |
@@ -621,9 +651,39 @@ jobs:
           $env:HOST_CCACHE_DIR="$(ccache -k cache_dir)"
           md $env:HOST_CCACHE_DIR -ea 0
 
+      - name: windows - download Slang
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $version = "2026.22.1"
+          $asset = "slang-$version-windows-x86_64.zip"
+          $url = "https://github.com/shader-slang/slang/releases/download/v$version/$asset"
+          $file = Join-Path $env:RUNNER_TEMP $asset
+          $expected = "e72344f7b0323cec8b039c534caaf4680e7ba629489fc796ea4c7f7adb7deb68"
+
+          for ($attempt = 1; ; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $url -OutFile $file -TimeoutSec 300
+              break
+            } catch {
+              if ($attempt -ge 8) { throw }
+              Start-Sleep -Seconds 5
+            }
+          }
+
+          $actual = (Get-FileHash -Path $file -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) {
+            throw "Slang archive SHA-256 mismatch: expected $expected, got $actual"
+          }
+
+          # CMake wants a URL, so forward slashes even on Windows.
+          $archive_url = "file:///" + $file.Replace('\', '/')
+          "SLANG_ARCHIVE_URL=$archive_url" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        shell: pwsh
+
       - name: windows - configure tools package
         run: |
-          cmake --preset ci-windows-tools-package "-DROLLNW_RELEASE_TAG=$env:ROLLNW_RELEASE_TAG"
+          cmake --preset ci-windows-tools-package "-DROLLNW_RELEASE_TAG=$env:ROLLNW_RELEASE_TAG" "-DROLLNW_SLANG_URL=$env:SLANG_ARCHIVE_URL"
 
       - name: windows - build tools package
         run: |
