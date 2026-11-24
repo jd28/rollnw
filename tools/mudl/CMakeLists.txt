@@ -145,6 +145,17 @@ if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
     )
 endif()
 
+# Windows has no RPATH, so a build-tree run only finds the shader compiler if
+# it sits beside the executable. The install rules cover packaged artifacts;
+# this covers running mudl straight out of the build directory.
+if(WIN32 AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+    add_custom_command(TARGET mudl POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS}
+            $<TARGET_FILE_DIR:mudl>
+    )
+endif()
+
 # Install
 install(TARGETS mudl RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/lib/nw/render/shaders/ DESTINATION bin/shaders)

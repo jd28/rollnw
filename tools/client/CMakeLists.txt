@@ -261,7 +261,23 @@ if(ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
     )
 endif()
 
+# Windows has no RPATH, so a build-tree run only finds the shader compiler if
+# it sits beside the executable. The install rules cover packaged artifacts;
+# this covers running rollnw-client straight out of the build directory.
+if(WIN32 AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+    add_custom_command(TARGET rollnw-client POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS}
+            $<TARGET_FILE_DIR:rollnw-client>
+    )
+endif()
+
 install(TARGETS rollnw-client RUNTIME DESTINATION bin)
+# Declared here too, not just alongside mudl, so a client-only install tree is
+# still complete.
+if(ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+    install(FILES ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS} DESTINATION bin)
+endif()
 install(FILES
     "${ROLLNW_CLIENT_FONT_ASSETS}/Inter-Regular.ttf"
     "${ROLLNW_CLIENT_FONT_ASSETS}/Inter-Medium.ttf"
