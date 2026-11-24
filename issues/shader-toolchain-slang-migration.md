@@ -52,11 +52,10 @@ both covered.
 - 28 shader files, 2,624 lines total, in `lib/nw/render/shaders/` — 24
   entry points (`*.vs.hlsl`, `*.ps.hlsl`, `*.cs.hlsl`) plus 7 shared
   `*.inc.hlsl` headers. (An earlier revision of this plan said 24 and 4;
-  the real counts are 21 and 7.) One of the seven, `shadow.inc.hlsl` (244
-  lines), is included by no entry point — only `scene_shadow.inc.hlsl` is,
-  and `tests/render_shader_includes.cpp:155` actively asserts the expanded
-  pixel shader does *not* contain it. It is dead shader source; leaving it
-  alone is deliberate here, but it should not be mistaken for live code. `bin/shaders/` is a build-output copy of the same
+  the real counts are 21 and 7.) One of the seven, `shadow.inc.hlsl`, was
+  included by no entry point — dead since `cafea4e7b` moved the shadow
+  sampling everything actually uses into `scene_shadow.inc.hlsl` — and has
+  since been deleted, leaving six. `bin/shaders/` is a build-output copy of the same
   file list, gitignored (`.gitignore:33`), produced by the copy-stamp
   targets in `tools/client/CMakeLists.txt:277-291` and
   `tools/mudl/CMakeLists.txt:93-110`, both globbing `*.hlsl`, and installed
