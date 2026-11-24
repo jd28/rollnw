@@ -1146,6 +1146,9 @@ public:
     /// Write the payload of a sum type variant (raw pointer version for stack values)
     void write_sum_payload(void* data, const SumDef* sum_def, uint32_t variant_idx, const Value& payload);
 
+    /// Notify GC write barrier after storing a value of `value_type_id` into `container`.
+    void write_barrier_for_value(HeapPtr container, TypeID value_type_id, const Value& value, uint8_t* written_data = nullptr);
+
     /// Read the discriminant tag of a sum type (heap version)
     uint32_t read_sum_tag(HeapPtr sum_ptr, const SumDef* sum_def) const;
     /// Read the discriminant tag of a sum type (raw pointer version for stack values)

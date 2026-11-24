@@ -2370,9 +2370,15 @@ void create_swapchain(Context* ctx_ptr, SDL_Window* window)
     ctx->width = width;
     ctx->height = height;
 
-    uint32_t image_count = MAX_SWAPCHAIN_IMAGES;
+    uint32_t image_count = std::max(capabilities.minImageCount + 1, 3u);
     if (capabilities.maxImageCount > 0 && image_count > capabilities.maxImageCount) {
         image_count = capabilities.maxImageCount;
+    }
+    if (image_count > MAX_SWAPCHAIN_IMAGES) {
+        image_count = MAX_SWAPCHAIN_IMAGES;
+    }
+    if (image_count < capabilities.minImageCount) {
+        image_count = capabilities.minImageCount;
     }
 
     VkSwapchainCreateInfoKHR swapchain_info = {
@@ -2397,6 +2403,11 @@ void create_swapchain(Context* ctx_ptr, SDL_Window* window)
     // Retrieve images
     uint32_t actual_image_count = 0;
     VK_CHECK(vkGetSwapchainImagesKHR(device, ctx->swapchain, &actual_image_count, nullptr));
+    if (actual_image_count > MAX_SWAPCHAIN_IMAGES) {
+        fprintf(stderr, "Swapchain returned %u images, exceeding MAX_SWAPCHAIN_IMAGES (%u)\n",
+            actual_image_count, MAX_SWAPCHAIN_IMAGES);
+        std::abort();
+    }
     std::vector<VkImage> swapchain_images(actual_image_count);
     VK_CHECK(vkGetSwapchainImagesKHR(device, ctx->swapchain, &actual_image_count, swapchain_images.data()));
 

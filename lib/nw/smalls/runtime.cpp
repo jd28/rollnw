@@ -4774,6 +4774,42 @@ void Runtime::write_sum_tag(void* data, const SumDef* sum_def, uint32_t tag_valu
     *tag_ptr = tag_value;
 }
 
+void Runtime::write_barrier_for_value(HeapPtr container, TypeID value_type_id, const Value& value, uint8_t* written_data)
+{
+    if (!gc_ || container.value == 0 || value_type_id == invalid_type_id) {
+        return;
+    }
+    if (type_table_.is_heap_type(value_type_id) && value.storage == ValueStorage::heap) {
+        if (value.data.hptr.value != 0) {
+            gc_->write_barrier(container, value.data.hptr);
+        }
+        return;
+    }
+    const Type* type = get_type(value_type_id);
+    if (!type || !type->contains_heap_refs) {
+        return;
+    }
+    uint8_t* base = written_data;
+    if (!base) {
+        if (value.storage == ValueStorage::heap && value.data.hptr.value != 0) {
+            base = static_cast<uint8_t*>(heap_.get_ptr(value.data.hptr));
+        } else if (value.storage == ValueStorage::stack) {
+            uint8_t* stack = vm_ ? vm_->current_frame_stack_data() : nullptr;
+            if (stack) {
+                base = stack + value.data.stack_offset;
+            }
+        }
+    }
+    if (!base) {
+        return;
+    }
+    scan_value_heap_refs(value_type_id, base, [&](HeapPtr* pointer) {
+        if (pointer && pointer->value != 0) {
+            gc_->write_barrier(container, *pointer);
+        }
+    });
+}
+
 void Runtime::write_sum_payload(HeapPtr sum_ptr, const SumDef* sum_def, uint32_t variant_idx, const Value& payload)
 {
     void* data = heap_.get_ptr(sum_ptr);
@@ -4782,8 +4818,9 @@ void Runtime::write_sum_payload(HeapPtr sum_ptr, const SumDef* sum_def, uint32_t
 
     if (gc_ && variant_idx < sum_def->variant_count) {
         const VariantDef& variant = sum_def->variants[variant_idx];
-        if (variant.payload_type != invalid_type_id && type_table_.is_heap_type(variant.payload_type) && payload.storage == ValueStorage::heap) {
-            gc_->write_barrier(sum_ptr, payload.data.hptr);
+        if (variant.payload_type != invalid_type_id) {
+            auto* payload_ptr = static_cast<uint8_t*>(data) + sum_def->union_offset + variant.payload_offset;
+            write_barrier_for_value(sum_ptr, variant.payload_type, payload, payload_ptr);
         }
     }
 }
@@ -4944,10 +4981,8 @@ bool Runtime::array_set(HeapPtr array_ptr, uint32_t index, const Value& value)
             return false;
         }
         bool result = arr->set_value(index, value, *this);
-        if (result && gc_ && type_table_.is_heap_type(elem_type_id) && value.storage == ValueStorage::heap) {
-            gc_->write_barrier(array_ptr, value.data.hptr);
-        }
         if (result) {
+            write_barrier_for_value(array_ptr, elem_type_id, value);
             mark_propset_heap_mutation(array_ptr);
         }
         return result;
@@ -4969,11 +5004,7 @@ bool Runtime::array_set(HeapPtr array_ptr, uint32_t index, const Value& value)
 
     void* elem_ptr = static_cast<char*>(data) + offset;
     write_value_to_field(elem_ptr, elem_type_id, value, *this);
-
-    if (gc_ && type_table_.is_heap_type(elem_type_id) && value.storage == ValueStorage::heap) {
-        gc_->write_barrier(array_ptr, value.data.hptr);
-    }
-
+    write_barrier_for_value(array_ptr, elem_type_id, value, static_cast<uint8_t*>(elem_ptr));
     mark_propset_heap_mutation(array_ptr);
 
     return true;

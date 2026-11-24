@@ -147,6 +147,7 @@ bool ObjectArray::destroy(ObjectHandle hndl)
     auto& internal = hndl.type == ObjectType::player ? player_array_ : object_array_;
 
     auto o = internal.array[idx].obj;
+    const ObjectType obj_type = o->handle().type;
     internal.array[idx].obj = nullptr;
     ++internal.array[idx].version;
     if (internal.array[idx].version < ObjectHandle::max_version) {
@@ -154,7 +155,7 @@ bool ObjectArray::destroy(ObjectHandle hndl)
         internal.free_list_head_ = idx;
     }
 
-    switch (hndl.type) {
+    switch (obj_type) {
     default:
         return false;
     case ObjectType::area: {
@@ -207,7 +208,10 @@ ObjectBase* ObjectArray::get(ObjectHandle hndl) const
 
     if (idx >= internal.array.size()) { return nullptr; }
     if (internal.array[idx].version == hndl.version) {
-        return internal.array[idx].obj;
+        ObjectBase* obj = internal.array[idx].obj;
+        if (obj && obj->handle().type == hndl.type) {
+            return obj;
+        }
     }
     return nullptr;
 }

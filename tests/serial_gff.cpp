@@ -200,3 +200,42 @@ TEST(Gff, ListsNested)
     std::ofstream f{"tmp/test.gffjson", std::ios::binary};
     f << std::setw(4) << j;
 }
+
+TEST(Gff, Read64BitAndSignedPromotion)
+{
+    nw::GffBuilder out{"GFF"};
+    const int64_t expected_i64 = -0x123456789ABCDEF0LL;
+    const uint64_t expected_u64 = 0xFEDCBA9876543210ULL;
+    const double expected_f64 = -3.141592653589793;
+    const int8_t expected_i8 = -42;
+    const int16_t expected_i16 = -12345;
+
+    out.top.add_field("i64", expected_i64)
+        .add_field("u64", expected_u64)
+        .add_field("f64", expected_f64)
+        .add_field("i8", expected_i8)
+        .add_field("i16", expected_i16);
+    out.build();
+    out.write_to("tmp/test_64bit.gff");
+
+    nw::Gff in{"tmp/test_64bit.gff"};
+    ASSERT_TRUE(in.valid());
+    auto top = in.toplevel();
+
+    int64_t got_i64 = 0;
+    uint64_t got_u64 = 0;
+    double got_f64 = 0.0;
+    ASSERT_TRUE(top["i64"].get_to(got_i64));
+    ASSERT_TRUE(top["u64"].get_to(got_u64));
+    ASSERT_TRUE(top["f64"].get_to(got_f64));
+    EXPECT_EQ(got_i64, expected_i64);
+    EXPECT_EQ(got_u64, expected_u64);
+    EXPECT_DOUBLE_EQ(got_f64, expected_f64);
+
+    int32_t promoted_i8 = 0;
+    int32_t promoted_i16 = 0;
+    ASSERT_TRUE(top["i8"].get_to(promoted_i8));
+    ASSERT_TRUE(top["i16"].get_to(promoted_i16));
+    EXPECT_EQ(promoted_i8, static_cast<int32_t>(expected_i8));
+    EXPECT_EQ(promoted_i16, static_cast<int32_t>(expected_i16));
+}
