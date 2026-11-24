@@ -2752,6 +2752,9 @@ std::shared_ptr<AreaObjectMembershipState> make_delete_membership_state(
     state->area = area;
     state->attached_selection = objects.front();
     const auto* live_area = kernel::objects().get<Area>(area);
+    if (!live_area) {
+        return {};
+    }
     state->before_counts = area_membership_counts(*live_area);
     state->rows.reserve(objects.size());
     for (const auto object : objects) {
@@ -2814,6 +2817,10 @@ std::shared_ptr<AreaObjectMembershipState> make_duplicate_membership_state(
     state->area = area;
     state->detached_selection = objects.front();
     auto* live_area = kernel::objects().get<Area>(area);
+    if (!live_area) {
+        diagnostic = "Active area is no longer available";
+        return {};
+    }
     state->before_counts = area_membership_counts(*live_area);
     auto next_indices = state->before_counts;
     state->rows.reserve(objects.size());
@@ -2882,6 +2889,9 @@ std::shared_ptr<AreaObjectMembershipState> make_place_membership_state(
     state->area = area;
     state->attached_selection = objects.front();
     auto* live_area = kernel::objects().get<Area>(area);
+    if (!live_area) {
+        return {};
+    }
     state->before_counts = area_membership_counts(*live_area);
     auto next_indices = state->before_counts;
     state->rows.reserve(objects.size());
@@ -2896,6 +2906,10 @@ std::shared_ptr<AreaObjectMembershipState> make_place_membership_state(
 CommandResult commit_area_object_membership(
     std::shared_ptr<AreaObjectMembershipState> state, std::string label, CommandContext& context)
 {
+    if (!state) {
+        return command_edit_result(CommandStatus::rejected,
+            "Active area is no longer available", CommandOutputChannel::warn);
+    }
     auto applied = apply_membership_state(*state, ObjectEditDirection::forward);
     if (!applied.ok()) {
         const bool internal_failure = applied.status == ObjectEditStatus::failed;
@@ -6350,6 +6364,10 @@ CommandResult duplicate_area_objects(
 
     std::string diagnostic;
     const auto* live_area = kernel::objects().get<Area>(area);
+    if (!live_area) {
+        return command_edit_result(CommandStatus::rejected,
+            "Active area is no longer available", CommandOutputChannel::warn);
+    }
     std::vector<int32_t> door_hook_types;
     const auto offset = duplicate_batch_offset(
         *live_area, objects, door_hook_types, diagnostic);
