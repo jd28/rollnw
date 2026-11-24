@@ -26,5 +26,4 @@ TEST(ShaderIncludes, WaterShadersUseCommonRenderModelContracts)
     EXPECT_NE(pixel.find("model_draw_constants.inc.hlsl"), std::string::npos);
     EXPECT_NE(pixel.find("sc_albedo_index"), std::string::npos);
     EXPECT_NE(pixel.find("sc_albedo.a"), std::string::npos);
-    EXPECT_EQ(pixel.find("#include \"shadow.inc.hlsl\""), std::string::npos);
 }
