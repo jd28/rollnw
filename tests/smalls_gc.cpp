@@ -1153,6 +1153,89 @@ fn rows(e: eff.Effect): array!(Row) {
 // The complement: tracing through structs must not amount to pinning every
 // handle forever. Once nothing holds the struct the handle is collected and its
 // engine effect destroyed, exactly as a bare handle is.
+// The generational hazard the three tests above do not reach: they collect
+// immediately after the store, so the handle and its owning struct are both
+// young and a missing write barrier would go unnoticed. Here the struct is
+// promoted to the old generation first, so a young handle written into it is
+// only reachable through the remembered set. Mirrors
+// WriteBarriersPreserveYoungValuesInOldContainers, for handle fields.
+TEST_F(SmallsGCTest, YoungHandleStoredIntoOldStructSurvivesMinorCollection)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    const TypeID tid = runtime.type_id("core.effects.Effect", false);
+    ASSERT_NE(tid, invalid_type_id);
+
+    auto destroyed = std::make_shared<int>(0);
+    runtime.register_handle_destructor(tid, [destroyed](nw::TypedHandle h, HeapPtr) {
+        auto& es = nw::kernel::effects();
+        if (auto* eff = es.get(h)) {
+            es.destroy(eff);
+            ++*destroyed;
+        }
+    });
+
+    ASSERT_NE(runtime.load_module_from_source("test.handle_write_barrier", R"(
+import core.effects as eff;
+
+type Holder {
+    effect: eff.Effect;
+};
+
+fn make_holder(): Holder {
+    return Holder { effect = eff.invalid() };
+}
+
+fn set_effect(h: Holder, e: eff.Effect) {
+    h.effect = e;
+}
+
+fn is_alive(h: Holder): bool {
+    return eff.is_valid(h.effect);
+}
+)"),
+        nullptr);
+
+    auto holder = runtime.execute_script("test.handle_write_barrier", "make_holder");
+    ASSERT_TRUE(holder.ok()) << holder.error_message;
+    ASSERT_EQ(holder.value.storage, ValueStorage::heap);
+
+    Runtime::ScopedRoots roots{runtime, 1};
+    roots.add(holder.value);
+
+    // Promote the holder out of the young generation.
+    for (int i = 0; i < 4; ++i) {
+        gc->collect_minor();
+    }
+    ASSERT_TRUE(gc->is_old(holder.value.data.hptr)) << "holder never aged; the test would prove nothing";
+
+    // Only now allocate the handle, so its cell is unambiguously young.
+    auto* effect = nw::kernel::effects().create(nw::EffectType::invalid());
+    ASSERT_NE(effect, nullptr);
+    const nw::TypedHandle handle = effect->handle().to_typed_handle();
+    const HeapPtr interned = runtime.intern_handle(handle, OwnershipMode::VM_OWNED);
+    ASSERT_NE(interned.value, 0u);
+    ASSERT_FALSE(gc->is_old(interned)) << "handle cell was not young; the test would prove nothing";
+
+    auto stored = runtime.execute_script("test.handle_write_barrier", "set_effect",
+        {holder.value, Value::make_heap(interned, tid)});
+    ASSERT_TRUE(stored.ok()) << stored.error_message;
+
+    // A minor collection scans the young generation plus the remembered set. If
+    // the field store did not record the old holder, the handle is unreachable
+    // from this collection's roots and its engine effect is destroyed.
+    gc->collect_minor();
+
+    EXPECT_EQ(*destroyed, 0) << "young handle in an old struct was collected: missing write barrier";
+    EXPECT_NE(nw::kernel::effects().get(handle), nullptr);
+
+    auto alive = runtime.execute_script("test.handle_write_barrier", "is_alive", {holder.value});
+    ASSERT_TRUE(alive.ok()) << alive.error_message;
+    EXPECT_TRUE(alive.value.data.bval) << "handle survived but no longer resolves through the old struct";
+}
+
 TEST_F(SmallsGCTest, HandleInUnreachableStructIsStillCollected)
 {
     auto& runtime = nw::kernel::runtime();
