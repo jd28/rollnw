@@ -3731,7 +3731,10 @@ Value read_field_as_value(void* ptr, TypeID type_id, const Runtime& rt)
         return Value::make_heap(value_ptr, type_id);
     } else {
         const Type* type = rt.get_type(type_id);
-        if (type && (type->type_kind == TK_struct || type->type_kind == TK_tuple || type->type_kind == TK_array || type->type_kind == TK_map || type->type_kind == TK_sum || type->type_kind == TK_function)) {
+        // TK_handle belongs here too: a handle field stores the HeapPtr of its
+        // TypedHandle cell, so it is reconstructed the same way. Omitting it
+        // silently yields an empty Value on every read.
+        if (type && (type->type_kind == TK_struct || type->type_kind == TK_tuple || type->type_kind == TK_array || type->type_kind == TK_map || type->type_kind == TK_sum || type->type_kind == TK_function || type->type_kind == TK_handle)) {
             HeapPtr stored{};
             std::memcpy(&stored, ptr, sizeof(stored));
             if (type->type_kind == TK_array
@@ -5447,6 +5450,19 @@ TypeID Runtime::add_handle_type(StringView name, uint8_t runtime_type)
 {
     // Register the type in the type system
     TypeID tid = type_id(name, true);
+
+    // A handle value is a HeapPtr to a TypedHandle cell, so give the type that
+    // storage. Without a size the struct-field layout validator rejects it, and
+    // without TK_handle `is_heap_type` would report it inline and the collector
+    // would never trace a handle stored in a struct, tuple or array.
+    if (tid != invalid_type_id && tid.value >= 1
+        && static_cast<size_t>(tid.value) <= type_table_.types_.size()) {
+        Type& type = type_table_.types_[static_cast<size_t>(tid.value - 1)];
+        type.type_kind = TK_handle;
+        type.size = sizeof(HeapPtr);
+        type.alignment = alignof(HeapPtr);
+    }
+
     handle_type_to_typeid_[runtime_type] = tid;
     return tid;
 }

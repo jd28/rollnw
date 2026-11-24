@@ -977,6 +977,220 @@ TEST_F(SmallsGCTest, VMOwnedEffectHandleFinalizerDestroysEngineEffect)
     EXPECT_EQ(nw::kernel::effects().get(h), nullptr);
 }
 
+// Engine handle types are stored as a HeapPtr and must be traced like any other
+// heap reference. Before TK_handle existed they were registered with no storage
+// layout at all, which both barred them from struct fields and -- had a size
+// simply been added -- would have left them untraced inside one.
+//
+// The checks below pair with VMOwnedEffectHandleFinalizerDestroysEngineEffect
+// above: that one proves an unreferenced handle IS collected, these prove a
+// handle reachable only through a struct is NOT.
+namespace {
+
+struct HandleProbe {
+    TypeID tid = invalid_type_id;
+    std::shared_ptr<int> destroyed = std::make_shared<int>(0);
+    nw::TypedHandle handle{};
+    HeapPtr interned{};
+
+    // Uses the real core.effects.Effect rather than a test-local handle type:
+    // a [[native]] declaration inside a script module creates a module-scoped
+    // type with no registration behind it, which is not what ships.
+    void setup(Runtime& runtime)
+    {
+        tid = runtime.type_id("core.effects.Effect", false);
+        ASSERT_NE(tid, invalid_type_id);
+
+        auto counter = destroyed;
+        runtime.register_handle_destructor(tid, [counter](nw::TypedHandle h, HeapPtr) {
+            auto& es = nw::kernel::effects();
+            if (auto* eff = es.get(h)) {
+                es.destroy(eff);
+                ++*counter;
+            }
+        });
+
+        auto* eff = nw::kernel::effects().create(nw::EffectType::invalid());
+        ASSERT_NE(eff, nullptr);
+        handle = eff->handle().to_typed_handle();
+        interned = runtime.intern_handle(handle, OwnershipMode::VM_OWNED);
+        ASSERT_NE(interned.value, 0);
+    }
+
+    bool alive() const { return nw::kernel::effects().get(handle) != nullptr; }
+};
+
+} // namespace
+
+TEST_F(SmallsGCTest, HandleTypeHasHeapStorageLayout)
+{
+    auto& runtime = nw::kernel::runtime();
+    const TypeID tid = runtime.type_id("core.effects.Effect", false);
+    ASSERT_NE(tid, invalid_type_id);
+
+    const Type* type = runtime.get_type(tid);
+    ASSERT_NE(type, nullptr);
+    EXPECT_EQ(type->type_kind, TK_handle);
+    EXPECT_EQ(type->size, sizeof(HeapPtr));
+    EXPECT_EQ(type->alignment, alignof(HeapPtr));
+    // The layout validator rejects size 0 && alignment 0, and the collector
+    // keys tracing off this predicate.
+    EXPECT_TRUE(runtime.type_table_.is_heap_type(tid));
+}
+
+TEST_F(SmallsGCTest, HandleReachableOnlyThroughStructFieldSurvivesCollection)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HandleProbe probe;
+    ASSERT_NO_FATAL_FAILURE(probe.setup(runtime));
+
+    ASSERT_NE(runtime.load_module_from_source("test.handle_in_struct", R"(
+import core.effects as eff;
+
+type Holder {
+    effect: eff.Effect;
+};
+
+fn hold(e: eff.Effect): Holder {
+    return Holder { effect = e };
+}
+
+fn still_valid(h: Holder): bool {
+    return eff.is_valid(h.effect);
+}
+
+fn direct_valid(e: eff.Effect): bool {
+    return eff.is_valid(e);
+}
+
+fn roundtrip_valid(e: eff.Effect): bool {
+    var h = Holder { effect = e };
+    return eff.is_valid(h.effect);
+}
+)"),
+        nullptr);
+
+    auto held = runtime.execute_script("test.handle_in_struct", "hold",
+        {Value::make_heap(probe.interned, probe.tid)});
+    ASSERT_TRUE(held.ok()) << held.error_message;
+
+    {
+        // The struct is now the only thing referencing the handle.
+        Runtime::ScopedRoots roots{runtime, 1};
+        roots.add(held.value);
+
+        gc->collect_minor();
+        EXPECT_EQ(*probe.destroyed, 0);
+        EXPECT_TRUE(probe.alive());
+
+        gc->collect_major();
+        EXPECT_EQ(*probe.destroyed, 0) << "handle in a struct field was collected";
+        EXPECT_TRUE(probe.alive());
+        EXPECT_TRUE(heap_contains(runtime, probe.interned));
+
+        // Still usable from script, not merely un-freed: read the field back
+        // through the VM and ask the engine whether it resolves.
+        const Value handle_value = Value::make_heap(probe.interned, probe.tid);
+
+        auto direct = runtime.execute_script("test.handle_in_struct", "direct_valid", {handle_value});
+        ASSERT_TRUE(direct.ok()) << direct.error_message;
+        EXPECT_TRUE(direct.value.data.bval) << "control: handle does not resolve even directly";
+
+        auto roundtrip = runtime.execute_script("test.handle_in_struct", "roundtrip_valid", {handle_value});
+        ASSERT_TRUE(roundtrip.ok()) << roundtrip.error_message;
+        EXPECT_TRUE(roundtrip.value.data.bval) << "handle does not survive a struct store/load";
+
+        auto still_valid = runtime.execute_script("test.handle_in_struct", "still_valid", {held.value});
+        ASSERT_TRUE(still_valid.ok()) << still_valid.error_message;
+        EXPECT_TRUE(still_valid.value.data.bval)
+            << "handle survived collection but no longer resolves through the struct";
+    }
+}
+
+TEST_F(SmallsGCTest, HandleReachableOnlyThroughArrayOfStructsSurvivesCollection)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HandleProbe probe;
+    ASSERT_NO_FATAL_FAILURE(probe.setup(runtime));
+
+    ASSERT_NE(runtime.load_module_from_source("test.handle_in_array", R"(
+import core.array as A;
+import core.effects as eff;
+
+type Row {
+    effect: eff.Effect;
+};
+
+fn rows(e: eff.Effect): array!(Row) {
+    var out: array!(Row) = {};
+    A.push(out, Row { effect = e });
+    return out;
+}
+)"),
+        nullptr);
+
+    auto held = runtime.execute_script("test.handle_in_array", "rows",
+        {Value::make_heap(probe.interned, probe.tid)});
+    ASSERT_TRUE(held.ok()) << held.error_message;
+
+    {
+        Runtime::ScopedRoots roots{runtime, 1};
+        roots.add(held.value);
+
+        gc->collect_major();
+        EXPECT_EQ(*probe.destroyed, 0) << "handle nested in array of structs was collected";
+        EXPECT_TRUE(probe.alive());
+    }
+}
+
+// The complement: tracing through structs must not amount to pinning every
+// handle forever. Once nothing holds the struct the handle is collected and its
+// engine effect destroyed, exactly as a bare handle is.
+TEST_F(SmallsGCTest, HandleInUnreachableStructIsStillCollected)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    HandleProbe probe;
+    ASSERT_NO_FATAL_FAILURE(probe.setup(runtime));
+
+    ASSERT_NE(runtime.load_module_from_source("test.handle_dropped", R"(
+import core.effects as eff;
+
+type Holder {
+    effect: eff.Effect;
+};
+
+fn hold(e: eff.Effect): Holder {
+    return Holder { effect = e };
+}
+)"),
+        nullptr);
+
+    {
+        auto held = runtime.execute_script("test.handle_dropped", "hold",
+            {Value::make_heap(probe.interned, probe.tid)});
+        ASSERT_TRUE(held.ok()) << held.error_message;
+
+        Runtime::ScopedRoots roots{runtime, 1};
+        roots.add(held.value);
+        gc->collect_major();
+        EXPECT_EQ(*probe.destroyed, 0);
+    }
+
+    ASSERT_TRUE(runtime.stack_empty());
+    gc->collect_major();
+    EXPECT_EQ(*probe.destroyed, 1) << "struct became unreachable but the handle was retained";
+    EXPECT_FALSE(probe.alive());
+}
+
 TEST_F(SmallsGCTest, PropsetShadowArrayStorageInvariant)
 {
     auto& runtime = nw::kernel::runtime();

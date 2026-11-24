@@ -250,7 +250,8 @@ enum TypeKind : uint8_t {
     TK_tuple,           // 0: TupleID
     TK_sum,             // 0: SumID
     TK_function,        // 0: FunctionID - function type fn(T1, T2): R
-    TK_opaque,          // None
+    TK_opaque,          // None - inline POD value (object, vec3, native value types)
+    TK_handle,          // None - engine-owned handle, stored as a HeapPtr
     TK_type_param,      // Generic type parameter (e.g., $T)
     TK_any_array,       // Wildcard: matches any array<T> (for generic native functions)
     TK_any_map,         // Wildcard: matches any map<K,V> (for generic native functions)

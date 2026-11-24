@@ -849,6 +849,7 @@ bool TypeTable::is_heap_type(TypeID tid) const
     case TK_tuple:
     case TK_sum:
     case TK_function:
+    case TK_handle:
         return true;
     default:
         return false;
