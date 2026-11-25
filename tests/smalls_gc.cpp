@@ -1376,16 +1376,20 @@ TEST_F(SmallsGCTest, PropsetStringSurvivesMinorAndMajorGC)
 
     HeapPtr str_ptr = runtime.alloc_string("tyr_the_evenhanded");
     ASSERT_NE(str_ptr.value, 0u);
+    HeapPtr backing_ptr = static_cast<const StringRepr*>(runtime.heap_.get_ptr(str_ptr))->backing;
+    ASSERT_NE(backing_ptr.value, 0u);
     Value str_val = Value::make_heap(str_ptr, runtime.string_type());
 
     ASSERT_TRUE(runtime.write_value_field_at_offset(ref1, label_offset, label_tid, str_val));
     ASSERT_TRUE(runtime.write_value_field_at_offset(ref2, label_offset, label_tid, str_val));
     str_val = Value{};
 
-    // Both minor and major GC must preserve pinned propset strings without scanning propsets.
+    // Both minor and major GC must preserve pinned propset strings and their backing storage.
     gc->collect_minor();
     gc->collect_major();
 
+    ASSERT_NE(runtime.heap_.try_get_header(str_ptr), nullptr);
+    ASSERT_NE(runtime.heap_.try_get_header(backing_ptr), nullptr);
     Value read1 = runtime.read_value_field_at_offset(ref1, label_offset, label_tid);
     Value read2 = runtime.read_value_field_at_offset(ref2, label_offset, label_tid);
     ASSERT_EQ(read1.data.hptr, str_ptr);
@@ -1395,19 +1399,21 @@ TEST_F(SmallsGCTest, PropsetStringSurvivesMinorAndMajorGC)
     read1 = Value{};
     read2 = Value{};
 
-    // Destroying one owner decrements pin_count (2 -> 1); string stays alive for c2.
+    // Destroying one owner decrements pin_count (2 -> 1); string and backing stay alive for c2.
     nw::kernel::objects().destroy(c1->handle());
     gc->collect_major();
 
+    ASSERT_NE(runtime.heap_.try_get_header(backing_ptr), nullptr);
     Value read2_after = runtime.read_value_field_at_offset(ref2, label_offset, label_tid);
     ASSERT_EQ(read2_after.data.hptr, str_ptr);
     EXPECT_EQ(runtime.get_string_view(read2_after.data.hptr), "tyr_the_evenhanded");
     read2_after = Value{};
 
-    // Destroying the last owner unpins (1 -> 0); next major GC reclaims the string.
+    // Destroying the last owner unpins (1 -> 0); next major GC reclaims both repr and backing.
     nw::kernel::objects().destroy(c2->handle());
     gc->collect_major();
     EXPECT_EQ(runtime.heap_.try_get_header(str_ptr), nullptr);
+    EXPECT_EQ(runtime.heap_.try_get_header(backing_ptr), nullptr);
 }
 
 TEST_F(SmallsGCTest, FreshVmEarlyFailureDoesNotCrash)

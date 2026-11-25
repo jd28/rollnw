@@ -153,6 +153,38 @@ bool has_annotation(const StructDef* def, StringView name)
     return false;
 }
 
+void pin_propset_heap_ref(Runtime& rt, HeapPtr ptr) noexcept
+{
+    if (ptr.value == 0) {
+        return;
+    }
+    if (auto* header = rt.heap_.try_get_header(ptr)) {
+        rt.heap_.pin(ptr);
+        if (header->type_id == rt.string_type()) {
+            const auto* sr = static_cast<const StringRepr*>(rt.heap_.get_ptr(ptr));
+            if (sr && sr->backing.value != 0) {
+                rt.heap_.pin(sr->backing);
+            }
+        }
+    }
+}
+
+void unpin_propset_heap_ref(Runtime& rt, HeapPtr ptr) noexcept
+{
+    if (ptr.value == 0) {
+        return;
+    }
+    if (auto* header = rt.heap_.try_get_header(ptr)) {
+        if (header->type_id == rt.string_type()) {
+            const auto* sr = static_cast<const StringRepr*>(rt.heap_.get_ptr(ptr));
+            if (sr && sr->backing.value != 0) {
+                rt.heap_.unpin(sr->backing);
+            }
+        }
+        rt.heap_.unpin(ptr);
+    }
+}
+
 Value read_field_value(Runtime& rt, void* ptr, TypeID type_id)
 {
     // Unwrap newtypes to find the underlying storage type while preserving the
@@ -411,7 +443,7 @@ void PropsetPoolManager::free_entry(Runtime& rt, Pool& pool, uint32_t /*object_i
     for (uint32_t i = 0; i < pool.info.def->heap_ref_count; ++i) {
         auto* ptr = reinterpret_cast<HeapPtr*>(data + pool.info.def->heap_ref_offsets[i]);
         if (ptr->value != 0) {
-            rt.heap_.unpin(*ptr);
+            unpin_propset_heap_ref(rt, *ptr);
             heap_owners_.erase(ptr->value);
             *ptr = HeapPtr{0};
         }
@@ -591,7 +623,7 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
             auto* ptr = reinterpret_cast<HeapPtr*>(data + heap_off);
             auto field_it = pool->info.offset_to_field.find(heap_off);
             if (ptr->value != 0 && field_it != pool->info.offset_to_field.end()) {
-                rt.heap_.pin(*ptr);
+                pin_propset_heap_ref(rt, *ptr);
                 bind_heap_owner(*pool, object_id, field_it->second, *ptr);
             }
         }
@@ -659,7 +691,7 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
             if (ptr->value == 0) {
                 rt.initialize_zero_defaults(field_type, reinterpret_cast<uint8_t*>(ptr));
                 if (ptr->value != 0) {
-                    rt.heap_.pin(*ptr);
+                    pin_propset_heap_ref(rt, *ptr);
                 }
                 if (field_it != pool->info.offset_to_field.end()) {
                     uint32_t object_id = unpack_owner_id(hdr->owner_bits);
@@ -757,10 +789,10 @@ bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint
         HeapPtr new_heap_ptr = *reinterpret_cast<HeapPtr*>(data + offset);
         if (new_heap_ptr.value != old_heap_ptr.value) {
             if (new_heap_ptr.value != 0) {
-                rt.heap_.pin(new_heap_ptr);
+                pin_propset_heap_ref(rt, new_heap_ptr);
             }
             if (old_heap_ptr.value != 0) {
-                rt.heap_.unpin(old_heap_ptr);
+                unpin_propset_heap_ref(rt, old_heap_ptr);
                 unbind_heap_owner(old_heap_ptr);
             }
         }
