@@ -3662,6 +3662,8 @@ HeapPtr Runtime::alloc_struct_literal(const BraceInitLiteral* expr)
     }
 
     HeapPtr struct_ptr = heap_.allocate(type->size, type->alignment, expr->type_id_);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(struct_ptr, expr->type_id_));
     void* struct_data = heap_.get_ptr(struct_ptr);
     memset(struct_data, 0, type->size);
     this->initialize_zero_defaults(expr->type_id_, static_cast<uint8_t*>(struct_data));
@@ -4915,6 +4917,8 @@ HeapPtr Runtime::alloc_array(TypeID element_type_id, uint32_t count)
     size_t alignment = std::max(alignof(uint32_t), static_cast<size_t>(elem_alignment));
 
     HeapPtr ptr = heap_.allocate(total_size, alignment, array_type_id);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(ptr, array_type_id));
     void* data = heap_.get_ptr(ptr);
 
     uint32_t* count_ptr = static_cast<uint32_t*>(data);

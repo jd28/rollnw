@@ -72,7 +72,10 @@ HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
     // The (header_align - 1) padding lets us align the header start even if OffsetAllocator
     // returns an unaligned offset (which it can after alloc/free churn).
     constexpr size_t header_align = alignof(ObjectHeader);
-    size_t total_size = (header_align - 1) + sizeof(ObjectHeader) + sizeof(void*) + size + (alignment - 1);
+    constexpr size_t fixed_overhead = (header_align - 1) + sizeof(ObjectHeader) + sizeof(void*);
+    CHECK_F(alignment <= RESERVE_SIZE && size <= RESERVE_SIZE - fixed_overhead - (alignment - 1),
+        "ScriptHeap allocation size overflow: size={}, alignment={}", size, alignment);
+    size_t total_size = fixed_overhead + size + (alignment - 1);
     uint32_t alloc_size = static_cast<uint32_t>(total_size);
 
     // Pre-allocation emergency GC: if the OffsetAllocator node pool is over half
@@ -136,11 +139,32 @@ HeapPtr ScriptHeap::allocate(size_t size, size_t alignment, TypeID type_id)
         }
     }
     all_objects_ = ptr;
-    header->next_young = young_objects_;
-    young_objects_ = ptr;
+    if (gc_ && gc_->is_minor_collecting()) {
+        header->next_young = staged_young_objects_;
+        staged_young_objects_ = ptr;
+        if (staged_young_tail_.value == 0) {
+            staged_young_tail_ = ptr;
+        }
+    } else {
+        header->next_young = young_objects_;
+        young_objects_ = ptr;
+    }
     young_bytes_ += alloc_size;
 
     return ptr;
+}
+
+void ScriptHeap::splice_staged_young_objects()
+{
+    if (staged_young_objects_.value == 0) {
+        return;
+    }
+    if (auto* tail_header = try_get_header(staged_young_tail_)) {
+        tail_header->next_young = young_objects_;
+    }
+    young_objects_ = staged_young_objects_;
+    staged_young_objects_ = HeapPtr{0};
+    staged_young_tail_ = HeapPtr{0};
 }
 
 void ScriptHeap::free(HeapPtr ptr)

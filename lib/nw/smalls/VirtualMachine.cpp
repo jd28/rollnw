@@ -1199,7 +1199,7 @@ lbl_OR:
 lbl_NEG: {
     const Value& operand = reg(b);
     if (operand.type_id == rt_->int_type()) {
-        reg(a) = Value::make_int(-operand.data.ival);
+        reg(a) = Value::make_int(int32_from_bits(0u - static_cast<uint32_t>(operand.data.ival)));
     } else if (operand.type_id == rt_->float_type()) {
         reg(a) = Value::make_float(-operand.data.fval);
     } else {
@@ -1969,6 +1969,10 @@ lbl_GETFIELD: {
 
     auto struct_id = type->type_params[0].as<StructID>();
     const StructDef* struct_def = rt_->type_table_.get(struct_id);
+    if (!struct_def || field_idx >= struct_def->field_count) {
+        fail("GETFIELD field index out of bounds");
+        DISPATCH();
+    }
 
     const FieldDef& field = struct_def->fields[field_idx];
     Value val = rt_->read_value_field_at_offset(struct_val, field.offset, field.type_id);
@@ -2596,7 +2600,7 @@ vm_exit:
         case Opcode::NEG: {
             const Value& operand = reg(b);
             if (operand.type_id == rt_->int_type()) {
-                reg(a) = Value::make_int(-operand.data.ival);
+                reg(a) = Value::make_int(int32_from_bits(0u - static_cast<uint32_t>(operand.data.ival)));
             } else if (operand.type_id == rt_->float_type()) {
                 reg(a) = Value::make_float(-operand.data.fval);
             } else {
@@ -3322,6 +3326,10 @@ vm_exit:
 
             auto struct_id = type->type_params[0].as<StructID>();
             const StructDef* struct_def = rt_->type_table_.get(struct_id);
+            if (!struct_def || field_idx >= struct_def->field_count) {
+                fail("GETFIELD field index out of bounds");
+                break;
+            }
 
             const FieldDef& field = struct_def->fields[field_idx];
             Value val = rt_->read_value_field_at_offset(struct_val, field.offset, field.type_id);
@@ -3844,15 +3852,17 @@ void VirtualMachine::op_arithmetic(Opcode op, uint8_t a, uint8_t b, uint8_t c)
     // Fast path: int op int
     if (lv.type_id == rt_->int_type() && rv.type_id == rt_->int_type()) {
         int32_t result_val;
+        const uint32_t lu = static_cast<uint32_t>(lv.data.ival);
+        const uint32_t ru = static_cast<uint32_t>(rv.data.ival);
         switch (op) {
         case Opcode::ADD:
-            result_val = lv.data.ival + rv.data.ival;
+            result_val = int32_from_bits(lu + ru);
             break;
         case Opcode::SUB:
-            result_val = lv.data.ival - rv.data.ival;
+            result_val = int32_from_bits(lu - ru);
             break;
         case Opcode::MUL:
-            result_val = lv.data.ival * rv.data.ival;
+            result_val = int32_from_bits(lu * ru);
             break;
         case Opcode::DIV:
             result_val = lv.data.ival / rv.data.ival;

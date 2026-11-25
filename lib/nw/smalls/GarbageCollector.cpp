@@ -221,6 +221,15 @@ void GarbageCollector::collect_major()
 {
     auto start = std::chrono::high_resolution_clock::now();
 
+    if (minor_phase_ != MinorPhase::idle) {
+        heap_->splice_staged_young_objects();
+        minor_phase_ = MinorPhase::idle;
+        remembered_scan_cursor_ = 0;
+        young_sweep_prev_ = HeapPtr{0};
+        young_sweep_current_ = HeapPtr{0};
+        gray_stack_.clear();
+    }
+
     HeapPtr current = heap_->all_objects();
     while (current.value != 0) {
         auto* header = heap_->get_header(current);
@@ -256,6 +265,15 @@ void GarbageCollector::collect_full()
 
 void GarbageCollector::start_major_gc()
 {
+    if (minor_phase_ != MinorPhase::idle) {
+        heap_->splice_staged_young_objects();
+        minor_phase_ = MinorPhase::idle;
+        remembered_scan_cursor_ = 0;
+        young_sweep_prev_ = HeapPtr{0};
+        young_sweep_current_ = HeapPtr{0};
+        gray_stack_.clear();
+    }
+
     HeapPtr current = heap_->all_objects();
     while (current.value != 0) {
         auto* header = heap_->get_header(current);
@@ -808,6 +826,7 @@ void GarbageCollector::begin_minor_cycle()
 
 void GarbageCollector::finish_minor_cycle()
 {
+    heap_->splice_staged_young_objects();
     phase_ = GCPhase::idle;
     minor_phase_ = MinorPhase::idle;
     remembered_scan_cursor_ = 0;

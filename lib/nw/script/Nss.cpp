@@ -109,7 +109,7 @@ void Nss::complete_at(const String& needle, size_t line, size_t character, Compl
 
     // Find our position in the include stack.. should be first
     auto it = std::begin(ctx_->preprocessed_);
-    auto end = std::begin(ctx_->preprocessed_);
+    auto end = std::end(ctx_->preprocessed_);
     while (it != end) {
         if (it->resref == name()) { break; }
         ++it;
@@ -123,6 +123,7 @@ void Nss::complete_at(const String& needle, size_t line, size_t character, Compl
     ++it;
     while (it != end) {
         it->script->complete(needle, out);
+        ++it;
     }
 
     if (!is_command_script_) {

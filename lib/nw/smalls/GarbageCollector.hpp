@@ -159,7 +159,8 @@ public:
 
         if (start_word == end_word) {
             // Range within single word
-            uint64_t mask = ((1ULL << (end_bit - start_bit + 1)) - 1) << start_bit;
+            const size_t width = end_bit - start_bit + 1;
+            const uint64_t mask = (width == bits_per_word) ? ~0ULL : (((1ULL << width) - 1) << start_bit);
             return (cards_[start_word] & mask) != 0;
         }
 
@@ -198,7 +199,8 @@ public:
 
         if (start_word == end_word) {
             // Range within single word
-            uint64_t mask = ((1ULL << (end_bit - start_bit + 1)) - 1) << start_bit;
+            const size_t width = end_bit - start_bit + 1;
+            const uint64_t mask = (width == bits_per_word) ? ~0ULL : (((1ULL << width) - 1) << start_bit);
             cards_[start_word] &= ~mask;
             return;
         }
