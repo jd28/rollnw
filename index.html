@@ -81,16 +81,18 @@ play animations and effects, and check materials through the shared renderer.
 Its command-line tools also produce repeatable screenshots, turntable sequences,
 and fixed-step rendering benchmarks, including offscreen runs.</p>
 <h2 id="build">Build</h2>
-<p>Requires CMake 3.21+ and a C++20 compiler. Renderer tools currently only run on Linux and Windows.
+<p>Requires CMake 3.21+ and a C++20 compiler. Renderer tools (<code>rollnw-client</code> and <code>mudl</code>)
+run on Linux and Windows via Vulkan, and on macOS (Apple Silicon) via native Metal.
 For a Linux renderer build with Ninja:</p>
 <div class="codehilite"><pre><span></span><code>cmake<span class="w"> </span>--preset<span class="w"> </span>linux-renderer-dev
 cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>linux-renderer-dev<span class="w"> </span>--target<span class="w"> </span>rollnw-client<span class="w"> </span>mudl
 ./build-renderer/tools/client/rollnw-client
 </code></pre></div>
 
-<p>Use <code>windows-renderer-dev</code> for Windows. Library development presets are
-<code>linux-dev</code>, <code>macos-dev</code>, and <code>windows-dev</code>; see <a href="https://github.com/jd28/rollnw/blob/main/CMakePresets.json">CMakePresets.json</a>
-for the available configurations.</p>
+<p>Use <code>windows-renderer-dev</code> for Windows and <code>macos-renderer-dev</code> for macOS Apple Silicon
+(which outputs to <code>build-renderer-macos/tools/client/rollnw-client</code>). Library development
+presets are <code>linux-dev</code>, <code>macos-dev</code>, and <code>windows-dev</code>; see
+<a href="https://github.com/jd28/rollnw/blob/main/CMakePresets.json">CMakePresets.json</a> for the available configurations.</p>
 <p>To work with NWN content, install NWN:EE and any required hak files. If discovery
 fails, set <code>NWN_ROOT</code> to the game installation and <code>NWN_HOME</code> to its user directory.
 In the toolset, choose <strong>Import Module...</strong> on Home. See the

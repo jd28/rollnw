@@ -47,17 +47,23 @@
       <aside class="notice notice-current"><span class="notice-label">current</span><p>Status: current.</p></aside>
       <article class="content">
 <h1 id="nwgfx">nw::gfx</h1>
-<p><code>nw::gfx</code> is a thin rendering abstraction and Vulkan utility layer.</p>
+<p><code>nw::gfx</code> is a thin, multi-backend low-level graphics abstraction supporting
+Vulkan (Linux and Windows) and native Metal 3 (macOS Apple Silicon).</p>
 <p>It is not a game engine, scene graph, material system, or editor framework.</p>
 <h2 id="project-status">Project Status</h2>
-<p><code>nw::gfx</code> is the active low-level graphics foundation for rollnw renderer work and future authored-toolset/game viewports. Higher-level validation currently lives in <code>lib/nw/render</code> and <code>tools/mudl</code>; older project docs may still describe rollnw as if graphics were out of scope. Read those older statements as historical context, not current direction.</p>
+<p><code>nw::gfx</code> is the active low-level graphics foundation for rollnw renderer work and future authored-toolset/game viewports. Higher-level validation lives in <code>lib/nw/render</code>, <code>tools/mudl</code>, and <code>tools/client</code>; older project docs may still describe rollnw as if graphics were out of scope. Read those older statements as historical context, not current direction.</p>
+<h2 id="backends">Backends</h2>
+<ul>
+<li><strong>Vulkan</strong> (<code>backends/vulkan/</code>): selected on Linux and Windows; uses descriptor buffers, SPIR-V 1.6 compiled via Slang, and <code>native_vulkan.hpp</code> escape hatches.</li>
+<li><strong>Metal</strong> (<code>backends/metal/</code>): selected on Apple platforms (<code>APPLE</code>); uses Metal 3, Tier-2 bindless argument buffers, MSL compiled from the same HLSL sources via Slang, and <code>native_metal.hpp</code> escape hatches.</li>
+</ul>
 <h2 id="what-it-is-for">What It Is For</h2>
 <ul>
-<li>Creating devices and swapchains</li>
+<li>Creating devices and swapchains (Vulkan swapchain / <code>CAMetalLayer</code>, plus headless offscreen targets)</li>
 <li>Managing GPU resources such as buffers, textures, render targets, shaders, and pipelines</li>
 <li>Recording and submitting command lists</li>
 <li>Exposing low-level rendering primitives with explicit ownership and lifetimes</li>
-<li>Providing backend escape hatches when higher layers need direct Vulkan access</li>
+<li>Providing backend escape hatches (<code>native_vulkan.hpp</code>, <code>native_metal.hpp</code>) when higher layers need direct API access</li>
 </ul>
 <h2 id="what-it-is-not-for">What It Is Not For</h2>
 <ul>
@@ -80,7 +86,7 @@
 <p><code>nw::gfx</code> is moving toward a bindless-first resource model.</p>
 <p>Current direction:</p>
 <ul>
-<li>descriptor-buffer-backed Vulkan backend</li>
+<li>descriptor-buffer-backed Vulkan backend (Linux/Windows) and Tier-2 argument-buffer Metal 3 backend (macOS)</li>
 <li>bindless sampled texture indexing</li>
 <li>per-frame uniform suballocation for per-draw constants</li>
 <li>pipeline flags that opt into resource models instead of hard-coding one path</li>
