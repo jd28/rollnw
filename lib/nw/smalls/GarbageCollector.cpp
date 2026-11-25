@@ -1019,11 +1019,16 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
             IArray* arr = static_cast<IArray*>(heap_->get_ptr(ptr));
             if (!arr) { return false; }
 
-            if (auto* heap_arr = dynamic_cast<TypedArray<HeapPtr>*>(arr)) {
+            switch (arr->storage_kind()) {
+            case ArrayStorageKind::heap_ptr: {
+                auto* heap_arr = static_cast<TypedArray<HeapPtr>*>(arr);
                 for (const HeapPtr& hp : heap_arr->elements) {
                     try_mark_child(hp);
                 }
-            } else if (auto* struct_arr = dynamic_cast<StructArray*>(arr)) {
+                break;
+            }
+            case ArrayStorageKind::struct_bytes: {
+                auto* struct_arr = static_cast<StructArray*>(arr);
                 if (elem_type->contains_heap_refs) {
                     for (size_t i = 0; i < struct_arr->count; ++i) {
                         uint8_t* elem_base = struct_arr->buffer.data() + (i * struct_arr->elem_size);
@@ -1032,7 +1037,10 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
                         });
                     }
                 }
-            } else {
+                break;
+            }
+            case ArrayStorageKind::other:
+            default: {
                 // Fallback for any other IArray impls.
                 Value val;
                 for (size_t i = 0; i < arr->size(); ++i) {
@@ -1042,6 +1050,8 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
                         }
                     }
                 }
+                break;
+            }
             }
         } else {
             uint8_t* data = static_cast<uint8_t*>(heap_->get_ptr(ptr));

@@ -1096,7 +1096,23 @@ lbl_LOADK: {
     } else if (val.type_id == rt_->float_type()) {
         val.data.fval = k.data.fval;
     } else if (val.type_id == rt_->string_type()) {
-        val = Value::make_string(rt_->alloc_string(current_module->get_string(k.data.string_idx)));
+        const uint32_t sidx = k.data.string_idx;
+        if (current_module->cached_strings_rooted && sidx < current_module->string_pool.size()) {
+            if (current_module->cached_strings.size() < current_module->string_pool.size()) {
+                current_module->cached_strings.resize(current_module->string_pool.size());
+            }
+            HeapPtr cached = current_module->cached_strings[sidx];
+            if (cached.value == 0) {
+                cached = rt_->alloc_string(current_module->get_string(sidx));
+                current_module->cached_strings[sidx] = cached;
+                if (rt_->gc() && cached.value != 0) {
+                    rt_->gc()->write_barrier_root(cached);
+                }
+            }
+            val = Value::make_string(cached);
+        } else {
+            val = Value::make_string(rt_->alloc_string(current_module->get_string(sidx)));
+        }
     } else {
         fail("Unsupported constant type");
     }
@@ -2498,7 +2514,23 @@ vm_exit:
             } else if (val.type_id == rt_->float_type()) {
                 val.data.fval = k.data.fval;
             } else if (val.type_id == rt_->string_type()) {
-                val = Value::make_string(rt_->alloc_string(current_module->get_string(k.data.string_idx)));
+                const uint32_t sidx = k.data.string_idx;
+                if (current_module->cached_strings_rooted && sidx < current_module->string_pool.size()) {
+                    if (current_module->cached_strings.size() < current_module->string_pool.size()) {
+                        current_module->cached_strings.resize(current_module->string_pool.size());
+                    }
+                    HeapPtr cached = current_module->cached_strings[sidx];
+                    if (cached.value == 0) {
+                        cached = rt_->alloc_string(current_module->get_string(sidx));
+                        current_module->cached_strings[sidx] = cached;
+                        if (rt_->gc() && cached.value != 0) {
+                            rt_->gc()->write_barrier_root(cached);
+                        }
+                    }
+                    val = Value::make_string(cached);
+                } else {
+                    val = Value::make_string(rt_->alloc_string(current_module->get_string(sidx)));
+                }
             } else {
                 fail("Unsupported constant type");
             }
