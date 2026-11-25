@@ -36,16 +36,17 @@ void FrameStorageArena::destroy()
 }
 
 bool FrameStorageArena::reset(
-    nw::gfx::Context* ctx, uint64_t new_frame_id, size_t min_capacity, nw::gfx::BufferUsage usage)
+    nw::gfx::Context* ctx, uint64_t new_frame_id, size_t min_capacity, nw::gfx::BufferUsage usage, bool cpu_visible)
 {
     if (min_capacity > kMaxSize) {
         frame_id_ = UINT64_MAX;
         return false;
     }
-    if (usage_ != usage) {
+    if (usage_ != usage || cpu_visible_ != cpu_visible) {
         destroy();
     }
     usage_ = usage;
+    cpu_visible_ = cpu_visible;
 
     if (!blocks_.empty()) {
         const auto largest = std::max_element(blocks_.begin(), blocks_.end(),
@@ -69,19 +70,22 @@ bool FrameStorageArena::reset(
         nw::gfx::BufferDesc desc{};
         desc.size = new_cap;
         desc.usage = usage_;
-        desc.cpu_visible = true;
+        desc.cpu_visible = cpu_visible_;
         auto buffer = nw::gfx::create_buffer(ctx, desc);
         if (!buffer.valid()) {
             LOG_F(ERROR, "Failed to create frame storage arena block");
             frame_id_ = UINT64_MAX;
             return false;
         }
-        void* mapped = nw::gfx::map_buffer(buffer);
-        if (!mapped) {
-            nw::gfx::destroy_buffer(buffer);
-            LOG_F(ERROR, "Failed to map frame storage arena block");
-            frame_id_ = UINT64_MAX;
-            return false;
+        void* mapped = nullptr;
+        if (cpu_visible_) {
+            mapped = nw::gfx::map_buffer(buffer);
+            if (!mapped) {
+                nw::gfx::destroy_buffer(buffer);
+                LOG_F(ERROR, "Failed to map frame storage arena block");
+                frame_id_ = UINT64_MAX;
+                return false;
+            }
         }
         blocks_.push_back({buffer, mapped, new_cap, 0});
     }
@@ -106,16 +110,19 @@ nw::gfx::StorageSpan FrameStorageArena::allocate(nw::gfx::Context* ctx, uint32_t
     nw::gfx::BufferDesc desc{};
     desc.size = new_cap;
     desc.usage = usage_;
-    desc.cpu_visible = true;
+    desc.cpu_visible = cpu_visible_;
     auto buffer = nw::gfx::create_buffer(ctx, desc);
     if (!buffer.valid()) {
         LOG_F(ERROR, "Frame storage arena overflow: need {} bytes", size);
         return {};
     }
-    void* mapped = nw::gfx::map_buffer(buffer);
-    if (!mapped) {
-        nw::gfx::destroy_buffer(buffer);
-        return {};
+    void* mapped = nullptr;
+    if (cpu_visible_) {
+        mapped = nw::gfx::map_buffer(buffer);
+        if (!mapped) {
+            nw::gfx::destroy_buffer(buffer);
+            return {};
+        }
     }
     blocks_.push_back({buffer, mapped, new_cap, size});
     return {buffer, 0, size};
@@ -124,16 +131,18 @@ nw::gfx::StorageSpan FrameStorageArena::allocate(nw::gfx::Context* ctx, uint32_t
 nw::gfx::StorageSpan FrameStorageArena::write(
     nw::gfx::Context* ctx, const void* data, uint32_t size, uint32_t alignment)
 {
+    if (!cpu_visible_) return {};
     auto span = allocate(ctx, size, alignment);
-    if (!span.buffer.valid()) return {};
+    if (!span.buffer.valid() || !blocks_.back().mapped) return {};
     std::memcpy(static_cast<uint8_t*>(blocks_.back().mapped) + span.offset, data, size);
     return span;
 }
 
 MappedStorageSpan FrameStorageArena::allocate_mapped(nw::gfx::Context* ctx, uint32_t size, uint32_t alignment)
 {
+    if (!cpu_visible_) return {};
     auto span = allocate(ctx, size, alignment);
-    if (!span.buffer.valid() || blocks_.empty()) return {};
+    if (!span.buffer.valid() || blocks_.empty() || !blocks_.back().mapped) return {};
     return {span, static_cast<uint8_t*>(blocks_.back().mapped) + span.offset};
 }
 

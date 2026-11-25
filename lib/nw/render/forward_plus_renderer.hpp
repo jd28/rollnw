@@ -120,6 +120,7 @@ private:
     nw::gfx::Context* ctx_ = nullptr;
     nw::gfx::Handle<nw::gfx::Pipeline> cull_pipeline_;
     std::array<FrameStorageArena, nw::gfx::kFramesInFlight> upload_arenas_{};
+    std::array<FrameStorageArena, nw::gfx::kFramesInFlight> device_arenas_{};
 };
 
 [[nodiscard]] ForwardPlusConfig preview_forward_plus_config() noexcept;
