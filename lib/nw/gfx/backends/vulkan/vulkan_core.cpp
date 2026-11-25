@@ -427,4 +427,9 @@ ValidationReport validation_report(Core* core)
     return vk->validation_report;
 }
 
+SDL_WindowFlags window_flags() noexcept
+{
+    return SDL_WINDOW_VULKAN;
+}
+
 } // namespace nw::gfx

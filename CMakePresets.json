@@ -491,7 +491,7 @@
         {
             "name": "macos",
             "inherits": "linux",
-            "displayName": "macOS default configuration",
+            "displayName": "macOS Apple Silicon default configuration",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -499,7 +499,7 @@
             },
             "cacheVariables": {
                 "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3",
-                "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
                 "MI_OSX_ZONE": "OFF"
             }
         },
@@ -520,6 +520,31 @@
             ]
         },
         {
+            "name": "macos-renderer-dev",
+            "inherits": [
+                "macos-dev"
+            ],
+            "displayName": "macOS Renderer Dev",
+            "description": "macOS Apple Silicon development build with SDL3 + Metal renderer tools",
+            "binaryDir": "${sourceDir}/build-renderer-macos",
+            "cacheVariables": {
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "macos-renderer-dev-debug",
+            "inherits": [
+                "dev-debug",
+                "macos-renderer-dev"
+            ],
+            "displayName": "macOS Renderer Dev Debug",
+            "description": "Debug macOS Apple Silicon development build with SDL3 + Metal renderer tools",
+            "binaryDir": "${sourceDir}/build-renderer-macos-debug"
+        },
+        {
             "name": "ci-macos",
             "inherits": "macos",
             "displayName": "macOS CI configuration",
@@ -531,12 +556,43 @@
             }
         },
         {
+            "name": "ci-macos-renderer",
+            "inherits": "macos",
+            "displayName": "macOS renderer CI build",
+            "description": "macOS Apple Silicon renderer build for Metal compile coverage",
+            "binaryDir": "${sourceDir}/build-ci-macos-renderer",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_TOOLS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
+        },
+        {
             "name": "ci-macos-tools-package",
             "inherits": "macos",
-            "displayName": "macOS tools package build",
-            "description": "macOS CLI tools package build without GUI renderer tools",
+            "displayName": "macOS Apple Silicon tools package build",
+            "description": "macOS Apple Silicon tools package build with rollnw-client, mudl, and CLI tools",
             "binaryDir": "${sourceDir}/build-ci-macos-tools-package",
             "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ROLLNW_BUILD_RENDERER": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
                 "ROLLNW_BUILD_TOOLS": {
                     "type": "BOOL",
                     "value": "ON"
@@ -546,6 +602,10 @@
                     "value": "OFF"
                 },
                 "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_USE_SYSTEM_SDL": {
                     "type": "BOOL",
                     "value": "OFF"
                 }
@@ -610,6 +670,10 @@
             "configurePreset": "ci-macos-tools-package"
         },
         {
+            "name": "ci-macos-renderer",
+            "configurePreset": "ci-macos-renderer"
+        },
+        {
             "name": "ci-windows",
             "configurePreset": "ci-windows"
         },
@@ -620,6 +684,14 @@
         {
             "name": "ci-windows-tools-package",
             "configurePreset": "ci-windows-tools-package"
+        },
+        {
+            "name": "macos-renderer-dev",
+            "configurePreset": "macos-renderer-dev"
+        },
+        {
+            "name": "macos-renderer-dev-debug",
+            "configurePreset": "macos-renderer-dev-debug"
         }
     ],
     "testPresets": [

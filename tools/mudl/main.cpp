@@ -378,7 +378,7 @@ int main(int argc, char* argv[])
     if (!headless_command) {
         window = SDL_CreateWindow("mudl",
             1280, 720,
-            SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+            SDL_WINDOW_RESIZABLE | nw::gfx::window_flags());
         if (!window) {
             LOG_F(ERROR, "Failed to create window: {}", SDL_GetError());
             return 1;

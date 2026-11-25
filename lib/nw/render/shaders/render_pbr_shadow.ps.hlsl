@@ -1,7 +1,6 @@
 // Depth-only shadow pixel shader for common PBR model primitives.
 
-[[vk::binding(2, 1)]] Texture2D<float4> g_textures[] : register(t2, space1);
-[[vk::binding(3, 1)]] SamplerState g_sampler : register(s3, space1);
+#include "bindless_textures.inc.hlsl"
 
 #include "model_draw_constants.inc.hlsl"
 
@@ -39,8 +38,8 @@ void main(PSInput input) {
         const float color_key_cutoff = sc_color_key_threshold.w;
         if (color_key_cutoff > 0.0) {
             float3 delta = albedo_sample.rgb - sc_color_key_threshold.xyz;
-            clip(dot(delta, delta) - (color_key_cutoff * color_key_cutoff));
+            if (dot(delta, delta) - (color_key_cutoff * color_key_cutoff) < 0.0) { discard; }
         }
-        clip(albedo_sample.a - sc_alpha_cutoff);
+        if (albedo_sample.a - sc_alpha_cutoff < 0.0) { discard; }
     }
 }

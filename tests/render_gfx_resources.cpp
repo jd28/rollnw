@@ -1,5 +1,9 @@
 #include <nw/formats/Image.hpp>
+#ifdef NW_GFX_BACKEND_METAL
+#include <nw/gfx/backends/metal/metal_internal.hpp>
+#else
 #include <nw/gfx/backends/vulkan/vulkan_internal.hpp>
+#endif
 #include <nw/kernel/Kernel.hpp>
 #include <nw/render/local_shadow_renderer.hpp>
 #include <nw/render/model_asset.hpp>
@@ -69,8 +73,12 @@ protected:
     }
 
     std::vector<uint8_t> read_mips(Handle<Texture> handle, size_t bytes_per_pixel,
-        VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT)
+        bool depth_aspect = false)
     {
+#ifdef NW_GFX_BACKEND_METAL
+        return metal_test::read_texture_mips(context, handle, bytes_per_pixel, depth_aspect);
+#else
+        const VkImageAspectFlags aspect = depth_aspect ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
         auto* vk = as_vulkan(context);
         auto* image = vk->texture_pool_.get(handle);
         if (!image) {
@@ -128,6 +136,7 @@ protected:
         unmap_buffer(destination);
         destroy_buffer(destination);
         return result;
+#endif
     }
 
     Core* core = nullptr;
@@ -353,8 +362,13 @@ TEST_F(RenderGfxResources, RejectedBatchesPreserveEveryTextureAndSubmitNothing)
         EXPECT_FALSE(upload_textures(context, rows));
         EXPECT_EQ(resource_stats(context).upload_submission_count, before.upload_submission_count);
         EXPECT_EQ(resource_stats(context).staging_allocation_count, before.staging_allocation_count);
+#ifdef NW_GFX_BACKEND_METAL
+        EXPECT_TRUE(metal_test::texture_is_uploaded(context, first));
+        EXPECT_TRUE(metal_test::texture_is_uploaded(context, second));
+#else
         EXPECT_EQ(as_vulkan(context)->texture_pool_.get(first)->layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         EXPECT_EQ(as_vulkan(context)->texture_pool_.get(second)->layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+#endif
     };
     uploads[1].texture = {};
     reject(uploads);
@@ -397,6 +411,25 @@ TEST_F(RenderGfxResources, RejectsByteProductAndAlignedTotalOverflowBeforeReadin
     // arithmetic without allocating an impossible GPU image or CPU payload.
     const auto first = texture(Fmt::RGBA16F);
     const auto second = texture(Fmt::RGBA16F);
+#ifdef NW_GFX_BACKEND_METAL
+    metal_test::inject_texture_extent(context, first, 1u << 31, 1u << 30);
+    metal_test::inject_texture_extent(context, second, 1u << 31, 1u << 30);
+    uint8_t byte = 0;
+    TextureMipData mip{&byte, 0, 1u << 31, 1u << 30};
+    std::array uploads{TextureUpload{first, {&mip, 1}}, TextureUpload{second, {&mip, 1}}};
+    EXPECT_FALSE(upload_textures(context, uploads));
+    metal_test::inject_texture_extent(context, first, 1u << 31, 1u << 29);
+    metal_test::inject_texture_extent(context, second, 1u << 31, 1u << 29);
+    mip.height = 1u << 29;
+    mip.size = size_t{1} << 63;
+    EXPECT_FALSE(upload_textures(context, uploads));
+    EXPECT_EQ(resource_stats(context).upload_submission_count, 0u);
+    EXPECT_EQ(resource_stats(context).staging_allocation_count, 0u);
+    EXPECT_FALSE(metal_test::texture_is_uploaded(context, first));
+    EXPECT_FALSE(metal_test::texture_is_uploaded(context, second));
+    metal_test::inject_texture_extent(context, first, 4, 4);
+    metal_test::inject_texture_extent(context, second, 4, 4);
+#else
     auto* vk = as_vulkan(context);
     auto* a = vk->texture_pool_.get(first);
     auto* b = vk->texture_pool_.get(second);
@@ -415,6 +448,7 @@ TEST_F(RenderGfxResources, RejectsByteProductAndAlignedTotalOverflowBeforeReadin
     EXPECT_EQ(a->layout, VK_IMAGE_LAYOUT_UNDEFINED);
     EXPECT_EQ(b->layout, VK_IMAGE_LAYOUT_UNDEFINED);
     a->width = a->height = b->width = b->height = 4;
+#endif
 }
 
 TEST_F(RenderGfxResources, ContextCardinalityAndRenderTargetContractsAreExplicit)
@@ -475,8 +509,12 @@ TEST_F(RenderGfxResources, UniformDemandIncludesFailedRequestsAndResetsEachFrame
     ASSERT_GT(stats.uniform_ring_capacity_bytes, 0u);
     ASSERT_LT(stats.uniform_ring_capacity_bytes, std::numeric_limits<uint32_t>::max());
     const auto capacity = static_cast<uint32_t>(stats.uniform_ring_capacity_bytes);
+#ifdef NW_GFX_BACKEND_METAL
+    const auto alignment = std::max<uint32_t>(4096u, metal_test::min_uniform_buffer_alignment(context));
+#else
     const auto alignment = static_cast<uint32_t>(std::max<VkDeviceSize>(4096,
         as_vulkan(context)->core->properties.limits.minUniformBufferOffsetAlignment));
+#endif
     ASSERT_GT(capacity, 2u * alignment);
     ASSERT_EQ(capacity % alignment, 0u);
     EXPECT_FALSE(allocate_uniform_span(nullptr, 1).buffer.valid());
@@ -516,7 +554,11 @@ TEST_F(RenderGfxResources, UniformDemandIncludesFailedRequestsAndResetsEachFrame
     EXPECT_EQ(stats.uniform_allocation_failure_count, 5u);
     EXPECT_EQ(stats.uniform_ring_required_bytes,
         2ull * capacity + 3ull * alignment + std::numeric_limits<uint32_t>::max());
+#ifdef NW_GFX_BACKEND_METAL
+    metal_test::set_uniform_ring_required_bytes(context, std::numeric_limits<uint64_t>::max() - alignment + 1);
+#else
     as_vulkan(context)->frame_stats.uniform_ring_required_bytes = std::numeric_limits<uint64_t>::max() - alignment + 1;
+#endif
     EXPECT_FALSE(allocate_uniform_span(context, 1, alignment).buffer.valid());
     ASSERT_TRUE(get_command_stats(cmd, stats));
     EXPECT_EQ(stats.uniform_ring_required_bytes, std::numeric_limits<uint64_t>::max() - alignment + 2);
@@ -527,7 +569,7 @@ TEST_F(RenderGfxResources, UniformDemandIncludesFailedRequestsAndResetsEachFrame
     end_frame(context);
 
     // Includes reuse of the original in-flight slot, not just a fresh slot.
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    for (uint32_t i = 0; i < kFramesInFlight; ++i) {
         cmd = begin_frame(context);
         ASSERT_NE(cmd, nullptr);
         ASSERT_TRUE(get_command_stats(cmd, stats));
@@ -648,7 +690,7 @@ float4 main(float2 position : POSITION) : SV_Position {
 }
 )";
     std::ofstream{shader_dir / "shadow_filter.ps.hlsl"} << R"(
-Texture2D<float4> g_textures[] : register(t2, space1);
+#include "bindless_textures.inc.hlsl"
 #include "scene_constants.inc.hlsl"
 #include "scene_shadow.inc.hlsl"
 float4 main(float4 position : SV_Position) : SV_Target {
@@ -1630,7 +1672,7 @@ TEST_F(RenderGfxResources, AnimatedRigidShadowBatchesMatchScalarDepthAcrossPasse
                 SCOPED_TRACE(slot);
                 const auto target = local ? service.local_shadow_renderer().render_target(slot) : service.shadow_renderer().render_target(slot);
                 const auto texture = local ? local_shadows.depth_textures[slot] : shadow.depth_textures[slot];
-                const auto batched = read_mips(texture, sizeof(float), VK_IMAGE_ASPECT_DEPTH_BIT);
+                const auto batched = read_mips(texture, sizeof(float), true);
                 cmd = begin_frame(context);
                 ASSERT_NE(cmd, nullptr);
                 cmd_begin_render(cmd, target);
@@ -1644,7 +1686,7 @@ TEST_F(RenderGfxResources, AnimatedRigidShadowBatchesMatchScalarDepthAcrossPasse
                 }
                 cmd_end_render(cmd);
                 end_frame(context);
-                const auto scalar = read_mips(texture, sizeof(float), VK_IMAGE_ASPECT_DEPTH_BIT);
+                const auto scalar = read_mips(texture, sizeof(float), true);
                 EXPECT_EQ(batched, scalar);
                 if (!local && slot == 0 && stage == 0) {
                     initial_depth = batched;
@@ -1740,8 +1782,12 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
     const auto small_pipeline = create_compute_pipeline(context, {.cs = shader, .uses_uniforms = false, .storage_buffer_count = 2});
     ASSERT_TRUE(pipeline.valid());
     ASSERT_TRUE(small_pipeline.valid());
+#ifdef NW_GFX_BACKEND_METAL
+    const auto stride = std::max<uint32_t>(4u, metal_test::min_storage_buffer_alignment(context));
+#else
     auto* vk = as_vulkan(context);
     const auto stride = static_cast<uint32_t>(std::max<VkDeviceSize>(4, vk->core->properties.limits.minStorageBufferOffsetAlignment));
+#endif
     const uint32_t size = stride * 4;
     std::array<Handle<Buffer>, 3> buffers;
     std::array<std::vector<uint32_t>, 3> expected;
@@ -1761,7 +1807,9 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
     for (uint32_t frame = 0; frame <= kFramesInFlight; ++frame) {
         auto* cmd = begin_frame(context);
         ASSERT_NE(cmd, nullptr);
+#ifndef NW_GFX_BACKEND_METAL
         auto* commands = reinterpret_cast<VulkanCommandList*>(cmd);
+#endif
         std::array spans{StorageSpan{buffers[0]}, StorageSpan{buffers[1]}, StorageSpan{buffers[2]}, StorageSpan{buffers[0]}, StorageSpan{buffers[1]}};
         const auto bind = [&](Handle<Pipeline> current = {}) {
             if (!current.valid()) { current = pipeline; }
@@ -1772,11 +1820,18 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
             cmd_bind_compute_resources(cmd, current, uniforms, spans[0], spans[1], spans[2], spans[3], spans[4]);
         };
         const auto dispatch = [&](uint64_t encodes, uint64_t reuses, Handle<Pipeline> current = {}) {
-            const auto before = commands->stats;
+            CommandStats before{};
+            ASSERT_TRUE(get_command_stats(cmd, before));
             bind(current);
+            CommandStats after{};
+            ASSERT_TRUE(get_command_stats(cmd, after));
+#ifdef NW_GFX_BACKEND_METAL
+            EXPECT_FALSE(metal_test::command_list_resource_bind_failed(cmd));
+#else
             EXPECT_FALSE(commands->resource_bind_failed);
-            EXPECT_EQ(commands->stats.storage_descriptor_encode_count - before.storage_descriptor_encode_count, encodes);
-            EXPECT_EQ(commands->stats.storage_descriptor_reuse_count - before.storage_descriptor_reuse_count, reuses);
+#endif
+            EXPECT_EQ(after.storage_descriptor_encode_count - before.storage_descriptor_encode_count, encodes);
+            EXPECT_EQ(after.storage_descriptor_reuse_count - before.storage_descriptor_reuse_count, reuses);
             cmd_dispatch(cmd, 1, 1, 1);
             for (size_t slot = 0; slot < 2; ++slot) {
                 for (size_t i = 0; i < buffers.size(); ++i) {
@@ -1785,12 +1840,14 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
                     }
                 }
             }
+#ifndef NW_GFX_BACKEND_METAL
             VkMemoryBarrier barrier{};
             barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
             barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_HOST_READ_BIT;
             vkCmdPipelineBarrier(commands->buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+#endif
         };
         dispatch(5, 0);
         dispatch(0, 5); // New uniform span, identical storage inputs.
@@ -1808,14 +1865,21 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
         dispatch(0, 5);
 
         const auto reject = [&] {
-            const auto before = commands->stats;
+            CommandStats before{};
+            ASSERT_TRUE(get_command_stats(cmd, before));
             bind();
+#ifdef NW_GFX_BACKEND_METAL
+            EXPECT_TRUE(metal_test::command_list_resource_bind_failed(cmd));
+#else
             EXPECT_TRUE(commands->resource_bind_failed);
+#endif
             cmd_dispatch(cmd, 1, 1, 1);
-            EXPECT_EQ(commands->stats.resource_bind_failure_count, before.resource_bind_failure_count + 1);
-            EXPECT_EQ(commands->stats.dropped_dispatch_count, before.dropped_dispatch_count + 1);
-            EXPECT_EQ(commands->stats.storage_descriptor_encode_count, before.storage_descriptor_encode_count);
-            EXPECT_EQ(commands->stats.storage_descriptor_reuse_count, before.storage_descriptor_reuse_count);
+            CommandStats after{};
+            ASSERT_TRUE(get_command_stats(cmd, after));
+            EXPECT_EQ(after.resource_bind_failure_count, before.resource_bind_failure_count + 1);
+            EXPECT_EQ(after.dropped_dispatch_count, before.dropped_dispatch_count + 1);
+            EXPECT_EQ(after.storage_descriptor_encode_count, before.storage_descriptor_encode_count);
+            EXPECT_EQ(after.storage_descriptor_reuse_count, before.storage_descriptor_reuse_count);
         };
         const auto valid = spans[0];
         for (const auto invalid : {StorageSpan{}, StorageSpan{stale}, StorageSpan{buffers[1], size + 1, 0},
@@ -1825,14 +1889,30 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
             spans[0] = valid;
             dispatch(0, 5);
         }
+#ifdef NW_GFX_BACKEND_METAL
+        metal_test::set_buffer_core_null(valid.buffer, true, context);
+        reject();
+        metal_test::set_buffer_core_null(valid.buffer, false, context);
+        dispatch(0, 5);
+#else
         auto* buffer = g_buffer_pool.get(valid.buffer);
         buffer->core = nullptr;
         reject();
         buffer->core = vk->core;
         dispatch(0, 5);
+#endif
 
         CommandStats stats;
         ASSERT_TRUE(get_command_stats(cmd, stats));
+#ifdef NW_GFX_BACKEND_METAL
+        const auto saved_offset = metal_test::get_descriptor_ring_offset(context, cmd);
+        metal_test::set_descriptor_ring_offset(context, cmd, stats.descriptor_ring_capacity_bytes);
+        reject();
+        ASSERT_TRUE(get_command_stats(cmd, stats));
+        EXPECT_EQ(stats.descriptor_allocation_failure_count, 1u);
+        metal_test::set_descriptor_ring_offset(context, cmd, saved_offset);
+        dispatch(0, 5);
+#else
         auto& ring_offset = vk->descriptor_ring_offset[commands->pool_index];
         const auto saved_offset = ring_offset;
         ring_offset = stats.descriptor_ring_capacity_bytes;
@@ -1842,11 +1922,14 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
         dispatch(0, 5);
         RecordProperty("storage_descriptor_bytes", static_cast<int>(vk->core->descriptor_buffer_props.storageBufferDescriptorSize));
         RecordProperty("cache_bytes_per_command_list", static_cast<int>(sizeof(commands->storage_descriptor_keys) + sizeof(commands->storage_descriptors) + commands->storage_descriptors.capacity()));
+#endif
         end_frame(context);
         wait_idle(context);
         for (size_t i = 0; i < buffers.size(); ++i) {
+#ifndef NW_GFX_BACKEND_METAL
             auto* storage = g_buffer_pool.get(buffers[i]);
             ASSERT_EQ(vmaInvalidateAllocation(vk->core->allocator, storage->allocation, 0, VK_WHOLE_SIZE), VK_SUCCESS);
+#endif
             const auto* values = static_cast<const uint32_t*>(map_buffer(buffers[i]));
             ASSERT_NE(values, nullptr);
             EXPECT_EQ(std::vector<uint32_t>(values, values + expected[i].size()), expected[i]);
@@ -1863,6 +1946,29 @@ TEST_F(RenderGfxResources, StorageDescriptorsPreserveGpuWritesAcrossReuseChanges
 TEST_F(RenderGfxResources, ModelUploadCleansUpAfterPartialHandleExhaustion)
 {
     std::vector<Handle<Buffer>> reservations;
+#ifdef NW_GFX_BACKEND_METAL
+    const auto release_reservations = create_scope_exit([&] {
+        metal_test::release_reserved_buffer_handles(reservations);
+    });
+    ASSERT_GT(metal_test::reserve_all_but_one_buffer_handles(reservations), 0u);
+    uint64_t before_count = 0;
+    uint64_t before_bytes = 0;
+    metal_test::get_live_buffer_allocations(context, before_count, before_bytes);
+    nw::render::ModelAsset asset;
+    asset.materials.emplace_back();
+    nw::render::ModelAssetPrimitive source;
+    source.vertices.resize(3);
+    source.indices = {0, 1, 2};
+    asset.primitives.push_back(std::move(source));
+    const auto result = nw::render::upload_model_asset(asset, context);
+    EXPECT_FALSE(result.model);
+    EXPECT_EQ(result.stats.buffer_failure_count, 1u);
+    uint64_t after_count = 0;
+    uint64_t after_bytes = 0;
+    metal_test::get_live_buffer_allocations(context, after_count, after_bytes);
+    EXPECT_EQ(after_count, before_count);
+    EXPECT_EQ(after_bytes, before_bytes);
+#else
     reservations.reserve(g_buffer_pool.max_capacity());
     const auto release_reservations = create_scope_exit([&] {
         for (const auto handle : reservations)
@@ -1895,6 +2001,7 @@ TEST_F(RenderGfxResources, ModelUploadCleansUpAfterPartialHandleExhaustion)
     vmaCalculateStatistics(allocator, &after);
     EXPECT_EQ(after.total.statistics.allocationCount, before.total.statistics.allocationCount);
     EXPECT_EQ(after.total.statistics.allocationBytes, before.total.statistics.allocationBytes);
+#endif
 }
 
 } // namespace

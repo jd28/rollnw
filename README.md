@@ -47,7 +47,8 @@ and fixed-step rendering benchmarks, including offscreen runs.
 
 ## Build
 
-Requires CMake 3.21+ and a C++20 compiler. Renderer tools currently only run on Linux and Windows.
+Requires CMake 3.21+ and a C++20 compiler. Renderer tools (`rollnw-client` and `mudl`)
+run on Linux and Windows via Vulkan, and on macOS (Apple Silicon) via native Metal.
 For a Linux renderer build with Ninja:
 
 ```sh
@@ -56,9 +57,10 @@ cmake --build --preset linux-renderer-dev --target rollnw-client mudl
 ./build-renderer/tools/client/rollnw-client
 ```
 
-Use `windows-renderer-dev` for Windows. Library development presets are
-`linux-dev`, `macos-dev`, and `windows-dev`; see [CMakePresets.json](CMakePresets.json)
-for the available configurations.
+Use `windows-renderer-dev` for Windows and `macos-renderer-dev` for macOS Apple Silicon
+(which outputs to `build-renderer-macos/tools/client/rollnw-client`). Library development
+presets are `linux-dev`, `macos-dev`, and `windows-dev`; see
+[CMakePresets.json](CMakePresets.json) for the available configurations.
 
 To work with NWN content, install NWN:EE and any required hak files. If discovery
 fails, set `NWN_ROOT` to the game installation and `NWN_HOME` to its user directory.

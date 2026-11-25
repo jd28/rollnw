@@ -198,8 +198,13 @@ bool ClientSdlRuntime::create_window()
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Window creation requires owned video and no existing window");
         return false;
     }
+#ifdef __APPLE__
+    constexpr SDL_WindowFlags kBackendWindowFlag = SDL_WINDOW_METAL;
+#else
+    constexpr SDL_WindowFlags kBackendWindowFlag = SDL_WINDOW_VULKAN;
+#endif
     window_ = SDL_CreateWindow("rollnw | client", 1280, 720,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+        kBackendWindowFlag | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (!window_) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_CreateWindow failed: %s", SDL_GetError());
         return false;

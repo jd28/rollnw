@@ -33,7 +33,7 @@ set(ROLLNW_SHADER_COMPILER_RUNTIME_LIBS "" PARENT_SCOPE)
 # prebuilt binaries for every platform this project targets. DXC publishes
 # Windows-x64 and Linux-x86_64 only -- no macOS build and no arm64 build of
 # any kind -- so the Apple port would otherwise require building a fork of
-# LLVM 3.7 from source. See issues/shader-toolchain-slang-migration.md.
+# LLVM 3.7 from source. See issues/closed/shader-toolchain-slang-migration.md.
 set(ROLLNW_SLANG_VERSION "2026.22.1" CACHE STRING "Slang release to fetch")
 
 # Per-platform asset name and SHA-256 of the official release archive.
@@ -50,8 +50,7 @@ elseif(APPLE)
         set(ROLLNW_SLANG_ASSET "macos-aarch64.tar.gz")
         set(ROLLNW_SLANG_SHA256 "1d5370a07be409b94685ea4bd84b7bd191313a6b1fae8795f451009bc0dc3fd7")
     else()
-        set(ROLLNW_SLANG_ASSET "macos-x86_64.tar.gz")
-        set(ROLLNW_SLANG_SHA256 "4288c32f577d2444b211f6d40f490bfe73276c48ffc5bb8ce90e4ff29b209d2b")
+        message(FATAL_ERROR "nw-render: macOS requires Apple Silicon (arm64); Intel macOS (x86_64) is no longer supported")
     endif()
 elseif(UNIX)
     # The glibc-tagged archives are built against an older glibc than the

@@ -1,14 +1,16 @@
 # Shader toolchain migration: DXC to Slang
 
-Status: Phase A, Phase B's two prerequisites, and **the compiler swap itself
-are all done and verified**. The swap reaches parity with DXC: the full render
-suite is back to its 3 pre-existing baseline failures, and the 18-entry
-creature visual corpus renders **9 of 10 byte-identical** to DXC with the
-tenth differing by a single byte (one pixel, one channel, 158 vs 159 out of
-3,686,400). Phases C and D remain. All of it lives uncommitted in the
-`rollnw-combat-rules` worktree on `main`.
+Status: **Closed 2026-11-25.** Phases A, B, and C are complete and landed on
+`main`. Slang 2026.22.1 now compiles the shared HLSL shader corpus to both
+SPIR-V 1.6 (Vulkan on Linux/Windows, with 22/28 corpus renders byte-identical
+to DXC and 6 differing by at most 1 LSB across <=3 bytes) and native MSL (Metal 3
+on macOS Apple Silicon, verified via `RenderGfx*`, `Render*:ClientGfx*`, `mudl`,
+and live `rollnw-client` module rendering under `MTL_DEBUG_LAYER=1`). Optional
+follow-on authoring improvements listed in Phase D remain out of scope for this
+migration.
+
 Prerequisite for
-[macOS / iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md)
+[macOS / iPadOS port and nw::gfx Metal backend](../macos-ios-metal-port-plan.md)
 — that plan's Phase 0 assumed Microsoft ships `libdxcompiler.dylib` for
 macOS, which is false (see Current state). This document owns the shader
 toolchain decision; the Metal plan has been amended to defer to it.

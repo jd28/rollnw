@@ -22,6 +22,10 @@ on:
         description: Test Windows signing on main without publishing a release
         type: boolean
         default: false
+      sign_macos:
+        description: Test macOS signing and notarization on main without publishing a release
+        type: boolean
+        default: false
 
 env:
   buildDir: "${{ github.workspace }}/build/"
@@ -465,6 +469,89 @@ jobs:
         run: |
           ccache -s
 
+  macos-renderer-tools:
+    runs-on: macos-15
+    timeout-minutes: 90
+    name: macOS AppleClang Renderer Build
+    steps:
+      - name: Get current date
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: macOS - install dependencies
+        env:
+          HOMEBREW_NO_ANALYTICS: "ON"
+          HOMEBREW_NO_AUTO_UPDATE: "ON"
+          HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: "ON"
+          HOMEBREW_NO_INSTALL_CLEANUP: "ON"
+        run: |
+          brew install --force --overwrite pkg-config automake ninja libtool zlib ccache
+
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: macOS - cache ccache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ github.workspace }}/.ccache/
+          key: macos-15-renderer-ccache-${{ env.DATE }}
+          restore-keys: |
+            macos-15-renderer-ccache-
+
+      - name: setup ccache
+        run: |
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=5G
+          ccache --set-config=compression=true
+          CCACHE_LIBEXEC="$(brew --prefix ccache)/libexec"
+          export PATH="$CCACHE_LIBEXEC:$PATH"
+          echo "$CCACHE_LIBEXEC" >> $GITHUB_PATH
+          HOST_CCACHE_DIR="$(ccache -k cache_dir)"
+          mkdir -p "$HOST_CCACHE_DIR"
+
+      - name: macOS - download Slang
+        run: |
+          set -euo pipefail
+          slang_version="2026.22.1"
+          slang_asset="slang-$slang_version-macos-aarch64.tar.gz"
+          slang_url="https://github.com/shader-slang/slang/releases/download/v$slang_version/$slang_asset"
+          slang_file="$RUNNER_TEMP/$slang_asset"
+          expected_sha256="1d5370a07be409b94685ea4bd84b7bd191313a6b1fae8795f451009bc0dc3fd7"
+
+          curl \
+            --fail \
+            --location \
+            --show-error \
+            --silent \
+            --retry 8 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --connect-timeout 30 \
+            --max-time 300 \
+            "$slang_url" \
+            --output "$slang_file"
+
+          echo "$expected_sha256  $slang_file" | shasum -a 256 -c -
+          echo "SLANG_ARCHIVE=$slang_file" >> "$GITHUB_ENV"
+
+      - name: macOS - configure renderer
+        run: |
+          cmake --preset ci-macos-renderer "-DROLLNW_SLANG_URL=file://$SLANG_ARCHIVE"
+
+      - name: macOS - build renderer tools
+        run: |
+          cmake --build --preset ci-macos-renderer --target mudl rollnw-client
+
+      - name: ccache stats
+        run: |
+          ccache -s
+
   linux-tools-package:
     needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
@@ -776,25 +863,53 @@ jobs:
           ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
           ccache --set-config=max_size=5G
           ccache --set-config=compression=true
-          export PATH="/usr/local/opt/ccache/libexec:$PATH"
-          echo "/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+          CCACHE_LIBEXEC="$(brew --prefix ccache)/libexec"
+          export PATH="$CCACHE_LIBEXEC:$PATH"
+          echo "$CCACHE_LIBEXEC" >> $GITHUB_PATH
           HOST_CCACHE_DIR="$(ccache -k cache_dir)"
           mkdir -p "$HOST_CCACHE_DIR"
 
+      - name: macOS - download Slang
+        run: |
+          set -euo pipefail
+          slang_version="2026.22.1"
+          slang_asset="slang-$slang_version-macos-aarch64.tar.gz"
+          slang_url="https://github.com/shader-slang/slang/releases/download/v$slang_version/$slang_asset"
+          slang_file="$RUNNER_TEMP/$slang_asset"
+          expected_sha256="1d5370a07be409b94685ea4bd84b7bd191313a6b1fae8795f451009bc0dc3fd7"
+
+          curl \
+            --fail \
+            --location \
+            --show-error \
+            --silent \
+            --retry 8 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --connect-timeout 30 \
+            --max-time 300 \
+            "$slang_url" \
+            --output "$slang_file"
+
+          echo "$expected_sha256  $slang_file" | shasum -a 256 -c -
+          echo "SLANG_ARCHIVE=$slang_file" >> "$GITHUB_ENV"
+
       - name: macOS - configure tools package
         run: |
-          cmake --preset ci-macos-tools-package "-DROLLNW_RELEASE_TAG=$ROLLNW_RELEASE_TAG"
+          cmake --preset ci-macos-tools-package \
+            "-DROLLNW_RELEASE_TAG=$ROLLNW_RELEASE_TAG" \
+            "-DROLLNW_SLANG_URL=file://$SLANG_ARCHIVE"
 
       - name: macOS - build tools package
         run: |
-          cmake --build --preset ci-macos-tools-package --target smalls smalls-lsp smalls-datagen
+          cmake --build --preset ci-macos-tools-package --target mudl rollnw-client smalls smalls-lsp smalls-datagen
 
       - name: macOS - package install tree
         env:
           SNAPSHOT_ID: ${{ github.event_name == 'release' && github.ref_name || github.sha }}
         run: |
           ARCHIVE_DIR="${{ github.workspace }}/tmp/release"
-          PACKAGE_ROOT="rollnw-tools-macos-universal-${SNAPSHOT_ID}"
+          PACKAGE_ROOT="rollnw-tools-macos-arm64-${SNAPSHOT_ID}"
           mkdir -p "$ARCHIVE_DIR"
           cpack -G TGZ \
             -B "$ARCHIVE_DIR" \
@@ -811,7 +926,7 @@ jobs:
           mkdir -p "$ARTIFACT_DIR"
           tar -xzf "$ARCHIVE_PATH" -C "$ARTIFACT_DIR"
           cmake "-DPACKAGE_ROOT=$ARTIFACT_DIR/$PACKAGE_ROOT" \
-            '-DTOOLS=smalls;smalls-lsp;smalls-datagen' \
+            '-DTOOLS=rollnw-client;mudl;smalls;smalls-lsp;smalls-datagen' \
             -P scripts/ci/validate_tool_packages.cmake
           printf '%s\n' "$PACKAGE_ROOT" > "$ARTIFACT_DIR/package-root.txt"
           echo "PACKAGE_ARTIFACT=$ARTIFACT_DIR" >> $GITHUB_ENV
@@ -893,8 +1008,138 @@ jobs:
           if-no-files-found: error
           path: tmp/windows-signing
 
+  macos-tools-sign:
+    needs: macos-tools-package
+    if: >-
+      needs.macos-tools-package.result == 'success' &&
+      ((github.event_name == 'release' && vars.MACOS_SIGNING_ENABLED == 'true') ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.sign_macos))
+    runs-on: macos-15
+    timeout-minutes: 30
+    name: Sign macOS Tools
+    environment: macos-signing
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.29.4
+
+      - name: download verified macOS tools
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-tools-package
+          path: tmp/macos-signing
+
+      - name: sign, verify, and notarize macOS binaries
+        env:
+          APPLE_DEVELOPER_ID_CERT_B64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_B64 }}
+          APPLE_DEVELOPER_ID_CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASSWORD }}
+          APPLE_NOTARY_KEY_B64: ${{ secrets.APPLE_NOTARY_KEY_B64 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="$(<tmp/macos-signing/package-root.txt)"
+          PACKAGE_DIR="tmp/macos-signing/$PACKAGE_ROOT"
+          BIN_DIR="$PACKAGE_DIR/bin"
+          test -d "$BIN_DIR"
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/rollnw-signing.keychain-db"
+          KEYCHAIN_PASS="$(uuidgen)"
+          CERT_PATH="$RUNNER_TEMP/developer-id.p12"
+          NOTARY_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          NOTARY_ZIP="$RUNNER_TEMP/rollnw-macos-notarize.zip"
+
+          printf '%s' "$APPLE_DEVELOPER_ID_CERT_B64" | base64 --decode > "$CERT_PATH"
+          chmod 600 "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          security import "$CERT_PATH" \
+            -P "$APPLE_DEVELOPER_ID_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASS" \
+            "$KEYCHAIN_PATH"
+
+          SIGN_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | awk '/Developer ID Application:/ { print $2; exit }')"
+          if [ -z "$SIGN_IDENTITY" ]; then
+            echo "No Developer ID Application signing identity found in imported certificate" >&2
+            exit 1
+          fi
+
+          # Sign bundled dynamic libraries first so Hardened Runtime library
+          # validation accepts them under the same Team ID.
+          while IFS= read -r -d '' dylib; do
+            codesign --force --options runtime --timestamp \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "$SIGN_IDENTITY" \
+              "$dylib"
+          done < <(find "$BIN_DIR" -type f -name '*.dylib' -print0)
+
+          tools=(rollnw-client mudl smalls smalls-lsp smalls-datagen)
+          for tool in "${tools[@]}"; do
+            bin="$BIN_DIR/$tool"
+            chmod +x "$bin"
+            codesign --force --options runtime --timestamp \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "$SIGN_IDENTITY" \
+              "$bin"
+          done
+
+          # Verify strict code signatures and timestamps on every signed file.
+          while IFS= read -r -d '' dylib; do
+            codesign --verify --strict --verbose=2 "$dylib"
+          done < <(find "$BIN_DIR" -type f -name '*.dylib' -print0)
+
+          for tool in "${tools[@]}"; do
+            bin="$BIN_DIR/$tool"
+            codesign --verify --strict --verbose=2 "$bin"
+            info="$(codesign -dv --verbose=4 "$bin" 2>&1)"
+            grep -q "Authority=Developer ID Application:" <<< "$info"
+            grep -q "Timestamp=" <<< "$info"
+          done
+
+          # Re-run package identity checks after signing to prove Hardened
+          # Runtime loads all bundled dylibs cleanly.
+          cmake "-DPACKAGE_ROOT=$PACKAGE_DIR" \
+            '-DTOOLS=rollnw-client;mudl;smalls;smalls-lsp;smalls-datagen' \
+            -P scripts/ci/validate_tool_packages.cmake
+
+          # Notarize the signed archive with Apple's notary service.
+          printf '%s' "$APPLE_NOTARY_KEY_B64" | base64 --decode > "$NOTARY_KEY_PATH"
+          chmod 600 "$NOTARY_KEY_PATH"
+          ditto -c -k --keepParent "$PACKAGE_DIR" "$NOTARY_ZIP"
+          xcrun notarytool submit "$NOTARY_ZIP" \
+            --key "$NOTARY_KEY_PATH" \
+            --key-id "$APPLE_NOTARY_KEY_ID" \
+            --issuer "$APPLE_NOTARY_ISSUER_ID" \
+            --wait
+
+      - name: clean up signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/rollnw-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/rollnw-macos-notarize.zip"
+
+      - name: upload signed macOS tools artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-tools-package-signed
+          if-no-files-found: error
+          path: tmp/macos-signing
+
   release-packages:
-    needs: [linux-tools-package, windows-tools-package, windows-tools-sign, macos-tools-package, linux-renderer-headless]
+    needs: [linux-tools-package, windows-tools-package, windows-tools-sign, macos-tools-package, macos-tools-sign, linux-renderer-headless]
     if: >-
       !cancelled() && github.event_name == 'release' &&
       needs.linux-tools-package.result == 'success' &&
@@ -902,7 +1147,9 @@ jobs:
       needs.macos-tools-package.result == 'success' &&
       needs.linux-renderer-headless.result == 'success' &&
       ((vars.WINDOWS_SIGNING_ENABLED == 'true' && needs.windows-tools-sign.result == 'success') ||
-       (vars.WINDOWS_SIGNING_ENABLED != 'true' && needs.windows-tools-sign.result == 'skipped'))
+       (vars.WINDOWS_SIGNING_ENABLED != 'true' && needs.windows-tools-sign.result == 'skipped')) &&
+      ((vars.MACOS_SIGNING_ENABLED == 'true' && needs.macos-tools-sign.result == 'success') ||
+       (vars.MACOS_SIGNING_ENABLED != 'true' && needs.macos-tools-sign.result == 'skipped'))
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     name: Release Packages
@@ -931,7 +1178,7 @@ jobs:
       - name: download macOS tools artifact
         uses: actions/download-artifact@v8
         with:
-          name: macos-tools-package
+          name: ${{ vars.MACOS_SIGNING_ENABLED == 'true' && 'macos-tools-package-signed' || 'macos-tools-package' }}
           path: tmp/release/macos
 
       - name: pack release assets
@@ -945,6 +1192,8 @@ jobs:
           test -d "tmp/release/linux/$LINUX_PACKAGE"
           test -d "tmp/release/windows/$WINDOWS_PACKAGE"
           test -d "tmp/release/macos/$MACOS_PACKAGE"
+
+          chmod +x "tmp/release/macos/$MACOS_PACKAGE/bin/"{rollnw-client,mudl,smalls,smalls-lsp,smalls-datagen}
 
           tar -C tmp/release/linux -czf "tmp/release/assets/${LINUX_PACKAGE}.tar.gz" "$LINUX_PACKAGE"
           (cd tmp/release/windows && zip -qr "${{ github.workspace }}/tmp/release/assets/${WINDOWS_PACKAGE}.zip" "$WINDOWS_PACKAGE")

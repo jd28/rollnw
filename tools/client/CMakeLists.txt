@@ -178,7 +178,12 @@ else()
     message(FATAL_ERROR "rollnw-client: cannot find RmlUi target")
 endif()
 
-if(UNIX)
+if(APPLE)
+    set_target_properties(rollnw-client PROPERTIES
+        INSTALL_RPATH "@loader_path"
+        BUILD_RPATH "@loader_path"
+    )
+elseif(UNIX)
     target_link_libraries(rollnw-client PRIVATE dl)
     set_target_properties(rollnw-client PROPERTIES
         INSTALL_RPATH "$ORIGIN"
@@ -264,7 +269,7 @@ endif()
 # Windows has no RPATH, so a build-tree run only finds the shader compiler if
 # it sits beside the executable. The install rules cover packaged artifacts;
 # this covers running rollnw-client straight out of the build directory.
-if(WIN32 AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+if((WIN32 OR APPLE) AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
     add_custom_command(TARGET rollnw-client POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS}

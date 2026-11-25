@@ -10,7 +10,7 @@ The extension looks for a server in this order:
 1. `smalls.lsp.path`, when it is set explicitly
 2. a platform binary bundled in `bin/`:
    - Linux x64: `bin/smalls-lsp-linux-x64`
-   - macOS universal: `bin/smalls-lsp-darwin-universal`
+   - macOS Apple Silicon (arm64): `bin/smalls-lsp-darwin-arm64`
    - Windows x64: `bin/smalls-lsp-win32-x64.exe`
 3. `bin/smalls-lsp`, produced by the local `vscode-smalls-vsix` CMake target
 4. `smalls-lsp` on `PATH`

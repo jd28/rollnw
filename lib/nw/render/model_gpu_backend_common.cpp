@@ -21,7 +21,10 @@ namespace {
 bool create_zero_storage_buffer(nw::gfx::Context* ctx, nw::gfx::Handle<nw::gfx::Buffer>& out)
 {
     nw::gfx::BufferDesc desc{};
-    desc.size = sizeof(uint32_t) * 4;
+    // Must be at least one element of the largest storage buffer struct bound
+    // through this fallback slot (ModelSurfaceInstance = 128B, ForwardPlusLightData = 48B)
+    // so Metal's API validation layer accepts unused fallback bindings.
+    desc.size = 256;
     desc.usage = nw::gfx::BufferUsage::Storage;
     desc.cpu_visible = true;
 

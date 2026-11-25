@@ -346,13 +346,30 @@ add_executable(rollnw_test
 
 add_dependencies(rollnw_test copy-files2)
 
-set_target_properties(rollnw_test PROPERTIES
-    INSTALL_RPATH "$ORIGIN"
-)
-
-if(UNIX)
+if(APPLE)
     set_target_properties(rollnw_test PROPERTIES
+        INSTALL_RPATH "@loader_path"
+        BUILD_RPATH "@loader_path"
+    )
+elseif(UNIX)
+    set_target_properties(rollnw_test PROPERTIES
+        INSTALL_RPATH "$ORIGIN"
         BUILD_RPATH_USE_ORIGIN TRUE
+    )
+endif()
+
+if(APPLE AND ROLLNW_BUNDLED_SDL AND TARGET SDL3::SDL3-shared)
+    add_custom_command(TARGET rollnw_test POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL3::SDL3-shared>
+            $<TARGET_FILE_DIR:rollnw_test>
+    )
+endif()
+if(APPLE AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+    add_custom_command(TARGET rollnw_test POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS}
+            $<TARGET_FILE_DIR:rollnw_test>
     )
 endif()
 

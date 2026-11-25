@@ -38,9 +38,6 @@ function resolveServerPath(context: ExtensionContext): string {
     const exeSuffix = platform === 'win32' ? '.exe' : '';
 
     const candidates: string[] = [];
-    if (platform === 'darwin') {
-        candidates.push('smalls-lsp-darwin-universal');
-    }
     candidates.push(`smalls-lsp-${platform}-${arch}${exeSuffix}`);
     candidates.push(`smalls-lsp${exeSuffix}`);
 
