@@ -447,8 +447,9 @@ jobs:
             throw "Slang archive SHA-256 mismatch: expected $expected, got $actual"
           }
 
-          # CMake wants a URL, so forward slashes even on Windows.
-          $archive_url = "file:///" + $file.Replace('\', '/')
+          # CMake ExternalProject/FetchContent accepts local paths directly; avoid
+          # file:/// which strips file:// and leaves a leading /D:/... on Windows.
+          $archive_url = $file.Replace('\', '/')
           "SLANG_ARCHIVE_URL=$archive_url" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         shell: pwsh
 
@@ -676,8 +677,9 @@ jobs:
             throw "Slang archive SHA-256 mismatch: expected $expected, got $actual"
           }
 
-          # CMake wants a URL, so forward slashes even on Windows.
-          $archive_url = "file:///" + $file.Replace('\', '/')
+          # CMake ExternalProject/FetchContent accepts local paths directly; avoid
+          # file:/// which strips file:// and leaves a leading /D:/... on Windows.
+          $archive_url = $file.Replace('\', '/')
           "SLANG_ARCHIVE_URL=$archive_url" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         shell: pwsh
 
