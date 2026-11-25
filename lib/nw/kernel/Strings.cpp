@@ -171,7 +171,10 @@ InternedString Strings::intern(StringView str)
         LOG_F(ERROR, "strings: attempting to intern empty string");
         return {};
     }
-    return InternedString(&*interned_.insert(String(str)).first);
+    if (auto it = interned_.find(str); it != interned_.end()) {
+        return InternedString(&*it);
+    }
+    return InternedString(&*interned_.emplace(str).first);
 }
 
 InternedString Strings::intern(uint32_t strref)

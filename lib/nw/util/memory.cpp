@@ -136,16 +136,31 @@ void MemoryArena::reset()
 
 void MemoryArena::rewind(MemoryMarker marker)
 {
+    if (marker.block_index >= blocks_.size()) { return; }
+    for (size_t i = marker.block_index + 1; i < blocks_.size(); ++i) {
+        free(blocks_[i].base);
+    }
+    blocks_.resize(marker.block_index + 1);
     current_block_ = marker.block_index;
     blocks_[current_block_].used = marker.position;
-    // Poison everything above the rewind point in the target block, plus every
-    // block past it — those allocations no longer exist.
+    // Poison everything above the rewind point in the target block — those
+    // allocations no longer exist.
     auto& block = blocks_[current_block_];
     nw::asan::poison(static_cast<uint8_t*>(block.base) + marker.position,
         block.capacity - marker.position);
-    for (size_t i = current_block_ + 1; i < blocks_.size(); ++i) {
-        nw::asan::poison(blocks_[i].base, blocks_[i].capacity);
+}
+
+MemoryArena& MemoryArena::operator=(MemoryArena&& other) noexcept
+{
+    if (this != &other) {
+        deallocate_blocks();
+        blocks_ = std::move(other.blocks_);
+        current_block_ = other.current_block_;
+        default_block_size_ = other.default_block_size_;
+        other.blocks_.clear();
+        other.current_block_ = 0;
     }
+    return *this;
 }
 
 size_t MemoryArena::used() const noexcept
@@ -260,6 +275,22 @@ PoolBlock::~PoolBlock()
     }
 }
 
+PoolBlock& PoolBlock::operator=(PoolBlock&& other) noexcept
+{
+    if (this != &other) {
+        for (auto block : blocks_) {
+            free(block);
+        }
+        block_size_ = other.block_size_;
+        block_count_ = other.block_count_;
+        blocks_ = std::move(other.blocks_);
+        free_list_ = std::move(other.free_list_);
+        other.blocks_.clear();
+        other.free_list_.clear();
+    }
+    return *this;
+}
+
 std::size_t PoolBlock::block_size() const noexcept
 {
     return block_size_;
@@ -268,7 +299,7 @@ std::size_t PoolBlock::block_size() const noexcept
 void* PoolBlock::allocate()
 {
     if (free_list_.empty()) {
-        expand(1);
+        expand(std::max<size_t>(block_count_, 1));
     }
     void* ptr = free_list_.back();
     free_list_.pop_back();

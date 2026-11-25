@@ -8,13 +8,23 @@
 namespace nw::smalls {
 
 // Forward declarations
+using HeapPtr = StrongID<struct HeapPtrTag, uint32_t>;
 struct Runtime;
 struct Value;
 
 /// Abstract interface for script arrays with runtime type dispatch
+enum class ArrayStorageKind : uint8_t {
+    other = 0,
+    heap_ptr = 1,
+    struct_bytes = 2,
+};
+
 /// Allows specialized storage per element type while maintaining polymorphic access
 struct IArray {
     virtual ~IArray() = default;
+
+    /// Storage layout tag for fast GC tracing without RTTI dynamic_cast.
+    ArrayStorageKind storage_kind() const noexcept { return storage_kind_; }
 
     /// Get the TypeID of array elements
     virtual TypeID element_type() const = 0;
@@ -55,6 +65,9 @@ struct IArray {
 
     /// Retained bytes owned by this array, including the concrete object.
     virtual size_t retained_bytes() const noexcept { return 0; }
+
+protected:
+    ArrayStorageKind storage_kind_ = ArrayStorageKind::other;
 };
 
 /// Typed array with native storage for primitives and inline structs
@@ -68,6 +81,9 @@ struct TypedArray : IArray {
     explicit TypedArray(TypeID type_id, size_t initial_capacity = 0)
         : elem_type_id(type_id)
     {
+        if constexpr (std::is_same_v<T, HeapPtr>) {
+            storage_kind_ = ArrayStorageKind::heap_ptr;
+        }
         if (initial_capacity > 0) {
             elements.reserve(initial_capacity);
         }
@@ -102,6 +118,7 @@ struct StructArray : IArray {
         , count(0)
         , capacity_(initial_capacity)
     {
+        storage_kind_ = ArrayStorageKind::struct_bytes;
         if (initial_capacity > 0) {
             buffer.resize(initial_capacity * elem_size, 0);
         }

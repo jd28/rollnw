@@ -1419,3 +1419,51 @@ TEST_F(SmallsGCTest, WriteBarriersPreserveYoungValuesInOldContainers)
     EXPECT_TRUE(heap_contains(runtime, sum_payload.data.hptr));
     EXPECT_EQ(runtime.get_string_view(sum_payload.data.hptr), "young_sum");
 }
+
+TEST_F(SmallsGCTest, CardTableFullWordRange)
+{
+    CardTable table;
+    constexpr uint32_t word_span_bytes = static_cast<uint32_t>(CardTable::bits_per_word * CardTable::card_size);
+    table.mark_dirty(CardTable::card_size * 7);
+
+    EXPECT_TRUE(table.is_range_dirty(0, word_span_bytes));
+    table.clear_range(0, word_span_bytes);
+    EXPECT_FALSE(table.is_range_dirty(0, word_span_bytes));
+}
+
+TEST_F(SmallsGCTest, IncrementalMinorGCAllocationsSurviveAndMajorResetsMinorPhase)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    // Seed unreachable young garbage so minor sweep frees the head of young_objects_.
+    for (int i = 0; i < 64; ++i) {
+        runtime.alloc_string("garbage");
+    }
+
+    // Start an incremental minor cycle without finishing it.
+    ASSERT_FALSE(gc->collect_minor_step(1));
+    ASSERT_TRUE(gc->is_minor_collecting());
+
+    // Allocate a new rooted young string mid-cycle; it must be staged and not unlinked.
+    HeapPtr mid_cycle = runtime.alloc_string("mid_cycle_survivor");
+    Runtime::ScopedRoots roots{runtime, 1};
+    roots.add(Value::make_string(mid_cycle));
+
+    // Finish the minor cycle and verify the mid-cycle allocation is still live and tracked.
+    while (!gc->collect_minor_step(4)) {
+    }
+    EXPECT_TRUE(heap_contains(runtime, mid_cycle));
+    EXPECT_EQ(runtime.get_string_view(mid_cycle), "mid_cycle_survivor");
+
+    // Start another minor cycle, interrupt it with collect_major(), and verify clean state.
+    for (int i = 0; i < 64; ++i) {
+        runtime.alloc_string("garbage2");
+    }
+    ASSERT_FALSE(gc->collect_minor_step(1));
+    ASSERT_TRUE(gc->is_minor_collecting());
+    gc->collect_major();
+    EXPECT_FALSE(gc->is_minor_collecting());
+    EXPECT_TRUE(heap_contains(runtime, mid_cycle));
+}

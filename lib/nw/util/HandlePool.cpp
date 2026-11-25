@@ -26,9 +26,20 @@ TypedHandlePool::~TypedHandlePool()
     // Caller is responsible for destroying object contents before pool destruction
 }
 
+namespace {
+
+size_t aligned_slot_stride(size_t object_size) noexcept
+{
+    constexpr size_t alignment = alignof(std::max_align_t);
+    const size_t raw = sizeof(TypedHandleHeader) + object_size;
+    return (raw + alignment - 1) & ~(alignment - 1);
+}
+
+} // namespace
+
 void TypedHandlePool::allocate_chunk()
 {
-    size_t stride = sizeof(TypedHandleHeader) + object_size_;
+    const size_t stride = aligned_slot_stride(object_size_);
     Chunk chunk;
     chunk.memory = std::make_unique<uint8_t[]>(stride * objects_per_chunk_);
     chunk.used = 0;
@@ -189,7 +200,7 @@ void* TypedHandlePool::get_by_index(uint32_t index)
         return nullptr;
     }
 
-    size_t stride = sizeof(TypedHandleHeader) + object_size_;
+    const size_t stride = aligned_slot_stride(object_size_);
     return chunks_[chunk_idx].memory.get() + (local_idx * stride);
 }
 
@@ -202,7 +213,7 @@ const void* TypedHandlePool::get_by_index(uint32_t index) const
         return nullptr;
     }
 
-    size_t stride = sizeof(TypedHandleHeader) + object_size_;
+    const size_t stride = aligned_slot_stride(object_size_);
     return chunks_[chunk_idx].memory.get() + (local_idx * stride);
 }
 

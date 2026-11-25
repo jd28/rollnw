@@ -135,14 +135,22 @@ struct Services {
     template <typename T>
     T* get_mut();
 
+    friend EffectSystem& effects();
     friend GlobalMemory* global_allocator();
     friend Module* load_module(const std::filesystem::path& path, bool instantiate, const ModuleLoadOptions& options);
+    friend ObjectManager& objects();
+    friend ResourceManager& resman();
+    friend smalls::Runtime& runtime();
     friend nlohmann::json stats();
     friend void unload_module();
 
 private:
     std::array<ServiceEntry, 32> services_;
     size_t services_count_ = 0;
+    EffectSystem* effects_ = nullptr;
+    ObjectManager* objects_ = nullptr;
+    ResourceManager* resman_ = nullptr;
+    smalls::Runtime* runtime_ = nullptr;
     GlobalMemory global_alloc_;
     MemoryArena kernel_arena_;
     MemoryScope kernel_scope_;

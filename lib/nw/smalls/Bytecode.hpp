@@ -8,6 +8,7 @@
 namespace nw::smalls {
 
 // Forward Decls
+using HeapPtr = StrongID<struct HeapPtrTag, uint32_t>;
 struct BytecodeModule;
 struct FunctionDefinition;
 struct Value;
@@ -323,6 +324,9 @@ struct BytecodeModule {
 
     String module_name;
     Vector<String> string_pool;
+    // Lazily cached HeapPtrs for string_pool entries when rooted by Runtime::bytecode_cache_.
+    Vector<HeapPtr> cached_strings;
+    bool cached_strings_rooted = false;
     absl::flat_hash_map<String, uint32_t> string_indices;
     Vector<Constant> constants;
     Vector<CompiledFunction*> functions;

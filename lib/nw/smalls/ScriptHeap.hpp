@@ -127,6 +127,7 @@ struct ScriptHeap {
 
     HeapPtr young_objects() const { return young_objects_; }
     void set_young_objects(HeapPtr head) { young_objects_ = head; }
+    void splice_staged_young_objects();
 
     size_t young_bytes() const { return young_bytes_; }
     void add_young_bytes(size_t bytes) { young_bytes_ += bytes; }
@@ -149,6 +150,8 @@ private:
 
     HeapPtr all_objects_{0};
     HeapPtr young_objects_{0};
+    HeapPtr staged_young_objects_{0};
+    HeapPtr staged_young_tail_{0};
     size_t young_bytes_ = 0;
     size_t old_bytes_ = 0;
     size_t alloc_count_ = 0;

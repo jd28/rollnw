@@ -31,6 +31,15 @@ struct VariantObject : RuntimeObject {
     uint16_t num_floats = 0;
     uint16_t num_strings = 0;
 
+    static constexpr size_t strings_offset(uint16_t ints_count, uint16_t floats_count) noexcept
+    {
+        const size_t raw = sizeof(VariantObject)
+            + sizeof(int) * ints_count
+            + sizeof(float) * floats_count;
+        constexpr size_t alignment = alignof(String);
+        return (raw + alignment - 1) & ~(alignment - 1);
+    }
+
     // Data accessors - data follows immediately after header
     int* ints() { return reinterpret_cast<int*>(this + 1); }
     const int* ints() const { return reinterpret_cast<const int*>(this + 1); }
@@ -38,16 +47,19 @@ struct VariantObject : RuntimeObject {
     float* floats() { return reinterpret_cast<float*>(ints() + num_ints); }
     const float* floats() const { return reinterpret_cast<const float*>(ints() + num_ints); }
 
-    String* strings() { return reinterpret_cast<String*>(floats() + num_floats); }
-    const String* strings() const { return reinterpret_cast<const String*>(floats() + num_floats); }
+    String* strings()
+    {
+        return reinterpret_cast<String*>(reinterpret_cast<uint8_t*>(this) + strings_offset(num_ints, num_floats));
+    }
+    const String* strings() const
+    {
+        return reinterpret_cast<const String*>(reinterpret_cast<const uint8_t*>(this) + strings_offset(num_ints, num_floats));
+    }
 
     /// Total size including header and inline data
     static size_t total_size(uint16_t num_ints, uint16_t num_floats, uint16_t num_strings)
     {
-        return sizeof(VariantObject)
-            + sizeof(int) * num_ints
-            + sizeof(float) * num_floats
-            + sizeof(String) * num_strings;
+        return strings_offset(num_ints, num_floats) + sizeof(String) * num_strings;
     }
 
     size_t total_size() const

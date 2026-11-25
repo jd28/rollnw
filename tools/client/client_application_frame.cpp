@@ -199,32 +199,18 @@ void render_client_layout(ClientApplicationSurfaces& surfaces, ClientRenderer& r
             RmlSDL::GetKeyModifierState());
         update_layout();
     }
-    if (sync_object_details_window(doc, state, false)) {
-        update_layout();
-    }
-    if (nw::toolset::sync_dialog_view(doc, state.dialog_view, false)) {
-        update_layout();
-    }
-    if (sync_creature_feat_window(doc, state, false)) {
-        update_layout();
-    }
-    if (sync_creature_spell_window(doc, state, false)) {
-        update_layout();
-    }
-    if (sync_creature_spell_filter_window(doc, state, false)) {
-        update_layout();
-    }
-    if (sync_creature_inventory_window(doc, state, false)) {
-        update_layout();
-    }
-    if (sync_appearance_window(doc, state, false)) {
-        update_layout();
-    }
-    if (sync_sound_catalog_window(doc, state, false)) {
-        update_layout();
-    }
-    if (nw::toolset::sync_managed_lists(doc,
-            nw::toolset::ui_v1_host(), state.workbench.managed_lists, false)) {
+    bool panel_layout_dirty = false;
+    panel_layout_dirty |= sync_object_details_window(doc, state, false);
+    panel_layout_dirty |= nw::toolset::sync_dialog_view(doc, state.dialog_view, false);
+    panel_layout_dirty |= sync_creature_feat_window(doc, state, false);
+    panel_layout_dirty |= sync_creature_spell_window(doc, state, false);
+    panel_layout_dirty |= sync_creature_spell_filter_window(doc, state, false);
+    panel_layout_dirty |= sync_creature_inventory_window(doc, state, false);
+    panel_layout_dirty |= sync_appearance_window(doc, state, false);
+    panel_layout_dirty |= sync_sound_catalog_window(doc, state, false);
+    panel_layout_dirty |= nw::toolset::sync_managed_lists(doc,
+        nw::toolset::ui_v1_host(), state.workbench.managed_lists, false);
+    if (panel_layout_dirty) {
         update_layout();
     }
     state.backend.apply_item_editor_pending_focus(doc);

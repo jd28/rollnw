@@ -30,8 +30,10 @@ public:
         nw::gfx::Context* ctx, const void* data, uint32_t size, uint32_t alignment = 64);
     [[nodiscard]] MappedStorageSpan allocate_mapped(
         nw::gfx::Context* ctx, uint32_t size, uint32_t alignment = 64);
+    [[nodiscard]] nw::gfx::StorageSpan allocate(
+        nw::gfx::Context* ctx, uint32_t size, uint32_t alignment = 64);
     [[nodiscard]] bool reset(nw::gfx::Context* ctx, uint64_t new_frame_id, size_t min_capacity = 0,
-        nw::gfx::BufferUsage usage = nw::gfx::BufferUsage::Storage);
+        nw::gfx::BufferUsage usage = nw::gfx::BufferUsage::Storage, bool cpu_visible = true);
     void destroy();
 
     [[nodiscard]] uint64_t frame_id() const noexcept { return frame_id_; }
@@ -49,10 +51,9 @@ private:
         size_t offset = 0;
     };
 
-    [[nodiscard]] nw::gfx::StorageSpan allocate(nw::gfx::Context* ctx, uint32_t size, uint32_t alignment);
-
     std::vector<Block> blocks_;
     nw::gfx::BufferUsage usage_ = nw::gfx::BufferUsage::Storage;
+    bool cpu_visible_ = true;
     uint64_t frame_id_ = UINT64_MAX;
 };
 

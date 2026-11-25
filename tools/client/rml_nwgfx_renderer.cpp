@@ -207,6 +207,7 @@ bool RmlNwgfxRenderer::initialize(nw::gfx::Core* core, nw::gfx::Context* context
     pipeline_desc.fs = impl_->shader_frag_color;
     pipeline_desc.depth_test = false;
     pipeline_desc.depth_write = false;
+    pipeline_desc.uses_single_texture = false;
     impl_->pipeline_color = nw::gfx::create_pipeline(context_, pipeline_desc);
     if (!impl_->pipeline_color.valid()) {
         shutdown();
@@ -214,6 +215,7 @@ bool RmlNwgfxRenderer::initialize(nw::gfx::Core* core, nw::gfx::Context* context
     }
 
     pipeline_desc.fs = impl_->shader_frag_texture;
+    pipeline_desc.uses_single_texture = true;
     impl_->pipeline_texture = nw::gfx::create_pipeline(context_, pipeline_desc);
     if (!impl_->pipeline_texture.valid()) {
         shutdown();
@@ -227,6 +229,7 @@ bool RmlNwgfxRenderer::initialize(nw::gfx::Core* core, nw::gfx::Context* context
     stencil_desc.fs = impl_->shader_frag_color;
     stencil_desc.depth_test = false;
     stencil_desc.depth_write = false;
+    stencil_desc.uses_single_texture = false;
     stencil_desc.stencil_test = true;
     stencil_desc.stencil_compare = nw::gfx::CompareOp::AlwaysPass; // Always pass, write ref value
     stencil_desc.stencil_pass = nw::gfx::StencilOp::Replace;       // Write stencil_ref to stencil
@@ -243,6 +246,7 @@ bool RmlNwgfxRenderer::initialize(nw::gfx::Core* core, nw::gfx::Context* context
     color_stenciled_desc.fs = impl_->shader_frag_color;
     color_stenciled_desc.depth_test = false;
     color_stenciled_desc.depth_write = false;
+    color_stenciled_desc.uses_single_texture = false;
     color_stenciled_desc.stencil_test = true;
     color_stenciled_desc.stencil_compare = nw::gfx::CompareOp::Equal; // Pass if stencil == ref
     color_stenciled_desc.stencil_pass = nw::gfx::StencilOp::Keep;     // Don't modify stencil

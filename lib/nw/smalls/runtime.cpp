@@ -2781,6 +2781,7 @@ BytecodeModule* Runtime::get_or_compile_module(Script* script)
     // Cache module early to support same-module generic instantiation during compile.
     auto module_uptr = std::make_unique<BytecodeModule>(String(script->name()));
     BytecodeModule* module = module_uptr.get();
+    module->cached_strings_rooted = true;
     bytecode_cache_[script] = std::move(module_uptr);
 
     AstCompiler compiler(script, module, this, diagnostic_context_);
@@ -2864,6 +2865,11 @@ void Runtime::enumerate_module_globals(GCRootVisitor& visitor)
         for (uint32_t i = 0; i < module->global_count; ++i) {
             if (module->globals[i].storage == ValueStorage::heap && module->globals[i].data.hptr.value != 0) {
                 visitor.visit_root(&module->globals[i].data.hptr);
+            }
+        }
+        for (HeapPtr& str_ptr : module->cached_strings) {
+            if (str_ptr.value != 0) {
+                visitor.visit_root(&str_ptr);
             }
         }
     }
@@ -3662,6 +3668,8 @@ HeapPtr Runtime::alloc_struct_literal(const BraceInitLiteral* expr)
     }
 
     HeapPtr struct_ptr = heap_.allocate(type->size, type->alignment, expr->type_id_);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(struct_ptr, expr->type_id_));
     void* struct_data = heap_.get_ptr(struct_ptr);
     memset(struct_data, 0, type->size);
     this->initialize_zero_defaults(expr->type_id_, static_cast<uint8_t*>(struct_data));
@@ -4918,6 +4926,8 @@ HeapPtr Runtime::alloc_array(TypeID element_type_id, uint32_t count)
     size_t alignment = std::max(alignof(uint32_t), static_cast<size_t>(elem_alignment));
 
     HeapPtr ptr = heap_.allocate(total_size, alignment, array_type_id);
+    ScopedRoots roots{*this, 1};
+    roots.add(Value::make_heap(ptr, array_type_id));
     void* data = heap_.get_ptr(ptr);
 
     uint32_t* count_ptr = static_cast<uint32_t*>(data);

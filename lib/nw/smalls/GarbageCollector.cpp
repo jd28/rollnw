@@ -221,6 +221,15 @@ void GarbageCollector::collect_major()
 {
     auto start = std::chrono::high_resolution_clock::now();
 
+    if (minor_phase_ != MinorPhase::idle) {
+        heap_->splice_staged_young_objects();
+        minor_phase_ = MinorPhase::idle;
+        remembered_scan_cursor_ = 0;
+        young_sweep_prev_ = HeapPtr{0};
+        young_sweep_current_ = HeapPtr{0};
+        gray_stack_.clear();
+    }
+
     HeapPtr current = heap_->all_objects();
     while (current.value != 0) {
         auto* header = heap_->get_header(current);
@@ -256,6 +265,15 @@ void GarbageCollector::collect_full()
 
 void GarbageCollector::start_major_gc()
 {
+    if (minor_phase_ != MinorPhase::idle) {
+        heap_->splice_staged_young_objects();
+        minor_phase_ = MinorPhase::idle;
+        remembered_scan_cursor_ = 0;
+        young_sweep_prev_ = HeapPtr{0};
+        young_sweep_current_ = HeapPtr{0};
+        gray_stack_.clear();
+    }
+
     HeapPtr current = heap_->all_objects();
     while (current.value != 0) {
         auto* header = heap_->get_header(current);
@@ -808,6 +826,7 @@ void GarbageCollector::begin_minor_cycle()
 
 void GarbageCollector::finish_minor_cycle()
 {
+    heap_->splice_staged_young_objects();
     phase_ = GCPhase::idle;
     minor_phase_ = MinorPhase::idle;
     remembered_scan_cursor_ = 0;
@@ -1000,11 +1019,16 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
             IArray* arr = static_cast<IArray*>(heap_->get_ptr(ptr));
             if (!arr) { return false; }
 
-            if (auto* heap_arr = dynamic_cast<TypedArray<HeapPtr>*>(arr)) {
+            switch (arr->storage_kind()) {
+            case ArrayStorageKind::heap_ptr: {
+                auto* heap_arr = static_cast<TypedArray<HeapPtr>*>(arr);
                 for (const HeapPtr& hp : heap_arr->elements) {
                     try_mark_child(hp);
                 }
-            } else if (auto* struct_arr = dynamic_cast<StructArray*>(arr)) {
+                break;
+            }
+            case ArrayStorageKind::struct_bytes: {
+                auto* struct_arr = static_cast<StructArray*>(arr);
                 if (elem_type->contains_heap_refs) {
                     for (size_t i = 0; i < struct_arr->count; ++i) {
                         uint8_t* elem_base = struct_arr->buffer.data() + (i * struct_arr->elem_size);
@@ -1013,7 +1037,10 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
                         });
                     }
                 }
-            } else {
+                break;
+            }
+            case ArrayStorageKind::other:
+            default: {
                 // Fallback for any other IArray impls.
                 Value val;
                 for (size_t i = 0; i < arr->size(); ++i) {
@@ -1023,6 +1050,8 @@ bool GarbageCollector::trace_object(HeapPtr ptr, bool young_only)
                         }
                     }
                 }
+                break;
+            }
             }
         } else {
             uint8_t* data = static_cast<uint8_t*>(heap_->get_ptr(ptr));

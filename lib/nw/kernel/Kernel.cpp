@@ -248,6 +248,10 @@ void Services::shutdown()
     kernel_scope_.reset();
     services_ = std::array<ServiceEntry, 32>{};
     services_count_ = 0;
+    effects_ = nullptr;
+    objects_ = nullptr;
+    resman_ = nullptr;
+    runtime_ = nullptr;
     serices_started_ = false;
     services_created_ = false;
     module_loaded_ = false;
@@ -264,15 +268,15 @@ void Services::load_services()
 {
     // The ordering here is important.  Pretty much everything depends on strings and resman
     add<Strings>();
-    add<ResourceManager>();
-    add<smalls::Runtime>();
+    resman_ = add<ResourceManager>();
+    runtime_ = add<smalls::Runtime>();
     if (mode_ == ServiceMode::language) {
         return;
     }
     add<TwoDACache>();
-    add<EffectSystem>();
+    effects_ = add<EffectSystem>();
     add<Rules>();
-    add<ObjectManager>();
+    objects_ = add<ObjectManager>();
     add<EventSystem>();
     add<ModelCache>();
     add<TilesetRegistry>();
@@ -287,36 +291,48 @@ Config& config()
 
 EffectSystem& effects()
 {
-    auto res = services().get_mut<EffectSystem>();
+    auto res = services().effects_;
     if (!res) {
-        throw std::runtime_error("kernel: unable to effects service");
+        res = services().get_mut<EffectSystem>();
+        if (!res) {
+            throw std::runtime_error("kernel: unable to effects service");
+        }
     }
     return *res;
 }
 
 ObjectManager& objects()
 {
-    auto res = services().get_mut<ObjectManager>();
+    auto res = services().objects_;
     if (!res) {
-        throw std::runtime_error("kernel: unable to load object service");
+        res = services().get_mut<ObjectManager>();
+        if (!res) {
+            throw std::runtime_error("kernel: unable to load object service");
+        }
     }
     return *res;
 }
 
 ResourceManager& resman()
 {
-    auto res = services().get_mut<ResourceManager>();
+    auto res = services().resman_;
     if (!res) {
-        throw std::runtime_error("kernel: unable to load resources service");
+        res = services().get_mut<ResourceManager>();
+        if (!res) {
+            throw std::runtime_error("kernel: unable to load resources service");
+        }
     }
     return *res;
 }
 
 smalls::Runtime& runtime()
 {
-    auto res = services().get_mut<smalls::Runtime>();
+    auto res = services().runtime_;
     if (!res) {
-        throw std::runtime_error("kernel: unable to load resources service");
+        res = services().get_mut<smalls::Runtime>();
+        if (!res) {
+            throw std::runtime_error("kernel: unable to load resources service");
+        }
     }
     return *res;
 }
