@@ -399,7 +399,7 @@ uint8_t* PropsetPoolManager::get_or_alloc_entry(Pool& pool, uint32_t object_id)
 
 // == Entry Lifecycle ==========================================================
 
-void PropsetPoolManager::free_entry(Runtime& /*rt*/, Pool& pool, uint32_t /*object_id*/, PropsetHeader* hdr, uint8_t* data)
+void PropsetPoolManager::free_entry(Runtime& rt, Pool& pool, uint32_t /*object_id*/, PropsetHeader* hdr, uint8_t* data)
 {
     if (!hdr->alive()) {
         return;
@@ -407,10 +407,11 @@ void PropsetPoolManager::free_entry(Runtime& /*rt*/, Pool& pool, uint32_t /*obje
 
     object_values_.release(unpack_owner(hdr->owner_bits));
 
-    // Release GC-managed heap references
+    // Release pinned leaf heap references owned by this propset entry
     for (uint32_t i = 0; i < pool.info.def->heap_ref_count; ++i) {
         auto* ptr = reinterpret_cast<HeapPtr*>(data + pool.info.def->heap_ref_offsets[i]);
         if (ptr->value != 0) {
+            rt.heap_.unpin(*ptr);
             heap_owners_.erase(ptr->value);
             *ptr = HeapPtr{0};
         }
@@ -583,17 +584,15 @@ Value PropsetPoolManager::get_or_create(Runtime& rt, TypeID propset_type, Object
         }
     }
 
-    // Bind any non-zero heap refs from default initialization
+    // Bind and pin any non-zero leaf heap refs from default initialization
     if (pool->info.def->heap_ref_count > 0) {
         for (uint32_t i = 0; i < pool->info.def->heap_ref_count; ++i) {
             uint32_t heap_off = pool->info.def->heap_ref_offsets[i];
             auto* ptr = reinterpret_cast<HeapPtr*>(data + heap_off);
             auto field_it = pool->info.offset_to_field.find(heap_off);
             if (ptr->value != 0 && field_it != pool->info.offset_to_field.end()) {
+                rt.heap_.pin(*ptr);
                 bind_heap_owner(*pool, object_id, field_it->second, *ptr);
-                if (auto* gc = rt.gc()) {
-                    gc->write_barrier_root(*ptr);
-                }
             }
         }
     }
@@ -659,12 +658,12 @@ Value PropsetPoolManager::read_field(Runtime& rt, const Value& propset_ref, uint
         const auto ensure_initialized = [&]() {
             if (ptr->value == 0) {
                 rt.initialize_zero_defaults(field_type, reinterpret_cast<uint8_t*>(ptr));
+                if (ptr->value != 0) {
+                    rt.heap_.pin(*ptr);
+                }
                 if (field_it != pool->info.offset_to_field.end()) {
                     uint32_t object_id = unpack_owner_id(hdr->owner_bits);
                     bind_heap_owner(*pool, object_id, field_it->second, *ptr);
-                    if (auto* gc = rt.gc()) {
-                        gc->write_barrier_root(*ptr);
-                    }
                 }
                 update_entry_heap_liveness(rt, *pool, hdr, data);
             }
@@ -756,8 +755,14 @@ bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint
 
     if (is_heap_field) {
         HeapPtr new_heap_ptr = *reinterpret_cast<HeapPtr*>(data + offset);
-        if (old_heap_ptr.value != 0 && old_heap_ptr.value != new_heap_ptr.value) {
-            unbind_heap_owner(old_heap_ptr);
+        if (new_heap_ptr.value != old_heap_ptr.value) {
+            if (new_heap_ptr.value != 0) {
+                rt.heap_.pin(new_heap_ptr);
+            }
+            if (old_heap_ptr.value != 0) {
+                rt.heap_.unpin(old_heap_ptr);
+                unbind_heap_owner(old_heap_ptr);
+            }
         }
     }
 
@@ -767,9 +772,6 @@ bool PropsetPoolManager::write_field(Runtime& rt, const Value& propset_ref, uint
             HeapPtr ptr = *reinterpret_cast<HeapPtr*>(data + offset);
             uint32_t object_id = unpack_owner_id(hdr->owner_bits);
             bind_heap_owner(*pool, object_id, field_it->second, ptr);
-            if (auto* gc = rt.gc()) {
-                gc->write_barrier_root(ptr);
-            }
         }
     }
 

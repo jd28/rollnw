@@ -52,6 +52,7 @@ struct ScriptHeap {
         uint8_t generation : 1;
         uint8_t age : 4;
         uint8_t _reserved1 : 1;
+        uint16_t pin_count; // Saturating pin refcount for non-recursive external owners (e.g. propset strings)
 
         HeapPtr next_object;
         HeapPtr prev_object;
@@ -65,6 +66,7 @@ struct ScriptHeap {
             , generation{0}
             , age{0}
             , _reserved1{0}
+            , pin_count{0}
             , next_object{0}
             , prev_object{0}
             , next_young{0}
@@ -72,6 +74,7 @@ struct ScriptHeap {
         {
         }
     };
+    static_assert(sizeof(ObjectHeader) == 32, "ObjectHeader should remain 32 bytes");
 
     ScriptHeap();
     ~ScriptHeap();
@@ -111,6 +114,29 @@ struct ScriptHeap {
     /// Safely gets header for potentially invalid heap pointers.
     /// Returns nullptr when the pointer does not appear to reference a live allocation.
     ObjectHeader* try_get_header(HeapPtr ptr) const;
+
+    /// Pin a leaf (non-recursive) heap allocation so GC sweep does not reclaim it
+    /// without requiring GC root scanning. Saturates at UINT16_MAX.
+    void pin(HeapPtr ptr) noexcept
+    {
+        if (ptr.value == 0) { return; }
+        if (auto* header = try_get_header(ptr)) {
+            if (header->pin_count < UINT16_MAX) {
+                ++header->pin_count;
+            }
+        }
+    }
+
+    /// Unpin a previously pinned heap allocation. Saturated pins remain pinned.
+    void unpin(HeapPtr ptr) noexcept
+    {
+        if (ptr.value == 0) { return; }
+        if (auto* header = try_get_header(ptr)) {
+            if (header->pin_count > 0 && header->pin_count < UINT16_MAX) {
+                --header->pin_count;
+            }
+        }
+    }
 
     /// Stats
     size_t reserved() const { return RESERVE_SIZE; }

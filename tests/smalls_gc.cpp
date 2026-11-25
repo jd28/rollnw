@@ -1327,6 +1327,89 @@ TEST_F(SmallsGCTest, PropsetShadowArrayStorageInvariant)
     EXPECT_EQ(runtime.resolve_array(nums_val), nullptr);
 }
 
+TEST_F(SmallsGCTest, PropsetStringSurvivesMinorAndMajorGC)
+{
+    auto& runtime = nw::kernel::runtime();
+    auto* gc = runtime.gc();
+    ASSERT_NE(gc, nullptr);
+
+    std::string_view source = R"(
+        [[propset]]
+        type NameData {
+            label: string;
+        };
+    )";
+
+    auto* script = runtime.load_module_from_source("test.gc_propset_string", source);
+    ASSERT_NE(script, nullptr);
+    ASSERT_EQ(script->errors(), 0);
+
+    TypeID propset_tid = runtime.type_id("test.gc_propset_string.NameData", false);
+    ASSERT_NE(propset_tid, invalid_type_id);
+
+    const Type* propset_type = runtime.get_type(propset_tid);
+    ASSERT_NE(propset_type, nullptr);
+    ASSERT_TRUE(propset_type->type_kind == TK_struct && propset_type->type_params[0].is<StructID>());
+    const StructDef* def = runtime.type_table_.get(propset_type->type_params[0].as<StructID>());
+    ASSERT_NE(def, nullptr);
+
+    uint32_t label_offset = 0;
+    TypeID label_tid = invalid_type_id;
+    for (uint32_t i = 0; i < def->field_count; ++i) {
+        if (def->fields[i].name.view() == "label") {
+            label_offset = def->fields[i].offset;
+            label_tid = def->fields[i].type_id;
+            break;
+        }
+    }
+    ASSERT_NE(label_tid, invalid_type_id);
+
+    auto* c1 = nw::kernel::objects().make<nw::Creature>();
+    auto* c2 = nw::kernel::objects().make<nw::Creature>();
+    ASSERT_NE(c1, nullptr);
+    ASSERT_NE(c2, nullptr);
+
+    Value ref1 = runtime.get_or_create_propset_ref(propset_tid, c1->handle());
+    Value ref2 = runtime.get_or_create_propset_ref(propset_tid, c2->handle());
+    ASSERT_EQ(ref1.type_id, propset_tid);
+    ASSERT_EQ(ref2.type_id, propset_tid);
+
+    HeapPtr str_ptr = runtime.alloc_string("tyr_the_evenhanded");
+    ASSERT_NE(str_ptr.value, 0u);
+    Value str_val = Value::make_heap(str_ptr, runtime.string_type());
+
+    ASSERT_TRUE(runtime.write_value_field_at_offset(ref1, label_offset, label_tid, str_val));
+    ASSERT_TRUE(runtime.write_value_field_at_offset(ref2, label_offset, label_tid, str_val));
+    str_val = Value{};
+
+    // Both minor and major GC must preserve pinned propset strings without scanning propsets.
+    gc->collect_minor();
+    gc->collect_major();
+
+    Value read1 = runtime.read_value_field_at_offset(ref1, label_offset, label_tid);
+    Value read2 = runtime.read_value_field_at_offset(ref2, label_offset, label_tid);
+    ASSERT_EQ(read1.data.hptr, str_ptr);
+    ASSERT_EQ(read2.data.hptr, str_ptr);
+    EXPECT_EQ(runtime.get_string_view(read1.data.hptr), "tyr_the_evenhanded");
+    EXPECT_EQ(runtime.get_string_view(read2.data.hptr), "tyr_the_evenhanded");
+    read1 = Value{};
+    read2 = Value{};
+
+    // Destroying one owner decrements pin_count (2 -> 1); string stays alive for c2.
+    nw::kernel::objects().destroy(c1->handle());
+    gc->collect_major();
+
+    Value read2_after = runtime.read_value_field_at_offset(ref2, label_offset, label_tid);
+    ASSERT_EQ(read2_after.data.hptr, str_ptr);
+    EXPECT_EQ(runtime.get_string_view(read2_after.data.hptr), "tyr_the_evenhanded");
+    read2_after = Value{};
+
+    // Destroying the last owner unpins (1 -> 0); next major GC reclaims the string.
+    nw::kernel::objects().destroy(c2->handle());
+    gc->collect_major();
+    EXPECT_EQ(runtime.heap_.try_get_header(str_ptr), nullptr);
+}
+
 TEST_F(SmallsGCTest, FreshVmEarlyFailureDoesNotCrash)
 {
     auto& runtime = nw::kernel::runtime();

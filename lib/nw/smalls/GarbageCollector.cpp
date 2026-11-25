@@ -726,8 +726,9 @@ bool GarbageCollector::sweep_and_promote_young_step(size_t work_budget, const st
         }
 
         const bool white = (header->mark_color == static_cast<uint8_t>(MarkColor::WHITE));
-        const bool protected_handle = white && runtime_->is_non_vm_owned_handle_cell(current);
-        if (white && !protected_handle) {
+        const bool pinned = header->pin_count != 0;
+        const bool protected_handle = white && !pinned && runtime_->is_non_vm_owned_handle_cell(current);
+        if (white && !pinned && !protected_handle) {
             HeapPtr next_obj = header->next_object;
 
             if (!unlink_from_all_objects(current, next_obj)) {
@@ -867,8 +868,9 @@ void GarbageCollector::sweep_all()
         HeapPtr next = header->next_object;
 
         const bool white = (header->mark_color == static_cast<uint8_t>(MarkColor::WHITE));
-        const bool protected_handle = white && runtime_->is_non_vm_owned_handle_cell(current);
-        if (white && !protected_handle) {
+        const bool pinned = header->pin_count != 0;
+        const bool protected_handle = white && !pinned && runtime_->is_non_vm_owned_handle_cell(current);
+        if (white && !pinned && !protected_handle) {
             if (prev_ptr.value == 0) {
                 heap_->set_all_objects(next);
             } else {
