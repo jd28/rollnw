@@ -110,9 +110,6 @@ struct RmlSmallsDataModel::Impl {
         Rml::DataVariable Child(
             void* pointer, const Rml::DataAddressEntry& address) override
         {
-            if (root_) {
-                owner_.nodes.clear();
-            }
             return owner_.child(pointer, root_, address);
         }
 
@@ -309,6 +306,17 @@ struct RmlSmallsDataModel::Impl {
             }
             node.kind = StepKind::field;
             node.slot = field;
+        }
+
+        for (size_t i = 0; i < nodes.size(); ++i) {
+            const Node& existing = nodes[i];
+            if (existing.parent == node.parent
+                && existing.binding == node.binding
+                && existing.kind == node.kind
+                && existing.slot == node.slot) {
+                return Rml::DataVariable{
+                    &nested_definition, encode_index(static_cast<uint32_t>(i))};
+            }
         }
 
         nodes.push_back(node);

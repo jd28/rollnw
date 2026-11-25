@@ -993,7 +993,6 @@ Handle<Texture> create_texture(Context* ctx, const TextureDesc& desc)
 
     VmaAllocationCreateInfo alloc_info{};
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
-    alloc_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
     VK_CHECK(vmaCreateImage(c->core->allocator, &image_info, &alloc_info,
         &tex.image, &tex.allocation, nullptr));
@@ -1410,6 +1409,10 @@ void cmd_begin_render(CommandList* cmd_ptr, Handle<RenderTarget> target, RenderL
     depth_stencil_attachment.storeOp = render_depth_view != VK_NULL_HANDLE ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depth_stencil_attachment.clearValue.depthStencil = {1.0f, 0}; // Clear depth to 1.0, stencil to 0
 
+    if (!has_color_attachment && !depth_tex) {
+        return;
+    }
+
     VkRenderingInfo rendering{};
     rendering.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     rendering.renderArea.offset = {0, 0};
@@ -1806,6 +1809,9 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     const bool uses_texture_descriptor = pipeline->uses_single_texture
         && texture
         && texture->view != VK_NULL_HANDLE;
+    if (pipeline->uses_single_texture && !uses_texture_descriptor) {
+        return false;
+    }
     const VkDeviceSize allocation_start = ring_offset;
     VkDeviceSize next_ring_offset = ring_offset;
     VkDeviceSize set0_offset = 0;
@@ -1825,7 +1831,6 @@ static bool bind_pipeline_resources(VulkanCommandList* cmd, VulkanPipeline* pipe
     cmd->stats.descriptor_ring_required_bytes = std::max<uint64_t>(
         cmd->stats.descriptor_ring_required_bytes, next_ring_offset);
     if (next_ring_offset > kDescriptorRingSize) {
-        ring_offset = next_ring_offset;
         ++cmd->stats.descriptor_allocation_failure_count;
         return false;
     }
@@ -2817,8 +2822,34 @@ static bool recreate_swapchain(Context* ctx_ptr, uint32_t width, uint32_t height
     ctx->height = height;
 
     if (ctx->headless) {
+        wait_idle(as_gfx(ctx));
+        if (auto* old_rt = ctx->render_target_pool_.get(ctx->default_render_target)) {
+            const Handle<Texture> old_color = old_rt->desc.color.texture;
+            const Handle<Texture> old_depth = old_rt->desc.depth.texture;
+            destroy_render_target(ctx_ptr, ctx->default_render_target);
+            ctx->default_render_target = {};
+            if (old_color.valid()) { destroy_texture(ctx_ptr, old_color); }
+            if (old_depth.valid()) { destroy_texture(ctx_ptr, old_depth); }
+        }
+
+        TextureDesc color_desc = {
+            .width = ctx->width,
+            .height = ctx->height,
+            .format = Fmt::RGBA8,
+            .render_target = true,
+        };
+        TextureDesc depth_desc = {
+            .width = ctx->width,
+            .height = ctx->height,
+            .format = Fmt::D32FS8,
+            .render_target = true,
+        };
+        RenderTargetDesc rt_desc = {};
+        rt_desc.color.texture = create_texture(ctx_ptr, color_desc);
+        rt_desc.depth.texture = create_texture(ctx_ptr, depth_desc);
+        ctx->default_render_target = create_render_target(ctx_ptr, rt_desc);
         ctx->swapchain_stale = false;
-        return true;
+        return ctx->default_render_target.valid();
     }
 
     VkDevice device = ctx->core->device;
@@ -3054,12 +3085,28 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
 
     VkBuffer readback_buffer = VK_NULL_HANDLE;
     VmaAllocation readback_alloc = VK_NULL_HANDLE;
-    void* mapped = nullptr;
-    VkDeviceAddress address = 0;
-    if (!create_persistent_buffer(ctx, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            readback_buffer, readback_alloc, mapped, address)) {
+    VkBufferCreateInfo readback_info{};
+    readback_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    readback_info.size = buffer_size;
+    readback_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    readback_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo readback_alloc_info{};
+    readback_alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    readback_alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
+        | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    VmaAllocationInfo readback_result_info{};
+    if (vmaCreateBuffer(ctx->core->allocator, &readback_info, &readback_alloc_info,
+            &readback_buffer, &readback_alloc, &readback_result_info)
+            != VK_SUCCESS
+        || !readback_result_info.pMappedData) {
+        if (readback_buffer != VK_NULL_HANDLE) {
+            vmaDestroyBuffer(ctx->core->allocator, readback_buffer, readback_alloc);
+        }
         return false;
     }
+    void* mapped = readback_result_info.pMappedData;
 
     VkImage image = VK_NULL_HANDLE;
     VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -3097,9 +3144,12 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
     region.imageExtent = {width, height, 1};
     vkCmdCopyImageToBuffer(cmd->buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, readback_buffer, 1, &region);
 
+    const VkImageLayout restore_layout = (current_layout == VK_IMAGE_LAYOUT_UNDEFINED)
+        ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        : current_layout;
     transition_image_layout(cmd->buffer, image,
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        current_layout,
+        restore_layout,
         VK_ACCESS_TRANSFER_READ_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -3109,14 +3159,15 @@ bool capture_screenshot(Context* ctx_ptr, CommandList* cmd_ptr, const char* path
         auto* rt = ctx->render_target_pool_.get(ctx->default_render_target);
         auto* color_tex = rt ? ctx->texture_pool_.get(rt->desc.color.texture) : nullptr;
         if (color_tex) {
-            color_tex->layout = current_layout;
+            color_tex->layout = restore_layout;
         }
     } else {
-        ctx->swapchain_layouts[ctx->current_image_index] = current_layout;
+        ctx->swapchain_layouts[ctx->current_image_index] = restore_layout;
     }
 
     end_frame(ctx_ptr);
     wait_idle(as_gfx(ctx));
+    vmaInvalidateAllocation(ctx->core->allocator, readback_alloc, 0, buffer_size);
 
     const bool is_bgra = !ctx->headless
         && (ctx->swapchain_format == VK_FORMAT_B8G8R8A8_UNORM
