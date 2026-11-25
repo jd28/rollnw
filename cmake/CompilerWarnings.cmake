@@ -85,6 +85,12 @@ function(set_project_warnings project_name)
     set(PROJECT_WARNINGS ${CLANG_WARNINGS})
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(PROJECT_WARNINGS ${GCC_WARNINGS})
+    # GCC 14.1/14.2 ICE on Abseil's AnyInvocable assertion with this warning.
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=117880 (fixed in GCC 14.3)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14
+       AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14.3)
+      list(REMOVE_ITEM PROJECT_WARNINGS -Wduplicated-branches)
+    endif()
   else()
     message(AUTHOR_WARNING "No compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
   endif()
