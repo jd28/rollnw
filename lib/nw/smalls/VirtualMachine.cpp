@@ -282,12 +282,7 @@ void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* 
 
     stack_top_ = base + func->register_count;
 
-    // Sync the caller's pc for accurate stack traces.
-    // Only valid in the threaded-dispatch path (GCC/Clang) where ip_ is kept current by
-    // DISPATCH(). The switch-based path (MSVC) never updates ip_ during the run loop —
-    // frame.pc is the authoritative counter there. Writing stale ip_ back would reset the
-    // caller's pc to instruction 0, causing an infinite loop on every function call.
-#if defined(__GNUC__) || defined(__clang__)
+    // Sync the caller's pc from ip_ for accurate stack traces.
     if (!frames_.empty() && frame_ptr_ && frame_ptr_->function && ip_) {
         const auto& caller_instrs = frame_ptr_->function->instructions;
         if (!caller_instrs.empty()) {
@@ -297,7 +292,6 @@ void VirtualMachine::push_frame(BytecodeModule* module, const CompiledFunction* 
             }
         }
     }
-#endif
 
     CallFrame frame;
     frame.module = module;
@@ -861,7 +855,13 @@ void VirtualMachine::execute_module_init(BytecodeModule* module, uint64_t gas_li
 template <bool StepLimited>
 bool VirtualMachine::run_impl(BytecodeModule* /*module*/, size_t entry_depth)
 {
-#if defined(__GNUC__) || defined(__clang__)
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(NW_VM_DISABLE_COMPUTED_GOTO)
+#define NW_VM_USE_COMPUTED_GOTO 1
+#else
+#define NW_VM_USE_COMPUTED_GOTO 0
+#endif
+
+#if NW_VM_USE_COMPUTED_GOTO
     // =========================================================================
     // Computed goto dispatch (GCC / Clang)
     // Each opcode handler ends with DISPATCH() which jumps directly to the
@@ -984,6 +984,7 @@ bool VirtualMachine::run_impl(BytecodeModule* /*module*/, size_t entry_depth)
     };
     static_assert(std::size(dispatch_table) == static_cast<size_t>(Opcode::_COUNT),
         "dispatch_table out of sync with Opcode enum — update both when adding opcodes");
+#endif
 
     // frame_ptr_ is kept up-to-date by push_frame/pop_frame; alias it locally for macros.
     CallFrame*& frame_ptr = frame_ptr_;
@@ -997,13 +998,16 @@ bool VirtualMachine::run_impl(BytecodeModule* /*module*/, size_t entry_depth)
     uint64_t vm_prof_last_ts = 0;
     bool vm_prof_has_last = false;
 
-// Handler-local aliases — valid only within the #if __GNUC__ block
+// Handler-local aliases — valid only within run_impl()
 #define frame (*frame_ptr)
 #define instr _instr
 #define a _a
 #define b _b
 #define c _c
 #define op (_instr.opcode())
+
+#if NW_VM_USE_COMPUTED_GOTO
+#define VM_CASE(name) lbl_##name:
 // DISPATCH() — inline fetch of the next instruction and jump to its handler.
 // Each call site produces its own indirect branch, enabling per-handler
 // prediction by the CPU's indirect branch predictor (true threaded dispatch).
@@ -1043,9 +1047,24 @@ bool VirtualMachine::run_impl(BytecodeModule* /*module*/, size_t entry_depth)
         }                                                                         \
         goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];              \
     } while (0)
+#else
+#define VM_CASE(name) case Opcode::name:
+#define DISPATCH() goto dispatch_top
+#endif
 
-// dispatch_top: entry point for initial dispatch and the pop_frame fallback.
+// dispatch_top: entry point for initial dispatch, pop_frame fallback, and switch loop.
 dispatch_top:
+#if !NW_VM_USE_COMPUTED_GOTO
+    if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {
+        const uint64_t _vm_now = vm_profile_timing ? vm_profile_now_ns() : 0;
+        if (vm_prof_has_last) {
+            rt_->record_vm_opcode(vm_prof_last_op,
+                vm_profile_timing ? (_vm_now - vm_prof_last_ts) : 0);
+        }
+        vm_prof_last_ts = _vm_now;
+        vm_prof_has_last = false;
+    }
+#endif
     if (ABSL_PREDICT_FALSE(failed_)) goto vm_exit;
     if (ABSL_PREDICT_FALSE(frames_.size() <= entry_depth)) goto vm_exit;
     if constexpr (StepLimited) {
@@ -1064,24 +1083,30 @@ dispatch_top:
     _b = _instr.arg_b();
     _c = _instr.arg_c();
     if (ABSL_PREDICT_FALSE(vm_profile_enabled)) {
+#if NW_VM_USE_COMPUTED_GOTO
         if (vm_profile_timing) {
             vm_prof_last_ts = vm_profile_now_ns();
         }
+#endif
         vm_prof_last_op = static_cast<uint8_t>(_instr.opcode());
         vm_prof_has_last = true;
     }
+#if NW_VM_USE_COMPUTED_GOTO
     goto* dispatch_table[static_cast<uint8_t>(_instr.opcode())];
     __builtin_unreachable();
+#else
+    switch (op) {
+#endif
 
     // -------------------------------------------------------------------------
     // Opcode handlers (in enum order)
     // -------------------------------------------------------------------------
 
-lbl_MOVE:
+VM_CASE(MOVE)
     reg(a) = reg(b);
     DISPATCH();
 
-lbl_LOADK: {
+VM_CASE(LOADK) {
     uint16_t bx = instr.arg_bx();
     BytecodeModule* current_module = frame.module;
     if (bx >= current_module->constants.size()) {
@@ -1120,19 +1145,19 @@ lbl_LOADK: {
     DISPATCH();
 }
 
-lbl_LOADI:
+VM_CASE(LOADI)
     reg(a) = Value::make_int(instr.arg_sbx());
     DISPATCH();
 
-lbl_LOADB:
+VM_CASE(LOADB)
     reg(a) = Value::make_bool(instr.arg_b() != 0);
     DISPATCH();
 
-lbl_LOADNIL:
+VM_CASE(LOADNIL)
     reg(a) = Value{};
     DISPATCH();
 
-lbl_JMP: {
+VM_CASE(JMP) {
     int32_t off = instr.arg_jump();
     if (off < 0 && gas_enabled_ && !consume_gas()) {
         DISPATCH();
@@ -1141,7 +1166,7 @@ lbl_JMP: {
     DISPATCH();
 }
 
-lbl_JMPT: {
+VM_CASE(JMPT) {
     const Value& cond_jmpt = reg(a);
     bool take_jmpt;
     if (cond_jmpt.type_id == rt_->bool_type()) {
@@ -1161,7 +1186,7 @@ lbl_JMPT: {
     DISPATCH();
 }
 
-lbl_JMPF: {
+VM_CASE(JMPF) {
     const Value& cond_jmpf = reg(a);
     bool take_jmpf;
     if (cond_jmpf.type_id == rt_->bool_type()) {
@@ -1181,38 +1206,38 @@ lbl_JMPF: {
     DISPATCH();
 }
 
-lbl_ADD:
-lbl_SUB:
-lbl_MUL:
-lbl_DIV:
-lbl_MOD:
+VM_CASE(ADD)
+VM_CASE(SUB)
+VM_CASE(MUL)
+VM_CASE(DIV)
+VM_CASE(MOD)
     op_arithmetic(op, a, b, c);
     DISPATCH();
 
-lbl_EQ:
-lbl_NE:
-lbl_LT:
-lbl_LE:
-lbl_GT:
-lbl_GE:
+VM_CASE(EQ)
+VM_CASE(NE)
+VM_CASE(LT)
+VM_CASE(LE)
+VM_CASE(GT)
+VM_CASE(GE)
     op_comparison(op, a, b, c);
     DISPATCH();
 
-lbl_ISEQ:
-lbl_ISNE:
-lbl_ISLT:
-lbl_ISLE:
-lbl_ISGT:
-lbl_ISGE:
+VM_CASE(ISEQ)
+VM_CASE(ISNE)
+VM_CASE(ISLT)
+VM_CASE(ISLE)
+VM_CASE(ISGT)
+VM_CASE(ISGE)
     op_test_and_skip(op, a, b);
     DISPATCH();
 
-lbl_AND:
-lbl_OR:
+VM_CASE(AND)
+VM_CASE(OR)
     op_logical(op, a, b, c);
     DISPATCH();
 
-lbl_NEG: {
+VM_CASE(NEG) {
     const Value& operand = reg(b);
     if (operand.type_id == rt_->int_type()) {
         reg(a) = Value::make_int(int32_from_bits(0u - static_cast<uint32_t>(operand.data.ival)));
@@ -1229,7 +1254,7 @@ lbl_NEG: {
     DISPATCH();
 }
 
-lbl_NOT: {
+VM_CASE(NOT) {
     Value result = rt_->execute_unary_op(TokenType::NOT, reg(b));
     if (result.type_id == invalid_type_id) {
         fail("Logical not failed");
@@ -1239,7 +1264,7 @@ lbl_NOT: {
     DISPATCH();
 }
 
-lbl_CALL: {
+VM_CASE(CALL) {
     uint8_t dest_reg = a;
     uint8_t func_idx = b;
     uint8_t argc = c;
@@ -1254,7 +1279,7 @@ lbl_CALL: {
     DISPATCH();
 }
 
-lbl_CALLNATIVE: {
+VM_CASE(CALLNATIVE) {
     if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
     uint8_t dest_reg = a;
     uint8_t func_idx = b;
@@ -1277,7 +1302,7 @@ lbl_CALLNATIVE: {
     DISPATCH();
 }
 
-lbl_CALLEXT: {
+VM_CASE(CALLEXT) {
     uint8_t dest_reg = a;
     uint8_t ref_idx = b;
     uint8_t argc = c;
@@ -1322,12 +1347,12 @@ lbl_CALLEXT: {
     DISPATCH();
 }
 
-lbl_CALLEXT_R:
-lbl_TYPEOF:
+VM_CASE(CALLEXT_R)
+VM_CASE(TYPEOF)
     fail(fmt::format("Unimplemented opcode: {}", static_cast<int>(op)));
     DISPATCH();
 
-lbl_CALLINTR: {
+VM_CASE(CALLINTR) {
     if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
     uint8_t dest_reg = a;
     auto intr_id = static_cast<IntrinsicId>(b);
@@ -1375,7 +1400,7 @@ lbl_CALLINTR: {
     DISPATCH();
 }
 
-lbl_CALLINTR_R: {
+VM_CASE(CALLINTR_R) {
     if (gas_enabled_ && !consume_gas()) { DISPATCH(); }
     uint8_t dest_reg = a;
     uint8_t id_reg = b;
@@ -1390,7 +1415,7 @@ lbl_CALLINTR_R: {
     DISPATCH();
 }
 
-lbl_NEWARRAY: {
+VM_CASE(NEWARRAY) {
     uint8_t dest_reg = a;
     TypeID tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
@@ -1440,7 +1465,7 @@ lbl_NEWARRAY: {
     DISPATCH();
 }
 
-lbl_NEWTUPLE: {
+VM_CASE(NEWTUPLE) {
     uint8_t dest_reg = a;
     uint8_t count = b;
 
@@ -1483,7 +1508,7 @@ lbl_NEWTUPLE: {
     DISPATCH();
 }
 
-lbl_GETTUPLE: {
+VM_CASE(GETTUPLE) {
     uint8_t dest_reg = a;
     uint8_t src_reg = b;
     uint8_t index = c;
@@ -1510,7 +1535,7 @@ lbl_GETTUPLE: {
     DISPATCH();
 }
 
-lbl_GETARRAY: {
+VM_CASE(GETARRAY) {
     uint8_t dest_reg = a;
     uint8_t arr_reg = b;
     uint8_t idx_reg = c;
@@ -1579,7 +1604,7 @@ lbl_GETARRAY: {
     DISPATCH();
 }
 
-lbl_SETARRAY: {
+VM_CASE(SETARRAY) {
     uint8_t arr_reg = a;
     uint8_t idx_reg = b;
     uint8_t val_reg = c;
@@ -1622,7 +1647,7 @@ lbl_SETARRAY: {
     DISPATCH();
 }
 
-lbl_NEWMAP: {
+VM_CASE(NEWMAP) {
     uint8_t dest_reg = a;
     TypeID tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
@@ -1646,7 +1671,7 @@ lbl_NEWMAP: {
     DISPATCH();
 }
 
-lbl_MAPGET: {
+VM_CASE(MAPGET) {
     uint8_t dest_reg = a;
     uint8_t map_reg = b;
     uint8_t key_reg = c;
@@ -1663,7 +1688,7 @@ lbl_MAPGET: {
     DISPATCH();
 }
 
-lbl_MAPSET: {
+VM_CASE(MAPSET) {
     uint8_t map_reg = a;
     uint8_t key_reg = b;
     uint8_t val_reg = c;
@@ -1676,7 +1701,7 @@ lbl_MAPSET: {
     DISPATCH();
 }
 
-lbl_NEWSTRUCT: {
+VM_CASE(NEWSTRUCT) {
     uint8_t dest_reg = a;
     TypeID tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
@@ -1691,7 +1716,7 @@ lbl_NEWSTRUCT: {
     DISPATCH();
 }
 
-lbl_NEWSUM: {
+VM_CASE(NEWSUM) {
     uint8_t dest_reg = a;
     TypeID tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
@@ -1706,7 +1731,7 @@ lbl_NEWSUM: {
     DISPATCH();
 }
 
-lbl_SUMINIT: {
+VM_CASE(SUMINIT) {
     uint8_t sum_reg = a;
     uint8_t tag_value = b;
     uint8_t payload_reg = c;
@@ -1733,7 +1758,7 @@ lbl_SUMINIT: {
     DISPATCH();
 }
 
-lbl_SUMGETTAG: {
+VM_CASE(SUMGETTAG) {
     uint8_t dest_reg = a;
     uint8_t src_reg = b;
 
@@ -1751,7 +1776,7 @@ lbl_SUMGETTAG: {
     DISPATCH();
 }
 
-lbl_SUMGETPAYLOAD: {
+VM_CASE(SUMGETPAYLOAD) {
     uint8_t dest_reg = a;
     uint8_t src_reg = b;
     uint8_t variant_idx = c;
@@ -1770,7 +1795,7 @@ lbl_SUMGETPAYLOAD: {
     DISPATCH();
 }
 
-lbl_CLOSURE: {
+VM_CASE(CLOSURE) {
     uint8_t dest_reg = a;
     uint16_t func_idx = instr.arg_bx();
 
@@ -1848,7 +1873,7 @@ lbl_CLOSURE: {
     DISPATCH();
 }
 
-lbl_GETUPVAL: {
+VM_CASE(GETUPVAL) {
     if (!frame.closure) {
         fail("GETUPVAL used without active closure");
         DISPATCH();
@@ -1866,7 +1891,7 @@ lbl_GETUPVAL: {
     DISPATCH();
 }
 
-lbl_SETUPVAL: {
+VM_CASE(SETUPVAL) {
     if (!frame.closure) {
         fail("SETUPVAL used without active closure");
         DISPATCH();
@@ -1889,7 +1914,7 @@ lbl_SETUPVAL: {
     DISPATCH();
 }
 
-lbl_GETGLOBAL: {
+VM_CASE(GETGLOBAL) {
     uint8_t dest = a;
     uint16_t slot = instr.arg_bx();
     if (slot >= frame.module->global_count) {
@@ -1900,7 +1925,7 @@ lbl_GETGLOBAL: {
     DISPATCH();
 }
 
-lbl_GETEXTGLOBAL: {
+VM_CASE(GETEXTGLOBAL) {
     uint16_t ref_idx = instr.arg_bx();
     if (ref_idx >= frame.module->global_refs.size()) {
         fail("GETEXTGLOBAL ref index out of range");
@@ -1915,7 +1940,7 @@ lbl_GETEXTGLOBAL: {
     DISPATCH();
 }
 
-lbl_SETGLOBAL: {
+VM_CASE(SETGLOBAL) {
     uint8_t src = a;
     uint16_t slot = instr.arg_bx();
     if (slot >= frame.module->global_count) {
@@ -1941,11 +1966,11 @@ lbl_SETGLOBAL: {
     DISPATCH();
 }
 
-lbl_CLOSEUPVALS:
+VM_CASE(CLOSEUPVALS)
     close_upvalues(frame);
     DISPATCH();
 
-lbl_CALLCLOSURE: {
+VM_CASE(CALLCLOSURE) {
     uint8_t dest_reg = a;
     uint8_t closure_reg = b;
     uint8_t argc = c;
@@ -1971,7 +1996,7 @@ lbl_CALLCLOSURE: {
     DISPATCH();
 }
 
-lbl_GETFIELD: {
+VM_CASE(GETFIELD) {
     uint8_t dest_reg = a;
     uint8_t src_reg = b;
     uint8_t field_idx = c;
@@ -2001,7 +2026,7 @@ lbl_GETFIELD: {
     DISPATCH();
 }
 
-lbl_SETFIELD: {
+VM_CASE(SETFIELD) {
     uint8_t struct_reg = a;
     uint8_t field_idx = b;
     uint8_t val_reg = c;
@@ -2024,49 +2049,49 @@ lbl_SETFIELD: {
     DISPATCH();
 }
 
-lbl_FIELDGETI:
-lbl_FIELDGETI_R:
-lbl_FIELDSETI:
-lbl_FIELDSETI_R:
-lbl_FIELDGETF:
-lbl_FIELDGETF_R:
-lbl_FIELDSETF:
-lbl_FIELDSETF_R:
-lbl_FIELDGETB:
-lbl_FIELDGETB_R:
-lbl_FIELDSETB:
-lbl_FIELDSETB_R:
-lbl_FIELDGETS:
-lbl_FIELDGETS_R:
-lbl_FIELDSETS:
-lbl_FIELDSETS_R:
-lbl_FIELDGETO:
-lbl_FIELDGETO_R:
-lbl_FIELDSETO:
-lbl_FIELDSETO_R:
-lbl_FIELDGETH:
-lbl_FIELDGETH_R:
-lbl_FIELDSETH:
-lbl_FIELDSETH_R:
+VM_CASE(FIELDGETI)
+VM_CASE(FIELDGETI_R)
+VM_CASE(FIELDSETI)
+VM_CASE(FIELDSETI_R)
+VM_CASE(FIELDGETF)
+VM_CASE(FIELDGETF_R)
+VM_CASE(FIELDSETF)
+VM_CASE(FIELDSETF_R)
+VM_CASE(FIELDGETB)
+VM_CASE(FIELDGETB_R)
+VM_CASE(FIELDSETB)
+VM_CASE(FIELDSETB_R)
+VM_CASE(FIELDGETS)
+VM_CASE(FIELDGETS_R)
+VM_CASE(FIELDSETS)
+VM_CASE(FIELDSETS_R)
+VM_CASE(FIELDGETO)
+VM_CASE(FIELDGETO_R)
+VM_CASE(FIELDSETO)
+VM_CASE(FIELDSETO_R)
+VM_CASE(FIELDGETH)
+VM_CASE(FIELDGETH_R)
+VM_CASE(FIELDSETH)
+VM_CASE(FIELDSETH_R)
     op_field_access(op, a, b, c, frame.module);
     DISPATCH();
 
-lbl_FIELDGETI_OFF_R:
-lbl_FIELDSETI_OFF_R:
-lbl_FIELDGETF_OFF_R:
-lbl_FIELDSETF_OFF_R:
-lbl_FIELDGETB_OFF_R:
-lbl_FIELDSETB_OFF_R:
-lbl_FIELDGETS_OFF_R:
-lbl_FIELDSETS_OFF_R:
-lbl_FIELDGETO_OFF_R:
-lbl_FIELDSETO_OFF_R:
-lbl_FIELDGETH_OFF_R:
-lbl_FIELDSETH_OFF_R:
+VM_CASE(FIELDGETI_OFF_R)
+VM_CASE(FIELDSETI_OFF_R)
+VM_CASE(FIELDGETF_OFF_R)
+VM_CASE(FIELDSETF_OFF_R)
+VM_CASE(FIELDGETB_OFF_R)
+VM_CASE(FIELDSETB_OFF_R)
+VM_CASE(FIELDGETS_OFF_R)
+VM_CASE(FIELDSETS_OFF_R)
+VM_CASE(FIELDGETO_OFF_R)
+VM_CASE(FIELDSETO_OFF_R)
+VM_CASE(FIELDGETH_OFF_R)
+VM_CASE(FIELDSETH_OFF_R)
     op_field_offset_access(op, a, b, c);
     DISPATCH();
 
-lbl_RET: {
+VM_CASE(RET) {
     Value val = reg(a);
     uint32_t ret_reg = frame.return_register;
 
@@ -2106,14 +2131,14 @@ lbl_RET: {
     DISPATCH();
 }
 
-lbl_RETVOID:
+VM_CASE(RETVOID)
     pop_frame();
     if (frames_.empty()) {
         last_result_ = Value{rt_->void_type()};
     }
     DISPATCH();
 
-lbl_CAST: {
+VM_CASE(CAST) {
     uint8_t reg_idx = a;
     TypeID target_tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { DISPATCH(); }
@@ -2171,7 +2196,7 @@ lbl_CAST: {
     DISPATCH();
 }
 
-lbl_IS: {
+VM_CASE(IS) {
     uint8_t reg_idx = a;
     TypeID target_tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { DISPATCH(); }
@@ -2191,7 +2216,7 @@ lbl_IS: {
     DISPATCH();
 }
 
-lbl_IS_OBJ_SUBTYPE: {
+VM_CASE(IS_OBJ_SUBTYPE) {
     uint8_t reg_idx = a;
     auto expected_tag = static_cast<nw::ObjectType>(instr.arg_bx());
     Value val = reg(reg_idx);
@@ -2200,7 +2225,7 @@ lbl_IS_OBJ_SUBTYPE: {
     DISPATCH();
 }
 
-lbl_STACK_ALLOC: {
+VM_CASE(STACK_ALLOC) {
     uint8_t dest_reg = a;
     TypeID tid;
     if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { DISPATCH(); }
@@ -2217,7 +2242,7 @@ lbl_STACK_ALLOC: {
     DISPATCH();
 }
 
-lbl_STACK_COPY: {
+VM_CASE(STACK_COPY) {
     uint8_t dst_reg = a;
     uint8_t src_reg = b;
 
@@ -2255,7 +2280,7 @@ lbl_STACK_COPY: {
     DISPATCH();
 }
 
-lbl_STACK_MARK: {
+VM_CASE(STACK_MARK) {
     if (frame.stack_top_ > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
         fail("STACK_MARK stack offset out of range");
         DISPATCH();
@@ -2265,7 +2290,7 @@ lbl_STACK_MARK: {
     DISPATCH();
 }
 
-lbl_STACK_RESTORE: {
+VM_CASE(STACK_RESTORE) {
     Value mark = reg(a);
     if (mark.type_id != rt_->int_type() || mark.storage != ValueStorage::immediate || mark.data.ival < 0) {
         fail("STACK_RESTORE requires non-negative int mark");
@@ -2282,8 +2307,8 @@ lbl_STACK_RESTORE: {
     DISPATCH();
 }
 
-lbl_STACK_FIELDGET:
-lbl_STACK_FIELDGET_R: {
+VM_CASE(STACK_FIELDGET)
+VM_CASE(STACK_FIELDGET_R) {
     uint8_t dest_reg = a;
     uint8_t base_reg = b;
     uint32_t field_idx = (op == Opcode::STACK_FIELDGET)
@@ -2308,8 +2333,8 @@ lbl_STACK_FIELDGET_R: {
     DISPATCH();
 }
 
-lbl_STACK_FIELDSET:
-lbl_STACK_FIELDSET_R: {
+VM_CASE(STACK_FIELDSET)
+VM_CASE(STACK_FIELDSET_R) {
     uint8_t base_reg = a;
     uint8_t val_reg = c;
     uint32_t field_idx = (op == Opcode::STACK_FIELDSET)
@@ -2335,7 +2360,7 @@ lbl_STACK_FIELDSET_R: {
     DISPATCH();
 }
 
-lbl_STACK_INDEXGET: {
+VM_CASE(STACK_INDEXGET) {
     uint8_t dest_reg = a;
     uint8_t base_reg = b;
     uint8_t idx_reg = c;
@@ -2391,7 +2416,7 @@ lbl_STACK_INDEXGET: {
     DISPATCH();
 }
 
-lbl_STACK_INDEXSET: {
+VM_CASE(STACK_INDEXSET) {
     uint8_t base_reg = a;
     uint8_t idx_reg = b;
     uint8_t val_reg = c;
@@ -2457,6 +2482,13 @@ lbl_STACK_INDEXSET: {
     DISPATCH();
 }
 
+#if !NW_VM_USE_COMPUTED_GOTO
+    default:
+        fail(fmt::format("Unimplemented opcode: {}", static_cast<int>(op)));
+        DISPATCH();
+    }
+#endif
+
 vm_exit:
     if (ABSL_PREDICT_FALSE(vm_profile_enabled) && vm_prof_has_last) {
         rt_->record_vm_opcode(vm_prof_last_op,
@@ -2469,1384 +2501,10 @@ vm_exit:
 #undef c
 #undef op
 #undef DISPATCH
+#undef VM_CASE
+#undef NW_VM_USE_COMPUTED_GOTO
     return !failed_;
 
-#else  // !defined(__GNUC__) && !defined(__clang__)
-    rt_ = &nw::kernel::runtime();
-    while (frames_.size() > entry_depth && !failed_) {
-        if constexpr (StepLimited) {
-            if (remaining_steps_ == 0) {
-                fail("Script exceeded execution limit");
-                break;
-            }
-            --remaining_steps_;
-        }
-
-        CallFrame& frame = frames_.back();
-        if (frame.pc >= frame.function->instructions.size()) {
-            pop_frame();
-            continue;
-        }
-
-        const Instruction& instr = frame.function->instructions[frame.pc++];
-        Opcode op = instr.opcode();
-        uint8_t a = instr.arg_a();
-        uint8_t b = instr.arg_b();
-        uint8_t c = instr.arg_c();
-
-        switch (op) {
-        case Opcode::MOVE:
-            reg(a) = reg(b);
-            break;
-
-        case Opcode::LOADK: {
-            uint16_t bx = instr.arg_bx();
-            BytecodeModule* current_module = frame.module;
-            if (bx >= current_module->constants.size()) {
-                fail("Constant index out of range");
-                break;
-            }
-            const auto& k = current_module->constants[bx];
-            Value val;
-            val.type_id = k.type_id;
-            if (val.type_id == rt_->int_type()) {
-                val.data.ival = k.data.ival;
-            } else if (val.type_id == rt_->float_type()) {
-                val.data.fval = k.data.fval;
-            } else if (val.type_id == rt_->string_type()) {
-                const uint32_t sidx = k.data.string_idx;
-                if (current_module->cached_strings_rooted && sidx < current_module->string_pool.size()) {
-                    if (current_module->cached_strings.size() < current_module->string_pool.size()) {
-                        current_module->cached_strings.resize(current_module->string_pool.size());
-                    }
-                    HeapPtr cached = current_module->cached_strings[sidx];
-                    if (cached.value == 0) {
-                        cached = rt_->alloc_string(current_module->get_string(sidx));
-                        current_module->cached_strings[sidx] = cached;
-                        if (rt_->gc() && cached.value != 0) {
-                            rt_->gc()->write_barrier_root(cached);
-                        }
-                    }
-                    val = Value::make_string(cached);
-                } else {
-                    val = Value::make_string(rt_->alloc_string(current_module->get_string(sidx)));
-                }
-            } else {
-                fail("Unsupported constant type");
-            }
-            reg(a) = val;
-            break;
-        }
-
-        case Opcode::LOADI:
-            reg(a) = Value::make_int(instr.arg_sbx());
-            break;
-
-        case Opcode::LOADB:
-            reg(a) = Value::make_bool(instr.arg_b() != 0);
-            break;
-
-        case Opcode::LOADNIL:
-            reg(a) = Value{};
-            break;
-
-        case Opcode::JMP: {
-            int32_t off = instr.arg_jump();
-            if (off < 0 && gas_enabled_ && !consume_gas()) {
-                break;
-            }
-            frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
-        } break;
-
-        case Opcode::JMPT: {
-            const Value& cond_jmpt = reg(a);
-            bool take_jmpt;
-            if (cond_jmpt.type_id == rt_->bool_type()) {
-                take_jmpt = cond_jmpt.data.bval;
-            } else if (cond_jmpt.type_id == rt_->int_type()) {
-                take_jmpt = cond_jmpt.data.ival != 0;
-            } else {
-                Truthiness t = evaluate_truthiness(cond_jmpt, "JMPT");
-                if (t == Truthiness::Error) { break; }
-                take_jmpt = (t == Truthiness::True);
-            }
-            if (take_jmpt) {
-                int16_t off = instr.arg_sbx();
-                if (off < 0 && gas_enabled_ && !consume_gas()) break;
-                frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
-            }
-            break;
-        }
-
-        case Opcode::JMPF: {
-            const Value& cond_jmpf = reg(a);
-            bool take_jmpf;
-            if (cond_jmpf.type_id == rt_->bool_type()) {
-                take_jmpf = !cond_jmpf.data.bval;
-            } else if (cond_jmpf.type_id == rt_->int_type()) {
-                take_jmpf = cond_jmpf.data.ival == 0;
-            } else {
-                Truthiness t = evaluate_truthiness(cond_jmpf, "JMPF");
-                if (t == Truthiness::Error) { break; }
-                take_jmpf = (t == Truthiness::False);
-            }
-            if (take_jmpf) {
-                int16_t off = instr.arg_sbx();
-                if (off < 0 && gas_enabled_ && !consume_gas()) break;
-                frame.pc = static_cast<uint32_t>(static_cast<int32_t>(frame.pc) + off);
-            }
-            break;
-        }
-
-        case Opcode::ADD:
-        case Opcode::SUB:
-        case Opcode::MUL:
-        case Opcode::DIV:
-        case Opcode::MOD:
-            op_arithmetic(op, a, b, c);
-            break;
-
-        case Opcode::EQ:
-        case Opcode::NE:
-        case Opcode::LT:
-        case Opcode::LE:
-        case Opcode::GT:
-        case Opcode::GE:
-            op_comparison(op, a, b, c);
-            break;
-
-        case Opcode::ISEQ:
-        case Opcode::ISNE:
-        case Opcode::ISLT:
-        case Opcode::ISLE:
-        case Opcode::ISGT:
-        case Opcode::ISGE:
-            op_test_and_skip(op, a, b);
-            break;
-
-        case Opcode::AND:
-        case Opcode::OR:
-            op_logical(op, a, b, c);
-            break;
-
-        case Opcode::NEG: {
-            const Value& operand = reg(b);
-            if (operand.type_id == rt_->int_type()) {
-                reg(a) = Value::make_int(int32_from_bits(0u - static_cast<uint32_t>(operand.data.ival)));
-            } else if (operand.type_id == rt_->float_type()) {
-                reg(a) = Value::make_float(-operand.data.fval);
-            } else {
-                Value result = rt_->execute_unary_op(TokenType::MINUS, operand);
-                if (result.type_id == invalid_type_id) {
-                    fail("Negation failed");
-                } else {
-                    reg(a) = result;
-                }
-            }
-            break;
-        }
-
-        case Opcode::NOT: {
-            Value result = rt_->execute_unary_op(TokenType::NOT, reg(b));
-            if (result.type_id == invalid_type_id) {
-                fail("Logical not failed");
-            } else {
-                reg(a) = result;
-            }
-            break;
-        }
-
-        case Opcode::CALL: {
-            uint8_t dest_reg = a;
-            uint8_t func_idx = b;
-            uint8_t argc = c;
-
-            BytecodeModule* current_module = frame.module;
-            if (func_idx >= current_module->functions.size()) {
-                fail("Function index out of range");
-                break;
-            }
-            const CompiledFunction* callee = current_module->functions[func_idx];
-            setup_script_call(dest_reg, argc, current_module, callee, nullptr, "CALL");
-            break;
-        }
-
-        case Opcode::CALLNATIVE: {
-            if (gas_enabled_ && !consume_gas()) break;
-            uint8_t dest_reg = a;
-            uint8_t func_idx = b;
-            uint8_t argc = c;
-
-            const NativeFunction* func = rt_->get_native_function(func_idx);
-            if (!func) {
-                fail("Native function index out of range");
-                break;
-            }
-
-            const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-            if (func->fast_wrapper) {
-                call_native_pointer(func->fast_wrapper, *rt_, args_ptr, argc,
-                    dest_reg, func->name, func->metadata.return_type);
-            } else {
-                call_native_wrapper(func->wrapper, *rt_, args_ptr, argc,
-                    dest_reg, func->name, func->metadata.return_type);
-            }
-            break;
-        }
-
-        case Opcode::CALLEXT: {
-            uint8_t dest_reg = a;
-            uint8_t ref_idx = b;
-            uint8_t argc = c;
-
-            BytecodeModule* current_module = frame.module;
-
-            if (ref_idx >= current_module->external_indices.size()) {
-                fail("External ref index out of range");
-                break;
-            }
-            uint32_t ext_idx = current_module->external_indices[ref_idx];
-            if (ext_idx == UINT32_MAX) {
-                fail(fmt::format("Unresolved external function: {}",
-                    current_module->external_refs[ref_idx].view()));
-                break;
-            }
-
-            const ExternalFunction* ext = rt_->get_external_function(ext_idx);
-            if (!ext) {
-                fail("External function index out of range");
-                break;
-            }
-
-            if (ext->is_native()) {
-                if (gas_enabled_ && !consume_gas()) break;
-                const Value* args_ptr = (argc > 0) ? &reg(static_cast<uint8_t>(dest_reg + 1)) : nullptr;
-                if (ext->native_fast_wrapper) {
-                    call_native_pointer(ext->native_fast_wrapper, *rt_, args_ptr, argc,
-                        dest_reg, ext->qualified_name.view(), ext->metadata.return_type);
-                } else {
-                    call_native_wrapper(ext->native_wrapper, *rt_, args_ptr, argc,
-                        dest_reg, ext->qualified_name.view(), ext->metadata.return_type);
-                }
-            } else {
-                if (ext->func_idx >= ext->script_module->functions.size()) {
-                    fail("External script function index out of range");
-                    break;
-                }
-                const CompiledFunction* callee = ext->script_module->functions[ext->func_idx];
-                setup_script_call(dest_reg, argc, ext->script_module, callee, nullptr, "CALLEXT");
-            }
-            break;
-        }
-
-        case Opcode::CALLINTR: {
-            if (gas_enabled_ && !consume_gas()) { break; }
-            uint8_t dest_reg = a;
-            auto intr_id = static_cast<IntrinsicId>(b);
-            uint8_t argc = c;
-            call_intrinsic(intr_id, dest_reg, argc);
-            break;
-        }
-
-        case Opcode::CALLINTR_R: {
-            if (gas_enabled_ && !consume_gas()) { break; }
-            uint8_t dest_reg = a;
-            uint8_t id_reg = b;
-            uint8_t argc = c;
-
-            Value id_val = reg(id_reg);
-            if (id_val.type_id != rt_->int_type()) {
-                fail("Intrinsic id must be int");
-                break;
-            }
-            call_intrinsic(static_cast<IntrinsicId>(id_val.data.ival), dest_reg, argc);
-            break;
-        }
-
-        case Opcode::NEWARRAY: {
-            uint8_t dest_reg = a;
-            TypeID tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) break;
-
-            const Type* type = rt_->get_type(tid);
-            if (!type || type->type_kind != TK_array) {
-                fail("NEWARRAY called with non-array type");
-                break;
-            }
-
-            Value size_val = reg(dest_reg);
-            if (size_val.type_id != rt_->int_type()) {
-                fail("Array size must be an integer");
-                break;
-            }
-
-            if (size_val.data.ival < 0) {
-                fail("Array size must be non-negative");
-                break;
-            }
-
-            uint32_t count = static_cast<uint32_t>(size_val.data.ival);
-            TypeID elem_type = type->type_params[0].as<TypeID>();
-
-            if (type->type_params[1].empty()) {
-                HeapPtr ptr = rt_->create_array_typed(elem_type, count);
-                if (ptr.value == 0) {
-                    fail("Failed to allocate array");
-                    break;
-                }
-
-                auto* arr = rt_->get_array_typed(ptr);
-                if (!arr) {
-                    fail("Failed to initialize array");
-                    break;
-                }
-                arr->resize(count);
-                reg(dest_reg) = Value::make_heap(ptr, tid);
-            } else {
-                HeapPtr ptr = rt_->alloc_array(elem_type, count);
-                if (ptr.value == 0) {
-                    fail("Failed to allocate array");
-                    break;
-                }
-                reg(dest_reg) = Value::make_heap(ptr, tid);
-            }
-            break;
-        }
-
-        case Opcode::NEWTUPLE: {
-            uint8_t dest_reg = a;
-            uint8_t count = b;
-
-            Vector<TypeID> element_types;
-            element_types.reserve(count);
-            for (uint8_t i = 0; i < count; ++i) {
-                element_types.push_back(reg(static_cast<uint8_t>(dest_reg + 1 + i)).type_id);
-            }
-
-            TypeID tuple_tid = rt_->register_tuple_type(element_types);
-            if (tuple_tid == invalid_type_id) {
-                fail("Failed to register tuple type");
-                break;
-            }
-
-            HeapPtr ptr = rt_->alloc_tuple(tuple_tid);
-            if (ptr.value == 0) {
-                fail("Failed to allocate tuple");
-                break;
-            }
-
-            const Type* type = rt_->get_type(tuple_tid);
-            auto tuple_id = type->type_params[0].as<TupleID>();
-            const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
-
-            for (uint8_t i = 0; i < count; ++i) {
-                Value val = reg(static_cast<uint8_t>(dest_reg + 1 + i));
-                if (!rt_->write_tuple_element_by_index(ptr, tuple_def, i, val)) {
-                    fail("Failed to write tuple element");
-                    break;
-                }
-            }
-
-            reg(dest_reg) = Value::make_heap(ptr, tuple_tid);
-            break;
-        }
-
-        case Opcode::GETTUPLE: {
-            uint8_t dest_reg = a;
-            uint8_t src_reg = b;
-            uint8_t index = c;
-
-            Value tuple_val = reg(src_reg);
-            HeapPtr tuple_ptr = tuple_val.data.hptr;
-
-            const Type* type = rt_->get_type(tuple_val.type_id);
-            if (!type || type->type_kind != TK_tuple) {
-                fail("GETTUPLE called on non-tuple");
-                break;
-            }
-
-            auto tuple_id = type->type_params[0].as<TupleID>();
-            const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
-
-            Value elem_val = rt_->read_tuple_element_by_index(tuple_ptr, tuple_def, index);
-            if (elem_val.type_id == invalid_type_id) {
-                fail("Failed to read tuple element");
-                break;
-            }
-
-            reg(dest_reg) = elem_val;
-            break;
-        }
-
-        case Opcode::GETARRAY: {
-            uint8_t dest_reg = a;
-            uint8_t arr_reg = b;
-            uint8_t idx_reg = c;
-
-            Value arr_val = reg(arr_reg);
-            Value idx_val = reg(idx_reg);
-
-            if (idx_val.type_id != rt_->int_type()) {
-                fail("Array index must be integer");
-                break;
-            }
-
-            if (idx_val.data.ival < 0) {
-                fail("Array index must be non-negative");
-                break;
-            }
-
-            Value result;
-            uint32_t index = static_cast<uint32_t>(idx_val.data.ival);
-            if (arr_val.storage == ValueStorage::heap) {
-                if (!rt_->array_get(arr_val.data.hptr, index, result)) {
-                    fail("Array access failed (index out of bounds?)");
-                    break;
-                }
-            } else if (arr_val.storage == ValueStorage::immediate) {
-                IArray* arr = rt_->resolve_array(arr_val);
-                if (!arr) {
-                    fail("Stale object component array reference");
-                    break;
-                }
-                const Type* elem_type = rt_->get_type(arr->element_type());
-                const void* raw = arr->element_data(index);
-                const HeapPtr immediate_ptr{static_cast<uint32_t>(arr_val.data.handle)};
-                const bool component_array = arr_val.data.handle <= std::numeric_limits<uint32_t>::max()
-                    && ObjectValueComponent::is_component_ptr(immediate_ptr);
-                if (raw && !component_array && elem_type
-                    && (elem_type->type_kind == TK_struct
-                        || rt_->is_native_value_type(arr->element_type()))) {
-                    uint32_t dst_off = frame.stack_alloc(elem_type->size,
-                        elem_type->alignment, arr->element_type(),
-                        elem_type->contains_heap_refs);
-                    std::memcpy(frame.stack_.data() + dst_off, raw, elem_type->size);
-                    result = Value::make_stack(dst_off, arr->element_type());
-                } else if (!arr->get_value(index, result, *rt_)) {
-                    fail("Array access failed (index out of bounds?)");
-                    break;
-                } else if (component_array && elem_type
-                    && elem_type->type_kind == TK_struct
-                    && result.storage == ValueStorage::heap) {
-                    const void* canonical = rt_->get_value_data_ptr(result);
-                    if (!canonical) {
-                        fail("Could not materialize object component array element");
-                        break;
-                    }
-                    uint32_t dst_off = frame.stack_alloc(elem_type->size,
-                        elem_type->alignment, arr->element_type(),
-                        elem_type->contains_heap_refs);
-                    std::memcpy(frame.stack_.data() + dst_off,
-                        canonical, elem_type->size);
-                    result = Value::make_stack(dst_off, arr->element_type());
-                }
-            } else {
-                fail("Array access on invalid value storage");
-                break;
-            }
-            reg(dest_reg) = result;
-            break;
-        }
-
-        case Opcode::SETARRAY: {
-            // rA[rB] = rC
-            uint8_t arr_reg = a;
-            uint8_t idx_reg = b;
-            uint8_t val_reg = c;
-
-            Value arr_val = reg(arr_reg);
-            Value idx_val = reg(idx_reg);
-            Value val = reg(val_reg);
-
-            if (idx_val.type_id != rt_->int_type()) {
-                fail("Array index must be integer");
-                break;
-            }
-
-            if (idx_val.data.ival < 0) {
-                fail("Array index must be non-negative");
-                break;
-            }
-
-            uint32_t index = static_cast<uint32_t>(idx_val.data.ival);
-            if (arr_val.storage == ValueStorage::heap) {
-                if (!rt_->array_set(arr_val.data.hptr, index, val)) {
-                    fail("Array set failed");
-                    break;
-                }
-            } else if (arr_val.storage == ValueStorage::immediate) {
-                IArray* arr = rt_->resolve_array(arr_val);
-                if (!arr) {
-                    fail("Stale object component array reference");
-                    break;
-                }
-                if (!arr->set_value(index, val, *rt_)) {
-                    fail("Array set failed");
-                    break;
-                }
-                rt_->mark_array_mutation(arr_val);
-            } else {
-                fail("Array set on invalid value storage");
-                break;
-            }
-            break;
-        }
-
-        case Opcode::NEWMAP: {
-            uint8_t dest_reg = a;
-            TypeID tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) break;
-
-            const Type* type = rt_->get_type(tid);
-            if (!type || type->type_kind != TK_map) {
-                fail("NEWMAP called with non-map type");
-                break;
-            }
-
-            TypeID key_type = type->type_params[0].as<TypeID>();
-            TypeID val_type = type->type_params[1].as<TypeID>();
-
-            HeapPtr ptr = rt_->alloc_map(key_type, val_type);
-            if (ptr.value == 0) {
-                fail("Failed to allocate map");
-                break;
-            }
-
-            reg(dest_reg) = Value::make_heap(ptr, tid);
-            break;
-        }
-
-        case Opcode::MAPGET: {
-            uint8_t dest_reg = a;
-            uint8_t map_reg = b;
-            uint8_t key_reg = c;
-
-            Value map_val = reg(map_reg);
-            Value key_val = reg(key_reg);
-
-            Value result;
-            if (rt_->map_get(map_val.data.hptr, key_val, result)) {
-                reg(dest_reg) = result;
-            } else {
-                reg(dest_reg) = Value{};
-            }
-            break;
-        }
-
-        case Opcode::MAPSET: {
-            uint8_t map_reg = a;
-            uint8_t key_reg = b;
-            uint8_t val_reg = c;
-
-            Value map_val = reg(map_reg);
-            Value key_val = reg(key_reg);
-            Value val = reg(val_reg);
-
-            (void)rt_->map_set(map_val.data.hptr, key_val, val);
-            break;
-        }
-
-        case Opcode::NEWSTRUCT: {
-            uint8_t dest_reg = a;
-            TypeID tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { break; }
-
-            HeapPtr ptr = rt_->alloc_struct(tid);
-            if (ptr.value == 0) {
-                fail("Failed to allocate struct");
-                break;
-            }
-
-            reg(dest_reg) = Value::make_heap(ptr, tid);
-            break;
-        }
-
-        case Opcode::NEWSUM: {
-            uint8_t dest_reg = a;
-            TypeID tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { break; }
-
-            HeapPtr ptr = rt_->alloc_sum(tid);
-            if (ptr.value == 0) {
-                fail("Failed to allocate sum type");
-                break;
-            }
-
-            reg(dest_reg) = Value::make_heap(ptr, tid);
-            break;
-        }
-
-        case Opcode::SUMINIT: {
-            uint8_t sum_reg = a;
-            uint8_t tag_value = b;
-            uint8_t payload_reg = c;
-
-            Value sum_val = reg(sum_reg);
-            const SumDef* sum_def = nullptr;
-            void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMINIT");
-            if (!data) { break; }
-            if (tag_value >= sum_def->variant_count) {
-                fail("Invalid sum variant index");
-                break;
-            }
-
-            rt_->write_sum_tag(data, sum_def, tag_value);
-
-            if (payload_reg != 255) {
-                Value payload = reg(payload_reg);
-                if (sum_val.storage == ValueStorage::heap) {
-                    rt_->write_sum_payload(sum_val.data.hptr, sum_def, tag_value, payload);
-                } else {
-                    rt_->write_sum_payload(data, sum_def, tag_value, payload);
-                }
-            }
-            break;
-        }
-
-        case Opcode::SUMGETTAG: {
-            uint8_t dest_reg = a;
-            uint8_t src_reg = b;
-
-            Value sum_val = reg(src_reg);
-            const SumDef* sum_def = nullptr;
-            void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMGETTAG");
-            if (!data) { break; }
-
-            uint32_t tag = rt_->read_sum_tag(data, sum_def);
-            if (tag >= sum_def->variant_count) {
-                fail(fmt::format("SUMGETTAG: tag {} out of range (variant_count={})", tag, sum_def->variant_count));
-                break;
-            }
-            reg(dest_reg) = Value::make_int(static_cast<int32_t>(tag));
-            break;
-        }
-
-        case Opcode::SUMGETPAYLOAD: {
-            uint8_t dest_reg = a;
-            uint8_t src_reg = b;
-            uint8_t variant_idx = c;
-
-            Value sum_val = reg(src_reg);
-            const SumDef* sum_def = nullptr;
-            void* data = resolve_sum_data(sum_val, frame, sum_def, "SUMGETPAYLOAD");
-            if (!data) { break; }
-
-            if (variant_idx >= sum_def->variant_count) {
-                fail("Invalid sum variant index");
-                break;
-            }
-
-            reg(dest_reg) = rt_->read_sum_payload(data, sum_def, variant_idx);
-            break;
-        }
-
-        case Opcode::CLOSURE: {
-            uint8_t dest_reg = a;
-            uint16_t func_idx = instr.arg_bx();
-
-            BytecodeModule* current_module = frame.module;
-            if (!current_module || func_idx >= current_module->functions.size()) {
-                fail("Closure function index out of range");
-                break;
-            }
-
-            const CompiledFunction* callee = current_module->functions[func_idx];
-
-            if (callee->function_type == invalid_type_id) {
-                fail("Closure missing function type");
-                break;
-            }
-
-            HeapPtr closure_ptr = rt_->alloc_closure(callee->function_type, callee, current_module, callee->upvalue_count);
-            Closure* closure = rt_->get_closure(closure_ptr);
-            if (!closure) {
-                fail("Failed to allocate closure");
-                break;
-            }
-            reg(dest_reg) = Value::make_heap(closure_ptr, callee->function_type);
-
-            uint8_t upvalue_count = callee->upvalue_count;
-            size_t words = (upvalue_count + 3) / 4;
-            uint32_t upval_index = 0;
-            bool ok = true;
-
-            for (size_t w = 0; w < words; ++w) {
-                if (frame.pc >= frame.function->instructions.size()) {
-                    fail("Closure upvalue descriptor out of range");
-                    ok = false;
-                    break;
-                }
-                uint32_t raw = frame.function->instructions[frame.pc++].raw;
-                for (size_t i = 0; i < 4 && upval_index < upvalue_count; ++i, ++upval_index) {
-                    uint8_t desc = static_cast<uint8_t>((raw >> (8 * i)) & 0xFF);
-                    bool is_local = (desc & 0x1) != 0;
-                    uint8_t index = static_cast<uint8_t>(desc >> 1);
-
-                    if (is_local) {
-                        Upvalue* uv = get_or_create_upvalue(frame, index);
-                        closure->upvalues.push_back(uv);
-                        if (rt_->gc() && uv) {
-                            if (uv->heap_ptr.value != 0) {
-                                rt_->gc()->write_barrier(closure_ptr, uv->heap_ptr);
-                            }
-                            if (!uv->is_open() && uv->closed.storage == ValueStorage::heap && uv->closed.data.hptr.value != 0) {
-                                rt_->gc()->write_barrier(closure_ptr, uv->closed.data.hptr);
-                            }
-                        }
-                    } else {
-                        if (!frame.closure || index >= frame.closure->upvalues.size()) {
-                            fail("Closure upvalue index out of range");
-                            ok = false;
-                            break;
-                        }
-                        Upvalue* uv = frame.closure->upvalues[index];
-                        closure->upvalues.push_back(uv);
-                        if (rt_->gc() && uv) {
-                            if (uv->heap_ptr.value != 0) {
-                                rt_->gc()->write_barrier(closure_ptr, uv->heap_ptr);
-                            }
-                            if (!uv->is_open() && uv->closed.storage == ValueStorage::heap && uv->closed.data.hptr.value != 0) {
-                                rt_->gc()->write_barrier(closure_ptr, uv->closed.data.hptr);
-                            }
-                        }
-                    }
-                }
-                if (!ok) { break; }
-            }
-            if (!ok) { break; }
-
-            break;
-        }
-
-        case Opcode::GETUPVAL: {
-            if (!frame.closure) {
-                fail("GETUPVAL used without active closure");
-                break;
-            }
-            if (b >= frame.closure->upvalues.size()) {
-                fail("Upvalue index out of range");
-                break;
-            }
-            Upvalue* uv = frame.closure->upvalues[b];
-            if (!uv) {
-                fail("Upvalue is null");
-                break;
-            }
-            reg(a) = *uv->location;
-            break;
-        }
-
-        case Opcode::SETUPVAL: {
-            if (!frame.closure) {
-                fail("SETUPVAL used without active closure");
-                break;
-            }
-            if (b >= frame.closure->upvalues.size()) {
-                fail("Upvalue index out of range");
-                break;
-            }
-            Upvalue* uv = frame.closure->upvalues[b];
-            if (!uv) {
-                fail("Upvalue is null");
-                break;
-            }
-            Value val = reg(a);
-            *uv->location = val;
-
-            if (rt_->gc() && !uv->is_open() && val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
-                rt_->gc()->write_barrier(uv->heap_ptr, val.data.hptr);
-            }
-            break;
-        }
-
-        case Opcode::GETGLOBAL: {
-            uint8_t dest = a;
-            uint16_t slot = instr.arg_bx();
-            if (slot >= frame.module->global_count) {
-                fail("GETGLOBAL slot out of range");
-                break;
-            }
-            reg(dest) = frame.module->globals[slot];
-            break;
-        }
-
-        case Opcode::GETEXTGLOBAL: {
-            uint16_t ref_idx = instr.arg_bx();
-            if (ref_idx >= frame.module->global_refs.size()) {
-                fail("GETEXTGLOBAL ref index out of range");
-                break;
-            }
-            const auto& ref = frame.module->global_refs[ref_idx];
-            if (!ref.resolved_module || ref.resolved_slot >= ref.resolved_module->global_count) {
-                fail("GETEXTGLOBAL: unresolved or slot out of range");
-                break;
-            }
-            reg(a) = ref.resolved_module->globals[ref.resolved_slot];
-            break;
-        }
-
-        case Opcode::SETGLOBAL: {
-            uint8_t src = a;
-            uint16_t slot = instr.arg_bx();
-            if (slot >= frame.module->global_count) {
-                fail("SETGLOBAL slot out of range");
-                break;
-            }
-            Value v = reg(src);
-            // Box stack-resident value_type structs to heap so globals don't
-            // hold dangling stack references after __init returns.
-            if (v.storage == ValueStorage::stack) {
-                const Type* type = rt_->get_type(v.type_id);
-                if (type) {
-                    HeapPtr ptr = rt_->alloc_struct(v.type_id);
-                    void* dst = rt_->heap_.get_ptr(ptr);
-                    if (dst) {
-                        std::memcpy(dst, frame.stack_.data() + v.data.stack_offset, type->size);
-                        v = Value::make_heap(ptr, v.type_id);
-                    }
-                }
-            }
-            frame.module->globals[slot] = v;
-            if (rt_->gc() && v.storage == ValueStorage::heap) {
-                rt_->gc()->write_barrier_root(v.data.hptr);
-            }
-            break;
-        }
-
-        case Opcode::CLOSEUPVALS:
-            close_upvalues(frame);
-            break;
-
-        case Opcode::CALLCLOSURE: {
-            uint8_t dest_reg = a;
-            uint8_t closure_reg = b;
-            uint8_t argc = c;
-
-            Value callee_val = reg(closure_reg);
-            if (callee_val.storage != ValueStorage::heap || callee_val.data.hptr.value == 0) {
-                fail("CALLCLOSURE expects a heap value");
-                break;
-            }
-
-            const Type* callee_type = rt_->get_type(callee_val.type_id);
-            if (!callee_type || callee_type->type_kind != TK_function) {
-                fail("CALLCLOSURE expects a function value");
-                break;
-            }
-            Closure* closure = rt_->get_closure(callee_val.data.hptr);
-            if (!closure || !closure->function || !closure->module) {
-                fail("CALLCLOSURE has invalid closure");
-                break;
-            }
-
-            setup_script_call(dest_reg, argc, closure->module, closure->function, closure, "CALLCLOSURE");
-            break;
-        }
-
-        case Opcode::GETFIELD: {
-            // rA = rB.field[C]
-            uint8_t dest_reg = a;
-            uint8_t src_reg = b;
-            uint8_t field_idx = c;
-
-            Value struct_val = reg(src_reg);
-            const Type* type = rt_->get_type(struct_val.type_id);
-            if (!type || type->type_kind != TK_struct) {
-                fail("GETFIELD called on non-struct");
-                break;
-            }
-
-            auto struct_id = type->type_params[0].as<StructID>();
-            const StructDef* struct_def = rt_->type_table_.get(struct_id);
-            if (!struct_def || field_idx >= struct_def->field_count) {
-                fail("GETFIELD field index out of bounds");
-                break;
-            }
-
-            const FieldDef& field = struct_def->fields[field_idx];
-            Value val = rt_->read_value_field_at_offset(struct_val, field.offset, field.type_id);
-            if (val.type_id == invalid_type_id) {
-                fail("Failed to read struct field");
-                break;
-            }
-
-            reg(dest_reg) = val;
-            break;
-        }
-
-        case Opcode::SETFIELD: {
-            // rA.field[B] = rC
-            uint8_t struct_reg = a;
-            uint8_t field_idx = b;
-            uint8_t val_reg = c;
-
-            Value struct_val = reg(struct_reg);
-            const Type* type = rt_->get_type(struct_val.type_id);
-            if (!type || type->type_kind != TK_struct) {
-                fail("SETFIELD called on non-struct");
-                break;
-            }
-
-            auto struct_id = type->type_params[0].as<StructID>();
-            const StructDef* struct_def = rt_->type_table_.get(struct_id);
-
-            Value val = reg(val_reg);
-            if (!rt_->write_struct_value_field(struct_val, struct_def, field_idx, val)) {
-                fail("Failed to write struct field");
-                break;
-            }
-            break;
-        }
-
-        case Opcode::FIELDGETI:
-        case Opcode::FIELDGETI_R:
-        case Opcode::FIELDGETF:
-        case Opcode::FIELDGETF_R:
-        case Opcode::FIELDGETB:
-        case Opcode::FIELDGETB_R:
-        case Opcode::FIELDGETS:
-        case Opcode::FIELDGETS_R:
-        case Opcode::FIELDGETO:
-        case Opcode::FIELDGETO_R:
-        case Opcode::FIELDGETH:
-        case Opcode::FIELDGETH_R:
-        case Opcode::FIELDSETI:
-        case Opcode::FIELDSETI_R:
-        case Opcode::FIELDSETF:
-        case Opcode::FIELDSETF_R:
-        case Opcode::FIELDSETB:
-        case Opcode::FIELDSETB_R:
-        case Opcode::FIELDSETS:
-        case Opcode::FIELDSETS_R:
-        case Opcode::FIELDSETO:
-        case Opcode::FIELDSETO_R:
-        case Opcode::FIELDSETH:
-        case Opcode::FIELDSETH_R:
-            op_field_access(op, a, b, c, frame.module);
-            break;
-
-        case Opcode::FIELDGETI_OFF_R:
-        case Opcode::FIELDSETI_OFF_R:
-        case Opcode::FIELDGETF_OFF_R:
-        case Opcode::FIELDSETF_OFF_R:
-        case Opcode::FIELDGETB_OFF_R:
-        case Opcode::FIELDSETB_OFF_R:
-        case Opcode::FIELDGETS_OFF_R:
-        case Opcode::FIELDSETS_OFF_R:
-        case Opcode::FIELDGETO_OFF_R:
-        case Opcode::FIELDSETO_OFF_R:
-        case Opcode::FIELDGETH_OFF_R:
-        case Opcode::FIELDSETH_OFF_R:
-            op_field_offset_access(op, a, b, c);
-            break;
-
-        case Opcode::RET: {
-            Value val = reg(a);
-            uint32_t ret_reg = frame.return_register;
-
-            // Stack values are frame-relative; copy them into the caller's frame before popping.
-            if (val.storage == ValueStorage::stack) {
-                const Type* type = rt_->get_type(val.type_id);
-                if (!type) {
-                    fail("RET has invalid value type");
-                    break;
-                }
-
-                if (frames_.size() >= 2) {
-                    CallFrame& caller_frame = frames_[frames_.size() - 2];
-                    uint32_t dst_offset = caller_frame.stack_alloc(type->size, type->alignment, val.type_id,
-                        type_may_hold_heap_refs(rt_, val.type_id));
-                    std::memcpy(
-                        caller_frame.stack_.data() + dst_offset,
-                        frame.stack_.data() + val.data.stack_offset,
-                        type->size);
-                    val = Value::make_stack(dst_offset, val.type_id);
-                } else {
-                    // Returning a stack value out of the VM: materialize it on the heap.
-                    HeapPtr ptr = rt_->heap_.allocate(type->size, type->alignment, val.type_id);
-                    void* data = rt_->heap_.get_ptr(ptr);
-                    std::memcpy(
-                        data,
-                        frame.stack_.data() + val.data.stack_offset,
-                        type->size);
-                    val = Value::make_heap(ptr, val.type_id);
-                }
-            }
-
-            pop_frame();
-            if (!frames_.empty()) {
-                reg(static_cast<uint8_t>(ret_reg)) = val;
-            } else {
-                // Entry function return
-                last_result_ = val;
-            }
-            break;
-        }
-
-        case Opcode::RETVOID:
-            pop_frame();
-            if (frames_.empty()) {
-                last_result_ = Value{rt_->void_type()};
-            }
-            break;
-
-        case Opcode::CAST: {
-            uint8_t reg_idx = a;
-            TypeID target_tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { break; }
-            Value& val = reg(reg_idx);
-
-            if (val.type_id == target_tid) {
-                // No-op
-            } else if (target_tid == rt_->float_type() && val.type_id == rt_->int_type()) {
-                val = Value::make_float(static_cast<float>(val.data.ival));
-            } else if (target_tid == rt_->int_type() && val.type_id == rt_->float_type()) {
-                val = Value::make_int(static_cast<int32_t>(val.data.fval));
-            } else if (rt_->is_object_like_type(target_tid) && rt_->is_object_like_type(val.type_id)) {
-                bool valid_object_cast = false;
-                if (target_tid == rt_->object_type()) {
-                    valid_object_cast = true;
-                } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
-                    valid_object_cast = val.data.oval.type == *expected_tag
-                        || val.data.oval.type == nw::ObjectType::invalid;
-                }
-
-                if (valid_object_cast) {
-                    val.type_id = target_tid;
-                } else {
-                    fail(fmt::format("Invalid cast from {} to {}", rt_->type_name(val.type_id), rt_->type_name(target_tid)));
-                }
-            } else {
-                const Type* source_type = rt_->get_type(val.type_id);
-                const Type* target_type = rt_->get_type(target_tid);
-                bool newtype_cast = false;
-                if (val.type_id == invalid_type_id && target_type && target_type->type_kind == TK_function) {
-                    val = Value::make_heap(HeapPtr{0}, target_tid);
-                    newtype_cast = true;
-                }
-                if (source_type && target_type) {
-                    if (target_type->type_kind == TK_newtype) {
-                        TypeID wrapped = target_type->type_params[0].as<TypeID>();
-                        if (val.type_id == wrapped) {
-                            val.type_id = target_tid;
-                            newtype_cast = true;
-                        }
-                    } else if (source_type->type_kind == TK_newtype) {
-                        TypeID wrapped = source_type->type_params[0].as<TypeID>();
-                        if (target_tid == wrapped) {
-                            val.type_id = target_tid;
-                            newtype_cast = true;
-                        }
-                    }
-                }
-
-                if (!newtype_cast) {
-                    fail(fmt::format("Invalid cast from {} to {}", rt_->type_name(val.type_id), rt_->type_name(target_tid)));
-                }
-            }
-            break;
-        }
-
-        case Opcode::IS: {
-            uint8_t reg_idx = a;
-            TypeID target_tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, target_tid)) { break; }
-            Value val = reg(reg_idx);
-
-            bool result = false;
-            if (rt_->is_object_like_type(target_tid) && rt_->is_object_like_type(val.type_id)) {
-                if (target_tid == rt_->object_type()) {
-                    result = true;
-                } else if (auto expected_tag = rt_->object_subtype_tag(target_tid)) {
-                    result = val.data.oval.type == *expected_tag;
-                }
-            } else {
-                result = (val.type_id == target_tid);
-            }
-            reg(reg_idx) = Value::make_bool(result);
-            break;
-        }
-
-        case Opcode::IS_OBJ_SUBTYPE: {
-            uint8_t reg_idx = a;
-            auto expected_tag = static_cast<nw::ObjectType>(instr.arg_bx());
-            Value val = reg(reg_idx);
-            bool result = rt_->is_object_like_type(val.type_id) && val.data.oval.type == expected_tag;
-            reg(reg_idx) = Value::make_bool(result);
-            break;
-        }
-
-            // == Stack Value Type Operations =====================================
-
-        case Opcode::STACK_ALLOC: {
-            uint8_t dest_reg = a;
-            TypeID tid;
-            if (!resolve_type_ref(instr.arg_bx(), frame.module, tid)) { break; }
-            const Type* type = rt_->get_type(tid);
-            if (!type) {
-                fail("Invalid type in STACK_ALLOC");
-                break;
-            }
-
-            uint32_t offset = frame.stack_alloc(type->size, type->alignment, tid,
-                type_may_hold_heap_refs(rt_, tid));
-            rt_->initialize_zero_defaults(tid, frame.stack_.data() + offset);
-            reg(dest_reg) = Value::make_stack(offset, tid);
-            break;
-        }
-
-        case Opcode::STACK_COPY: {
-            uint8_t dst_reg = a;
-            uint8_t src_reg = b;
-
-            Value dst = reg(dst_reg);
-            Value src = reg(src_reg);
-
-            if (dst.storage != ValueStorage::stack) {
-                fail("STACK_COPY requires stack destination");
-                break;
-            }
-
-            // Use destination type for size — it was allocated with STACK_ALLOC
-            // and always has the concrete type. Source may have 'any' type when
-            // returned from a native function with Value return type.
-            const Type* type = rt_->get_type(dst.type_id);
-            if (!type) {
-                fail("Invalid type in STACK_COPY");
-                break;
-            }
-
-            if (src.storage == ValueStorage::stack) {
-                std::memcpy(
-                    frame.stack_.data() + dst.data.stack_offset,
-                    frame.stack_.data() + src.data.stack_offset,
-                    type->size);
-            } else if (src.storage == ValueStorage::heap && src.data.hptr.value != 0) {
-                // Copy from heap to stack (e.g. native function returning a value type)
-                void* heap_data = rt_->heap_.get_ptr(src.data.hptr);
-                std::memcpy(
-                    frame.stack_.data() + dst.data.stack_offset,
-                    heap_data,
-                    type->size);
-            } else {
-                fail(fmt::format("STACK_COPY requires stack or heap source (src_reg={}, src storage={}, src type_id={}, src hptr={}, dst_reg={}, dst type_id={}, pc={})",
-                    src_reg, static_cast<int>(src.storage), src.type_id.value, src.data.hptr.value,
-                    dst_reg, dst.type_id.value, frame.pc - 1));
-                break;
-            }
-            break;
-        }
-
-        case Opcode::STACK_MARK: {
-            if (frame.stack_top_ > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
-                fail("STACK_MARK stack offset out of range");
-                break;
-            }
-
-            reg(a) = Value::make_int(static_cast<int32_t>(frame.stack_top_));
-            break;
-        }
-
-        case Opcode::STACK_RESTORE: {
-            Value mark = reg(a);
-            if (mark.type_id != rt_->int_type() || mark.storage != ValueStorage::immediate || mark.data.ival < 0) {
-                fail("STACK_RESTORE requires non-negative int mark");
-                break;
-            }
-
-            const auto offset = static_cast<uint32_t>(mark.data.ival);
-            if (offset > frame.stack_top_) {
-                fail("STACK_RESTORE mark beyond current stack top");
-                break;
-            }
-
-            frame.stack_free_to(offset);
-            break;
-        }
-
-        case Opcode::STACK_FIELDGET:
-        case Opcode::STACK_FIELDGET_R: {
-            uint8_t dest_reg = a;
-            uint8_t base_reg = b;
-            uint32_t field_idx = (op == Opcode::STACK_FIELDGET)
-                ? static_cast<uint32_t>(c)
-                : static_cast<uint32_t>(reg(c).data.ival);
-
-            Value base = reg(base_reg);
-            if (base.storage != ValueStorage::stack) {
-                fail("STACK_FIELDGET requires stack value");
-                break;
-            }
-
-            if (field_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range in STACK_FIELDGET");
-                break;
-            }
-
-            uint32_t field_offset = frame.module->field_offsets[field_idx];
-            TypeID field_type = frame.module->field_types[field_idx];
-            uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + field_offset;
-            reg(dest_reg) = read_stack_value(ptr, field_type, base.data.stack_offset, field_offset, *rt_);
-            break;
-        }
-
-        case Opcode::STACK_FIELDSET:
-        case Opcode::STACK_FIELDSET_R: {
-            uint8_t base_reg = a;
-            uint8_t val_reg = c;
-            uint32_t field_idx = (op == Opcode::STACK_FIELDSET)
-                ? static_cast<uint32_t>(b)
-                : static_cast<uint32_t>(reg(b).data.ival);
-
-            Value base = reg(base_reg);
-            if (base.storage != ValueStorage::stack) {
-                fail("STACK_FIELDSET requires stack value");
-                break;
-            }
-
-            if (field_idx >= frame.module->field_offsets.size()) {
-                fail("Field reference index out of range in STACK_FIELDSET");
-                break;
-            }
-
-            uint32_t field_offset = frame.module->field_offsets[field_idx];
-            TypeID field_type = frame.module->field_types[field_idx];
-            Value val = reg(val_reg);
-            uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + field_offset;
-            write_stack_value(ptr, field_type, val, frame.stack_.data(), *rt_);
-            break;
-        }
-
-        case Opcode::STACK_INDEXGET: {
-            uint8_t dest_reg = a;
-            uint8_t base_reg = b;
-            uint8_t idx_reg = c;
-
-            Value base = reg(base_reg);
-            if (base.storage != ValueStorage::stack && base.storage != ValueStorage::heap) {
-                fail("STACK_INDEXGET requires stack or heap value");
-                break;
-            }
-
-            Value idx_val = reg(idx_reg);
-            if (idx_val.type_id != rt_->int_type()) {
-                fail("Fixed array index must be integer");
-                break;
-            }
-
-            const Type* type = rt_->get_type(base.type_id);
-            if (!type || type->type_kind != TK_fixed_array) {
-                fail("STACK_INDEXGET requires fixed array value");
-                break;
-            }
-
-            int32_t size = type->type_params[1].as<int32_t>();
-            int32_t index = idx_val.data.ival;
-            if (index < 0 || index >= size) {
-                fail("Fixed array index out of bounds");
-                break;
-            }
-
-            TypeID elem_type_id = type->type_params[0].as<TypeID>();
-            const Type* elem_type = rt_->get_type(elem_type_id);
-            if (!elem_type) {
-                fail("Fixed array element type not found");
-                break;
-            }
-
-            uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
-            if (base.storage == ValueStorage::stack) {
-                uint8_t* ptr = frame.stack_.data() + base.data.stack_offset + offset;
-                reg(dest_reg) = read_stack_value(ptr, elem_type_id, base.data.stack_offset, offset, *rt_);
-            } else {
-                uint8_t* ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
-                if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array
-                    || rt_->is_native_value_type(elem_type_id)) {
-                    uint32_t dst_off = frame.stack_alloc(elem_type->size, elem_type->alignment, elem_type_id,
-                        type_may_hold_heap_refs(rt_, elem_type_id));
-                    std::memcpy(frame.stack_.data() + dst_off, ptr, elem_type->size);
-                    reg(dest_reg) = Value::make_stack(dst_off, elem_type_id);
-                } else {
-                    reg(dest_reg) = rt_->read_value_field_at_offset(base, offset, elem_type_id);
-                }
-            }
-            break;
-        }
-
-        case Opcode::STACK_INDEXSET: {
-            uint8_t base_reg = a;
-            uint8_t idx_reg = b;
-            uint8_t val_reg = c;
-
-            Value base = reg(base_reg);
-            if (base.storage != ValueStorage::stack && base.storage != ValueStorage::heap) {
-                fail("STACK_INDEXSET requires stack or heap value");
-                break;
-            }
-
-            Value idx_val = reg(idx_reg);
-            if (idx_val.type_id != rt_->int_type()) {
-                fail("Fixed array index must be integer");
-                break;
-            }
-
-            const Type* type = rt_->get_type(base.type_id);
-            if (!type || type->type_kind != TK_fixed_array) {
-                fail("STACK_INDEXSET requires fixed array value");
-                break;
-            }
-
-            int32_t size = type->type_params[1].as<int32_t>();
-            int32_t index = idx_val.data.ival;
-            if (index < 0 || index >= size) {
-                fail("Fixed array index out of bounds");
-                break;
-            }
-
-            TypeID elem_type_id = type->type_params[0].as<TypeID>();
-            const Type* elem_type = rt_->get_type(elem_type_id);
-            if (!elem_type) {
-                fail("Fixed array element type not found");
-                break;
-            }
-
-            uint32_t offset = static_cast<uint32_t>(index) * elem_type->size;
-            Value val = reg(val_reg);
-            uint8_t* ptr = nullptr;
-            if (base.storage == ValueStorage::stack) {
-                ptr = frame.stack_.data() + base.data.stack_offset + offset;
-            } else {
-                ptr = static_cast<uint8_t*>(rt_->heap_.get_ptr(base.data.hptr)) + offset;
-            }
-
-            if (elem_type->type_kind == TK_struct || elem_type->type_kind == TK_fixed_array
-                || rt_->is_native_value_type(elem_type_id)) {
-                if (val.storage == ValueStorage::stack) {
-                    std::memcpy(ptr, frame.stack_.data() + val.data.stack_offset, elem_type->size);
-                } else if (val.storage == ValueStorage::heap && val.data.hptr.value != 0) {
-                    void* src = rt_->heap_.get_ptr(val.data.hptr);
-                    std::memcpy(ptr, src, elem_type->size);
-                } else {
-                    fail("STACK_INDEXSET requires stack or heap aggregate value");
-                    break;
-                }
-            } else {
-                write_stack_value(ptr, elem_type_id, val, frame.stack_.data(), *rt_);
-            }
-            if (base.storage == ValueStorage::heap) {
-                rt_->write_barrier_for_value(base.data.hptr, elem_type_id, val, ptr);
-            }
-            break;
-        }
-
-        default:
-            fail(fmt::format("Unimplemented opcode: {}", static_cast<int>(op)));
-            break;
-        }
-    }
-
-    return !failed_;
-#endif // !defined(__GNUC__) && !defined(__clang__)
 }
 
 bool VirtualMachine::run(BytecodeModule* module, size_t entry_depth)
@@ -4155,12 +2813,10 @@ void VirtualMachine::op_test_and_skip(Opcode op, uint8_t a, uint8_t b)
     const Value& rv = reg(b);
     bool skip = false;
     auto skip_next_instruction = [&]() {
-#if defined(__GNUC__) || defined(__clang__)
         if (frame_ptr_ && ip_) {
             ++ip_;
             return;
         }
-#endif
         if (!frames_.empty()) {
             frames_.back().pc++;
         }
