@@ -9,6 +9,8 @@
 #include "items.hpp"
 #include "rule_type.hpp"
 
+#include <array>
+
 namespace nw {
 
 // == Effect ==================================================================
@@ -63,23 +65,20 @@ struct Effect : RuntimeObject {
     /// Gets a string value
     StringView get_string(size_t index) const noexcept;
 
-    // Data accessors - data follows immediately after header
-    int* ints() { return reinterpret_cast<int*>(this + 1); }
-    const int* ints() const { return reinterpret_cast<const int*>(this + 1); }
+    // Data accessors
+    int* ints() noexcept { return ints_.data(); }
+    const int* ints() const noexcept { return ints_.data(); }
 
-    float* floats() { return reinterpret_cast<float*>(ints() + ints_count); }
-    const float* floats() const { return reinterpret_cast<const float*>(ints() + ints_count); }
+    float* floats() noexcept { return floats_.data(); }
+    const float* floats() const noexcept { return floats_.data(); }
 
-    String* strings() { return reinterpret_cast<String*>(floats() + floats_count); }
-    const String* strings() const { return reinterpret_cast<const String*>(floats() + floats_count); }
+    String* strings() noexcept { return strings_.data(); }
+    const String* strings() const noexcept { return strings_.data(); }
 
-    /// Total size including header and inline data
-    static constexpr size_t total_size()
+    /// Total size of an Effect instance
+    static constexpr size_t total_size() noexcept
     {
-        return sizeof(Effect)
-            + sizeof(int) * ints_count
-            + sizeof(float) * floats_count
-            + sizeof(String) * strings_count;
+        return sizeof(Effect);
     }
 
     /// Gets the effect's handle
@@ -116,6 +115,9 @@ struct Effect : RuntimeObject {
 private:
     EffectHandle handle_;
     Versus versus_;
+    std::array<int, ints_count> ints_{};
+    std::array<float, floats_count> floats_{};
+    std::array<String, strings_count> strings_{};
 };
 
 // == EffectArray =============================================================

@@ -1141,7 +1141,7 @@ TextureAnalysis analyze_texture(std::string_view bitmap_name)
         return result;
     }
 
-    auto img = std::unique_ptr<nw::Image>{nw::kernel::resman().texture(nw::Resref{bitmap_name})};
+    auto img = nw::kernel::resman().texture(nw::Resref{bitmap_name});
     if (!img || !img->valid()) {
         return result;
     }

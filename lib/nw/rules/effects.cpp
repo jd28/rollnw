@@ -252,21 +252,10 @@ Effect::Effect()
 
 Effect::Effect(EffectType type_)
 {
-    std::fill(ints(), ints() + ints_count, 0);
-    std::fill(floats(), floats() + floats_count, 0.0f);
-    for (uint16_t i = 0; i < strings_count; ++i) {
-        new (strings() + i) String();
-    }
-
     handle_.type = type_;
 }
 
-Effect::~Effect()
-{
-    for (uint16_t i = 0; i < strings_count; ++i) {
-        strings()[i].~String();
-    }
-}
+Effect::~Effect() = default;
 
 void Effect::reset()
 {

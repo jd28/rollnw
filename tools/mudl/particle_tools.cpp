@@ -1263,7 +1263,7 @@ const nw::Image* particle_preview_material_image(ParticlePreviewAsset& asset, ui
     if (material.texture.empty() || material.texture == "null") { return nullptr; }
 
     const std::string resolved = nw::render::viewer::preferred_plt_bitmap(asset.import.effect.name, material.texture);
-    cache.image.reset(nw::kernel::resman().texture(nw::Resref(resolved)));
+    cache.image = nw::kernel::resman().texture(nw::Resref(resolved));
     if (cache.image && cache.image->valid()) {
         return cache.image.get();
     }

@@ -655,7 +655,7 @@ static std::optional<bool> particle_texture_has_alpha(std::string_view raw_name)
 
     std::filesystem::path path{cleaned};
     const auto name = path.extension().empty() ? cleaned : path.stem().string();
-    auto image = std::unique_ptr<nw::Image>{nw::kernel::resman().texture(nw::Resref{name})};
+    auto image = nw::kernel::resman().texture(nw::Resref{name});
     if (!image || !image->valid()) {
         return std::nullopt;
     }

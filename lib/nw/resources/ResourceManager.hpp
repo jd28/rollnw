@@ -131,7 +131,7 @@ struct ResourceManager final : public kernel::Service {
     /// Loads a texture from the resource manager
     /// @note This is a wrapper around ``demand_in_order`` with types dds, and tga passed.
     /// plt is not included here or are other image types, png, etc.
-    Image* texture(Resref resref) const;
+    std::unique_ptr<Image> texture(Resref resref) const;
 
     const String& name() const { return name_; }
     size_t size() const;

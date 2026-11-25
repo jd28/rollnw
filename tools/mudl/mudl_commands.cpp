@@ -2977,7 +2977,8 @@ int run_texture_command(std::string_view resref, const std::filesystem::path& ou
         resolved[2] = 'h';
     }
     std::optional<nw::Image> plt_image;
-    auto* img = nw::kernel::resman().texture(nw::Resref(resolved));
+    auto owned_img = nw::kernel::resman().texture(nw::Resref(resolved));
+    nw::Image* img = owned_img.get();
     if (!img || !img->valid()) {
         auto plt_data = nw::kernel::resman().demand({nw::Resref(resolved), nw::ResourceType::plt});
         nw::Plt plt{std::move(plt_data)};

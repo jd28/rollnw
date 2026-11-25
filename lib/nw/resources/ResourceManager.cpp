@@ -640,10 +640,10 @@ Image* ResourceManager::palette_texture(PltLayer layer)
     return palette_textures_[layer]->valid() ? palette_textures_[layer].get() : nullptr;
 }
 
-Image* ResourceManager::texture(Resref resref) const
+std::unique_ptr<Image> ResourceManager::texture(Resref resref) const
 {
     auto data = demand_in_order(resref, {ResourceType::dds, ResourceType::tga});
-    return data.bytes.size() > 0 ? new Image(std::move(data)) : nullptr;
+    return data.bytes.size() > 0 ? std::make_unique<Image>(std::move(data)) : nullptr;
 }
 
 void ResourceManager::advance_generation()

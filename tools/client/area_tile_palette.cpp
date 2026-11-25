@@ -40,8 +40,7 @@ bool load_thumbnail(AreaTilePaletteRow& row, RmlGeneratedTexture& output)
     if (row.image_map_2d.empty()) {
         return false;
     }
-    std::unique_ptr<Image> image{
-        kernel::resman().texture(Resref{row.image_map_2d})};
+    auto image = kernel::resman().texture(Resref{row.image_map_2d});
     if (!image || !copy_image_rgba(*image, image->is_bio_dds(), output)) {
         return false;
     }

@@ -123,7 +123,7 @@ const CachedTexture* load_texture(AreaMapCache& cache, std::string_view resref, 
         return nullptr;
     }
 
-    std::unique_ptr<nw::Image> image{nw::kernel::resman().texture(nw::Resref{resref})};
+    auto image = nw::kernel::resman().texture(nw::Resref{resref});
     CachedTexture texture;
     if (!image || !convert_to_rgba(*image, texture)) {
         cache.missing_textures.emplace(key);
