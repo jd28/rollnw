@@ -111,9 +111,9 @@ struct ObjectManager : public kernel::Service {
     const static std::type_index type_index;
     ObjectManager(MemoryResource* scope);
     ObjectManager(const ObjectManager&) = delete;
-    ObjectManager(ObjectManager&&) = default;
-    ObjectManager& operator=(ObjectManager&) = delete;
-    ObjectManager& operator=(ObjectManager&&) = default;
+    ObjectManager(ObjectManager&&) = delete;
+    ObjectManager& operator=(const ObjectManager&) = delete;
+    ObjectManager& operator=(ObjectManager&&) = delete;
     ~ObjectManager();
 
     /// Destroys a single object
