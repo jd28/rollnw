@@ -183,7 +183,7 @@ add_library(nw STATIC
 target_compile_definitions(nw PUBLIC -DGLM_ENABLE_EXPERIMENTAL)
 
 if(WIN32)
-    target_link_libraries(nw PUBLIC advapi32 shell32 ole32)
+    target_link_libraries(nw PRIVATE advapi32 shell32 ole32)
 endif()
 
 target_link_libraries(nw PUBLIC
@@ -196,19 +196,21 @@ target_link_libraries(nw PUBLIC
     absl::span
     absl::utility
     absl::strings
-    zip
-    zlibstatic
     nowide::nowide
-    libzstd_static
-    sqlite3
+    offsetallocator
     Threads::Threads
 
+    coverage_config
+)
+
+target_link_libraries(nw PRIVATE
+    zip
+    zlibstatic
+    libzstd_static
+    sqlite3
     stb_image
     fzy
     inih
-    offsetallocator
-
-    coverage_config
 )
 
 if(ROLLNW_ENABLE_TRACY)
@@ -217,13 +219,13 @@ target_compile_definitions(nw PUBLIC ROLLNW_ENABLE_TRACY)
 endif()
 
 if(NOT LINUX)
-target_link_libraries(nw PUBLIC
+target_link_libraries(nw PRIVATE
     iconv
 )
 endif()
 
 if(ROLLNW_BUILD_WITH_MIMALLOC AND NOT APPLE)
-target_link_libraries(nw PUBLIC
+target_link_libraries(nw PRIVATE
     mimalloc-static
 )
 endif()

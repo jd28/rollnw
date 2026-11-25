@@ -3,6 +3,8 @@
 #include "../log.hpp"
 #include "../util/string.hpp"
 
+#include <inih/ini.h>
+
 namespace fs = std::filesystem;
 
 namespace nw {

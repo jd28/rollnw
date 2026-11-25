@@ -3,8 +3,7 @@
 #include "Container.hpp"
 #include "assets.hpp"
 
-#include <zip.h>
-
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <vector>
@@ -13,7 +12,7 @@ namespace nw {
 
 namespace detail {
 struct StaticZipKey : public ContainerKey {
-    StaticZipKey(const Resource& name_, const String& path_, size_t size_, zip_uint64_t index_)
+    StaticZipKey(const Resource& name_, const String& path_, size_t size_, uint64_t index_)
         : name(name_)
         , path(path_)
         , size(size_)
@@ -24,7 +23,7 @@ struct StaticZipKey : public ContainerKey {
     Resource name;
     String path;
     size_t size;
-    zip_uint64_t index;
+    uint64_t index;
 };
 } // namespace detail
 
