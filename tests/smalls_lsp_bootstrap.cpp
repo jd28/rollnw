@@ -48,6 +48,23 @@ TEST_F(SmallsLspBootstrap, LanguageModeDoesNotSelectOrLoadAGamePackage)
     EXPECT_EQ(core_item->errors(), 0);
 }
 
+TEST_F(SmallsLspBootstrap, CoreTypesCanLoadBeforePrelude)
+{
+    auto& runtime = nw::kernel::runtime();
+    std::ifstream input{"stdlib/core/types.smalls"};
+    ASSERT_TRUE(input.is_open());
+    std::ostringstream source;
+    source << input.rdbuf();
+
+    auto* types = runtime.load_module_from_source("core.types", source.str());
+    ASSERT_NE(types, nullptr);
+    EXPECT_EQ(types->errors(), 0);
+    auto* prelude = runtime.core_prelude();
+    ASSERT_NE(prelude, nullptr);
+    EXPECT_EQ(prelude->errors(), 0);
+    EXPECT_TRUE(prelude->dependencies().empty());
+}
+
 TEST_F(SmallsLspBootstrap, BundledCoreModulesResolveWithoutTheirApplicationHost)
 {
     auto& runtime = nw::kernel::runtime();
