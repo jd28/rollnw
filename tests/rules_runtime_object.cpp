@@ -48,3 +48,34 @@ TEST(RuntimeHandle, Serialization)
     EXPECT_EQ(h2.type, h.type);
     EXPECT_EQ(h2.generation, h.generation);
 }
+
+TEST(RuntimeHandlePool, VariantObjectStringsAndTypedPoolStrideAligned)
+{
+    // Odd (num_ints + num_floats) must still align VariantObject::strings() to alignof(String).
+    const size_t sz = VariantObject::total_size(1, 0, 2);
+    TypedHandlePool pool{sz, 8};
+
+    TypedHandle h0 = pool.allocate();
+    TypedHandle h1 = pool.allocate();
+    ASSERT_TRUE(pool.valid(h0));
+    ASSERT_TRUE(pool.valid(h1));
+
+    auto* v0 = new (pool.get(h0)) VariantObject();
+    auto* v1 = new (pool.get(h1)) VariantObject();
+    v0->num_ints = 1;
+    v0->num_floats = 0;
+    v0->num_strings = 2;
+    v1->num_ints = 1;
+    v1->num_floats = 0;
+    v1->num_strings = 2;
+
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(v0) % alignof(VariantObject), 0u);
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(v1) % alignof(VariantObject), 0u);
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(v0->strings()) % alignof(String), 0u);
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(v1->strings()) % alignof(String), 0u);
+
+    v0->~VariantObject();
+    v1->~VariantObject();
+    pool.destroy(h0);
+    pool.destroy(h1);
+}

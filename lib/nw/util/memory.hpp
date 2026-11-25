@@ -69,7 +69,7 @@ struct MemoryArena : MemoryResource {
     virtual ~MemoryArena();
 
     MemoryArena& operator=(const MemoryArena&) = delete;
-    MemoryArena& operator=(MemoryArena&&) = default;
+    MemoryArena& operator=(MemoryArena&& other) noexcept;
 
     /// Allocate memory memory on the arena.
     void* allocate(size_t size, size_t alignment = alignof(max_align_t));
@@ -148,11 +148,12 @@ struct MemoryScope : public MemoryResource {
         static_assert(!std::is_trivially_destructible_v<T>, "Use alloc_pod for POD types");
         void* mem = allocate(sizeof(detail::FinalizedObject<T>), alignof(detail::FinalizedObject<T>));
         auto fo = static_cast<detail::FinalizedObject<T>*>(mem);
+        T* obj = new (&fo->obj) T(std::forward<Args>(args)...);
         fo->f.fn = &detail::destructor<T>;
-        fo->f.object = &fo->obj;
+        fo->f.object = obj;
         fo->f.next = finalizers_; // last in, first destructed.
         finalizers_ = &fo->f;
-        return new (&fo->obj) T(std::forward<Args>(args)...);
+        return obj;
     }
 
     /// Allocates a trivial object no destructor is run on scope exit.
@@ -185,7 +186,7 @@ public:
     ~PoolBlock();
 
     PoolBlock& operator=(const PoolBlock&) = delete;
-    PoolBlock& operator=(PoolBlock&&) = default;
+    PoolBlock& operator=(PoolBlock&& other) noexcept;
 
     void* allocate();
     size_t block_size() const noexcept;

@@ -42,7 +42,7 @@ inline Container* get_container(const LocatorVariant& var)
 
 inline unique_container make_unique_container(Container* c)
 {
-    ContainerDeleter del{c->allocator()};
+    ContainerDeleter del{c ? c->allocator() : nullptr};
     return unique_container{c, del};
 }
 
@@ -406,19 +406,18 @@ bool ResourceManager::add_base_container(const std::filesystem::path& path, cons
 {
     ENSURE_OR_RETURN_FALSE(!frozen_, "[resman] asset registry is already frozen: unable to add container '{}/{}'", path, name);
 
-    auto container = resolve_container(path, name, allocator());
+    auto container = make_unique_container(resolve_container(path, name, allocator()));
     ENSURE_OR_RETURN_FALSE(container && container->valid(), "[resman] attempting to add invalid base container '{}/{}'", path, name);
     ENSURE_OR_RETURN_FALSE(container->size() > 0, "[resman] attempting to add empty container '{}/{}'", path, name);
 
     for (auto& [cont, _] : search_) {
         auto c = get_container(cont);
         if (!c || c->path() == container->path()) {
-            allocator()->deallocate(container);
             return false;
         }
     }
 
-    game_.push_back(LocatorPayload{make_unique_container(container), restype});
+    game_.push_back(LocatorPayload{std::move(container), restype});
     update_container_search();
 
     return true;
@@ -453,7 +452,7 @@ bool ResourceManager::add_override_container(const std::filesystem::path& path, 
 {
     ENSURE_OR_RETURN_FALSE(!frozen_, "[resman] asset registry is already frozen: unable to add container '{}/{}'", path, name);
 
-    auto container = resolve_container(path, name, allocator());
+    auto container = make_unique_container(resolve_container(path, name, allocator()));
     ENSURE_OR_RETURN_FALSE(container && container->valid(), "[resman] attempting to add invalid override container: '{}/{}'", path, name);
     ENSURE_OR_RETURN_FALSE(container->size() > 0, "[resman] attempting to add empty container '{}/{}'", path, name);
 
@@ -464,7 +463,7 @@ bool ResourceManager::add_override_container(const std::filesystem::path& path, 
         }
     }
 
-    override_.push_back(LocatorPayload{make_unique_container(container), restype});
+    override_.push_back(LocatorPayload{std::move(container), restype});
     update_container_search();
 
     return true;

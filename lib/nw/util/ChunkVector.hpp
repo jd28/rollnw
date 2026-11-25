@@ -21,6 +21,42 @@ struct ChunkVector {
     {
     }
 
+    ChunkVector(const ChunkVector&) = delete;
+    ChunkVector& operator=(const ChunkVector&) = delete;
+
+    ChunkVector(ChunkVector&& other) noexcept
+        : blocks_(std::move(other.blocks_))
+        , chunk_size_(other.chunk_size_)
+        , size_(other.size_)
+        , allocated_(other.allocated_)
+        , allocator_(std::move(other.allocator_))
+    {
+        other.blocks_.clear();
+        other.size_ = 0;
+        other.allocated_ = 0;
+    }
+
+    ChunkVector& operator=(ChunkVector&& other) noexcept
+    {
+        if (this != &other) {
+            clear();
+            for (auto* it : blocks_) {
+                std::allocator_traits<Allocator<T>>::deallocate(allocator_, it->data, chunk_size_);
+                auto ta = Allocator<Chunk>(allocator_);
+                std::allocator_traits<Allocator<Chunk>>::deallocate(ta, it, 1);
+            }
+            blocks_ = std::move(other.blocks_);
+            chunk_size_ = other.chunk_size_;
+            size_ = other.size_;
+            allocated_ = other.allocated_;
+            allocator_ = std::move(other.allocator_);
+            other.blocks_.clear();
+            other.size_ = 0;
+            other.allocated_ = 0;
+        }
+        return *this;
+    }
+
     ~ChunkVector()
     {
         clear();
@@ -76,7 +112,7 @@ struct ChunkVector {
 
     void pop_back()
     {
-        if (blocks_.empty()) { return; }
+        if (size_ == 0) { return; }
         auto chunk = find_chunk(size_ - 1);
         CHECK_F(!!chunk && !!chunk->data, "attempting to address invalid chunk");
         chunk->data[(size_ - 1) % chunk_size_].~T();

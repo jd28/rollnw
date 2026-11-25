@@ -253,3 +253,37 @@ TEST(Memory, ArenaRewindReusesLivePrefix)
     arena.rewind(start);
     EXPECT_EQ(arena.used(), 0u);
 }
+
+TEST(Memory, ArenaRewindFreesTrailingOverflowBlocks)
+{
+    nw::MemoryArena arena{64};
+    const size_t initial_capacity = arena.capacity();
+    const auto start = arena.current();
+
+    void* big = arena.allocate(256, 16);
+    ASSERT_NE(big, nullptr);
+    EXPECT_GT(arena.capacity(), initial_capacity);
+
+    arena.rewind(start);
+    EXPECT_EQ(arena.capacity(), initial_capacity);
+    EXPECT_EQ(arena.used(), 0u);
+}
+
+TEST(Memory, ChunkVectorPopBackAfterClearAndMove)
+{
+    nw::GlobalMemory mem;
+    nw::ChunkVector<int> vec{4, &mem};
+    vec.push_back(1);
+    vec.push_back(2);
+    vec.clear();
+    vec.pop_back();
+    EXPECT_EQ(vec.size(), 0u);
+
+    vec.push_back(10);
+    vec.push_back(20);
+    nw::ChunkVector<int> moved{std::move(vec)};
+    EXPECT_EQ(vec.size(), 0u);
+    ASSERT_EQ(moved.size(), 2u);
+    EXPECT_EQ(moved[0], 10);
+    EXPECT_EQ(moved[1], 20);
+}
