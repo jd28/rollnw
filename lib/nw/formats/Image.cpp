@@ -83,9 +83,10 @@ Image::Image(const Plt& plt, const PltColors& colors)
         return;
     }
     auto ptr = reinterpret_cast<uint32_t*>(bytes_);
-    for (uint32_t x = 0; x < width_; ++x) {
-        for (uint32_t y = 0; y < height_; ++y) {
-            ptr[y * width_ + x] = decode_plt_color(plt, colors, x, y);
+    for (uint32_t y = 0; y < height_; ++y) {
+        uint32_t* row = ptr + static_cast<size_t>(y) * width_;
+        for (uint32_t x = 0; x < width_; ++x) {
+            row[x] = decode_plt_color(plt, colors, x, y);
         }
     }
     is_loaded_ = true;
@@ -110,6 +111,13 @@ Image::Image(Image&& other)
 Image& Image::operator=(Image&& other)
 {
     if (this != &other) {
+        if (bytes_) {
+            if (is_dds_) {
+                free(bytes_);
+            } else {
+                stbi_image_free(bytes_);
+            }
+        }
         data_ = std::move(other.data_);
         is_loaded_ = other.is_loaded_;
         bytes_ = other.bytes_;

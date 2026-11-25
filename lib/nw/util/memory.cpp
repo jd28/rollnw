@@ -299,7 +299,7 @@ std::size_t PoolBlock::block_size() const noexcept
 void* PoolBlock::allocate()
 {
     if (free_list_.empty()) {
-        expand(1);
+        expand(std::max<size_t>(block_count_, 1));
     }
     void* ptr = free_list_.back();
     free_list_.pop_back();
