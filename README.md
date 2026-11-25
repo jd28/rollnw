@@ -49,6 +49,12 @@ and fixed-step rendering benchmarks, including offscreen runs.
 
 Requires CMake 3.21+ and a C++20 compiler. Renderer tools (`rollnw-client` and `mudl`)
 run on Linux and Windows via Vulkan, and on macOS (Apple Silicon) via native Metal.
+
+Linux binary packages built from current source, including the VS Code language
+server, target Ubuntu 24.04 or a compatible runtime. GCC CI uses Ubuntu's GCC 14
+packages without a toolchain PPA. The 2026.10.24 release retains its Ubuntu 22.04
+build baseline.
+
 For a Linux renderer build with Ninja:
 
 ```sh

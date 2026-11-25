@@ -42,7 +42,7 @@ jobs:
           - os: macos-15
             platform_name: macOS
             compiler_name: AppleClang
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             platform_name: Linux
             compiler_name: GCC
           - os: windows-2022
@@ -90,14 +90,13 @@ jobs:
         uses: ./.github/actions/apt-setup
         timeout-minutes: 10
         with:
-          ppa: ppa:ubuntu-toolchain-r/test
-          packages: gcc-15 g++-15 ccache
+          packages: gcc-14 g++-14 ccache
 
       - name: linux - select gcc
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
       # Install latest CMake.
       - uses: lukka/get-cmake@latest
@@ -176,7 +175,7 @@ jobs:
           cmake --preset ci-macos
 
       - name: linux - configure
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
           cmake --preset ci-linux
 
@@ -555,7 +554,7 @@ jobs:
   linux-tools-package:
     needs: [build, linux-clang-tests, linux-clang-asan-ubsan]
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.linux-clang-tests.result == 'success' && needs.linux-clang-asan-ubsan.result == 'success' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     name: Linux GCC Tools Package
     permissions:
@@ -578,22 +577,21 @@ jobs:
         uses: ./.github/actions/apt-setup
         timeout-minutes: 10
         with:
-          ppa: ppa:ubuntu-toolchain-r/test
-          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev
+          packages: ninja-build gcc-14 g++-14 ccache curl unzip libvulkan-dev mesa-vulkan-drivers libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev
 
       - name: linux - select gcc
         run: |
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
       - name: linux - cache ccache
         uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/.ccache/
-          key: ubuntu-22.04-tools-package-ccache-${{ env.DATE }}
+          key: ubuntu-24.04-tools-package-ccache-${{ env.DATE }}
           restore-keys: |
-            ubuntu-22.04-tools-package-ccache-
+            ubuntu-24.04-tools-package-ccache-
 
       - name: setup ccache
         run: |
@@ -1381,8 +1379,7 @@ jobs:
         uses: ./.github/actions/apt-setup
         timeout-minutes: 10
         with:
-          ppa: ppa:ubuntu-toolchain-r/test
-          packages: ninja-build gcc-15 g++-15 ccache curl unzip libvulkan-dev mesa-vulkan-drivers vulkan-tools libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev xvfb xauth
+          packages: ninja-build gcc-14 g++-14 ccache curl unzip libvulkan-dev mesa-vulkan-drivers vulkan-tools libegl1-mesa-dev libwayland-dev wayland-protocols libdecor-0-dev libxcursor-dev libxfixes-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxkbcommon-dev xvfb xauth
 
       - name: linux - software renderer info
         timeout-minutes: 1
@@ -1392,8 +1389,8 @@ jobs:
 
       - name: linux - select gcc
         run: |
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
       - name: linux - cache ccache
         uses: actions/cache@v6

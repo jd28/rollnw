@@ -38,7 +38,7 @@ jobs:
       CCACHE_DIR: "${{ github.workspace }}/ccache/"
 
     name: Linux GCC CodeQL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
       actions: read
@@ -58,16 +58,15 @@ jobs:
         run: |
           echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
-      - name: Install gcc-15
+      - name: Install gcc-14
         uses: ./.github/actions/apt-setup
         timeout-minutes: 10
         with:
-          ppa: ppa:ubuntu-toolchain-r/test
-          packages: gcc-15 g++-15 ccache
+          packages: gcc-14 g++-14 ccache
 
-      - name: Select gcc-15
+      - name: Select gcc-14
         run: |
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 150 --slave /usr/bin/g++ g++ /usr/bin/g++-15 --slave /usr/bin/gcov gcov /usr/bin/gcov-15
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 150 --slave /usr/bin/g++ g++ /usr/bin/g++-14 --slave /usr/bin/gcov gcov /usr/bin/gcov-14
 
       - name: Set up ccache
         run: |

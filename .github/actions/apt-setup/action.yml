@@ -7,10 +7,6 @@ inputs:
   packages:
     description: Space-separated list of packages to install.
     required: true
-  ppa:
-    description: Optional PPA to add before updating, e.g. ppa:ubuntu-toolchain-r/test.
-    required: false
-    default: ""
 
 runs:
   using: composite
@@ -49,17 +45,6 @@ runs:
         Acquire::http::Timeout "20";
         Acquire::https::Timeout "20";
         EOF
-
-    - name: apt - add ppa
-      if: inputs.ppa != ''
-      shell: bash
-      env:
-        PPA: ${{ inputs.ppa }}
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        set -euo pipefail
-        # -n skips add-apt-repository's implicit update; we update once below.
-        sudo -E add-apt-repository -y -n "$PPA"
 
     - name: apt - install packages
       shell: bash
