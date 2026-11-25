@@ -360,7 +360,6 @@ void CompiledFunction::disassemble(String* result, const BytecodeModule* module)
         case Opcode::ISLE:
         case Opcode::ISGT:
         case Opcode::ISGE:
-        case Opcode::NEWTUPLE: // r0 = tuple(start=r0+1, count=b) -> uses B for count
             fmt::format_to(std::back_inserter(*result), "r{}, r{}", instr.arg_a(), instr.arg_b());
             if (instr.arg_c() != 0) fmt::format_to(std::back_inserter(*result), ", {}", instr.arg_c());
             break;
@@ -452,6 +451,7 @@ void CompiledFunction::disassemble(String* result, const BytecodeModule* module)
         case Opcode::NEWSTRUCT:
         case Opcode::NEWARRAY:
         case Opcode::NEWSUM:
+        case Opcode::NEWTUPLE:
         case Opcode::NEWMAP: // NEWMAP key=bx, val=c ?? No, uses ABC or ABx?
             // NEWMAP was r0 = map<key=bx, val=c>. That doesn't fit ABx.
             // Let's assume ABC for NEWMAP for now, or maybe it needs a special encoding.

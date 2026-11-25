@@ -572,12 +572,18 @@ TEST_F(SmallsCompiler, CompileTupleReturn)
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(func->param_count, 2);
 
-    // Should have NEWTUPLE instruction to create the tuple
+    // Should have NEWTUPLE instruction referencing a 2-element tuple type
     bool found_newtuple = false;
     for (const auto& instr : func->instructions) {
         if (instr.opcode() == nw::smalls::Opcode::NEWTUPLE) {
             found_newtuple = true;
-            EXPECT_EQ(instr.arg_b(), 2); // 2 elements in tuple
+            ASSERT_LT(instr.arg_bx(), module.type_refs.size());
+            const auto* tuple_type = nw::kernel::runtime().get_type(module.type_refs[instr.arg_bx()]);
+            ASSERT_NE(tuple_type, nullptr);
+            ASSERT_EQ(tuple_type->type_kind, nw::smalls::TK_tuple);
+            const auto* tuple_def = nw::kernel::runtime().type_table_.get(tuple_type->type_params[0].as<nw::smalls::TupleID>());
+            ASSERT_NE(tuple_def, nullptr);
+            EXPECT_EQ(tuple_def->element_count, 2u); // 2 elements in tuple
         }
     }
     EXPECT_TRUE(found_newtuple);
@@ -604,12 +610,18 @@ TEST_F(SmallsCompiler, CompileTripleTupleReturn)
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(func->param_count, 3);
 
-    // Should have NEWTUPLE with 3 elements
+    // Should have NEWTUPLE instruction referencing a 3-element tuple type
     bool found_newtuple = false;
     for (const auto& instr : func->instructions) {
         if (instr.opcode() == nw::smalls::Opcode::NEWTUPLE) {
             found_newtuple = true;
-            EXPECT_EQ(instr.arg_b(), 3); // 3 elements in tuple
+            ASSERT_LT(instr.arg_bx(), module.type_refs.size());
+            const auto* tuple_type = nw::kernel::runtime().get_type(module.type_refs[instr.arg_bx()]);
+            ASSERT_NE(tuple_type, nullptr);
+            ASSERT_EQ(tuple_type->type_kind, nw::smalls::TK_tuple);
+            const auto* tuple_def = nw::kernel::runtime().type_table_.get(tuple_type->type_params[0].as<nw::smalls::TupleID>());
+            ASSERT_NE(tuple_def, nullptr);
+            EXPECT_EQ(tuple_def->element_count, 3u); // 3 elements in tuple
         }
     }
     EXPECT_TRUE(found_newtuple);

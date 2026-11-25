@@ -1982,8 +1982,26 @@ void AstCompiler::visit(JumpStatement* stmt)
                 registers_.free(value_regs[i]);
             }
 
-            // NEWTUPLE r0, count - creates tuple from r0+1..r0+count
-            emit_abc(Opcode::NEWTUPLE, tuple_reg, static_cast<uint8_t>(stmt->exprs.size()), 0);
+            // Register tuple type at compile time and emit NEWTUPLE rA, type_idx
+            Vector<TypeID> element_types;
+            element_types.reserve(stmt->exprs.size());
+            for (auto* expr : stmt->exprs) {
+                element_types.push_back(expr->type_id_);
+            }
+            TypeID tuple_tid = runtime_->register_tuple_type(element_types);
+            if (tuple_tid == invalid_type_id) {
+                fail("Failed to register tuple return type");
+                return;
+            }
+            uint16_t type_idx = 0;
+            auto type_it = std::find(module_->type_refs.begin(), module_->type_refs.end(), tuple_tid);
+            if (type_it == module_->type_refs.end()) {
+                type_idx = static_cast<uint16_t>(module_->type_refs.size());
+                module_->type_refs.push_back(tuple_tid);
+            } else {
+                type_idx = static_cast<uint16_t>(std::distance(module_->type_refs.begin(), type_it));
+            }
+            emit_abx(Opcode::NEWTUPLE, tuple_reg, type_idx);
 
             // Return the tuple
             emit_abc(Opcode::CLOSEUPVALS, 0, 0, 0);
@@ -3972,8 +3990,29 @@ void AstCompiler::visit(TupleLiteral* expr)
         }
     }
 
-    // 3. Emit NEWTUPLE
-    emit_abc(Opcode::NEWTUPLE, base_reg, count, 0);
+    // 3. Register tuple type at compile time and emit NEWTUPLE rA, type_idx
+    TypeID tuple_tid = expr->type_id_;
+    if (tuple_tid == invalid_type_id) {
+        Vector<TypeID> element_types;
+        element_types.reserve(expr->elements.size());
+        for (auto* elem : expr->elements) {
+            element_types.push_back(elem->type_id_);
+        }
+        tuple_tid = runtime_->register_tuple_type(element_types);
+    }
+    if (tuple_tid == invalid_type_id) {
+        fail("Failed to register tuple literal type");
+        return;
+    }
+    uint16_t type_idx = 0;
+    auto type_it = std::find(module_->type_refs.begin(), module_->type_refs.end(), tuple_tid);
+    if (type_it == module_->type_refs.end()) {
+        type_idx = static_cast<uint16_t>(module_->type_refs.size());
+        module_->type_refs.push_back(tuple_tid);
+    } else {
+        type_idx = static_cast<uint16_t>(std::distance(module_->type_refs.begin(), type_it));
+    }
+    emit_abx(Opcode::NEWTUPLE, base_reg, type_idx);
 
     // 4. Free element registers
     for (size_t i = 0; i < count; ++i) {

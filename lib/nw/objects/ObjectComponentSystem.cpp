@@ -1730,16 +1730,48 @@ void ObjectComponentSystem::remove(ObjectHandle obj) noexcept
 {
     remove_spatial(obj);
     remove_locals(obj);
-    remove_vitals(obj);
     remove_geometry(obj);
     remove_visual(obj);
-    remove_item_layout(obj);
-    remove_item_properties(obj);
-    remove_item_visuals(obj);
-    remove_item_icons(obj);
-    remove_inventory(obj);
-    remove_store_inventory(obj);
     remove_ability_loadout(obj);
+
+    switch (obj.type) {
+    case ObjectType::creature:
+    case ObjectType::player:
+        remove_vitals(obj);
+        remove_inventory(obj);
+        break;
+    case ObjectType::item:
+        remove_item_layout(obj);
+        remove_item_properties(obj);
+        remove_item_visuals(obj);
+        remove_item_icons(obj);
+        remove_inventory(obj);
+        break;
+    case ObjectType::placeable:
+        remove_inventory(obj);
+        break;
+    case ObjectType::store:
+        remove_store_inventory(obj);
+        break;
+    case ObjectType::door:
+    case ObjectType::trigger:
+    case ObjectType::encounter:
+    case ObjectType::waypoint:
+    case ObjectType::sound:
+    case ObjectType::areaofeffect:
+    case ObjectType::area:
+    case ObjectType::module:
+        break;
+    default:
+        remove_vitals(obj);
+        remove_item_layout(obj);
+        remove_item_properties(obj);
+        remove_item_visuals(obj);
+        remove_item_icons(obj);
+        remove_inventory(obj);
+        remove_store_inventory(obj);
+        break;
+    }
 }
 
 void ObjectComponentSystem::remove(ObjectBase& obj) noexcept
@@ -1754,6 +1786,9 @@ void ObjectComponentSystem::remove(ObjectBase& obj) noexcept
 
 void ObjectComponentSystem::remove_spatial(ObjectHandle obj) noexcept
 {
+    if (spatial_index_.empty()) {
+        return;
+    }
     auto it = spatial_index_.find(obj.to_ull());
     if (it != spatial_index_.end()) {
         const size_t index = it->second;
@@ -1774,6 +1809,9 @@ void ObjectComponentSystem::remove_spatial(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_locals(ObjectHandle obj) noexcept
 {
+    if (local_data_index_.empty()) {
+        return;
+    }
     auto local_it = local_data_index_.find(obj.to_ull());
     if (local_it == local_data_index_.end()) {
         return;
@@ -1796,6 +1834,9 @@ void ObjectComponentSystem::remove_locals(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_vitals(ObjectHandle obj) noexcept
 {
+    if (vitals_index_.empty()) {
+        return;
+    }
     auto it = vitals_index_.find(obj.to_ull());
     if (it == vitals_index_.end()) {
         return;
@@ -1818,6 +1859,9 @@ void ObjectComponentSystem::remove_vitals(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_geometry(ObjectHandle obj) noexcept
 {
+    if (geometry_index_.empty()) {
+        return;
+    }
     auto geometry_it = geometry_index_.find(obj.to_ull());
     if (geometry_it == geometry_index_.end()) {
         return;
@@ -1840,6 +1884,9 @@ void ObjectComponentSystem::remove_geometry(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_visual(ObjectHandle obj) noexcept
 {
+    if (visual_index_.empty()) {
+        return;
+    }
     auto visual_it = visual_index_.find(obj.to_ull());
     if (visual_it == visual_index_.end()) {
         return;
@@ -1862,6 +1909,9 @@ void ObjectComponentSystem::remove_visual(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_item_layout(ObjectHandle obj) noexcept
 {
+    if (item_layout_index_.empty()) {
+        return;
+    }
     auto it = item_layout_index_.find(obj.to_ull());
     if (it == item_layout_index_.end()) {
         return;
@@ -1884,6 +1934,9 @@ void ObjectComponentSystem::remove_item_layout(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_item_properties(ObjectHandle obj) noexcept
 {
+    if (item_property_index_.empty()) {
+        return;
+    }
     auto it = item_property_index_.find(obj.to_ull());
     if (it == item_property_index_.end()) {
         return;
@@ -1906,6 +1959,9 @@ void ObjectComponentSystem::remove_item_properties(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_item_visuals(ObjectHandle obj) noexcept
 {
+    if (item_visual_index_.empty()) {
+        return;
+    }
     auto it = item_visual_index_.find(obj.to_ull());
     if (it == item_visual_index_.end()) {
         return;
@@ -1928,6 +1984,9 @@ void ObjectComponentSystem::remove_item_visuals(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_item_icons(ObjectHandle obj) noexcept
 {
+    if (item_icon_index_.empty()) {
+        return;
+    }
     auto it = item_icon_index_.find(obj.to_ull());
     if (it == item_icon_index_.end()) {
         return;
@@ -1948,6 +2007,9 @@ void ObjectComponentSystem::remove_item_icons(ObjectHandle obj) noexcept
 
 void ObjectComponentSystem::remove_inventory(ObjectHandle obj) noexcept
 {
+    if (inventory_handle_index_.empty()) {
+        return;
+    }
     auto it = inventory_handle_index_.find(obj.to_ull());
     if (it == inventory_handle_index_.end()) {
         return;
@@ -2017,6 +2079,9 @@ void ObjectComponentSystem::remove_inventory(ObjectBase& obj) noexcept
 
 void ObjectComponentSystem::remove_store_inventory(ObjectHandle obj) noexcept
 {
+    if (store_inventory_handle_index_.empty()) {
+        return;
+    }
     auto it = store_inventory_handle_index_.find(obj.to_ull());
     if (it == store_inventory_handle_index_.end()) {
         return;
@@ -2086,6 +2151,9 @@ void ObjectComponentSystem::remove_store_inventory(ObjectBase& obj) noexcept
 
 void ObjectComponentSystem::remove_ability_loadout(ObjectHandle obj) noexcept
 {
+    if (ability_loadout_index_.empty()) {
+        return;
+    }
     auto it = ability_loadout_index_.find(obj.to_ull());
     if (it == ability_loadout_index_.end()) {
         return;

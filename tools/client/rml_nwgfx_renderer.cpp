@@ -135,6 +135,8 @@ struct RmlNwgfxRenderer::Impl {
     uint8_t stencil_ref = 0;
     bool stencil_mask_dirty = false;       // True when stencil mask needs to be re-rendered
     Rml::Rectanglei stencil_clip_region{}; // The clip region for stencil
+    GpuBuffer stencil_mask_vertex;         // Reusable unit quad [0,1]x[0,1] for stencil mask draws
+    GpuBuffer stencil_mask_index;          // Reusable 6-index buffer for stencil mask draws
 
     bool render_pass_active = false;
     bool frame_color_initialized = false;
@@ -271,6 +273,35 @@ bool RmlNwgfxRenderer::initialize(nw::gfx::Core* core, nw::gfx::Context* context
         return false;
     }
 
+    // Pre-allocate a single reusable unit quad [0,1]x[0,1] for stencil mask draws.
+    Rml::Vertex unit_quad[4];
+    unit_quad[0].position = Rml::Vector2f(0.0f, 0.0f);
+    unit_quad[0].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
+    unit_quad[0].tex_coord = Rml::Vector2f(0.0f, 0.0f);
+    unit_quad[1].position = Rml::Vector2f(1.0f, 0.0f);
+    unit_quad[1].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
+    unit_quad[1].tex_coord = Rml::Vector2f(0.0f, 0.0f);
+    unit_quad[2].position = Rml::Vector2f(1.0f, 1.0f);
+    unit_quad[2].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
+    unit_quad[2].tex_coord = Rml::Vector2f(0.0f, 0.0f);
+    unit_quad[3].position = Rml::Vector2f(0.0f, 1.0f);
+    unit_quad[3].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
+    unit_quad[3].tex_coord = Rml::Vector2f(0.0f, 0.0f);
+    const int unit_indices[6] = {0, 2, 1, 0, 3, 2};
+
+    if (!create_gfx_buffer(context_, sizeof(unit_quad), nw::gfx::BufferUsage::Vertex, impl_->stencil_mask_vertex)
+        || !create_gfx_buffer(context_, sizeof(unit_indices), nw::gfx::BufferUsage::Index, impl_->stencil_mask_index)) {
+        shutdown();
+        return false;
+    }
+
+    if (void* vertex_ptr = nw::gfx::map_buffer(impl_->stencil_mask_vertex.handle)) {
+        std::memcpy(vertex_ptr, unit_quad, sizeof(unit_quad));
+    }
+    if (void* index_ptr = nw::gfx::map_buffer(impl_->stencil_mask_index.handle)) {
+        std::memcpy(index_ptr, unit_indices, sizeof(unit_indices));
+    }
+
     return true;
 }
 
@@ -314,6 +345,9 @@ void RmlNwgfxRenderer::shutdown()
         destroy_texture_data(context_, tex);
     }
     impl_->textures.clear();
+
+    destroy_gfx_buffer(impl_->stencil_mask_vertex);
+    destroy_gfx_buffer(impl_->stencil_mask_index);
 
     if (impl_->pipeline_texture_stenciled.valid()) nw::gfx::destroy_pipeline(context_, impl_->pipeline_texture_stenciled);
     if (impl_->pipeline_color_stenciled.valid()) nw::gfx::destroy_pipeline(context_, impl_->pipeline_color_stenciled);
@@ -445,49 +479,44 @@ void RmlNwgfxRenderer::render_stencil_mask_if_needed()
         return;
     }
 
-    // Build clip region geometry (rectangle)
-    Rml::Vertex vertices[4];
-    vertices[0].position = Rml::Vector2f(static_cast<float>(impl_->stencil_clip_region.Left()), static_cast<float>(impl_->stencil_clip_region.Top()));
-    vertices[0].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
-    vertices[0].tex_coord = Rml::Vector2f(0, 0);
-    vertices[1].position = Rml::Vector2f(static_cast<float>(impl_->stencil_clip_region.Right()), static_cast<float>(impl_->stencil_clip_region.Top()));
-    vertices[1].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
-    vertices[1].tex_coord = Rml::Vector2f(0, 0);
-    vertices[2].position = Rml::Vector2f(static_cast<float>(impl_->stencil_clip_region.Right()), static_cast<float>(impl_->stencil_clip_region.Bottom()));
-    vertices[2].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
-    vertices[2].tex_coord = Rml::Vector2f(0, 0);
-    vertices[3].position = Rml::Vector2f(static_cast<float>(impl_->stencil_clip_region.Left()), static_cast<float>(impl_->stencil_clip_region.Bottom()));
-    vertices[3].colour = Rml::ColourbPremultiplied(255, 255, 255, 255);
-    vertices[3].tex_coord = Rml::Vector2f(0, 0);
+    if (!impl_->stencil_mask_vertex.handle.valid() || !impl_->stencil_mask_index.handle.valid()) {
+        impl_->stencil_mask_dirty = false;
+        return;
+    }
 
-    int indices[6] = {0, 2, 1, 0, 3, 2};
+    // Scale and translate the pre-allocated unit quad [0,1]x[0,1] to stencil_clip_region.
+    const float rect_left = static_cast<float>(impl_->stencil_clip_region.Left());
+    const float rect_top = static_cast<float>(impl_->stencil_clip_region.Top());
+    const float rect_width = static_cast<float>(impl_->stencil_clip_region.Width());
+    const float rect_height = static_cast<float>(impl_->stencil_clip_region.Height());
 
-    // Compile and render the clip region to stencil
-    if (auto clip_geom = CompileGeometry({vertices, 4}, {indices, 6})) {
-        // Set up uniform for clip geometry (identity transform, no translation)
-        ShaderUniform uniform{};
-        uniform.m_transform = impl_->projection;
-        uniform.m_translate = Rml::Vector2f(0, 0);
-        const auto uniform_span = nw::gfx::allocate_uniform_span(context_, sizeof(ShaderUniform));
-        if (uniform_span.data) {
-            std::memcpy(uniform_span.data, &uniform, sizeof(uniform));
+    Rml::Matrix4f rect_transform;
+    rect_transform.SetColumns(
+        Rml::Vector4f(rect_width, 0.0f, 0.0f, 0.0f),
+        Rml::Vector4f(0.0f, rect_height, 0.0f, 0.0f),
+        Rml::Vector4f(0.0f, 0.0f, 1.0f, 0.0f),
+        Rml::Vector4f(rect_left, rect_top, 0.0f, 1.0f));
 
-            // Disable scissor for stencil mask (we want full rectangle)
-            nw::gfx::cmd_set_scissor(command_list_, 0, 0, frame_info_.width, frame_info_.height);
+    ShaderUniform uniform{};
+    uniform.m_transform = impl_->projection * rect_transform;
+    uniform.m_translate = Rml::Vector2f(0.0f, 0.0f);
+    const auto uniform_span = nw::gfx::allocate_uniform_span(context_, sizeof(ShaderUniform));
+    if (uniform_span.data) {
+        std::memcpy(uniform_span.data, &uniform, sizeof(uniform));
 
-            // Bind stencil mask pipeline and draw clip region
-            nw::gfx::cmd_set_stencil_ref(command_list_, impl_->stencil_ref);
-            nw::gfx::cmd_bind_pipeline(command_list_, impl_->pipeline_stencil_mask);
-            nw::gfx::cmd_bind_vertex_buffer(command_list_,
-                reinterpret_cast<GeometryData*>(clip_geom)->vertex.handle, sizeof(Rml::Vertex));
-            nw::gfx::cmd_bind_index_buffer(command_list_,
-                reinterpret_cast<GeometryData*>(clip_geom)->index.handle, sizeof(uint32_t));
-            nw::gfx::cmd_bind_uniform_texture(command_list_,
-                impl_->pipeline_stencil_mask, uniform_span, {});
-            nw::gfx::cmd_draw_indexed(command_list_, 6, 1);
-        }
+        // Disable scissor for stencil mask (we want full rectangle)
+        nw::gfx::cmd_set_scissor(command_list_, 0, 0, frame_info_.width, frame_info_.height);
 
-        ReleaseGeometry(clip_geom);
+        // Bind stencil mask pipeline and draw clip region using reusable unit quad buffers
+        nw::gfx::cmd_set_stencil_ref(command_list_, impl_->stencil_ref);
+        nw::gfx::cmd_bind_pipeline(command_list_, impl_->pipeline_stencil_mask);
+        nw::gfx::cmd_bind_vertex_buffer(command_list_,
+            impl_->stencil_mask_vertex.handle, sizeof(Rml::Vertex));
+        nw::gfx::cmd_bind_index_buffer(command_list_,
+            impl_->stencil_mask_index.handle, sizeof(uint32_t));
+        nw::gfx::cmd_bind_uniform_texture(command_list_,
+            impl_->pipeline_stencil_mask, uniform_span, {});
+        nw::gfx::cmd_draw_indexed(command_list_, 6, 1);
     }
 
     impl_->stencil_mask_dirty = false;

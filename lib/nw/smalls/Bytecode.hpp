@@ -138,7 +138,7 @@ enum class Opcode : uint8_t {
 
     // Special (collections)
     NEWSTRUCT, // r0 = alloc_struct(type_id=bx)
-    NEWTUPLE,  // r0 = tuple(r0+1..r0+b) (b elements)
+    NEWTUPLE,  // rA = tuple of type_refs[Bx] from rA+1..rA+count
     NEWARRAY,  // r0 = array<type_id=bx>(size=r1)
     NEWMAP,    // r0 = map<key_type=bx, val_type=c>()
     MAPGET,    // r0 = r1[r2] (map access)

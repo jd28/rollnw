@@ -1467,22 +1467,24 @@ VM_CASE(NEWARRAY) {
 
 VM_CASE(NEWTUPLE) {
     uint8_t dest_reg = a;
-    uint8_t count = b;
-
-    // element_types must be destroyed before any DISPATCH() (indirect goto).
-    // Scope it into a sub-block so it's gone before the first DISPATCH() site.
     TypeID tuple_tid;
-    {
-        Vector<TypeID> element_types;
-        element_types.reserve(count);
-        for (uint8_t i = 0; i < count; ++i) {
-            element_types.push_back(reg(static_cast<uint8_t>(dest_reg + 1 + i)).type_id);
-        }
-        tuple_tid = rt_->register_tuple_type(element_types);
-    } // element_types destroyed here
+    if (!resolve_type_ref(instr.arg_bx(), frame.module, tuple_tid)) { DISPATCH(); }
 
-    if (tuple_tid == invalid_type_id) {
-        fail("Failed to register tuple type");
+    const Type* type = rt_->get_type(tuple_tid);
+    if (!type || type->type_kind != TK_tuple) {
+        fail("NEWTUPLE requires tuple type");
+        DISPATCH();
+    }
+
+    auto tuple_id = type->type_params[0].as<TupleID>();
+    const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
+    if (!tuple_def) {
+        fail("Invalid tuple definition");
+        DISPATCH();
+    }
+
+    if (static_cast<uint32_t>(dest_reg) + tuple_def->element_count >= frame.function->register_count) {
+        fail("NEWTUPLE register window out of range");
         DISPATCH();
     }
 
@@ -1492,11 +1494,7 @@ VM_CASE(NEWTUPLE) {
         DISPATCH();
     }
 
-    const Type* type = rt_->get_type(tuple_tid);
-    auto tuple_id = type->type_params[0].as<TupleID>();
-    const TupleDef* tuple_def = rt_->type_table_.get(tuple_id);
-
-    for (uint8_t i = 0; i < count; ++i) {
+    for (uint32_t i = 0; i < tuple_def->element_count; ++i) {
         Value val = reg(static_cast<uint8_t>(dest_reg + 1 + i));
         if (!rt_->write_tuple_element_by_index(ptr, tuple_def, i, val)) {
             fail("Failed to write tuple element");
