@@ -4,37 +4,50 @@
 #include "viewer_runtime.hpp"
 
 #include <backends/imgui_impl_sdl3.h>
+#ifndef NW_GFX_BACKEND_METAL
 #include <backends/imgui_impl_vulkan.h>
+#include <nw/gfx/native_vulkan.hpp>
+#endif
 #include <imgui.h>
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <limits>
-#include <nw/gfx/native_vulkan.hpp>
 #include <nw/log.hpp>
 #include <nw/render/particle_system.hpp>
 #include <string>
 #include <vector>
 
 namespace mudl {
+
+#ifdef NW_GFX_BACKEND_METAL
+bool imgui_metal_init(nw::gfx::Core* core, SDL_Window* window);
+void imgui_metal_shutdown();
+void imgui_metal_new_frame(nw::gfx::Context* ctx, nw::gfx::CommandList* cmd);
+void imgui_metal_render_draw_data(nw::gfx::Context* ctx, nw::gfx::CommandList* cmd, ImDrawData* draw_data);
+#endif
+
 namespace {
 
 struct ImguiRuntime {
     bool initialized = false;
-    bool vulkan_initialized = false;
+    bool backend_initialized = false;
     bool panel_open = true;
     SDL_Window* window = nullptr;
     nw::gfx::Context* gfx_context = nullptr;
+#ifndef NW_GFX_BACKEND_METAL
     nw::gfx::NativeVulkanCore core{};
+#endif
 };
 
 ImguiRuntime g_imgui;
 
+#ifndef NW_GFX_BACKEND_METAL
 bool ensure_vulkan_backend(AppState& state, nw::gfx::CommandList* cmd)
 {
-    if (!g_imgui.initialized || g_imgui.vulkan_initialized || !cmd) {
-        return g_imgui.vulkan_initialized;
+    if (!g_imgui.initialized || g_imgui.backend_initialized || !cmd) {
+        return g_imgui.backend_initialized;
     }
 
     nw::gfx::NativeVulkanFrame frame{};
@@ -64,9 +77,10 @@ bool ensure_vulkan_backend(AppState& state, nw::gfx::CommandList* cmd)
         return false;
     }
 
-    g_imgui.vulkan_initialized = true;
+    g_imgui.backend_initialized = true;
     return true;
 }
+#endif
 
 bool has_animation_names(const std::vector<std::vector<std::string>>& groups)
 {
@@ -1181,10 +1195,12 @@ bool init_imgui(AppState& state, SDL_Window* window)
         return false;
     }
 
+#ifndef NW_GFX_BACKEND_METAL
     if (!nw::gfx::get_native_vulkan_core(state.gfx_core, g_imgui.core)) {
         LOG_F(ERROR, "Failed to fetch native Vulkan core for ImGui");
         return false;
     }
+#endif
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -1193,11 +1209,20 @@ bool init_imgui(AppState& state, SDL_Window* window)
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
+#ifdef NW_GFX_BACKEND_METAL
+    if (!imgui_metal_init(state.gfx_core, window)) {
+        LOG_F(ERROR, "ImGui Metal backend initialization failed");
+        ImGui::DestroyContext();
+        return false;
+    }
+    g_imgui.backend_initialized = true;
+#else
     if (!ImGui_ImplSDL3_InitForVulkan(window)) {
         LOG_F(ERROR, "ImGui SDL3 backend initialization failed");
         ImGui::DestroyContext();
         return false;
     }
+#endif
 
     g_imgui.window = window;
     g_imgui.gfx_context = state.gfx_context;
@@ -1211,8 +1236,12 @@ void shutdown_imgui()
         return;
     }
 
-    if (g_imgui.vulkan_initialized) {
+    if (g_imgui.backend_initialized) {
+#ifdef NW_GFX_BACKEND_METAL
+        imgui_metal_shutdown();
+#else
         ImGui_ImplVulkan_Shutdown();
+#endif
     }
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
@@ -1239,11 +1268,17 @@ bool imgui_wants_mouse()
 
 void imgui_prepare_frame(AppState& state, nw::gfx::CommandList* cmd)
 {
+#ifdef NW_GFX_BACKEND_METAL
+    if (!g_imgui.initialized || !g_imgui.backend_initialized || !cmd) {
+        return;
+    }
+    imgui_metal_new_frame(state.gfx_context, cmd);
+#else
     if (!g_imgui.initialized || !ensure_vulkan_backend(state, cmd)) {
         return;
     }
-
     ImGui_ImplVulkan_NewFrame();
+#endif
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     build_fps_overlay();
@@ -1252,17 +1287,21 @@ void imgui_prepare_frame(AppState& state, nw::gfx::CommandList* cmd)
 
 void imgui_render(AppState& state, nw::gfx::CommandList* cmd)
 {
-    if (!g_imgui.initialized || !g_imgui.vulkan_initialized || !cmd) {
+    if (!g_imgui.initialized || !g_imgui.backend_initialized || !cmd) {
         return;
     }
 
     ImGui::Render();
+#ifdef NW_GFX_BACKEND_METAL
+    imgui_metal_render_draw_data(state.gfx_context, cmd, ImGui::GetDrawData());
+#else
     nw::gfx::NativeVulkanFrame frame{};
     if (!nw::gfx::get_native_vulkan_frame(state.gfx_context, cmd, frame)) {
         return;
     }
     ImGui_ImplVulkan_RenderDrawData(
         ImGui::GetDrawData(), reinterpret_cast<VkCommandBuffer>(frame.command_buffer));
+#endif
 }
 
 } // namespace mudl

@@ -58,7 +58,7 @@ Most commands accept these:
 - `--animation <name>`: override the default animation for interactive/headless model previews.
 - `--pbr-environment <ktx>`: select the HDR KTX source used by the static PBR `reference_ibl` policy.
 - `--no-pbr-ibl`: skip generated static PBR IBL textures and use shader fallback lighting.
-- `--validate`: enable Vulkan validation layers.
+- `--validate`: enable graphics API validation (Vulkan validation layers on Linux/Windows; pair with `MTL_DEBUG_LAYER=1` on macOS Metal).
 - `--debug`: enable the optional debug grid overlay.
 
 Command-specific flags are listed inline below.

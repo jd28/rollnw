@@ -10,8 +10,10 @@ checkpoint history. Related work that remains unresolved stays active.
 
 ## Platform work
 
-- [Shader toolchain migration: DXC to Slang](shader-toolchain-slang-migration.md) — planning only; prerequisite for the macOS port. DXC ships no Apple or arm64 build, and one compiler serving SPIR-V and MSL removes the two-tool binding-layout problem.
-- [macOS/iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md) — planning only; phased native Metal backend, macOS client/server, then touch-adapted full toolset on iPad. Shader toolchain decision amended 2026-11-22 and delegated to the plan above.
+- [Shader toolchain migration: DXC to Slang](closed/shader-toolchain-slang-migration.md) — closed 2026-11-25; Phases A–C landed on `main` and Slang 2026.22.1 now compiles the shared HLSL corpus to both SPIR-V 1.6 (Vulkan) and MSL (Metal 3).
+- [macOS/iPadOS port and nw::gfx Metal backend](macos-ios-metal-port-plan.md) — Phase 1 complete on macOS Apple Silicon (native Metal 3 backend, `mudl`, and `rollnw-client` verified live on Apple M5); Phase 2 (macOS `rollnw-server`, gated on `server` branch) and Phase 3 (iPadOS touch-adapted toolset) remain open.
+- [Metal indirect draw count via `MTLIndirectCommandBuffer`](metal-indirect-draw-count-icb.md) — deferred device-private GPU-written count buffer support for `cmd_draw_indexed_indirect_count` on Metal.
+- [macOS Developer ID signing and notarization](macos-signing-and-notarization.md) — `macos-tools-sign` job wired in CI; waiting on Apple Developer Program activation to populate `macos-signing` secrets, dry-run `sign_macos`, and enable `MACOS_SIGNING_ENABLED`.
 
 ## Gameplay work
 

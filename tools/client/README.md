@@ -8,7 +8,7 @@ areas and resources, and edit objects and terrain with previews, undo, and save.
 
 ## Getting started
 
-The client runs on Linux and Windows. See the root README for
+The client runs on Linux, Windows, and macOS (Apple Silicon via Metal). See the root README for
 [build and launch instructions](../../README.md#build).
 You need an NWN:EE installation and the module's required hak files. If they
 aren't found automatically, set `NWN_ROOT` to the installation directory and

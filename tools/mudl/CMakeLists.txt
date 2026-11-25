@@ -1,24 +1,40 @@
-add_library(mudl-imgui STATIC
+set(MUDL_IMGUI_SOURCES
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/imgui.cpp
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/imgui_draw.cpp
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/imgui_tables.cpp
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/imgui_widgets.cpp
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/backends/imgui_impl_sdl3.cpp
-    ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/backends/imgui_impl_vulkan.cpp
 )
+if(APPLE)
+    list(APPEND MUDL_IMGUI_SOURCES
+        ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/backends/imgui_impl_metal.mm
+    )
+else()
+    list(APPEND MUDL_IMGUI_SOURCES
+        ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/backends/imgui_impl_vulkan.cpp
+    )
+endif()
+
+add_library(mudl-imgui STATIC ${MUDL_IMGUI_SOURCES})
 
 target_include_directories(mudl-imgui SYSTEM PUBLIC
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7
     ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/backends
 )
 
-target_include_directories(mudl-imgui SYSTEM PUBLIC
-    ${CMAKE_SOURCE_DIR}/lib/nw/gfx/backends/vulkan
-)
-
-target_compile_definitions(mudl-imgui PUBLIC
-    IMGUI_IMPL_VULKAN_USE_VOLK
-)
+if(APPLE)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/external/imgui-1.92.7/backends/imgui_impl_metal.mm
+        PROPERTIES COMPILE_OPTIONS "-fobjc-arc"
+    )
+else()
+    target_include_directories(mudl-imgui SYSTEM PUBLIC
+        ${CMAKE_SOURCE_DIR}/lib/nw/gfx/backends/vulkan
+    )
+    target_compile_definitions(mudl-imgui PUBLIC
+        IMGUI_IMPL_VULKAN_USE_VOLK
+    )
+endif()
 
 target_compile_options(mudl-imgui PRIVATE
     $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-old-style-cast>
@@ -47,6 +63,10 @@ add_executable(mudl
     visual_corpus.cpp
     viewer_runtime.cpp
 )
+if(APPLE)
+    target_sources(mudl PRIVATE imgui_backend_metal.mm)
+    set_source_files_properties(imgui_backend_metal.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+endif()
 
 rollnw_use_tool_version(mudl)
 
@@ -74,7 +94,12 @@ target_link_libraries(mudl PRIVATE
     RecastNavigation::Detour
 )
 
-if(UNIX)
+if(APPLE)
+    set_target_properties(mudl PROPERTIES
+        INSTALL_RPATH "@loader_path"
+        BUILD_RPATH "@loader_path"
+    )
+elseif(UNIX)
     set_target_properties(mudl PROPERTIES
         INSTALL_RPATH "$ORIGIN"
         BUILD_RPATH_USE_ORIGIN TRUE
@@ -148,7 +173,7 @@ endif()
 # Windows has no RPATH, so a build-tree run only finds the shader compiler if
 # it sits beside the executable. The install rules cover packaged artifacts;
 # this covers running mudl straight out of the build directory.
-if(WIN32 AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
+if((WIN32 OR APPLE) AND ROLLNW_SHADER_COMPILER_RUNTIME_LIBS)
     add_custom_command(TARGET mudl POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${ROLLNW_SHADER_COMPILER_RUNTIME_LIBS}

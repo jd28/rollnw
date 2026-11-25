@@ -84,6 +84,15 @@ When `WINDOWS_SIGNING_ENABLED` is `true`, CI signs and timestamps Windows
 executables and DLLs with Azure Artifact Signing before creating the release ZIP.
 Signature verification must pass before assets are published.
 
+When `MACOS_SIGNING_ENABLED` is `true`, CI signs and timestamps the macOS arm64
+executables and bundled dylibs (`libSDL3`, `libslang*`) with Hardened Runtime
+using the Developer ID Application certificate in the `macos-signing` GitHub
+environment (`APPLE_DEVELOPER_ID_CERT_B64`, `APPLE_DEVELOPER_ID_CERT_PASSWORD`),
+re-runs package validation, and notarizes the package via `xcrun notarytool`
+(`APPLE_NOTARY_KEY_B64`, `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`).
+You can dry-run signing on `main` without publishing a release via the
+`sign_macos` `workflow_dispatch` input.
+
 ## VS Code extension
 
 The extension keeps its own `tools/vscode-smalls/package.json` version. Prepare
@@ -116,7 +125,8 @@ The generated record has schema `1`, full `revision`, `source_state`
 fields plus `tool`, `base_version`, `version`, and `channel` (`development` or
 `release`). `--build-info` emits that tool entry. The record is a catalog of all
 five identities; the platform package's explicit tool list determines which
-executables must be present (macOS currently ships only the three Smalls tools).
+executables must be present (Linux x64, Windows x64, and macOS arm64 all ship
+all five tools).
 
 Examples of generated versions:
 

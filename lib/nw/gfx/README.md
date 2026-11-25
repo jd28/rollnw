@@ -1,20 +1,26 @@
 # nw::gfx
 
-`nw::gfx` is a thin rendering abstraction and Vulkan utility layer.
+`nw::gfx` is a thin, multi-backend low-level graphics abstraction supporting
+Vulkan (Linux and Windows) and native Metal 3 (macOS Apple Silicon).
 
 It is not a game engine, scene graph, material system, or editor framework.
 
 ## Project Status
 
-`nw::gfx` is the active low-level graphics foundation for rollnw renderer work and future authored-toolset/game viewports. Higher-level validation currently lives in `lib/nw/render` and `tools/mudl`; older project docs may still describe rollnw as if graphics were out of scope. Read those older statements as historical context, not current direction.
+`nw::gfx` is the active low-level graphics foundation for rollnw renderer work and future authored-toolset/game viewports. Higher-level validation lives in `lib/nw/render`, `tools/mudl`, and `tools/client`; older project docs may still describe rollnw as if graphics were out of scope. Read those older statements as historical context, not current direction.
+
+## Backends
+
+- **Vulkan** (`backends/vulkan/`): selected on Linux and Windows; uses descriptor buffers, SPIR-V 1.6 compiled via Slang, and `native_vulkan.hpp` escape hatches.
+- **Metal** (`backends/metal/`): selected on Apple platforms (`APPLE`); uses Metal 3, Tier-2 bindless argument buffers, MSL compiled from the same HLSL sources via Slang, and `native_metal.hpp` escape hatches.
 
 ## What It Is For
 
-- Creating devices and swapchains
+- Creating devices and swapchains (Vulkan swapchain / `CAMetalLayer`, plus headless offscreen targets)
 - Managing GPU resources such as buffers, textures, render targets, shaders, and pipelines
 - Recording and submitting command lists
 - Exposing low-level rendering primitives with explicit ownership and lifetimes
-- Providing backend escape hatches when higher layers need direct Vulkan access
+- Providing backend escape hatches (`native_vulkan.hpp`, `native_metal.hpp`) when higher layers need direct API access
 
 ## What It Is Not For
 
@@ -39,7 +45,7 @@ It is not a game engine, scene graph, material system, or editor framework.
 
 Current direction:
 
-- descriptor-buffer-backed Vulkan backend
+- descriptor-buffer-backed Vulkan backend (Linux/Windows) and Tier-2 argument-buffer Metal 3 backend (macOS)
 - bindless sampled texture indexing
 - per-frame uniform suballocation for per-draw constants
 - pipeline flags that opt into resource models instead of hard-coding one path

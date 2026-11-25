@@ -130,6 +130,7 @@ Core* create_core(const CoreConfig& desc);
 void destroy_core(Core* core);
 void reset_validation_report(Core* core);
 ValidationReport validation_report(Core* core);
+SDL_WindowFlags window_flags() noexcept;
 
 // ============================================================================
 // == Context =================================================================
@@ -425,8 +426,9 @@ Handle<RenderTarget> create_render_target(Context* ctx, const RenderTargetDesc& 
 void destroy_render_target(Context* ctx, Handle<RenderTarget> handle);
 
 struct ShaderDesc {
-    const void* code;
-    size_t size;
+    const void* code = nullptr;
+    size_t size = 0;
+    uint32_t threadgroup_size[3] = {1, 1, 1};
 };
 
 Handle<Shader> create_shader(Context* ctx, const ShaderDesc& desc);

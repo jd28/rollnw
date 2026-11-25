@@ -4,7 +4,9 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <cstring>
 #include <filesystem>
 
@@ -17,8 +19,10 @@ namespace nw::render {
 
 namespace {
 
+#ifndef NW_GFX_BACKEND_METAL
 // See ShaderProvider::initialize for why the SPIR-V profile is pinned.
 constexpr const char* kSpirvProfile = "spirv_1_6";
+#endif
 
 #ifdef NW_RENDER_HAS_SLANG
 SlangStage slang_stage_for(ShaderStage stage) noexcept
@@ -147,6 +151,95 @@ private:
 #pragma GCC diagnostic pop
 #endif
 
+#ifdef NW_GFX_BACKEND_METAL
+// Convert Vulkan NDC clip-space Y (-1 top, +1 bottom) to Metal NDC (+1 top, -1 bottom)
+// inside the [[vertex]] entry point so all projection matrices, full-screen quads,
+// shadow maps, and framebuffer winding rules remain identical across backends.
+std::string invert_metal_vertex_y(std::string_view msl)
+{
+    // Locate `float4 <pos_field> [[position]];`
+    const size_t pos_attr = msl.find("[[position]]");
+    if (pos_attr == std::string_view::npos) {
+        return std::string{msl};
+    }
+    size_t name_end = pos_attr;
+    while (name_end > 0 && (msl[name_end - 1] == ' ' || msl[name_end - 1] == '\t')) {
+        --name_end;
+    }
+    size_t name_start = name_end;
+    while (name_start > 0 && (std::isalnum(static_cast<unsigned char>(msl[name_start - 1])) || msl[name_start - 1] == '_')) {
+        --name_start;
+    }
+    if (name_start == name_end) {
+        return std::string{msl};
+    }
+    const std::string_view pos_field = msl.substr(name_start, name_end - name_start);
+
+    // Locate `[[vertex]]` entry point and its brace-delimited body.
+    const size_t vs_pos = msl.find("[[vertex]]");
+    if (vs_pos == std::string_view::npos) {
+        return std::string{msl};
+    }
+    const size_t body_open = msl.find('{', vs_pos);
+    if (body_open == std::string_view::npos) {
+        return std::string{msl};
+    }
+    size_t depth = 0;
+    size_t body_close = std::string_view::npos;
+    for (size_t i = body_open; i < msl.size(); ++i) {
+        if (msl[i] == '{') {
+            ++depth;
+        } else if (msl[i] == '}') {
+            if (--depth == 0) {
+                body_close = i;
+                break;
+            }
+        }
+    }
+    if (body_close == std::string_view::npos) {
+        return std::string{msl};
+    }
+
+    std::string out;
+    out.reserve(msl.size() + 128);
+    out.append(msl.substr(0, body_open + 1));
+
+    const std::string_view body = msl.substr(body_open + 1, body_close - (body_open + 1));
+    size_t cursor = 0;
+    while (cursor < body.size()) {
+        const size_t ret_pos = body.find("return ", cursor);
+        if (ret_pos == std::string_view::npos) {
+            out.append(body.substr(cursor));
+            break;
+        }
+        // Ensure `return` is a standalone token, not part of an identifier.
+        if (ret_pos > 0 && (std::isalnum(static_cast<unsigned char>(body[ret_pos - 1])) || body[ret_pos - 1] == '_')) {
+            out.append(body.substr(cursor, (ret_pos + 7) - cursor));
+            cursor = ret_pos + 7;
+            continue;
+        }
+        const size_t semi = body.find(';', ret_pos + 7);
+        if (semi == std::string_view::npos) {
+            out.append(body.substr(cursor));
+            break;
+        }
+        const std::string_view expr = body.substr(ret_pos + 7, semi - (ret_pos + 7));
+        out.append(body.substr(cursor, ret_pos - cursor));
+        out.append("{ auto _nw_vs_out = (");
+        out.append(expr);
+        out.append("); _nw_vs_out.");
+        out.append(pos_field);
+        out.append(".y = -_nw_vs_out.");
+        out.append(pos_field);
+        out.append(".y; return _nw_vs_out; }");
+        cursor = semi + 1;
+    }
+
+    out.append(msl.substr(body_close));
+    return out;
+}
+#endif
+
 // Slang reports warnings as well as errors through the diagnostic blob, and
 // reports them on success too, so this is called after every step rather than
 // only on failure.
@@ -199,12 +292,18 @@ bool ShaderProvider::initialize()
         return false;
     }
 
+    slang::TargetDesc target{};
+#ifdef NW_GFX_BACKEND_METAL
+    target.format = SLANG_METAL;
+    slang::PreprocessorMacroDesc metal_macros[1]{};
+    metal_macros[0].name = "NW_SHADER_METAL";
+    metal_macros[0].value = "1";
+#else
     // spirv_1_6 rather than a sm_6_* profile: the default drops to SPIR-V 1.3,
     // which lowers clip()/discard to OpKill instead of
     // OpDemoteToHelperInvocation. The two differ for quad derivatives along an
     // alpha-cutout edge, and the Vulkan backend deliberately enables
     // shaderDemoteToHelperInvocation.
-    slang::TargetDesc target{};
     target.format = SLANG_SPIRV;
     target.profile = global_session->findProfile(kSpirvProfile);
     if (target.profile == SLANG_PROFILE_UNKNOWN) {
@@ -212,17 +311,33 @@ bool ShaderProvider::initialize()
         global_session->release();
         return false;
     }
+#endif
 
-    slang::CompilerOptionEntry options[1]{};
-    options[0].name = slang::CompilerOptionName::Optimization;
-    options[0].value.kind = slang::CompilerOptionValueKind::Int;
-    options[0].value.intValue0 = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+    slang::CompilerOptionEntry options[2]{};
+    uint32_t option_count = 0;
+    options[option_count].name = slang::CompilerOptionName::Optimization;
+    options[option_count].value.kind = slang::CompilerOptionValueKind::Int;
+    options[option_count].value.intValue0 = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+    ++option_count;
+#ifdef NW_GFX_BACKEND_METAL
+    // Metal reserves `main` as a C/MSL identifier in some contexts so Slang
+    // always renames HLSL entry point `main` to `main_0` (which metal_context.mm
+    // looks up explicitly). Silence the noisy per-shader rename warning.
+    options[option_count].name = slang::CompilerOptionName::DisableWarning;
+    options[option_count].value.kind = slang::CompilerOptionValueKind::String;
+    options[option_count].value.stringValue0 = "40100";
+    ++option_count;
+#endif
 
     auto* file_system = new ResourceFileSystem{resources_};
 
     slang::SessionDesc desc{};
     desc.targets = &target;
     desc.targetCount = 1;
+#ifdef NW_GFX_BACKEND_METAL
+    desc.preprocessorMacros = metal_macros;
+    desc.preprocessorMacroCount = 1;
+#endif
     // Shader #include resolves through ResourceManager; see ResourceFileSystem.
     desc.fileSystem = file_system;
     // HLSL's default matrix layout is column-major, which is what DXC used
@@ -232,7 +347,7 @@ bool ShaderProvider::initialize()
     // at wildly wrong scale rather than failing outright.
     desc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
     desc.compilerOptionEntries = options;
-    desc.compilerOptionEntryCount = 1;
+    desc.compilerOptionEntryCount = option_count;
 
     slang::ISession* session = nullptr;
     if (SLANG_FAILED(global_session->createSession(desc, &session)) || !session) {
@@ -246,8 +361,12 @@ bool ShaderProvider::initialize()
     slang_session_ = session;
     slang_file_system_ = file_system;
     compiler_available_ = true;
+#ifdef NW_GFX_BACKEND_METAL
+    LOG_F(INFO, "Slang available for runtime HLSL compilation (target Metal MSL)");
+#else
     LOG_F(INFO, "Slang available for runtime HLSL compilation (profile {})",
         kSpirvProfile);
+#endif
 #else
     LOG_F(WARNING, "Slang not available, shader compilation disabled");
 #endif
@@ -382,8 +501,33 @@ nw::gfx::Handle<nw::gfx::Shader> ShaderProvider::compile_hlsl(
     log_slang_diagnostics(name, diagnostics);
 
     nw::gfx::ShaderDesc desc{};
+#ifdef NW_GFX_BACKEND_METAL
+    std::string metal_source;
+    if (stage == ShaderStage::vertex) {
+        metal_source = invert_metal_vertex_y(std::string_view{
+            static_cast<const char*>(code->getBufferPointer()),
+            code->getBufferSize()});
+        desc.code = metal_source.data();
+        desc.size = metal_source.size();
+    } else {
+        desc.code = code->getBufferPointer();
+        desc.size = code->getBufferSize();
+    }
+    if (stage == ShaderStage::compute) {
+        if (auto* layout = linked->getLayout(0)) {
+            if (auto* ep = layout->getEntryPointByIndex(0)) {
+                SlangUInt tg_size[3] = {1, 1, 1};
+                ep->getComputeThreadGroupSize(3, tg_size);
+                desc.threadgroup_size[0] = std::max<uint32_t>(1u, static_cast<uint32_t>(tg_size[0]));
+                desc.threadgroup_size[1] = std::max<uint32_t>(1u, static_cast<uint32_t>(tg_size[1]));
+                desc.threadgroup_size[2] = std::max<uint32_t>(1u, static_cast<uint32_t>(tg_size[2]));
+            }
+        }
+    }
+#else
     desc.code = code->getBufferPointer();
     desc.size = code->getBufferSize();
+#endif
 
     const nw::gfx::Handle<nw::gfx::Shader> shader
         = nw::gfx::create_shader(ctx_, desc);

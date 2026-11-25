@@ -49,7 +49,7 @@ jobs:
           - os: macos-15
             platform_name: macOS
             compiler_name: AppleClang
-            binary-name: smalls-lsp-darwin-universal
+            binary-name: smalls-lsp-darwin-arm64
             preset: ci-macos
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -106,11 +106,11 @@ jobs:
       - name: Prepare macOS Binary
         if: matrix.os == 'macos-15'
         run: |
-          # ci-macos builds smalls-lsp as a universal (arm64 + x86_64) binary.
+          # ci-macos builds smalls-lsp for Apple Silicon (arm64).
           lipo -info build/tools/smalls-lsp/smalls-lsp
-          lipo build/tools/smalls-lsp/smalls-lsp -verify_arch arm64 x86_64
+          lipo build/tools/smalls-lsp/smalls-lsp -verify_arch arm64
 
-          cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-darwin-universal
+          cp build/tools/smalls-lsp/smalls-lsp smalls-lsp-darwin-arm64
 
       - name: Prepare Windows Binary
         if: matrix.os == 'windows-2022'
@@ -142,14 +142,14 @@ jobs:
             smalls-lsp-win32-x64.exe
             smalls-lsp-win32-x64.exe.json
 
-      - name: Upload macOS Universal Binary
+      - name: Upload macOS arm64 Binary
         if: matrix.os == 'macos-15'
         uses: actions/upload-artifact@v7
         with:
-          name: smalls-lsp-darwin-universal
+          name: smalls-lsp-darwin-arm64
           path: |
-            smalls-lsp-darwin-universal
-            smalls-lsp-darwin-universal.json
+            smalls-lsp-darwin-arm64
+            smalls-lsp-darwin-arm64.json
 
   package:
     needs: build-binaries
@@ -189,7 +189,7 @@ jobs:
           required=(
             tools/vscode-smalls/bin/smalls-lsp-linux-x64
             tools/vscode-smalls/bin/smalls-lsp-win32-x64.exe
-            tools/vscode-smalls/bin/smalls-lsp-darwin-universal
+            tools/vscode-smalls/bin/smalls-lsp-darwin-arm64
           )
 
           for binary in "${required[@]}"; do
@@ -233,7 +233,7 @@ jobs:
                   for binary in (
                       'smalls-lsp-linux-x64',
                       'smalls-lsp-win32-x64.exe',
-                      'smalls-lsp-darwin-universal',
+                      'smalls-lsp-darwin-arm64',
                   )
               ]
               package = json.loads(archive.read('extension/package.json'))
@@ -251,11 +251,11 @@ jobs:
           required = {
               'extension/bin/smalls-lsp-linux-x64',
               'extension/bin/smalls-lsp-win32-x64.exe',
-              'extension/bin/smalls-lsp-darwin-universal',
+              'extension/bin/smalls-lsp-darwin-arm64',
               'extension/stdlib/core/package.json',
           }
           forbidden = {
-              'extension/bin/smalls-lsp-darwin-arm64',
+              'extension/bin/smalls-lsp-darwin-universal',
               'extension/bin/smalls-lsp-darwin-x64',
           }
 

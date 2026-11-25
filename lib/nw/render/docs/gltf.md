@@ -110,7 +110,7 @@ animation rows before upload. Upload stats then count geometry and texture
 upload failures.
 
 Out-of-range or unsupported data should be rejected, dropped, or counted at the
-conversion/upload boundary. It should not reach Vulkan submission as undefined
+conversion/upload boundary. It should not reach GPU submission as undefined
 state.
 
 ## Related Issues
