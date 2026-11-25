@@ -82,8 +82,12 @@ Its command-line tools also produce repeatable screenshots, turntable sequences,
 and fixed-step rendering benchmarks, including offscreen runs.</p>
 <h2 id="build">Build</h2>
 <p>Requires CMake 3.21+ and a C++20 compiler. Renderer tools (<code>rollnw-client</code> and <code>mudl</code>)
-run on Linux and Windows via Vulkan, and on macOS (Apple Silicon) via native Metal.
-For a Linux renderer build with Ninja:</p>
+run on Linux and Windows via Vulkan, and on macOS (Apple Silicon) via native Metal.</p>
+<p>Linux binary packages built from current source, including the VS Code language
+server, target Ubuntu 24.04 or a compatible runtime. GCC CI uses Ubuntu's GCC 14
+packages without a toolchain PPA. The 2026.10.24 release retains its Ubuntu 22.04
+build baseline.</p>
+<p>For a Linux renderer build with Ninja:</p>
 <div class="codehilite"><pre><span></span><code>cmake<span class="w"> </span>--preset<span class="w"> </span>linux-renderer-dev
 cmake<span class="w"> </span>--build<span class="w"> </span>--preset<span class="w"> </span>linux-renderer-dev<span class="w"> </span>--target<span class="w"> </span>rollnw-client<span class="w"> </span>mudl
 ./build-renderer/tools/client/rollnw-client
