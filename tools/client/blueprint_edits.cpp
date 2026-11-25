@@ -25,6 +25,7 @@
 #include <array>
 #include <cctype>
 #include <fstream>
+#include <iterator>
 #include <stdexcept>
 
 namespace fs = std::filesystem;
@@ -54,7 +55,8 @@ bool inside(const fs::path& root, const fs::path& target)
 bool read_file(const fs::path& path, std::string& bytes, std::string& error)
 {
     std::ifstream input{path, std::ios::binary};
-    bytes.assign(std::istreambuf_iterator<char>{input}, {});
+    bytes.clear();
+    std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(bytes));
     if (!input.is_open() || input.bad()) {
         error = "Failed to read blueprint: " + path.string();
         return false;

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <iterator>
 
 namespace nw::toolset {
 namespace {
@@ -459,7 +460,12 @@ TEST_F(ClientBlueprints, ReferencesReplaceValuesAndPreservePlacementThroughResto
     ASSERT_TRUE(run_blueprint_update_operation(operation, "prepare", error)) << error;
     EXPECT_EQ(read_blueprint_operation_progress(operation).stage, "ready");
     EXPECT_EQ(read_blueprint_operation_progress(operation).instances, 1u);
-    auto read = [](const auto& file) { std::ifstream stream{file}; return std::string{std::istreambuf_iterator<char>{stream}, {}}; };
+    auto read = [](const auto& file) {
+        std::ifstream stream{file};
+        std::string bytes;
+        std::copy(std::istreambuf_iterator<char>{stream}, std::istreambuf_iterator<char>{}, std::back_inserter(bytes));
+        return bytes;
+    };
     EXPECT_EQ(read(path), original_bytes);
     ASSERT_TRUE(run_blueprint_update_operation(operation, "commit", error)) << error;
     const auto updated = nlohmann::json::parse(read(path));

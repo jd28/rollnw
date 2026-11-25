@@ -17,6 +17,7 @@
 #include <charconv>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <limits>
 
 namespace nw::toolset {
@@ -47,7 +48,8 @@ bool path_is_inside(const std::filesystem::path& outer,
 bool read_file(const std::filesystem::path& path, std::string& output)
 {
     std::ifstream input{path, std::ios::binary};
-    output.assign(std::istreambuf_iterator<char>{input}, {});
+    output.clear();
+    std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(output));
     return input.is_open() && !input.bad();
 }
 

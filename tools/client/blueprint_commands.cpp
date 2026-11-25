@@ -14,6 +14,7 @@
 #include <charconv>
 #include <exception>
 #include <fstream>
+#include <iterator>
 
 namespace nw::toolset {
 namespace {
@@ -121,7 +122,8 @@ CommandResult change_created_blueprint_files(const std::filesystem::path& projec
                 }
             } else {
                 std::ifstream input{file.target, std::ios::binary};
-                const std::string bytes{std::istreambuf_iterator<char>{input}, {}};
+                std::string bytes;
+                std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(bytes));
                 if (!input.is_open() || input.bad() || bytes != file.bytes) {
                     return failure("Created blueprint changed; undo will not delete it: " + file.target.string());
                 }
@@ -158,7 +160,8 @@ CommandResult change_created_blueprint_files(const std::filesystem::path& projec
                 const auto& file = files[index];
                 if (restore) {
                     std::ifstream input{file.target, std::ios::binary};
-                    const std::string bytes{std::istreambuf_iterator<char>{input}, {}};
+                    std::string bytes;
+                    std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(bytes));
                     input.close();
                     std::error_code ec;
                     if (bytes != file.bytes || !fs::remove(file.target, ec)) {

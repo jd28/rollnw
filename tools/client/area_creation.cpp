@@ -21,6 +21,7 @@
 #include <cctype>
 #include <exception>
 #include <fstream>
+#include <iterator>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -55,7 +56,8 @@ std::string trim_ascii(std::string_view value)
 bool read_file(const fs::path& path, std::string& output)
 {
     std::ifstream input{path, std::ios::binary};
-    output.assign(std::istreambuf_iterator<char>{input}, {});
+    output.clear();
+    std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(output));
     return input.is_open() && !input.bad();
 }
 

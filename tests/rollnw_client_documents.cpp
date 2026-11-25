@@ -15,9 +15,11 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <memory>
 
 namespace nw::toolset {
@@ -43,7 +45,9 @@ TEST(ClientDocuments, ExclusiveResourceWritesAndExpectedReplacement)
     results = write_resource_files_atomic(replace);
     ASSERT_TRUE(results[0].written) << results[0].error;
     std::ifstream input{target};
-    EXPECT_EQ(std::string(std::istreambuf_iterator<char>{input}, {}), "replacement");
+    std::string bytes;
+    std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(bytes));
+    EXPECT_EQ(bytes, "replacement");
     EXPECT_EQ(std::distance(std::filesystem::directory_iterator{root}, std::filesystem::directory_iterator{}), 1);
 }
 

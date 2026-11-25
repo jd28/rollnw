@@ -13,6 +13,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <string_view>
 #include <utility>
@@ -471,7 +472,8 @@ std::vector<ResourceFileWriteResult> write_resource_files_atomic(
                     continue;
                 }
                 std::ifstream input{target, std::ios::binary};
-                const std::string current{std::istreambuf_iterator<char>{input}, {}};
+                std::string current;
+                std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(current));
                 if (!input.is_open() || input.bad() || current != *write.expected_bytes) {
                     result.error = "Resource file changed since preparation";
                     continue;

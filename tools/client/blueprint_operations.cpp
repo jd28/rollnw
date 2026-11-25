@@ -11,6 +11,7 @@
 #include <atomic>
 #include <chrono>
 #include <fstream>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 
@@ -23,7 +24,8 @@ constexpr int protocol_version = 1;
 std::string read_bytes(const fs::path& path)
 {
     std::ifstream input{path, std::ios::binary};
-    std::string result{std::istreambuf_iterator<char>{input}, {}};
+    std::string result;
+    std::copy(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}, std::back_inserter(result));
     if (!input.is_open() || input.bad()) { throw std::runtime_error("Cannot read " + path.string()); }
     return result;
 }
