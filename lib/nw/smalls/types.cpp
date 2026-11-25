@@ -105,7 +105,15 @@ TypeTable::TypeTable(MemoryResource* allocator)
 TypeTable::~TypeTable()
 {
     for (auto it : structs_) {
-        allocator_->deallocate(it);
+        if (it) {
+            if (it->fields) {
+                allocator_->deallocate(it->fields);
+            }
+            if (it->heap_ref_offsets) {
+                allocator_->deallocate(it->heap_ref_offsets);
+            }
+            allocator_->deallocate(it);
+        }
     }
     for (auto it : tuples_) {
         if (it) {

@@ -403,7 +403,13 @@ Module* load_module(const std::filesystem::path& path, bool instantiate, const M
         NW_PROFILE_SCOPE_N("kernel.load_module.make_module");
         mod = objects().make_module();
     }
-    if (!mod) { return nullptr; }
+    if (!mod) {
+        services().module_loading_ = false;
+        services().module_loaded_ = false;
+        services().shutdown();
+        services().start();
+        return nullptr;
+    }
 
     if (mod->haks.size()) {
         NW_PROFILE_SCOPE_N("kernel.load_module.load_haks");

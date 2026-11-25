@@ -118,7 +118,6 @@ struct Area : public ObjectBase {
     Vector<Trigger*> triggers;
     Vector<Waypoint*> waypoints;
     String comments;
-    LocString name;
     Tileset* tileset = nullptr;
     Resref tileset_resref;
     Vector<AreaTile> tiles;

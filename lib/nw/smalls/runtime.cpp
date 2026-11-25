@@ -5818,6 +5818,12 @@ TypeID Runtime::register_tuple_type(const Vector<TypeID>& element_types)
         return invalid_type_id;
     }
 
+    for (size_t i = 0; i < element_types.size(); ++i) {
+        if (!type_table_.get(element_types[i])) {
+            return invalid_type_id;
+        }
+    }
+
     void* mem = allocator()->allocate(sizeof(TupleDef), alignof(TupleDef));
     auto* tuple_def = new (mem) TupleDef{};
     tuple_def->element_count = static_cast<uint32_t>(element_types.size());

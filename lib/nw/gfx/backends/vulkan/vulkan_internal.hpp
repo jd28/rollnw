@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -101,8 +102,10 @@ struct VulkanCore {
     VkPhysicalDeviceVulkan12Features features_12{};
     VkPhysicalDeviceVulkan11Features features_11{};
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{};
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor_buffer_features{};
     VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer_props{};
     uint32_t graphics_queue_timestamp_valid_bits = 0;
+    std::mutex validation_report_mutex;
     ValidationReport validation_report{};
 
     std::vector<const char*> enabled_device_extensions;

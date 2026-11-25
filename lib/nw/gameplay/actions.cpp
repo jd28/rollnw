@@ -210,7 +210,8 @@ bool complete_actor_actions(ObjectHandle area, const nav::NavWorldState& navigat
             if (state.elapsed_ticks >= state.pickup_ticks) { state.phase = ActionPhase::finished; }
             continue;
         }
-        if (state.kind == ActionKind::move_to || state.kind == ActionKind::pickup) {
+        if (state.kind == ActionKind::move_to
+            || (state.kind == ActionKind::pickup && state.phase != ActionPhase::grabbing)) {
             if (movement[index] == ActionMovementStatus::failed) {
                 finish(state, result, ActionStatus::movement_failed);
                 continue;

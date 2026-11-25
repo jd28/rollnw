@@ -56,6 +56,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     const bool validation_message = (type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) != 0;
     if (vk && validation_message) {
         const char* message = callback_data && callback_data->pMessage ? callback_data->pMessage : "";
+        std::lock_guard<std::mutex> lock(vk->validation_report_mutex);
         if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
             ++vk->validation_report.error_count;
             if (vk->validation_report.first_error.empty()) {
@@ -150,15 +151,8 @@ VkInstance create_instance(VulkanCore* vk, const CoreConfig& desc)
     create_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
     create_info.ppEnabledLayerNames = layers.data();
 
-    VkInstance instance = VK_NULL_HANDLE;
-    VK_CHECK(vkCreateInstance(&create_info, nullptr, &instance));
-
-    volkLoadInstance(instance);
-
+    VkDebugUtilsMessengerCreateInfoEXT debug_create_info{};
     if (desc.enable_validation) {
-        VkDebugUtilsMessengerCreateInfoEXT debug_create_info{};
-
-        debug_create_info = {};
         debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -167,9 +161,15 @@ VkInstance create_instance(VulkanCore* vk, const CoreConfig& desc)
             | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debug_create_info.pfnUserCallback = debug_callback;
         debug_create_info.pUserData = vk;
-
         create_info.pNext = &debug_create_info;
+    }
 
+    VkInstance instance = VK_NULL_HANDLE;
+    VK_CHECK(vkCreateInstance(&create_info, nullptr, &instance));
+
+    volkLoadInstance(instance);
+
+    if (desc.enable_validation) {
         VK_CHECK(vkCreateDebugUtilsMessengerEXT(instance, &debug_create_info, nullptr, &vk->debug_messenger));
     }
 
@@ -225,16 +225,37 @@ VkDevice create_logical_device(VulkanCore* vk)
     // (render_pbr_static_instanced.vs, render_particle_billboard.vs,
     // render_sound_debug_dot.vs) regardless of the draw's base instance.
     // Without it those pipelines fail to create.
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT supported_desc_buffer_features{};
+    supported_desc_buffer_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT;
     VkPhysicalDeviceVulkan11Features supported_features_11{};
     supported_features_11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    supported_features_11.pNext = &supported_desc_buffer_features;
+    VkPhysicalDeviceVulkan12Features supported_features_12{};
+    supported_features_12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    supported_features_12.pNext = &supported_features_11;
+    VkPhysicalDeviceVulkan13Features supported_features_13{};
+    supported_features_13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    supported_features_13.pNext = &supported_features_12;
     VkPhysicalDeviceFeatures2 supported_features2{};
     supported_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    supported_features2.pNext = &supported_features_11;
+    supported_features2.pNext = &supported_features_13;
     vkGetPhysicalDeviceFeatures2(vk->physical_device, &supported_features2);
     if (!supported_features_11.shaderDrawParameters) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
             "Selected Vulkan physical device does not support required feature "
             "shaderDrawParameters");
+        return VK_NULL_HANDLE;
+    }
+    if (!supported_features_13.dynamicRendering || !supported_features_13.synchronization2
+        || !supported_features_13.shaderDemoteToHelperInvocation
+        || !supported_features_12.bufferDeviceAddress || !supported_features_12.runtimeDescriptorArray
+        || !supported_features_12.shaderSampledImageArrayNonUniformIndexing
+        || !supported_features_12.descriptorBindingPartiallyBound
+        || !supported_features_12.descriptorBindingVariableDescriptorCount
+        || !supported_features_12.drawIndirectCount
+        || !supported_desc_buffer_features.descriptorBuffer) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+            "Selected Vulkan physical device does not support required Vulkan 1.2/1.3 or descriptor buffer features");
         return VK_NULL_HANDLE;
     }
 
@@ -276,10 +297,10 @@ VkDevice create_logical_device(VulkanCore* vk)
     vk->features_12.pNext = &vk->features_11;
 
     // Enable descriptor buffer extension (bindless-first descriptor model).
-    static VkPhysicalDeviceDescriptorBufferFeaturesEXT desc_buffer_features{};
-    desc_buffer_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT;
-    desc_buffer_features.descriptorBuffer = VK_TRUE;
-    vk->features_11.pNext = &desc_buffer_features;
+    vk->descriptor_buffer_features = {};
+    vk->descriptor_buffer_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT;
+    vk->descriptor_buffer_features.descriptorBuffer = VK_TRUE;
+    vk->features_11.pNext = &vk->descriptor_buffer_features;
 
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -391,7 +412,9 @@ void reset_validation_report(Core* core)
     if (!core) {
         return;
     }
-    as_vulkan(core)->validation_report = {};
+    auto* vk = as_vulkan(core);
+    std::lock_guard<std::mutex> lock(vk->validation_report_mutex);
+    vk->validation_report = {};
 }
 
 ValidationReport validation_report(Core* core)
@@ -399,7 +422,9 @@ ValidationReport validation_report(Core* core)
     if (!core) {
         return {};
     }
-    return as_vulkan(core)->validation_report;
+    auto* vk = as_vulkan(core);
+    std::lock_guard<std::mutex> lock(vk->validation_report_mutex);
+    return vk->validation_report;
 }
 
 } // namespace nw::gfx

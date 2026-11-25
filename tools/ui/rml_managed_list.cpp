@@ -57,8 +57,9 @@ std::optional<int> parse_int(std::string_view value)
 
 Rml::Element* ancestor_with_class(Rml::Element* element, std::string_view class_name)
 {
+    const Rml::String cls{class_name};
     for (auto* cursor = element; cursor; cursor = cursor->GetParentNode()) {
-        if (cursor->IsClassSet(class_name.data())) {
+        if (cursor->IsClassSet(cls)) {
             return cursor;
         }
     }
